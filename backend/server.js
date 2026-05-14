@@ -5,6 +5,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
+const users = require('./routes/userRoutes');
 
 // Load env vars
 dotenv.config();
@@ -21,7 +22,10 @@ app.use(express.json());
 app.use(cookieParser());
 
 // CORS
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true,
+}));
 
 // Set security headers
 app.use(helmet());
@@ -35,6 +39,7 @@ app.use(limiter);
 
 // Route files
 const auth = require('./routes/authRoutes');
+app.use('/api/users', users);
 const profiles = require('./routes/profileRoutes');
 const projects = require('./routes/projectRoutes');
 
@@ -47,6 +52,7 @@ app.get("/", (req, res) => {
 
 // Mount routers
 app.use('/api/auth', auth);
+app.use('/api/users', users);
 app.use('/api/profile', profiles);
 app.use('/api/projects', projects);
 

@@ -14,6 +14,8 @@ exports.getProjects = async (req, res, next) => {
         $or: [
           { assignedTo: req.user._id },
           { createdBy: req.user._id },
+          { department: req.user.department },
+
         ],
       };
     }

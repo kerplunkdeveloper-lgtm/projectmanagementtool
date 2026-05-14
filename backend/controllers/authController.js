@@ -1,9 +1,10 @@
 const User = require('../models/User');
 const Profile = require('../models/Profile');
 
-// @desc    Register user
-// @route   POST /api/auth/register
-// @access  Public
+
+
+
+// register
 exports.register = async (req, res, next) => {
   try {
     const { name, email, password, role } = req.body;
@@ -34,9 +35,10 @@ exports.register = async (req, res, next) => {
   }
 };
 
-// @desc    Login user
-// @route   POST /api/auth/login
-// @access  Public
+
+
+
+// login
 exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
@@ -78,20 +80,26 @@ exports.login = async (req, res, next) => {
   }
 };
 
-// @desc    Log user out / clear cookie
-// @route   GET /api/auth/logout
-// @access  Private
-exports.logout = async (req, res, next) => {
-  res.cookie('token', 'none', {
-    expires: new Date(Date.now() + 10 * 1000),
+
+
+//logout 
+exports.logout = async (req, res) => {
+
+  res.cookie('token', '', {
+    expires: new Date(0),
     httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
   });
 
   res.status(200).json({
     success: true,
-    data: {},
+    message: 'Logged out successfully',
   });
 };
+
+
+
 
 // Get token from model, create cookie and send response
 const sendTokenResponse = (user, statusCode, res) => {
