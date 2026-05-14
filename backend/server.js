@@ -38,6 +38,13 @@ const auth = require('./routes/authRoutes');
 const profiles = require('./routes/profileRoutes');
 const projects = require('./routes/projectRoutes');
 
+
+app.get("/", (req, res) => {
+  res.send("hello");
+});
+
+
+
 // Mount routers
 app.use('/api/auth', auth);
 app.use('/api/profile', profiles);
