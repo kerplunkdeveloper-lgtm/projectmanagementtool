@@ -1,145 +1,197 @@
-const Profile = require('../models/Profile');
-const User = require('../models/User');
+const User = require("../models/User");
+const Profile = require("../models/Profile");
+const cloudinary = require("../config/cloudinary");
 
-// @desc    Get current user's profile
-// @route   GET /api/profile/me
-// @access  Private
-exports.getMyProfile = async (req, res, next) => {
+
+// CREATE PROFILE
+exports.createProfile = async (req, res) => {
+
   try {
-    const profile = await Profile.findOne({ user: req.user._id }).populate('user', 'name email role');
 
-    if (!profile) {
+    const {
+      bio,
+      phone,
+      address,
+    } = req.body;
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'Profile not found',
+        message: "User not found",
       });
     }
 
-    res.status(200).json({
-      success: true,
-      data: profile,
+    let imageData = {};
+
+    if (req.file) {
+
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "profiles",
+      });
+
+      imageData = {
+        public_id: result.public_id,
+        url: result.secure_url,
+      };
+    }
+
+    const profile = await Profile.create({
+      bio,
+      phone,
+      address,
+      profileImage: imageData,
     });
-  } catch (err) {
-    res.status(400).json({
+
+    user.profile = profile._id;
+
+    await user.save();
+
+    res.status(201).json({
+      success: true,
+      profile,
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
       success: false,
-      message: err.message,
+      message: error.message,
     });
   }
 };
 
-// @desc    Update profile
-// @route   PUT /api/profile
-// @access  Private
-exports.updateProfile = async (req, res, next) => {
-  try {
-    const fieldsToUpdate = {
-      bio: req.body.bio,
-      skills: req.body.skills,
-      experience: req.body.experience,
-      department: req.body.department,
-      phone: req.body.phone,
-      address: req.body.address,
-    };
 
-    const profile = await Profile.findOneAndUpdate(
-      { user: req.user._id },
-      fieldsToUpdate,
-      {
-        new: true,
-        runValidators: true,
+
+// GET PROFILE
+exports.getProfile = async (req, res) => {
+
+  try {
+
+    const user = await User.findById(req.user.id)
+      .populate("profile");
+
+    res.status(200).json({
+      success: true,
+      profile: user.profile,
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+
+
+
+// UPDATE PROFILE
+exports.updateProfile = async (req, res) => {
+
+  try {
+
+    const {
+      bio,
+      phone,
+      address,
+    } = req.body;
+
+    const user = await User.findById(req.user.id)
+      .populate("profile");
+
+    if (!user.profile) {
+      return res.status(404).json({
+        success: false,
+        message: "Profile not found",
+      });
+    }
+
+    const profile = await Profile.findById(user.profile._id);
+
+    profile.bio = bio || profile.bio;
+    profile.phone = phone || profile.phone;
+    profile.address = address || profile.address;
+
+
+    // IMAGE UPDATE
+    if (req.file) {
+
+      // DELETE OLD IMAGE
+      if (profile.profileImage.public_id) {
+
+        await cloudinary.uploader.destroy(
+          profile.profileImage.public_id
+        );
       }
-    );
 
-    if (!profile) {
-      return res.status(404).json({
-        success: false,
-        message: 'Profile not found',
+      // UPLOAD NEW IMAGE
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "profiles",
       });
+
+      profile.profileImage = {
+        public_id: result.public_id,
+        url: result.secure_url,
+      };
     }
+
+    await profile.save();
 
     res.status(200).json({
       success: true,
-      data: profile,
+      profile,
     });
-  } catch (err) {
-    res.status(400).json({
+
+  } catch (error) {
+
+    res.status(500).json({
       success: false,
-      message: err.message,
+      message: error.message,
     });
   }
 };
 
-// @desc    Delete profile
-// @route   DELETE /api/profile
-// @access  Private
-exports.deleteProfile = async (req, res, next) => {
+
+
+
+// DELETE PROFILE IMAGE
+exports.deleteProfileImage = async (req, res) => {
+
   try {
-    const profile = await Profile.findOneAndDelete({ user: req.user._id });
 
-    if (!profile) {
-      return res.status(404).json({
-        success: false,
-        message: 'Profile not found',
-      });
-    }
+    const user = await User.findById(req.user.id)
+      .populate("profile");
 
-    // Also remove profile reference from user
-    await User.findByIdAndUpdate(req.user._id, { profile: null });
+    const profile = await Profile.findById(user.profile._id);
 
-    res.status(200).json({
-      success: true,
-      data: {},
-    });
-  } catch (err) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
-  }
-};
+    if (profile.profileImage.public_id) {
 
-// @desc    Get all profiles
-// @route   GET /api/profile
-// @access  Private/Admin
-exports.getProfiles = async (req, res, next) => {
-  try {
-    const profiles = await Profile.find().populate('user', 'name email role');
+      await cloudinary.uploader.destroy(
+        profile.profileImage.public_id
+      );
 
-    res.status(200).json({
-      success: true,
-      count: profiles.length,
-      data: profiles,
-    });
-  } catch (err) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
-  }
-};
+      profile.profileImage = {
+        public_id: "",
+        url: "",
+      };
 
-// @desc    Get single profile
-// @route   GET /api/profile/:id
-// @access  Private/Admin
-exports.getProfile = async (req, res, next) => {
-  try {
-    const profile = await Profile.findById(req.params.id).populate('user', 'name email role');
-
-    if (!profile) {
-      return res.status(404).json({
-        success: false,
-        message: 'Profile not found',
-      });
+      await profile.save();
     }
 
     res.status(200).json({
       success: true,
-      data: profile,
+      message: "Profile image deleted",
     });
-  } catch (err) {
-    res.status(400).json({
+
+  } catch (error) {
+
+    res.status(500).json({
       success: false,
-      message: err.message,
+      message: error.message,
     });
   }
 };

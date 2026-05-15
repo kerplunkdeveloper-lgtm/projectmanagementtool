@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
 const users = require('./routes/userRoutes');
+const templateRoutes = require('./routes/templateRoutes');
 
 // Load env vars
 dotenv.config();
@@ -42,7 +43,9 @@ const auth = require('./routes/authRoutes');
 app.use('/api/users', users);
 const profiles = require('./routes/profileRoutes');
 const projects = require('./routes/projectRoutes');
-
+const clientRoutes = require(
+  "./routes/clientRoutes"
+);
 
 app.get("/", (req, res) => {
   res.send("hello");
@@ -55,6 +58,8 @@ app.use('/api/auth', auth);
 app.use('/api/users', users);
 app.use('/api/profile', profiles);
 app.use('/api/projects', projects);
+app.use('/api/clients', clientRoutes);
+app.use('/api/templates', templateRoutes);
 
 const PORT = process.env.PORT || 5000;
 

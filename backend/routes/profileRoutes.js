@@ -1,21 +1,48 @@
-const express = require('express');
-const {
-  getMyProfile,
-  updateProfile,
-  deleteProfile,
-  getProfiles,
-  getProfile,
-} = require('../controllers/profileController');
+const express = require("express");
 
 const router = express.Router();
 
-const { protect, authorize } = require('../middleware/auth');
+const {
+  createProfile,
+  getProfile,
+  updateProfile,
+  deleteProfileImage,
+} = require("../controllers/profileController");
 
-router.get('/me', protect, getMyProfile);
-router.put('/', protect, updateProfile);
-router.delete('/', protect, deleteProfile);
+const { protect, authorize } = require("../middleware/auth");
 
-router.get('/', protect, authorize('admin'), getProfiles);
-router.get('/:id', protect, authorize('admin'), getProfile);
+const upload = require("../middleware/upload");
+
+
+
+router.post(
+  "/create",
+  protect,
+  upload.single("image"),
+  createProfile
+);
+
+
+router.get(
+  "/me",
+  protect,
+  getProfile
+);
+
+
+router.put(
+  "/update",
+  protect,
+  authorize('admin', 'operationmanager', 'team'),
+  upload.single("image"),
+  updateProfile
+);
+
+
+router.delete(
+  "/delete-image",
+  protect,
+  deleteProfileImage
+);
 
 module.exports = router;

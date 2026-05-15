@@ -14,6 +14,8 @@ import AdminProjects from "../pages/admin/AdminProjects.jsx";
 import AdminUsers from "../pages/admin/AdminUsers.jsx";
 import AdminReports from "../pages/admin/AdminReports.jsx";
 
+import Profile from "../pages/profile/Profile.jsx";
+
 import OperationHome from "../pages/OperationMananger/OperationHome.jsx";
 import OperationProjects from "../pages/OperationMananger/OperationProjects.jsx";
 import OperationTasks from "../pages/OperationMananger/OperationTasks.jsx";
@@ -21,7 +23,10 @@ import OperationTasks from "../pages/OperationMananger/OperationTasks.jsx";
 import TeamHome from "../pages/team/TeamHome.jsx";
 import TeamTasks from "../pages/team/TeamTasks.jsx";
 
+
 import ProtectedRoute from "../components/common/ProtectedRoute.jsx";
+import Templatelib from "../pages/admin/templatelibrary/Templatelib.jsx";
+import Clients from "../pages/admin/clients/Clients.jsx";
 
 const AppRoutes = () => {
   return (
@@ -52,6 +57,12 @@ const AppRoutes = () => {
           element={<AdminProjects />}
         />
 
+
+          <Route
+          path="clients"
+          element={<Clients />}
+        />
+
         <Route
           path="users"
           element={<AdminUsers />}
@@ -61,11 +72,24 @@ const AppRoutes = () => {
           path="reports"
           element={<AdminReports />}
         />
+
+        
+        <Route
+          path="profile"
+          element={<Profile />}
+        />
+
+   
+        <Route
+          path="template-library"
+          element={<Templatelib />}
+        />
+        
       </Route>
 
       {/* OPERATION MANAGER ROUTES */}
       <Route
-        path="/operation"
+        path="/operationmanager"
         element={
           <ProtectedRoute
             allowedRoles={["operationmanager"]}
@@ -88,7 +112,15 @@ const AppRoutes = () => {
           path="tasks"
           element={<OperationTasks />}
         />
+
+
+         <Route
+          path="profile"
+          element={<Profile />}
+        />
       </Route>
+
+
 
       {/* TEAM ROUTES */}
       <Route
@@ -108,7 +140,13 @@ const AppRoutes = () => {
           path="tasks"
           element={<TeamTasks />}
         />
+
+        <Route
+          path="profile"
+          element={<Profile />}
+        />
       </Route>
+     
 
     </Routes>
   );

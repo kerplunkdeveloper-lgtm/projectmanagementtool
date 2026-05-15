@@ -1,4 +1,5 @@
 import React from "react";
+import logo from "../../assets/logo.avif";
 
 import {
   NavLink,
@@ -6,9 +7,22 @@ import {
 
 import {
   FiX,
+   FiLogOut,
 } from "react-icons/fi";
 
+import {
+  useSelector,
+  useDispatch,
+} from "react-redux";
+
+import toast from "react-hot-toast";
+
 import { sidebarConfig } from "../../config/sidebarConfig";
+
+
+import {
+  logoutUser,
+} from "../../features/auth/authSlice";
 
 const Sidebar = ({
   role,
@@ -16,8 +30,36 @@ const Sidebar = ({
   setSidebarOpen,
 }) => {
 
+
+  const dispatch = useDispatch();
+
   const menuItems =
     sidebarConfig[role] || [];
+
+
+
+// LOGOUT
+  const handleLogout =
+    async () => {
+
+      await dispatch(
+        logoutUser()
+      );
+
+      toast.success(
+        "Logout Success"
+      );
+
+      navigate("/");
+    };
+
+
+
+
+
+
+
+
 
   return (
     <>
@@ -27,16 +69,15 @@ const Sidebar = ({
         onClick={() => setSidebarOpen(false)}
         className={`
           fixed inset-0 z-40
-          bg-black/50
+      
           backdrop-blur-sm
           transition-all duration-300
 
           lg:hidden
 
-          ${
-            sidebarOpen
-              ? "opacity-100 visible"
-              : "opacity-0 invisible"
+          ${sidebarOpen
+            ? "opacity-100 visible"
+            : "opacity-0 invisible"
           }
         `}
       />
@@ -46,22 +87,15 @@ const Sidebar = ({
         className={`
           fixed lg:static
           top-0 left-0 z-50
-
           w-[280px]
           h-screen
-
           bg-[#0D1B2A]
-
           border-r border-white/10
-
           p-5
-
           transition-all duration-300
-
-          ${
-            sidebarOpen
-              ? "translate-x-0"
-              : "-translate-x-full lg:translate-x-0"
+          ${sidebarOpen
+            ? "translate-x-0"
+            : "-translate-x-full lg:translate-x-0"
           }
         `}
       >
@@ -76,17 +110,12 @@ const Sidebar = ({
         >
 
           <div>
+    
+    <div>
+  <img src={logo} alt="" />
 
-            <h1
-              className="
-                text-5xl
-                font-bold
-                text-cyan-400
-              "
-            >
-              PMS
-            </h1>
-
+    </div>
+         
             <p className="text-gray-400">
               {role}
             </p>
@@ -155,9 +184,8 @@ const Sidebar = ({
                     transition-all
                     duration-300
 
-                    ${
-                      isActive
-                        ? `
+                    ${isActive
+                    ? `
                           bg-gradient-to-r
                           from-cyan-400
                           to-blue-600
@@ -166,13 +194,13 @@ const Sidebar = ({
 
                           shadow-lg
                         `
-                        : `
+                    : `
                           bg-white/5
                           text-gray-200
 
                           hover:bg-white/10
                         `
-                    }
+                  }
                   `
                 }
               >
@@ -191,6 +219,58 @@ const Sidebar = ({
               </NavLink>
             );
           })}
+        </div>
+
+
+         {/* BOTTOM */}
+        <div
+          className="
+            mt-auto
+            pt-6
+          "
+        >
+
+          {/* LOGOUT BUTTON */}
+          <button
+            onClick={handleLogout}
+
+            className="
+              w-full
+
+              flex
+              items-center
+              justify-center
+              gap-3
+
+              py-4
+
+              rounded-2xl
+
+              bg-gradient-to-r
+              from-red-500
+              via-rose-500
+              to-pink-600
+
+              text-white
+
+              font-semibold
+
+              shadow-lg
+              shadow-red-500/30
+
+              hover:scale-[1.02]
+
+              transition-all
+              duration-300
+            "
+          >
+
+            <FiLogOut size={20} />
+
+            Logout
+
+          </button>
+
         </div>
 
       </aside>

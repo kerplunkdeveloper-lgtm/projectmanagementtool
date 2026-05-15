@@ -1,7 +1,5 @@
 const User = require('../models/User');
-
-
-
+const bcrypt = require('bcryptjs');
 
 
 
@@ -25,8 +23,6 @@ exports.getUsers = async (req, res) => {
     });
   }
 };
-
-
 
 
 
@@ -58,11 +54,17 @@ exports.getUser = async (req, res) => {
 };
 
 
+
+
 // .....................................................create user.................................
 
 exports.createUser = async (req, res) => {
   try {
-    const { email } = req.body;
+
+    const {
+      email,
+      password,
+    } = req.body;
 
     // Check existing user
     const existingUser = await User.findOne({ email });
@@ -74,8 +76,16 @@ exports.createUser = async (req, res) => {
       });
     }
 
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+
+    const hashedPassword = await bcrypt.hash(password, salt);
+
     // Create user
-    const user = await User.create(req.body);
+    const user = await User.create({
+      ...req.body,
+      password: hashedPassword,
+    });
 
     res.status(201).json({
       success: true,
@@ -90,14 +100,32 @@ exports.createUser = async (req, res) => {
   }
 };
 
-// @desc    Update user
-// @route   PUT /api/users/:id
-// @access  Admin / OperationManager
+
+
+
+// .....................................................update user.................................
+
 exports.updateUser = async (req, res) => {
   try {
+
+    const updateData = {
+      ...req.body,
+    };
+
+    // If password exists -> hash password
+    if (req.body.password) {
+
+      const salt = await bcrypt.genSalt(10);
+
+      updateData.password = await bcrypt.hash(
+        req.body.password,
+        salt
+      );
+    }
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       {
         new: true,
         runValidators: true,
@@ -115,6 +143,7 @@ exports.updateUser = async (req, res) => {
       success: true,
       data: user,
     });
+
   } catch (err) {
     res.status(400).json({
       success: false,
@@ -123,11 +152,14 @@ exports.updateUser = async (req, res) => {
   }
 };
 
-// @desc    Delete user
-// @route   DELETE /api/users/:id
-// @access  Admin only
+
+
+
+// .....................................................delete user.................................
+
 exports.deleteUser = async (req, res) => {
   try {
+
     const user = await User.findByIdAndDelete(req.params.id);
 
     if (!user) {
@@ -141,6 +173,7 @@ exports.deleteUser = async (req, res) => {
       success: true,
       message: 'User deleted successfully',
     });
+
   } catch (err) {
     res.status(500).json({
       success: false,

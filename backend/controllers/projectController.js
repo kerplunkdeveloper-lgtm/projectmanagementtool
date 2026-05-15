@@ -38,9 +38,7 @@ exports.getProjects = async (req, res, next) => {
   }
 };
 
-// @desc    Get single project
-// @route   GET /api/projects/:id
-// @access  Private
+
 exports.getProject = async (req, res, next) => {
   try {
     const project = await Project.findById(req.params.id)

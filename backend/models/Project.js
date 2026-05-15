@@ -1,40 +1,105 @@
 const mongoose = require('mongoose');
 
 const projectSchema = new mongoose.Schema({
-  name: {
+
+  title: {
     type: String,
-    required: [true, 'Please add a project name'],
+    required: [true, 'Project title is required'],
     trim: true,
   },
+
   description: {
     type: String,
-    required: [true, 'Please add a description'],
+    trim: true,
   },
+
+
+
+  department: {
+    type: String,
+
+    enum: [
+      "Social Media Team",
+      "Website Team",
+      "Designer Team",
+      "Editor Team",
+      "Scriptwriter Team",
+      "Cameraman Team",
+      "SEO Team",
+    ],
+  },
+
+
+
+  // PROJECT STATUS
   status: {
     type: String,
-    enum: ['planning', 'in-progress', 'completed', 'on-hold'],
+
+    enum: [
+      'planning',
+      'in-progress',
+      'completed',
+      'on-hold',
+    ],
+
     default: 'planning',
   },
-  assignedTo: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-  }],
+
+
+
+  // PROJECT PRIORITY
+  priority: {
+    type: String,
+
+    enum: [
+      'low',
+      'medium',
+      'high',
+    ],
+
+    default: 'medium',
+  },
+
+
+
+  // ASSIGNED TEAM MEMBERS
+  assignedTo: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+  ],
+
+
+
+  deadline: {
+    type: Date,
+  },
+
+
+
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
   },
-  startDate: Date,
-  endDate: Date,
-  priority: {
-    type: String,
-    enum: ['low', 'medium', 'high'],
-    default: 'medium',
-  },
+
+
+
   createdAt: {
     type: Date,
     default: Date.now,
   },
+
+
+
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
+
+}, {
+  timestamps: true,
 });
 
 module.exports = mongoose.model('Project', projectSchema);

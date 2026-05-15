@@ -24,6 +24,7 @@ import {
 } from "react-router-dom";
 
 import toast from 'react-hot-toast';
+import logo from "../../assets/logo.avif";
 
 
 
@@ -75,7 +76,7 @@ const Login = () => {
 
     if (user?.role === "operationmanager") {
       toast.success(" Operation Manager Login  ");
-      navigate("/operation");
+      navigate("/operationmanager");
     }
 
     if (user?.role === "team") {  
@@ -105,7 +106,7 @@ const Login = () => {
 
     <div className="min-h-screen flex items-center justify-center p-4">
 
-      <div className="w-full max-w-6xl bg-white rounded-3xl overflow-hidden shadow-2xl grid grid-cols-1 lg:grid-cols-2">
+      <div className="w-full max-w-9xl  overflow-hidden shadow-2xl grid grid-cols-1 lg:grid-cols-2">
 
         {/* LEFT SIDE IMAGE SECTION */}
 
@@ -114,8 +115,11 @@ const Login = () => {
           <img
             src="https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=1470&auto=format&fit=crop"
             alt="Project Management"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover "
           />
+
+           {/* BLUE OVERLAY */}
+  <div className="absolute inset-0 bg-blue-400/60"></div>
 
           <div className="absolute inset-0 bg-black/50 flex flex-col justify-center px-16 text-white">
 
@@ -138,7 +142,11 @@ const Login = () => {
 
         {/* RIGHT SIDE LOGIN FORM */}
 
-        <div className="flex items-center justify-center p-6 sm:p-10 lg:p-16 bg-white">
+        <div className="flex flex-col items-center justify-center p-6 sm:p-10 lg:p-16 bg-white">
+
+          <div>
+            <img src={logo} alt=""  className="mb-6 w-[200px] "/>
+          </div>
 
           <form
             onSubmit={handleSubmit}
@@ -147,11 +155,11 @@ const Login = () => {
 
             <div className="mb-10">
 
-              <h2 className="text-4xl font-bold text-gray-800 mb-3">
+              <h2 className="text-4xl font-bold text-center  text-gray-800 mb-3">
                 Welcome Back
               </h2>
 
-              <p className="text-gray-500">
+              <p className="text-blue-500 text-center text-lg">
                 Login to continue managing your projects
               </p>
 
@@ -161,9 +169,7 @@ const Login = () => {
 
             <div className="mb-5">
 
-              <label className="text-sm font-medium text-gray-600">
-                Email Address
-              </label>
+          
 
               <div className="flex items-center border border-gray-300 rounded-xl mt-2 px-4 py-3 focus-within:border-blue-500">
 
@@ -178,7 +184,7 @@ const Login = () => {
                   onChange={handleChange}
                 />
 
-              </div>
+              </div>  
 
             </div>
 
@@ -186,9 +192,7 @@ const Login = () => {
 
 <div className="mb-6">
 
-  <label className="text-sm font-medium text-gray-600">
-    Password
-  </label>
+
 
   <div className="flex items-center border border-gray-300 rounded-xl mt-2 px-4 py-3 focus-within:border-blue-500">
 

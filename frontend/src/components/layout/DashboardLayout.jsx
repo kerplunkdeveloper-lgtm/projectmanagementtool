@@ -21,6 +21,9 @@ const DashboardLayout = ({ role }) => {
         via-[#0A1931]
         to-[#102A43]
 
+        text-black
+     
+
         overflow-hidden
       "
     >
