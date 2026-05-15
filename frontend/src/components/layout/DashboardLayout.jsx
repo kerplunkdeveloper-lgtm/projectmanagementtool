@@ -11,70 +11,96 @@ const DashboardLayout = ({ role }) => {
     useState(false);
 
   return (
-    <div
-      className="
-        min-h-screen
-        flex
 
-        bg-gradient-to-br
-        from-[#061224]
-        via-[#0A1931]
-        to-[#102A43]
+    <div className="h-screen overflow-hidden bg-[#09111F]">
 
-        text-black
-     
-
-        overflow-hidden
-      "
-    >
-
-      {/* SIDEBAR */}
-      <Sidebar
-        role={role}
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-      />
-
-      {/* MAIN */}
+      {/* NAVBAR */}
       <div
         className="
-          flex-1
-          flex
-          flex-col
-
-          w-full
+          fixed
+          top-0
+          left-0
+          right-0
+          z-50
+          h-20
         "
       >
-
-        {/* NAVBAR */}
         <Navbar
           setSidebarOpen={setSidebarOpen}
         />
+      </div>
 
-        {/* PAGE CONTENT */}
+
+
+      {/* BODY */}
+      <div className="flex pt-20 h-screen">
+
+        {/* SIDEBAR */}
+        <div
+          className="
+            fixed
+            top-20
+            left-0
+            z-40
+
+            h-[calc(100vh-80px)]
+
+            lg:w-72
+          "
+        >
+          <Sidebar
+            role={role}
+            sidebarOpen={sidebarOpen}
+            setSidebarOpen={setSidebarOpen}
+          />
+        </div>
+
+
+
+        {/* MAIN CONTENT */}
         <main
           className="
             flex-1
-            overflow-auto
 
-            p-3 sm:p-4 md:p-6
+            lg:ml-72
+
+            h-[calc(100vh-80px)]
+
+            overflow-y-auto
+
+            bg-gradient-to-br
+            from-[#0F1729]
+            via-[#142238]
+            to-[#0D1B2A]
+
+            p-3
+            sm:p-4
+            md:p-6
           "
         >
 
+          {/* CONTENT WRAPPER */}
           <div
             className="
-              min-h-[calc(100vh-100px)]
+              min-h-full
 
-              rounded-2xl md:rounded-3xl
+              rounded-2xl
+              md:rounded-3xl
 
-              border border-white/10
+              border
+              border-white/10
 
-              bg-white/5
+              bg-gradient-to-br
+              from-white/5
+              to-white/[0.02]
+
               backdrop-blur-xl
 
               shadow-2xl
 
-              p-4 sm:p-5 md:p-8
+              p-4
+              sm:p-5
+              md:p-8
             "
           >
 

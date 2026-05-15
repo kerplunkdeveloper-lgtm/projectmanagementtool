@@ -56,12 +56,13 @@ export const deleteTemplateAPI = async (
 
 
 // TOGGLE STATUS
-export const toggleTemplateAPI = async (
-  id
-) => {
-  const response = await axiosInstance.patch(
-    `/templates/toggle/${id}`
-  );
+export const toggleTemplateAPI =
+  async (id) => {
 
-  return response.data;
-};
+    const response =
+      await axiosInstance.patch(
+        `/templates/${id}/toggle`
+      );
+
+    return response.data;
+  };

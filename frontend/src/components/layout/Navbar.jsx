@@ -143,312 +143,72 @@ const Navbar = ({
 
 
   return (
-
     <motion.div
-
-      initial={{
-        y: -40,
-        opacity: 0,
-      }}
-
-      animate={{
-        y: 0,
-        opacity: 1,
-      }}
-
-      className="
-        sticky
-        top-0
-        z-40
-
-        h-20
-
-        px-4
-        md:px-8
-
-        flex
-        items-center
-        justify-between
-
-        border-b
-        border-white/10
-
-        bg-white/5
-
-        backdrop-blur-2xl
-      "
+      initial={{ y: -40, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      className="sticky top-0 z-40 h-20 px-4 md:px-8 flex items-center justify-between border-b border-white/10 bg-gradient-to-r from-[#0D1B2A]/80 to-[#0A1529]/80 backdrop-blur-xl"
     >
 
       {/* LEFT */}
-      <div
-        className="
-          flex
-          items-center
-          gap-4
-        "
-      >
-
-        {/* MENU */}
+      <div className="flex items-center gap-4">
+        {/* MENU BUTTON - MOBILE ONLY */}
         <button
-          onClick={() =>
-            setSidebarOpen(true)
-          }
-
-          className="
-            lg:hidden
-
-            w-11
-            h-11
-
-            rounded-xl
-
-            bg-white/10
-
-            hover:bg-white/20
-
-            flex
-            items-center
-            justify-center
-
-            transition-all
-          "
+          onClick={() => setSidebarOpen(true)}
+          className="lg:hidden w-11 h-11 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all"
         >
-
-          <HiOutlineMenuAlt3
-            className="
-              text-2xl
-              text-white
-            "
-          />
-
+          <HiOutlineMenuAlt3 className="text-2xl" />
         </button>
 
-
-
         {/* TITLE */}
-        <div>
-
-          <h1
-            className="
-              text-white
-
-              text-xl
-              md:text-2xl
-
-              font-bold
-            "
-          >
-            Project Management
-          </h1>
-
-        </div>
-
+        <h1 className="text-white text-xl md:text-2xl font-bold">Project Management</h1>
       </div>
 
-
-
       {/* RIGHT */}
-      <div
-        className="
-          flex
-          items-center
-          gap-3
-          md:gap-5
-        "
+      <div className="flex items-center gap-3 md:gap-5"
       >
 
         {/* SEARCH */}
-        <div
-          className="
-            hidden
-            md:flex
-
-            items-center
-            gap-3
-
-            px-4
-
-            h-12
-
-            rounded-2xl
-
-            bg-white/10
-
-            border
-            border-white/10
-          "
-        >
-
-          <FiSearch
-            className="
-              text-gray-300
-            "
-          />
-
+        <div className="hidden md:flex items-center gap-3 px-4 h-12 rounded-lg bg-white/10 border border-white/10 focus-within:border-cyan-400/50 transition-all">
+          <FiSearch className="text-gray-300" />
           <input
             type="text"
-
-            placeholder="Search..."
-
-            className="
-              bg-transparent
-
-              outline-none
-
-              text-white
-
-              placeholder:text-gray-400
-            "
+            placeholder="Search projects..."
+            className="bg-transparent outline-none text-white placeholder:text-gray-400 w-32"
           />
-
         </div>
 
 
 
         {/* NOTIFICATION */}
-        <button
-          className="
-            w-11
-            h-11
-
-            rounded-2xl
-
-            bg-white/10
-
-            border
-            border-white/10
-
-            text-white
-
-            flex
-            items-center
-            justify-center
-
-            hover:scale-105
-
-            transition-all
-          "
-        >
-
+        <button className="w-11 h-11 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white flex items-center justify-center hover:scale-105 transition-all">
           <FiBell />
-
         </button>
 
 
 
         {/* USER DROPDOWN */}
-        <div
-          className="
-            relative
-          "
-
-          ref={dropdownRef}
-        >
-
+        <div className="relative" ref={dropdownRef}>
           {/* USER BUTTON */}
           <button
-            onClick={() =>
-              setOpenDropdown(
-                !openDropdown
-              )
-            }
-
-            className="
-              hidden
-              sm:flex
-
-              items-center
-              gap-3
-
-              px-4
-              py-2
-
-              rounded-2xl
-
-              bg-white/10
-
-              border
-              border-white/10
-
-              backdrop-blur-xl
-
-              hover:bg-white/15
-
-              transition-all
-            "
+            onClick={() => setOpenDropdown(!openDropdown)}
+            className="hidden sm:flex items-center gap-3 px-4 py-2 rounded-lg bg-white/10 border border-white/10 hover:bg-white/15 transition-all"
           >
-
             {/* IMAGE */}
             <img
-              src={
-                profile?.profileImage?.url ||
-                "/default-profile.png"
-              }
-
-              onError={(e) => {
-
-                e.target.src =
-                  "/default-profile.png";
-              }}
-
+              src={profile?.profileImage?.url || "/default-profile.png"}
+              onError={(e) => { e.target.src = "/default-profile.png"; }}
               alt="profile"
-
-              className="
-                w-11
-                h-11
-
-                rounded-full
-
-                object-cover
-
-                border-2
-                border-cyan-400/40
-              "
+              className="w-10 h-10 rounded-full object-cover border-2 border-cyan-400/40"
             />
 
             {/* INFO */}
-            <div
-              className="
-                text-left
-              "
-            >
-
-              <h3
-                className="
-                  text-white
-                  font-semibold
-                  text-sm
-                "
-              >
-                {user?.name}
-              </h3>
-
-              <p
-                className="
-                  text-xs
-                  text-cyan-300
-                  capitalize
-                "
-              >
-                {user?.role}
-              </p>
-
+            <div className="text-left hidden md:block">
+              <h3 className="text-white font-semibold text-sm">{user?.name}</h3>
+              <p className="text-xs text-cyan-300 capitalize">{user?.role}</p>
             </div>
 
             {/* ICON */}
-            <FiChevronDown
-              className={`
-                text-white
-
-                transition-transform
-
-                ${openDropdown
-                  ? "rotate-180"
-                  : ""
-                }
-              `}
-            />
-
+            <FiChevronDown className={`text-white transition-transform ${openDropdown ? "rotate-180" : ""}`} />
           </button>
 
 
