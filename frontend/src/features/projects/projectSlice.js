@@ -10,7 +10,39 @@ import {
   createProjectAPI,
   updateProjectAPI,
   deleteProjectAPI,
+  assignProjectAPI,
 } from "./projectApi";
+
+
+
+// ==========================================
+// ASSIGN PROJECT
+// ==========================================
+
+export const assignProject =
+  createAsyncThunk(
+    "projects/assignProject",
+
+    async (
+      { id, assignedTo },
+      thunkAPI
+    ) => {
+
+      try {
+
+        return await assignProjectAPI({
+          id,
+          assignedTo,
+        });
+
+      } catch (err) {
+
+        return thunkAPI.rejectWithValue(
+          err.response.data.message
+        );
+      }
+    }
+  );
 
 
 
@@ -267,6 +299,36 @@ const projectSlice =
 
             toast.success(
               "Project deleted successfully"
+            );
+          }
+        )
+
+
+
+        // ASSIGN PROJECT
+
+        .addCase(
+          assignProject.fulfilled,
+
+          (
+            state,
+            action
+          ) => {
+
+            state.projects =
+              state.projects.map(
+                (project) =>
+
+                  project._id ===
+                  action.payload.data._id
+
+                    ? action.payload.data
+
+                    : project
+              );
+
+            toast.success(
+              "Project assigned successfully"
             );
           }
         );

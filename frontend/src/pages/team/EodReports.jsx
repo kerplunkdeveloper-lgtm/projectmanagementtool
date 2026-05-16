@@ -192,17 +192,18 @@ const EodReports = () => {
               {/* FORM */}
               <form onSubmit={handleSubmit} className="p-10 space-y-8 max-h-[75vh] overflow-y-auto">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Project Alignment</label>
+                  <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Project Alignment *</label>
                   <select
                     name="project"
+                    required
                     value={formData.project}
                     onChange={handleChange}
                     className="w-full h-14 bg-slate-50 border border-gray-200 rounded-2xl px-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium cursor-pointer"
                   >
-                    <option value="">Operational (No specific project)</option>
+                    <option value="">Select Specific Project...</option>
                     {projects.map((proj) => (
                       <option key={proj._id} value={proj._id}>
-                        {proj.title}
+                        {proj.title} {proj.client?.companyName ? `(${proj.client.companyName})` : ''}
                       </option>
                     ))}
                   </select>

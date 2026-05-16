@@ -8,6 +8,7 @@ import projectReducer from "../features/projects/projectSlice";
 import eodReportReducer from "../features/eodReports/eodReportSlice";
 import eventReducer from "../features/events/eventSlice";
 import taskReducer from "../features/tasks/taskSlice";
+import notificationReducer from "../features/notifications/notificationSlice";
 
 export const store = configureStore({
   reducer: {
@@ -20,5 +21,6 @@ export const store = configureStore({
     eodReports: eodReportReducer,
     events: eventReducer,
     tasks: taskReducer,
+    notifications: notificationReducer,
   },
 });

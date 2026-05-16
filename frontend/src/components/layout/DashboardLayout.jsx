@@ -10,9 +10,12 @@ import Navbar from "./Navbar";
 
 import Sidebar from "./Sidebar";
 
+import useSocket from "../../hooks/useSocket.jsx";
+
 const DashboardLayout = ({
   role,
 }) => {
+  useSocket(); // Initialize real-time notification socket connectivity
 
   const [
     sidebarOpen,

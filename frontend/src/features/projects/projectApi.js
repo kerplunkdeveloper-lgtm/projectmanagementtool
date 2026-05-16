@@ -60,3 +60,13 @@ export const deleteProjectAPI =
 
     return response.data;
   };
+
+// ASSIGN PROJECT
+export const assignProjectAPI =
+  async ({ id, assignedTo }) => {
+    const response = await axiosInstance.put(
+      `/projects/${id}/assign`,
+      { assignedTo }
+    );
+    return response.data;
+  };

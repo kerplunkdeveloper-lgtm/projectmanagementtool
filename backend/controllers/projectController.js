@@ -1,5 +1,63 @@
-const Project =
-  require("../models/Project");
+const Project = require("../models/Project");
+const Notification = require("../models/Notification");
+
+// @desc    Assign project to users
+// @route   PUT /api/projects/:id/assign
+// @access  Private (Admin & Operation Manager)
+exports.assignProject = async (req, res) => {
+  try {
+    const { assignedTo } = req.body; // Expecting an array of user IDs
+
+    let project = await Project.findById(req.params.id);
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
+    }
+
+    project = await Project.findByIdAndUpdate(
+      req.params.id,
+      { assignedTo },
+      { new: true, runValidators: true }
+    )
+      .populate("client", "companyName")
+      .populate("template", "title")
+      .populate("assignedTo", "name email");
+
+    // CREATE AND EMIT NOTIFICATIONS
+    const io = req.app.get('io');
+    
+    // Convert to array if it's not
+    const assignedUsers = Array.isArray(assignedTo) ? assignedTo : [assignedTo];
+
+    for (const userId of assignedUsers) {
+      const notification = await Notification.create({
+        recipient: userId,
+        sender: req.user.id,
+        type: 'project_assigned',
+        message: `Strategic Deployment: You have been assigned to the project "${project.title}".`,
+        project: project._id
+      });
+
+      if (io) {
+        io.to(userId.toString()).emit('notification', notification);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Project assigned successfully",
+      data: project,
+    });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
 
 
 
@@ -18,14 +76,8 @@ exports.getProjects =
 
       // ADMIN -> ALL PROJECTS
 
-      if (
-        req.user.role !== "admin"
-      ) {
-
-        query = {
-          createdBy:
-            req.user._id,
-        };
+      if (req.user.role !== "admin") {
+        query = { assignedTo: req.user._id };
       }
 
 
@@ -325,42 +377,4 @@ exports.deleteProject =
         message: err.message,
       });
     }
-};
-
-// ==========================================
-// ASSIGN PROJECT
-// ==========================================
-exports.assignProject = async (req, res) => {
-  try {
-    const { assignedTo } = req.body;
-
-    let project = await Project.findById(req.params.id);
-
-    if (!project) {
-      return res.status(404).json({
-        success: false,
-        message: "Project not found",
-      });
-    }
-
-    project = await Project.findByIdAndUpdate(
-      req.params.id,
-      { assignedTo },
-      { new: true, runValidators: true }
-    )
-      .populate("client", "companyName")
-      .populate("template", "title")
-      .populate("assignedTo", "name email");
-
-    res.status(200).json({
-      success: true,
-      message: "Project assigned successfully",
-      data: project,
-    });
-  } catch (err) {
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
-  }
 };

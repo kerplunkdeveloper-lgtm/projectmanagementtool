@@ -1,5 +1,6 @@
 const Task = require("../models/Task");
 const Project = require("../models/Project");
+const Notification = require("../models/Notification");
 
 // @desc    Get all tasks
 // @route   GET /api/tasks
@@ -53,6 +54,21 @@ exports.createTask = async (req, res) => {
       await project.save();
     }
 
+    // CREATE NOTIFICATION
+    const notification = await Notification.create({
+      recipient: req.body.assignedTo,
+      sender: req.user.id,
+      type: 'task_assigned',
+      message: `A new task "${task.title}" has been assigned to you in project "${project.title}".`,
+      task: task._id
+    });
+
+    // EMIT REAL-TIME NOTIFICATION
+    const io = req.app.get('io');
+    if (io) {
+      io.to(req.body.assignedTo.toString()).emit('notification', notification);
+    }
+
     res.status(201).json({
       success: true,
       data: task,
@@ -73,6 +89,8 @@ exports.updateTask = async (req, res) => {
       return res.status(404).json({ success: false, message: "Task not found" });
     }
 
+    const oldAssignedTo = task.assignedTo?.toString();
+
     // Role check: Only admin/manager can update assignment, others can update status
     if (req.user.role === "team" && req.body.assignedTo && req.body.assignedTo !== req.user.id) {
        return res.status(401).json({ success: false, message: "Not authorized to reassign tasks" });
@@ -82,6 +100,24 @@ exports.updateTask = async (req, res) => {
       new: true,
       runValidators: true,
     }).populate("project", "title").populate("assignedTo", "name email");
+
+    // NOTIFY IF REASSIGNED
+    if (req.body.assignedTo && req.body.assignedTo.toString() !== oldAssignedTo) {
+      const notification = await Notification.create({
+        recipient: req.body.assignedTo,
+        sender: req.user.id,
+        type: 'task_assigned',
+        message: `Strategic Shift: Task "${task.title}" has been reassigned to you.`,
+        task: task._id
+      });
+
+      const io = req.app.get('io');
+      if (io) {
+        io.to(req.body.assignedTo.toString()).emit('notification', notification);
+      }
+    } else if (req.body.status && req.body.status !== task.status) {
+       // Optional: Notify manager when status changes
+    }
 
     res.status(200).json({
       success: true,
