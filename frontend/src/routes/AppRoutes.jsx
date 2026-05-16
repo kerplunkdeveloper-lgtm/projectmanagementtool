@@ -10,23 +10,25 @@ import Login from "../pages/auth/Login.jsx";
 import DashboardLayout from "../components/layout/DashboardLayout.jsx";
 
 import AdminHome from "../pages/admin/AdminHome.jsx";
-import AdminProjects from "../pages/admin/AdminProjects.jsx";
+import Project from "../pages/projects/Project.jsx";
 import AdminUsers from "../pages/admin/AdminUsers.jsx";
-import AdminReports from "../pages/admin/AdminReports.jsx";
+
 
 import Profile from "../pages/profile/Profile.jsx";
 
 import OperationHome from "../pages/OperationMananger/OperationHome.jsx";
 import OperationProjects from "../pages/OperationMananger/OperationProjects.jsx";
-import OperationTasks from "../pages/OperationMananger/OperationTasks.jsx";
+import TaskManagement from "../pages/tasks/TaskManagement.jsx";
 
 import TeamHome from "../pages/team/TeamHome.jsx";
 import TeamTasks from "../pages/team/TeamTasks.jsx";
-
+import EodReports from "../pages/team/EodReports.jsx";
+import AdminEodReports from "../pages/admin/AdminEodReports.jsx";
 
 import ProtectedRoute from "../components/common/ProtectedRoute.jsx";
 import Templatelib from "../pages/admin/templatelibrary/Templatelib.jsx";
 import Clients from "../pages/admin/clients/Clients.jsx";
+import CalendarPage from "../pages/calendar/CalendarPage.jsx";
 
 const AppRoutes = () => {
   return (
@@ -54,7 +56,13 @@ const AppRoutes = () => {
 
         <Route
           path="projects"
-          element={<AdminProjects />}
+          element={<Project />} 
+        />
+
+        
+          <Route
+          path="tasks"
+          element={<TaskManagement />}
         />
 
 
@@ -68,9 +76,11 @@ const AppRoutes = () => {
           element={<AdminUsers />}
         />
 
+   
+
         <Route
-          path="reports"
-          element={<AdminReports />}
+          path="eod-reports"
+          element={<AdminEodReports />}
         />
 
         
@@ -84,6 +94,13 @@ const AppRoutes = () => {
           path="template-library"
           element={<Templatelib />}
         />
+        
+        <Route
+          path="calendar"
+          element={<CalendarPage />}
+        />
+        
+      
         
       </Route>
 
@@ -110,13 +127,18 @@ const AppRoutes = () => {
 
         <Route
           path="tasks"
-          element={<OperationTasks />}
+          element={<TaskManagement />}
         />
 
 
-         <Route
+          <Route
           path="profile"
           element={<Profile />}
+        />
+
+        <Route
+          path="calendar"
+          element={<CalendarPage />}
         />
       </Route>
 
@@ -139,6 +161,11 @@ const AppRoutes = () => {
         <Route
           path="tasks"
           element={<TeamTasks />}
+        />
+
+        <Route
+          path="eod-reports"
+          element={<EodReports />}
         />
 
         <Route

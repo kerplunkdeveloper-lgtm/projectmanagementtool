@@ -112,7 +112,19 @@ const profileSlice = createSlice({
     error: null,
   },
 
-  reducers: {},
+  reducers: {
+    optimisticProfileUpdate: (state, action) => {
+      if (state.profile) {
+        state.profile = { ...state.profile, ...action.payload };
+      } else {
+        state.profile = action.payload;
+      }
+    },
+    clearProfile: (state) => {
+      state.profile = null;
+      state.error = null;
+    },
+  },
 
   extraReducers: (builder) => {
 
@@ -148,25 +160,15 @@ const profileSlice = createSlice({
       })
 
       .addCase(createProfile.fulfilled, (state, action) => {
-
         state.loading = false;
-
-        state.profile =
-          action.payload.profile;
-
-        toast.success("Profile created");
+        state.profile = action.payload.profile;
       })
 
       .addCase(createProfile.rejected, (state, action) => {
-
         state.loading = false;
-
         state.error = action.payload;
-
         toast.error(action.payload);
       })
-
-
 
       // UPDATE
       .addCase(updateProfile.pending, (state) => {
@@ -174,21 +176,13 @@ const profileSlice = createSlice({
       })
 
       .addCase(updateProfile.fulfilled, (state, action) => {
-
         state.loading = false;
-
-        state.profile =
-          action.payload.profile;
-
-        toast.success("Profile updated");
+        state.profile = action.payload.profile;
       })
 
       .addCase(updateProfile.rejected, (state, action) => {
-
         state.loading = false;
-
         state.error = action.payload;
-
         toast.error(action.payload);
       })
 
@@ -210,4 +204,5 @@ const profileSlice = createSlice({
   },
 });
 
+export const { optimisticProfileUpdate, clearProfile } = profileSlice.actions;
 export default profileSlice.reducer;

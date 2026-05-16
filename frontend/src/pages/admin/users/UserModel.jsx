@@ -86,11 +86,15 @@ const UserModal = ({
   };
 
   const handleClose = () => {
-
     setOpenModal(false);
-
     setEditUser(null);
-
+    setFormData({
+      name: "",
+      email: "",
+      password: "",
+      role: "team",
+      department: "",
+    });
   };
 
   if (!openModal) return null;

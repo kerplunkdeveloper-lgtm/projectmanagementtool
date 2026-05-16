@@ -38,15 +38,16 @@ exports.createProfile = async (req, res) => {
     }
 
     const profile = await Profile.create({
+      user: req.user.id,
       bio,
       phone,
       address,
       profileImage: imageData,
     });
 
-    user.profile = profile._id;
-
-    await user.save();
+    await User.findByIdAndUpdate(req.user.id, {
+      profile: profile._id,
+    });
 
     res.status(201).json({
       success: true,

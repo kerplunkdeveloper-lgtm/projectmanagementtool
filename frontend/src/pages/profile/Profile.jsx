@@ -8,17 +8,24 @@ import {
   useSelector,
 } from "react-redux";
 
+import toast from "react-hot-toast";
+
 import {
   FiCamera,
   FiMail,
   FiPhone,
   FiMapPin,
   FiSave,
+  FiUser,
+  FiTrash2,
 } from "react-icons/fi";
 
 import {
   getProfile,
+  createProfile,
   updateProfile,
+  deleteProfileImage,
+  optimisticProfileUpdate,
 } from "../../features/profile/profileSlice";
 
 const Profile = () => {
@@ -122,34 +129,46 @@ const Profile = () => {
 
 
 
+  // DELETE IMAGE
+  const handleDeleteImage = () => {
+    dispatch(deleteProfileImage());
+    setPreviewImage("");
+    setImage(null);
+  };
+
   // SUBMIT
   const handleSubmit = (e) => {
-
     e.preventDefault();
 
-    const data =
-      new FormData();
-
-    data.append(
-      "bio",
-      formData.bio
-    );
-
-    data.append(
-      "phone",
-      formData.phone
-    );
-
-    data.append(
-      "address",
-      formData.address
-    );
+    const data = new FormData();
+    data.append("bio", formData.bio);
+    data.append("phone", formData.phone);
+    data.append("address", formData.address);
 
     if (image) {
       data.append("image", image);
     }
 
-    dispatch(updateProfile(data));
+    // OPTIMISTIC UPDATE
+    const optimisticData = {
+      bio: formData.bio,
+      phone: formData.phone,
+      address: formData.address,
+    };
+
+    if (previewImage) {
+      optimisticData.profileImage = { url: previewImage };
+    }
+
+    dispatch(optimisticProfileUpdate(optimisticData));
+
+    const action = profile ? updateProfile(data) : createProfile(data);
+
+    toast.promise(dispatch(action).unwrap(), {
+      loading: "Updating profile...",
+      success: "Profile updated successfully!",
+      error: "Failed to update profile",
+    });
   };
 
 
@@ -223,29 +242,38 @@ const Profile = () => {
               "
             >
 
-              <img
-                src={
-                  previewImage ||
-                  profile?.profileImage?.url ||
-                  "https://i.pravatar.cc/300"
-                }
-
-                alt="profile"
-
-                className="
-                  w-40
-                  h-40
-
-                  rounded-full
-
-                  object-cover
-
-                  border-[5px]
-                  border-white/20
-
-                  shadow-2xl
-                "
-              />
+              {(previewImage || profile?.profileImage?.url) ? (
+                <img
+                  src={previewImage || profile?.profileImage?.url}
+                  alt="profile"
+                  className="
+                    w-40
+                    h-40
+                    rounded-full
+                    object-cover
+                    border-[5px]
+                    border-white/20
+                    shadow-2xl
+                  "
+                />
+              ) : (
+                <div
+                  className="
+                    w-40
+                    h-40
+                    rounded-full
+                    border-[5px]
+                    border-white/20
+                    shadow-2xl
+                    bg-gray-800
+                    flex
+                    items-center
+                    justify-center
+                  "
+                >
+                  <FiUser size={80} className="text-gray-400" />
+                </div>
+              )}
 
               {/* CAMERA BUTTON */}
               <label
@@ -292,6 +320,34 @@ const Profile = () => {
                 />
 
               </label>
+
+              {/* DELETE BUTTON */}
+              {profile?.profileImage?.url && (
+                <button
+                  type="button"
+                  onClick={handleDeleteImage}
+                  className="
+                    absolute
+                    bottom-1
+                    left-1
+                    w-12
+                    h-12
+                    rounded-full
+                    bg-red-500
+                    flex
+                    items-center
+                    justify-center
+                    text-white
+                    cursor-pointer
+                    shadow-xl
+                    hover:scale-110
+                    transition-all
+                    duration-300
+                  "
+                >
+                  <FiTrash2 size={20} />
+                </button>
+              )}
 
             </div>
 

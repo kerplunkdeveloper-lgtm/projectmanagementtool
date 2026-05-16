@@ -5,7 +5,7 @@ import axiosInstance from "../../services/axiosInstance";
 export const getProfileAPI = async () => {
 
   const response = await axiosInstance.get(
-    "/profile/me"
+    `/profile/me?t=${new Date().getTime()}`
   );
 
   return response.data;

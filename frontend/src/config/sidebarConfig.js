@@ -4,6 +4,7 @@ import {
   FiUsers,
   FiCheckSquare,
   FiBarChart2,
+  FiCalendar,
 } from "react-icons/fi";
 import { FaRegUserCircle } from "react-icons/fa";
 
@@ -19,6 +20,13 @@ export const sidebarConfig = {
       name: "Projects",
       path: "/admin/projects",
       icon: FiFolder,
+    },
+
+
+      {
+      name: "Tasks",
+      path: "/admin/tasks",
+      icon: FiCheckSquare,
     },
 
       {
@@ -37,10 +45,20 @@ export const sidebarConfig = {
       path: "/admin/users",
       icon: FiUsers,
     },
+  
+  
+
+    
+
     {
-      name: "Reports",
-      path: "/admin/reports",
+      name: "EOD Reports",
+      path: "/admin/eod-reports",
       icon: FiBarChart2,
+    },
+    {
+      name: "Calendar",
+      path: "/admin/calendar",
+      icon: FiCalendar,
     },
 
      {
@@ -69,6 +87,11 @@ export const sidebarConfig = {
       path: "/operationmanager/tasks",
       icon: FiCheckSquare,
     },
+    {
+      name: "Calendar",
+      path: "/operationmanager/calendar",
+      icon: FiCalendar,
+    },
       {
       name: "profile",
       path: "/operationmanager/profile",
@@ -88,7 +111,12 @@ export const sidebarConfig = {
       icon: FiCheckSquare,
     },
 
-      {
+    {
+      name: "EOD Reports",
+      path: "/team/eod-reports",
+      icon: FiBarChart2,
+    },
+     {
       name: "profile",
       path: "/team/profile",
       icon: FaRegUserCircle,

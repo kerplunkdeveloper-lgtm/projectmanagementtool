@@ -82,10 +82,16 @@ exports.createUser = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // Create user
-    const user = await User.create({
+    const userData = {
       ...req.body,
       password: hashedPassword,
-    });
+    };
+
+    if (userData.role !== "team") {
+      delete userData.department;
+    }
+
+    const user = await User.create(userData);
 
     res.status(201).json({
       success: true,
@@ -111,6 +117,10 @@ exports.updateUser = async (req, res) => {
     const updateData = {
       ...req.body,
     };
+
+    if (updateData.role && updateData.role !== "team") {
+      updateData.department = undefined;
+    }
 
     // If password exists -> hash password
     if (req.body.password) {

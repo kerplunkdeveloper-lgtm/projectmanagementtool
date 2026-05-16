@@ -9,7 +9,7 @@ const {
   deleteProfileImage,
 } = require("../controllers/profileController");
 
-const { protect, authorize } = require("../middleware/auth");
+const { protect } = require("../middleware/auth");
 
 const upload = require("../middleware/upload");
 
@@ -33,7 +33,6 @@ router.get(
 router.put(
   "/update",
   protect,
-  authorize('admin', 'operationmanager', 'team'),
   upload.single("image"),
   updateProfile
 );

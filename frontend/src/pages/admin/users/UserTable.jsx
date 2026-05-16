@@ -124,11 +124,18 @@ const UserTable = ({
                         justify-center
                         text-white
                         font-bold
+                        overflow-hidden
                       "
                     >
-
-                      {user?.name?.charAt(0)}
-
+                      {user?.profile?.profileImage?.url ? (
+                        <img
+                          src={user.profile.profileImage.url}
+                          alt="profile"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        user?.name?.charAt(0)
+                      )}
                     </div>
 
                     <h3
@@ -248,7 +255,7 @@ const UserTable = ({
                     <button
                       onClick={() =>
                         handleDeleteUser(
-                          user._id
+                          user
                         )
                       }
                       className="

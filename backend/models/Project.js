@@ -1,105 +1,154 @@
-const mongoose = require('mongoose');
+// models/Project.js
 
-const projectSchema = new mongoose.Schema({
+const mongoose = require("mongoose");
 
-  title: {
-    type: String,
-    required: [true, 'Project title is required'],
-    trim: true,
-  },
-
-  description: {
-    type: String,
-    trim: true,
-  },
-
-
-
-  department: {
-    type: String,
-
-    enum: [
-      "Social Media Team",
-      "Website Team",
-      "Designer Team",
-      "Editor Team",
-      "Scriptwriter Team",
-      "Cameraman Team",
-      "SEO Team",
-    ],
-  },
-
-
-
-  // PROJECT STATUS
-  status: {
-    type: String,
-
-    enum: [
-      'planning',
-      'in-progress',
-      'completed',
-      'on-hold',
-    ],
-
-    default: 'planning',
-  },
-
-
-
-  // PROJECT PRIORITY
-  priority: {
-    type: String,
-
-    enum: [
-      'low',
-      'medium',
-      'high',
-    ],
-
-    default: 'medium',
-  },
-
-
-
-  // ASSIGNED TEAM MEMBERS
-  assignedTo: [
+const projectSchema =
+  new mongoose.Schema(
     {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      // PROJECT NAME
+      title: {
+        type: String,
+        required: [
+          true,
+          "Project title is required",
+        ],
+        trim: true,
+      },
+
+
+
+      // CLIENT
+      client: {
+        type:
+          mongoose.Schema.Types.ObjectId,
+
+        ref: "Client",
+
+        required: [
+          true,
+          "Client is required",
+        ],
+      },
+
+
+
+      // PROJECT TYPE
+      type: {
+        type: String,
+
+        enum: [
+          "Monthly Retainer",
+          "One Time Project",
+          "Internal Project",
+        ],
+
+        default:
+          "Monthly Retainer",
+      },
+
+
+
+      // TEMPLATE
+      template: {
+        type:
+          mongoose.Schema.Types.ObjectId,
+
+        ref: "Template",
+      },
+
+
+
+      // DESCRIPTION
+      description: {
+        type: String,
+        trim: true,
+      },
+
+
+
+      // STATUS
+      status: {
+        type: String,
+
+        enum: [
+          "planning",
+          "in-progress",
+          "completed",
+          "on-hold",
+        ],
+
+        default: "planning",
+      },
+
+
+
+      // PRIORITY
+      priority: {
+        type: String,
+
+        enum: [
+          "low",
+          "medium",
+          "high",
+        ],
+
+        default: "medium",
+      },
+
+
+
+      // START DATE
+      startDate: {
+        type: Date,
+      },
+
+
+
+      // END DATE
+      endDate: {
+        type: Date,
+      },
+
+
+
+      // ASSIGNED USERS
+      assignedTo: [
+        {
+          type:
+            mongoose.Schema.Types.ObjectId,
+
+          ref: "User",
+        },
+      ],
+
+
+
+      // CREATED BY
+      createdBy: {
+        type:
+          mongoose.Schema.Types.ObjectId,
+
+        ref: "User",
+
+        required: true,
+      },
+
+
+
+      // ACTIVE
+      isActive: {
+        type: Boolean,
+        default: true,
+      },
     },
-  ],
 
+    {
+      timestamps: true,
+    }
+  );
 
-
-  deadline: {
-    type: Date,
-  },
-
-
-
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true,
-  },
-
-
-
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-
-
-
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  },
-
-}, {
-  timestamps: true,
-});
-
-module.exports = mongoose.model('Project', projectSchema);
+module.exports =
+  mongoose.model(
+    "Project",
+    projectSchema
+  );

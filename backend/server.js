@@ -34,7 +34,7 @@ app.use(helmet());
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 mins
-  max: 100,
+  max: 1000,
 });
 app.use(limiter);
 
@@ -46,6 +46,9 @@ const projects = require('./routes/projectRoutes');
 const clientRoutes = require(
   "./routes/clientRoutes"
 );
+const eodReports = require('./routes/eodReportRoutes');
+const eventRoutes = require('./routes/eventRoutes');
+const taskRoutes = require('./routes/taskRoutes');
 
 app.get("/", (req, res) => {
   res.send("hello");
@@ -60,6 +63,9 @@ app.use('/api/profile', profiles);
 app.use('/api/projects', projects);
 app.use('/api/clients', clientRoutes);
 app.use('/api/templates', templateRoutes);
+app.use('/api/eod-reports', eodReports);
+app.use('/api/events', eventRoutes);
+app.use('/api/tasks', taskRoutes);
 
 const PORT = process.env.PORT || 5000;
 

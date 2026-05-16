@@ -10,19 +10,19 @@ const {
 
 const router = express.Router();
 
-const { protect, authorize } = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 
 router
   .route('/')
   .get(protect, getProjects)
-  .post(protect, authorize('admin', 'operationmanager'), createProject);
+  .post(protect, createProject);
 
 router
   .route('/:id')
   .get(protect, getProject)
-  .put(protect, authorize('admin', 'operationmanager'), updateProject)
-  .delete(protect, authorize('admin', 'operationmanager'), deleteProject);
+  .put(protect, updateProject)
+  .delete(protect, deleteProject);
 
-router.put('/:id/assign', protect, authorize('admin', 'operationmanager'), assignProject);
+router.put('/:id/assign', protect, assignProject);
 
 module.exports = router;
