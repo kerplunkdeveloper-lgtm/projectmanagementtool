@@ -86,50 +86,50 @@ const EventModal = ({ open, setOpen, onSubmit, initialData, isEditing }) => {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-lg rounded-[2.5rem] border border-white/10 bg-[#0D1B2A] p-6 md:p-10 shadow-2xl overflow-y-auto max-h-[90vh]">
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-            <div className="p-3 rounded-2xl bg-cyan-500/20 text-cyan-400">
-              <FiCalendar size={24} />
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-5xl rounded-[2.5rem] border border-gray-200 shadow-[0_30px_70px_rgba(0,0,0,0.2)] overflow-hidden">
+        {/* HEADER */}
+        <div className="flex items-center justify-between px-10 py-8 border-b border-gray-100 bg-slate-50/50">
+          <h2 className="text-3xl font-black text-slate-800 flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <FiCalendar size={26} />
             </div>
-            {isEditing ? "Edit Event" : "Post Event"}
+            {isEditing ? "Modify Initiative" : "Launch Post"}
           </h2>
           <button
             onClick={() => setOpen(false)}
-            className="w-12 h-12 rounded-2xl bg-white/5 text-gray-400 flex items-center justify-center hover:bg-white/10 transition-all"
+            className="w-12 h-12 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-all duration-300 shadow-sm"
           >
             <FiX size={24} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* TITLE */}
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-400 ml-1">Event Title *</label>
+        {/* FORM */}
+        <form onSubmit={handleSubmit} className="p-10 space-y-8 max-h-[75vh] overflow-y-auto">
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Event Identification *</label>
             <input
               type="text"
               name="title"
               required
               value={formData.title}
               onChange={handleChange}
-              placeholder="e.g., ABC Restaurant — Thursday Reel"
-              className="w-full h-14 px-6 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-gray-600 outline-none focus:border-cyan-500/50 transition-all"
+              placeholder="E.g., ABC Restaurant — Product Launch"
+              className="w-full h-14 bg-slate-50 border border-gray-200 rounded-2xl px-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* CLIENT */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-400 ml-1">Client *</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Client Association *</label>
               <select
                 name="client"
                 required
                 value={formData.client}
                 onChange={handleChange}
-                className="w-full h-14 px-6 rounded-2xl bg-[#1a2a3a] border border-white/10 text-white outline-none focus:border-cyan-500/50 transition-all cursor-pointer"
+                className="w-full h-14 bg-slate-50 border border-gray-200 rounded-2xl px-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium cursor-pointer"
               >
-                <option value="">Select client...</option>
+                <option value="">Select Target Client</option>
                 {clients?.map((client) => (
                   <option key={client._id} value={client._id}>
                     {client.companyName}
@@ -138,14 +138,13 @@ const EventModal = ({ open, setOpen, onSubmit, initialData, isEditing }) => {
               </select>
             </div>
 
-            {/* TYPE */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-400 ml-1">Type</label>
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Content Format</label>
               <select
                 name="type"
                 value={formData.type}
                 onChange={handleChange}
-                className="w-full h-14 px-6 rounded-2xl bg-[#1a2a3a] border border-white/10 text-white outline-none focus:border-cyan-500/50 transition-all cursor-pointer"
+                className="w-full h-14 bg-slate-50 border border-gray-200 rounded-2xl px-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium cursor-pointer"
               >
                 {eventTypes.map((type) => (
                   <option key={type} value={type}>
@@ -156,45 +155,43 @@ const EventModal = ({ open, setOpen, onSubmit, initialData, isEditing }) => {
             </div>
           </div>
 
-          {/* DATE */}
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-400 ml-1">Date *</label>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Scheduling Date *</label>
             <input
               type="date"
               name="date"
               required
               value={formData.date}
               onChange={handleChange}
-              className="w-full h-14 px-6 rounded-2xl bg-white/5 border border-white/10 text-white outline-none focus:border-cyan-500/50 transition-all invert-calendar-icon"
+              className="w-full h-14 bg-slate-50 border border-gray-200 rounded-2xl px-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium"
             />
           </div>
 
-          {/* DESCRIPTION */}
-          <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-400 ml-1">Description</label>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Strategy Notes</label>
             <textarea
               name="description"
               rows="3"
               value={formData.description}
               onChange={handleChange}
-              placeholder="Any additional notes..."
-              className="w-full p-5 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-gray-600 outline-none focus:border-cyan-500/50 transition-all resize-none"
+              placeholder="Detail the objectives or execution steps..."
+              className="w-full bg-slate-50 border border-gray-200 rounded-[2rem] p-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium resize-none"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4 pt-4">
+          <div className="flex items-center justify-end gap-5 pt-6">
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="h-14 rounded-2xl bg-white/5 text-white font-bold hover:bg-white/10 transition-all"
+              className="px-10 py-4 rounded-2xl border border-gray-200 text-slate-600 font-bold hover:bg-slate-50 transition-all active:scale-95"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="h-14 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold hover:scale-[1.02] shadow-xl shadow-cyan-500/20 transition-all"
+              className="px-12 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black text-lg shadow-[0_15px_35px_rgba(37,99,235,0.3)] hover:scale-[1.02] hover:shadow-[0_20px_45px_rgba(37,99,235,0.4)] transition-all active:scale-95"
             >
-              {isEditing ? "Update Event" : "Post Event"}
+              {isEditing ? "Commit Changes" : "Deploy Event"}
             </button>
           </div>
         </form>

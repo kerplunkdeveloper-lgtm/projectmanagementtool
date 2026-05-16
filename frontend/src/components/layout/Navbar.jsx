@@ -4,7 +4,10 @@ import { useSelector, useDispatch } from "react-redux";
 
 import { logoutUser } from "../../features/auth/authSlice";
 
-import { getProfile, clearProfile } from "../../features/profile/profileSlice";
+import {
+  getProfile,
+  clearProfile,
+} from "../../features/profile/profileSlice";
 
 import { useNavigate } from "react-router-dom";
 
@@ -29,7 +32,6 @@ const Navbar = ({ setSidebarOpen }) => {
 
   const dropdownRef = useRef(null);
 
-  // DROPDOWN
   const [openDropdown, setOpenDropdown] = useState(false);
 
   // AUTH
@@ -45,10 +47,13 @@ const Navbar = ({ setSidebarOpen }) => {
     }
   }, [dispatch, profile, user]);
 
-  // CLOSE DROPDOWN OUTSIDE CLICK
+  // OUTSIDE CLICK
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target)
+      ) {
         setOpenDropdown(false);
       }
     };
@@ -56,13 +61,17 @@ const Navbar = ({ setSidebarOpen }) => {
     document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
     };
   }, []);
 
   // LOGOUT
   const handleLogout = async () => {
     await dispatch(logoutUser());
+
     dispatch(clearProfile());
 
     toast.success("Logout Success");
@@ -72,72 +81,298 @@ const Navbar = ({ setSidebarOpen }) => {
 
   return (
     <motion.div
-      initial={{ y: -40, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      className="sticky top-0 z-40 h-20 px-4 md:px-8 flex items-center justify-between border-b border-white/10 bg-gradient-to-r from-[#0D1B2A]/80 to-[#0A1529]/80 backdrop-blur-xl"
+      initial={{
+        y: -30,
+        opacity: 0,
+      }}
+      animate={{
+        y: 0,
+        opacity: 1,
+      }}
+      className="
+        sticky
+        top-0
+        z-50
+
+        h-20
+
+        px-4
+        md:px-8
+
+        flex
+        items-center
+        justify-between
+
+        bg-white/90
+        backdrop-blur-2xl
+
+        border-b
+        border-blue-100
+
+        shadow-[0_8px_30px_rgb(0,0,0,0.06)]
+      "
     >
       {/* LEFT */}
       <div className="flex items-center gap-4">
-        {/* MENU BUTTON - MOBILE ONLY */}
+        {/* MOBILE MENU */}
         <button
           onClick={() => setSidebarOpen(true)}
-          className="lg:hidden w-11 h-11 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all"
+          className="
+            lg:hidden
+
+            w-11
+            h-11
+
+            rounded-2xl
+
+            border
+            border-blue-100
+
+            bg-gradient-to-br
+            from-blue-50
+            to-cyan-50
+
+            text-blue-600
+
+            flex
+            items-center
+            justify-center
+
+            shadow-md
+
+            hover:scale-105
+            hover:shadow-xl
+
+            transition-all
+            duration-300
+          "
         >
           <HiOutlineMenuAlt3 className="text-2xl" />
         </button>
 
-        {/* TITLE */}
-        <h1 className="text-white text-xl md:text-2xl font-bold">
-          Project Management
-        </h1>
+        {/* LOGO */}
+        <div>
+          <h1
+            className="
+              text-xl
+              md:text-2xl
+
+              font-extrabold
+
+              bg-gradient-to-r
+              from-blue-600
+              via-cyan-500
+              to-sky-500
+
+              bg-clip-text
+              text-transparent
+            "
+          >
+            ProjectFlow
+          </h1>
+
+          <p className="text-xs text-gray-400 font-medium">
+            Manage everything smarter
+          </p>
+        </div>
       </div>
 
       {/* RIGHT */}
       <div className="flex items-center gap-3 md:gap-5">
         {/* SEARCH */}
-        <div className="hidden md:flex items-center gap-3 px-4 h-12 rounded-lg bg-white/10 border border-white/10 focus-within:border-cyan-400/50 transition-all">
-          <FiSearch className="text-gray-300" />
+        <div
+          className="
+            hidden
+            md:flex
+
+            items-center
+            gap-3
+
+            h-12
+            px-4
+
+            rounded-2xl
+
+            border
+            border-blue-100
+
+            bg-gradient-to-r
+            from-white
+            to-blue-50/40
+
+            shadow-sm
+
+            focus-within:border-cyan-300
+            focus-within:shadow-lg
+
+            transition-all
+          "
+        >
+          <FiSearch className="text-blue-400 text-lg" />
+
           <input
             type="text"
             placeholder="Search projects..."
-            className="bg-transparent outline-none text-white placeholder:text-gray-400 w-32"
+            className="
+              bg-transparent
+              outline-none
+
+              text-gray-700
+
+              placeholder:text-gray-400
+
+              w-40
+            "
           />
         </div>
 
         {/* NOTIFICATION */}
-        <button className="w-11 h-11 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white flex items-center justify-center hover:scale-105 transition-all">
-          <FiBell />
+        <button
+          className="
+            relative
+
+            w-11
+            h-11
+
+            rounded-2xl
+
+            border
+            border-blue-100
+
+            bg-white
+
+            text-blue-600
+
+            flex
+            items-center
+            justify-center
+
+            shadow-sm
+
+            hover:scale-105
+            hover:shadow-xl
+            hover:bg-blue-50
+
+            transition-all
+            duration-300
+          "
+        >
+          <FiBell className="text-lg" />
+
+          {/* DOT */}
+          <span
+            className="
+              absolute
+              top-2
+              right-2
+
+              w-2.5
+              h-2.5
+
+              rounded-full
+
+              bg-red-500
+              animate-pulse
+            "
+          />
         </button>
 
-        {/* USER DROPDOWN */}
+        {/* USER */}
         <div className="relative" ref={dropdownRef}>
-          {/* USER BUTTON */}
+          {/* BUTTON */}
           <button
-            onClick={() => setOpenDropdown(!openDropdown)}
-            className="hidden sm:flex items-center gap-3 px-4 py-2 rounded-lg bg-white/10 border border-white/10 hover:bg-white/15 transition-all"
+            onClick={() =>
+              setOpenDropdown(!openDropdown)
+            }
+            className="
+              hidden
+              sm:flex
+
+              items-center
+              gap-3
+
+              px-3
+              py-2
+
+              rounded-2xl
+
+              border
+              border-blue-100
+
+              bg-white
+
+              shadow-sm
+
+              hover:shadow-xl
+              hover:scale-[1.02]
+
+              transition-all
+              duration-300
+            "
           >
             {/* IMAGE */}
             {profile?.profileImage?.url ? (
               <img
                 src={profile.profileImage.url}
                 alt="profile"
-                className="w-10 h-10 rounded-full object-cover border-2 border-cyan-400/40"
+                className="
+                  w-11
+                  h-11
+
+                  rounded-full
+                  object-cover
+
+                  border-2
+                  border-cyan-300
+                "
               />
             ) : (
-              <div className="w-10 h-10 rounded-full border-2 border-cyan-400/40 bg-[#111827] flex items-center justify-center text-gray-400 shadow-xl">
-                <FiUser size={20} />
+              <div
+                className="
+                  w-11
+                  h-11
+
+                  rounded-full
+
+                  bg-gradient-to-br
+                  from-blue-500
+                  to-cyan-500
+
+                  text-white
+
+                  flex
+                  items-center
+                  justify-center
+                "
+              >
+                <FiUser size={18} />
               </div>
             )}
 
             {/* INFO */}
             <div className="text-left hidden md:block">
-              <h3 className="text-white font-semibold text-sm">{user?.name}</h3>
-              <p className="text-xs text-cyan-300 capitalize">{user?.role}</p>
+              <h3 className="font-semibold text-gray-800 text-sm">
+                {user?.name}
+              </h3>
+
+              <p className="text-xs text-gray-400 capitalize">
+                {user?.role}
+              </p>
             </div>
 
             {/* ICON */}
             <FiChevronDown
-              className={`text-white transition-transform ${openDropdown ? "rotate-180" : ""}`}
+              className={`
+                text-gray-500
+                transition-transform
+                duration-300
+
+                ${
+                  openDropdown
+                    ? "rotate-180"
+                    : ""
+                }
+              `}
             />
           </button>
 
@@ -147,7 +382,7 @@ const Navbar = ({ setSidebarOpen }) => {
               <motion.div
                 initial={{
                   opacity: 0,
-                  y: 10,
+                  y: 15,
                 }}
                 animate={{
                   opacity: 1,
@@ -155,25 +390,31 @@ const Navbar = ({ setSidebarOpen }) => {
                 }}
                 exit={{
                   opacity: 0,
-                  y: 10,
+                  y: 15,
+                }}
+                transition={{
+                  duration: 0.25,
                 }}
                 className="
                   absolute
                   right-0
                   top-16
 
-                  w-56
+                  w-64
 
                   overflow-hidden
 
-                  rounded-2xl
+                  rounded-3xl
 
-                  bg-[#111827]
+                  bg-white/95
+                  backdrop-blur-xl
 
                   border
-                  border-white/10
+                  border-blue-100
 
-                  shadow-2xl
+                  shadow-[0_20px_60px_rgb(0,0,0,0.12)]
+
+                  p-2
 
                   z-50
                 "
@@ -181,28 +422,33 @@ const Navbar = ({ setSidebarOpen }) => {
                 {/* PROFILE */}
                 <button
                   onClick={() => {
-                    navigate(`/${user?.role}/profile`);
+                    navigate(
+                      `/${user?.role}/profile`
+                    );
 
                     setOpenDropdown(false);
                   }}
                   className="
-    w-full
+                    w-full
 
-    px-5
-    py-4
+                    px-4
+                    py-4
 
-    flex
-    items-center
-    gap-3
+                    rounded-2xl
 
-    text-white
+                    flex
+                    items-center
+                    gap-3
 
-    hover:bg-white/10
+                    text-gray-700
 
-    transition-all
-  "
+                    hover:bg-blue-50
+
+                    transition-all
+                  "
                 >
-                  <FiUser />
+                  <FiUser className="text-blue-500" />
+
                   Edit Profile
                 </button>
 
@@ -212,21 +458,24 @@ const Navbar = ({ setSidebarOpen }) => {
                   className="
                     w-full
 
-                    px-5
+                    px-4
                     py-4
+
+                    rounded-2xl
 
                     flex
                     items-center
                     gap-3
 
-                    text-red-400
+                    text-red-500
 
-                    hover:bg-red-500/10
+                    hover:bg-red-50
 
                     transition-all
                   "
                 >
                   <FiLogOut />
+
                   Logout
                 </button>
               </motion.div>

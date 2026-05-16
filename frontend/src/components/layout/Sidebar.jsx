@@ -70,26 +70,16 @@ const Sidebar = ({
        className={`
   fixed
   lg:fixed
-
   top-0
   left-0
-
   z-50
-
   w-72
-
   h-full
-
-  bg-gradient-to-b
-  from-[#0D1B2A]
-  to-[#091118]
-
+  bg-white
   border-r
-  border-white/10
-
+  border-white/70
   flex
   flex-col
-
   transition-all
   duration-300
 
@@ -104,13 +94,10 @@ const Sidebar = ({
         {/* HEADER */}
         <div className="flex items-center justify-between p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center">
-              <img src={logo} alt="logo" className="w-6 h-6" />
+            <div className=" rounded-lg flex items-center justify-center">
+              <img src={logo} alt="logo" className="w-[200px] " />
             </div>
-            <div>
-              <h2 className="text-white font-bold text-sm">Project Hub</h2>
-              <p className="text-gray-400 text-xs uppercase tracking-wider">{role}</p>
-            </div>
+           
           </div>
 
           {/* CLOSE BUTTON - MOBILE ONLY */}
@@ -139,8 +126,8 @@ const Sidebar = ({
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                     isActive
-                      ? "bg-gradient-to-r from-cyan-500/20 to-blue-600/20 border border-cyan-400/30 text-white shadow-lg"
-                      : "text-gray-300 hover:bg-white/5 border border-transparent"
+                      ? "bg-gradient-to-r from-cyan-500/70 to-blue-600/70 border border-cyan-400/30 text-black font-semibold shadow-lg"
+                      : "text-black hover:bg-cyan-100 border border-transparent"
                   }`
                 }
               >
@@ -156,7 +143,7 @@ const Sidebar = ({
         <div className="p-4 border-t border-white/10">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-gradient-to-r from-red-500/20 to-rose-500/20 border border-red-400/30 text-red-300 hover:from-red-500/30 hover:to-rose-500/30 font-semibold transition-all duration-200"
+            className="w-full flex items-center text-white justify-center gap-2 px-4 py-3 rounded-lg bg-gradient-to-r from-red-500 to-rose-500 border border-red-400/30 text-red-300 hover:from-red-500 hover:to-rose-500 font-semibold transition-all duration-200"
           >
             <FiLogOut size={18} />
             Logout

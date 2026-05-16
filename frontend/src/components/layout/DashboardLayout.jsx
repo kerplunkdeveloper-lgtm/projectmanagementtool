@@ -1,98 +1,163 @@
-import React, { useState } from "react";
+import React, {
+  useState,
+} from "react";
 
-import { Outlet } from "react-router-dom";
+import {
+  Outlet,
+} from "react-router-dom";
 
 import Navbar from "./Navbar";
+
 import Sidebar from "./Sidebar";
 
-const DashboardLayout = ({ role }) => {
+const DashboardLayout = ({
+  role,
+}) => {
 
-  const [sidebarOpen, setSidebarOpen] =
-    useState(false);
+  const [
+    sidebarOpen,
+    setSidebarOpen,
+  ] = useState(false);
+
+
 
   return (
 
-    <div className="h-screen overflow-hidden bg-[#09111F]">
+    <div
+      className="
+        h-screen
+        overflow-hidden
+        bg-[#08111F]
+        text-white
+      "
+    >
 
-      {/* NAVBAR */}
-      <div
-        className="
+      {/* ========================================= */}
+      {/* SIDEBAR */}
+      {/* ========================================= */}
+
+      <aside
+        className={`
+
           fixed
           top-0
           left-0
-          right-0
+
           z-50
-          h-20
+
+          h-screen
+
+          w-[290px]
+
+         bg-white
+
+          border-r
+          border-white/10
+
+          transition-all
+          duration-300
+
+          ${
+            sidebarOpen
+              ? "translate-x-0"
+              : "-translate-x-full"
+          }
+
+          lg:translate-x-0
+        `}
+      >
+
+        <Sidebar
+          role={role}
+          sidebarOpen={
+            sidebarOpen
+          }
+          setSidebarOpen={
+            setSidebarOpen
+          }
+        />
+      </aside>
+
+
+
+      {/* ========================================= */}
+      {/* RIGHT SIDE */}
+      {/* ========================================= */}
+
+      <div
+        className="
+          lg:ml-[290px]
+
+          h-screen
+
+          flex
+          flex-col
         "
       >
-        <Navbar
-          setSidebarOpen={setSidebarOpen}
-        />
-      </div>
 
+        {/* ========================================= */}
+        {/* FIXED NAVBAR */}
+        {/* ========================================= */}
 
-
-      {/* BODY */}
-      <div className="flex pt-20 h-screen">
-
-        {/* SIDEBAR */}
         <div
           className="
             fixed
-            top-20
+
+            top-0
+            right-0
             left-0
+
+            lg:left-[290px]
+
             z-40
 
-            h-[calc(100vh-80px)]
+            h-20
 
-            lg:w-72
+            bg-white
+
+            backdrop-blur-xl
+
+            border-b
+            border-white/10
           "
         >
-          <Sidebar
-            role={role}
-            sidebarOpen={sidebarOpen}
-            setSidebarOpen={setSidebarOpen}
+
+          <Navbar
+            setSidebarOpen={
+              setSidebarOpen
+            }
           />
         </div>
 
 
 
-        {/* MAIN CONTENT */}
+        {/* ========================================= */}
+        {/* SCROLLABLE CONTENT */}
+        {/* ========================================= */}
+
         <main
           className="
             flex-1
-
-            lg:ml-72
-
-            h-[calc(100vh-80px)]
-
+            mt-20
             overflow-y-auto
-
-            bg-gradient-to-br
-            from-[#0F1729]
-            via-[#142238]
-            to-[#0D1B2A]
-
-            p-3
-            sm:p-4
-            md:p-6
+            p-2
+            sm:p-3
+            md:p-4
+            lg:p-6
+            bg-white
           "
         >
 
-          {/* CONTENT WRAPPER */}
           <div
             className="
               min-h-full
 
-              rounded-2xl
-              md:rounded-3xl
+              rounded-3xl
 
               border
               border-white/10
 
-              bg-gradient-to-br
-              from-white/5
-              to-white/[0.02]
+              bg-white/[0.03]
 
               backdrop-blur-xl
 
@@ -100,18 +165,46 @@ const DashboardLayout = ({ role }) => {
 
               p-4
               sm:p-5
-              md:p-8
+              md:p-6
+              lg:p-8
             "
           >
 
             <Outlet />
 
           </div>
-
         </main>
-
       </div>
 
+
+
+      {/* ========================================= */}
+      {/* MOBILE OVERLAY */}
+      {/* ========================================= */}
+
+      {
+        sidebarOpen && (
+
+          <div
+            onClick={() =>
+              setSidebarOpen(
+                false
+              )
+            }
+            className="
+              fixed
+              inset-0
+              z-30
+
+              bg-black/60
+
+              backdrop-blur-sm
+
+              lg:hidden
+            "
+          />
+        )
+      }
     </div>
   );
 };

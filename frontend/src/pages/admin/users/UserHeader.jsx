@@ -23,11 +23,11 @@ const UserHeader = ({
       {/* TOP ROW */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-white flex items-center gap-3">
+          <h1 className="text-3xl md:text-4xl font-bold flex text-black items-center gap-3">
             <FiUsers className="text-cyan-400" />
             User Management
           </h1>
-          <p className="text-gray-400 mt-2">Manage and monitor all system users</p>
+          <p className="text-gray-500 mt-2">Manage and monitor all users</p>
         </div>
 
         <button
@@ -49,7 +49,7 @@ const UserHeader = ({
             placeholder="Search by name or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-12 pl-12 pr-4 rounded-2xl bg-white/5 border border-white/10 text-white placeholder:text-gray-500 outline-none focus:border-cyan-500/50 transition-all"
+            className="w-full h-12 pl-12 pr-4  rounded-2xl bg-white text-black shadow-xl border border-white/10 placeholder:text-gray-500 outline-none focus:border-cyan-500/50 transition-all"
           />
         </div>
 
@@ -59,7 +59,7 @@ const UserHeader = ({
           <select
             value={filterDept}
             onChange={(e) => setFilterDept(e.target.value)}
-            className="w-full h-12 pl-12 pr-4 rounded-2xl bg-[#0D1B2A] border border-white/10 text-cyan-400 outline-none focus:border-cyan-500/50 transition-all cursor-pointer"
+            className="w-full h-12 pl-12 pr-4 rounded-2xl bg-white shadow-xl border border-white/10 text-black outline-none focus:border-cyan-500/50 transition-all cursor-pointer"
           >
             <option value="">All Departments</option>
             {departments.map((dept) => (

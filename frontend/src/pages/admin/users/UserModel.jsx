@@ -104,11 +104,11 @@ const UserModal = ({
     <div
       className="
         fixed inset-0 z-50
-        bg-black/50
-        backdrop-blur-sm
+        bg-black/20
+    
         flex items-center
         justify-center
-        p-4
+        p-4 
       "
     >
 
@@ -118,7 +118,7 @@ const UserModal = ({
           max-w-lg
           rounded-3xl
           border border-white/10
-          bg-[#0D1B2A]
+         bg-white
           p-6 md:p-8
         "
       >
@@ -137,7 +137,7 @@ const UserModal = ({
             className="
               text-2xl
               font-bold
-              text-white
+            text-black
             "
           >
 
@@ -152,11 +152,11 @@ const UserModal = ({
             className="
               w-10 h-10
               rounded-xl
-              bg-white/10
-              text-white
+              bg-black/90
+              border border-white/10
               flex items-center
               justify-center
-              hover:bg-white/20
+           
               transition
             "
           >
@@ -184,12 +184,12 @@ const UserModal = ({
             placeholder="Name"
             onChange={handleChange}
             className="
-              w-full h-12
+                w-full h-12
               rounded-2xl
-              bg-white/5
+              bg-black/10
               border border-white/10
               px-4
-              text-white
+              text-black
               outline-none
             "
           />
@@ -206,10 +206,10 @@ const UserModal = ({
             className="
               w-full h-12
               rounded-2xl
-              bg-white/5
+              bg-black/10
               border border-white/10
               px-4
-              text-white
+              text-black
               outline-none
             "
           />
@@ -223,12 +223,12 @@ const UserModal = ({
             value={formData.password}
             onChange={handleChange}
             className="
-              w-full h-12
+               w-full h-12
               rounded-2xl
-              bg-white/5
+              bg-black/10
               border border-white/10
               px-4
-              text-white
+              text-black
               outline-none
             "
           />
@@ -240,12 +240,12 @@ const UserModal = ({
             value={formData.role}
             onChange={handleChange}
             className="
-              w-full h-12
+            w-full h-12
               rounded-2xl
-              bg-white/5
+              bg-black/10
               border border-white/10
               px-4
-              text-blue-400
+              text-black
               outline-none
             "
           >
@@ -280,13 +280,13 @@ const UserModal = ({
                 }
                 required
                 className="
-                  w-full h-12
-                  rounded-2xl
-                  bg-white/5
-                  border border-white/10
-                  px-4
-                  text-blue-400
-                  outline-none
+              w-full h-12
+              rounded-2xl
+              bg-black/10
+              border border-white/10
+              px-4
+              text-black
+              outline-none
                 "
               >
 
