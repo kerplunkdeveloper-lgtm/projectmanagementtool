@@ -26,11 +26,14 @@ import {
   FiX,
   FiSearch,
 } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 
 const Project = () => {
 
   const dispatch =
     useDispatch();
+
+  const navigate = useNavigate();
 
   const {
     projects,
@@ -38,6 +41,8 @@ const Project = () => {
   } = useSelector(
     (state) => state.projects
   );
+
+  const { user } = useSelector((state) => state.auth);
 
 
 
@@ -257,7 +262,6 @@ const Project = () => {
 
   const filteredProjects =
     projects.filter((project) =>
-
       project.title
         ?.toLowerCase()
         .includes(
@@ -265,323 +269,322 @@ const Project = () => {
         )
     );
 
+  // Time-based progress calculator for UI realism
+  const getProgress = (start, end) => {
+    if (!start || !end) return 0;
+    const startDate = new Date(start).getTime();
+    const endDate = new Date(end).getTime();
+    const now = new Date().getTime();
+    if (now <= startDate) return 0;
+    if (now >= endDate) return 100;
+    return Math.round(((now - startDate) / (endDate - startDate)) * 100);
+  };
+
+  const getProgressColor = (progress) => {
+    if (progress < 40) return "bg-blue-500";
+    if (progress < 70) return "bg-amber-500";
+    return "bg-emerald-500";
+  };
+
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-gray-100 px-4 sm:px-6 lg:px-10 py-6 md:py-10">
-      <div className="max-w-9xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-             All Projects 
-            </h1>
-            <p className="text-gray-500 mt-2 text-lg">Manage and monitor your business initiatives</p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-[#eff3fc] to-[#f4f0ff] px-4 sm:px-6 lg:px-8 py-8 animate-fadeIn font-sans text-slate-800">
+      <div className="max-w-7xl mx-auto">
+        
+        {/* TOP BAR */}
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+          <h1 className="text-2xl font-black text-[#1e293b]">All Projects</h1>
+          
+          <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+            {/* Search Input */}
+            <div className="relative min-w-[200px]">
+              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search projects..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full h-10 pl-9 pr-3 rounded-xl bg-white border border-gray-200 text-sm font-bold text-[#475569] shadow-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all placeholder:font-medium"
+              />
+            </div>
 
-          <button
-            onClick={() => {
-              setOpenModal(true);
-              setEditProject(null);
-            }}
-            className="flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg shadow-[0_15px_30px_rgba(37,99,235,0.3)] hover:scale-105 hover:shadow-[0_20px_40px_rgba(37,99,235,0.4)] transition-all active:scale-95"
-          >
-            <FiPlus size={24} />
-            New Project
-          </button>
-        </div>
-
-        {/* ========================================== */}
-        {/* SEARCH & FILTERS */}
-        {/* ========================================== */}
-        <div className="mb-8">
-          <div className="relative group w-full md:w-96">
-            <FiSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-blue-400 text-xl group-focus-within:text-blue-600 transition-colors" />
-            <input
-              type="text"
-              placeholder="Search by title or description..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-14 pl-14 pr-6 rounded-2xl bg-white border border-gray-200 shadow-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100/50 transition-all text-slate-700 font-medium"
-            />
-          </div>
-        </div>
-
-        {/* ========================================== */}
-        {/* TABLE */}
-        {/* ========================================== */}
-        <div className="relative overflow-hidden rounded-[32px] border border-gray-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
-          {/* PREMIUM DECORATION */}
-          <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-blue-50/60 blur-3xl -z-0" />
-          <div className="absolute bottom-0 left-0 w-72 h-72 rounded-full bg-cyan-50/50 blur-3xl -z-0" />
-
-          <div className="overflow-x-auto relative z-10">
-            <table className="w-full min-w-[1200px]">
-              <thead>
-                <tr className="border-b border-gray-200 bg-slate-50/50">
-                  <th className="px-8 py-6 text-left text-sm font-bold text-slate-700">Project</th>
-                  <th className="px-6 py-6 text-left text-sm font-bold text-slate-700">Client</th>
-                  <th className="px-6 py-6 text-left text-sm font-bold text-slate-700">Template</th>
-                  <th className="px-6 py-6 text-left text-sm font-bold text-slate-700">Type</th>
-                  <th className="px-6 py-6 text-left text-sm font-bold text-slate-700">Priority</th>
-                  <th className="px-6 py-6 text-left text-sm font-bold text-slate-700">Start Date</th>
-                  <th className="px-6 py-6 text-left text-sm font-bold text-slate-700">End Date</th>
-                  <th className="px-6 py-6 text-left text-sm font-bold text-slate-700">Status</th>
-                  <th className="px-8 py-6 text-center text-sm font-bold text-slate-700">Actions</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan="9" className="py-20 text-center">
-                      <div className="flex flex-col items-center gap-4">
-                        <div className="w-14 h-14 border-[5px] border-blue-100 border-t-blue-500 rounded-full animate-spin"></div>
-                        <p className="text-slate-500 font-medium">Fetching projects...</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : filteredProjects.length === 0 ? (
-                  <tr>
-                    <td colSpan="9" className="py-20 text-center">
-                      <div className="flex flex-col items-center opacity-50">
-                        <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                          <FiSearch size={40} className="text-slate-400" />
-                        </div>
-                        <h2 className="text-xl font-bold text-slate-700">No Projects Found</h2>
-                        <p className="text-gray-500">Try adjusting your search criteria</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  filteredProjects.map((project) => (
-                    <tr
-                      key={project._id}
-                      className="border-b border-gray-100 hover:bg-slate-50/80 transition-all duration-300 group"
-                    >
-                      <td className="px-8 py-6">
-                        <div>
-                          <h2 className="font-bold text-slate-800 text-base">{project.title}</h2>
-                          <p className="text-gray-500 text-sm mt-1 max-w-xs line-clamp-1">{project.description}</p>
-                        </div>
-                      </td>
-
-                      <td className="px-6 py-6">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-xs">
-                            {project.client?.companyName?.charAt(0) || "C"}
-                          </div>
-                          <span className="text-slate-700 font-medium">{project.client?.companyName || "—"}</span>
-                        </div>
-                      </td>
-
-                      <td className="px-6 py-6 text-slate-600 font-medium">{project.template?.title || "—"}</td>
-
-                      <td className="px-6 py-6">
-                        <span className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
-                          {project.type}
-                        </span>
-                      </td>
-
-                      <td className="px-6 py-6">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-2xl text-xs font-bold shadow-sm ${
-                            project.priority === "high"
-                              ? "bg-rose-50 text-rose-600 border border-rose-100"
-                              : project.priority === "medium"
-                              ? "bg-amber-50 text-amber-600 border border-amber-100"
-                              : "bg-emerald-50 text-emerald-600 border border-emerald-100"
-                          }`}
-                        >
-                          <div className={`w-1.5 h-1.5 rounded-full ${
-                            project.priority === "high" ? "bg-rose-600" : project.priority === "medium" ? "bg-amber-600" : "bg-emerald-600"
-                          }`} />
-                          {project.priority.toUpperCase()}
-                        </span>
-                      </td>
-
-                      <td className="px-6 py-6 text-slate-600 font-medium">
-                        {project.startDate?.split("T")[0] || "—"}
-                      </td>
-
-                      <td className="px-6 py-6 text-slate-600 font-medium">
-                        {project.endDate?.split("T")[0] || "—"}
-                      </td>
-
-                      <td className="px-6 py-6">
-                        <span className="px-4 py-1.5 rounded-2xl bg-indigo-50 text-indigo-600 text-xs font-bold border border-indigo-100 shadow-sm">
-                          {project.status.toUpperCase()}
-                        </span>
-                      </td>
-
-                      <td className="px-8 py-6">
-                        <div className="flex items-center justify-center gap-4">
-                          <button
-                            onClick={() => handleEdit(project)}
-                            className="p-3 rounded-2xl bg-amber-50 text-amber-600 hover:bg-amber-100 hover:scale-110 transition-all duration-300 shadow-sm"
-                          >
-                            <FiEdit size={18} />
-                          </button>
-
-                          <button
-                            onClick={() => dispatch(deleteProject(project._id))}
-                            className="p-3 rounded-2xl bg-rose-50 text-rose-600 hover:bg-rose-100 hover:scale-110 transition-all duration-300 shadow-sm"
-                          >
-                            <FiTrash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            <select className="h-10 bg-white border border-gray-200 rounded-xl px-4 text-sm font-bold text-[#475569] shadow-sm outline-none cursor-pointer flex-shrink-0 focus:border-indigo-400">
+              <option>All Clients</option>
+              {clients.map(c => <option key={c._id} value={c._id}>{c.companyName}</option>)}
+            </select>
+            
+            <select className="h-10 bg-white border border-gray-200 rounded-xl px-4 text-sm font-bold text-[#475569] shadow-sm outline-none cursor-pointer flex-shrink-0 focus:border-indigo-400">
+              <option>All Statuses</option>
+              <option>Active</option>
+              <option>In Review</option>
+              <option>At Risk</option>
+            </select>
+            
+            <button
+              onClick={() => {
+                setOpenModal(true);
+                setEditProject(null);
+              }}
+              className="h-10 flex items-center justify-center gap-2 px-5 rounded-xl bg-[#7c5ff0] text-white font-bold text-sm shadow-md hover:bg-[#6c4be0] transition-colors flex-shrink-0"
+            >
+              <FiPlus size={16} />
+              New Project
+            </button>
           </div>
         </div>
 
-        {/* ========================================== */}
+        {/* PROJECT LIST */}
+        <div className="space-y-3">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-500 rounded-full animate-spin"></div>
+              <p className="text-slate-500 font-bold text-sm animate-pulse">Loading projects...</p>
+            </div>
+          ) : filteredProjects.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 bg-white border border-slate-200 rounded-2xl shadow-sm">
+              <div className="w-16 h-16 bg-[#f1f3f9] rounded-full flex items-center justify-center mb-4">
+                <FiSearch size={24} className="text-[#94a3b8]" />
+              </div>
+              <h2 className="text-lg font-black text-[#1e293b]">No Projects Found</h2>
+              <p className="text-[#64748b] mt-1 text-sm font-medium">Try adjusting your search criteria or add a new project.</p>
+            </div>
+          ) : (
+            filteredProjects.map((project) => {
+              const clientName = project.client?.companyName || "Unknown Client";
+              const progress = getProgress(project.startDate, project.endDate);
+              const progressColor = getProgressColor(progress);
+              
+              // Status Styling
+              let statusStyle = "bg-blue-50 text-blue-500 border-blue-100";
+              const stat = project.status?.toUpperCase() || "ACTIVE";
+              if (stat.includes("REVIEW")) statusStyle = "bg-amber-50 text-amber-600 border-amber-100";
+              if (stat.includes("RISK") || stat.includes("DELAY")) statusStyle = "bg-rose-50 text-rose-500 border-rose-100";
+              if (stat.includes("COMPLETED")) statusStyle = "bg-emerald-50 text-emerald-600 border-emerald-100";
+
+              return (
+                <div key={project._id} className="bg-white rounded-[20px] p-4 flex flex-col xl:flex-row xl:items-center justify-between border border-white/60 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 transition-all gap-4 xl:gap-8">
+                  
+                  {/* Left: Avatar + Title */}
+                  <div className="flex items-center gap-4 w-full xl:w-2/5 min-w-0">
+                    <div className="w-14 h-14 bg-[#f8fafc] border border-slate-100 rounded-[14px] flex items-center justify-center font-black text-xl text-[#1e293b] flex-shrink-0 shadow-sm">
+                      {clientName.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex flex-col justify-center">
+                      <h3 className="font-black text-[#1e293b] text-sm truncate" title={`${clientName} — ${project.title}`}>
+                        {clientName} — {project.title}
+                      </h3>
+                      <p className="text-[#94a3b8] text-[11px] font-bold mt-1 truncate">
+                        {project.type} - Started {project.startDate ? project.startDate.split('T')[0] : 'N/A'} - Due {project.endDate ? project.endDate.split('T')[0] : 'N/A'}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Middle: Progress Bar */}
+                  <div className="flex-1 flex items-center gap-4 w-full xl:w-auto">
+                    <div className="h-2 flex-1 bg-[#f1f5f9] rounded-full overflow-hidden shadow-inner">
+                      <div className={`h-full ${progressColor} rounded-full transition-all duration-1000`} style={{ width: `${progress}%` }}></div>
+                    </div>
+                    <span className="text-[#94a3b8] text-xs font-black w-10 text-right">{progress}%</span>
+                  </div>
+
+                  {/* Right: Status + Tasks + Buttons */}
+                  <div className="flex items-center justify-between xl:justify-end gap-6 w-full xl:w-[30%] min-w-[280px]">
+                    <span className={`px-3 py-1 rounded-full font-black text-[10px] uppercase border tracking-wider ${statusStyle}`}>
+                      {stat}
+                    </span>
+                    
+                    <div className="flex flex-col items-end">
+                      <span className="text-[#94a3b8] text-[11px] font-bold">{project.tasks?.length || 0} tasks</span>
+                      {/* Optional: Add overdue task logic here if available */}
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => handleEdit(project)}
+                        className="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 shadow-sm transition-colors"
+                        title="Edit Project"
+                      >
+                        <FiEdit size={14} />
+                      </button>
+                      <button 
+                        onClick={() => dispatch(deleteProject(project._id))}
+                        className="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 shadow-sm transition-colors"
+                        title="Delete Project"
+                      >
+                        <FiTrash2 size={14} />
+                      </button>
+                      <button 
+                        onClick={() => navigate(`/${user?.role || 'admin'}/tasks`)}
+                        className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-[#475569] shadow-sm hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+                      >
+                        View Tasks
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
         {/* MODAL */}
-        {/* ========================================== */}
         {openModal && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 z-50">
-            <div className="bg-white w-full max-w-3xl rounded-[2.5rem] border border-gray-200 shadow-[0_30px_70px_rgba(0,0,0,0.2)] overflow-hidden">
-              <div className="flex items-center justify-between px-10 py-8 border-b border-gray-100 bg-slate-50/50">
-                <h2 className="text-3xl font-black text-slate-800">
+          <div className="fixed inset-0 bg-[#0f172a]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+            <div className="bg-[#f8fafc] w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] scale-in-center border border-white/20">
+              
+              {/* HEADER */}
+              <div className="flex items-center justify-between px-8 py-5 border-b border-[#e2e8f0] bg-white">
+                <h2 className="text-xl font-black text-[#1e293b]">
                   {editProject ? "Update Project" : "Create New Project"}
                 </h2>
                 <button
                   onClick={() => setOpenModal(false)}
-                  className="w-12 h-12 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-all duration-300 shadow-sm"
+                  className="w-8 h-8 rounded-lg bg-[#f1f5f9] border border-[#e2e8f0] flex items-center justify-center text-[#94a3b8] hover:text-[#475569] hover:bg-[#e2e8f0] transition-colors"
                 >
-                  <FiX size={24} />
+                  <FiX size={16} />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-10 space-y-8 max-h-[70vh] overflow-y-auto">
+              {/* FORM */}
+              <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto custom-scrollbar bg-[#f8fafc]">
+                
+                {/* Project Name */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Project Name</label>
+                  <label className="block text-xs font-black text-[#64748b] mb-2">Project Name *</label>
                   <input
                     type="text"
                     name="title"
-                    placeholder="E.g., Brand Re-design 2024"
+                    placeholder="Enter project name..."
                     value={formData.title}
                     onChange={handleChange}
                     required
-                    className="w-full h-14 bg-slate-50 border border-gray-200 rounded-2xl px-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium"
+                    className="w-full h-11 bg-white border border-[#e2e8f0] rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-[#1e293b] font-bold text-sm placeholder:text-slate-400 shadow-sm"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Client */}
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Client</label>
+                    <label className="block text-xs font-black text-[#64748b] mb-2">Client *</label>
                     <select
                       name="client"
                       value={formData.client}
                       onChange={handleChange}
                       required
-                      className="w-full h-14 bg-slate-50 border border-gray-200 rounded-2xl px-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium cursor-pointer"
+                      className="w-full h-11 bg-white border border-[#e2e8f0] rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-[#1e293b] font-bold text-sm shadow-sm cursor-pointer"
                     >
-                      <option value="">Select Client</option>
+                      <option value="">Select client...</option>
                       {clients.map((client) => (
                         <option key={client._id} value={client._id}>{client.companyName}</option>
                       ))}
                     </select>
                   </div>
 
+                  {/* Type */}
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Service Template</label>
-                    <select
-                      name="template"
-                      value={formData.template}
-                      onChange={handleChange}
-                      className="w-full h-14 bg-slate-50 border border-gray-200 rounded-2xl px-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium cursor-pointer"
-                    >
-                      <option value="">No Template</option>
-                      {templates.map((template) => (
-                        <option key={template._id} value={template._id}>{template.title}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Project Type</label>
+                    <label className="block text-xs font-black text-[#64748b] mb-2">Type</label>
                     <select
                       name="type"
                       value={formData.type}
                       onChange={handleChange}
-                      className="w-full h-14 bg-slate-50 border border-gray-200 rounded-2xl px-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium cursor-pointer"
+                      className="w-full h-11 bg-white border border-[#e2e8f0] rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-[#1e293b] font-bold text-sm shadow-sm cursor-pointer"
                     >
                       <option>Monthly Retainer</option>
-                      <option>One Time Project</option>
+                      <option>Campaign</option>
+                      <option>One-Time</option>
+                      <option>Video Production</option>
                       <option>Internal Project</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Priority Level</label>
-                    <select
-                      name="priority"
-                      value={formData.priority}
-                      onChange={handleChange}
-                      className="w-full h-14 bg-slate-50 border border-gray-200 rounded-2xl px-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium cursor-pointer"
-                    >
-                      <option value="low">Low Priority</option>
-                      <option value="medium">Medium Priority</option>
-                      <option value="high">High Priority</option>
                     </select>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Start Date */}
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Start Date</label>
+                    <label className="block text-xs font-black text-[#64748b] mb-2">Start Date</label>
                     <input
                       type="date"
                       name="startDate"
                       value={formData.startDate}
                       onChange={handleChange}
-                      className="w-full h-14 bg-slate-50 border border-gray-200 rounded-2xl px-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium"
+                      className="w-full h-11 bg-white border border-[#e2e8f0] rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-[#1e293b] font-bold text-sm shadow-sm"
                     />
                   </div>
 
+                  {/* End Date */}
                   <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">End Date</label>
+                    <label className="block text-xs font-black text-[#64748b] mb-2">End Date</label>
                     <input
                       type="date"
                       name="endDate"
                       value={formData.endDate}
                       onChange={handleChange}
-                      className="w-full h-14 bg-slate-50 border border-gray-200 rounded-2xl px-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium"
+                      className="w-full h-11 bg-white border border-[#e2e8f0] rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-[#1e293b] font-bold text-sm shadow-sm"
                     />
                   </div>
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Template */}
+                  <div>
+                    <label className="block text-xs font-black text-[#64748b] mb-2">Apply Template</label>
+                    <select
+                      name="template"
+                      value={formData.template}
+                      onChange={handleChange}
+                      className="w-full h-11 bg-white border border-[#e2e8f0] rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-[#1e293b] font-bold text-sm shadow-sm cursor-pointer"
+                    >
+                      <option value="">No template</option>
+                      {templates.map((template) => (
+                        <option key={template._id} value={template._id}>{template.title}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Priority */}
+                  <div>
+                    <label className="block text-xs font-black text-[#64748b] mb-2">Priority Level</label>
+                    <select
+                      name="priority"
+                      value={formData.priority}
+                      onChange={handleChange}
+                      className="w-full h-11 bg-white border border-[#e2e8f0] rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-[#1e293b] font-bold text-sm shadow-sm cursor-pointer"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Description */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Project Description</label>
+                  <label className="block text-xs font-black text-[#64748b] mb-2">Description</label>
                   <textarea
-                    rows="4"
+                    rows="3"
                     name="description"
                     placeholder="Briefly describe the project goals..."
                     value={formData.description}
                     onChange={handleChange}
-                    className="w-full bg-slate-50 border border-gray-200 rounded-[2rem] p-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium"
+                    className="w-full bg-white border border-[#e2e8f0] rounded-xl p-4 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-[#1e293b] font-medium text-sm shadow-sm resize-none"
                   />
                 </div>
 
-                <div className="flex items-center justify-end gap-5 pt-6">
+                {/* Footer Buttons */}
+                <div className="flex items-center justify-end gap-3 pt-6 border-t border-[#e2e8f0]">
                   <button
                     type="button"
                     onClick={() => setOpenModal(false)}
-                    className="px-10 py-4 rounded-2xl border border-gray-200 text-slate-600 font-bold hover:bg-slate-50 transition-all active:scale-95"
+                    className="px-6 py-2.5 rounded-xl border border-[#e2e8f0] text-[#475569] font-bold text-sm bg-white hover:bg-[#f1f5f9] transition-colors shadow-sm"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-12 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black text-lg shadow-[0_15px_35px_rgba(37,99,235,0.3)] hover:scale-[1.02] hover:shadow-[0_20px_45px_rgba(37,99,235,0.4)] transition-all active:scale-95"
+                    className="px-6 py-2.5 rounded-xl bg-[#7c5ff0] text-white font-bold text-sm shadow-md hover:bg-[#6c4be0] transition-colors"
                   >
-                    {editProject ? "Save Changes" : "Launch Project"}
+                    {editProject ? "Save Changes" : "Create Project"}
                   </button>
                 </div>
               </form>

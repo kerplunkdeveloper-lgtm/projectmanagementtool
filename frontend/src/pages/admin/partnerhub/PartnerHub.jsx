@@ -10,8 +10,6 @@ import FinancialsTab from "./components/tabs/FinancialsTab";
 
 const PartnerHub = () => {
   const [activeTab, setActiveTab] = useState("overview");
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const [projects, setProjects] = useState([]);
   const [team, setTeam] = useState([]);
@@ -39,6 +37,8 @@ const PartnerHub = () => {
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+
 
   // Compute overview data
   let totalRevenue = 0;
@@ -124,10 +124,7 @@ const PartnerHub = () => {
       <FinancialsNav
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        selectedMonth={selectedMonth}
-        setSelectedMonth={setSelectedMonth}
-        selectedYear={selectedYear}
-        setSelectedYear={setSelectedYear}
+        onExport={() => window.print()}
       />
 
       {/* Tab Content area */}

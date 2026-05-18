@@ -143,7 +143,7 @@ const CalendarPage = () => {
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
                 <FiCalendar size={28} />
               </div>
-              Strategic Planner
+            Calendar
             </h1>
             <p className="text-gray-500 mt-2 text-lg">Orchestrate content cycles and marketing initiatives</p>
           </div>

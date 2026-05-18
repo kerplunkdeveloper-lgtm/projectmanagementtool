@@ -7,6 +7,11 @@ const businessProjectSchema = new mongoose.Schema(
       required: [true, "Project name is required"],
       trim: true,
     },
+    client: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Client",
+      required: [true, "Client is required"],
+    },
     type: {
       type: String,
       required: [true, "Project type is required"],

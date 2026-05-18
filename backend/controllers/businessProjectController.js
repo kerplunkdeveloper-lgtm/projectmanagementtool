@@ -5,7 +5,9 @@ const BusinessProject = require("../models/BusinessProject");
 // @access  Private/Admin
 exports.getBusinessProjects = async (req, res, next) => {
   try {
-    const projects = await BusinessProject.find().populate("employees", "name email department role salary overheadPercent capacity");
+    const projects = await BusinessProject.find()
+      .populate("employees", "name email department role salary overheadPercent capacity")
+      .populate("client", "companyName industry primaryContact");
 
     res.status(200).json({
       success: true,
@@ -24,7 +26,9 @@ exports.createBusinessProject = async (req, res, next) => {
   try {
     const project = await BusinessProject.create(req.body);
 
-    const populatedProject = await BusinessProject.findById(project._id).populate("employees", "name email department role salary overheadPercent capacity");
+    const populatedProject = await BusinessProject.findById(project._id)
+      .populate("employees", "name email department role salary overheadPercent capacity")
+      .populate("client", "companyName industry primaryContact");
 
     res.status(201).json({
       success: true,
@@ -49,7 +53,9 @@ exports.updateBusinessProject = async (req, res, next) => {
     project = await BusinessProject.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
-    }).populate("employees", "name email department role salary overheadPercent capacity");
+    })
+      .populate("employees", "name email department role salary overheadPercent capacity")
+      .populate("client", "companyName industry primaryContact");
 
     res.status(200).json({
       success: true,
@@ -99,7 +105,9 @@ exports.assignEmployee = async (req, res, next) => {
       await project.save();
     }
 
-    project = await BusinessProject.findById(req.params.id).populate("employees", "name email department role salary overheadPercent capacity");
+    project = await BusinessProject.findById(req.params.id)
+      .populate("employees", "name email department role salary overheadPercent capacity")
+      .populate("client", "companyName industry primaryContact");
 
     res.status(200).json({
       success: true,

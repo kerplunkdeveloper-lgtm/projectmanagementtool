@@ -1,5 +1,6 @@
 import React from "react";
 import DashboardLayout from "../../components/layout/DashboardLayout.jsx";
+import WelcomeUser from "./partnerhub/components/WelcomeUser.jsx";
 
 const AdminDashboard = () => {
 
@@ -7,9 +8,9 @@ const AdminDashboard = () => {
 
   return (
     <DashboardLayout role="admin">
-      <h1>Admin Dashboard</h1>
+      <WelcomeUser />
     </DashboardLayout>
-  );
+  );  
 };
 
 export default AdminDashboard;

@@ -50,7 +50,7 @@ const AdminHome = () => {
       {/* Header */}
       <div className="mb-8">
 
-        <h1 className="text-3xl sm:text-4xl font-bold text-white">
+        <h1 className="text-3xl sm:text-4xl font-bold">
           Admin Dashboard
         </h1>
 
@@ -150,56 +150,7 @@ const AdminHome = () => {
 
       </div>
 
-      {/* SEO Project Section */}
-      <div className="mt-10">
-
-        <div
-          className="
-            rounded-3xl
-            bg-gradient-to-r from-cyan-500 to-blue-600
-            p-6 sm:p-8
-            shadow-2xl
-            overflow-hidden
-            relative
-          "
-        >
-
-          <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full" />
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full" />
-
-          <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-
-            <div>
-
-              <h2 className="text-2xl sm:text-3xl font-bold text-white">
-                Ongoing SEO Projects
-              </h2>
-
-              <p className="text-cyan-100 mt-2 max-w-xl">
-                Currently managing 2 active SEO campaigns with ongoing
-                optimization, keyword research, and performance tracking.
-              </p>
-
-            </div>
-
-            <div className="flex gap-4">
-
-              <div className="bg-white/10 backdrop-blur-lg px-6 py-4 rounded-2xl text-center">
-                <h3 className="text-white text-3xl font-bold">
-                  2
-                </h3>
-                <p className="text-cyan-100 text-sm">
-                  Active Projects
-                </p>
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
+     
 
     </div>
   );

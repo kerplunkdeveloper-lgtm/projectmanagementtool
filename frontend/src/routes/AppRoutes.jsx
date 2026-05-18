@@ -9,7 +9,7 @@ import Login from "../pages/auth/Login.jsx";
 
 import DashboardLayout from "../components/layout/DashboardLayout.jsx";
 
-import AdminHome from "../pages/admin/AdminHome.jsx";
+import Dashboardmain from "../pages/Dashboard/Dashboardmain.jsx";
 import Project from "../pages/projects/Project.jsx";
 import AdminUsers from "../pages/admin/AdminUsers.jsx";
 import PartnerHub from "../pages/admin/partnerhub/PartnerHub.jsx";
@@ -52,7 +52,7 @@ const AppRoutes = () => {
       >
         <Route
           index
-          element={<AdminHome />}
+          element={<Dashboardmain />}
         />
 
         <Route
@@ -123,7 +123,7 @@ const AppRoutes = () => {
       >
         <Route
           index
-          element={<OperationHome />}
+          element={<Dashboardmain/>}
         />
 
         <Route
@@ -161,7 +161,7 @@ const AppRoutes = () => {
       >
         <Route
           index
-          element={<TeamHome />}
+          element={<Dashboardmain />}
         />
 
         <Route

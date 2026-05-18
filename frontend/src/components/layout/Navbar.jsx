@@ -4,16 +4,13 @@ import { useSelector, useDispatch } from "react-redux";
 
 import { logoutUser } from "../../features/auth/authSlice";
 
-import {
-  getProfile,
-  clearProfile,
-} from "../../features/profile/profileSlice";
+import { getProfile, clearProfile } from "../../features/profile/profileSlice";
 
-import { useNavigate } from "react-router-dom";
-import { 
-  getNotifications, 
-  markAsRead, 
-  markAllAsRead 
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  getNotifications,
+  markAsRead,
+  markAllAsRead,
 } from "../../features/notifications/notificationSlice";
 
 import toast from "react-hot-toast";
@@ -36,9 +33,29 @@ const Navbar = ({ setSidebarOpen }) => {
   const dispatch = useDispatch();
 
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const getPageTitle = () => {
+    const path = location.pathname.toLowerCase();
+    if (path.includes("dashboard")) return "Dashboard";
+    if (path.includes("clients")) return "Clients";
+    if (path.includes("projects")) return "Projects";
+    if (path.includes("tasks")) return "Tasks";
+    if (path.includes("partnerhub")) return "PartnerHub";
+    if (path.includes("profile")) return "Profile";
+    if (path.includes("team")) return "Team";
+    if (path.includes("users")) return "Users";
+    if (path.includes("template")) return "Template";
+    if (path.includes("report") || path.includes("eod")) return "EOD";
+    if (path.includes("calendar") || path.includes("calendor"))
+      return "Calendar";
+    if (path.includes("settings")) return "Settings";
+    return "Dashboard";
+  };
+
+  const pageTitle = getPageTitle();
 
   const dropdownRef = useRef(null);
-
   const [openDropdown, setOpenDropdown] = useState(false);
 
   // AUTH
@@ -46,7 +63,7 @@ const Navbar = ({ setSidebarOpen }) => {
 
   // NOTIFICATIONS
   const { notifications } = useSelector((state) => state.notifications);
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
   const [openNotifications, setOpenNotifications] = useState(false);
   const notificationRef = useRef(null);
 
@@ -64,10 +81,7 @@ const Navbar = ({ setSidebarOpen }) => {
   // OUTSIDE CLICK
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setOpenDropdown(false);
       }
       if (
@@ -81,10 +95,7 @@ const Navbar = ({ setSidebarOpen }) => {
     document.addEventListener("mousedown", handleClickOutside);
 
     return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleClickOutside
-      );
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -188,21 +199,13 @@ const Navbar = ({ setSidebarOpen }) => {
 
               font-extrabold
 
-              bg-gradient-to-r
-              from-blue-600
-              via-cyan-500
-              to-sky-500
+               text-blue-800
 
-              bg-clip-text
-              text-transparent
+
             "
           >
-            ProjectFlow
+            {pageTitle}
           </h1>
-
-          <p className="text-xs text-gray-400 font-medium">
-            Manage everything smarter
-          </p>
         </div>
       </div>
 
@@ -318,7 +321,7 @@ const Navbar = ({ setSidebarOpen }) => {
                   animate-pulse
                 "
               >
-                {unreadCount > 9 ? '9+' : unreadCount}
+                {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
           </button>
@@ -333,9 +336,11 @@ const Navbar = ({ setSidebarOpen }) => {
                 className="absolute right-0 mt-4 w-80 md:w-96 bg-white rounded-[2rem] border border-blue-100 shadow-[0_20px_60px_rgba(0,0,0,0.15)] overflow-hidden z-50"
               >
                 <div className="p-6 bg-slate-50/50 border-b border-gray-100 flex items-center justify-between">
-                  <h3 className="text-lg font-black text-slate-800">Intelligence</h3>
+                  <h3 className="text-lg font-black text-slate-800">
+                    Intelligence
+                  </h3>
                   {unreadCount > 0 && (
-                    <button 
+                    <button
                       onClick={handleMarkAllAsRead}
                       className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:text-blue-700 transition-colors"
                     >
@@ -347,35 +352,50 @@ const Navbar = ({ setSidebarOpen }) => {
                 <div className="max-h-[400px] overflow-y-auto">
                   {notifications.length === 0 ? (
                     <div className="p-10 text-center">
-                      <p className="text-slate-400 font-bold italic">No tactical signals detected.</p>
+                      <p className="text-slate-400 font-bold italic">
+                        No tactical signals detected.
+                      </p>
                     </div>
                   ) : (
                     notifications.map((n) => (
-                      <div 
+                      <div
                         key={n._id}
                         onClick={() => handleMarkAsRead(n._id)}
-                        className={`p-5 border-b border-gray-50 cursor-pointer transition-all hover:bg-blue-50/50 ${!n.isRead ? 'bg-blue-50/20' : ''}`}
+                        className={`p-5 border-b border-gray-50 cursor-pointer transition-all hover:bg-blue-50/50 ${!n.isRead ? "bg-blue-50/20" : ""}`}
                       >
                         <div className="flex gap-4">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                            !n.isRead 
-                              ? n.type === 'project_assigned' 
-                                ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' 
-                                : 'bg-blue-600 text-white shadow-lg shadow-blue-200' 
-                              : 'bg-slate-100 text-slate-400'
-                          }`}>
-                            {n.type === 'project_assigned' ? <FiBriefcase size={18} /> : <FiCheckSquare size={18} />}
+                          <div
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                              !n.isRead
+                                ? n.type === "project_assigned"
+                                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
+                                  : "bg-blue-600 text-white shadow-lg shadow-blue-200"
+                                : "bg-slate-100 text-slate-400"
+                            }`}
+                          >
+                            {n.type === "project_assigned" ? (
+                              <FiBriefcase size={18} />
+                            ) : (
+                              <FiCheckSquare size={18} />
+                            )}
                           </div>
                           <div className="flex-1">
-                            <p className={`text-sm ${!n.isRead ? 'font-black text-slate-800' : 'font-medium text-slate-500'}`}>
+                            <p
+                              className={`text-sm ${!n.isRead ? "font-black text-slate-800" : "font-medium text-slate-500"}`}
+                            >
                               {n.message}
                             </p>
                             <p className="text-[10px] text-slate-400 mt-1 font-bold">
-                              {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              {new Date(n.createdAt).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
                             </p>
                           </div>
                           {!n.isRead && (
-                            <div className={`w-2 h-2 rounded-full mt-2 ${n.type === 'project_assigned' ? 'bg-indigo-600' : 'bg-blue-600'}`}></div>
+                            <div
+                              className={`w-2 h-2 rounded-full mt-2 ${n.type === "project_assigned" ? "bg-indigo-600" : "bg-blue-600"}`}
+                            ></div>
                           )}
                         </div>
                       </div>
@@ -384,7 +404,9 @@ const Navbar = ({ setSidebarOpen }) => {
                 </div>
 
                 <div className="p-4 bg-slate-50/50 text-center border-t border-gray-100">
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">End of Transmission</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                    End of Transmission
+                  </p>
                 </div>
               </motion.div>
             )}
@@ -395,9 +417,7 @@ const Navbar = ({ setSidebarOpen }) => {
         <div className="relative" ref={dropdownRef}>
           {/* BUTTON */}
           <button
-            onClick={() =>
-              setOpenDropdown(!openDropdown)
-            }
+            onClick={() => setOpenDropdown(!openDropdown)}
             className="
               hidden
               sm:flex
@@ -469,9 +489,7 @@ const Navbar = ({ setSidebarOpen }) => {
                 {user?.name}
               </h3>
 
-              <p className="text-xs text-gray-400 capitalize">
-                {user?.role}
-              </p>
+              <p className="text-xs text-gray-400 capitalize">{user?.role}</p>
             </div>
 
             {/* ICON */}
@@ -481,11 +499,7 @@ const Navbar = ({ setSidebarOpen }) => {
                 transition-transform
                 duration-300
 
-                ${
-                  openDropdown
-                    ? "rotate-180"
-                    : ""
-                }
+                ${openDropdown ? "rotate-180" : ""}
               `}
             />
           </button>
@@ -536,9 +550,7 @@ const Navbar = ({ setSidebarOpen }) => {
                 {/* PROFILE */}
                 <button
                   onClick={() => {
-                    navigate(
-                      `/${user?.role}/profile`
-                    );
+                    navigate(`/${user?.role}/profile`);
 
                     setOpenDropdown(false);
                   }}
@@ -562,7 +574,6 @@ const Navbar = ({ setSidebarOpen }) => {
                   "
                 >
                   <FiUser className="text-blue-500" />
-
                   Edit Profile
                 </button>
 
@@ -589,7 +600,6 @@ const Navbar = ({ setSidebarOpen }) => {
                   "
                 >
                   <FiLogOut />
-
                   Logout
                 </button>
               </motion.div>

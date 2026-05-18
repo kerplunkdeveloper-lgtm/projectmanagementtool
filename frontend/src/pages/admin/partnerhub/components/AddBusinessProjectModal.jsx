@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 const AddBusinessProjectModal = ({ isOpen, onClose, onProjectAdded, projectToEdit }) => {
   const [formData, setFormData] = useState({
     name: '',
+    client: '',
     type: 'Digital Marketing',
     status: 'Active',
     revenue: '',
@@ -13,14 +14,17 @@ const AddBusinessProjectModal = ({ isOpen, onClose, onProjectAdded, projectToEdi
     employees: []
   });
   const [users, setUsers] = useState([]);
+  const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       fetchUsers();
+      fetchClients();
       if (projectToEdit) {
         setFormData({
           name: projectToEdit.name || '',
+          client: projectToEdit.client?._id || projectToEdit.client || '',
           type: projectToEdit.type || 'Digital Marketing',
           status: projectToEdit.status || 'Active',
           revenue: projectToEdit.revenue || '',
@@ -30,6 +34,7 @@ const AddBusinessProjectModal = ({ isOpen, onClose, onProjectAdded, projectToEdi
       } else {
         setFormData({
           name: '',
+          client: '',
           type: 'Digital Marketing',
           status: 'Active',
           revenue: '',
@@ -48,6 +53,16 @@ const AddBusinessProjectModal = ({ isOpen, onClose, onProjectAdded, projectToEdi
       setUsers(Array.isArray(userList) ? userList : []);
     } catch (err) {
       console.error('Failed to fetch users', err);
+    }
+  };
+
+  const fetchClients = async () => {
+    try {
+      const res = await axiosInstance.get('/clients');
+      const clientList = res.data.data || res.data;
+      setClients(Array.isArray(clientList) ? clientList : []);
+    } catch (err) {
+      console.error('Failed to fetch clients', err);
     }
   };
 
@@ -117,7 +132,7 @@ const AddBusinessProjectModal = ({ isOpen, onClose, onProjectAdded, projectToEdi
           
           <div>
             <label className="block text-[#475569] text-sm font-semibold mb-1.5">
-              Project / Client Name <span className="text-rose-500">*</span>
+            Client
             </label>
             <input
               type="text"
@@ -276,7 +291,7 @@ const AddBusinessProjectModal = ({ isOpen, onClose, onProjectAdded, projectToEdi
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!formData.name || !formData.type || loading}
+            disabled={!formData.name || !formData.client || !formData.type || loading}
             className="px-6 py-2.5 rounded-xl bg-[#7c5ff0] text-white font-bold hover:bg-[#6c4be0] disabled:opacity-50 transition-colors shadow-md shadow-indigo-500/30"
           >
             {loading ? 'Saving...' : projectToEdit ? 'Save Changes' : 'Add Project'}
