@@ -50,6 +50,9 @@ const eodReports = require('./routes/eodReportRoutes');
 const eventRoutes = require('./routes/eventRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const userRoutes = require("./routes/userRoutes");
+const businessProjectRoutes = require("./routes/businessProjectRoutes");
+const overheadRoutes = require("./routes/overheadRoutes");
 
 app.get("/", (req, res) => {
   res.send("hello");
@@ -68,6 +71,8 @@ app.use('/api/eod-reports', eodReports);
 app.use('/api/events', eventRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/business-projects', businessProjectRoutes);
+app.use('/api/overheads', overheadRoutes);
 
 const PORT = process.env.PORT || 5000;
 

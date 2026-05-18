@@ -12,6 +12,7 @@ import DashboardLayout from "../components/layout/DashboardLayout.jsx";
 import AdminHome from "../pages/admin/AdminHome.jsx";
 import Project from "../pages/projects/Project.jsx";
 import AdminUsers from "../pages/admin/AdminUsers.jsx";
+import PartnerHub from "../pages/admin/partnerhub/PartnerHub.jsx";
 
 
 import Profile from "../pages/profile/Profile.jsx";
@@ -98,6 +99,11 @@ const AppRoutes = () => {
         <Route
           path="calendar"
           element={<CalendarPage />}
+        />
+
+        <Route
+          path="partnerhub"
+          element={<PartnerHub />}
         />
         
       

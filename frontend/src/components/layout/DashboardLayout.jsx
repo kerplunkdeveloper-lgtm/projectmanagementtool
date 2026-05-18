@@ -31,7 +31,7 @@ const DashboardLayout = ({
         h-screen
         overflow-hidden
         bg-[#08111F]
-        text-white
+      
       "
     >
 

@@ -61,6 +61,17 @@ export const sidebarConfig = {
       icon: FiCalendar,
     },
 
+
+     {
+      name: "PartnerHub",
+      path: "/admin/partnerhub",
+      icon: FiFolder,
+    },
+
+
+
+
+
      {
       name: "profile",
       path: "/admin/profile",

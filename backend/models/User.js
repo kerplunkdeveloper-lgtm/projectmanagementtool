@@ -31,7 +31,6 @@ const userSchema = new mongoose.Schema({
 
   department: {
     type: String,
-
     enum: [
       "Social Media Team",
       "Website Team",
@@ -41,14 +40,36 @@ const userSchema = new mongoose.Schema({
       "Cameraman Team",
       "SEO Team",
     ],
-
     required: function () {
       return this.role === "team";
     },
   },
 
+  salary: {
+    type: Number,
+    default: function() {
+      if (this.role === 'admin') return 0;
+      if (this.role === 'operationmanager') return 35000;
+      return 22000;
+    },
+  },
 
+  overheadPercent: {
+    type: Number,
+    default: function() {
+      if (this.role === 'admin') return 0;
+      return 15;
+    },
+  },
 
+  capacity: {
+    type: Number,
+    default: function() {
+      if (this.role === 'admin') return 20;
+      if (this.role === 'operationmanager') return 12;
+      return 8;
+    },
+  },
 
   profile: {
     type: mongoose.Schema.Types.ObjectId,
