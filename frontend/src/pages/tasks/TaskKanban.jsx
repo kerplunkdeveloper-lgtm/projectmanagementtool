@@ -45,7 +45,13 @@ const TaskKanban = ({ tasks, onEdit, onToggleComplete }) => {
               {colTasks.map(task => {
                 const isCompleted = task.status?.toLowerCase() === "completed";
                 const assigneeName = task.assignedTo?.name || "Unassigned";
-                const clientName = task.project?.client?.companyName || task.project?.title || "Internal";
+                const clientName =
+                  task.client?.companyName ||
+                  (typeof task.client === 'string' ? task.client : '') ||
+                  task.project?.client?.companyName ||
+                  (typeof task.project?.client === 'string' ? task.project?.client : '') ||
+                  task.project?.title ||
+                  "Internal";
 
                 return (
                   <div 

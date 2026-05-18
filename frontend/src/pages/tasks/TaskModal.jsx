@@ -3,11 +3,13 @@ import { FiX, FiCheckSquare } from "react-icons/fi";
 import { useSelector, useDispatch } from "react-redux";
 import { getProjects } from "../../features/projects/projectSlice";
 import { getUsers } from "../../features/users/userSlice";
+import axiosInstance from "../../services/axiosInstance";
 
 const TaskModal = ({ open, setOpen, onSubmit, initialData, isEditing }) => {
   const dispatch = useDispatch();
   const { projects } = useSelector((state) => state.projects);
   const { users } = useSelector((state) => state.users);
+  const [clients, setClients] = useState([]);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -24,10 +26,21 @@ const TaskModal = ({ open, setOpen, onSubmit, initialData, isEditing }) => {
 
   const availableTags = ["SMM", "SEO", "Ads", "Video", "Brand"];
 
+  const fetchClients = async () => {
+    try {
+      const res = await axiosInstance.get("/clients/all");
+      const clientList = res.data.data || res.data;
+      setClients(Array.isArray(clientList) ? clientList : []);
+    } catch (err) {
+      console.error("Failed to fetch clients", err);
+    }
+  };
+
   useEffect(() => {
     if (open) {
       dispatch(getProjects());
       dispatch(getUsers());
+      fetchClients();
       if (isEditing && initialData) {
         setFormData({
           title: initialData.title || "",
@@ -72,7 +85,14 @@ const TaskModal = ({ open, setOpen, onSubmit, initialData, isEditing }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    
+    // Clean up empty ObjectId references to prevent Mongoose CastErrors
+    const payload = { ...formData };
+    if (!payload.project) delete payload.project;
+    if (!payload.client) delete payload.client;
+    if (!payload.assignedTo) delete payload.assignedTo;
+    
+    onSubmit(payload);
   };
 
   if (!open) return null;
@@ -229,8 +249,11 @@ const TaskModal = ({ open, setOpen, onSubmit, initialData, isEditing }) => {
                   className="w-full h-10 bg-[#f8fafc] border-none rounded-xl px-4 outline-none focus:ring-2 focus:ring-indigo-400 text-sm text-slate-700 shadow-inner appearance-none cursor-pointer"
                 >
                   <option value="">Select client...</option>
-                  <option value="nexus">Nexus Corp</option>
-                  <option value="abc">ABC Restaurant</option>
+                  {clients.map((client) => (
+                    <option key={client._id} value={client._id}>
+                      {client.companyName}
+                    </option>
+                  ))}
                 </select>
               </div>
 

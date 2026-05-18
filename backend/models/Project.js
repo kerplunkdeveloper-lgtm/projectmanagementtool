@@ -71,13 +71,13 @@ const projectSchema =
         type: String,
 
         enum: [
-          "planning",
-          "in-progress",
-          "completed",
-          "on-hold",
+          "Active",
+          "In Review",
+          "At Risk",
+          "Completed",
         ],
 
-        default: "planning",
+        default: "Active",
       },
 
 

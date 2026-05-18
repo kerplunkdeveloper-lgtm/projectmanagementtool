@@ -76,6 +76,8 @@ const Project = () => {
       type:
         "Monthly Retainer",
 
+      status: "Active",
+
       priority: "medium",
 
       startDate: "",
@@ -198,6 +200,8 @@ const Project = () => {
       type:
         "Monthly Retainer",
 
+      status: "Active",
+
       priority: "medium",
 
       startDate: "",
@@ -233,6 +237,8 @@ const Project = () => {
 
       type:
         project.type,
+
+      status: project.status || "Active",
 
       priority:
         project.priority,
@@ -490,11 +496,25 @@ const Project = () => {
                       onChange={handleChange}
                       className="w-full h-11 bg-white border border-[#e2e8f0] rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-[#1e293b] font-bold text-sm shadow-sm cursor-pointer"
                     >
-                      <option>Monthly Retainer</option>
-                      <option>Campaign</option>
-                      <option>One-Time</option>
-                      <option>Video Production</option>
-                      <option>Internal Project</option>
+                      <option value="Monthly Retainer">Monthly Retainer</option>
+                      <option value="One Time Project">One Time Project</option>
+                      <option value="Internal Project">Internal Project</option>
+                    </select>
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <label className="block text-xs font-black text-[#64748b] mb-2">Status</label>
+                    <select
+                      name="status"
+                      value={formData.status}
+                      onChange={handleChange}
+                      className="w-full h-11 bg-white border border-[#e2e8f0] rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-[#1e293b] font-bold text-sm shadow-sm cursor-pointer"
+                    >
+                      <option value="Active">Active</option>
+                      <option value="In Review">In Review</option>
+                      <option value="At Risk">At Risk</option>
+                      <option value="Completed">Completed</option>
                     </select>
                   </div>
                 </div>

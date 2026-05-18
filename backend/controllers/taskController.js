@@ -2,22 +2,31 @@ const Task = require("../models/Task");
 const Project = require("../models/Project");
 const Notification = require("../models/Notification");
 
-// @desc    Get all tasks
-// @route   GET /api/tasks
-// @access  Private
+
+
 exports.getTasks = async (req, res) => {
   try {
     let tasks;
     if (req.user.role === "admin" || req.user.role === "operationmanager") {
       tasks = await Task.find()
-        .populate("project", "title")
+        .populate({
+          path: "project",
+          select: "title client",
+          populate: { path: "client", select: "companyName" }
+        })
+        .populate("client", "companyName")
         .populate("assignedTo", "name email")
         .populate("createdBy", "name")
         .sort("-createdAt");
     } else {
       // Team members only see tasks assigned to them
       tasks = await Task.find({ assignedTo: req.user.id })
-        .populate("project", "title")
+        .populate({
+          path: "project",
+          select: "title client",
+          populate: { path: "client", select: "companyName" }
+        })
+        .populate("client", "companyName")
         .populate("assignedTo", "name email")
         .populate("createdBy", "name")
         .sort("-createdAt");
@@ -40,16 +49,23 @@ exports.createTask = async (req, res) => {
   try {
     req.body.createdBy = req.user.id;
 
-    // Check if project exists
-    const project = await Project.findById(req.body.project);
-    if (!project) {
-      return res.status(404).json({ success: false, message: "Project not found" });
+    // Check if project exists (if provided)
+    let project = null;
+    if (req.body.project) {
+      project = await Project.findById(req.body.project);
+      if (!project) {
+        return res.status(404).json({ success: false, message: "Project not found" });
+      }
+    }
+
+    if (project && project.client) {
+      req.body.client = project.client;
     }
 
     const task = await Task.create(req.body);
-    
+
     // Optional: Add user to project's assignedTo if not already there
-    if (!project.assignedTo.includes(req.body.assignedTo)) {
+    if (project && req.body.assignedTo && !project.assignedTo.includes(req.body.assignedTo)) {
       project.assignedTo.push(req.body.assignedTo);
       await project.save();
     }
@@ -59,7 +75,7 @@ exports.createTask = async (req, res) => {
       recipient: req.body.assignedTo,
       sender: req.user.id,
       type: 'task_assigned',
-      message: `A new task "${task.title}" has been assigned to you in project "${project.title}".`,
+      message: `A new task "${task.title}" has been assigned to you${project ? ` in project "${project.title}"` : ''}.`,
       task: task._id
     });
 
@@ -69,9 +85,20 @@ exports.createTask = async (req, res) => {
       io.to(req.body.assignedTo.toString()).emit('notification', notification);
     }
 
+    // POPULATE NEW TASK
+    const populatedTask = await Task.findById(task._id)
+      .populate({
+        path: "project",
+        select: "title client",
+        populate: { path: "client", select: "companyName" }
+      })
+      .populate("client", "companyName")
+      .populate("assignedTo", "name email")
+      .populate("createdBy", "name");
+
     res.status(201).json({
       success: true,
-      data: task,
+      data: populatedTask,
     });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -99,7 +126,14 @@ exports.updateTask = async (req, res) => {
     task = await Task.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
-    }).populate("project", "title").populate("assignedTo", "name email");
+    })
+      .populate({
+        path: "project",
+        select: "title client",
+        populate: { path: "client", select: "companyName" }
+      })
+      .populate("client", "companyName")
+      .populate("assignedTo", "name email");
 
     // NOTIFY IF REASSIGNED
     if (req.body.assignedTo && req.body.assignedTo.toString() !== oldAssignedTo) {

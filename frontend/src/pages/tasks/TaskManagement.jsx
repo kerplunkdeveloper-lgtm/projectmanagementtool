@@ -35,7 +35,7 @@ const TaskManagement = () => {
 
   const fetchClients = async () => {
     try {
-      const res = await axiosInstance.get("/clients");
+      const res = await axiosInstance.get("/clients/all");
       const clientList = res.data.data || res.data;
       setClients(Array.isArray(clientList) ? clientList : []);
     } catch (err) {
@@ -96,12 +96,10 @@ const TaskManagement = () => {
       filterStatus === "all" || task.status === filterStatus;
 
     // Client matching logic
-    // the task has project.client object (after populate) or project object.
-    // depending on the backend, task.project might contain the client ID or object.
     let matchesClient = true;
     if (filterClient !== "all") {
       const taskClientId =
-        task.project?.client?._id || task.project?.client || "";
+        task.client?._id || task.client || task.project?.client?._id || task.project?.client || "";
       matchesClient = taskClientId === filterClient;
     }
 

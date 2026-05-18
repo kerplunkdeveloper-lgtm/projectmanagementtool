@@ -11,10 +11,13 @@ const taskSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    client: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Client",
+    },
     project: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Project",
-      required: [true, "Project is required"],
     },
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
@@ -23,7 +26,7 @@ const taskSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "in-progress", "completed", "on-hold"],
+      enum: ["pending", "created", "assigned", "in-progress", "internal-review", "client-approval", "completed", "on-hold"],
       default: "pending",
     },
     priority: {

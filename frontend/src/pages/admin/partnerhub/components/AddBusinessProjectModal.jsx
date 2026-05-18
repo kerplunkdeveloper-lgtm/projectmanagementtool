@@ -1,17 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import axiosInstance from '../../../../services/axiosInstance';
-import { FiX } from 'react-icons/fi';
-import toast from 'react-hot-toast';
+import React, { useState, useEffect } from "react";
+import axiosInstance from "../../../../services/axiosInstance";
+import { FiX } from "react-icons/fi";
+import toast from "react-hot-toast";
 
-const AddBusinessProjectModal = ({ isOpen, onClose, onProjectAdded, projectToEdit }) => {
+const AddBusinessProjectModal = ({
+  isOpen,
+  onClose,
+  onProjectAdded,
+  projectToEdit,
+}) => {
   const [formData, setFormData] = useState({
-    name: '',
-    client: '',
-    type: 'Digital Marketing',
-    status: 'Active',
-    revenue: '',
-    duration: 'Ongoing / Retainer',
-    employees: []
+    name: "",
+    client: "",
+    type: "Digital Marketing",
+    status: "Active",
+    revenue: "",
+    duration: "Ongoing / Retainer",
+    employees: [],
   });
   const [users, setUsers] = useState([]);
   const [clients, setClients] = useState([]);
@@ -23,23 +28,25 @@ const AddBusinessProjectModal = ({ isOpen, onClose, onProjectAdded, projectToEdi
       fetchClients();
       if (projectToEdit) {
         setFormData({
-          name: projectToEdit.name || '',
-          client: projectToEdit.client?._id || projectToEdit.client || '',
-          type: projectToEdit.type || 'Digital Marketing',
-          status: projectToEdit.status || 'Active',
-          revenue: projectToEdit.revenue || '',
-          duration: projectToEdit.duration || 'Ongoing / Retainer',
-          employees: projectToEdit.employees ? projectToEdit.employees.map(e => e._id || e) : []
+          name: projectToEdit.name || "",
+          client: projectToEdit.client?._id || projectToEdit.client || "",
+          type: projectToEdit.type || "Digital Marketing",
+          status: projectToEdit.status || "Active",
+          revenue: projectToEdit.revenue || "",
+          duration: projectToEdit.duration || "Ongoing / Retainer",
+          employees: projectToEdit.employees
+            ? projectToEdit.employees.map((e) => e._id || e)
+            : [],
         });
       } else {
         setFormData({
-          name: '',
-          client: '',
-          type: 'Digital Marketing',
-          status: 'Active',
-          revenue: '',
-          duration: 'Ongoing / Retainer',
-          employees: []
+          name: "",
+          client: "",
+          type: "Digital Marketing",
+          status: "Active",
+          revenue: "",
+          duration: "Ongoing / Retainer",
+          employees: [],
         });
       }
     }
@@ -47,22 +54,22 @@ const AddBusinessProjectModal = ({ isOpen, onClose, onProjectAdded, projectToEdi
 
   const fetchUsers = async () => {
     try {
-      const res = await axiosInstance.get('/users');
+      const res = await axiosInstance.get("/users");
       // The API response depends on userController. Usually it's res.data.data
       const userList = res.data.data || res.data;
       setUsers(Array.isArray(userList) ? userList : []);
     } catch (err) {
-      console.error('Failed to fetch users', err);
+      console.error("Failed to fetch users", err);
     }
   };
 
   const fetchClients = async () => {
     try {
-      const res = await axiosInstance.get('/clients');
+      const res = await axiosInstance.get("/clients/all");
       const clientList = res.data.data || res.data;
       setClients(Array.isArray(clientList) ? clientList : []);
     } catch (err) {
-      console.error('Failed to fetch clients', err);
+      console.error("Failed to fetch clients", err);
     }
   };
 
@@ -85,24 +92,37 @@ const AddBusinessProjectModal = ({ isOpen, onClose, onProjectAdded, projectToEdi
   const handleSubmit = async () => {
     try {
       setLoading(true);
+      
+      const selectedClientObj = clients.find(c => c._id === formData.client);
+      const generatedName = selectedClientObj 
+        ? `${selectedClientObj.companyName} - ${formData.type}` 
+        : formData.type;
+
       const dataToSubmit = {
         ...formData,
-        revenue: Number(formData.revenue) || 0
+        name: generatedName,
+        revenue: Number(formData.revenue) || 0,
       };
 
       if (projectToEdit) {
-        await axiosInstance.put(`/business-projects/${projectToEdit._id}`, dataToSubmit);
+        await axiosInstance.put(
+          `/business-projects/${projectToEdit._id}`,
+          dataToSubmit,
+        );
         toast.success("Project updated successfully!");
       } else {
-        await axiosInstance.post('/business-projects', dataToSubmit);
+        await axiosInstance.post("/business-projects", dataToSubmit);
         toast.success("Project added successfully!");
       }
 
       onProjectAdded();
       onClose();
     } catch (err) {
-      console.error('Error saving project:', err.response?.data || err);
-      toast.error('Failed to save project: ' + (err.response?.data?.message || err.message));
+      console.error("Error saving project:", err.response?.data || err);
+      toast.error(
+        "Failed to save project: " +
+          (err.response?.data?.message || err.message),
+      );
     } finally {
       setLoading(false);
     }
@@ -113,13 +133,13 @@ const AddBusinessProjectModal = ({ isOpen, onClose, onProjectAdded, projectToEdi
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
       <div className="bg-[#e4e6f2] w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-white/50">
-        
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-[#e4e6f2] border-b border-[#cbd0e1]">
           <h2 className="text-[#1a2035] text-xl font-bold flex items-center gap-2">
-            <span className="text-2xl">📁</span> {projectToEdit ? 'Edit' : 'Add'} Business Project
+            <span className="text-2xl">📁</span>{" "}
+            {projectToEdit ? "Edit" : "Add"} Business Project
           </h2>
-          <button 
+          <button
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-xl bg-white text-slate-500 hover:text-slate-700 shadow-sm transition-colors"
           >
@@ -129,19 +149,23 @@ const AddBusinessProjectModal = ({ isOpen, onClose, onProjectAdded, projectToEdi
 
         {/* Body */}
         <div className="p-6 bg-[#cbd0e1]/30 flex-1 overflow-y-auto space-y-5">
-          
           <div>
             <label className="block text-[#475569] text-sm font-semibold mb-1.5">
-            Client
+              Client <span className="text-rose-500">*</span>
             </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
+            <select
+              name="client"
+              value={formData.client}
               onChange={handleChange}
-              placeholder="e.g. V Square Website Redesign"
-              className="w-full bg-[#f1f3f9] border-0 text-[#1e293b] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-inner placeholder:text-slate-400"
-            />
+              className="w-full bg-[#f1f3f9] border-0 text-[#1e293b] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-inner appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_1rem_center] bg-[length:1.2em_1.2em] pr-10"
+            >
+              <option value="">Select a Client</option>
+              {clients.map(client => (
+                <option key={client._id} value={client._id}>
+                  {client.companyName}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -160,7 +184,7 @@ const AddBusinessProjectModal = ({ isOpen, onClose, onProjectAdded, projectToEdi
                 <option value="SEO">SEO</option>
               </select>
             </div>
-            
+
             <div>
               <label className="block text-[#475569] text-sm font-semibold mb-1.5">
                 Status
@@ -193,7 +217,7 @@ const AddBusinessProjectModal = ({ isOpen, onClose, onProjectAdded, projectToEdi
                 className="w-full bg-[#f1f3f9] border-0 text-[#1e293b] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-inner placeholder:text-slate-400"
               />
             </div>
-            
+
             <div>
               <label className="block text-[#475569] text-sm font-semibold mb-1.5">
                 Project Duration
@@ -224,61 +248,86 @@ const AddBusinessProjectModal = ({ isOpen, onClose, onProjectAdded, projectToEdi
               onChange={handleEmployeeSelection}
               className="w-full bg-[#e3e8f8] border-2 border-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 h-32 text-[#334155] font-medium custom-scrollbar"
             >
-              {users.map(user => {
+              {users.map((user) => {
                 let displayRole = "";
-                if (user.role === 'admin') {
+                if (user.role === "admin") {
                   displayRole = "Managing Partner";
-                } else if (user.role === 'operationmanager') {
+                } else if (user.role === "operationmanager") {
                   displayRole = "Operations Manager";
                 } else if (user.department) {
-                  displayRole = user.department.replace(' Team', '');
-                  if (displayRole.includes('Social Media')) displayRole = 'Social Media Manager';
-                  else if (displayRole.includes('Designer')) displayRole = 'Designer';
-                  else if (displayRole.includes('SEO')) displayRole = 'SEO Analyst';
+                  displayRole = user.department.replace(" Team", "");
+                  if (displayRole.includes("Social Media"))
+                    displayRole = "Social Media Manager";
+                  else if (displayRole.includes("Designer"))
+                    displayRole = "Designer";
+                  else if (displayRole.includes("SEO"))
+                    displayRole = "SEO Analyst";
                 } else {
                   displayRole = user.role;
                 }
 
                 return (
                   <option key={user._id} value={user._id} className="py-1">
-                    {user.name} {displayRole ? `— ${displayRole}` : ''}
+                    {user.name} {displayRole ? `— ${displayRole}` : ""}
                   </option>
                 );
               })}
             </select>
-            <p className="text-[#64748b] text-xs mt-1.5 font-medium">Hold Ctrl/Cmd to select multiple</p>
+            <p className="text-[#64748b] text-xs mt-1.5 font-medium">
+              Hold Ctrl/Cmd to select multiple
+            </p>
           </div>
 
           {/* Profit Preview */}
           {Number(formData.revenue) > 0 && (
             <div className="bg-[#e4e6f2] rounded-xl p-4 border border-[#cbd0e1] flex items-center justify-between">
-              <span className="text-[#1a2035] font-bold text-sm min-w-[100px]">Profit Preview</span>
-              
+              <span className="text-[#1a2035] font-bold text-sm min-w-[100px]">
+                Profit Preview
+              </span>
+
               <div className="flex-1 flex items-center justify-around">
                 <div className="text-center">
-                  <p className="text-[#64748b] text-[10px] font-bold mb-0.5">Est. Cost</p>
-                  <p className="text-[#dc2626] font-bold text-sm">
-                    ₹{Math.round(Number(formData.revenue) * 0.30173).toLocaleString('en-IN')}
+                  <p className="text-[#64748b] text-[10px] font-bold mb-0.5">
+                    Est. Cost
                   </p>
-                </div>
-                
-                <div className="text-center">
-                  <p className="text-[#64748b] text-[10px] font-bold mb-0.5">Profit</p>
-                  <p className="text-[#059669] font-bold text-sm">
-                    ₹{(Number(formData.revenue) - Math.round(Number(formData.revenue) * 0.30173)).toLocaleString('en-IN')}
+                  <p className="text-[#dc2626] font-bold text-sm">
+                    ₹
+                    {Math.round(
+                      Number(formData.revenue) * 0.30173,
+                    ).toLocaleString("en-IN")}
                   </p>
                 </div>
 
                 <div className="text-center">
-                  <p className="text-[#64748b] text-[10px] font-bold mb-0.5">Margin</p>
+                  <p className="text-[#64748b] text-[10px] font-bold mb-0.5">
+                    Profit
+                  </p>
                   <p className="text-[#059669] font-bold text-sm">
-                    {Math.round(((Number(formData.revenue) - Math.round(Number(formData.revenue) * 0.30173)) / Number(formData.revenue)) * 100)}%
+                    ₹
+                    {(
+                      Number(formData.revenue) -
+                      Math.round(Number(formData.revenue) * 0.30173)
+                    ).toLocaleString("en-IN")}
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-[#64748b] text-[10px] font-bold mb-0.5">
+                    Margin
+                  </p>
+                  <p className="text-[#059669] font-bold text-sm">
+                    {Math.round(
+                      ((Number(formData.revenue) -
+                        Math.round(Number(formData.revenue) * 0.30173)) /
+                        Number(formData.revenue)) *
+                        100,
+                    )}
+                    %
                   </p>
                 </div>
               </div>
             </div>
           )}
-
         </div>
 
         {/* Footer */}
@@ -291,13 +340,16 @@ const AddBusinessProjectModal = ({ isOpen, onClose, onProjectAdded, projectToEdi
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!formData.name || !formData.client || !formData.type || loading}
+            disabled={!formData.client || !formData.type || loading}
             className="px-6 py-2.5 rounded-xl bg-[#7c5ff0] text-white font-bold hover:bg-[#6c4be0] disabled:opacity-50 transition-colors shadow-md shadow-indigo-500/30"
           >
-            {loading ? 'Saving...' : projectToEdit ? 'Save Changes' : 'Add Project'}
+            {loading
+              ? "Saving..."
+              : projectToEdit
+                ? "Save Changes"
+                : "Add Project"}
           </button>
         </div>
-        
       </div>
     </div>
   );
