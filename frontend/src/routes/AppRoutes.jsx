@@ -128,7 +128,7 @@ const AppRoutes = () => {
 
         <Route
           path="projects"
-          element={<OperationProjects />}
+          element={<Project />} 
         />
 
         <Route
