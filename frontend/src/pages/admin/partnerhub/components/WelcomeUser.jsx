@@ -84,12 +84,11 @@ const WelcomeUser = () => {
 
         rounded-[2rem]
 
-        p-4
-        sm:p-5
-        md:p-7
+        p-3
+        sm:p-4
 
-        mb-6
-        md:mb-8
+        mb-3
+        md:mb-4
       "
     >
       {/* PREMIUM BLUR */}
@@ -166,12 +165,10 @@ const WelcomeUser = () => {
           {/* ICON */}
           <div
             className="
-              w-14
-              h-14
-              sm:w-16
-              sm:h-16
+              w-9
+              h-9
 
-              rounded-[1.4rem]
+              rounded-xl
 
               bg-gradient-to-br
               from-slate-50
@@ -191,8 +188,7 @@ const WelcomeUser = () => {
           >
             <Icon
               className={`
-                text-2xl
-                sm:text-3xl
+                text-lg
 
                 ${iconColor}
               `}
@@ -217,9 +213,9 @@ const WelcomeUser = () => {
             >
               <h1
                 className="
-                  text-lg
-                  sm:text-2xl
-                  md:text-3xl
+                  text-base
+                  sm:text-lg
+                  md:text-xl
 
                   font-black
 
@@ -348,10 +344,10 @@ const WelcomeUser = () => {
               {/* ICON */}
               <div
                 className="
-                  w-10
-                  h-10
+                  w-8
+                  h-8
 
-                  rounded-xl
+                  rounded-lg
 
                   bg-white
 
@@ -369,7 +365,7 @@ const WelcomeUser = () => {
                   flex-shrink-0
                 "
               >
-                <FiCalendar size={16} />
+                <FiCalendar size={13} />
               </div>
 
               {/* TEXT */}
@@ -435,10 +431,10 @@ const WelcomeUser = () => {
               {/* ICON */}
               <div
                 className="
-                  w-10
-                  h-10
+                  w-8
+                  h-8
 
-                  rounded-xl
+                  rounded-lg
 
                   bg-white
 
@@ -456,7 +452,7 @@ const WelcomeUser = () => {
                   flex-shrink-0
                 "
               >
-                <FiClock size={16} />
+                <FiClock size={13} />
               </div>
 
               {/* TEXT */}

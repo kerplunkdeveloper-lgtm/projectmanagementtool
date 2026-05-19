@@ -59,8 +59,8 @@ const OverheadConfigModal = ({ isOpen, onClose, currentOverheads, onUpdate }) =>
       <div className="bg-[#cbd0e1] w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col scale-in-center">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-[#cbd0e1] border-b border-[#a7adcb]">
-          <h2 className="text-[#1a2035] text-lg font-extrabold flex items-center gap-2">
+        <div className="flex items-center justify-between px-4 py-3 bg-[#cbd0e1] border-b border-[#a7adcb]">
+          <h2 className="text-[#1a2035] text-base font-extrabold flex items-center gap-2">
             <span>🏢</span> Configure Overhead Expenses
           </h2>
           <button 
@@ -72,7 +72,7 @@ const OverheadConfigModal = ({ isOpen, onClose, currentOverheads, onUpdate }) =>
         </div>
 
         {/* Body */}
-        <div className="p-6 bg-[#cbd0e1] flex-1 overflow-y-auto">
+        <div className="px-4 py-3 bg-[#cbd0e1] flex-1 overflow-y-auto">
           <p className="text-[#64748b] text-xs font-medium mb-5">
             These monthly fixed costs are deducted from revenue to calculate net profit.
           </p>
@@ -126,7 +126,7 @@ const OverheadConfigModal = ({ isOpen, onClose, currentOverheads, onUpdate }) =>
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 px-6 py-4 bg-[#cbd0e1] border-t border-[#a7adcb]">
+        <div className="flex justify-end gap-3 px-4 py-3 bg-[#cbd0e1] border-t border-[#a7adcb]">
           <button
             onClick={onClose}
             className="px-6 py-2.5 rounded-xl bg-[#f1f3f9] text-[#475569] font-bold hover:bg-white transition-colors shadow-sm"

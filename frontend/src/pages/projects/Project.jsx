@@ -1,576 +1,248 @@
-// pages/Project.jsx
-
-import React, {
-  useEffect,
-  useState,
-} from "react";
-
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
-  useDispatch,
-  useSelector,
-} from "react-redux";
-
-import {
-  getProjects,
-  createProject,
-  updateProject,
-  deleteProject,
+  getProjects, createProject, updateProject, deleteProject,
 } from "../../features/projects/projectSlice";
-
 import axiosInstance from "../../services/axiosInstance";
-
-import {
-  FiPlus,
-  FiEdit,
-  FiTrash2,
-  FiX,
-  FiSearch,
-} from "react-icons/fi";
+import { FiPlus, FiEdit, FiTrash2, FiX, FiSearch, FiLayers } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
+const STATUS_STYLE = {
+  Active:     "bg-blue-50 text-blue-600 border-blue-200",
+  "In Review":"bg-amber-50 text-amber-600 border-amber-200",
+  "At Risk":  "bg-rose-50 text-rose-600 border-rose-200",
+  Completed:  "bg-emerald-50 text-emerald-600 border-emerald-200",
+};
+
+const PRIORITY_DOT = { low: "bg-emerald-500", medium: "bg-amber-500", high: "bg-rose-500" };
+
+const getProgress = (start, end) => {
+  if (!start || !end) return 0;
+  const s = new Date(start).getTime(), e = new Date(end).getTime(), n = Date.now();
+  if (n <= s) return 0; if (n >= e) return 100;
+  return Math.round(((n - s) / (e - s)) * 100);
+};
+
 const Project = () => {
-
-  const dispatch =
-    useDispatch();
-
+  const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { projects, loading } = useSelector((s) => s.projects);
+  const { user } = useSelector((s) => s.auth);
 
-  const {
-    projects,
-    loading,
-  } = useSelector(
-    (state) => state.projects
-  );
+  const [openModal, setOpenModal] = useState(false);
+  const [editProject, setEditProject] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [clients, setClients] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [formData, setFormData] = useState({
+    title: "", client: "", template: "", type: "Monthly Retainer",
+    status: "Active", priority: "medium", startDate: "", endDate: "", description: "",
+  });
 
-  const { user } = useSelector((state) => state.auth);
+  useEffect(() => { dispatch(getProjects()); fetchDropdownData(); }, [dispatch]);
 
-
-
-  // ==========================================
-  // STATES
-  // ==========================================
-
-  const [openModal, setOpenModal] =
-    useState(false);
-
-  const [editProject, setEditProject] =
-    useState(null);
-
-  const [searchTerm, setSearchTerm] =
-    useState("");
-
-  const [clients, setClients] =
-    useState([]);
-
-  const [templates, setTemplates] =
-    useState([]);
-
-  const [formData, setFormData] =
-    useState({
-      title: "",
-
-      client: "",
-
-      template: "",
-
-      type:
-        "Monthly Retainer",
-
-      status: "Active",
-
-      priority: "medium",
-
-      startDate: "",
-
-      endDate: "",
-
-      description: "",
-    });
-
-
-
-  // ==========================================
-  // GET DATA
-  // ==========================================
-
-  useEffect(() => {
-
-    dispatch(getProjects());
-
-    fetchDropdownData();
-
-  }, [dispatch]);
-
-
-
-  // ==========================================
-  // FETCH CLIENTS + TEMPLATES
-  // ==========================================
-
-  const fetchDropdownData =
-    async () => {
-
-      try {
-
-        const clientRes =
-          await axiosInstance.get(
-            "/clients/all"
-          );
-
-        const templateRes =
-          await axiosInstance.get(
-            "/templates"
-          );
-
-        setClients(
-          clientRes.data.data
-        );
-
-        setTemplates(
-          templateRes.data.data
-        );
-
-      } catch (err) {
-
-        console.log(err);
-      }
-    };
-
-
-
-  // ==========================================
-  // HANDLE CHANGE
-  // ==========================================
-
-  const handleChange = (e) => {
-
-    setFormData({
-      ...formData,
-      [e.target.name]:
-        e.target.value,
-    });
+  const fetchDropdownData = async () => {
+    try {
+      const [cr, tr] = await Promise.all([
+        axiosInstance.get("/clients/all"),
+        axiosInstance.get("/templates"),
+      ]);
+      setClients(cr.data.data); setTemplates(tr.data.data);
+    } catch (err) { console.log(err); }
   };
 
-
-
-  // ==========================================
-  // HANDLE SUBMIT
-  // ==========================================
+  const handleChange = (e) => setFormData((p) => ({ ...p, [e.target.name]: e.target.value }));
 
   const handleSubmit = (e) => {
-
     e.preventDefault();
-
     const payload = { ...formData };
-    if (!payload.template) {
-      delete payload.template;
-    }
-
-    if (editProject) {
-
-      dispatch(
-        updateProject({
-          id: editProject._id,
-          data: payload,
-        })
-      );
-
-    } else {
-
-      dispatch(
-        createProject(payload)
-      );
-    }
-
-
-
-    setOpenModal(false);
-
-    setEditProject(null);
-
-
-
-    setFormData({
-      title: "",
-
-      client: "",
-
-      template: "",
-
-      type:
-        "Monthly Retainer",
-
-      status: "Active",
-
-      priority: "medium",
-
-      startDate: "",
-
-      endDate: "",
-
-      description: "",
-    });
+    if (!payload.template) delete payload.template;
+    if (editProject) dispatch(updateProject({ id: editProject._id, data: payload }));
+    else dispatch(createProject(payload));
+    setOpenModal(false); setEditProject(null);
+    setFormData({ title: "", client: "", template: "", type: "Monthly Retainer", status: "Active", priority: "medium", startDate: "", endDate: "", description: "" });
   };
 
-
-
-  // ==========================================
-  // HANDLE EDIT
-  // ==========================================
-
-  const handleEdit = (
-    project
-  ) => {
-
+  const handleEdit = (project) => {
     setEditProject(project);
-
     setFormData({
-
-      title:
-        project.title,
-
-      client:
-        project.client?._id || "",
-
-      template:
-        project.template?._id || "",
-
-      type:
-        project.type,
-
-      status: project.status || "Active",
-
-      priority:
-        project.priority,
-
-      startDate:
-        project.startDate?.split(
-          "T"
-        )[0],
-
-      endDate:
-        project.endDate?.split(
-          "T"
-        )[0],
-
-      description:
-        project.description,
+      title: project.title, client: project.client?._id || "",
+      template: project.template?._id || "", type: project.type,
+      status: project.status || "Active", priority: project.priority,
+      startDate: project.startDate?.split("T")[0], endDate: project.endDate?.split("T")[0],
+      description: project.description,
     });
-
     setOpenModal(true);
   };
 
+  const filtered = projects.filter((p) =>
+    p.title?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-
-  // ==========================================
-  // FILTERED PROJECTS
-  // ==========================================
-
-  const filteredProjects =
-    projects.filter((project) =>
-      project.title
-        ?.toLowerCase()
-        .includes(
-          searchTerm.toLowerCase()
-        )
-    );
-
-  // Time-based progress calculator for UI realism
-  const getProgress = (start, end) => {
-    if (!start || !end) return 0;
-    const startDate = new Date(start).getTime();
-    const endDate = new Date(end).getTime();
-    const now = new Date().getTime();
-    if (now <= startDate) return 0;
-    if (now >= endDate) return 100;
-    return Math.round(((now - startDate) / (endDate - startDate)) * 100);
-  };
-
-  const getProgressColor = (progress) => {
-    if (progress < 40) return "bg-blue-500";
-    if (progress < 70) return "bg-amber-500";
-    return "bg-emerald-500";
-  };
-
-
+  const SELECT = "w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-sm text-slate-700 cursor-pointer";
+  const INPUT  = "w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-sm text-slate-700";
+  const LABEL  = "block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#eff3fc] to-[#f4f0ff] px-4 sm:px-6 lg:px-8 py-8 animate-fadeIn font-sans text-slate-800">
-      <div className="max-w-7xl mx-auto">
-        
-        {/* TOP BAR */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-          <h1 className="text-2xl font-black text-[#1e293b]">All Projects</h1>
-          
-          <div className="flex items-center gap-3 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-            {/* Search Input */}
-            <div className="relative min-w-[200px]">
-              <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+    <div className="min-h-screen bg-gray-50/50">
+      <div className="max-w-7xl mx-auto px-3 sm:px-5 py-4 sm:py-6">
+
+        {/* HEADER */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
+                <FiLayers size={14} className="text-white" />
+              </div>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-800">All Projects</h1>
+            </div>
+            <p className="text-xs text-gray-400 ml-9">{projects.length} project{projects.length !== 1 ? "s" : ""}</p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 w-52">
+              <FiSearch size={13} className="text-gray-400 shrink-0" />
               <input
-                type="text"
-                placeholder="Search projects..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full h-10 pl-9 pr-3 rounded-xl bg-white border border-gray-200 text-sm font-bold text-[#475569] shadow-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all placeholder:font-medium"
+                type="text" placeholder="Search projects..."
+                value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-transparent outline-none text-xs text-gray-700 placeholder:text-gray-400 w-full"
               />
             </div>
-
-            <select className="h-10 bg-white border border-gray-200 rounded-xl px-4 text-sm font-bold text-[#475569] shadow-sm outline-none cursor-pointer flex-shrink-0 focus:border-indigo-400">
-              <option>All Clients</option>
-              {clients.map(c => <option key={c._id} value={c._id}>{c.companyName}</option>)}
-            </select>
-            
-            <select className="h-10 bg-white border border-gray-200 rounded-xl px-4 text-sm font-bold text-[#475569] shadow-sm outline-none cursor-pointer flex-shrink-0 focus:border-indigo-400">
-              <option>All Statuses</option>
-              <option>Active</option>
-              <option>In Review</option>
-              <option>At Risk</option>
-            </select>
-            
             <button
-              onClick={() => {
-                setOpenModal(true);
-                setEditProject(null);
-              }}
-              className="h-10 flex items-center justify-center gap-2 px-5 rounded-xl bg-[#7c5ff0] text-white font-bold text-sm shadow-md hover:bg-[#6c4be0] transition-colors flex-shrink-0"
+              onClick={() => { setOpenModal(true); setEditProject(null); }}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-sm shadow-indigo-200 transition-all active:scale-95"
             >
-              <FiPlus size={16} />
-              New Project
+              <FiPlus size={16} /> New Project
             </button>
           </div>
         </div>
 
         {/* PROJECT LIST */}
-        <div className="space-y-3">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-500 rounded-full animate-spin"></div>
-              <p className="text-slate-500 font-bold text-sm animate-pulse">Loading projects...</p>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <div className="w-8 h-8 border-2 border-indigo-100 border-t-indigo-500 rounded-full animate-spin" />
+            <p className="text-xs text-gray-400">Loading projects...</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mb-3">
+              <FiLayers size={22} className="text-gray-300" />
             </div>
-          ) : filteredProjects.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 bg-white border border-slate-200 rounded-2xl shadow-sm">
-              <div className="w-16 h-16 bg-[#f1f3f9] rounded-full flex items-center justify-center mb-4">
-                <FiSearch size={24} className="text-[#94a3b8]" />
-              </div>
-              <h2 className="text-lg font-black text-[#1e293b]">No Projects Found</h2>
-              <p className="text-[#64748b] mt-1 text-sm font-medium">Try adjusting your search criteria or add a new project.</p>
-            </div>
-          ) : (
-            filteredProjects.map((project) => {
-              const clientName = project.client?.companyName || "Unknown Client";
+            <h2 className="text-sm font-bold text-slate-600">No Projects Found</h2>
+            <p className="text-xs text-gray-400 mt-1">{searchTerm ? "Try a different search" : "Create your first project"}</p>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {filtered.map((project) => {
+              const clientName = project.client?.companyName || "Unknown";
               const progress = getProgress(project.startDate, project.endDate);
-              const progressColor = getProgressColor(progress);
-              
-              // Status Styling
-              let statusStyle = "bg-blue-50 text-blue-500 border-blue-100";
-              const stat = project.status?.toUpperCase() || "ACTIVE";
-              if (stat.includes("REVIEW")) statusStyle = "bg-amber-50 text-amber-600 border-amber-100";
-              if (stat.includes("RISK") || stat.includes("DELAY")) statusStyle = "bg-rose-50 text-rose-500 border-rose-100";
-              if (stat.includes("COMPLETED")) statusStyle = "bg-emerald-50 text-emerald-600 border-emerald-100";
+              const stat = project.status || "Active";
+              const statusStyle = STATUS_STYLE[stat] || STATUS_STYLE.Active;
+              const progColor = progress < 40 ? "bg-blue-500" : progress < 70 ? "bg-amber-500" : "bg-emerald-500";
 
               return (
-                <div key={project._id} className="bg-white rounded-[20px] p-4 flex flex-col xl:flex-row xl:items-center justify-between border border-white/60 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 transition-all gap-4 xl:gap-8">
-                  
-                  {/* Left: Avatar + Title */}
-                  <div className="flex items-center gap-4 w-full xl:w-2/5 min-w-0">
-                    <div className="w-14 h-14 bg-[#f8fafc] border border-slate-100 rounded-[14px] flex items-center justify-center font-black text-xl text-[#1e293b] flex-shrink-0 shadow-sm">
+                <div key={project._id} className="bg-white border border-gray-200 rounded-2xl px-4 py-3 flex flex-col xl:flex-row xl:items-center gap-3 xl:gap-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+
+                  {/* Left: Avatar + Info */}
+                  <div className="flex items-center gap-3 xl:w-[38%] min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-indigo-600 text-base flex-shrink-0">
                       {clientName.charAt(0).toUpperCase()}
                     </div>
-                    <div className="min-w-0 flex flex-col justify-center">
-                      <h3 className="font-black text-[#1e293b] text-sm truncate" title={`${clientName} — ${project.title}`}>
-                        {clientName} — {project.title}
-                      </h3>
-                      <p className="text-[#94a3b8] text-[11px] font-bold mt-1 truncate">
-                        {project.type} - Started {project.startDate ? project.startDate.split('T')[0] : 'N/A'} - Due {project.endDate ? project.endDate.split('T')[0] : 'N/A'}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <div className={`w-1.5 h-1.5 rounded-full ${PRIORITY_DOT[project.priority] || "bg-gray-300"}`} />
+                        <h3 className="text-sm font-bold text-slate-800 truncate">{clientName} — {project.title}</h3>
+                      </div>
+                      <p className="text-[10px] text-gray-400 truncate">
+                        {project.type} · {project.startDate?.split("T")[0]} → {project.endDate?.split("T")[0]}
                       </p>
                     </div>
                   </div>
-                  
-                  {/* Middle: Progress Bar */}
-                  <div className="flex-1 flex items-center gap-4 w-full xl:w-auto">
-                    <div className="h-2 flex-1 bg-[#f1f5f9] rounded-full overflow-hidden shadow-inner">
-                      <div className={`h-full ${progressColor} rounded-full transition-all duration-1000`} style={{ width: `${progress}%` }}></div>
+
+                  {/* Progress */}
+                  <div className="flex items-center gap-3 flex-1 xl:min-w-0">
+                    <div className="h-1.5 flex-1 bg-gray-100 rounded-full overflow-hidden">
+                      <div className={`h-full ${progColor} rounded-full transition-all duration-700`} style={{ width: `${progress}%` }} />
                     </div>
-                    <span className="text-[#94a3b8] text-xs font-black w-10 text-right">{progress}%</span>
+                    <span className="text-[10px] font-bold text-gray-400 w-8 text-right shrink-0">{progress}%</span>
                   </div>
 
-                  {/* Right: Status + Tasks + Buttons */}
-                  <div className="flex items-center justify-between xl:justify-end gap-6 w-full xl:w-[30%] min-w-[280px]">
-                    <span className={`px-3 py-1 rounded-full font-black text-[10px] uppercase border tracking-wider ${statusStyle}`}>
-                      {stat}
-                    </span>
-                    
-                    <div className="flex flex-col items-end">
-                      <span className="text-[#94a3b8] text-[11px] font-bold">{project.tasks?.length || 0} tasks</span>
-                      {/* Optional: Add overdue task logic here if available */}
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => handleEdit(project)}
-                        className="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 shadow-sm transition-colors"
-                        title="Edit Project"
-                      >
-                        <FiEdit size={14} />
+                  {/* Right: Status + Tasks + Actions */}
+                  <div className="flex items-center gap-3 justify-between xl:justify-end xl:shrink-0">
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${statusStyle}`}>{stat}</span>
+                    <span className="text-[10px] text-gray-400">{project.tasks?.length || 0} tasks</span>
+
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => handleEdit(project)} className="w-7 h-7 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center hover:bg-amber-100 transition-all" title="Edit">
+                        <FiEdit size={12} />
                       </button>
-                      <button 
-                        onClick={() => dispatch(deleteProject(project._id))}
-                        className="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 shadow-sm transition-colors"
-                        title="Delete Project"
-                      >
-                        <FiTrash2 size={14} />
+                      <button onClick={() => dispatch(deleteProject(project._id))} className="w-7 h-7 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition-all" title="Delete">
+                        <FiTrash2 size={12} />
                       </button>
-                      <button 
-                        onClick={() => navigate(`/${user?.role || 'admin'}/tasks`)}
-                        className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-[#475569] shadow-sm hover:bg-slate-50 hover:text-indigo-600 transition-colors"
-                      >
-                        View Tasks
+                      <button onClick={() => navigate(`/${user?.role || "admin"}/tasks`)} className="px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-[11px] font-semibold text-slate-600 hover:bg-gray-50 transition-all">
+                        Tasks
                       </button>
                     </div>
                   </div>
                 </div>
               );
-            })
-          )}
-        </div>
+            })}
+          </div>
+        )}
 
         {/* MODAL */}
         {openModal && (
-          <div className="fixed inset-0 bg-[#0f172a]/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
-            <div className="bg-[#f8fafc] w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] scale-in-center border border-white/20">
-              
-              {/* HEADER */}
-              <div className="flex items-center justify-between px-8 py-5 border-b border-[#e2e8f0] bg-white">
-                <h2 className="text-xl font-black text-[#1e293b]">
-                  {editProject ? "Update Project" : "Create New Project"}
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-3 z-50">
+            <div className="bg-white w-full max-w-lg rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
+
+              {/* MODAL HEADER */}
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-slate-50/60">
+                <h2 className="text-sm font-bold text-slate-800">
+                  {editProject ? "✏️ Update Project" : "✨ New Project"}
                 </h2>
-                <button
-                  onClick={() => setOpenModal(false)}
-                  className="w-8 h-8 rounded-lg bg-[#f1f5f9] border border-[#e2e8f0] flex items-center justify-center text-[#94a3b8] hover:text-[#475569] hover:bg-[#e2e8f0] transition-colors"
-                >
-                  <FiX size={16} />
+                <button onClick={() => setOpenModal(false)} className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all">
+                  <FiX size={14} />
                 </button>
               </div>
 
               {/* FORM */}
-              <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto custom-scrollbar bg-[#f8fafc]">
-                
-                {/* Project Name */}
+              <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3 max-h-[78vh] overflow-y-auto">
                 <div>
-                  <label className="block text-xs font-black text-[#64748b] mb-2">Project Name *</label>
-                  <input
-                    type="text"
-                    name="title"
-                    placeholder="Enter project name..."
-                    value={formData.title}
-                    onChange={handleChange}
-                    required
-                    className="w-full h-11 bg-white border border-[#e2e8f0] rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-[#1e293b] font-bold text-sm placeholder:text-slate-400 shadow-sm"
-                  />
+                  <label className={LABEL}>Project Name *</label>
+                  <input type="text" name="title" required value={formData.title} onChange={handleChange} placeholder="Enter project name" className={INPUT} />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Client */}
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-black text-[#64748b] mb-2">Client *</label>
-                    <select
-                      name="client"
-                      value={formData.client}
-                      onChange={handleChange}
-                      required
-                      className="w-full h-11 bg-white border border-[#e2e8f0] rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-[#1e293b] font-bold text-sm shadow-sm cursor-pointer"
-                    >
+                    <label className={LABEL}>Client *</label>
+                    <select name="client" required value={formData.client} onChange={handleChange} className={SELECT}>
                       <option value="">Select client...</option>
-                      {clients.map((client) => (
-                        <option key={client._id} value={client._id}>{client.companyName}</option>
-                      ))}
+                      {clients.map((c) => <option key={c._id} value={c._id}>{c.companyName}</option>)}
                     </select>
                   </div>
-
-                  {/* Type */}
                   <div>
-                    <label className="block text-xs font-black text-[#64748b] mb-2">Type</label>
-                    <select
-                      name="type"
-                      value={formData.type}
-                      onChange={handleChange}
-                      className="w-full h-11 bg-white border border-[#e2e8f0] rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-[#1e293b] font-bold text-sm shadow-sm cursor-pointer"
-                    >
-                      <option value="Monthly Retainer">Monthly Retainer</option>
-                      <option value="One Time Project">One Time Project</option>
-                      <option value="Internal Project">Internal Project</option>
-                    </select>
-                  </div>
-
-                  {/* Status */}
-                  <div>
-                    <label className="block text-xs font-black text-[#64748b] mb-2">Status</label>
-                    <select
-                      name="status"
-                      value={formData.status}
-                      onChange={handleChange}
-                      className="w-full h-11 bg-white border border-[#e2e8f0] rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-[#1e293b] font-bold text-sm shadow-sm cursor-pointer"
-                    >
-                      <option value="Active">Active</option>
-                      <option value="In Review">In Review</option>
-                      <option value="At Risk">At Risk</option>
-                      <option value="Completed">Completed</option>
+                    <label className={LABEL}>Type</label>
+                    <select name="type" value={formData.type} onChange={handleChange} className={SELECT}>
+                      <option>Monthly Retainer</option>
+                      <option>One Time Project</option>
+                      <option>Internal Project</option>
                     </select>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Start Date */}
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-black text-[#64748b] mb-2">Start Date</label>
-                    <input
-                      type="date"
-                      name="startDate"
-                      value={formData.startDate}
-                      onChange={handleChange}
-                      className="w-full h-11 bg-white border border-[#e2e8f0] rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-[#1e293b] font-bold text-sm shadow-sm"
-                    />
-                  </div>
-
-                  {/* End Date */}
-                  <div>
-                    <label className="block text-xs font-black text-[#64748b] mb-2">End Date</label>
-                    <input
-                      type="date"
-                      name="endDate"
-                      value={formData.endDate}
-                      onChange={handleChange}
-                      className="w-full h-11 bg-white border border-[#e2e8f0] rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-[#1e293b] font-bold text-sm shadow-sm"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Template */}
-                  <div>
-                    <label className="block text-xs font-black text-[#64748b] mb-2">Apply Template</label>
-                    <select
-                      name="template"
-                      value={formData.template}
-                      onChange={handleChange}
-                      className="w-full h-11 bg-white border border-[#e2e8f0] rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-[#1e293b] font-bold text-sm shadow-sm cursor-pointer"
-                    >
-                      <option value="">No template</option>
-                      {templates.map((template) => (
-                        <option key={template._id} value={template._id}>{template.title}</option>
-                      ))}
+                    <label className={LABEL}>Status</label>
+                    <select name="status" value={formData.status} onChange={handleChange} className={SELECT}>
+                      <option>Active</option>
+                      <option>In Review</option>
+                      <option>At Risk</option>
+                      <option>Completed</option>
                     </select>
                   </div>
-
-                  {/* Priority */}
                   <div>
-                    <label className="block text-xs font-black text-[#64748b] mb-2">Priority Level</label>
-                    <select
-                      name="priority"
-                      value={formData.priority}
-                      onChange={handleChange}
-                      className="w-full h-11 bg-white border border-[#e2e8f0] rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-[#1e293b] font-bold text-sm shadow-sm cursor-pointer"
-                    >
+                    <label className={LABEL}>Priority</label>
+                    <select name="priority" value={formData.priority} onChange={handleChange} className={SELECT}>
                       <option value="low">Low</option>
                       <option value="medium">Medium</option>
                       <option value="high">High</option>
@@ -578,32 +250,36 @@ const Project = () => {
                   </div>
                 </div>
 
-                {/* Description */}
-                <div>
-                  <label className="block text-xs font-black text-[#64748b] mb-2">Description</label>
-                  <textarea
-                    rows="3"
-                    name="description"
-                    placeholder="Briefly describe the project goals..."
-                    value={formData.description}
-                    onChange={handleChange}
-                    className="w-full bg-white border border-[#e2e8f0] rounded-xl p-4 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-[#1e293b] font-medium text-sm shadow-sm resize-none"
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={LABEL}>Start Date</label>
+                    <input type="date" name="startDate" value={formData.startDate} onChange={handleChange} className={INPUT} />
+                  </div>
+                  <div>
+                    <label className={LABEL}>End Date</label>
+                    <input type="date" name="endDate" value={formData.endDate} onChange={handleChange} className={INPUT} />
+                  </div>
                 </div>
 
-                {/* Footer Buttons */}
-                <div className="flex items-center justify-end gap-3 pt-6 border-t border-[#e2e8f0]">
-                  <button
-                    type="button"
-                    onClick={() => setOpenModal(false)}
-                    className="px-6 py-2.5 rounded-xl border border-[#e2e8f0] text-[#475569] font-bold text-sm bg-white hover:bg-[#f1f5f9] transition-colors shadow-sm"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-[#7c5ff0] text-white font-bold text-sm shadow-md hover:bg-[#6c4be0] transition-colors"
-                  >
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={LABEL}>Template</label>
+                    <select name="template" value={formData.template} onChange={handleChange} className={SELECT}>
+                      <option value="">No template</option>
+                      {templates.map((t) => <option key={t._id} value={t._id}>{t.title}</option>)}
+                    </select>
+                  </div>
+                  <div /> {/* spacer */}
+                </div>
+
+                <div>
+                  <label className={LABEL}>Description</label>
+                  <textarea rows="2" name="description" value={formData.description} onChange={handleChange} placeholder="Brief project description..." className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all text-sm text-slate-700 resize-none" />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                  <button type="button" onClick={() => setOpenModal(false)} className="px-4 py-2 rounded-xl border border-gray-200 text-slate-600 font-semibold text-xs hover:bg-gray-50 transition-all">Cancel</button>
+                  <button type="submit" className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm shadow-indigo-200 transition-all active:scale-95">
                     {editProject ? "Save Changes" : "Create Project"}
                   </button>
                 </div>

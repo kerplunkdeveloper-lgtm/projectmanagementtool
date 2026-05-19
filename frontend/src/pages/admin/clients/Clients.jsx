@@ -1,407 +1,300 @@
-// pages/Clients.jsx
-
-import React, {
-  useEffect,
-  useState,
-} from "react";
-
-import {
-  useDispatch,
-  useSelector,
-} from "react-redux";
-
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
   getClients,
   createClient,
   updateClient,
   deleteClient,
 } from "../../../features/clients/clientslice";
-
 import {
   FiPlus,
   FiEdit2,
   FiTrash2,
   FiX,
   FiSearch,
+  FiUsers,
+  FiMail,
+  FiPhone,
 } from "react-icons/fi";
 
+const HEALTH_CONFIG = {
+  Green:  { pill: "bg-emerald-50 text-emerald-600 border-emerald-200",  dot: "bg-emerald-500" },
+  Yellow: { pill: "bg-amber-50  text-amber-600  border-amber-200",   dot: "bg-amber-500"  },
+  Red:    { pill: "bg-rose-50   text-rose-600   border-rose-200",    dot: "bg-rose-500"   },
+};
+
+const SERVICE_TAG = "px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200";
+
+const ALL_SERVICES = ["SMM", "SEO", "Ads", "Video", "Brand"];
+
+const CLIENTS_PER_PAGE = 6;
+
+const AVATAR_COLORS = [
+  "from-violet-400 to-indigo-500",
+  "from-cyan-400 to-blue-500",
+  "from-emerald-400 to-teal-500",
+  "from-orange-400 to-amber-500",
+  "from-pink-400 to-rose-500",
+];
+
 const Clients = () => {
-
   const dispatch = useDispatch();
+  const { clients, loading } = useSelector((state) => state.clients);
 
-  const {
-    clients,
-    loading,
-  } = useSelector(
-    (state) => state.clients
-  );
+  const [openModal, setOpenModal] = useState(false);
+  const [editClient, setEditClient] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [formData, setFormData] = useState({
+    companyName: "",
+    industry: "",
+    primaryContact: "",
+    email: "",
+    services: [],
+    healthStatus: "Green",
+    notes: "",
+  });
 
+  useEffect(() => { dispatch(getClients()); }, [dispatch]);
 
+  const handleChange = (e) =>
+    setFormData((p) => ({ ...p, [e.target.name]: e.target.value }));
 
-  const [openModal, setOpenModal] =
-    useState(false);
+  const handleService = (s) =>
+    setFormData((p) => ({
+      ...p,
+      services: p.services.includes(s)
+        ? p.services.filter((x) => x !== s)
+        : [...p.services, s],
+    }));
 
-  const [editClient, setEditClient] =
-    useState(null);
-
-  const [searchTerm, setSearchTerm] =
-    useState("");
-
-  const [currentPage, setCurrentPage] =
-    useState(1);
-
-  const clientsPerPage = 6;
-
-
-
-  const [formData, setFormData] =
-    useState({
-      companyName: "",
-      industry: "",
-      primaryContact: "",
-      email: "",
-      services: [],
-      healthStatus: "Green",
-      notes: "",
-    });
-
-
-
-  useEffect(() => {
-    dispatch(getClients());
-  }, [dispatch]);
-
-
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]:
-        e.target.value,
-    });
-  };
-
-
-
-  const handleService = (service) => {
-
-    const exists =
-      formData.services.includes(
-        service
-      );
-
-    if (exists) {
-      setFormData({
-        ...formData,
-        services:
-          formData.services.filter(
-            (s) => s !== service
-          ),
-      });
-    } else {
-      setFormData({
-        ...formData,
-        services: [
-          ...formData.services,
-          service,
-        ],
-      });
-    }
-  };
-
-
-
-  const handleSubmit = (e) => {
-
-    e.preventDefault();
-
-    if (editClient) {
-
-      dispatch(
-        updateClient({
-          id: editClient._id,
-          data: formData,
-        })
-      );
-
-    } else {
-
-      dispatch(
-        createClient(formData)
-      );
-    }
-
-    setOpenModal(false);
-
+  const openCreate = () => {
     setEditClient(null);
-
-    setFormData({
-      companyName: "",
-      industry: "",
-      primaryContact: "",
-      email: "",
-      services: [],
-      healthStatus: "Green",
-      notes: "",
-    });
-  };
-
-
-
-  const handleEdit = (client) => {
-
-    setEditClient(client);
-
-    setFormData({
-      companyName:
-        client.companyName,
-      industry: client.industry,
-      primaryContact:
-        client.primaryContact,
-      email: client.email,
-      services: client.services,
-      healthStatus:
-        client.healthStatus,
-      notes: client.notes,
-    });
-
+    setFormData({ companyName: "", industry: "", primaryContact: "", email: "", services: [], healthStatus: "Green", notes: "" });
     setOpenModal(true);
   };
 
+  const openEdit = (client) => {
+    setEditClient(client);
+    setFormData({
+      companyName: client.companyName,
+      industry: client.industry,
+      primaryContact: client.primaryContact,
+      email: client.email,
+      services: client.services,
+      healthStatus: client.healthStatus,
+      notes: client.notes,
+    });
+    setOpenModal(true);
+  };
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (editClient) dispatch(updateClient({ id: editClient._id, data: formData }));
+    else dispatch(createClient(formData));
+    setOpenModal(false);
+    setEditClient(null);
+  };
 
-  // SEARCH FILTER
+  const filtered = [...clients]
+    .filter((c) => c.companyName?.toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => a.companyName.localeCompare(b.companyName));
 
-  const filteredClients =
-    clients.filter((client) =>
-      client.companyName
-        ?.toLowerCase()
-        .includes(
-          searchTerm.toLowerCase()
-        )
-    );
+  const totalPages = Math.ceil(filtered.length / CLIENTS_PER_PAGE);
+  const start = (currentPage - 1) * CLIENTS_PER_PAGE;
+  const paginated = filtered.slice(start, start + CLIENTS_PER_PAGE);
 
-
-
-  // ALPHABET SORT
-
-  const sortedClients =
-    [...filteredClients].sort((a, b) =>
-      a.companyName.localeCompare(
-        b.companyName
-      )
-    );
-
-
-
-  // PAGINATION
-
-  const indexOfLastClient =
-    currentPage * clientsPerPage;
-
-  const indexOfFirstClient =
-    indexOfLastClient -
-    clientsPerPage;
-
-  const currentClients =
-    sortedClients.slice(
-      indexOfFirstClient,
-      indexOfLastClient
-    );
-
-  const totalPages = Math.ceil(
-    sortedClients.length /
-      clientsPerPage
-  );
-
-
+  const avatarColor = (name) =>
+    AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] px-4 sm:px-6 lg:px-8 py-8 animate-fadeIn">
-      <div className="max-w-7xl mx-auto">
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+    <div className="min-h-screen bg-gray-50/50">
+      <div className="max-w-7xl mx-auto px-3 sm:px-5 py-4 sm:py-6">
+
+        {/* ── HEADER ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
           <div>
-            <h1 className="text-3xl font-black text-[#0f172a] flex items-center gap-3">
-              <span>🏢</span> Client Directory
-            </h1>
-            <p className="text-[#64748b] mt-1 text-sm font-medium">Manage your business relationships and track client health</p>
+            <div className="flex items-center gap-2 mb-0.5">
+              <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center">
+                <FiUsers size={14} className="text-white" />
+              </div>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-800">Client Directory</h1>
+            </div>
+            <p className="text-xs text-gray-400 ml-9">
+              {clients.length} client{clients.length !== 1 ? "s" : ""} · manage relationships &amp; health
+            </p>
           </div>
 
           <button
-            onClick={() => {
-              setOpenModal(true);
-              setEditClient(null);
-            }}
-            className="flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-[#7c5ff0] text-white font-bold text-sm shadow-md shadow-indigo-500/20 hover:bg-[#6c4be0] hover:-translate-y-0.5 transition-all w-full md:w-auto"
+            onClick={openCreate}
+            className="self-start sm:self-auto flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-semibold text-sm shadow-sm shadow-violet-200 transition-all active:scale-95"
           >
-            <FiPlus size={18} />
+            <FiPlus size={16} />
             New Client
           </button>
         </div>
 
-        {/* SEARCH & FILTERS */}
-        <div className="mb-8">
-          <div className="relative group w-full md:w-96">
-            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94a3b8] text-lg group-focus-within:text-[#7c5ff0] transition-colors" />
-            <input
-              type="text"
-              placeholder="Search by company name..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="w-full h-12 pl-12 pr-4 rounded-xl bg-white border border-slate-200 shadow-sm outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 transition-all text-[#1e293b] font-medium text-sm placeholder:text-slate-400"
-            />
-          </div>
+        {/* ── SEARCH ── */}
+        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 mb-5 w-full sm:w-72">
+          <FiSearch size={13} className="text-gray-400 shrink-0" />
+          <input
+            type="text"
+            placeholder="Search by company name..."
+            value={searchTerm}
+            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+            className="bg-transparent outline-none text-xs text-gray-700 placeholder:text-gray-400 w-full"
+          />
+          {searchTerm && (
+            <button onClick={() => setSearchTerm("")} className="text-gray-300 hover:text-gray-500">
+              <FiX size={12} />
+            </button>
+          )}
         </div>
 
-        {/* CLIENT CARDS */}
+        {/* ── CONTENT ── */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-4">
-            <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-500 rounded-full animate-spin"></div>
-            <p className="text-[#64748b] font-bold text-sm animate-pulse">Loading clients...</p>
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <div className="w-8 h-8 border-3 border-violet-100 border-t-violet-500 rounded-full animate-spin" />
+            <p className="text-gray-400 text-xs">Loading clients...</p>
+          </div>
+        ) : paginated.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mb-3">
+              <FiUsers size={22} className="text-gray-300" />
+            </div>
+            <h2 className="text-sm font-bold text-slate-600">No Clients Found</h2>
+            <p className="text-xs text-gray-400 mt-1">
+              {searchTerm ? "Try a different search" : "Add your first client to get started"}
+            </p>
+            {!searchTerm && (
+              <button onClick={openCreate} className="mt-4 flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700 transition-all">
+                <FiPlus size={13} /> New Client
+              </button>
+            )}
           </div>
         ) : (
           <>
-            {currentClients.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-20 bg-white border border-slate-200 rounded-3xl shadow-sm">
-                <div className="w-20 h-20 bg-[#f1f3f9] rounded-full flex items-center justify-center mb-4">
-                  <FiSearch size={32} className="text-[#94a3b8]" />
-                </div>
-                <h2 className="text-xl font-black text-[#1e293b]">No Clients Found</h2>
-                <p className="text-[#64748b] mt-1 text-sm font-medium">Try adjusting your search criteria or add a new client.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {currentClients.map((client) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {paginated.map((client) => {
+                const health = HEALTH_CONFIG[client.healthStatus] || HEALTH_CONFIG.Green;
+                const grad = avatarColor(client.companyName);
+                return (
                   <div
                     key={client._id}
-                    className="group relative overflow-hidden bg-white border border-slate-200 rounded-[24px] p-6 shadow-sm hover:shadow-xl hover:border-violet-300 transition-all duration-300 flex flex-col h-full"
+                    className="group bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col"
                   >
-                    {/* Header */}
-                    <div className="flex justify-between items-start mb-5 gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        {/* Avatar */}
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-50 to-violet-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-black text-xl shadow-inner group-hover:scale-110 transition-transform flex-shrink-0">
-                          {client.companyName.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="text-[#1e293b] font-black text-lg group-hover:text-[#7c5ff0] transition-colors truncate" title={client.companyName}>
-                            {client.companyName}
-                          </h3>
-                          <p className="text-[#64748b] text-[10px] font-bold uppercase tracking-wider truncate" title={client.industry}>
-                            {client.industry}
-                          </p>
-                        </div>
+                    {/* CARD TOP */}
+                    <div className="flex items-start gap-3 mb-3">
+                      {/* Avatar */}
+                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${grad} flex items-center justify-center text-white font-bold text-base flex-shrink-0`}>
+                        {client.companyName.charAt(0).toUpperCase()}
                       </div>
-                      <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          client.healthStatus === 'Green' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                          client.healthStatus === 'Yellow' ? 'bg-amber-50 text-amber-600 border border-amber-100' :
-                          'bg-rose-50 text-rose-600 border border-rose-100'
-                        }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${client.healthStatus === 'Green' ? 'bg-emerald-500' : client.healthStatus === 'Yellow' ? 'bg-amber-500' : 'bg-rose-500'}`}></span>
+
+                      {/* Name & Industry */}
+                      <div className="flex-1 min-w-0">
+                        <h3
+                          className="text-sm font-bold text-slate-800 group-hover:text-violet-600 transition-colors truncate"
+                          title={client.companyName}
+                        >
+                          {client.companyName}
+                        </h3>
+                        <p className="text-[10px] text-gray-400 font-medium truncate">{client.industry}</p>
+                      </div>
+
+                      {/* Health + Actions */}
+                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${health.pill}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${health.dot}`} />
                           {client.healthStatus}
                         </span>
                         <div className="flex items-center gap-1">
-                          <button onClick={() => handleEdit(client)} className="w-7 h-7 rounded-lg bg-slate-50 text-slate-400 hover:text-[#7c5ff0] hover:bg-indigo-50 flex items-center justify-center transition-colors">
-                            <FiEdit2 size={12} />
+                          <button
+                            onClick={() => openEdit(client)}
+                            className="w-6 h-6 rounded-md bg-amber-50 text-amber-500 flex items-center justify-center hover:bg-amber-100 transition-all"
+                            title="Edit"
+                          >
+                            <FiEdit2 size={11} />
                           </button>
-                          <button onClick={() => dispatch(deleteClient(client._id))} className="w-7 h-7 rounded-lg bg-slate-50 text-slate-400 hover:text-rose-600 hover:bg-rose-50 flex items-center justify-center transition-colors">
-                            <FiTrash2 size={12} />
+                          <button
+                            onClick={() => dispatch(deleteClient(client._id))}
+                            className="w-6 h-6 rounded-md bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition-all"
+                            title="Delete"
+                          >
+                            <FiTrash2 size={11} />
                           </button>
                         </div>
                       </div>
                     </div>
-                    
-                    {/* Body */}
-                    <div className="grid grid-cols-2 gap-3 mb-5">
-                      <div className="bg-[#f8fafc] border border-slate-100 rounded-xl p-3 min-w-0">
-                        <p className="text-[#94a3b8] text-[10px] font-bold uppercase tracking-wider mb-1">Phone</p>
-                        <p className="text-[#334155] font-bold text-xs truncate" title={client.primaryContact}>{client.primaryContact}</p>
+
+                    {/* CONTACT INFO */}
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <div className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-2 py-1.5 min-w-0">
+                        <FiPhone size={10} className="text-gray-400 shrink-0" />
+                        <span className="text-[11px] text-gray-600 truncate font-medium" title={client.primaryContact}>
+                          {client.primaryContact || "—"}
+                        </span>
                       </div>
-                      <div className="bg-[#f8fafc] border border-slate-100 rounded-xl p-3 min-w-0">
-                        <p className="text-[#94a3b8] text-[10px] font-bold uppercase tracking-wider mb-1">Email</p>
-                        <p className="text-[#334155] font-bold text-xs truncate" title={client.email}>{client.email}</p>
+                      <div className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-2 py-1.5 min-w-0">
+                        <FiMail size={10} className="text-gray-400 shrink-0" />
+                        <span className="text-[11px] text-gray-600 truncate font-medium" title={client.email}>
+                          {client.email || "—"}
+                        </span>
                       </div>
                     </div>
-                    
-                    {/* Services */}
-                    <div className="mb-4">
-                      <p className="text-[#94a3b8] text-[10px] font-bold uppercase tracking-wider mb-2">Provided Services</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {client.services.map((service, index) => (
-                          <span key={index} className="px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase bg-white border border-slate-200 text-[#475569] shadow-sm">
-                            {service}
-                          </span>
+
+                    {/* SERVICES */}
+                    {client.services?.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {client.services.map((s) => (
+                          <span key={s} className={SERVICE_TAG}>{s}</span>
                         ))}
                       </div>
-                    </div>
+                    )}
 
-                    {/* Notes */}
-                    <div className="mt-auto pt-4 border-t border-slate-100">
-                      <p className="text-[#94a3b8] text-[10px] font-bold uppercase tracking-wider mb-1">Notes</p>
-                      <p className="text-[#64748b] text-xs font-medium italic line-clamp-2">
-                        "{client.notes || "No notes provided."}"
-                      </p>
-                    </div>
+                    {/* NOTES */}
+                    {client.notes && (
+                      <div className="pt-2.5 mt-auto border-t border-gray-100">
+                        <p className="text-[11px] text-gray-400 italic line-clamp-2">
+                          {client.notes}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
-            )}
+                );
+              })}
+            </div>
 
-            {/* RESPONSIVE PAGINATION */}
+            {/* PAGINATION */}
             {totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mt-8 pt-6 border-t border-slate-200 pb-10">
-                <span className="text-[#64748b] font-medium text-xs sm:text-sm text-center sm:text-left">
-                  Showing <span className="font-bold text-[#1e293b]">{indexOfFirstClient + 1}</span> to <span className="font-bold text-[#1e293b]">{Math.min(indexOfLastClient, filteredClients.length)}</span> of <span className="font-bold text-[#1e293b]">{filteredClients.length}</span> clients
+              <div className="flex items-center justify-between gap-3 mt-5 pt-4 border-t border-gray-200">
+                <span className="text-xs text-gray-400">
+                  {start + 1}–{Math.min(start + CLIENTS_PER_PAGE, filtered.length)} of {filtered.length}
                 </span>
-                
-                <div className="flex flex-wrap items-center justify-center gap-2 w-full sm:w-auto">
+                <div className="flex items-center gap-1">
                   <button
-                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                     disabled={currentPage === 1}
-                    className="px-3 sm:px-4 py-2 rounded-xl border border-slate-200 text-[#475569] font-bold text-xs sm:text-sm bg-white hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
+                    className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 bg-white hover:bg-gray-50 disabled:opacity-40 transition-all"
                   >
                     Prev
                   </button>
-
-                  <div className="hidden sm:flex items-center gap-1">
-                    {Array.from({ length: totalPages }).map((_, i) => {
-                      // simple sliding window for pagination
-                      if (totalPages > 5 && i !== 0 && i !== totalPages - 1 && Math.abs(i + 1 - currentPage) > 1) {
-                        if (i + 1 === currentPage - 2 || i + 1 === currentPage + 2) {
-                          return <span key={i} className="px-1 text-slate-400">...</span>;
-                        }
-                        return null;
-                      }
-                      return (
-                        <button
-                          key={i}
-                          onClick={() => setCurrentPage(i + 1)}
-                          className={`w-9 h-9 rounded-xl font-bold text-sm transition-all ${
-                            currentPage === i + 1
-                              ? "bg-[#7c5ff0] text-white shadow-md shadow-indigo-500/20"
-                              : "bg-white border border-slate-200 text-[#475569] hover:bg-slate-50"
-                          }`}
-                        >
-                          {i + 1}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Mobile simple page indicator */}
-                  <span className="sm:hidden text-xs font-bold text-[#1e293b] px-2">
-                    Page {currentPage} of {totalPages}
-                  </span>
-
+                  {Array.from({ length: totalPages }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(i + 1)}
+                      className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
+                        currentPage === i + 1
+                          ? "bg-violet-600 text-white shadow-sm"
+                          : "bg-white border border-gray-200 text-gray-500 hover:bg-gray-50"
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
                   <button
-                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                     disabled={currentPage === totalPages}
-                    className="px-3 sm:px-4 py-2 rounded-xl border border-slate-200 text-[#475569] font-bold text-xs sm:text-sm bg-white hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-white transition-colors"
+                    className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 bg-white hover:bg-gray-50 disabled:opacity-40 transition-all"
                   >
                     Next
                   </button>
@@ -410,154 +303,130 @@ const Clients = () => {
             )}
           </>
         )}
+      </div>
 
-        {/* MODAL */}
-        {openModal && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
-            <div className="bg-white w-full max-w-3xl rounded-[2rem] border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] scale-in-center">
-              {/* HEADER */}
-              <div className="flex items-center justify-between px-8 py-6 border-b border-slate-100 bg-[#f8fafc]">
-                <h2 className="text-xl font-black text-[#1e293b] flex items-center gap-2">
-                  <span>{editClient ? "✏️" : "✨"}</span> {editClient ? "Update Client Details" : "Add New Client"}
-                </h2>
-                <button
-                  onClick={() => setOpenModal(false)}
-                  className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
-                >
-                  <FiX size={16} />
-                </button>
-              </div>
+      {/* ── MODAL ── */}
+      {openModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-3 z-50">
+          <div className="bg-white w-full max-w-lg rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
 
-              {/* FORM */}
-              <form onSubmit={handleSubmit} className="p-8 space-y-6 overflow-y-auto custom-scrollbar">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-xs font-black text-[#64748b] uppercase tracking-wider mb-2">Company Name</label>
-                    <input
-                      type="text"
-                      name="companyName"
-                      placeholder="E.g., Acme Corporation"
-                      value={formData.companyName}
-                      onChange={handleChange}
-                      required
-                      className="w-full h-12 bg-white border border-slate-200 rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-[#1e293b] font-bold text-sm placeholder:text-slate-400 placeholder:font-medium shadow-sm"
-                    />
-                  </div>
+            {/* MODAL HEADER */}
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-slate-50/60">
+              <h2 className="text-sm font-bold text-slate-800">
+                {editClient ? "✏️ Update Client" : "✨ New Client"}
+              </h2>
+              <button
+                onClick={() => setOpenModal(false)}
+                className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all"
+              >
+                <FiX size={14} />
+              </button>
+            </div>
 
-                  <div>
-                    <label className="block text-xs font-black text-[#64748b] uppercase tracking-wider mb-2">Industry</label>
-                    <input
-                      type="text"
-                      name="industry"
-                      placeholder="E.g., Technology"
-                      value={formData.industry}
-                      onChange={handleChange}
-                      required
-                      className="w-full h-12 bg-white border border-slate-200 rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-[#1e293b] font-bold text-sm placeholder:text-slate-400 placeholder:font-medium shadow-sm"
-                    />
-                  </div>
+            {/* FORM */}
+            <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3 max-h-[78vh] overflow-y-auto">
 
-                  <div>
-                    <label className="block text-xs font-black text-[#64748b] uppercase tracking-wider mb-2">Phone Number</label>
-                    <input
-                      type="text"
-                      name="primaryContact"
-                      placeholder="E.g., +1 234 567 890"
-                      value={formData.primaryContact}
-                      onChange={handleChange}
-                      required
-                      className="w-full h-12 bg-white border border-slate-200 rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-[#1e293b] font-bold text-sm placeholder:text-slate-400 placeholder:font-medium shadow-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-black text-[#64748b] uppercase tracking-wider mb-2">Email Address</label>
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="E.g., contact@acme.com"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                      className="w-full h-12 bg-white border border-slate-200 rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-[#1e293b] font-bold text-sm placeholder:text-slate-400 placeholder:font-medium shadow-sm"
-                    />
-                  </div>
-                </div>
-
+              {/* Name + Industry */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-black text-[#64748b] uppercase tracking-wider mb-2">Notes & History</label>
-                  <textarea
-                    name="notes"
-                    placeholder="Briefly describe the client relationship or specific requirements..."
-                    rows="3"
-                    value={formData.notes}
-                    onChange={handleChange}
-                    className="w-full bg-white border border-slate-200 rounded-xl p-4 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-[#1e293b] font-medium text-sm placeholder:text-slate-400 resize-none shadow-sm"
+                  <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Company Name *</label>
+                  <input
+                    name="companyName" required value={formData.companyName} onChange={handleChange}
+                    placeholder="Acme Corp"
+                    className="w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all text-sm text-slate-700"
                   />
                 </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Industry *</label>
+                  <input
+                    name="industry" required value={formData.industry} onChange={handleChange}
+                    placeholder="Technology"
+                    className="w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all text-sm text-slate-700"
+                  />
+                </div>
+              </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* SERVICES */}
-                  <div>
-                    <label className="block text-xs font-black text-[#64748b] uppercase tracking-wider mb-3">Provided Services</label>
-                    <div className="flex flex-wrap gap-2">
-                      {["SMM", "SEO", "Ads", "Video", "Brand"].map((service) => (
-                        <button
-                          key={service}
-                          type="button"
-                          onClick={() => handleService(service)}
-                          className={`
-                            px-4 py-1.5 rounded-lg font-bold text-xs border transition-all duration-200
-                            ${
-                              formData.services.includes(service)
-                                ? "bg-[#7c5ff0] text-white border-[#7c5ff0] shadow-md shadow-indigo-200 scale-105"
-                                : "bg-[#f8fafc] text-[#475569] border-slate-200 hover:bg-white hover:border-slate-300"
-                            }
-                          `}
-                        >
-                          {service}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+              {/* Phone + Email */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Phone *</label>
+                  <input
+                    name="primaryContact" required value={formData.primaryContact} onChange={handleChange}
+                    placeholder="+91 98765 43210"
+                    className="w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all text-sm text-slate-700"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Email *</label>
+                  <input
+                    type="email" name="email" required value={formData.email} onChange={handleChange}
+                    placeholder="contact@acme.com"
+                    className="w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all text-sm text-slate-700"
+                  />
+                </div>
+              </div>
 
-                  {/* HEALTH STATUS */}
-                  <div>
-                    <label className="block text-xs font-black text-[#64748b] uppercase tracking-wider mb-3">Health Status</label>
-                    <select
-                      name="healthStatus"
-                      value={formData.healthStatus}
-                      onChange={handleChange}
-                      className="w-full h-12 bg-white border border-slate-200 rounded-xl px-4 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-50 transition-all text-[#1e293b] font-bold text-sm cursor-pointer shadow-sm"
-                    >
-                      <option>Green</option>
-                      <option>Yellow</option>
-                      <option>Red</option>
-                    </select>
+              {/* Services + Health */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Services</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ALL_SERVICES.map((s) => (
+                      <button
+                        key={s} type="button" onClick={() => handleService(s)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
+                          formData.services.includes(s)
+                            ? "bg-violet-600 text-white border-violet-600"
+                            : "bg-white text-slate-500 border-gray-200 hover:bg-gray-50"
+                        }`}
+                      >
+                        {s}
+                      </button>
+                    ))}
                   </div>
                 </div>
-
-                {/* BUTTONS */}
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
-                  <button
-                    type="button"
-                    onClick={() => setOpenModal(false)}
-                    className="px-6 py-2.5 rounded-xl border border-slate-200 text-[#475569] font-bold text-sm bg-white hover:bg-slate-50 transition-colors shadow-sm"
+                <div>
+                  <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Health Status</label>
+                  <select
+                    name="healthStatus" value={formData.healthStatus} onChange={handleChange}
+                    className="w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all text-sm text-slate-700 cursor-pointer"
                   >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-[#7c5ff0] hover:bg-[#6c4be0] text-white font-bold text-sm shadow-md shadow-indigo-500/30 transition-colors"
-                  >
-                    {editClient ? "Save Changes" : "Create Client"}
-                  </button>
+                    <option>Green</option>
+                    <option>Yellow</option>
+                    <option>Red</option>
+                  </select>
                 </div>
-              </form>
-            </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Notes</label>
+                <textarea
+                  name="notes" rows="2" value={formData.notes} onChange={handleChange}
+                  placeholder="Client relationship notes..."
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all text-sm text-slate-700 resize-none"
+                />
+              </div>
+
+              {/* BUTTONS */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                <button
+                  type="button" onClick={() => setOpenModal(false)}
+                  className="px-4 py-2 rounded-xl border border-gray-200 text-slate-600 font-semibold text-xs hover:bg-gray-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs shadow-sm shadow-violet-200 transition-all active:scale-95"
+                >
+                  {editClient ? "Save Changes" : "Create Client"}
+                </button>
+              </div>
+            </form>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

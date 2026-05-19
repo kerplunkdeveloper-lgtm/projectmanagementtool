@@ -11,10 +11,10 @@ const StatCard = ({ label, value, sub, subType = "neutral", accent }) => {
         relative overflow-hidden
         bg-white
         border border-slate-200
-        rounded-2xl
-        p-6
+        rounded-xl
+        p-3
         flex-1
-        min-w-[200px]
+        min-w-[160px]
         hover:border-violet-300
         hover:shadow-md
         transition-all duration-300
@@ -36,12 +36,12 @@ const StatCard = ({ label, value, sub, subType = "neutral", accent }) => {
         }}
       />
 
-      <p className="text-[#94a3b8] text-[11px] font-extrabold uppercase tracking-wider mb-2">
+      <p className="text-[#94a3b8] text-[10px] font-extrabold uppercase tracking-wider mb-1">
         {label}
       </p>
 
       <h2
-        className="text-3xl font-black mb-1"
+        className="text-lg font-black mb-0.5"
         style={{ color: '#0f172a' }}
       >
         {formatINR(value)}
@@ -105,7 +105,7 @@ const RevenueStatCards = ({ data }) => {
   ];
 
   return (
-    <div className="flex flex-wrap gap-4 mb-6">
+    <div className="flex flex-wrap gap-2 mb-3">
       {cards.map((card, i) => (
         <StatCard key={i} {...card} />
       ))}

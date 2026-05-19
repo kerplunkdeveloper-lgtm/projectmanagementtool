@@ -166,12 +166,11 @@ const ClientSplitsTab = () => {
       
       {/* Top Bar */}
       <div className="flex flex-col md:flex-row justify-between items-center bg-[#eaeef6] p-4 rounded-xl shadow-sm border border-[#d1d5db]">
-        <p className="text-[#64748b] text-sm font-medium">Assign employees to clients using Drag and Drop or click the button below. CTC and cost-per-client are auto-calculated.</p>
-        <div className="flex gap-3 mt-3 md:mt-0">
-          
+        <div className="flex justify-between items-center gap-20 mt-3 md:mt-0">
+          <p className="text-[#64748b] text-[11px]  font-medium">Assign employees to clients using Drag and Drop or click the button below. CTC and cost-per-client are auto-calculated.</p>
           <button 
             onClick={() => openAssignModal()}
-            className="px-4 py-2 bg-[#7c5ff0] text-white font-bold text-sm rounded-lg shadow-md shadow-indigo-500/30 hover:bg-[#6c4be0] transition-colors flex items-center gap-1.5"
+            className="px-4 py-2 bg-[#7c5ff0] text-white font-bold text-xs rounded-lg shadow-md shadow-indigo-500/30 hover:bg-[#6c4be0] transition-colors flex items-center gap-1.5"
           >
             <FiPlus size={16} /> Assign Employee
           </button>

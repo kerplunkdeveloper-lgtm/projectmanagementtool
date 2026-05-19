@@ -134,8 +134,8 @@ const AddBusinessProjectModal = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
       <div className="bg-[#e4e6f2] w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-white/50">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-[#e4e6f2] border-b border-[#cbd0e1]">
-          <h2 className="text-[#1a2035] text-xl font-bold flex items-center gap-2">
+        <div className="flex items-center justify-between px-4 py-3 bg-[#e4e6f2] border-b border-[#cbd0e1]">
+          <h2 className="text-[#1a2035] text-base font-bold flex items-center gap-2">
             <span className="text-2xl">📁</span>{" "}
             {projectToEdit ? "Edit" : "Add"} Business Project
           </h2>
@@ -148,7 +148,7 @@ const AddBusinessProjectModal = ({
         </div>
 
         {/* Body */}
-        <div className="p-6 bg-[#cbd0e1]/30 flex-1 overflow-y-auto space-y-5">
+        <div className="px-4 py-3 bg-[#cbd0e1]/30 flex-1 overflow-y-auto space-y-3">
           <div>
             <label className="block text-[#475569] text-sm font-semibold mb-1.5">
               Client <span className="text-rose-500">*</span>
@@ -157,7 +157,7 @@ const AddBusinessProjectModal = ({
               name="client"
               value={formData.client}
               onChange={handleChange}
-              className="w-full bg-[#f1f3f9] border-0 text-[#1e293b] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-inner appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_1rem_center] bg-[length:1.2em_1.2em] pr-10"
+              className="w-full bg-[#f1f3f9] border-0 text-[#1e293b] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-inner appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_1rem_center] bg-[length:1.2em_1.2em] pr-10"
             >
               <option value="">Select a Client</option>
               {clients.map(client => (
@@ -168,7 +168,7 @@ const AddBusinessProjectModal = ({
             </select>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-[#475569] text-sm font-semibold mb-1.5">
                 Project Type <span className="text-rose-500">*</span>
@@ -193,7 +193,7 @@ const AddBusinessProjectModal = ({
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="w-full bg-[#f1f3f9] border-0 text-[#1e293b] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-inner appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_1rem_center] bg-[length:1.2em_1.2em] pr-10"
+                className="w-full bg-[#f1f3f9] border-0 text-[#1e293b] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-inner appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_1rem_center] bg-[length:1.2em_1.2em] pr-10"
               >
                 <option value="Active">Active</option>
                 <option value="Completed">Completed</option>
@@ -203,7 +203,7 @@ const AddBusinessProjectModal = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-[#475569] text-sm font-semibold mb-1.5">
                 Monthly Value (₹)
@@ -214,7 +214,7 @@ const AddBusinessProjectModal = ({
                 value={formData.revenue}
                 onChange={handleChange}
                 placeholder="e.g. 25000"
-                className="w-full bg-[#f1f3f9] border-0 text-[#1e293b] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-inner placeholder:text-slate-400"
+                className="w-full bg-[#f1f3f9] border-0 text-[#1e293b] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-inner placeholder:text-slate-400"
               />
             </div>
 
@@ -226,7 +226,7 @@ const AddBusinessProjectModal = ({
                 name="duration"
                 value={formData.duration}
                 onChange={handleChange}
-                className="w-full bg-[#f1f3f9] border-0 text-[#1e293b] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-inner appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_1rem_center] bg-[length:1.2em_1.2em] pr-10"
+                className="w-full bg-[#f1f3f9] border-0 text-[#1e293b] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-inner appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_1rem_center] bg-[length:1.2em_1.2em] pr-10"
               >
                 <option value="Ongoing / Retainer">Ongoing / Retainer</option>
                 <option value="1 Month">1 Month</option>
@@ -246,7 +246,7 @@ const AddBusinessProjectModal = ({
               name="employees"
               value={formData.employees}
               onChange={handleEmployeeSelection}
-              className="w-full bg-[#e3e8f8] border-2 border-white rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 h-32 text-[#334155] font-medium custom-scrollbar"
+              className="w-full bg-[#e3e8f8] border-2 border-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 h-24 text-[#334155] font-medium custom-scrollbar"
             >
               {users.map((user) => {
                 let displayRole = "";
@@ -331,7 +331,7 @@ const AddBusinessProjectModal = ({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 px-6 py-4 bg-[#cbd0e1]/50 border-t border-[#cbd0e1]">
+        <div className="flex justify-end gap-3 px-4 py-3 bg-[#cbd0e1]/50 border-t border-[#cbd0e1]">
           <button
             onClick={onClose}
             className="px-6 py-2.5 rounded-xl bg-[#f1f3f9] text-[#475569] font-bold hover:bg-white transition-colors shadow-sm"

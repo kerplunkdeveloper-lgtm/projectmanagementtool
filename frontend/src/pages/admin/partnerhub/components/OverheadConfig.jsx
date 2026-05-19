@@ -9,10 +9,10 @@ const OverheadConfig = ({ overheads, onUpdate }) => {
   const totalOverhead = overheads.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
 
   return (
-    <div className="bg-[#f8fafc] border border-slate-200 rounded-2xl p-4 sm:p-6 h-full flex flex-col shadow-sm animate-fadeIn">
+    <div className="bg-[#f8fafc] border border-slate-200 rounded-xl p-3 sm:p-4 h-full flex flex-col shadow-sm animate-fadeIn">
       
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="text-[#1e293b] font-extrabold text-base flex items-center gap-2">
           <span>🏢</span> Overhead Configuration
         </h3>
@@ -25,7 +25,7 @@ const OverheadConfig = ({ overheads, onUpdate }) => {
       </div>
 
       {/* List */}
-      <div className="flex-1 space-y-4">
+      <div className="flex-1 space-y-2">
         {overheads.length === 0 ? (
           <p className="text-slate-400 text-sm text-center py-4 font-medium">No overheads configured.</p>
         ) : (
@@ -42,7 +42,7 @@ const OverheadConfig = ({ overheads, onUpdate }) => {
       </div>
 
       {/* Footer Total */}
-      <div className="mt-6 pt-4 border-t border-slate-200">
+      <div className="mt-3 pt-3 border-t border-slate-200">
         <div className="flex justify-between items-center mb-4">
           <span className="text-[#1e293b] font-black text-sm">Total</span>
           <span className="text-[#ef4444] font-black text-base">{formatINR(totalOverhead)}</span>

@@ -4,7 +4,7 @@ const formatINR = (amount) => `₹${amount.toLocaleString("en-IN")}`;
 
 const ProjectCategoryCards = ({ categories }) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-3">
       {categories.map((cat, i) => (
         <div
           key={i}
@@ -12,8 +12,8 @@ const ProjectCategoryCards = ({ categories }) => {
             relative overflow-hidden
             bg-white
             border border-slate-200
-            rounded-2xl
-            p-6
+            rounded-xl
+            p-3
             text-center
             hover:border-violet-300
             hover:shadow-lg
@@ -33,17 +33,17 @@ const ProjectCategoryCards = ({ categories }) => {
 
           {/* Count */}
           <div
-            className="text-5xl font-black mb-2"
+            className="text-3xl font-black mb-1"
             style={{ color: cat.color }}
           >
             {cat.count}
           </div>
 
           {/* Name */}
-          <h3 className="text-[#1e293b] font-extrabold text-base mb-1">{cat.name}</h3>
+          <h3 className="text-[#1e293b] font-extrabold text-sm mb-0.5">{cat.name}</h3>
 
           {/* Tags */}
-          <p className="text-slate-500 text-xs font-medium mb-4">{cat.tags}</p>
+          <p className="text-slate-500 text-[11px] font-medium mb-2">{cat.tags}</p>
 
           {/* Revenue badge */}
           <div

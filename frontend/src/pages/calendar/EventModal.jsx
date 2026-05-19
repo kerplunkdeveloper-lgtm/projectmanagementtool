@@ -1,197 +1,194 @@
 import React, { useState, useEffect } from "react";
-import { FiX, FiCalendar, FiUser, FiLayers } from "react-icons/fi";
+import { FiX, FiCalendar } from "react-icons/fi";
 import { useSelector, useDispatch } from "react-redux";
 import { getClients } from "../../features/clients/clientslice";
 
+const EVENT_TYPES = ["Post", "Reel", "Story", "Ad", "Report"];
+
+const TYPE_COLORS = {
+  Post:   { bg: "bg-blue-600",   text: "text-blue-600",   light: "bg-blue-50 border-blue-200"   },
+  Reel:   { bg: "bg-red-500",    text: "text-red-600",    light: "bg-red-50 border-red-200"     },
+  Story:  { bg: "bg-violet-600", text: "text-violet-600", light: "bg-violet-50 border-violet-200" },
+  Ad:     { bg: "bg-amber-500",  text: "text-amber-600",  light: "bg-amber-50 border-amber-200" },
+  Report: { bg: "bg-emerald-500",text: "text-emerald-600",light: "bg-emerald-50 border-emerald-200" },
+};
+
 const EventModal = ({ open, setOpen, onSubmit, initialData, isEditing }) => {
   const dispatch = useDispatch();
-  const { clients } = useSelector((state) => state.clients);
+  const { clients } = useSelector((s) => s.clients);
 
   const [formData, setFormData] = useState({
-    title: "",
-    description: "",
-    date: "",
-    type: "Post",
-    client: "",
-    color: "#3b82f6",
+    title: "", description: "", date: "", type: "Post", client: "", color: "#3b82f6",
   });
 
-  const eventTypes = ["Post", "Reel", "Story", "Ad", "Report"];
-
   useEffect(() => {
-    if (open) {
-      dispatch(getClients());
-      if (isEditing && initialData) {
-        const formatForInput = (date) => {
-          if (!date) return "";
-          const d = new Date(date);
-          return d.toISOString().split("T")[0];
-        };
+    if (!open) return;
+    dispatch(getClients());
 
-        setFormData({
-          title: initialData.title || "",
-          description: initialData.description || "",
-          date: formatForInput(initialData.date),
-          type: initialData.type || "Post",
-          client: initialData.client?._id || initialData.client || "",
-          color: initialData.color || "#3b82f6",
-        });
-      } else if (initialData?.start) {
-          const d = new Date(initialData.start);
-          setFormData({
-            title: "",
-            description: "",
-            date: d.toISOString().split("T")[0],
-            type: "Post",
-            client: "",
-            color: "#3b82f6",
-          });
-      } else {
-        setFormData({
-          title: "",
-          description: "",
-          date: "",
-          type: "Post",
-          client: "",
-          color: "#3b82f6",
-        });
-      }
+    if (isEditing && initialData) {
+      const fmt = (d) => d ? new Date(d).toISOString().split("T")[0] : "";
+      setFormData({
+        title: initialData.title || "",
+        description: initialData.description || "",
+        date: fmt(initialData.date),
+        type: initialData.type || "Post",
+        client: initialData.client?._id || initialData.client || "",
+        color: initialData.color || "#3b82f6",
+      });
+    } else if (initialData?.start) {
+      setFormData({
+        title: "", description: "",
+        date: new Date(initialData.start).toISOString().split("T")[0],
+        type: "Post", client: "", color: "#3b82f6",
+      });
+    } else {
+      setFormData({ title: "", description: "", date: "", type: "Post", client: "", color: "#3b82f6" });
     }
   }, [open, isEditing, initialData, dispatch]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
     if (name === "client" && value) {
-      const selectedClient = clients.find(c => c._id === value);
-      if (selectedClient) {
-         // Auto-map title: "Client Name — "
-         setFormData(prev => ({
-           ...prev,
-           client: value,
-           title: `${selectedClient.companyName} — ${prev.title.split(" — ").pop() || ""}`
-         }));
-         return;
+      const c = clients.find((x) => x._id === value);
+      if (c) {
+        setFormData((p) => ({
+          ...p, client: value,
+          title: `${c.companyName} — ${p.title.split(" — ").pop() || ""}`,
+        }));
+        return;
       }
     }
-    
-    setFormData({ ...formData, [name]: value });
+    setFormData((p) => ({ ...p, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit(formData);
-  };
+  const handleSubmit = (e) => { e.preventDefault(); onSubmit(formData); };
 
   if (!open) return null;
 
+  const typeConf = TYPE_COLORS[formData.type] || TYPE_COLORS.Post;
+
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-5xl rounded-[2.5rem] border border-gray-200 shadow-[0_30px_70px_rgba(0,0,0,0.2)] overflow-hidden">
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-3">
+      <div className="bg-white w-full max-w-md rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
+
         {/* HEADER */}
-        <div className="flex items-center justify-between px-10 py-8 border-b border-gray-100 bg-slate-50/50">
-          <h2 className="text-3xl font-black text-slate-800 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <FiCalendar size={26} />
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-slate-50/60">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
+              <FiCalendar size={14} className="text-white" />
             </div>
-            {isEditing ? "Modify Initiative" : "Launch Post"}
-          </h2>
+            <h2 className="text-sm font-bold text-slate-800">
+              {isEditing ? "Edit Event" : "New Event"}
+            </h2>
+          </div>
           <button
             onClick={() => setOpen(false)}
-            className="w-12 h-12 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-all duration-300 shadow-sm"
+            className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:border-rose-100 transition-all"
           >
-            <FiX size={24} />
+            <FiX size={14} />
           </button>
         </div>
 
         {/* FORM */}
-        <form onSubmit={handleSubmit} className="p-10 space-y-8 max-h-[75vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3 max-h-[78vh] overflow-y-auto">
+
+          {/* TYPE PILLS */}
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Event Identification *</label>
+            <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">
+              Content Type
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {EVENT_TYPES.map((t) => {
+                const conf = TYPE_COLORS[t];
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setFormData((p) => ({ ...p, type: t }))}
+                    className={`px-3 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
+                      formData.type === t
+                        ? `${conf.bg} text-white border-transparent`
+                        : `bg-white ${conf.text} ${conf.light}`
+                    }`}
+                  >
+                    {t}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* CLIENT + DATE */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Client *</label>
+              <select
+                name="client"
+                required
+                value={formData.client}
+                onChange={handleChange}
+                className="w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all text-xs text-slate-700 cursor-pointer"
+              >
+                <option value="">Select client...</option>
+                {clients?.map((c) => (
+                  <option key={c._id} value={c._id}>{c.companyName}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Date *</label>
+              <input
+                type="date"
+                name="date"
+                required
+                value={formData.date}
+                onChange={handleChange}
+                className="w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all text-xs text-slate-700"
+              />
+            </div>
+          </div>
+
+          {/* TITLE */}
+          <div>
+            <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Event Title *</label>
             <input
               type="text"
               name="title"
               required
               value={formData.title}
               onChange={handleChange}
-              placeholder="E.g., ABC Restaurant — Product Launch"
-              className="w-full h-14 bg-slate-50 border border-gray-200 rounded-2xl px-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium"
+              placeholder="e.g. ABC Restaurant — Product Launch"
+              className="w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all text-sm text-slate-700"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Client Association *</label>
-              <select
-                name="client"
-                required
-                value={formData.client}
-                onChange={handleChange}
-                className="w-full h-14 bg-slate-50 border border-gray-200 rounded-2xl px-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium cursor-pointer"
-              >
-                <option value="">Select Target Client</option>
-                {clients?.map((client) => (
-                  <option key={client._id} value={client._id}>
-                    {client.companyName}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Content Format</label>
-              <select
-                name="type"
-                value={formData.type}
-                onChange={handleChange}
-                className="w-full h-14 bg-slate-50 border border-gray-200 rounded-2xl px-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium cursor-pointer"
-              >
-                {eventTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
+          {/* DESCRIPTION */}
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Scheduling Date *</label>
-            <input
-              type="date"
-              name="date"
-              required
-              value={formData.date}
-              onChange={handleChange}
-              className="w-full h-14 bg-slate-50 border border-gray-200 rounded-2xl px-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Strategy Notes</label>
+            <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Notes</label>
             <textarea
               name="description"
-              rows="3"
+              rows="2"
               value={formData.description}
               onChange={handleChange}
-              placeholder="Detail the objectives or execution steps..."
-              className="w-full bg-slate-50 border border-gray-200 rounded-[2rem] p-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium resize-none"
+              placeholder="Objectives or execution steps..."
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all text-sm text-slate-700 resize-none"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-5 pt-6">
+          {/* BUTTONS */}
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="px-10 py-4 rounded-2xl border border-gray-200 text-slate-600 font-bold hover:bg-slate-50 transition-all active:scale-95"
+              className="px-4 py-2 rounded-xl border border-gray-200 text-slate-600 font-semibold text-xs hover:bg-gray-50 transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-12 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black text-lg shadow-[0_15px_35px_rgba(37,99,235,0.3)] hover:scale-[1.02] hover:shadow-[0_20px_45px_rgba(37,99,235,0.4)] transition-all active:scale-95"
+              className={`px-5 py-2 rounded-xl text-white font-bold text-xs shadow-sm transition-all active:scale-95 ${typeConf.bg} hover:opacity-90`}
             >
-              {isEditing ? "Commit Changes" : "Deploy Event"}
+              {isEditing ? "Update Event" : "Create Event"}
             </button>
           </div>
         </form>

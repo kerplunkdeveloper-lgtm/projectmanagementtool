@@ -1,77 +1,61 @@
 import React from "react";
 import { FiPlus, FiUsers, FiSearch, FiFilter } from "react-icons/fi";
 
-const UserHeader = ({
-  setOpenModal,
-  searchTerm,
-  setSearchTerm,
-  filterDept,
-  setFilterDept,
-}) => {
-  const departments = [
-    "Social Media Team",
-    "Website Team",
-    "Designer Team",
-    "Editor Team",
-    "Scriptwriter Team",
-    "Cameraman Team",
-    "SEO Team",
-  ];
+const DEPARTMENTS = [
+  "Social Media Team", "Website Team", "Designer Team",
+  "Editor Team", "Scriptwriter Team", "Cameraman Team", "SEO Team",
+];
 
-  return (
-    <div className="flex flex-col gap-6 mb-8">
-      {/* TOP ROW */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-        <div>
-          <h1 className="text-3xl md:text-4xl font-bold flex text-black items-center gap-3">
-            <FiUsers className="text-cyan-400" />
-            User Management
-          </h1>
-          <p className="text-gray-500 mt-2">Manage and monitor all users</p>
+const UserHeader = ({ setOpenModal, searchTerm, setSearchTerm, filterDept, setFilterDept }) => (
+  <div className="flex flex-col gap-3 mb-5">
+    {/* TOP ROW */}
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div>
+        <div className="flex items-center gap-2 mb-0.5">
+          <div className="w-7 h-7 rounded-lg bg-cyan-500 flex items-center justify-center">
+            <FiUsers size={14} className="text-white" />
+          </div>
+          <h1 className="text-lg sm:text-xl font-bold text-slate-800">User Management</h1>
         </div>
-
-        <button
-          onClick={() => setOpenModal(true)}
-          className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold hover:scale-105 hover:shadow-lg hover:shadow-cyan-500/20 transition-all duration-300 active:scale-95"
-        >
-          <FiPlus size={20} />
-          Add New User
-        </button>
+        <p className="text-xs text-gray-400 ml-9">Manage and monitor all users</p>
       </div>
 
-      {/* FILTER ROW */}
-      <div className="flex flex-col sm:flex-row items-center gap-4 bg-white/5 p-4 rounded-3xl border border-white/10 backdrop-blur-md">
-        {/* SEARCH */}
-        <div className="relative flex-1 w-full">
-          <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by name or email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-12 pl-12 pr-4  rounded-2xl bg-white text-black shadow-xl border border-white/10 placeholder:text-gray-500 outline-none focus:border-cyan-500/50 transition-all"
-          />
-        </div>
+      <button
+        onClick={() => setOpenModal(true)}
+        className="self-start sm:self-auto flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white font-semibold text-sm shadow-sm shadow-cyan-200 transition-all active:scale-95"
+      >
+        <FiPlus size={16} /> Add User
+      </button>
+    </div>
 
-        {/* DEPARTMENT FILTER */}
-        <div className="relative w-full sm:w-64">
-          <FiFilter className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-          <select
-            value={filterDept}
-            onChange={(e) => setFilterDept(e.target.value)}
-            className="w-full h-12 pl-12 pr-4 rounded-2xl bg-white shadow-xl border border-white/10 text-black outline-none focus:border-cyan-500/50 transition-all cursor-pointer"
-          >
-            <option value="">All Departments</option>
-            {departments.map((dept) => (
-              <option key={dept} value={dept}>
-                {dept}
-              </option>
-            ))}
-          </select>
-        </div>
+    {/* FILTER ROW */}
+    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+      {/* SEARCH */}
+      <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 flex-1">
+        <FiSearch size={13} className="text-gray-400 shrink-0" />
+        <input
+          type="text"
+          placeholder="Search by name or email..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="bg-transparent outline-none text-xs text-gray-700 placeholder:text-gray-400 w-full"
+        />
+      </div>
+
+      {/* DEPT FILTER */}
+      <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 sm:w-52">
+        <FiFilter size={12} className="text-gray-400 shrink-0" />
+        <select
+          value={filterDept}
+          onChange={(e) => setFilterDept(e.target.value)}
+          className="bg-transparent outline-none text-xs text-gray-700 w-full cursor-pointer"
+        >
+          <option value="">All Departments</option>
+          {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+        </select>
       </div>
     </div>
-  );
-};
+  </div>
+);
 
 export default UserHeader;

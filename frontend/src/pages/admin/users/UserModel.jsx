@@ -1,361 +1,112 @@
-import React, {
-  useEffect,
-  useState,
-} from "react";
+import React, { useEffect, useState } from "react";
+import { FiX, FiUsers } from "react-icons/fi";
 
-import {
-  FiX,
-} from "react-icons/fi";
+const DEPARTMENTS = [
+  "Social Media Team", "Website Team", "Designer Team",
+  "Editor Team", "Scriptwriter Team", "Cameraman Team", "SEO Team",
+];
 
-const UserModal = ({
-  openModal,
-  setOpenModal,
-  handleCreateUser,
-  handleUpdateUser,
-  editUser,
-  setEditUser,
-}) => {
-
-  const [formData, setFormData] =
-    useState({
-      name: "",
-      email: "",
-      password: "",
-      role: "team",
-      department: "",
-    });
+const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser, editUser, setEditUser }) => {
+  const [formData, setFormData] = useState({ name: "", email: "", password: "", role: "team", department: "" });
 
   useEffect(() => {
-
-    if (editUser) {
-
-      setFormData({
-        name: editUser.name || "",
-        email: editUser.email || "",
-        password: "",
-        role: editUser.role || "team",
-        department:
-          editUser.department || "",
-      });
-
-    } else {
-
-      setFormData({
-        name: "",
-        email: "",
-        password: "",
-        role: "team",
-        department: "",
-      });
-
-    }
-
+    setFormData(editUser
+      ? { name: editUser.name || "", email: editUser.email || "", password: "", role: editUser.role || "team", department: editUser.department || "" }
+      : { name: "", email: "", password: "", role: "team", department: "" }
+    );
   }, [editUser]);
 
   const handleChange = (e) => {
-
     const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-
-      // Clear department if role changes
-      ...(name === "role" &&
-        value !== "team"
-        ? { department: "" }
-        : {}),
-    }));
-
+    setFormData((p) => ({ ...p, [name]: value, ...(name === "role" && value !== "team" ? { department: "" } : {}) }));
   };
 
   const handleSubmit = (e) => {
-
     e.preventDefault();
-
-    if (editUser) {
-
-      handleUpdateUser(formData);
-
-    } else {
-
-      handleCreateUser(formData);
-
-    }
-
+    editUser ? handleUpdateUser(formData) : handleCreateUser(formData);
   };
 
   const handleClose = () => {
-    setOpenModal(false);
-    setEditUser(null);
-    setFormData({
-      name: "",
-      email: "",
-      password: "",
-      role: "team",
-      department: "",
-    });
+    setOpenModal(false); setEditUser(null);
+    setFormData({ name: "", email: "", password: "", role: "team", department: "" });
   };
 
   if (!openModal) return null;
 
+  const INPUT = "w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 transition-all text-sm text-slate-700";
+  const LABEL = "block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1";
+
   return (
+    <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-3">
+      <div className="bg-white w-full max-w-sm rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
 
-    <div
-      className="
-        fixed inset-0 z-50
-        bg-black/20
-    
-        flex items-center
-        justify-center
-        p-4 
-      "
-    >
-
-      <div
-        className="
-          w-full
-          max-w-lg
-          rounded-3xl
-          border border-white/10
-         bg-white
-          p-6 md:p-8
-        "
-      >
-
-        {/* Header */}
-
-        <div
-          className="
-            flex items-center
-            justify-between
-            mb-8
-          "
-        >
-
-          <h2
-            className="
-              text-2xl
-              font-bold
-            text-black
-            "
-          >
-
-            {editUser
-              ? "Update User"
-              : "Add User"}
-
-          </h2>
-
+        {/* HEADER */}
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-slate-50/60">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-cyan-500 flex items-center justify-center">
+              <FiUsers size={13} className="text-white" />
+            </div>
+            <h2 className="text-sm font-bold text-slate-800">
+              {editUser ? "Update User" : "Add New User"}
+            </h2>
+          </div>
           <button
             onClick={handleClose}
-            className="
-              w-10 h-10
-              rounded-xl
-              bg-black/90
-              border border-white/10
-              flex items-center
-              justify-center
-           
-              transition
-            "
+            className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all"
           >
-
-            <FiX className="w-5 h-5" />
-
+            <FiX size={14} />
           </button>
-
         </div>
 
-        {/* Form */}
+        {/* FORM */}
+        <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3">
+          <div>
+            <label className={LABEL}>Full Name *</label>
+            <input type="text" name="name" required value={formData.name} onChange={handleChange} placeholder="John Doe" className={INPUT} />
+          </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-5"
-        >
+          <div>
+            <label className={LABEL}>Email *</label>
+            <input type="email" name="email" required value={formData.email} onChange={handleChange} placeholder="john@example.com" className={INPUT} />
+          </div>
 
-          {/* Name */}
+          <div>
+            <label className={LABEL}>Password {editUser && <span className="normal-case text-gray-400">(leave blank to keep)</span>}</label>
+            <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="••••••••" className={INPUT} />
+          </div>
 
-          <input
-            type="text"
-            name="name"
-            required
-            value={formData.name}
-            placeholder="Name"
-            onChange={handleChange}
-            className="
-                w-full h-12
-              rounded-2xl
-              bg-black/10
-              border border-white/10
-              px-4
-              text-black
-              outline-none
-            "
-          />
-
-          {/* Email */}
-
-          <input
-            type="email"
-            name="email"
-            required
-            value={formData.email}
-            placeholder="Email"
-            onChange={handleChange}
-            className="
-              w-full h-12
-              rounded-2xl
-              bg-black/10
-              border border-white/10
-              px-4
-              text-black
-              outline-none
-            "
-          />
-
-          {/* Password */}
-
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-            className="
-               w-full h-12
-              rounded-2xl
-              bg-black/10
-              border border-white/10
-              px-4
-              text-black
-              outline-none
-            "
-          />
-
-          {/* Role */}
-
-          <select
-            name="role"
-            value={formData.role}
-            onChange={handleChange}
-            className="
-            w-full h-12
-              rounded-2xl
-              bg-black/10
-              border border-white/10
-              px-4
-              text-black
-              outline-none
-            "
-          >
-
-            <option value="team">
-              Team
-            </option>
-
-            <option value="admin">
-              Admin
-            </option>
-
-            <option value="operationmanager">
-              Operation Manager
-            </option>
-
-          </select>
-
-          {/* Department */}
-
-          {
-            formData.role ===
-              "team" && (
-
-              <select
-                name="department"
-                value={
-                  formData.department
-                }
-                onChange={
-                  handleChange
-                }
-                required
-                className="
-              w-full h-12
-              rounded-2xl
-              bg-black/10
-              border border-white/10
-              px-4
-              text-black
-              outline-none
-                "
-              >
-
-                <option value="">
-                  Select Department
-                </option>
-
-                <option value="Social Media Team">
-                  Social Media Team
-                </option>
-
-                <option value="Website Team">
-                  Website Team
-                </option>
-
-                <option value="Designer Team">
-                  Designer Team
-                </option>
-
-                <option value="Editor Team">
-                  Editor Team
-                </option>
-
-                <option value="Scriptwriter Team">
-                  Scriptwriter Team
-                </option>
-
-                <option value="Cameraman Team">
-                  Cameraman Team
-                </option>
-
-                <option value="SEO Team">
-                  SEO Team
-                </option>
-
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={LABEL}>Role</label>
+              <select name="role" value={formData.role} onChange={handleChange} className={INPUT + " cursor-pointer"}>
+                <option value="team">Team</option>
+                <option value="admin">Admin</option>
+                <option value="operationmanager">Op. Manager</option>
               </select>
+            </div>
 
-            )
-          }
+            {formData.role === "team" && (
+              <div>
+                <label className={LABEL}>Department *</label>
+                <select name="department" value={formData.department} onChange={handleChange} required className={INPUT + " cursor-pointer"}>
+                  <option value="">Select...</option>
+                  {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
 
-          {/* Submit Button */}
-
-          <button
-            type="submit"
-            className="
-              w-full h-12
-              rounded-2xl
-              bg-gradient-to-r
-              from-cyan-500
-              to-blue-600
-              text-white
-              font-semibold
-              hover:scale-[1.01]
-              transition
-            "
-          >
-
-            {editUser
-              ? "Update User"
-              : "Create User"}
-
-          </button>
-
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+            <button type="button" onClick={handleClose} className="px-4 py-2 rounded-xl border border-gray-200 text-slate-600 font-semibold text-xs hover:bg-gray-50 transition-all">
+              Cancel
+            </button>
+            <button type="submit" className="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white font-bold text-xs shadow-sm shadow-cyan-200 transition-all active:scale-95">
+              {editUser ? "Update User" : "Create User"}
+            </button>
+          </div>
         </form>
-
       </div>
-
     </div>
-
   );
 };
 

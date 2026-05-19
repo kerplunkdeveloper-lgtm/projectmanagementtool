@@ -1,452 +1,335 @@
-import React, {
-  useEffect,
-  useState,
-} from "react";
-
-import {
-  IoAdd,
-  IoClose,
-} from "react-icons/io5";
-
-import {
-  MdDelete,
-  MdEdit,
-} from "react-icons/md";
-
-import {
-  useDispatch,
-  useSelector,
-} from "react-redux";
-
+import React, { useEffect, useState } from "react";
+import { IoAdd, IoClose } from "react-icons/io5";
+import { MdDelete, MdEdit } from "react-icons/md";
+import { FiLayers, FiSearch } from "react-icons/fi";
+import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
-
 import {
   createTemplate,
   deleteTemplate,
   getTemplates,
-  toggleTemplate,
   updateTemplate,
 } from "../../../features/template/templateSlice";
 
+const TYPE_CONFIG = {
+  Onboarding:      { color: "bg-emerald-100 text-emerald-700 border-emerald-200",  dot: "bg-emerald-500" },
+  "Service Process":{ color: "bg-violet-100 text-violet-700 border-violet-200",    dot: "bg-violet-500" },
+  Checklist:       { color: "bg-amber-100 text-amber-700 border-amber-200",        dot: "bg-amber-500" },
+  Campaign:        { color: "bg-blue-100 text-blue-700 border-blue-200",           dot: "bg-blue-500" },
+};
+
+const SERVICE_COLORS = {
+  SMM:   "bg-blue-50 text-blue-600 border-blue-100",
+  SEO:   "bg-teal-50 text-teal-600 border-teal-100",
+  Ads:   "bg-orange-50 text-orange-600 border-orange-100",
+  Video: "bg-pink-50 text-pink-600 border-pink-100",
+};
+
+const ALL_SERVICES = ["SMM", "SEO", "Ads", "Video"];
+
+const TABS = [
+  { id: "all",             label: "All" },
+  { id: "onboarding",     label: "Onboarding" },
+  { id: "service process", label: "Service Process" },
+  { id: "checklist",      label: "Checklist" },
+  { id: "campaign",       label: "Campaign" },
+];
+
 const Templatelib = () => {
-
   const dispatch = useDispatch();
+  const { templates } = useSelector((state) => state.templates);
 
-  const { templates } = useSelector(
-    (state) => state.templates
-  );
+  const [activeTab, setActiveTab] = useState("all");
+  const [search, setSearch] = useState("");
+  const [openModal, setOpenModal] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [formData, setFormData] = useState({
+    title: "",
+    type: "Campaign",
+    description: "",
+    services: [],
+  });
 
-
-
-  // STATES
-  const [activeTab, setActiveTab] =
-    useState("all");
-
-  const [openModal, setOpenModal] =
-    useState(false);
-
-  const [editMode, setEditMode] =
-    useState(false);
-
-  const [editId, setEditId] =
-    useState(null);
-
-  const [formData, setFormData] =
-    useState({
-      title: "",
-      type: "Campaign",
-      description: "",
-      services: [],
-      totalTasks: 0,
-    });
-
-
-
-  // GET TEMPLATES
   useEffect(() => {
-
     dispatch(getTemplates());
-
   }, [dispatch]);
 
+  const handleServiceToggle = (service) => {
+    setFormData((prev) => ({
+      ...prev,
+      services: prev.services.includes(service)
+        ? prev.services.filter((s) => s !== service)
+        : [...prev.services, service],
+    }));
+  };
 
+  const openCreate = () => {
+    setEditMode(false);
+    setEditId(null);
+    setFormData({ title: "", type: "Campaign", description: "", services: [] });
+    setOpenModal(true);
+  };
 
-  // TABS
-  const tabs = [
-    {
-      id: "all",
-      label: "All Templates",
-    },
-
-    {
-      id: "onboarding",
-      label: "Onboarding",
-    },
-
-    {
-      id: "service process",
-      label: "Service Process",
-    },
-
-    {
-      id: "checklist",
-      label: "Checklists",
-    },
-
-    {
-      id: "campaign",
-      label: "Campaign",
-    },
-  ];
-
-
-
-  // SERVICE BADGE COLORS
-  const getServiceBadgeColor =
-    (service) => {
-
-      const colors = {
-        SMM:
-          "bg-blue-100 text-blue-600",
-
-        SEO:
-          "bg-teal-100 text-teal-600",
-
-        Ads:
-          "bg-orange-100 text-orange-600",
-
-        Video:
-          "bg-pink-100 text-pink-600",
-      };
-
-      return (
-        colors[service] ||
-        "bg-gray-100 text-gray-600"
-      );
-    };
-
-
-
-  // SERVICE TOGGLE
-  const handleServiceToggle =
-    (service) => {
-
-      setFormData((prev) => ({
-        ...prev,
-
-        services:
-          prev.services.includes(
-            service
-          )
-            ? prev.services.filter(
-                (s) =>
-                  s !== service
-              )
-            : [
-                ...prev.services,
-                service,
-              ],
-      }));
-    };
-
-
-
-  // CREATE / UPDATE
-  const handleCreateTemplate =
-    async (e) => {
-
-      e.preventDefault();
-
-      try {
-
-        if (editMode) {
-
-          await dispatch(
-            updateTemplate({
-              id: editId,
-              templateData:
-                formData,
-            })
-          ).unwrap();
-
-          toast.success(
-            "Template Updated"
-          );
-
-        } else {
-
-          await dispatch(
-            createTemplate(
-              formData
-            )
-          ).unwrap();
-
-          toast.success(
-            "Template Created"
-          );
-        }
-
-        setOpenModal(false);
-
-        setEditMode(false);
-
-        setEditId(null);
-
-        setFormData({
-          title: "",
-          type: "Campaign",
-          description: "",
-          services: [],
-       
-        });
-
-      } catch (error) {
-
-        toast.error(error);
-      }
-    };
-
-
-
-  // FILTER
-  const filteredTemplates =
-    templates.filter((template) => {
-
-      if (activeTab === "all")
-        return true;
-
-      return (
-        template.type.toLowerCase() ===
-        activeTab
-      );
+  const openEdit = (template) => {
+    setEditMode(true);
+    setEditId(template._id);
+    setFormData({
+      title: template.title,
+      type: template.type,
+      description: template.description,
+      services: template.services,
     });
+    setOpenModal(true);
+  };
 
+  const closeModal = () => {
+    setOpenModal(false);
+    setEditMode(false);
+    setEditId(null);
+  };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editMode) {
+        await dispatch(updateTemplate({ id: editId, templateData: formData })).unwrap();
+        toast.success("Template Updated");
+      } else {
+        await dispatch(createTemplate(formData)).unwrap();
+        toast.success("Template Created");
+      }
+      closeModal();
+    } catch (err) {
+      toast.error(err);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this template?")) return;
+    try {
+      await dispatch(deleteTemplate(id)).unwrap();
+      toast.success("Template Deleted");
+    } catch (err) {
+      toast.error(err);
+    }
+  };
+
+  const filtered = templates.filter((t) => {
+    const matchTab = activeTab === "all" || t.type.toLowerCase() === activeTab;
+    const matchSearch =
+      search === "" ||
+      t.title.toLowerCase().includes(search.toLowerCase()) ||
+      t.description?.toLowerCase().includes(search.toLowerCase());
+    return matchTab && matchSearch;
+  });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-gray-100 px-4 sm:px-6 lg:px-10 py-6 md:py-10">
-      <div className="max-w-9xl mx-auto">
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
+    <div className="min-h-screen bg-gray-50/50">
+      <div className="max-w-7xl mx-auto px-3 sm:px-5 py-4 sm:py-6">
+
+        {/* ── HEADER ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
           <div>
-            <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-              Template Library
-            </h1>
-            <p className="text-gray-500 mt-2 text-lg">Manage and monitor reusable workflow templates</p>
+            <div className="flex items-center gap-2 mb-0.5">
+              <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
+                <FiLayers size={14} className="text-white" />
+              </div>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-800">
+                Template Library
+              </h1>
+            </div>
+            <p className="text-xs text-gray-400 ml-9">
+              Manage and reuse workflow templates
+            </p>
           </div>
 
           <button
-            onClick={() => {
-              setEditMode(false);
-              setOpenModal(true);
-              setFormData({
-                title: "",
-                type: "Campaign",
-                description: "",
-                services: [],
-              });
-            }}
-            className="flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg shadow-[0_15px_30px_rgba(37,99,235,0.3)] hover:scale-105 hover:shadow-[0_20px_40px_rgba(37,99,235,0.4)] transition-all active:scale-95"
+            onClick={openCreate}
+            className="self-start sm:self-auto flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-sm shadow-blue-200 transition-all active:scale-95"
           >
-            <IoAdd size={24} />
+            <IoAdd size={18} />
             New Template
           </button>
         </div>
 
-        {/* TABS */}
-        <div className="flex gap-4 mb-10 overflow-x-auto pb-2 scrollbar-hide">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`
-                px-6 py-2.5
-                rounded-full
-                whitespace-nowrap
-                font-bold
-                transition-all
-                duration-300
-                shadow-sm
-                ${
+        {/* ── FILTERS ROW ── */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mb-5">
+          {/* TABS */}
+          <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1 overflow-x-auto scrollbar-hide w-full sm:w-auto">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-lg whitespace-nowrap text-xs font-semibold transition-all duration-200 ${
                   activeTab === tab.id
-                    ? "bg-blue-600 text-white shadow-blue-200 shadow-lg scale-105"
-                    : "bg-white text-slate-500 hover:bg-slate-50 border border-gray-200"
-                }
-              `}
-            >
-              {tab.label}
-            </button>
-          ))}
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-700 hover:bg-gray-50"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* SEARCH */}
+          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 w-full sm:w-56">
+            <FiSearch size={13} className="text-gray-400 shrink-0" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search templates..."
+              className="bg-transparent outline-none text-xs text-gray-700 placeholder:text-gray-400 w-full"
+            />
+          </div>
+
+          {/* COUNT BADGE */}
+          <span className="text-xs text-gray-400 shrink-0">
+            {filtered.length} template{filtered.length !== 1 ? "s" : ""}
+          </span>
         </div>
 
-        {/* GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-          {filteredTemplates.map((template) => (
-            <div
-              key={template._id}
-              className="group relative overflow-hidden rounded-[32px] border border-gray-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.06)] hover:shadow-[0_30px_80px_rgba(15,23,42,0.1)] transition-all duration-500 hover:-translate-y-2"
-            >
-              {/* PREMIUM DECORATION */}
-              <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-blue-50/50 blur-2xl group-hover:bg-blue-100/50 transition-colors" />
-
-              {/* TOP */}
-              <div className="flex justify-between items-start relative z-10">
-                <div className="flex-1">
-                  <h2 className="text-xl font-black text-slate-800 group-hover:text-blue-600 transition-colors">
-                    {template.title}
-                  </h2>
-                  <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-widest border border-blue-100">
-                    {template.type}
-                  </div>
-                </div>
-
-                {/* TOGGLE */}
-                <button
-                  onClick={async () => {
-                    try {
-                      await dispatch(toggleTemplate(template._id)).unwrap();
-                      toast.success(template.isActive ? "Template Disabled" : "Template Enabled");
-                    } catch (error) {
-                      toast.error(error);
-                    }
-                  }}
-                  className="shrink-0"
+        {/* ── GRID ── */}
+        {filtered.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+            {filtered.map((template) => {
+              const typeConf = TYPE_CONFIG[template.type] || {
+                color: "bg-gray-100 text-gray-600 border-gray-200",
+                dot: "bg-gray-400",
+              };
+              return (
+                <div
+                  key={template._id}
+                  className="group bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col"
                 >
-                  <div
-                    className={`
-                      w-14 h-8
-                      rounded-full
-                      flex items-center
-                      px-1
-                      transition-all
-                      duration-500
-                      ${template.isActive ? "bg-emerald-500 shadow-emerald-200 shadow-lg justify-end" : "bg-slate-200 justify-start"}
-                    `}
-                  >
-                    <div className="w-6 h-6 rounded-full bg-white shadow-md transition-transform duration-500" />
+                  {/* CARD TOP */}
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <div className="flex-1 min-w-0">
+                      <h2 className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors truncate">
+                        {template.title}
+                      </h2>
+                      <span
+                        className={`inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${typeConf.color}`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${typeConf.dot}`} />
+                        {template.type}
+                      </span>
+                    </div>
+
+                    {/* ACTION BUTTONS */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        onClick={() => openEdit(template)}
+                        className="w-7 h-7 rounded-lg bg-amber-50 text-amber-500 flex items-center justify-center hover:bg-amber-100 transition-all"
+                        title="Edit"
+                      >
+                        <MdEdit size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(template._id)}
+                        className="w-7 h-7 rounded-lg bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition-all"
+                        title="Delete"
+                      >
+                        <MdDelete size={14} />
+                      </button>
+                    </div>
                   </div>
-                </button>
-              </div>
 
-              {/* DESCRIPTION */}
-              <p className="text-gray-500 mt-6 leading-relaxed text-sm line-clamp-3 relative z-10">
-                {template.description}
-              </p>
+                  {/* DESCRIPTION */}
+                  <p className="text-xs text-gray-500 leading-relaxed line-clamp-2 flex-1 mb-3">
+                    {template.description || (
+                      <span className="italic text-gray-300">No description</span>
+                    )}
+                  </p>
 
-              {/* SERVICES */}
-              <div className="flex flex-wrap gap-2 mt-6 relative z-10">
-                {template.services.map((service) => (
-                  <span
-                    key={service}
-                    className={`
-                      px-3 py-1.5
-                      rounded-xl
-                      text-[10px]
-                      font-black
-                      uppercase
-                      tracking-wider
-                      border
-                      ${getServiceBadgeColor(service)}
-                      bg-opacity-50
-                    `}
-                  >
-                    {service}
-                  </span>
-                ))}
-              </div>
-
-              {/* FOOTER */}
-              <div className="flex items-center justify-end mt-8 pt-6 border-t border-slate-50 relative z-10">
-                <div className="flex items-center gap-3">
-                  {/* EDIT */}
-                  <button
-                    onClick={() => {
-                      setEditMode(true);
-                      setEditId(template._id);
-                      setOpenModal(true);
-                      setFormData({
-                        title: template.title,
-                        type: template.type,
-                        description: template.description,
-                        services: template.services,
-                      });
-                    }}
-                    className="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center hover:scale-110 hover:bg-amber-100 transition-all shadow-sm"
-                  >
-                    <MdEdit size={22} />
-                  </button>
-
-                  {/* DELETE */}
-                  <button
-                    onClick={async () => {
-                      if (!window.confirm("Delete this template?")) return;
-                      try {
-                        await dispatch(deleteTemplate(template._id)).unwrap();
-                        toast.success("Template Deleted");
-                      } catch (error) {
-                        toast.error(error);
-                      }
-                    }}
-                    className="w-11 h-11 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center hover:scale-110 hover:bg-rose-100 transition-all shadow-sm"
-                  >
-                    <MdDelete size={22} />
-                  </button>
+                  {/* SERVICES */}
+                  {template.services?.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-3 border-t border-gray-100">
+                      {template.services.map((s) => (
+                        <span
+                          key={s}
+                          className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border ${
+                            SERVICE_COLORS[s] || "bg-gray-50 text-gray-600 border-gray-100"
+                          }`}
+                        >
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
+              );
+            })}
+          </div>
+        ) : (
+          /* EMPTY STATE */
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mb-3">
+              <FiLayers size={24} className="text-gray-300" />
             </div>
-          ))}
-        </div>
-
-        {/* EMPTY */}
-        {filteredTemplates.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-32 opacity-50">
-            <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-6">
-              <IoAdd size={48} className="text-slate-400" />
-            </div>
-            <h2 className="text-2xl font-black text-slate-700">No Templates Found</h2>
-            <p className="text-gray-500 mt-2">Start by creating your first workflow template</p>
+            <h2 className="text-base font-bold text-slate-600">No Templates Found</h2>
+            <p className="text-xs text-gray-400 mt-1">
+              {search ? "Try a different search term" : "Create your first workflow template"}
+            </p>
+            {!search && (
+              <button
+                onClick={openCreate}
+                className="mt-4 flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-all"
+              >
+                <IoAdd size={15} /> New Template
+              </button>
+            )}
           </div>
         )}
+      </div>
 
-        {/* MODAL */}
-        {openModal && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 z-50">
-            <div className="bg-white w-full max-w-2xl rounded-[2.5rem] border border-gray-200 shadow-[0_30px_70px_rgba(0,0,0,0.2)] overflow-hidden">
-              {/* HEADER */}
-              <div className="flex items-center justify-between px-10 py-8 border-b border-gray-100 bg-slate-50/50">
-                <h2 className="text-3xl font-black text-slate-800">
-                  {editMode ? "Update Template" : "Create Template"}
-                </h2>
-                <button
-                  onClick={() => setOpenModal(false)}
-                  className="w-12 h-12 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-all duration-300 shadow-sm"
-                >
-                  <IoClose size={24} />
-                </button>
+      {/* ── MODAL ── */}
+      {openModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-3 z-50">
+          <div className="bg-white w-full max-w-lg rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
+
+            {/* MODAL HEADER */}
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-slate-50/60">
+              <h2 className="text-sm font-bold text-slate-800">
+                {editMode ? "✏️ Update Template" : "✨ New Template"}
+              </h2>
+              <button
+                onClick={closeModal}
+                className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:border-rose-100 transition-all"
+              >
+                <IoClose size={16} />
+              </button>
+            </div>
+
+            {/* FORM */}
+            <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4 max-h-[75vh] overflow-y-auto">
+
+              {/* TITLE */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  Template Name <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="e.g. Client Onboarding Flow"
+                  className="w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all text-sm text-slate-700"
+                />
               </div>
 
-              {/* FORM */}
-              <form onSubmit={handleCreateTemplate} className="p-10 space-y-8 max-h-[70vh] overflow-y-auto">
-                {/* TITLE */}
+              {/* TYPE + SERVICES — 2 col */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Template Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="E.g., Client Onboarding Flow"
-                    className="w-full h-14 bg-slate-50 border border-gray-200 rounded-2xl px-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium"
-                  />
-                </div>
-
-                {/* TYPE */}
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Workflow Category</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                    Category
+                  </label>
                   <select
                     value={formData.type}
                     onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    className="w-full h-14 bg-slate-50 border border-gray-200 rounded-2xl px-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium cursor-pointer"
+                    className="w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all text-sm text-slate-700 cursor-pointer"
                   >
                     <option>Onboarding</option>
                     <option>Service Process</option>
@@ -455,70 +338,65 @@ const Templatelib = () => {
                   </select>
                 </div>
 
-                {/* DESCRIPTION */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Process Description</label>
-                  <textarea
-                    rows="4"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Describe the steps or purpose of this template..."
-                    className="w-full bg-slate-50 border border-gray-200 rounded-[2rem] p-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium resize-none"
-                  />
-                </div>
-
-                {/* SERVICES */}
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-4 ml-1">Associated Services</label>
-                  <div className="flex flex-wrap gap-4">
-                    {["SMM", "SEO", "Ads", "Video"].map((service) => (
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                    Services
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ALL_SERVICES.map((s) => (
                       <button
-                        key={service}
+                        key={s}
                         type="button"
-                        onClick={() => handleServiceToggle(service)}
-                        className={`
-                          px-6 py-2.5
-                          rounded-xl
-                          font-bold
-                          text-sm
-                          border
-                          transition-all
-                          duration-300
-                          ${
-                            formData.services.includes(service)
-                              ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-100 scale-105"
-                              : "bg-white text-slate-500 border-gray-200 hover:bg-slate-50"
-                          }
-                        `}
+                        onClick={() => handleServiceToggle(s)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
+                          formData.services.includes(s)
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "bg-white text-slate-500 border-gray-200 hover:bg-gray-50"
+                        }`}
                       >
-                        {service}
+                        {s}
                       </button>
                     ))}
                   </div>
                 </div>
+              </div>
 
-                {/* BUTTONS */}
-                <div className="flex items-center justify-end gap-5 pt-6">
-                  <button
-                    type="button"
-                    onClick={() => setOpenModal(false)}
-                    className="px-10 py-4 rounded-2xl border border-gray-200 text-slate-600 font-bold hover:bg-slate-50 transition-all active:scale-95"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-12 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black text-lg shadow-[0_15px_35px_rgba(37,99,235,0.3)] hover:scale-[1.02] hover:shadow-[0_20px_45px_rgba(37,99,235,0.4)] transition-all active:scale-95"
-                  >
-                    {editMode ? "Update Template" : "Create Template"}
-                  </button>
-                </div>
-              </form>
-            </div>
+              {/* DESCRIPTION */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  Description
+                </label>
+                <textarea
+                  rows="3"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Describe the purpose or steps of this template..."
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all text-sm text-slate-700 resize-none"
+                />
+              </div>
+
+              {/* FOOTER BUTTONS */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="px-4 py-2 rounded-xl border border-gray-200 text-slate-600 font-semibold text-xs hover:bg-gray-50 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm shadow-blue-200 transition-all active:scale-95"
+                >
+                  {editMode ? "Update Template" : "Create Template"}
+                </button>
+              </div>
+            </form>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
+
 export default Templatelib;

@@ -18,7 +18,7 @@ const tabs = [
 
 const FinancialsNav = ({ activeTab, setActiveTab, onExport }) => {
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between mb-6 animate-fadeIn print:hidden">
+    <div className="flex flex-col sm:flex-row items-center justify-between mb-3 animate-fadeIn print:hidden">
       {/* Spacer for centering */}
       <div className="hidden lg:block w-40"></div>
 
@@ -34,7 +34,7 @@ const FinancialsNav = ({ activeTab, setActiveTab, onExport }) => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`
-                flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 whitespace-nowrap
+                flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 whitespace-nowrap
                 ${isActive
                   ? "bg-[#7c5ff0] text-white shadow-md shadow-indigo-500/20"
                   : "text-[#64748b] hover:text-[#1e293b] hover:bg-white/60"
@@ -54,7 +54,7 @@ const FinancialsNav = ({ activeTab, setActiveTab, onExport }) => {
         {activeTab === "overview" && (
           <button 
             onClick={onExport}
-            className="flex items-center gap-2 bg-[#f8fafc] hover:bg-white text-[#475569] border border-slate-200 text-sm font-bold px-4 py-2 rounded-xl transition-colors shadow-sm whitespace-nowrap"
+            className="flex items-center gap-1.5 bg-[#f8fafc] hover:bg-white text-[#475569] border border-slate-200 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm whitespace-nowrap"
           >
             <span>📥</span>
             <span className="hidden sm:inline">Export Report</span>
