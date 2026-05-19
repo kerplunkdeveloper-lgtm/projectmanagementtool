@@ -22,9 +22,14 @@ app.use(express.json());
 // Cookie parser
 app.use(cookieParser());
 
-// CORS
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://projecttoolmanagement.vercel.app"
+];
+
 app.use(cors({
-  origin: '*',
+  origin: allowedOrigins,
   credentials: true,
 }));
 
@@ -40,7 +45,6 @@ app.use(limiter);
 
 // Route files
 const auth = require('./routes/authRoutes');
-app.use('/api/users', users);
 const profiles = require('./routes/profileRoutes');
 const projects = require('./routes/projectRoutes');
 const clientRoutes = require(
@@ -50,7 +54,6 @@ const eodReports = require('./routes/eodReportRoutes');
 const eventRoutes = require('./routes/eventRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
-const userRoutes = require("./routes/userRoutes");
 const businessProjectRoutes = require("./routes/businessProjectRoutes");
 const overheadRoutes = require("./routes/overheadRoutes");
 
@@ -76,16 +79,8 @@ app.use('/api/overheads', overheadRoutes);
 
 const PORT = process.env.PORT || 5000;
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://projecttoolmanagement.vercel.app"
-];
 
-// CORS
-app.use(cors({
-  origin: allowedOrigins,
-  credentials: true,
-}));
+
 
 const server = require('http').createServer(app);
 
