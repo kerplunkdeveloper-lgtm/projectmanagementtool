@@ -41,22 +41,15 @@ const DashboardLayout = ({
 
       <aside
         className={`
-
           fixed
           top-0
           left-0
-
           z-50
-
           h-screen
-
           w-[290px]
-
          bg-white
-
           border-r
           border-white/10
-
           transition-all
           duration-300
 
@@ -90,9 +83,7 @@ const DashboardLayout = ({
       <div
         className="
           lg:ml-[290px]
-
           h-screen
-
           flex
           flex-col
         "
@@ -166,13 +157,12 @@ const DashboardLayout = ({
 
               shadow-2xl
 
-              p-4
-              sm:p-5
-              md:p-6
-              lg:p-8
+              p-1
+              sm:p-2
+              md:p-3
+              lg:p-4
             "
           >
-
             <Outlet />
 
           </div>

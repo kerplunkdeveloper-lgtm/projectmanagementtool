@@ -61,7 +61,7 @@ const Sidebar = ({
           lg:hidden
           ${sidebarOpen ? "opacity-100 visible" : "opacity-0 invisible"}
           transition-all duration-300
-          bg-black/50 backdrop-blur-sm
+          bg-black/50 
         `}
       />
 
@@ -76,8 +76,6 @@ const Sidebar = ({
   w-72
   h-full
   bg-white
-  border-r
-  border-white/70
   flex
   flex-col
   transition-all

@@ -4,9 +4,13 @@ import { useSelector, useDispatch } from "react-redux";
 
 import { logoutUser } from "../../features/auth/authSlice";
 
-import { getProfile, clearProfile } from "../../features/profile/profileSlice";
+import {
+  getProfile,
+  clearProfile,
+} from "../../features/profile/profileSlice";
 
 import { useNavigate, useLocation } from "react-router-dom";
+
 import {
   getNotifications,
   markAsRead,
@@ -33,10 +37,36 @@ const Navbar = ({ setSidebarOpen }) => {
   const dispatch = useDispatch();
 
   const navigate = useNavigate();
+
   const location = useLocation();
+
+  const dropdownRef = useRef(null);
+
+  const notificationRef = useRef(null);
+
+  const [openDropdown, setOpenDropdown] = useState(false);
+
+  const [openNotifications, setOpenNotifications] =
+    useState(false);
+
+  // AUTH
+  const { user } = useSelector((state) => state.auth);
+
+  // PROFILE
+  const { profile } = useSelector((state) => state.profile);
+
+  // NOTIFICATIONS
+  const { notifications } = useSelector(
+    (state) => state.notifications
+  );
+
+  const unreadCount = notifications.filter(
+    (n) => !n.isRead
+  ).length;
 
   const getPageTitle = () => {
     const path = location.pathname.toLowerCase();
+
     if (path.includes("dashboard")) return "Dashboard";
     if (path.includes("clients")) return "Clients";
     if (path.includes("projects")) return "Projects";
@@ -46,34 +76,24 @@ const Navbar = ({ setSidebarOpen }) => {
     if (path.includes("team")) return "Team";
     if (path.includes("users")) return "Users";
     if (path.includes("template")) return "Template";
-    if (path.includes("report") || path.includes("eod")) return "EOD";
-    if (path.includes("calendar") || path.includes("calendor"))
+    if (path.includes("report") || path.includes("eod"))
+      return "EOD";
+    if (
+      path.includes("calendar") ||
+      path.includes("calendor")
+    )
       return "Calendar";
-    if (path.includes("settings")) return "Settings";
+
     return "Dashboard";
   };
 
   const pageTitle = getPageTitle();
 
-  const dropdownRef = useRef(null);
-  const [openDropdown, setOpenDropdown] = useState(false);
-
-  // AUTH
-  const { user } = useSelector((state) => state.auth);
-
-  // NOTIFICATIONS
-  const { notifications } = useSelector((state) => state.notifications);
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
-  const [openNotifications, setOpenNotifications] = useState(false);
-  const notificationRef = useRef(null);
-
-  // PROFILE
-  const { profile } = useSelector((state) => state.profile);
-
   // GET PROFILE & NOTIFICATIONS
   useEffect(() => {
     if (user) {
       if (!profile) dispatch(getProfile());
+
       dispatch(getNotifications());
     }
   }, [dispatch, user]);
@@ -81,9 +101,13 @@ const Navbar = ({ setSidebarOpen }) => {
   // OUTSIDE CLICK
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target)
+      ) {
         setOpenDropdown(false);
       }
+
       if (
         notificationRef.current &&
         !notificationRef.current.contains(event.target)
@@ -92,10 +116,16 @@ const Navbar = ({ setSidebarOpen }) => {
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener(
+      "mousedown",
+      handleClickOutside
+    );
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
     };
   }, []);
 
@@ -116,6 +146,7 @@ const Navbar = ({ setSidebarOpen }) => {
 
   const handleMarkAllAsRead = () => {
     dispatch(markAllAsRead());
+
     setOpenNotifications(false);
   };
 
@@ -190,18 +221,17 @@ const Navbar = ({ setSidebarOpen }) => {
           <HiOutlineMenuAlt3 className="text-2xl" />
         </button>
 
-        {/* LOGO */}
+        {/* TITLE */}
         <div>
           <h1
             className="
-              text-xl
+              text-lg
+              sm:text-xl
               md:text-2xl
 
               font-extrabold
 
-               text-blue-800
-
-
+              text-blue-800
             "
           >
             {pageTitle}
@@ -210,7 +240,7 @@ const Navbar = ({ setSidebarOpen }) => {
       </div>
 
       {/* RIGHT */}
-      <div className="flex items-center gap-3 md:gap-5">
+      <div className="flex items-center gap-2 sm:gap-4">
         {/* SEARCH */}
         <div
           className="
@@ -258,10 +288,17 @@ const Navbar = ({ setSidebarOpen }) => {
           />
         </div>
 
-        {/* NOTIFICATION */}
-        <div className="relative" ref={notificationRef}>
+        {/* NOTIFICATIONS */}
+        <div
+          className="relative"
+          ref={notificationRef}
+        >
           <button
-            onClick={() => setOpenNotifications(!openNotifications)}
+            onClick={() =>
+              setOpenNotifications(
+                !openNotifications
+              )
+            }
             className="
               relative
 
@@ -293,7 +330,6 @@ const Navbar = ({ setSidebarOpen }) => {
           >
             <FiBell className="text-lg" />
 
-            {/* DOT / COUNT */}
             {unreadCount > 0 && (
               <span
                 className="
@@ -315,13 +351,16 @@ const Navbar = ({ setSidebarOpen }) => {
                   flex
                   items-center
                   justify-center
+
                   border-2
                   border-white
-                  shadow-lg
+
                   animate-pulse
                 "
               >
-                {unreadCount > 9 ? "9+" : unreadCount}
+                {unreadCount > 9
+                  ? "9+"
+                  : unreadCount}
               </span>
             )}
           </button>
@@ -330,21 +369,62 @@ const Navbar = ({ setSidebarOpen }) => {
           <AnimatePresence>
             {openNotifications && (
               <motion.div
-                initial={{ opacity: 0, y: 15, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 15, scale: 0.95 }}
-                className="absolute right-0 mt-4 w-80 md:w-96 bg-white rounded-[2rem] border border-blue-100 shadow-[0_20px_60px_rgba(0,0,0,0.15)] overflow-hidden z-50"
+                initial={{
+                  opacity: 0,
+                  y: 15,
+                  scale: 0.95,
+                }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  scale: 1,
+                }}
+                exit={{
+                  opacity: 0,
+                  y: 15,
+                  scale: 0.95,
+                }}
+                className="
+                  absolute
+                  right-0
+                  mt-4
+
+                  w-[320px]
+                  sm:w-96
+
+                  bg-white
+
+                  rounded-[2rem]
+
+                  border
+                  border-blue-100
+
+                  shadow-[0_20px_60px_rgba(0,0,0,0.15)]
+
+                  overflow-hidden
+
+                  z-50
+                "
               >
                 <div className="p-6 bg-slate-50/50 border-b border-gray-100 flex items-center justify-between">
                   <h3 className="text-lg font-black text-slate-800">
-                    Intelligence
+                    Notifications
                   </h3>
+
                   {unreadCount > 0 && (
                     <button
-                      onClick={handleMarkAllAsRead}
-                      className="text-[10px] font-black text-blue-600 uppercase tracking-widest hover:text-blue-700 transition-colors"
+                      onClick={
+                        handleMarkAllAsRead
+                      }
+                      className="
+                        text-[10px]
+                        font-black
+                        text-blue-600
+                        uppercase
+                        tracking-widest
+                      "
                     >
-                      Sweep All
+                      Mark All
                     </button>
                   )}
                 </div>
@@ -353,79 +433,117 @@ const Navbar = ({ setSidebarOpen }) => {
                   {notifications.length === 0 ? (
                     <div className="p-10 text-center">
                       <p className="text-slate-400 font-bold italic">
-                        No tactical signals detected.
+                        No Notifications
                       </p>
                     </div>
                   ) : (
                     notifications.map((n) => (
                       <div
                         key={n._id}
-                        onClick={() => handleMarkAsRead(n._id)}
-                        className={`p-5 border-b border-gray-50 cursor-pointer transition-all hover:bg-blue-50/50 ${!n.isRead ? "bg-blue-50/20" : ""}`}
+                        onClick={() =>
+                          handleMarkAsRead(n._id)
+                        }
+                        className={`
+                          p-5
+                          border-b
+                          border-gray-50
+
+                          cursor-pointer
+
+                          hover:bg-blue-50/50
+
+                          transition-all
+
+                          ${
+                            !n.isRead
+                              ? "bg-blue-50/20"
+                              : ""
+                          }
+                        `}
                       >
                         <div className="flex gap-4">
                           <div
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                              !n.isRead
-                                ? n.type === "project_assigned"
-                                  ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200"
-                                  : "bg-blue-600 text-white shadow-lg shadow-blue-200"
-                                : "bg-slate-100 text-slate-400"
-                            }`}
+                            className={`
+                              w-10
+                              h-10
+
+                              rounded-xl
+
+                              flex
+                              items-center
+                              justify-center
+
+                              ${
+                                !n.isRead
+                                  ? "bg-blue-600 text-white"
+                                  : "bg-slate-100 text-slate-400"
+                              }
+                            `}
                           >
-                            {n.type === "project_assigned" ? (
-                              <FiBriefcase size={18} />
+                            {n.type ===
+                            "project_assigned" ? (
+                              <FiBriefcase />
                             ) : (
-                              <FiCheckSquare size={18} />
+                              <FiCheckSquare />
                             )}
                           </div>
+
                           <div className="flex-1">
                             <p
-                              className={`text-sm ${!n.isRead ? "font-black text-slate-800" : "font-medium text-slate-500"}`}
+                              className={`
+                                text-sm
+
+                                ${
+                                  !n.isRead
+                                    ? "font-black text-slate-800"
+                                    : "font-medium text-slate-500"
+                                }
+                              `}
                             >
                               {n.message}
                             </p>
+
                             <p className="text-[10px] text-slate-400 mt-1 font-bold">
-                              {new Date(n.createdAt).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
+                              {new Date(
+                                n.createdAt
+                              ).toLocaleTimeString(
+                                [],
+                                {
+                                  hour: "2-digit",
+                                  minute:
+                                    "2-digit",
+                                }
+                              )}
                             </p>
                           </div>
-                          {!n.isRead && (
-                            <div
-                              className={`w-2 h-2 rounded-full mt-2 ${n.type === "project_assigned" ? "bg-indigo-600" : "bg-blue-600"}`}
-                            ></div>
-                          )}
                         </div>
                       </div>
                     ))
                   )}
-                </div>
-
-                <div className="p-4 bg-slate-50/50 text-center border-t border-gray-100">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    End of Transmission
-                  </p>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* USER */}
-        <div className="relative" ref={dropdownRef}>
-          {/* BUTTON */}
+        {/* USER PROFILE */}
+        <div
+          className="relative"
+          ref={dropdownRef}
+        >
           <button
-            onClick={() => setOpenDropdown(!openDropdown)}
+            onClick={() =>
+              setOpenDropdown(!openDropdown)
+            }
             className="
-              hidden
-              sm:flex
-
+              flex
               items-center
-              gap-3
+              gap-2
+              sm:gap-3
 
-              px-3
+              px-2
+              sm:px-3
+
               py-2
 
               rounded-2xl
@@ -444,27 +562,33 @@ const Navbar = ({ setSidebarOpen }) => {
               duration-300
             "
           >
-            {/* IMAGE */}
+            {/* PROFILE IMAGE */}
             {profile?.profileImage?.url ? (
               <img
                 src={profile.profileImage.url}
                 alt="profile"
                 className="
-                  w-11
-                  h-11
+                  w-10
+                  h-10
+                  sm:w-11
+                  sm:h-11
 
                   rounded-full
                   object-cover
 
                   border-2
                   border-cyan-300
+
+                  shadow-lg
                 "
               />
             ) : (
               <div
                 className="
-                  w-11
-                  h-11
+                  w-10
+                  h-10
+                  sm:w-11
+                  sm:h-11
 
                   rounded-full
 
@@ -477,6 +601,8 @@ const Navbar = ({ setSidebarOpen }) => {
                   flex
                   items-center
                   justify-center
+
+                  shadow-lg
                 "
               >
                 <FiUser size={18} />
@@ -484,22 +610,28 @@ const Navbar = ({ setSidebarOpen }) => {
             )}
 
             {/* INFO */}
-            <div className="text-left hidden md:block">
+            <div className="hidden md:block text-left">
               <h3 className="font-semibold text-gray-800 text-sm">
                 {user?.name}
               </h3>
 
-              <p className="text-xs text-gray-400 capitalize">{user?.role}</p>
+              <p className="text-xs text-gray-400 capitalize">
+                {user?.role}
+              </p>
             </div>
 
-            {/* ICON */}
+            {/* DROPDOWN ICON */}
             <FiChevronDown
               className={`
                 text-gray-500
                 transition-transform
                 duration-300
 
-                ${openDropdown ? "rotate-180" : ""}
+                ${
+                  openDropdown
+                    ? "rotate-180"
+                    : ""
+                }
               `}
             />
           </button>
@@ -520,17 +652,12 @@ const Navbar = ({ setSidebarOpen }) => {
                   opacity: 0,
                   y: 15,
                 }}
-                transition={{
-                  duration: 0.25,
-                }}
                 className="
                   absolute
                   right-0
                   top-16
 
                   w-64
-
-                  overflow-hidden
 
                   rounded-3xl
 
@@ -550,7 +677,9 @@ const Navbar = ({ setSidebarOpen }) => {
                 {/* PROFILE */}
                 <button
                   onClick={() => {
-                    navigate(`/${user?.role}/profile`);
+                    navigate(
+                      `/${user?.role}/profile`
+                    );
 
                     setOpenDropdown(false);
                   }}
@@ -574,6 +703,7 @@ const Navbar = ({ setSidebarOpen }) => {
                   "
                 >
                   <FiUser className="text-blue-500" />
+
                   Edit Profile
                 </button>
 
@@ -600,6 +730,7 @@ const Navbar = ({ setSidebarOpen }) => {
                   "
                 >
                   <FiLogOut />
+
                   Logout
                 </button>
               </motion.div>
