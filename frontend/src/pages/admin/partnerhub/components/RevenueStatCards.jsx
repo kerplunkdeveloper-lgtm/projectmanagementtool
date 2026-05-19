@@ -40,7 +40,7 @@ const StatCard = ({ label, value, sub, subType = "neutral", bg, glow, iconKey })
       <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
 
       <div className="flex items-start justify-between mb-3 relative z-10">
-        <p className="text-white/70 text-[10px] font-black uppercase tracking-wider">
+        <p className="text-white text-[10px] font-black uppercase tracking-wider">
           {label}
         </p>
         <div className={`w-7 h-7 rounded-xl flex items-center justify-center ${ICONS[iconKey]?.color} backdrop-blur-md`}>
@@ -53,7 +53,7 @@ const StatCard = ({ label, value, sub, subType = "neutral", bg, glow, iconKey })
       </h2>
 
       {sub && (
-        <div className="flex items-center gap-1 mt-1 relative z-10 bg-white/10 border border-white/5 rounded-lg py-1 px-2.5 self-start w-fit backdrop-blur-sm">
+        <div className="flex items-center gap-1 mt-1 relative z-10 bg-white border border-white/5 rounded-lg py-1 px-2.5 self-start w-fit backdrop-blur-sm">
           {subType === "up" && (
             <FiTrendingUp size={12} className="text-emerald-300" />
           )}
@@ -66,7 +66,7 @@ const StatCard = ({ label, value, sub, subType = "neutral", bg, glow, iconKey })
                 ? "text-emerald-300"
                 : subType === "down"
                 ? "text-rose-300"
-                : "text-white/80"
+                : "text-blue-400"
             }`}
           >
             {sub}
@@ -84,8 +84,8 @@ const RevenueStatCards = ({ data }) => {
       value: data.totalRevenue,
       sub: "+12% vs last month",
       subType: "up",
-      bg: "bg-gradient-to-br from-yellow-500 via-yellow-400 to-orange-400",
-      glow: "from-yellow-400 to-orange-400",
+      bg: "bg-gradient-to-br from-green-400 via-green-500 to-green-400",
+      glow: "from-green-400 to-green-400",
       iconKey: "revenue"
     },
     {
@@ -93,8 +93,8 @@ const RevenueStatCards = ({ data }) => {
       value: data.totalCost,
       sub: "Salaries + Overhead",
       subType: "neutral",
-      bg: "bg-gradient-to-br from-violet-600 via-purple-500 to-indigo-600",
-      glow: "from-violet-400 to-purple-400",
+      bg: "bg-gradient-to-br from-blue-400 via-blue-500 to-blue-400",
+      glow: "from-blue-400 to-blue-400",
       iconKey: "cost"
     },
     {
@@ -102,8 +102,8 @@ const RevenueStatCards = ({ data }) => {
       value: data.netProfit,
       sub: `Margin ${data.marginPercent}%`,
       subType: "neutral",
-      bg: "bg-gradient-to-br from-emerald-500 via-teal-500 to-green-600",
-      glow: "from-emerald-400 to-teal-400",
+      bg: "bg-gradient-to-br from-red-500 via-red-500 to-red-500",
+      glow: "from-red-400 to-red-400",
       iconKey: "profit"
     },
     {
@@ -111,8 +111,8 @@ const RevenueStatCards = ({ data }) => {
       value: data.overhead,
       sub: "Office, Tools, Misc",
       subType: "neutral",
-      bg: "bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500",
-      glow: "from-amber-400 to-orange-400",
+      bg: "bg-gradient-to-br from-yellow-400 via-yellow-500 to-yellow-400",
+      glow: "from-yellow-400 to-yellow-400",
       iconKey: "overhead"
     },
   ];
