@@ -280,12 +280,12 @@ const AddBusinessProjectModal = ({
 
           {/* Profit Preview */}
           {Number(formData.revenue) > 0 && (
-            <div className="bg-[#e4e6f2] rounded-xl p-4 border border-[#cbd0e1] flex items-center justify-between">
-              <span className="text-[#1a2035] font-bold text-sm min-w-[100px]">
+            <div className="bg-[#e4e6f2] rounded-xl p-4 border border-[#cbd0e1] flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0">
+              <span className="text-[#1a2035] font-bold text-sm w-full text-center sm:text-left sm:min-w-[100px]">
                 Profit Preview
               </span>
 
-              <div className="flex-1 flex items-center justify-around">
+              <div className="flex-1 w-full flex items-center justify-around">
                 <div className="text-center">
                   <p className="text-[#64748b] text-[10px] font-bold mb-0.5">
                     Est. Cost

@@ -9,7 +9,7 @@ const OverheadConfig = ({ overheads, onUpdate }) => {
   const totalOverhead = overheads.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
 
   return (
-    <div className="bg-[#f8fafc] border border-slate-200 rounded-2xl p-6 h-full flex flex-col shadow-sm animate-fadeIn">
+    <div className="bg-[#f8fafc] border border-slate-200 rounded-2xl p-4 sm:p-6 h-full flex flex-col shadow-sm animate-fadeIn">
       
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
