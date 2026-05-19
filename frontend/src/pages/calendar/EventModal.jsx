@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FiX, FiCalendar, FiUser, FiLayers } from "react-icons/fi";
 import { useSelector, useDispatch } from "react-redux";
-import { getClients } from "../../features/clients/clientSlice";
+import { getClients } from "../../features/clients/clientslice";
 
 const EventModal = ({ open, setOpen, onSubmit, initialData, isEditing }) => {
   const dispatch = useDispatch();
