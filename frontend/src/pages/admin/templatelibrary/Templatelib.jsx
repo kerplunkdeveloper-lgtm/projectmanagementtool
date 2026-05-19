@@ -94,14 +94,12 @@ const Templatelib = () => {
     try {
       if (editMode) {
         await dispatch(updateTemplate({ id: editId, templateData: formData })).unwrap();
-        toast.success("Template Updated");
       } else {
         await dispatch(createTemplate(formData)).unwrap();
-        toast.success("Template Created");
       }
       closeModal();
     } catch (err) {
-      toast.error(err);
+      // Error toast is already displayed inside the slice
     }
   };
 
@@ -109,9 +107,8 @@ const Templatelib = () => {
     if (!window.confirm("Delete this template?")) return;
     try {
       await dispatch(deleteTemplate(id)).unwrap();
-      toast.success("Template Deleted");
     } catch (err) {
-      toast.error(err);
+      // Error toast is already displayed inside the slice
     }
   };
 

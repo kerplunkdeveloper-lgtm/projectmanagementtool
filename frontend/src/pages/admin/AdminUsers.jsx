@@ -89,9 +89,7 @@ const AdminUsers = () => {
   const handleCreateUser = async (
     userData
   ) => {
-
     try {
-
       await dispatch(
         createUser(userData)
       ).unwrap();
@@ -101,22 +99,16 @@ const AdminUsers = () => {
       );
 
       setOpenModal(false);
-
     } catch (err) {
-
-      toast.error(err);
-
+      // Handled by global state error listener
     }
-
   };
 
   // UPDATE USER
   const handleUpdateUser = async (
     userData
   ) => {
-
     try {
-
       await dispatch(
         updateUser({
           id: editUser._id,
@@ -129,15 +121,10 @@ const AdminUsers = () => {
       );
 
       setOpenModal(false);
-
       setEditUser(null);
-
     } catch (err) {
-
-      toast.error(err);
-
+      // Handled by global state error listener
     }
-
   };
 
   // REQUEST DELETE (OPEN MODAL)
@@ -148,9 +135,7 @@ const AdminUsers = () => {
 
   // DELETE USER (FINAL CONFIRMATION)
   const handleDeleteUser = async () => {
-
     try {
-
       await dispatch(
         deleteUser(userToDelete._id)
       ).unwrap();
@@ -161,13 +146,9 @@ const AdminUsers = () => {
 
       setOpenDeleteModal(false);
       setUserToDelete(null);
-
     } catch (err) {
-
-      toast.error(err);
-
+      // Handled by global state error listener
     }
-
   };
 
   // FILTER & SORT LOGIC

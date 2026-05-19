@@ -131,7 +131,7 @@ const CalendarPage = () => {
         </div>
 
         {/* CALENDAR */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-3 sm:p-5 shadow-sm" style={{ height: "calc(100vh - 160px)", minHeight: "500px" }}>
+        <div className="bg-yellow-50 border border-gray-200 rounded-2xl p-3 sm:p-5 shadow-sm" style={{ height: "calc(100vh - 160px)", minHeight: "500px" }}>
           <Calendar
             localizer={localizer}
             events={calendarEvents}

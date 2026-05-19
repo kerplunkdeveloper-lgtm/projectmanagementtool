@@ -104,9 +104,9 @@ const Login = () => {
 
   return (
 
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center">
 
-      <div className="w-full max-w-9xl  overflow-hidden shadow-2xl grid grid-cols-1 lg:grid-cols-2">
+      <div className="w-full  overflow-hidden  grid grid-cols-1 lg:grid-cols-2">
 
         {/* LEFT SIDE IMAGE SECTION */}
 
@@ -155,11 +155,11 @@ const Login = () => {
 
             <div className="mb-10">
 
-              <h2 className="text-4xl font-bold text-center  text-gray-800 mb-3">
+              <h2 className="text-xl font-bold text-center  text-gray-800 mb-3">
                 Welcome Back
               </h2>
 
-              <p className="text-blue-500 text-center text-lg">
+              <p className="text-blue-500 text-center text-[11px]">
                 Login to continue managing your projects
               </p>
 
@@ -230,12 +230,77 @@ const Login = () => {
           
             {/* BUTTON */}
 
-            <button
-              type="submit"
-              className="w-full bg-[#2563eb] hover:bg-[#1d4ed8] transition-all duration-300 text-white py-4 rounded-xl font-semibold text-lg shadow-lg"
-            >
-              {loading ? "Loading..." : "Login"}
-            </button>
+           <button
+  type="submit"
+  disabled={loading}
+  className="
+    relative
+    overflow-hidden
+
+    w-full
+
+    h-[42px]
+    lg:h-[46px]
+
+    rounded-xl
+
+    bg-gradient-to-r
+    from-blue-600
+    via-cyan-500
+    to-indigo-600
+
+    hover:from-blue-700
+    hover:via-cyan-600
+    hover:to-indigo-700
+
+    text-white
+
+    text-[13px]
+    lg:text-[14px]
+
+    font-semibold
+
+    shadow-lg
+    shadow-blue-200/50
+
+    hover:shadow-blue-300/60
+
+    hover:scale-[1.01]
+    active:scale-[0.98]
+
+    transition-all
+    duration-300
+
+    disabled:opacity-70
+    disabled:cursor-not-allowed
+  "
+>
+
+  {/* GLOW EFFECT */}
+  <span
+    className="
+      absolute
+      inset-0
+
+      bg-gradient-to-r
+      from-white/0
+      via-white/20
+      to-white/0
+
+      -translate-x-full
+      hover:translate-x-full
+
+      transition-transform
+      duration-1000
+    "
+  />
+
+  {/* BUTTON TEXT */}
+  <span className="relative z-10">
+    {loading ? "Loading..." : "Login"}
+  </span>
+
+</button>
 
             {/* FOOTER */}
 
