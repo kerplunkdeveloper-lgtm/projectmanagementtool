@@ -24,7 +24,7 @@ app.use(cookieParser());
 
 // CORS
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: '*',
   credentials: true,
 }));
 
@@ -76,10 +76,22 @@ app.use('/api/overheads', overheadRoutes);
 
 const PORT = process.env.PORT || 5000;
 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://projecttoolmanagement.vercel.app"
+];
+
+// CORS
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+}));
+
 const server = require('http').createServer(app);
+
 const io = require('socket.io')(server, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: allowedOrigins,
     credentials: true,
   },
 });
