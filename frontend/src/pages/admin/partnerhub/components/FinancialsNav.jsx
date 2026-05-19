@@ -1,12 +1,4 @@
 import React from "react";
-import {
-  FiBarChart2,
-  FiFolder,
-  FiUsers,
-  FiPieChart,
-  FiDollarSign,
-  FiDownload,
-} from "react-icons/fi";
 
 const tabs = [
   { id: "overview", label: "Overview", icon: "📊" },
@@ -18,15 +10,12 @@ const tabs = [
 
 const FinancialsNav = ({ activeTab, setActiveTab, onExport }) => {
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between mb-3 animate-fadeIn print:hidden">
-      {/* Spacer for centering */}
-      <div className="hidden lg:block w-40"></div>
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-2 animate-fadeIn print:hidden">
+      {/* Spacer for centering on large screens */}
+      <div className="hidden lg:block w-36"></div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 bg-[#f1f3f9] border border-[#e2e8f0] rounded-2xl p-1.5 shadow-sm overflow-x-auto custom-scrollbar">
-
-
-        {/* Tabs */}
+      <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 p-1 rounded-xl overflow-x-auto scrollbar-hide w-full sm:w-auto max-w-full">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -34,30 +23,29 @@ const FinancialsNav = ({ activeTab, setActiveTab, onExport }) => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`
-                flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 whitespace-nowrap
+                flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 whitespace-nowrap flex-shrink-0
                 ${isActive
-                  ? "bg-[#7c5ff0] text-white shadow-md shadow-indigo-500/20"
-                  : "text-[#64748b] hover:text-[#1e293b] hover:bg-white/60"
+                  ? "bg-[#7c5ff0] text-white shadow-sm"
+                  : "text-[#64748b] hover:text-[#334155] hover:bg-white/50"
                 }
               `}
             >
               <span>{tab.icon}</span>
-              <span className="hidden sm:inline">{tab.label}</span>
+              <span>{tab.label}</span>
             </button>
           );
         })}
-
       </div>
 
       {/* Right Controls - Export */}
-      <div className="w-full lg:w-40 flex justify-end mt-4 sm:mt-0">
+      <div className="w-full sm:w-auto lg:w-36 flex justify-center sm:justify-end">
         {activeTab === "overview" && (
           <button 
             onClick={onExport}
-            className="flex items-center gap-1.5 bg-[#f8fafc] hover:bg-white text-[#475569] border border-slate-200 text-xs font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm whitespace-nowrap"
+            className="flex items-center gap-1.5 bg-[#f8fafc] hover:bg-white text-[#475569] border border-slate-200 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all shadow-sm whitespace-nowrap active:scale-95"
           >
             <span>📥</span>
-            <span className="hidden sm:inline">Export Report</span>
+            <span>Export Report</span>
           </button>
         )}
       </div>

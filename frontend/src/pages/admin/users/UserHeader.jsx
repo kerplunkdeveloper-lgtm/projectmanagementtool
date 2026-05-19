@@ -12,17 +12,21 @@ const UserHeader = ({ setOpenModal, searchTerm, setSearchTerm, filterDept, setFi
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div>
         <div className="flex items-center gap-2 mb-0.5">
-          <div className="w-7 h-7 rounded-lg bg-cyan-500 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-r
+                          from-cyan-500
+                          to-blue-600 flex items-center justify-center">
             <FiUsers size={14} className="text-white" />
           </div>
-          <h1 className="text-lg sm:text-xl font-bold text-slate-800">User Management</h1>
+          <h1 className="text-lg  font-bold text-slate-800">User Management</h1>
         </div>
-        <p className="text-xs text-gray-400 ml-9">Manage and monitor all users</p>
+       
       </div>
 
       <button
         onClick={() => setOpenModal(true)}
-        className="self-start sm:self-auto flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white font-semibold text-sm shadow-sm shadow-cyan-200 transition-all active:scale-95"
+        className="self-start sm:self-auto flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r
+                          from-cyan-500
+                          to-blue-600 text-white font-semibold text-sm shadow-sm shadow-cyan-200 transition-all active:scale-95"
       >
         <FiPlus size={16} /> Add User
       </button>

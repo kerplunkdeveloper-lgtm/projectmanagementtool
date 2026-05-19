@@ -129,7 +129,9 @@ const Templatelib = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-r
+                          from-cyan-500
+                          to-blue-600 flex items-center justify-center">
                 <FiLayers size={14} className="text-white" />
               </div>
               <h1 className="text-lg sm:text-xl font-bold text-slate-800">
@@ -143,7 +145,9 @@ const Templatelib = () => {
 
           <button
             onClick={openCreate}
-            className="self-start sm:self-auto flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-sm shadow-blue-200 transition-all active:scale-95"
+            className="self-start sm:self-auto flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r
+                          from-cyan-500
+                          to-blue-600 text-white font-semibold text-sm shadow-sm shadow-blue-200 transition-all active:scale-95"
           >
             <IoAdd size={18} />
             New Template
@@ -154,19 +158,19 @@ const Templatelib = () => {
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mb-5">
           {/* TABS */}
           <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1 overflow-x-auto scrollbar-hide w-full sm:w-auto">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-lg whitespace-nowrap text-xs font-semibold transition-all duration-200 ${
-                  activeTab === tab.id
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "text-slate-500 hover:text-slate-700 hover:bg-gray-50"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          {TABS.map((tab) => (
+  <button
+    key={tab.id}
+    onClick={() => setActiveTab(tab.id)}
+    className={`flex-shrink-0 px-3 py-1.5 rounded-lg whitespace-nowrap text-xs font-semibold transition-all duration-200 ${
+      activeTab === tab.id
+        ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-sm"
+        : "text-slate-500 hover:text-slate-700 hover:bg-gray-50"
+    }`}
+  >
+    {tab.label}
+  </button>
+))}
           </div>
 
           {/* SEARCH */}

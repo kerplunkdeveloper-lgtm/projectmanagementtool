@@ -2,6 +2,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
 import {
   useDispatch,
@@ -211,23 +212,23 @@ const AdminUsers = () => {
 
       {/* PAGINATION & COUNT */}
       {totalEntries > 0 && (
-        <div className="mt-8 flex flex-col md:flex-row items-center justify-between gap-6 px-2">
+        <div className="mt-2 flex flex-col md:flex-row items-center justify-between gap-6 px-2">
           {/* Count Details */}
-          <p className="text-gray-400 text-sm font-medium order-2 md:order-1">
-            Showing <span className="text-white">{startEntry}</span> to{" "}
-            <span className="text-white">{endEntry}</span> of{" "}
-            <span className="text-white">{totalEntries}</span> entries
+          <p className="text-black text-[10px] font-medium order-2 md:order-1">
+            Showing <span className="text-black">{startEntry}</span> to{" "}
+            <span className="text-black">{endEntry}</span> of{" "}
+            <span className="text-black">{totalEntries}</span> entries
           </p>
 
           {/* Pagination Buttons */}
           {totalPages > 1 && (
-            <div className="flex items-center gap-2 order-1 md:order-2 overflow-x-auto pb-2 md:pb-0 w-full md:w-auto justify-center">
+            <div className="flex items-center gap-1.5 order-1 md:order-2 overflow-x-auto pb-1 md:pb-0 w-full md:w-auto justify-center">
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => prev - 1)}
-                className="px-4 py-2 rounded-xl bg-white/5 text-gray-400 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               >
-                Prev
+                <FiChevronLeft size={14} />
               </button>
               
               {[...Array(totalPages)].map((_, index) => (
@@ -235,15 +236,16 @@ const AdminUsers = () => {
                   key={index}
                   onClick={() => setCurrentPage(index + 1)}
                   className={`
-                    w-10 h-10
-                    rounded-xl
+                    w-7 h-7
+                    rounded-lg
                     font-semibold
+                    text-xs
                     transition-all
                     flex-shrink-0
                     ${
                       currentPage === index + 1
-                        ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20"
-                        : "bg-white/5 text-gray-300 hover:bg-white/10"
+                        ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-sm"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                     }
                   `}
                 >
@@ -254,9 +256,9 @@ const AdminUsers = () => {
               <button
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(prev => prev + 1)}
-                className="px-4 py-2 rounded-xl bg-white/5 text-gray-400 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               >
-                Next
+                <FiChevronRight size={14} />
               </button>
             </div>
           )}

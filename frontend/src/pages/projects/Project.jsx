@@ -91,7 +91,9 @@ const Project = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <div className="w-7 h-7 rounded-lg bg-indigo-600 flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-r
+                          from-cyan-500
+                          to-blue-600 flex items-center justify-center">
                 <FiLayers size={14} className="text-white" />
               </div>
               <h1 className="text-lg sm:text-xl font-bold text-slate-800">All Projects</h1>
@@ -110,7 +112,9 @@ const Project = () => {
             </div>
             <button
               onClick={() => { setOpenModal(true); setEditProject(null); }}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm shadow-sm shadow-indigo-200 transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r
+                          from-cyan-500
+                          to-blue-600 text-white font-semibold text-sm shadow-sm shadow-indigo-200 transition-all active:scale-95"
             >
               <FiPlus size={16} /> New Project
             </button>
@@ -279,7 +283,9 @@ const Project = () => {
 
                 <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
                   <button type="button" onClick={() => setOpenModal(false)} className="px-4 py-2 rounded-xl border border-gray-200 text-slate-600 font-semibold text-xs hover:bg-gray-50 transition-all">Cancel</button>
-                  <button type="submit" className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm shadow-indigo-200 transition-all active:scale-95">
+                  <button type="submit" className="px-5 py-2 rounded-xl bg-gradient-to-r
+                          from-cyan-500
+                          to-blue-600 text-white font-bold text-xs shadow-sm shadow-indigo-200 transition-all active:scale-95">
                     {editProject ? "Save Changes" : "Create Project"}
                   </button>
                 </div>

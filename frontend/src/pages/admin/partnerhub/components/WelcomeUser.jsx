@@ -1,499 +1,94 @@
 import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
-
-import {
-  FiClock,
-  FiCalendar,
-  FiSun,
-  FiMoon,
-} from "react-icons/fi";
+import { FiClock, FiCalendar, FiSun, FiMoon } from "react-icons/fi";
 
 const WelcomeUser = () => {
-  const { user } = useSelector(
-    (state) => state.auth
-  );
+  const { user } = useSelector((state) => state.auth);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  const [currentTime, setCurrentTime] =
-    useState(new Date());
-
-  // LIVE CLOCK
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
-
     return () => clearInterval(timer);
   }, []);
 
-  // GREETING
   const hour = currentTime.getHours();
-
   let greeting = "Good Evening";
-
   let Icon = FiMoon;
-
   let iconColor = "text-indigo-500";
 
   if (hour < 12) {
     greeting = "Good Morning";
-
     Icon = FiSun;
-
     iconColor = "text-amber-500";
   } else if (hour < 18) {
     greeting = "Good Afternoon";
-
     Icon = FiSun;
-
     iconColor = "text-amber-500";
   }
 
-  // DATE
-  const formattedDate =
-    currentTime.toLocaleDateString(
-      "en-US",
-      {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-      }
-    );
+  const formattedDate = currentTime.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
 
-  // TIME
-  const formattedTime =
-    currentTime.toLocaleTimeString(
-      "en-US",
-      {
-        hour: "2-digit",
-        minute: "2-digit",
-      }
-    );
+  const formattedTime = currentTime.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   return (
-    <div
-      className="
-        relative
-        overflow-hidden
+    <div className="relative overflow-hidden bg-white border border-slate-200/70 shadow-sm rounded-2xl p-3 mb-3 animate-fadeIn">
+      {/* Background Blurs */}
+      <div className="absolute -top-20 -right-20 w-44 h-44 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-full blur-3xl opacity-40 pointer-events-none" />
+      <div className="absolute -bottom-20 -left-20 w-44 h-44 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full blur-3xl opacity-40 pointer-events-none" />
 
-        bg-white
-
-        border
-        border-slate-200/70
-
-        shadow-[0_8px_40px_rgba(0,0,0,0.04)]
-
-        rounded-[2rem]
-
-        p-3
-        sm:p-4
-
-        mb-3
-        md:mb-4
-      "
-    >
-      {/* PREMIUM BLUR */}
-      <div
-        className="
-          absolute
-          -top-24
-          -right-20
-
-          w-56
-          h-56
-
-          bg-gradient-to-br
-          from-blue-100
-          to-cyan-100
-
-          rounded-full
-
-          blur-3xl
-
-          opacity-50
-        "
-      />
-
-      <div
-        className="
-          absolute
-          -bottom-24
-          -left-20
-
-          w-56
-          h-56
-
-          bg-gradient-to-br
-          from-indigo-100
-          to-purple-100
-
-          rounded-full
-
-          blur-3xl
-
-          opacity-50
-        "
-      />
-
-      {/* MAIN */}
-      <div
-        className="
-          relative
-          z-10
-
-          flex
-          flex-col
-          xl:flex-row
-
-          xl:items-center
-          xl:justify-between
-
-          gap-5
-        "
-      >
-        {/* LEFT */}
-        <div
-          className="
-            flex
-            items-center
-
-            gap-3
-            sm:gap-4
-
-            min-w-0
-          "
-        >
-          {/* ICON */}
-          <div
-            className="
-              w-9
-              h-9
-
-              rounded-xl
-
-              bg-gradient-to-br
-              from-slate-50
-              to-blue-50
-
-              border
-              border-slate-100
-
-              flex
-              items-center
-              justify-center
-
-              shadow-inner
-
-              flex-shrink-0
-            "
-          >
-            <Icon
-              className={`
-                text-lg
-
-                ${iconColor}
-              `}
-            />
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        {/* Left Side: Greeting */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shadow-inner flex-shrink-0">
+            <Icon className={`text-sm ${iconColor}`} />
           </div>
 
-          {/* TEXT */}
           <div className="min-w-0">
-            {/* TOP */}
-            <div
-              className="
-                flex
-                flex-wrap
-
-                items-center
-
-                gap-2
-                sm:gap-3
-
-                mb-1
-              "
-            >
-              <h1
-                className="
-                  text-base
-                  sm:text-lg
-                  md:text-xl
-
-                  font-black
-
-                  text-slate-800
-
-                  leading-tight
-
-                  truncate
-                "
-              >
+            <div className="flex flex-wrap items-center gap-1.5">
+              <h1 className="text-sm sm:text-base font-extrabold text-slate-800 leading-tight truncate">
                 {greeting},{" "}
-                <span
-                  className="
-                    text-transparent
-                    bg-clip-text
-
-                    bg-gradient-to-r
-                    from-indigo-600
-                    to-blue-500
-                  "
-                >
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500">
                   {user?.name || "User"}
                 </span>
               </h1>
-
-              {/* ROLE */}
-              <span
-                className="
-                  px-3
-                  py-1
-
-                  rounded-xl
-
-                  bg-indigo-50
-
-                  border
-                  border-indigo-100
-
-                  text-indigo-600
-
-                  text-[10px]
-                  sm:text-xs
-
-                  font-black
-
-                  uppercase
-
-                  tracking-wider
-
-                  whitespace-nowrap
-
-                  shadow-sm
-                "
-              >
+              <span className="px-2 py-0.5 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 text-[9px] font-bold uppercase tracking-wider whitespace-nowrap shadow-sm">
                 {user?.role || "Guest"}
               </span>
             </div>
-
-            {/* SUBTEXT */}
-            <p
-              className="
-                hidden
-                md:block
-
-                text-sm
-
-                text-slate-500
-
-                font-medium
-
-                leading-relaxed
-              "
-            >
-              Here is what's happening across
-              your workspace today.
+            <p className="hidden md:block text-[10px] text-gray-400 font-semibold mt-0.5">
+              Overview of your workspace dashboard today.
             </p>
           </div>
         </div>
 
-        {/* RIGHT */}
-        <div
-          className="
-            w-full
-            xl:w-auto
-          "
-        >
-          {/* COMBINED CARD */}
-          <div
-            className="
-              flex
-              items-center
-              justify-between
-
-              gap-3
-
-              bg-[#f8fafc]
-
-              border
-              border-slate-100
-
-              rounded-2xl
-
-              px-4
-              py-3
-
-              shadow-sm
-
-              hover:shadow-lg
-              hover:-translate-y-1
-
-              transition-all
-              duration-300
-            "
-          >
-            {/* DATE */}
-            <div
-              className="
-                flex
-                items-center
-
-                gap-2
-
-                min-w-0
-              "
-            >
-              {/* ICON */}
-              <div
-                className="
-                  w-8
-                  h-8
-
-                  rounded-lg
-
-                  bg-white
-
-                  border
-                  border-slate-100
-
-                  flex
-                  items-center
-                  justify-center
-
-                  text-slate-400
-
-                  shadow-sm
-
-                  flex-shrink-0
-                "
-              >
-                <FiCalendar size={13} />
-              </div>
-
-              {/* TEXT */}
-              <div className="min-w-0">
-                <p
-                  className="
-                    text-[9px]
-
-                    font-black
-
-                    uppercase
-
-                    tracking-wider
-
-                    text-slate-400
-
-                    mb-0.5
-                  "
-                >
-                  Today
-                </p>
-
-                <p
-                  className="
-                    text-xs
-                    sm:text-sm
-
-                    font-bold
-
-                    text-slate-700
-
-                    truncate
-                  "
-                >
-                  {formattedDate}
-                </p>
-              </div>
+        {/* Right Side: Date/Time */}
+        <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 shadow-sm self-start sm:self-auto">
+          {/* Date */}
+          <div className="flex items-center gap-1.5 min-w-0">
+            <FiCalendar size={11} className="text-slate-400 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Date</p>
+              <p className="text-[10px] font-bold text-slate-700 truncate">{formattedDate}</p>
             </div>
+          </div>
 
-            {/* DIVIDER */}
-            <div
-              className="
-                w-px
-                h-10
+          <div className="w-px h-6 bg-slate-200 flex-shrink-0" />
 
-                bg-slate-200
-
-                flex-shrink-0
-              "
-            />
-
-            {/* TIME */}
-            <div
-              className="
-                flex
-                items-center
-
-                gap-2
-
-                min-w-0
-              "
-            >
-              {/* ICON */}
-              <div
-                className="
-                  w-8
-                  h-8
-
-                  rounded-lg
-
-                  bg-white
-
-                  border
-                  border-slate-100
-
-                  flex
-                  items-center
-                  justify-center
-
-                  text-indigo-400
-
-                  shadow-sm
-
-                  flex-shrink-0
-                "
-              >
-                <FiClock size={13} />
-              </div>
-
-              {/* TEXT */}
-              <div className="min-w-0">
-                <p
-                  className="
-                    text-[9px]
-
-                    font-black
-
-                    uppercase
-
-                    tracking-wider
-
-                    text-slate-400
-
-                    mb-0.5
-                  "
-                >
-                  Time
-                </p>
-
-                <p
-                  className="
-                    text-xs
-                    sm:text-sm
-
-                    font-bold
-
-                    text-slate-700
-
-                    font-mono
-
-                    tracking-tight
-
-                    whitespace-nowrap
-                  "
-                >
-                  {formattedTime}
-                </p>
-              </div>
+          {/* Time */}
+          <div className="flex items-center gap-1.5 min-w-0">
+            <FiClock size={11} className="text-indigo-500 flex-shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Time</p>
+              <p className="text-[10px] font-bold text-slate-700 font-mono tracking-tight whitespace-nowrap">{formattedTime}</p>
             </div>
           </div>
         </div>

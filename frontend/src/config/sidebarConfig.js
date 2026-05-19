@@ -7,6 +7,8 @@ import {
   FiCalendar,
 } from "react-icons/fi";
 import { FaRegUserCircle } from "react-icons/fa";
+import { TbReportSearch } from "react-icons/tb";
+import { FaHandsHoldingCircle } from "react-icons/fa6";
 
 export const sidebarConfig = {
 
@@ -53,7 +55,7 @@ export const sidebarConfig = {
     {
       name: "EOD Reports",
       path: "/admin/eod-reports",
-      icon: FiBarChart2,
+      icon: TbReportSearch,
     },
     {
       name: "Calendar",
@@ -65,7 +67,7 @@ export const sidebarConfig = {
      {
       name: "PartnerHub",
       path: "/admin/partnerhub",
-      icon: FiFolder,
+      icon: FaHandsHoldingCircle,
     },
 
 

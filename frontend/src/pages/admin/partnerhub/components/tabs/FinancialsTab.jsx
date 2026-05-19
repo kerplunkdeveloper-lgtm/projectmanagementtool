@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axiosInstance from "../../../../../services/axiosInstance";
 import toast from 'react-hot-toast';
+import { FiDollarSign, FiTrendingUp, FiPieChart } from "react-icons/fi";
 
 const formatINR = (amount) => `₹${Math.round(amount).toLocaleString("en-IN")}`;
 
@@ -96,7 +97,6 @@ const FinancialsTab = () => {
   // Scenario Calculation
   const scenRev = Number(scenario.revenue) || 0;
   const scenEmp = Number(scenario.employeesNeeded) || 0;
-  // Assume avg CTC for new employee based on current team avg
   const avgCTC = team.length > 0 ? totalTeamCTC / team.length : 25000; 
   const scenCost = scenEmp * avgCTC;
   const scenProfit = scenRev - scenCost;
@@ -167,35 +167,48 @@ const FinancialsTab = () => {
   const previewProfit = previewRev - previewCost;
   const previewMargin = previewRev > 0 ? Math.round((previewProfit / previewRev) * 100) : 0;
 
-
   if (loading) {
-    return <div className="text-center py-20 text-slate-500 font-bold">Loading financials...</div>;
+    return (
+      <div className="text-center py-20 text-slate-400 font-semibold text-xs">
+        <div className="w-5 h-5 border-2 border-indigo-200 border-t-indigo-500 rounded-full animate-spin mr-2 inline-block" />
+        Loading financials...
+      </div>
+    );
   }
 
   return (
-    <div className="animate-fadeIn space-y-6 pb-10">
+    <div className="animate-fadeIn space-y-4">
       
       {/* Top Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Gross Revenue */}
-        <div className="bg-white rounded-2xl p-6 border-t-4 border-[#34d399] shadow-sm">
-          <h4 className="text-[#94a3b8] text-[11px] font-extrabold uppercase tracking-wider mb-2">Gross Revenue</h4>
-          <h2 className="text-[#0f172a] text-3xl font-black">{formatINR(sumRevenue)}</h2>
-          <p className="text-[#64748b] text-[11px] mt-1">All active projects</p>
+        <div className="bg-white rounded-2xl p-3.5 border-t-[3px] border-[#34d399] shadow-sm flex flex-col justify-center">
+          <div className="flex items-center justify-between mb-1">
+            <h4 className="text-slate-400 text-[9px] font-bold uppercase tracking-wider">Gross Revenue</h4>
+            <FiDollarSign size={12} className="text-emerald-500" />
+          </div>
+          <h2 className="text-slate-800 text-lg font-black">{formatINR(sumRevenue)}</h2>
+          <p className="text-gray-400 text-[9px] mt-0.5">All active projects</p>
         </div>
 
         {/* Total Expenses */}
-        <div className="bg-white rounded-2xl p-6 border-t-4 border-[#ef4444] shadow-sm">
-          <h4 className="text-[#94a3b8] text-[11px] font-extrabold uppercase tracking-wider mb-2">Total Expenses</h4>
-          <h2 className="text-[#0f172a] text-3xl font-black">{formatINR(sumCost)}</h2>
-          <p className="text-[#64748b] text-[11px] mt-1">CTC + Overhead</p>
+        <div className="bg-white rounded-2xl p-3.5 border-t-[3px] border-[#ef4444] shadow-sm flex flex-col justify-center">
+          <div className="flex items-center justify-between mb-1">
+            <h4 className="text-slate-400 text-[9px] font-bold uppercase tracking-wider">Total Expenses</h4>
+            <FiPieChart size={12} className="text-rose-500" />
+          </div>
+          <h2 className="text-slate-800 text-lg font-black">{formatINR(sumCost)}</h2>
+          <p className="text-gray-400 text-[9px] mt-0.5">CTC + Overhead</p>
         </div>
 
         {/* Net Profit */}
-        <div className="bg-white rounded-2xl p-6 border-t-4 border-[#8b5cf6] shadow-sm">
-          <h4 className="text-[#94a3b8] text-[11px] font-extrabold uppercase tracking-wider mb-2">Net Profit</h4>
-          <h2 className="text-[#10b981] text-3xl font-black">{formatINR(netProfit)}</h2>
-          <p className="text-[#64748b] text-[11px] mt-1 flex items-center gap-1">
+        <div className="bg-white rounded-2xl p-3.5 border-t-[3px] border-[#8b5cf6] shadow-sm flex flex-col justify-center">
+          <div className="flex items-center justify-between mb-1">
+            <h4 className="text-slate-400 text-[9px] font-bold uppercase tracking-wider">Net Profit</h4>
+            <FiTrendingUp size={12} className="text-purple-500" />
+          </div>
+          <h2 className="text-emerald-600 text-lg font-black">{formatINR(netProfit)}</h2>
+          <p className="text-gray-400 text-[9px] mt-0.5 flex items-center gap-1">
             Margin: {overallMargin}% 
             {overallMargin >= 20 ? '🟢' : overallMargin >= 10 ? '🟡' : '🔴'}
           </p>
@@ -203,51 +216,51 @@ const FinancialsTab = () => {
       </div>
 
       {/* Middle Row */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
         
         {/* Project-wise Table */}
-        <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-[#e2e8f0] overflow-hidden">
-          <div className="px-6 py-5 border-b border-slate-100">
-            <h3 className="text-[#1e293b] font-bold text-sm">Project-wise Revenue & Cost</h3>
+        <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-100">
+            <h3 className="text-slate-800 font-bold text-xs">Project-wise Breakdown</h3>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-xs min-w-[500px]">
               <thead>
-                <tr className="bg-slate-50/50 text-[#94a3b8] text-[10px] uppercase tracking-wider">
-                  <th className="py-3 px-6 text-left font-bold">Project</th>
-                  <th className="py-3 px-6 text-right font-bold">Revenue</th>
-                  <th className="py-3 px-6 text-right font-bold">Cost</th>
-                  <th className="py-3 px-6 text-right font-bold">Profit</th>
-                  <th className="py-3 px-6 text-right font-bold">Margin</th>
+                <tr className="bg-slate-50/60 text-slate-400 text-[9px] uppercase tracking-wider border-b border-slate-100">
+                  <th className="py-2 px-4 text-left font-bold">Project</th>
+                  <th className="py-2 px-3 text-right font-bold">Revenue</th>
+                  <th className="py-2 px-3 text-right font-bold">Cost</th>
+                  <th className="py-2 px-3 text-right font-bold">Profit</th>
+                  <th className="py-2 px-4 text-right font-bold">Margin</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {projectList.map(proj => (
-                  <tr key={proj._id} className="hover:bg-slate-50/30 transition-colors">
-                    <td className="py-3 px-6">
+                  <tr key={proj._id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="py-2 px-4">
                       <div className="flex flex-col">
-                        <span className="font-bold text-[#1e293b] text-[13px]">{proj.name}</span>
-                        <span className="text-[#94a3b8] text-[10px]">{proj.type} - {proj.status}</span>
+                        <span className="font-bold text-slate-700 text-xs">{proj.name}</span>
+                        <span className="text-gray-400 text-[9px]">{proj.type} - {proj.status}</span>
                       </div>
                     </td>
-                    <td className="py-3 px-6 text-right font-bold text-[#10b981]">{formatINR(proj.revenue)}</td>
-                    <td className="py-3 px-6 text-right font-bold text-[#ef4444]">{formatINR(proj.computedCost)}</td>
-                    <td className={`py-3 px-6 text-right font-bold ${proj.computedProfit >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
+                    <td className="py-2 px-3 text-right font-bold text-emerald-600">{formatINR(proj.revenue)}</td>
+                    <td className="py-2 px-3 text-right font-bold text-rose-600">{formatINR(proj.computedCost)}</td>
+                    <td className={`py-2 px-3 text-right font-bold ${proj.computedProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                       {formatINR(proj.computedProfit)}
                     </td>
-                    <td className={`py-3 px-6 text-right font-bold text-[12px] ${proj.computedMargin >= 20 ? 'text-[#10b981]' : proj.computedMargin > 0 ? 'text-[#f59e0b]' : 'text-[#ef4444]'}`}>
+                    <td className={`py-2 px-4 text-right font-bold text-[11px] ${proj.computedMargin >= 20 ? 'text-emerald-600' : proj.computedMargin > 0 ? 'text-amber-600' : 'text-rose-600'}`}>
                       {Math.round(proj.computedMargin)}%
                     </td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot className="bg-slate-50/80">
+              <tfoot className="bg-slate-50/60 border-t border-slate-100 font-extrabold text-slate-800">
                 <tr>
-                  <td className="py-4 px-6 font-extrabold text-[#0f172a] text-[12px] uppercase">TOTAL</td>
-                  <td className="py-4 px-6 text-right font-extrabold text-[#10b981]">{formatINR(sumRevenue)}</td>
-                  <td className="py-4 px-6 text-right font-extrabold text-[#ef4444]">{formatINR(sumCost)}</td>
-                  <td className="py-4 px-6 text-right font-extrabold text-[#10b981]">{formatINR(netProfit)}</td>
-                  <td className="py-4 px-6 text-right font-extrabold text-[#10b981]">{overallMargin}%</td>
+                  <td className="py-2.5 px-4 uppercase tracking-wider text-[10px]">TOTAL</td>
+                  <td className="py-2.5 px-3 text-right text-emerald-600">{formatINR(sumRevenue)}</td>
+                  <td className="py-2.5 px-3 text-right text-rose-600">{formatINR(sumCost)}</td>
+                  <td className="py-2.5 px-3 text-right text-emerald-600">{formatINR(netProfit)}</td>
+                  <td className="py-2.5 px-4 text-right text-emerald-600">{overallMargin}%</td>
                 </tr>
               </tfoot>
             </table>
@@ -255,16 +268,16 @@ const FinancialsTab = () => {
         </div>
 
         {/* Quick Edit Panel */}
-        <div className="bg-white rounded-2xl shadow-sm border border-[#e2e8f0] p-6 h-fit">
-          <h3 className="text-[#1e293b] font-bold text-sm mb-6">Add / Edit Project Value</h3>
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 h-fit">
+          <h3 className="text-slate-800 font-bold text-xs mb-3">Add / Edit Project Value</h3>
           
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div>
-              <label className="block text-[#64748b] text-[11px] font-bold mb-1.5">Select Project</label>
+              <label className="block text-slate-400 text-[9px] font-bold mb-1">Select Project</label>
               <select 
                 value={selectedProjectId}
                 onChange={handleProjectSelect}
-                className="w-full bg-[#f8fafc] border border-slate-200 text-[#1e293b] rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-medium text-sm appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_1rem_center] bg-[length:1em_1em] pr-10"
+                className="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 font-medium text-xs appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em] pr-8"
               >
                 <option value="">Choose project...</option>
                 {projects.map(p => (
@@ -274,26 +287,26 @@ const FinancialsTab = () => {
             </div>
 
             {selectedProjectId && (
-              <div className="animate-fadeIn space-y-4">
+              <div className="animate-fadeIn space-y-3">
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[#64748b] text-[11px] font-bold mb-1.5">Monthly Value (₹)</label>
+                    <label className="block text-slate-400 text-[9px] font-bold mb-1">Monthly Value (₹)</label>
                     <input 
                       type="number"
                       name="revenue"
                       value={editFormData.revenue}
                       onChange={handleEditChange}
-                      className="w-full bg-[#f8fafc] border border-slate-200 text-[#1e293b] rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-bold text-sm"
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 font-bold text-xs"
                     />
                   </div>
                   <div>
-                    <label className="block text-[#64748b] text-[11px] font-bold mb-1.5">Project Type</label>
+                    <label className="block text-slate-400 text-[9px] font-bold mb-1">Project Type</label>
                     <select 
                       name="type"
                       value={editFormData.type}
                       onChange={handleEditChange}
-                      className="w-full bg-[#f8fafc] border border-slate-200 text-[#1e293b] rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-medium text-sm appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_1rem_center] bg-[length:1em_1em] pr-10"
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 font-medium text-xs appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em] pr-8"
                     >
                       <option>Digital Marketing</option>
                       <option>Website</option>
@@ -302,14 +315,14 @@ const FinancialsTab = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[#64748b] text-[11px] font-bold mb-1.5">Assigned Employees</label>
+                    <label className="block text-slate-400 text-[9px] font-bold mb-1">Assigned Team</label>
                     <select
                       multiple
                       value={editFormData.employees}
                       onChange={handleEmployeeSelect}
-                      className="w-full bg-[#f8fafc] border border-slate-200 text-[#1e293b] rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-medium text-xs h-[100px] custom-scrollbar"
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 font-medium text-[10px] h-[80px] custom-scrollbar"
                     >
                       {team.map(emp => {
                         let roleText = emp.role;
@@ -317,18 +330,18 @@ const FinancialsTab = () => {
                         else if (emp.role === 'operationmanager') roleText = 'Operations Manager';
                         else if (emp.department) roleText = emp.department.replace(' Team', '') + ' Manager';
                         return (
-                          <option key={emp._id} value={emp._id} className="py-1">{emp.name} — {roleText}</option>
+                          <option key={emp._id} value={emp._id} className="py-0.5">{emp.name} — {roleText}</option>
                         );
                       })}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-[#64748b] text-[11px] font-bold mb-1.5">Status</label>
+                    <label className="block text-slate-400 text-[9px] font-bold mb-1">Status</label>
                     <select 
                       name="status"
                       value={editFormData.status}
                       onChange={handleEditChange}
-                      className="w-full bg-[#f8fafc] border border-slate-200 text-[#1e293b] rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-medium text-sm appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_1rem_center] bg-[length:1em_1em] pr-10"
+                      className="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 font-medium text-xs appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em] pr-8"
                     >
                       <option>Active</option>
                       <option>Completed</option>
@@ -338,22 +351,22 @@ const FinancialsTab = () => {
                   </div>
                 </div>
 
-                <div className="bg-[#fafafa] border border-slate-100 rounded-xl p-4 mt-2">
-                  <p className="text-[#94a3b8] text-[11px] font-bold mb-3">Calculated for this project:</p>
-                  <div className="flex justify-between px-2">
+                <div className="bg-slate-50 border border-slate-100 rounded-xl p-2.5">
+                  <p className="text-slate-400 text-[9px] font-bold mb-2">Calculated Preview:</p>
+                  <div className="flex justify-between px-1">
                     <div className="text-center">
-                      <p className="text-[#94a3b8] text-[10px] font-bold mb-0.5">Cost</p>
-                      <p className="text-[#ef4444] font-black text-lg">{formatINR(previewCost)}</p>
+                      <p className="text-slate-400 text-[8px] font-bold">Cost</p>
+                      <p className="text-rose-600 font-black text-sm">{formatINR(previewCost)}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-[#94a3b8] text-[10px] font-bold mb-0.5">Profit</p>
-                      <p className={`font-black text-lg ${previewProfit >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
+                      <p className="text-slate-400 text-[8px] font-bold">Profit</p>
+                      <p className={`font-black text-sm ${previewProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                         {formatINR(previewProfit)}
                       </p>
                     </div>
                     <div className="text-center">
-                      <p className="text-[#94a3b8] text-[10px] font-bold mb-0.5">Margin</p>
-                      <p className={`font-black text-lg ${previewMargin >= 20 ? 'text-[#10b981]' : previewMargin > 0 ? 'text-[#f59e0b]' : 'text-[#ef4444]'}`}>
+                      <p className="text-slate-400 text-[8px] font-bold">Margin</p>
+                      <p className={`font-black text-sm ${previewMargin >= 20 ? 'text-emerald-600' : previewMargin > 0 ? 'text-amber-600' : 'text-rose-600'}`}>
                         {previewMargin}%
                       </p>
                     </div>
@@ -363,7 +376,7 @@ const FinancialsTab = () => {
                 <button 
                   onClick={handleQuickUpdate}
                   disabled={updating}
-                  className="w-full mt-2 bg-[#8b5cf6] hover:bg-[#7c3aed] text-white font-bold py-3 rounded-xl transition-colors shadow-md shadow-purple-500/20 disabled:opacity-50"
+                  className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-2 rounded-xl transition-all shadow-sm disabled:opacity-50 text-xs active:scale-98"
                 >
                   {updating ? 'Saving...' : 'Save & Recalculate'}
                 </button>
@@ -375,51 +388,51 @@ const FinancialsTab = () => {
       </div>
 
       {/* Profit Scenario Calculator */}
-      <div className="bg-white rounded-2xl shadow-sm border border-[#e2e8f0] p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-[#1e293b] font-bold text-sm flex items-center gap-2">
-            <span>📊</span> Profit Scenario Calculator
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-slate-800 font-bold text-xs flex items-center gap-2">
+            <span>📊</span> Scenario Calculator
           </h3>
-          <span className="text-[#94a3b8] text-[11px] font-medium hidden sm:block">Add a hypothetical project to see impact on profit</span>
+          <span className="text-slate-400 text-[9px] font-semibold hidden sm:block">Model a hypothetical client to analyze metrics</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
-            <label className="block text-[#64748b] text-[10px] font-bold mb-1.5">Project Name</label>
+            <label className="block text-slate-400 text-[9px] font-bold mb-1">Project Name</label>
             <input 
               type="text" 
-              placeholder="New client name"
+              placeholder="Hypothetical Client"
               value={scenario.name}
               onChange={e => setScenario(s => ({...s, name: e.target.value}))}
-              className="w-full bg-[#f8fafc] border border-slate-200 text-[#1e293b] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400"
+              className="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-400"
             />
           </div>
           <div>
-            <label className="block text-[#64748b] text-[10px] font-bold mb-1.5">Monthly Value (₹)</label>
+            <label className="block text-slate-400 text-[9px] font-bold mb-1">Monthly Value (₹)</label>
             <input 
               type="number" 
-              placeholder="e.g. 30000"
+              placeholder="e.g. 35000"
               value={scenario.revenue}
               onChange={e => setScenario(s => ({...s, revenue: e.target.value}))}
-              className="w-full bg-[#f8fafc] border border-slate-200 text-[#1e293b] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400"
+              className="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-400"
             />
           </div>
           <div>
-            <label className="block text-[#64748b] text-[10px] font-bold mb-1.5">Employees Needed</label>
+            <label className="block text-slate-400 text-[9px] font-bold mb-1">Employees Needed</label>
             <input 
               type="number" 
-              placeholder="e.g. 2"
+              placeholder="e.g. 1"
               value={scenario.employeesNeeded}
               onChange={e => setScenario(s => ({...s, employeesNeeded: e.target.value}))}
-              className="w-full bg-[#f8fafc] border border-slate-200 text-[#1e293b] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400"
+              className="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-400"
             />
           </div>
           <div>
-            <label className="block text-[#64748b] text-[10px] font-bold mb-1.5">Project Type</label>
+            <label className="block text-slate-400 text-[9px] font-bold mb-1">Project Type</label>
             <select 
               value={scenario.type}
               onChange={e => setScenario(s => ({...s, type: e.target.value}))}
-              className="w-full bg-[#f8fafc] border border-slate-200 text-[#1e293b] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-400 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_1rem_center] bg-[length:1em_1em] pr-10"
+              className="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-indigo-400 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em] pr-8"
             >
               <option>Digital Marketing</option>
               <option>Website</option>
@@ -430,41 +443,39 @@ const FinancialsTab = () => {
 
         {/* Calculator Output */}
         {scenRev > 0 && scenEmp > 0 && (
-          <div className="mt-8 animate-fadeIn space-y-6">
+          <div className="mt-4 animate-fadeIn space-y-4 pt-3 border-t border-slate-100">
             
             {/* Project Specific Blocks */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-[#fafafa] border border-[#f1f3f9] rounded-2xl py-6 flex flex-col items-center justify-center shadow-sm">
-                <span className="text-[#94a3b8] text-[10px] font-bold uppercase tracking-wider mb-2">Project Revenue</span>
-                <span className="text-[#10b981] text-2xl font-black">{formatINR(scenRev)}</span>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-slate-50 border border-slate-100 rounded-xl py-3 flex flex-col items-center justify-center">
+                <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Revenue</span>
+                <span className="text-emerald-600 text-sm font-black">{formatINR(scenRev)}</span>
               </div>
-              <div className="bg-[#fafafa] border border-[#f1f3f9] rounded-2xl py-6 flex flex-col items-center justify-center shadow-sm">
-                <span className="text-[#94a3b8] text-[10px] font-bold uppercase tracking-wider mb-2">Est. Project Cost</span>
-                <span className="text-[#ef4444] text-2xl font-black">{formatINR(scenCost)}</span>
+              <div className="bg-slate-50 border border-slate-100 rounded-xl py-3 flex flex-col items-center justify-center">
+                <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Est. Cost</span>
+                <span className="text-rose-600 text-sm font-black">{formatINR(scenCost)}</span>
               </div>
-              <div className="bg-[#fafafa] border border-[#f1f3f9] rounded-2xl py-6 flex flex-col items-center justify-center shadow-sm">
-                <span className="text-[#94a3b8] text-[10px] font-bold uppercase tracking-wider mb-2">Project Margin</span>
-                <span className={`text-2xl font-black ${scenProfit >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
+              <div className="bg-slate-50 border border-slate-100 rounded-xl py-3 flex flex-col items-center justify-center">
+                <span className="text-slate-400 text-[8px] font-bold uppercase tracking-wider">Margin</span>
+                <span className={`text-sm font-black ${scenProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                   {scenRev > 0 ? Math.round((scenProfit / scenRev) * 100) : 0}%
                 </span>
               </div>
             </div>
 
-            <hr className="border-slate-100" />
-
             {/* Company Impact */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 px-4">
+            <div className="grid grid-cols-2 gap-4 px-2">
               <div>
-                <span className="text-[#94a3b8] text-[11px] font-bold mb-1 block">Company profit BEFORE</span>
-                <span className="text-[#10b981] text-xl font-bold">{formatINR(netProfit)}</span>
+                <span className="text-slate-400 text-[9px] font-bold block">Profit BEFORE</span>
+                <span className="text-emerald-600 text-sm font-bold">{formatINR(netProfit)}</span>
               </div>
               <div>
-                <span className="text-[#94a3b8] text-[11px] font-bold mb-1 block">Company profit AFTER</span>
-                <div className="flex items-baseline gap-2">
-                  <span className={`text-xl font-bold ${netProfit + scenProfit >= 0 ? 'text-[#10b981]' : 'text-[#ef4444]'}`}>
+                <span className="text-slate-400 text-[9px] font-bold block">Profit AFTER</span>
+                <div className="flex flex-wrap items-baseline gap-1.5">
+                  <span className={`text-sm font-bold ${netProfit + scenProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                     {formatINR(netProfit + scenProfit)}
                   </span>
-                  <span className="text-[#10b981] text-sm font-bold">
+                  <span className="text-emerald-600 text-[10px] font-bold">
                     ({sumRevenue + scenRev > 0 ? Math.round(((netProfit + scenProfit) / (sumRevenue + scenRev)) * 100) : 0}% margin)
                   </span>
                 </div>
@@ -472,21 +483,21 @@ const FinancialsTab = () => {
             </div>
 
             {/* Alert Message */}
-            <div className="px-4 mt-2">
+            <div className="px-2">
               {scenProfit < 0 ? (
-                <p className="text-[#ef4444] text-xs font-medium flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#ef4444]"></span>
-                  Unprofitable at this rate — either price higher or reduce resources.
+                <p className="text-rose-600 text-[10px] font-medium flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-600"></span>
+                  Unprofitable scenario — check resource needs or pricing.
                 </p>
               ) : (scenRev > 0 && Math.round((scenProfit / scenRev) * 100) < 20) ? (
-                <p className="text-[#f59e0b] text-xs font-medium flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#f59e0b]"></span>
-                  Low margin project — proceed with caution or optimize resources.
+                <p className="text-amber-500 text-[10px] font-medium flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                  Low margin client — caution recommended.
                 </p>
               ) : (
-                <p className="text-[#10b981] text-xs font-medium flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#10b981]"></span>
-                  Highly profitable scenario — excellent margin!
+                <p className="text-emerald-600 text-[10px] font-medium flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                  Highly profitable scenario!
                 </p>
               )}
             </div>

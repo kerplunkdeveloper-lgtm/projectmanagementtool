@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axiosInstance from "../../../../../services/axiosInstance";
-import { FiX } from "react-icons/fi";
+import { FiX, FiEdit2, FiPlus, FiBriefcase } from "react-icons/fi";
 import AddBusinessProjectModal from "../AddBusinessProjectModal";
 import DeleteConfirmationModal from "../DeleteConfirmationModal";
 import toast from 'react-hot-toast';
@@ -66,20 +66,21 @@ const ProjectsTab = () => {
   });
 
   return (
-    <div className="bg-gradient-to-br from-[#eef2f9] to-[#fcefff] p-6 rounded-3xl min-h-[70vh] shadow-inner animate-fadeIn">
+    <div className="bg-white border border-slate-200 rounded-2xl p-4 min-h-[60vh] shadow-sm animate-fadeIn">
       
       {/* Top Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between mb-8">
-        <div className="flex bg-white/60 p-1 rounded-xl backdrop-blur-md shadow-sm">
+      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between mb-4">
+        {/* Category Tabs */}
+        <div className="flex bg-slate-50 border border-slate-200 p-1 rounded-xl w-full sm:w-auto overflow-x-auto scrollbar-hide whitespace-nowrap">
           {["All", "Digital Marketing", "Website", "SEO"].map((cat) => (
             <button
               key={cat}
               onClick={() => setFilterCategory(cat)}
               className={`
-                px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-200
+                px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 whitespace-nowrap
                 ${
                   filterCategory === cat
-                    ? "bg-[#7c5ff0] text-white shadow-md shadow-indigo-500/20"
+                    ? "bg-[#7c5ff0] text-white shadow-sm"
                     : "text-[#64748b] hover:text-[#334155] hover:bg-white/50"
                 }
               `}
@@ -91,18 +92,26 @@ const ProjectsTab = () => {
 
         <button 
           onClick={openAddModal}
-          className="bg-[#7c5ff0] hover:bg-[#6c4be0] text-white px-5 py-2 rounded-xl text-sm font-bold shadow-md shadow-indigo-500/30 transition-all flex items-center gap-1.5"
+          className="w-full sm:w-auto bg-[#7c5ff0] hover:bg-[#6c4be0] text-white px-4 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-1.5 active:scale-95 shrink-0"
         >
-          + Add Project
+          <FiPlus size={14} /> Add Project
         </button>
       </div>
 
       {/* Projects List */}
-      <div className="space-y-4">
+      <div className="space-y-2">
         {loading ? (
-          <div className="text-center py-10 text-slate-500 font-medium">Loading projects...</div>
+          <div className="text-center py-12">
+            <div className="w-6 h-6 border-2 border-indigo-100 border-t-indigo-500 rounded-full animate-spin mx-auto mb-2" />
+            <p className="text-xs text-gray-400">Loading projects...</p>
+          </div>
         ) : filteredProjects.length === 0 ? (
-          <div className="text-center py-10 text-slate-500 font-medium">No projects found.</div>
+          <div className="text-center py-12 border border-dashed border-slate-100 rounded-xl bg-slate-50/30">
+            <div className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center mx-auto mb-2 text-slate-400">
+              <FiBriefcase size={16} />
+            </div>
+            <p className="text-xs text-gray-400 font-semibold">No projects found.</p>
+          </div>
         ) : (
           filteredProjects.map((project) => {
             const revenue = project.revenue || 0;
@@ -116,72 +125,72 @@ const ProjectsTab = () => {
             return (
               <div
                 key={project._id}
-                className="bg-white/80 backdrop-blur-sm rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm border border-white relative overflow-hidden"
+                className="bg-white border border-slate-200 hover:border-slate-300 hover:shadow-md rounded-xl p-3 flex flex-col lg:flex-row lg:items-center justify-between transition-all duration-200 relative overflow-hidden gap-3 lg:gap-6"
               >
-                {/* Left Blue Bar */}
-                <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#3b82f6]"></div>
+                {/* Left Accent Bar */}
+                <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#7c5ff0]"></div>
 
                 {/* Left Content */}
-                <div className="flex-1 pl-4 flex flex-col justify-center">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-[#1e293b] text-base font-extrabold">{project.name}</h3>
-                    <span className="bg-[#dcfce7] text-[#166534] px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide border border-[#bbf7d0]">
-                      {project.status.toUpperCase()}
+                <div className="flex-1 pl-3 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                    <h3 className="text-slate-800 text-xs font-bold truncate max-w-[200px]">{project.name}</h3>
+                    <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider scale-90">
+                      {project.status}
                     </span>
-                    <span className="text-[#3b82f6] text-xs font-semibold">
+                    <span className="text-[#7c5ff0] text-[10px] font-bold bg-[#7c5ff0]/10 px-2 py-0.5 rounded-full scale-90">
                       {project.type}
                     </span>
                   </div>
                   
                   {/* Employees */}
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1">
                     {project.employees && project.employees.length > 0 ? (
                       project.employees.map((emp) => (
-                        <span key={emp._id} className="bg-[#f1f5f9] text-[#475569] text-[10px] px-2 py-0.5 rounded-md font-medium border border-[#e2e8f0] flex items-center gap-1">
+                        <span key={emp._id} className="bg-slate-50 text-slate-500 text-[9px] px-1.5 py-0.5 rounded border border-slate-100 flex items-center gap-0.5">
                           {emp.name.split(' ')[0]} 
                           {emp.department && <span className="text-[#94a3b8]">| {emp.department.replace(' Team', '')}</span>}
                           {!emp.department && emp.role === 'admin' && <span className="text-[#94a3b8]">| Admin</span>}
                         </span>
                       ))
                     ) : (
-                      <span className="text-[#94a3b8] text-[10px] italic">No employees assigned</span>
+                      <span className="text-gray-400 text-[9px] italic">No employees assigned</span>
                     )}
                   </div>
                 </div>
 
                 {/* Right Metrics */}
-                <div className="flex items-center gap-6 mt-4 md:mt-0 px-2 md:px-6 py-2 bg-white/50 rounded-xl md:bg-transparent">
-                  <div className="text-center">
-                    <p className="text-[#94a3b8] text-[10px] font-semibold mb-1">Revenue</p>
-                    <p className="text-[#059669] font-extrabold text-sm">{formatINR(revenue)}</p>
+                <div className="flex flex-wrap items-center justify-between lg:justify-end gap-4 lg:gap-6 px-3 py-2 bg-slate-50 lg:bg-transparent rounded-xl border border-slate-100 lg:border-0">
+                  <div className="text-center min-w-[65px]">
+                    <p className="text-[#94a3b8] text-[9px] font-semibold mb-0.5">Revenue</p>
+                    <p className="text-[#059669] font-extrabold text-xs">{formatINR(revenue)}</p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-[#94a3b8] text-[10px] font-semibold mb-1">Cost</p>
-                    <p className="text-[#dc2626] font-extrabold text-sm">{formatINR(cost)}</p>
+                  <div className="text-center min-w-[65px]">
+                    <p className="text-[#94a3b8] text-[9px] font-semibold mb-0.5">Cost</p>
+                    <p className="text-[#dc2626] font-extrabold text-xs">{formatINR(cost)}</p>
                   </div>
-                  <div className="text-center">
-                    <p className="text-[#94a3b8] text-[10px] font-semibold mb-1">Profit</p>
-                    <p className={`${profitColor} font-extrabold text-sm`}>{formatINR(profit)}</p>
+                  <div className="text-center min-w-[65px]">
+                    <p className="text-[#94a3b8] text-[9px] font-semibold mb-0.5">Profit</p>
+                    <p className={`${profitColor} font-extrabold text-xs`}>{formatINR(profit)}</p>
                   </div>
-                  <div className="text-center min-w-[50px]">
-                    <p className="text-[#94a3b8] text-[10px] font-semibold mb-1">Margin</p>
-                    <p className={`${marginColor} font-extrabold text-sm`}>{margin}%</p>
+                  <div className="text-center min-w-[45px]">
+                    <p className="text-[#94a3b8] text-[9px] font-semibold mb-0.5">Margin</p>
+                    <p className={`${marginColor} font-extrabold text-xs`}>{margin}%</p>
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 mt-4 md:mt-0 pl-2 md:pl-4 md:border-l border-slate-200">
+                <div className="flex items-center justify-end gap-1.5 pl-2 lg:pl-4 lg:border-l border-slate-200 shrink-0">
                   <button 
                     onClick={() => openEditModal(project)}
-                    className="px-3 py-1.5 bg-white border border-[#e2e8f0] text-[#475569] rounded-lg text-xs font-semibold shadow-sm hover:bg-slate-50 transition-colors"
+                    className="px-2.5 py-1 bg-white border border-[#e2e8f0] text-slate-600 hover:bg-slate-50 rounded-lg text-[10px] font-bold shadow-sm transition-all"
                   >
                     Edit
                   </button>
                   <button 
                     onClick={() => confirmDelete(project)}
-                    className="w-8 h-8 flex items-center justify-center bg-[#fee2e2] text-[#dc2626] border border-[#fecaca] rounded-lg shadow-sm hover:bg-[#fecaca] transition-colors"
+                    className="w-6.5 h-6.5 flex items-center justify-center bg-rose-50 text-rose-500 border border-rose-100 rounded-lg shadow-sm hover:bg-rose-100 transition-colors"
                   >
-                    <FiX size={14} strokeWidth={3} />
+                    <FiX size={12} strokeWidth={3} />
                   </button>
                 </div>
 

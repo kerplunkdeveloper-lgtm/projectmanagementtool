@@ -220,14 +220,14 @@ const Sidebar = ({
               >
 
                 <Icon
-                  size={15}
+                  size={12}
                   className="shrink-0"
                 />
 
                 <span
                   className="
-                    text-[12px]
-                    lg:text-[12.5px]
+                    text-[10px]
+                    lg:text-[10px]
 
                     font-medium
 

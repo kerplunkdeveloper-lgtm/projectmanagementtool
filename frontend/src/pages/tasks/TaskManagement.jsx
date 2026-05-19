@@ -78,7 +78,9 @@ const TaskManagement = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <div className="w-7 h-7 rounded-lg bg-indigo-500 flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-r
+                          from-cyan-500
+                          to-blue-600 flex items-center justify-center">
                 <FiCheckSquare size={14} className="text-white" />
               </div>
               <h1 className="text-lg sm:text-xl font-bold text-slate-800">Task Management</h1>
@@ -126,7 +128,9 @@ const TaskManagement = () => {
             {canManage && (
               <button
                 onClick={handleOpenCreate}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white font-semibold text-xs shadow-sm shadow-indigo-200 transition-all active:scale-95"
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r
+                          from-cyan-500
+                          to-blue-600 text-white font-semibold text-xs shadow-sm shadow-indigo-200 transition-all active:scale-95"
               >
                 <FiPlus size={14} /> New Task
               </button>

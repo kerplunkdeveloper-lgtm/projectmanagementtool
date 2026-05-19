@@ -55,7 +55,6 @@ const AddBusinessProjectModal = ({
   const fetchUsers = async () => {
     try {
       const res = await axiosInstance.get("/users");
-      // The API response depends on userController. Usually it's res.data.data
       const userList = res.data.data || res.data;
       setUsers(Array.isArray(userList) ? userList : []);
     } catch (err) {
@@ -131,33 +130,33 @@ const AddBusinessProjectModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-      <div className="bg-[#e4e6f2] w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col border border-white/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-[2px] p-4">
+      <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden flex flex-col border border-slate-200">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-[#e4e6f2] border-b border-[#cbd0e1]">
-          <h2 className="text-[#1a2035] text-base font-bold flex items-center gap-2">
-            <span className="text-2xl">📁</span>{" "}
+        <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-100">
+          <h2 className="text-slate-800 text-sm font-bold flex items-center gap-1.5">
+            <span>📁</span>{" "}
             {projectToEdit ? "Edit" : "Add"} Business Project
           </h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-xl bg-white text-slate-500 hover:text-slate-700 shadow-sm transition-colors"
+            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition-colors"
           >
-            <FiX size={18} />
+            <FiX size={16} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="px-4 py-3 bg-[#cbd0e1]/30 flex-1 overflow-y-auto space-y-3">
+        <div className="px-4 py-3 bg-white flex-1 overflow-y-auto space-y-3">
           <div>
-            <label className="block text-[#475569] text-sm font-semibold mb-1.5">
+            <label className="block text-slate-500 text-[10px] font-bold mb-1">
               Client <span className="text-rose-500">*</span>
             </label>
             <select
               name="client"
               value={formData.client}
               onChange={handleChange}
-              className="w-full bg-[#f1f3f9] border-0 text-[#1e293b] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-inner appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_1rem_center] bg-[length:1.2em_1.2em] pr-10"
+              className="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em] pr-8"
             >
               <option value="">Select a Client</option>
               {clients.map(client => (
@@ -168,16 +167,16 @@ const AddBusinessProjectModal = ({
             </select>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[#475569] text-sm font-semibold mb-1.5">
+              <label className="block text-slate-500 text-[10px] font-bold mb-1">
                 Project Type <span className="text-rose-500">*</span>
               </label>
               <select
                 name="type"
                 value={formData.type}
                 onChange={handleChange}
-                className="w-full bg-[#f1f3f9] border-0 text-[#1e293b] rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-inner appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_1rem_center] bg-[length:1.2em_1.2em] pr-10"
+                className="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em] pr-8"
               >
                 <option value="Digital Marketing">Digital Marketing</option>
                 <option value="Website">Website</option>
@@ -186,14 +185,14 @@ const AddBusinessProjectModal = ({
             </div>
 
             <div>
-              <label className="block text-[#475569] text-sm font-semibold mb-1.5">
+              <label className="block text-slate-500 text-[10px] font-bold mb-1">
                 Status
               </label>
               <select
                 name="status"
                 value={formData.status}
                 onChange={handleChange}
-                className="w-full bg-[#f1f3f9] border-0 text-[#1e293b] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-inner appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_1rem_center] bg-[length:1.2em_1.2em] pr-10"
+                className="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em] pr-8"
               >
                 <option value="Active">Active</option>
                 <option value="Completed">Completed</option>
@@ -203,9 +202,9 @@ const AddBusinessProjectModal = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[#475569] text-sm font-semibold mb-1.5">
+              <label className="block text-slate-500 text-[10px] font-bold mb-1">
                 Monthly Value (₹)
               </label>
               <input
@@ -214,19 +213,19 @@ const AddBusinessProjectModal = ({
                 value={formData.revenue}
                 onChange={handleChange}
                 placeholder="e.g. 25000"
-                className="w-full bg-[#f1f3f9] border-0 text-[#1e293b] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-inner placeholder:text-slate-400"
+                className="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 placeholder:text-slate-400 font-bold"
               />
             </div>
 
             <div>
-              <label className="block text-[#475569] text-sm font-semibold mb-1.5">
+              <label className="block text-slate-500 text-[10px] font-bold mb-1">
                 Project Duration
               </label>
               <select
                 name="duration"
                 value={formData.duration}
                 onChange={handleChange}
-                className="w-full bg-[#f1f3f9] border-0 text-[#1e293b] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 shadow-inner appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_1rem_center] bg-[length:1.2em_1.2em] pr-10"
+                className="w-full bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em] pr-8"
               >
                 <option value="Ongoing / Retainer">Ongoing / Retainer</option>
                 <option value="1 Month">1 Month</option>
@@ -238,7 +237,7 @@ const AddBusinessProjectModal = ({
           </div>
 
           <div>
-            <label className="block text-[#475569] text-sm font-semibold mb-1.5">
+            <label className="block text-slate-500 text-[10px] font-bold mb-1">
               Assign Employees
             </label>
             <select
@@ -246,7 +245,7 @@ const AddBusinessProjectModal = ({
               name="employees"
               value={formData.employees}
               onChange={handleEmployeeSelection}
-              className="w-full bg-[#e3e8f8] border-2 border-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 h-24 text-[#334155] font-medium custom-scrollbar"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 h-20 text-slate-700 font-medium custom-scrollbar"
             >
               {users.map((user) => {
                 let displayRole = "";
@@ -267,62 +266,43 @@ const AddBusinessProjectModal = ({
                 }
 
                 return (
-                  <option key={user._id} value={user._id} className="py-1">
+                  <option key={user._id} value={user._id} className="py-0.5">
                     {user.name} {displayRole ? `— ${displayRole}` : ""}
                   </option>
                 );
               })}
             </select>
-            <p className="text-[#64748b] text-xs mt-1.5 font-medium">
+            <p className="text-gray-400 text-[10px] mt-1 font-semibold">
               Hold Ctrl/Cmd to select multiple
             </p>
           </div>
 
           {/* Profit Preview */}
           {Number(formData.revenue) > 0 && (
-            <div className="bg-[#e4e6f2] rounded-xl p-4 border border-[#cbd0e1] flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-0">
-              <span className="text-[#1a2035] font-bold text-sm w-full text-center sm:text-left sm:min-w-[100px]">
-                Profit Preview
+            <div className="bg-slate-50 rounded-xl p-2.5 border border-slate-100 flex items-center justify-between">
+              <span className="text-slate-800 font-bold text-[11px] min-w-[70px]">
+                Preview
               </span>
 
-              <div className="flex-1 w-full flex items-center justify-around">
+              <div className="flex-1 flex items-center justify-around">
                 <div className="text-center">
-                  <p className="text-[#64748b] text-[10px] font-bold mb-0.5">
-                    Est. Cost
-                  </p>
-                  <p className="text-[#dc2626] font-bold text-sm">
-                    ₹
-                    {Math.round(
-                      Number(formData.revenue) * 0.30173,
-                    ).toLocaleString("en-IN")}
+                  <p className="text-slate-400 text-[8px] font-bold">Cost</p>
+                  <p className="text-rose-600 font-black text-xs">
+                    ₹{Math.round(Number(formData.revenue) * 0.30173).toLocaleString("en-IN")}
                   </p>
                 </div>
 
                 <div className="text-center">
-                  <p className="text-[#64748b] text-[10px] font-bold mb-0.5">
-                    Profit
-                  </p>
-                  <p className="text-[#059669] font-bold text-sm">
-                    ₹
-                    {(
-                      Number(formData.revenue) -
-                      Math.round(Number(formData.revenue) * 0.30173)
-                    ).toLocaleString("en-IN")}
+                  <p className="text-slate-400 text-[8px] font-bold">Profit</p>
+                  <p className="text-emerald-600 font-black text-xs">
+                    ₹{(Number(formData.revenue) - Math.round(Number(formData.revenue) * 0.30173)).toLocaleString("en-IN")}
                   </p>
                 </div>
 
                 <div className="text-center">
-                  <p className="text-[#64748b] text-[10px] font-bold mb-0.5">
-                    Margin
-                  </p>
-                  <p className="text-[#059669] font-bold text-sm">
-                    {Math.round(
-                      ((Number(formData.revenue) -
-                        Math.round(Number(formData.revenue) * 0.30173)) /
-                        Number(formData.revenue)) *
-                        100,
-                    )}
-                    %
+                  <p className="text-slate-400 text-[8px] font-bold">Margin</p>
+                  <p className="text-emerald-600 font-black text-xs">
+                    {Math.round(((Number(formData.revenue) - Math.round(Number(formData.revenue) * 0.30173)) / Number(formData.revenue)) * 100)}%
                   </p>
                 </div>
               </div>
@@ -331,17 +311,17 @@ const AddBusinessProjectModal = ({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 px-4 py-3 bg-[#cbd0e1]/50 border-t border-[#cbd0e1]">
+        <div className="flex justify-end gap-2 px-4 py-2.5 bg-slate-50 border-t border-slate-100">
           <button
             onClick={onClose}
-            className="px-6 py-2.5 rounded-xl bg-[#f1f3f9] text-[#475569] font-bold hover:bg-white transition-colors shadow-sm"
+            className="px-4 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-500 font-bold hover:bg-slate-100 transition-all text-xs"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={!formData.client || !formData.type || loading}
-            className="px-6 py-2.5 rounded-xl bg-[#7c5ff0] text-white font-bold hover:bg-[#6c4be0] disabled:opacity-50 transition-colors shadow-md shadow-indigo-500/30"
+            className="px-4 py-1.5 rounded-xl bg-[#7c5ff0] text-white font-bold hover:bg-[#6c4be0] disabled:opacity-50 transition-all text-xs shadow-sm"
           >
             {loading
               ? "Saving..."

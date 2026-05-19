@@ -15,13 +15,11 @@ const AdminEodReports = () => {
       <div className="max-w-[1500px] mx-auto">
         {/* HEADER */}
         <div className="mb-6 flex flex-col gap-2">
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800">
-            Team Intelligence
+          <h1 className="text-xl font-bold text-slate-800">
+            Team EOD Reports
           </h1>
 
-          <p className="text-sm sm:text-base text-slate-500">
-            Centralized oversight of daily operations and project velocity
-          </p>
+          
         </div>
 
         {/* TABLE CONTAINER */}

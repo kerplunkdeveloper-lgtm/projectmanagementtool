@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axiosInstance from "../../../../../services/axiosInstance";
-import { FiEdit2, FiPlus, FiTrash2 } from "react-icons/fi";
+import { FiEdit2, FiPlus, FiTrash2, FiUsers, FiDollarSign, FiPercent, FiTrendingUp } from "react-icons/fi";
 import toast from 'react-hot-toast';
 import AddEmployeeModal from "../AddEmployeeModal";
 import DeleteConfirmationModal from "../DeleteConfirmationModal";
@@ -40,7 +40,6 @@ const TeamStrengthTab = () => {
     }
   };
 
-  // Helper to format role name
   const getDisplayRole = (user) => {
     if (user.role === 'admin') return "Managing Partner";
     if (user.role === 'operationmanager') return "Operations Manager";
@@ -84,7 +83,6 @@ const TeamStrengthTab = () => {
     }
   };
 
-  // Calculate team metrics
   const totalTeamStrength = team.length;
   const totalSalary = team.reduce((sum, member) => sum + (member.salary || 0), 0);
   const avgSalary = totalTeamStrength > 0 ? Math.round(totalSalary / totalTeamStrength) : 0;
@@ -92,81 +90,95 @@ const TeamStrengthTab = () => {
   const totalRevenue = projects.reduce((sum, proj) => sum + (proj.revenue || 0), 0);
   const revenuePerEmployee = totalTeamStrength > 0 ? Math.round(totalRevenue / totalTeamStrength) : 0;
 
-  // Row aggregations
   let totalCtcSum = 0;
   let totalProjectsSum = 0;
   let totalRevShareSum = 0;
 
   return (
-    <div className="animate-fadeIn pb-10">
+    <div className="animate-fadeIn space-y-4">
       
       {/* Top Metrics Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Metric 1 */}
-        <div className="bg-[#f0f4ff] border border-[#dbeafe] rounded-2xl p-5 relative overflow-hidden shadow-sm">
-          <div className="absolute top-0 left-0 w-full h-1 bg-[#3b82f6]" />
-          <h4 className="text-[#94a3b8] text-[11px] font-bold uppercase tracking-wider mb-2">Total Team Strength</h4>
-          <h2 className="text-[#0f172a] text-3xl font-extrabold">{totalTeamStrength}</h2>
-          <p className="text-[#64748b] text-[11px] mt-1">Active employees</p>
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-3.5 relative overflow-hidden shadow-sm">
+          <div className="absolute top-0 left-0 w-full h-[3px] bg-blue-500" />
+          <div className="flex items-center justify-between mb-1">
+            <h4 className="text-slate-400 text-[9px] font-bold uppercase tracking-wider">Team Strength</h4>
+            <FiUsers size={12} className="text-blue-500" />
+          </div>
+          <h2 className="text-[#0f172a] text-xl font-extrabold">{totalTeamStrength}</h2>
+          <p className="text-[#64748b] text-[10px] mt-0.5">Active employees</p>
         </div>
 
         {/* Metric 2 */}
-        <div className="bg-[#f0fdf4] border border-[#dcfce7] rounded-2xl p-5 relative overflow-hidden shadow-sm">
-          <div className="absolute top-0 left-0 w-full h-1 bg-[#10b981]" />
-          <h4 className="text-[#94a3b8] text-[11px] font-bold uppercase tracking-wider mb-2">Total Salary Bill</h4>
-          <h2 className="text-[#0f172a] text-3xl font-extrabold">{formatINR(totalSalary)}</h2>
-          <p className="text-[#64748b] text-[11px] mt-1">Per month</p>
+        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl p-3.5 relative overflow-hidden shadow-sm">
+          <div className="absolute top-0 left-0 w-full h-[3px] bg-emerald-500" />
+          <div className="flex items-center justify-between mb-1">
+            <h4 className="text-slate-400 text-[9px] font-bold uppercase tracking-wider">Salary Bill</h4>
+            <FiDollarSign size={12} className="text-emerald-500" />
+          </div>
+          <h2 className="text-[#0f172a] text-xl font-extrabold">{formatINR(totalSalary)}</h2>
+          <p className="text-[#64748b] text-[10px] mt-0.5">Per month</p>
         </div>
 
         {/* Metric 3 */}
-        <div className="bg-[#fffbeb] border border-[#fef3c7] rounded-2xl p-5 relative overflow-hidden shadow-sm">
-          <div className="absolute top-0 left-0 w-full h-1 bg-[#f59e0b]" />
-          <h4 className="text-[#94a3b8] text-[11px] font-bold uppercase tracking-wider mb-2">Avg Salary</h4>
-          <h2 className="text-[#0f172a] text-3xl font-extrabold">{formatINR(avgSalary)}</h2>
-          <p className="text-[#64748b] text-[11px] mt-1">Per employee</p>
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 rounded-2xl p-3.5 relative overflow-hidden shadow-sm">
+          <div className="absolute top-0 left-0 w-full h-[3px] bg-amber-500" />
+          <div className="flex items-center justify-between mb-1">
+            <h4 className="text-slate-400 text-[9px] font-bold uppercase tracking-wider">Avg Salary</h4>
+            <FiPercent size={12} className="text-amber-500" />
+          </div>
+          <h2 className="text-[#0f172a] text-xl font-extrabold">{formatINR(avgSalary)}</h2>
+          <p className="text-[#64748b] text-[10px] mt-0.5">Per employee</p>
         </div>
 
         {/* Metric 4 */}
-        <div className="bg-[#faf5ff] border border-[#f3e8ff] rounded-2xl p-5 relative overflow-hidden shadow-sm">
-          <div className="absolute top-0 left-0 w-full h-1 bg-[#8b5cf6]" />
-          <h4 className="text-[#94a3b8] text-[11px] font-bold uppercase tracking-wider mb-2">Revenue Per Employee</h4>
-          <h2 className="text-[#0f172a] text-3xl font-extrabold">{formatINR(revenuePerEmployee)}</h2>
-          <p className="text-[#64748b] text-[11px] mt-1">Monthly</p>
+        <div className="bg-gradient-to-br from-purple-50 to-violet-50 border border-purple-100 rounded-2xl p-3.5 relative overflow-hidden shadow-sm">
+          <div className="absolute top-0 left-0 w-full h-[3px] bg-purple-500" />
+          <div className="flex items-center justify-between mb-1">
+            <h4 className="text-slate-400 text-[9px] font-bold uppercase tracking-wider">Revenue Share</h4>
+            <FiTrendingUp size={12} className="text-purple-500" />
+          </div>
+          <h2 className="text-[#0f172a] text-xl font-extrabold">{formatINR(revenuePerEmployee)}</h2>
+          <p className="text-[#64748b] text-[10px] mt-0.5">Per employee</p>
         </div>
       </div>
 
       {/* Main Table Area */}
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-center px-8 py-5 border-b border-slate-100">
-          <h3 className="text-[#1e293b] font-bold text-lg">Individual Employee Details & Project Allocation</h3>
+        <div className="flex flex-col sm:flex-row justify-between items-center px-4 py-3 gap-2 border-b border-slate-100">
+          <div>
+            <h3 className="text-slate-800 font-bold text-sm">Employee Allocations</h3>
+            <p className="text-[10px] text-gray-400">Monthly salaries, overheads & rev-shares</p>
+          </div>
           <button 
             onClick={openAddModal}
-            className="mt-3 sm:mt-0 bg-[#7c5ff0] hover:bg-[#6c4be0] text-white px-5 py-2 rounded-xl text-sm font-bold shadow-md shadow-indigo-500/30 transition-all flex items-center gap-1.5"
+            className="w-full sm:w-auto bg-[#7c5ff0] hover:bg-[#6c4be0] text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-1 active:scale-95 shrink-0"
           >
-            <FiPlus size={16} /> Add Employee
+            <FiPlus size={14} /> Add Employee
           </button>
         </div>
 
         {/* Table Content */}
         <div className="overflow-x-auto">
-          <table className="w-full text-sm whitespace-nowrap">
+          <table className="w-full text-xs whitespace-nowrap min-w-[800px]">
             <thead>
-              <tr className="bg-slate-50/50">
-                <th className="text-left font-bold text-[11px] text-[#94a3b8] tracking-wider py-4 px-8 uppercase">Employee</th>
-                <th className="text-left font-bold text-[11px] text-[#94a3b8] tracking-wider py-4 px-4 uppercase">Salary</th>
-                <th className="text-left font-bold text-[11px] text-[#94a3b8] tracking-wider py-4 px-4 uppercase">Overhead%</th>
-                <th className="text-left font-bold text-[11px] text-[#94a3b8] tracking-wider py-4 px-4 uppercase">Ctc/Month</th>
-                <th className="text-left font-bold text-[11px] text-[#94a3b8] tracking-wider py-4 px-4 uppercase">Capacity</th>
-                <th className="text-left font-bold text-[11px] text-[#94a3b8] tracking-wider py-4 px-4 uppercase">Projects</th>
-                <th className="text-left font-bold text-[11px] text-[#94a3b8] tracking-wider py-4 px-4 uppercase">Rev Share</th>
-                <th className="py-4 px-4"></th>
+              <tr className="bg-slate-50/60 border-b border-slate-100">
+                <th className="text-left font-bold text-[9px] text-slate-400 tracking-wider py-2 px-4 uppercase">Employee</th>
+                <th className="text-left font-bold text-[9px] text-slate-400 tracking-wider py-2 px-3 uppercase">Salary</th>
+                <th className="text-left font-bold text-[9px] text-slate-400 tracking-wider py-2 px-3 uppercase">Overhead%</th>
+                <th className="text-left font-bold text-[9px] text-slate-400 tracking-wider py-2 px-3 uppercase">Ctc/Month</th>
+                <th className="text-left font-bold text-[9px] text-slate-400 tracking-wider py-2 px-3 uppercase">Capacity</th>
+                <th className="text-left font-bold text-[9px] text-slate-400 tracking-wider py-2 px-3 uppercase">Projects</th>
+                <th className="text-left font-bold text-[9px] text-slate-400 tracking-wider py-2 px-3 uppercase">Rev Share</th>
+                <th className="py-2 px-3 w-16"></th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-50">
               {loading ? (
-                <tr><td colSpan="8" className="text-center py-10 text-slate-400 font-medium">Loading data...</td></tr>
+                <tr><td colSpan="8" className="text-center py-8 text-slate-400 font-medium">Loading data...</td></tr>
               ) : team.map((member) => {
                 const salary = member.salary || 0;
                 const overhead = member.overheadPercent || 0;
@@ -176,7 +188,6 @@ const TeamStrengthTab = () => {
                 const displayRole = getDisplayRole(member);
                 const isPartner = member.role === 'admin';
 
-                // Calculate projects and rev share
                 const userProjects = projects.filter(p => p.employees && p.employees.some(e => e._id === member._id || e === member._id));
                 const activeProjectsCount = userProjects.length;
                 totalProjectsSum += activeProjectsCount;
@@ -189,63 +200,63 @@ const TeamStrengthTab = () => {
                 totalRevShareSum += revShare;
 
                 const avatarColor = 
-                  isPartner ? "bg-[#e0e7ff] text-[#4f46e5]" : 
-                  displayRole.includes('Operation') ? "bg-[#fce7f3] text-[#db2777]" : 
-                  displayRole.includes('Social') ? "bg-[#dcfce7] text-[#166534]" : 
-                  displayRole.includes('Design') ? "bg-[#fef3c7] text-[#d97706]" : 
-                  "bg-[#f3e8ff] text-[#9333ea]";
+                  isPartner ? "bg-indigo-50 text-indigo-600" : 
+                  displayRole.includes('Operation') ? "bg-pink-50 text-pink-600" : 
+                  displayRole.includes('Social') ? "bg-emerald-50 text-emerald-600" : 
+                  displayRole.includes('Design') ? "bg-amber-50 text-amber-600" : 
+                  "bg-purple-50 text-purple-600";
 
                 return (
-                  <tr key={member._id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group">
-                    <td className="py-4 px-8">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm ${avatarColor}`}>
+                  <tr key={member._id} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="py-2.5 px-4">
+                      <div className="flex items-center gap-2.5">
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${avatarColor}`}>
                           {member.name.charAt(0).toUpperCase()}
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-[#1e293b] font-bold text-sm">{member.name}</span>
-                          <span className="text-[#94a3b8] text-[11px] font-medium">{displayRole}</span>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-slate-800 font-bold text-xs truncate max-w-[140px]">{member.name}</span>
+                          <span className="text-gray-400 text-[10px] truncate max-w-[140px]">{displayRole}</span>
                         </div>
                       </div>
                     </td>
                     
-                    <td className="py-4 px-4 font-bold text-[#334155]">
+                    <td className="py-2.5 px-3 font-bold text-slate-700">
                       {isPartner ? 'Partner' : formatINR(salary)}
                     </td>
                     
-                    <td className="py-4 px-4 font-bold text-[#f59e0b]">
+                    <td className="py-2.5 px-3 font-bold text-amber-600">
                       {overhead}%
                     </td>
                     
-                    <td className="py-4 px-4 font-bold text-[#ef4444]">
+                    <td className="py-2.5 px-3 font-bold text-rose-600">
                       {isPartner || ctc === 0 ? '—' : formatINR(ctc)}
                     </td>
                     
-                    <td className="py-4 px-4 font-medium text-[#475569]">
+                    <td className="py-2.5 px-3 font-semibold text-slate-500">
                       {member.capacity || 0} clients
                     </td>
                     
-                    <td className="py-4 px-4 font-medium text-[#3b82f6]">
+                    <td className="py-2.5 px-3 font-semibold text-blue-500">
                       {activeProjectsCount} active
                     </td>
                     
-                    <td className="py-4 px-4 font-bold text-[#10b981]">
+                    <td className="py-2.5 px-3 font-bold text-emerald-600">
                       {isPartner || revShare === 0 ? '—' : formatINR(Math.round(revShare))}
                     </td>
                     
-                    <td className="py-4 px-4 text-right">
-                      <div className="flex justify-end gap-2">
+                    <td className="py-2.5 px-3 text-right">
+                      <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                         <button 
                           onClick={() => openEditModal(member)}
-                          className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-orange-400 hover:bg-orange-50 transition-colors opacity-0 group-hover:opacity-100"
+                          className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-amber-500 bg-amber-50/20 hover:bg-amber-50 hover:border-amber-200 transition-all"
                         >
-                          <FiEdit2 size={12} strokeWidth={3} />
+                          <FiEdit2 size={11} />
                         </button>
                         <button 
                           onClick={() => confirmDelete(member)}
-                          className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                          className="w-7 h-7 rounded-lg border border-slate-200 flex items-center justify-center text-rose-500 bg-rose-50/20 hover:bg-rose-50 hover:border-rose-200 transition-all"
                         >
-                          <FiTrash2 size={12} strokeWidth={3} />
+                          <FiTrash2 size={11} />
                         </button>
                       </div>
                     </td>
@@ -255,23 +266,23 @@ const TeamStrengthTab = () => {
             </tbody>
             {/* Table Footer / Totals */}
             {!loading && (
-              <tfoot className="bg-slate-50/80">
-                <tr>
-                  <td className="py-5 px-8 font-extrabold text-[#0f172a] text-sm uppercase">Total</td>
-                  <td className="py-5 px-4 font-extrabold text-[#f59e0b] text-sm">{formatINR(totalSalary)}</td>
-                  <td className="py-5 px-4"></td>
-                  <td className="py-5 px-4 font-extrabold text-[#ef4444] text-sm">{formatINR(totalCtcSum)}</td>
-                  <td className="py-5 px-4"></td>
-                  <td className="py-5 px-4 font-extrabold text-[#3b82f6] text-sm">{totalProjectsSum}</td>
-                  <td className="py-5 px-4 font-extrabold text-[#10b981] text-sm">{formatINR(Math.round(totalRevShareSum))}</td>
-                  <td className="py-5 px-4"></td>
+              <tfoot className="bg-slate-50/50">
+                <tr className="font-extrabold text-slate-800 text-xs border-t border-slate-100">
+                  <td className="py-3 px-4 uppercase tracking-wider">Total</td>
+                  <td className="py-3 px-3 text-amber-600">{formatINR(totalSalary)}</td>
+                  <td className="py-3 px-3"></td>
+                  <td className="py-3 px-3 text-rose-600">{formatINR(totalCtcSum)}</td>
+                  <td className="py-3 px-3"></td>
+                  <td className="py-3 px-3 text-blue-600">{totalProjectsSum}</td>
+                  <td className="py-3 px-3 text-emerald-600">{formatINR(Math.round(totalRevShareSum))}</td>
+                  <td className="py-3 px-3"></td>
                 </tr>
               </tfoot>
             )}
           </table>
         </div>
       </div>
-
+ 
       <AddEmployeeModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

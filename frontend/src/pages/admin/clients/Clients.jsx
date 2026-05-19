@@ -15,6 +15,8 @@ import {
   FiUsers,
   FiMail,
   FiPhone,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
 
 const HEALTH_CONFIG = {
@@ -115,19 +117,23 @@ const Clients = () => {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <div className="w-7 h-7 rounded-lg bg-violet-600 flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-r
+                          from-cyan-500
+                          to-blue-600 flex items-center justify-center">
                 <FiUsers size={14} className="text-white" />
               </div>
-              <h1 className="text-lg sm:text-xl font-bold text-slate-800">Client Directory</h1>
+              <h1 className="text-lg sm:text-xl font-bold text-slate-800">Client Details</h1>
             </div>
-            <p className="text-xs text-gray-400 ml-9">
+            <p className="text-xs text-blue-900 ml-9">
               {clients.length} client{clients.length !== 1 ? "s" : ""} · manage relationships &amp; health
             </p>
           </div>
 
           <button
             onClick={openCreate}
-            className="self-start sm:self-auto flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-semibold text-sm shadow-sm shadow-violet-200 transition-all active:scale-95"
+            className="self-start sm:self-auto flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r
+                          from-cyan-500
+                          to-blue-600 text-white font-semibold text-sm shadow-sm shadow-violet-200 transition-all active:scale-95"
           >
             <FiPlus size={16} />
             New Client
@@ -270,13 +276,13 @@ const Clients = () => {
                 <span className="text-xs text-gray-400">
                   {start + 1}–{Math.min(start + CLIENTS_PER_PAGE, filtered.length)} of {filtered.length}
                 </span>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                     disabled={currentPage === 1}
-                    className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 bg-white hover:bg-gray-50 disabled:opacity-40 transition-all"
+                    className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 disabled:opacity-40 transition-all"
                   >
-                    Prev
+                    <FiChevronLeft size={14} />
                   </button>
                   {Array.from({ length: totalPages }).map((_, i) => (
                     <button
@@ -294,9 +300,9 @@ const Clients = () => {
                   <button
                     onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                     disabled={currentPage === totalPages}
-                    className="px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 bg-white hover:bg-gray-50 disabled:opacity-40 transition-all"
+                    className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 disabled:opacity-40 transition-all"
                   >
-                    Next
+                    <FiChevronRight size={14} />
                   </button>
                 </div>
               </div>
@@ -418,7 +424,9 @@ const Clients = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-xs shadow-sm shadow-violet-200 transition-all active:scale-95"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r
+                          from-cyan-500
+                          to-blue-600  text-white font-bold text-xs shadow-sm shadow-violet-200 transition-all active:scale-95"
                 >
                   {editClient ? "Save Changes" : "Create Client"}
                 </button>

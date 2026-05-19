@@ -11,7 +11,6 @@ const OverheadConfigModal = ({ isOpen, onClose, currentOverheads, onUpdate }) =>
 
   useEffect(() => {
     if (isOpen) {
-      // deep copy
       setItems(currentOverheads.map(o => ({ ...o })));
       setNewItemName('');
       setNewItemAmount('');
@@ -55,44 +54,44 @@ const OverheadConfigModal = ({ isOpen, onClose, currentOverheads, onUpdate }) =>
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-fadeIn">
-      <div className="bg-[#cbd0e1] w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden flex flex-col scale-in-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-[2px] p-4 animate-fadeIn">
+      <div className="bg-white w-full max-w-sm rounded-2xl shadow-xl overflow-hidden flex flex-col border border-slate-200">
         
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-[#cbd0e1] border-b border-[#a7adcb]">
-          <h2 className="text-[#1a2035] text-base font-extrabold flex items-center gap-2">
-            <span>🏢</span> Configure Overhead Expenses
+        <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-100">
+          <h2 className="text-slate-800 text-sm font-bold flex items-center gap-1.5">
+            <span>🏢</span> Operational Overheads
           </h2>
           <button 
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/50 text-slate-600 hover:text-slate-900 hover:bg-white shadow-sm transition-colors"
+            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition-colors"
           >
-            <FiX size={18} />
+            <FiX size={16} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="px-4 py-3 bg-[#cbd0e1] flex-1 overflow-y-auto">
-          <p className="text-[#64748b] text-xs font-medium mb-5">
-            These monthly fixed costs are deducted from revenue to calculate net profit.
+        <div className="px-4 py-3 bg-white flex-1 overflow-y-auto">
+          <p className="text-slate-500 text-[10px] font-semibold mb-3">
+            Operational fixed expenses deducted from revenue to analyze overall margin.
           </p>
           
-          <div className="space-y-3">
+          <div className="space-y-2">
             {items.map((item, index) => (
-              <div key={index} className="flex items-center justify-between bg-[#f1f3f9] p-3 rounded-xl border border-white shadow-inner">
-                <span className="text-[#1e293b] font-bold text-sm flex-1">{item.name}</span>
-                <div className="flex items-center gap-3">
+              <div key={index} className="flex items-center justify-between bg-slate-50 p-2 rounded-xl border border-slate-100">
+                <span className="text-slate-700 font-bold text-xs flex-1">{item.name}</span>
+                <div className="flex items-center gap-2">
                   <input
                     type="number"
                     value={item.amount}
                     onChange={(e) => handleAmountChange(index, e.target.value)}
-                    className="w-28 bg-white border border-slate-200 text-[#1e293b] rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-bold text-sm text-right shadow-sm"
+                    className="w-20 bg-white border border-slate-200 text-slate-800 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 font-bold text-right shadow-sm"
                   />
                   <button 
                     onClick={() => handleRemove(index)}
-                    className="text-red-500 hover:text-red-600 transition-colors px-1"
+                    className="text-rose-500 hover:text-rose-600 transition-colors p-1"
                   >
-                    <FiX size={16} strokeWidth={3} />
+                    <FiX size={14} />
                   </button>
                 </div>
               </div>
@@ -100,43 +99,45 @@ const OverheadConfigModal = ({ isOpen, onClose, currentOverheads, onUpdate }) =>
           </div>
 
           {/* Add Row */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mt-4">
+          <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-slate-100">
             <input
               type="text"
-              placeholder="Expense name (e.g. Office Rent)"
+              placeholder="Expense Name (e.g. Office Rent)"
               value={newItemName}
               onChange={(e) => setNewItemName(e.target.value)}
-              className="flex-1 bg-[#f1f3f9] border border-white text-[#1e293b] rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-medium text-sm shadow-inner placeholder:text-slate-400"
+              className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 font-semibold text-xs placeholder:text-slate-400"
             />
-            <input
-              type="number"
-              placeholder="Amount ₹"
-              value={newItemAmount}
-              onChange={(e) => setNewItemAmount(e.target.value)}
-              className="w-full sm:w-32 bg-[#f1f3f9] border border-white text-[#1e293b] rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-medium text-sm shadow-inner placeholder:text-slate-400"
-            />
-            <button
-              onClick={handleAdd}
-              disabled={!newItemName || !newItemAmount}
-              className="w-full sm:w-auto px-5 py-2.5 bg-white text-[#475569] font-bold text-sm rounded-xl shadow-sm hover:bg-slate-50 disabled:opacity-50 transition-colors"
-            >
-              Add
-            </button>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                placeholder="Amount ₹"
+                value={newItemAmount}
+                onChange={(e) => setNewItemAmount(e.target.value)}
+                className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 font-semibold text-xs placeholder:text-slate-400"
+              />
+              <button
+                onClick={handleAdd}
+                disabled={!newItemName || !newItemAmount}
+                className="px-4 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-xs rounded-xl disabled:opacity-50 transition-colors"
+              >
+                Add
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 px-4 py-3 bg-[#cbd0e1] border-t border-[#a7adcb]">
+        <div className="flex justify-end gap-2 px-4 py-2.5 bg-slate-50 border-t border-slate-100">
           <button
             onClick={onClose}
-            className="px-6 py-2.5 rounded-xl bg-[#f1f3f9] text-[#475569] font-bold hover:bg-white transition-colors shadow-sm"
+            className="px-4 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-500 font-bold hover:bg-slate-100 transition-all text-xs"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="px-6 py-2.5 rounded-xl bg-[#7c5ff0] text-white font-bold hover:bg-[#6c4be0] disabled:opacity-50 transition-colors shadow-md shadow-indigo-500/30"
+            className="px-4 py-1.5 rounded-xl bg-[#7c5ff0] text-white font-bold hover:bg-[#6c4be0] disabled:opacity-50 transition-all text-xs shadow-sm"
           >
             {loading ? 'Saving...' : 'Save Overhead'}
           </button>

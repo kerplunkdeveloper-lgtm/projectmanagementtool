@@ -43,7 +43,9 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
         {/* HEADER */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-slate-50/60">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-cyan-500 flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-r
+                          from-cyan-500
+                          to-blue-600 flex items-center justify-center">
               <FiUsers size={13} className="text-white" />
             </div>
             <h2 className="text-sm font-bold text-slate-800">
@@ -100,7 +102,9 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
             <button type="button" onClick={handleClose} className="px-4 py-2 rounded-xl border border-gray-200 text-slate-600 font-semibold text-xs hover:bg-gray-50 transition-all">
               Cancel
             </button>
-            <button type="submit" className="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-600 text-white font-bold text-xs shadow-sm shadow-cyan-200 transition-all active:scale-95">
+            <button type="submit" className="px-5 py-2 rounded-xl bg-gradient-to-r
+                          from-cyan-500
+                          to-blue-600  text-white font-bold text-xs shadow-sm shadow-cyan-200 transition-all active:scale-95">
               {editUser ? "Update User" : "Create User"}
             </button>
           </div>
