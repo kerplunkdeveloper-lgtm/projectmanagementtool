@@ -16,6 +16,10 @@ const PartnerHub = () => {
   const [overheadItems, setOverheadItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
+
+
+
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
@@ -80,12 +84,12 @@ const PartnerHub = () => {
   });
 
   const totalOverhead = overheadItems.reduce((sum, item) => sum + item.amount, 0);
-  const netProfit = totalRevenue - totalCost - totalOverhead - totalSalaryCost;
+  const netProfit = totalRevenue - totalOverhead - totalSalaryCost;
   const marginPercent = totalRevenue > 0 ? Math.round((netProfit / totalRevenue) * 100) : 0;
 
   const revenueData = {
     totalRevenue,
-    totalCost: totalCost + totalOverhead + totalSalaryCost,
+    totalCost:  totalOverhead + totalSalaryCost,
     netProfit,
     marginPercent,
     overhead: totalOverhead,

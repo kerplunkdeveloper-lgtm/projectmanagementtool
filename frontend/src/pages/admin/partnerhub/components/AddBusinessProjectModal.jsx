@@ -97,10 +97,26 @@ const AddBusinessProjectModal = ({
         ? `${selectedClientObj.companyName} - ${formData.type}` 
         : formData.type;
 
+      // Calculate cost from selected employees
+      const selectedEmployeesData = users.filter((user) =>
+        formData.employees.includes(user._id)
+      );
+      
+      const calculatedCost = selectedEmployeesData.reduce(
+        (sum, emp) => {
+          const salary = emp.salary || 0;
+          const overhead = emp.overheadPercent || 0;
+          const ctc = salary + (salary * overhead) / 100;
+          return sum + ctc;
+        },
+        0
+      );
+
       const dataToSubmit = {
         ...formData,
         name: generatedName,
         revenue: Number(formData.revenue) || 0,
+        cost: calculatedCost,
       };
 
       if (projectToEdit) {
@@ -128,6 +144,62 @@ const AddBusinessProjectModal = ({
   };
 
   if (!isOpen) return null;
+
+
+
+
+
+
+
+
+
+
+
+const selectedEmployeesData = users.filter((user) =>
+  formData.employees.includes(user._id)
+);
+
+const estimatedCost = selectedEmployeesData.reduce(
+  (sum, emp) => {
+    const salary = emp.salary || 0;
+
+    const overhead =
+      emp.overheadPercent || 0;
+
+    const ctc =
+      salary + (salary * overhead) / 100;
+
+    return sum + ctc;
+  },
+  0
+);
+
+const estimatedProfit =
+  Number(formData.revenue || 0) -
+  estimatedCost;
+
+const estimatedMargin =
+  Number(formData.revenue || 0) > 0
+    ? Math.round(
+        (estimatedProfit /
+          Number(formData.revenue)) *
+          100
+      )
+    : 0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-[2px] p-4">
@@ -277,37 +349,71 @@ const AddBusinessProjectModal = ({
             </p>
           </div>
 
-          {/* Profit Preview */}
-          {Number(formData.revenue) > 0 && (
-            <div className="bg-slate-50 rounded-xl p-2.5 border border-slate-100 flex items-center justify-between">
-              <span className="text-slate-800 font-bold text-[11px] min-w-[70px]">
-                Preview
-              </span>
+        {/* Profit Preview */}
+{Number(formData.revenue) > 0 && (
+  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+    <div className="flex items-center justify-between">
+      <span className="text-slate-800 font-bold text-xs">
+        Profit Preview
+      </span>
 
-              <div className="flex-1 flex items-center justify-around">
-                <div className="text-center">
-                  <p className="text-slate-400 text-[8px] font-bold">Cost</p>
-                  <p className="text-rose-600 font-black text-xs">
-                    ₹{Math.round(Number(formData.revenue) * 0.30173).toLocaleString("en-IN")}
-                  </p>
-                </div>
+      <span
+        className={`text-xs font-black ${
+          estimatedProfit >= 0
+            ? "text-emerald-600"
+            : "text-rose-600"
+        }`}
+      >
+        {estimatedMargin}% Margin
+      </span>
+    </div>
 
-                <div className="text-center">
-                  <p className="text-slate-400 text-[8px] font-bold">Profit</p>
-                  <p className="text-emerald-600 font-black text-xs">
-                    ₹{(Number(formData.revenue) - Math.round(Number(formData.revenue) * 0.30173)).toLocaleString("en-IN")}
-                  </p>
-                </div>
+    <div className="grid grid-cols-3 gap-3 mt-3">
+      <div className="bg-white rounded-xl border border-slate-100 p-2">
+        <p className="text-[9px] text-slate-400 font-bold uppercase">
+          Revenue
+        </p>
 
-                <div className="text-center">
-                  <p className="text-slate-400 text-[8px] font-bold">Margin</p>
-                  <p className="text-emerald-600 font-black text-xs">
-                    {Math.round(((Number(formData.revenue) - Math.round(Number(formData.revenue) * 0.30173)) / Number(formData.revenue)) * 100)}%
-                  </p>
-                </div>
-              </div>
-            </div>
+        <p className="text-emerald-600 font-black text-xs mt-1">
+          ₹
+          {Number(
+            formData.revenue
+          ).toLocaleString("en-IN")}
+        </p>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-100 p-2">
+        <p className="text-[9px] text-slate-400 font-bold uppercase">
+          Cost
+        </p>
+
+        <p className="text-rose-600 font-black text-xs mt-1">
+          ₹
+          {estimatedCost.toLocaleString("en-IN")}
+        </p>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-100 p-2">
+        <p className="text-[9px] text-slate-400 font-bold uppercase">
+          Profit
+        </p>
+
+        <p
+          className={`font-black text-xs mt-1 ${
+            estimatedProfit >= 0
+              ? "text-emerald-600"
+              : "text-rose-600"
+          }`}
+        >
+          ₹
+          {estimatedProfit.toLocaleString(
+            "en-IN"
           )}
+        </p>
+      </div>
+    </div>
+  </div>
+)}
         </div>
 
         {/* Footer */}

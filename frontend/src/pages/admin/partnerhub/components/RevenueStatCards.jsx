@@ -89,7 +89,7 @@ const RevenueStatCards = ({ data }) => {
       iconKey: "revenue"
     },
     {
-      label: "Cost to Company",
+      label: "Total Cost to Company",
       value: data.totalCost,
       sub: "Salaries + Overhead",
       subType: "neutral",

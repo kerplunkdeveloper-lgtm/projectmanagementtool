@@ -98,32 +98,7 @@ const OverheadConfigModal = ({ isOpen, onClose, currentOverheads, onUpdate }) =>
             ))}
           </div>
 
-          {/* Add Row */}
-          <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-slate-100">
-            <input
-              type="text"
-              placeholder="Expense Name (e.g. Office Rent)"
-              value={newItemName}
-              onChange={(e) => setNewItemName(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 font-semibold text-xs placeholder:text-slate-400"
-            />
-            <div className="flex gap-2">
-              <input
-                type="number"
-                placeholder="Amount ₹"
-                value={newItemAmount}
-                onChange={(e) => setNewItemAmount(e.target.value)}
-                className="flex-1 bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400 font-semibold text-xs placeholder:text-slate-400"
-              />
-              <button
-                onClick={handleAdd}
-                disabled={!newItemName || !newItemAmount}
-                className="px-4 py-1.5 bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold text-xs rounded-xl disabled:opacity-50 transition-colors"
-              >
-                Add
-              </button>
-            </div>
-          </div>
+        
         </div>
 
         {/* Footer */}

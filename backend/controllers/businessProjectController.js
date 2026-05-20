@@ -42,27 +42,70 @@ exports.createBusinessProject = async (req, res, next) => {
 // @desc    Update a business project
 // @route   PUT /api/v1/business-projects/:id
 // @access  Private/Admin
-exports.updateBusinessProject = async (req, res, next) => {
+exports.updateBusinessProject = async (
+  req,
+  res,
+  next
+) => {
   try {
-    let project = await BusinessProject.findById(req.params.id);
+    let project = await BusinessProject.findById(
+      req.params.id
+    );
 
     if (!project) {
-      return res.status(404).json({ success: false, message: "Project not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Project not found",
+      });
     }
 
-    project = await BusinessProject.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    })
-      .populate("employees", "name email department role salary overheadPercent capacity")
-      .populate("client", "companyName industry primaryContact");
+    project.name =
+      req.body.name || project.name;
+
+    project.client =
+      req.body.client || project.client;
+
+    project.type =
+      req.body.type || project.type;
+
+    project.status =
+      req.body.status || project.status;
+
+    project.revenue =
+      req.body.revenue || project.revenue;
+
+    project.cost =
+      req.body.cost !== undefined ? req.body.cost : project.cost;
+
+    project.duration =
+      req.body.duration || project.duration;
+
+    project.employees =
+      req.body.employees || project.employees;
+
+    await project.save();
+
+    project = await BusinessProject.findById(
+      project._id
+    )
+      .populate(
+        "employees",
+        "name email department role salary overheadPercent capacity"
+      )
+      .populate(
+        "client",
+        "companyName industry primaryContact"
+      );
 
     res.status(200).json({
       success: true,
       data: project,
     });
   } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
+    res.status(400).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
 

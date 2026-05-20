@@ -5,7 +5,7 @@ const tabs = [
   { id: "projects", label: "Projects", icon: "📁" },
   { id: "team", label: "Team Strength", icon: "👥" },
   { id: "clients", label: "Client Splits", icon: "🏢" },
-  { id: "financials", label: "Financials", icon: "💰" },
+  // { id: "financials", label: "Financials", icon: "💰" },
 ];
 
 const FinancialsNav = ({ activeTab, setActiveTab, onExport }) => {
