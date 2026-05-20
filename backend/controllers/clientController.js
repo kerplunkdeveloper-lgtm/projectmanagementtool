@@ -1,57 +1,60 @@
-// controllers/clientController.js
-
 const Client = require("../models/Client");
 
 
-
-// ==========================================
-// CREATE CLIENT
-// ==========================================
-
-exports.createClient = async (
-  req,
-  res
-) => {
+// @desc    Create Client
+// @route   POST /api/clients
+// @access  Private
+exports.createClient = async (req, res) => {
   try {
     const {
       companyName,
       industry,
-      primaryContact,
+      phoneNumber,
       email,
-      services,
-      healthStatus,
-      notes,
+      budget,
+      gst,
+      service,
+      reels,
+      posts,
+      videos,
+      needDslr,
+      pages,
+      onpage,
+      offpage,
+      assignedTo,
     } = req.body;
 
-    if (
-      !companyName ||
-      !industry ||
-      !primaryContact
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Please fill all required fields",
-      });
-    }
+    const totalBudget =
+      Number(budget) +
+      (Number(budget) * Number(gst)) / 100;
 
-    const client =
-      await Client.create({
-        companyName,
-        industry,
-        primaryContact,
-        email,
-        services,
-        healthStatus,
-        notes,
-        createdBy: req.user.id,
-      });
+    const client = await Client.create({
+      companyName,
+      industry,
+      phoneNumber,
+      email,
+      budget,
+      gst,
+      totalBudget,
+      service,
+      reels,
+      posts,
+      videos,
+      needDslr,
+      pages,
+      onpage,
+      offpage,
+      createdBy: req.user._id,
+      assignedTo: assignedTo || undefined,
+    });
+
+    const populatedClient = await Client.findById(client._id)
+      .populate("createdBy", "name email role")
+      .populate("assignedTo", "name email role");
 
     res.status(201).json({
       success: true,
-      message:
-        "Client created successfully",
-      data: client,
+      data: populatedClient,
     });
   } catch (error) {
     res.status(500).json({
@@ -62,25 +65,21 @@ exports.createClient = async (
 };
 
 
-
-// ==========================================
-// GET ALL CLIENTS
-// ==========================================
-
-exports.getClients = async (
-  req,
-  res
-) => {
+// @desc    Get All Clients
+// @route   GET /api/clients
+// @access  Private
+exports.getClients = async (req, res) => {
   try {
-    const clients =
-      await Client.find()
-        .populate(
-          "createdBy",
-          "name email"
-        )
-        .sort({
-          createdAt: -1,
-        });
+    const clients = await Client.find()
+      .populate(
+        "createdBy",
+        "name email role"
+      )
+      .populate(
+        "assignedTo",
+        "name email role"
+      )
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -96,26 +95,21 @@ exports.getClients = async (
 };
 
 
-
-// ==========================================
-// GET SINGLE CLIENT
-// ==========================================
-
-exports.getClient = async (
-  req,
-  res
-) => {
+// @desc    Get Single Client
+// @route   GET /api/clients/:id
+// @access  Private
+exports.getClient = async (req, res) => {
   try {
-    const client =
-      await Client.findById(
-        req.params.id
-      );
+    const client = await Client.findById(
+      req.params.id
+    )
+      .populate("createdBy", "name email role")
+      .populate("assignedTo", "name email role");
 
     if (!client) {
       return res.status(404).json({
         success: false,
-        message:
-          "Client not found",
+        message: "Client not found",
       });
     }
 
@@ -132,16 +126,17 @@ exports.getClient = async (
 };
 
 
-
-// ==========================================
-// UPDATE CLIENT
-// ==========================================
-
-exports.updateClient = async (
-  req,
-  res
-) => {
+// @desc    Update Client
+// @route   PUT /api/clients/:id
+// @access  Private
+exports.updateClient = async (req, res) => {
   try {
+    const budget = Number(req.body.budget);
+    const gst = Number(req.body.gst);
+
+    req.body.totalBudget =
+      budget + (budget * gst) / 100;
+
     const client =
       await Client.findByIdAndUpdate(
         req.params.id,
@@ -150,20 +145,19 @@ exports.updateClient = async (
           new: true,
           runValidators: true,
         }
-      );
+      )
+        .populate("createdBy", "name email role")
+        .populate("assignedTo", "name email role");
 
     if (!client) {
       return res.status(404).json({
         success: false,
-        message:
-          "Client not found",
+        message: "Client not found",
       });
     }
 
     res.status(200).json({
       success: true,
-      message:
-        "Client updated successfully",
       data: client,
     });
   } catch (error) {
@@ -175,26 +169,19 @@ exports.updateClient = async (
 };
 
 
-
-// ==========================================
-// DELETE CLIENT
-// ==========================================
-
-exports.deleteClient = async (
-  req,
-  res
-) => {
+// @desc    Delete Client
+// @route   DELETE /api/clients/:id
+// @access  Private
+exports.deleteClient = async (req, res) => {
   try {
-    const client =
-      await Client.findById(
-        req.params.id
-      );
+    const client = await Client.findById(
+      req.params.id
+    );
 
     if (!client) {
       return res.status(404).json({
         success: false,
-        message:
-          "Client not found",
+        message: "Client not found",
       });
     }
 
@@ -202,8 +189,7 @@ exports.deleteClient = async (
 
     res.status(200).json({
       success: true,
-      message:
-        "Client deleted successfully",
+      message: "Client deleted successfully",
     });
   } catch (error) {
     res.status(500).json({
@@ -212,6 +198,3 @@ exports.deleteClient = async (
     });
   }
 };
-
-
-

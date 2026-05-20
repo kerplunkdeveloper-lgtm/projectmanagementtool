@@ -1,5 +1,3 @@
-// routes/clientRoutes.js
-
 const express = require("express");
 
 const router = express.Router();
@@ -10,60 +8,56 @@ const {
   getClient,
   updateClient,
   deleteClient,
-  toggleClientStatus,
 } = require("../controllers/clientController");
 
-const { protect } = require('../middleware/auth');
-
+const {
+  protect,
+  authorize,
+} = require("../middleware/auth");
 
 
 // CREATE CLIENT
 router.post(
-  "/create",
+  "/",
   protect,
+  authorize("admin"),
   createClient
 );
 
 
-
 // GET ALL CLIENTS
 router.get(
-  "/all",
+  "/",
   protect,
+  authorize("admin"),
   getClients
 );
-
 
 
 // GET SINGLE CLIENT
 router.get(
   "/:id",
   protect,
+  authorize("admin"),
   getClient
 );
 
 
-
 // UPDATE CLIENT
 router.put(
-  "/update/:id",
+  "/:id",
   protect,
-  
+  authorize("admin"),
   updateClient
 );
 
 
-
 // DELETE CLIENT
 router.delete(
-  "/delete/:id",
+  "/:id",
   protect,
-
+  authorize("admin"),
   deleteClient
 );
-
-
-
-
 
 module.exports = router;

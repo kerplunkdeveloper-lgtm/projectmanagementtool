@@ -1,5 +1,3 @@
-
-
 const mongoose = require("mongoose");
 
 const clientSchema = new mongoose.Schema(
@@ -16,50 +14,90 @@ const clientSchema = new mongoose.Schema(
       trim: true,
     },
 
-    primaryContact: {
+    phoneNumber: {
       type: String,
       required: true,
+      trim: true,
     },
 
     email: {
       type: String,
+      required: true,
       trim: true,
       lowercase: true,
     },
 
-    services: [
-      {
-        type: String,
-        enum: [
-          "SMM",
-          "SEO",
-          "Ads",
-          "Video",
-          "Brand",
-        ],
-      },
-    ],
+    budget: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
 
-    healthStatus: {
+    gst: {
+      type: Number,
+      default: 18,
+    },
+
+    totalBudget: {
+      type: Number,
+      default: 0,
+    },
+
+    service: {
       type: String,
       enum: [
-        "Green",
-        "Yellow",
-        "Red",
+        "Digital Marketing",
+        "Website",
+        "SEO",
       ],
-      default: "Green",
+      required: true,
     },
 
-    notes: {
+    // DIGITAL MARKETING
+    reels: {
+      type: Number,
+      default: 0,
+    },
+
+    posts: {
+      type: Number,
+      default: 0,
+    },
+
+    videos: {
+      type: Number,
+      default: 0,
+    },
+
+    needDslr: {
       type: String,
+      enum: ["Need DSLR", "No DSLR", ""],
+      default: "",
     },
 
-    isActive: {
+    // WEBSITE
+    pages: {
+      type: Number,
+      default: 0,
+    },
+
+    // SEO
+    onpage: {
       type: Boolean,
-      default: true,
+      default: false,
+    },
+
+    offpage: {
+      type: Boolean,
+      default: false,
     },
 
     createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+
+    assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },

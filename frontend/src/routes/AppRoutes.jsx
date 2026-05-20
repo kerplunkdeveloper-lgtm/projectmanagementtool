@@ -19,10 +19,9 @@ import Profile from "../pages/profile/Profile.jsx";
 
 import OperationHome from "../pages/OperationMananger/OperationHome.jsx";
 import OperationProjects from "../pages/OperationMananger/OperationProjects.jsx";
-import TaskManagement from "../pages/tasks/TaskManagement.jsx";
+
 
 import TeamHome from "../pages/team/TeamHome.jsx";
-import TeamTasks from "../pages/team/TeamTasks.jsx";
 import EodReports from "../pages/team/EodReports.jsx";
 import AdminEodReports from "../pages/admin/AdminEodReports.jsx";
 
@@ -55,22 +54,21 @@ const AppRoutes = () => {
           element={<Dashboardmain />}
         />
 
+          <Route
+          path="clients"
+          element={<Clients />}
+        />
+
         <Route
           path="projects"
           element={<Project />} 
         />
 
         
-          <Route
-          path="tasks"
-          element={<TaskManagement />}
-        />
+       
 
 
-          <Route
-          path="clients"
-          element={<Clients />}
-        />
+        
 
         <Route
           path="users"
@@ -131,10 +129,7 @@ const AppRoutes = () => {
           element={<Project />} 
         />
 
-        <Route
-          path="tasks"
-          element={<TaskManagement />}
-        />
+    
 
 
           <Route
@@ -164,10 +159,7 @@ const AppRoutes = () => {
           element={<Dashboardmain />}
         />
 
-        <Route
-          path="tasks"
-          element={<TeamTasks />}
-        />
+      
 
         <Route
           path="eod-reports"

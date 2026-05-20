@@ -64,7 +64,7 @@ const AddBusinessProjectModal = ({
 
   const fetchClients = async () => {
     try {
-      const res = await axiosInstance.get("/clients/all");
+      const res = await axiosInstance.get("/clients");
       const clientList = res.data.data || res.data;
       setClients(Array.isArray(clientList) ? clientList : []);
     } catch (err) {

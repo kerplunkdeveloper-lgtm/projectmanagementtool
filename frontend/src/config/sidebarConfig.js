@@ -18,6 +18,14 @@ export const sidebarConfig = {
       path: "/admin",
       icon: FiHome,
     },
+
+       {
+      name: "Clients",
+      path: "/admin/clients",
+      icon: FiFolder,
+    },
+
+    
     {
       name: "Projects",
       path: "/admin/projects",
@@ -25,17 +33,9 @@ export const sidebarConfig = {
     },
 
 
-      {
-      name: "Tasks",
-      path: "/admin/tasks",
-      icon: FiCheckSquare,
-    },
+    
 
-      {
-      name: "Clients",
-      path: "/admin/clients",
-      icon: FiFolder,
-    },
+   
 
        {
       name: "Template Library",

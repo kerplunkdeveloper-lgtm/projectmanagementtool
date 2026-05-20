@@ -1,442 +1,945 @@
-import React, { useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  FiPlus,
+  FiEdit,
+  FiTrash2,
+  FiX,
+  FiUsers,
+  FiSearch,
+  FiPhone,
+  FiMail,
+} from "react-icons/fi";
+
+import {
+  useDispatch,
+  useSelector,
+} from "react-redux";
+
 import {
   getClients,
   createClient,
   updateClient,
   deleteClient,
 } from "../../../features/clients/clientslice";
-import {
-  FiPlus,
-  FiEdit2,
-  FiTrash2,
-  FiX,
-  FiSearch,
-  FiUsers,
-  FiMail,
-  FiPhone,
-  FiChevronLeft,
-  FiChevronRight,
-} from "react-icons/fi";
 
-const HEALTH_CONFIG = {
-  Green:  { pill: "bg-emerald-50 text-emerald-600 border-emerald-200",  dot: "bg-emerald-500" },
-  Yellow: { pill: "bg-amber-50  text-amber-600  border-amber-200",   dot: "bg-amber-500"  },
-  Red:    { pill: "bg-rose-50   text-rose-600   border-rose-200",    dot: "bg-rose-500"   },
-};
-
-const SERVICE_TAG = "px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-100 text-slate-600 border border-slate-200";
-
-const ALL_SERVICES = ["SMM", "SEO", "Ads", "Video", "Brand"];
-
-const CLIENTS_PER_PAGE = 6;
-
-const AVATAR_COLORS = [
-  "from-violet-400 to-indigo-500",
-  "from-cyan-400 to-blue-500",
-  "from-emerald-400 to-teal-500",
-  "from-orange-400 to-amber-500",
-  "from-pink-400 to-rose-500",
-];
+import { getUsers } from "../../../features/users/userSlice";
 
 const Clients = () => {
   const dispatch = useDispatch();
-  const { clients, loading } = useSelector((state) => state.clients);
 
-  const [openModal, setOpenModal] = useState(false);
-  const [editClient, setEditClient] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [formData, setFormData] = useState({
+  const { clients, loading } =
+    useSelector(
+      (state) => state.clients
+    );
+
+  const { users } =
+    useSelector(
+      (state) => state.users
+    );
+
+  const [showModal, setShowModal] =
+    useState(false);
+
+  const [editId, setEditId] =
+    useState(null);
+
+  const [searchTerm, setSearchTerm] =
+    useState("");
+
+  const [serviceFilter, setServiceFilter] =
+    useState("All");
+
+  const [clientToDelete, setClientToDelete] =
+    useState(null);
+
+  const initialForm = {
     companyName: "",
     industry: "",
-    primaryContact: "",
+    phoneNumber: "",
     email: "",
-    services: [],
-    healthStatus: "Green",
-    notes: "",
-  });
 
-  useEffect(() => { dispatch(getClients()); }, [dispatch]);
+    budget: "",
+    gst: "",
+    totalBudget: "",
 
-  const handleChange = (e) =>
-    setFormData((p) => ({ ...p, [e.target.name]: e.target.value }));
+    service: "",
 
-  const handleService = (s) =>
-    setFormData((p) => ({
-      ...p,
-      services: p.services.includes(s)
-        ? p.services.filter((x) => x !== s)
-        : [...p.services, s],
+    // Digital Marketing
+    reels: "",
+    posts: "",
+    videos: "",
+    needDslr: "",
+
+    // Website
+    pages: "",
+
+    // SEO
+    onpage: false,
+    offpage: false,
+
+    assignedTo: "",
+  };
+
+  const [formData, setFormData] =
+    useState(initialForm);
+
+  // ============================================
+  // GET CLIENTS
+  // ============================================
+
+  useEffect(() => {
+    dispatch(getClients());
+    dispatch(getUsers());
+  }, [dispatch]);
+
+  // ============================================
+  // HANDLE CHANGE
+  // ============================================
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } =
+      e.target;
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]:
+        type === "checkbox"
+          ? checked
+          : value,
     }));
-
-  const openCreate = () => {
-    setEditClient(null);
-    setFormData({ companyName: "", industry: "", primaryContact: "", email: "", services: [], healthStatus: "Green", notes: "" });
-    setOpenModal(true);
   };
 
-  const openEdit = (client) => {
-    setEditClient(client);
-    setFormData({
-      companyName: client.companyName,
-      industry: client.industry,
-      primaryContact: client.primaryContact,
-      email: client.email,
-      services: client.services,
-      healthStatus: client.healthStatus,
-      notes: client.notes,
-    });
-    setOpenModal(true);
+  // ============================================
+  // CALCULATE TOTAL
+  // ============================================
+
+  const calculateTotal = () => {
+    const budget = Number(
+      formData.budget || 0
+    );
+
+    const gst = Number(
+      formData.gst || 0
+    );
+
+    return (
+      budget + (budget * gst) / 100
+    );
   };
 
-  const handleSubmit = (e) => {
+  // ============================================
+  // SUBMIT
+  // ============================================
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (editClient) dispatch(updateClient({ id: editClient._id, data: formData }));
-    else dispatch(createClient(formData));
-    setOpenModal(false);
-    setEditClient(null);
+
+    const payload = {
+      ...formData,
+      totalBudget:
+        calculateTotal(),
+    };
+
+    if (editId) {
+      await dispatch(
+        updateClient({
+          id: editId,
+          data: payload,
+        })
+      );
+    } else {
+      await dispatch(
+        createClient(payload)
+      );
+    }
+
+    setShowModal(false);
+    setFormData(initialForm);
+    setEditId(null);
   };
 
-  const filtered = [...clients]
-    .filter((c) => c.companyName?.toLowerCase().includes(searchTerm.toLowerCase()))
-    .sort((a, b) => a.companyName.localeCompare(b.companyName));
+  // ============================================
+  // EDIT
+  // ============================================
 
-  const totalPages = Math.ceil(filtered.length / CLIENTS_PER_PAGE);
-  const start = (currentPage - 1) * CLIENTS_PER_PAGE;
-  const paginated = filtered.slice(start, start + CLIENTS_PER_PAGE);
+  const handleEdit = (client) => {
+    setFormData({
+      ...client,
+      assignedTo: client.assignedTo?._id || client.assignedTo || "",
+    });
 
-  const avatarColor = (name) =>
-    AVATAR_COLORS[(name?.charCodeAt(0) || 0) % AVATAR_COLORS.length];
+    setEditId(client._id);
+
+    setShowModal(true);
+  };
+
+  // ============================================
+  // DELETE
+  // ============================================
+
+  const handleDelete = async (id) => {
+    await dispatch(deleteClient(id));
+  };
+
+  // ============================================
+  // FILTER
+  // ============================================
+
+  const adminUsers = useMemo(() => {
+    return (users || []).filter((u) => u.role === "admin");
+  }, [users]);
+
+  const filteredClients = useMemo(() => {
+    return (clients || []).filter((client) => {
+      const matchesSearch = (
+        client.companyName || ""
+      )
+        .toLowerCase()
+        .includes(
+          searchTerm.toLowerCase()
+        );
+
+      const matchesService =
+        serviceFilter === "All"
+          ? true
+          : client.service ===
+            serviceFilter;
+
+      return (
+        matchesSearch &&
+        matchesService
+      );
+    });
+  }, [
+    clients,
+    searchTerm,
+    serviceFilter,
+  ]);
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
-      <div className="max-w-7xl mx-auto px-3 sm:px-5 py-4 sm:py-6">
-
-        {/* ── HEADER ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
-          <div>
-            <div className="flex items-center gap-2 mb-0.5">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-r
-                          from-cyan-500
-                          to-blue-600 flex items-center justify-center">
-                <FiUsers size={14} className="text-white" />
-              </div>
-              <h1 className="text-lg sm:text-xl font-bold text-slate-800">Client Details</h1>
+    <div className="min-h-screen bg-[#f4f7fb] p-3">
+      {/* HEADER */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
+        <div>
+          <h1 className="text-[20px] font-semibold text-gray-800 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 text-white flex items-center justify-center shadow">
+              <FiUsers size={14} />
             </div>
-            <p className="text-xs text-blue-900 ml-9">
-              {clients.length} client{clients.length !== 1 ? "s" : ""} · manage relationships &amp; health
-            </p>
-          </div>
 
-          <button
-            onClick={openCreate}
-            className="self-start sm:self-auto flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r
-                          from-cyan-500
-                          to-blue-600 text-white font-semibold text-sm shadow-sm shadow-violet-200 transition-all active:scale-95"
-          >
-            <FiPlus size={16} />
-            New Client
-          </button>
+            Client Details
+          </h1>
+
+          <p className="text-[10px] text-gray-500 mt-1">
+            Manage all client details
+          </p>
         </div>
 
-        {/* ── SEARCH ── */}
-        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 mb-5 w-full sm:w-72">
-          <FiSearch size={13} className="text-gray-400 shrink-0" />
+        <button
+          onClick={() => {
+            setShowModal(true);
+
+            setEditId(null);
+
+            setFormData(initialForm);
+          }}
+          className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-4 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow text-[12px] font-medium w-fit"
+        >
+          <FiPlus size={12} />
+          Add Client
+        </button>
+      </div>
+
+      {/* SEARCH + FILTER */}
+      <div className="flex flex-col lg:flex-row gap-2 mb-4">
+        {/* SEARCH */}
+        <div className="relative w-full lg:w-[240px]">
+          <FiSearch
+            size={12}
+            className="absolute top-1/2 -translate-y-1/2 left-3 text-gray-400"
+          />
+
           <input
             type="text"
-            placeholder="Search by company name..."
+            placeholder="Search client..."
             value={searchTerm}
-            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-            className="bg-transparent outline-none text-xs text-gray-700 placeholder:text-gray-400 w-full"
+            onChange={(e) =>
+              setSearchTerm(
+                e.target.value
+              )
+            }
+            className="w-full h-10 pl-9 pr-3 rounded-xl border border-gray-200 bg-white text-[12px] outline-none focus:ring-2 focus:ring-blue-500"
           />
-          {searchTerm && (
-            <button onClick={() => setSearchTerm("")} className="text-gray-300 hover:text-gray-500">
-              <FiX size={12} />
-            </button>
-          )}
         </div>
 
-        {/* ── CONTENT ── */}
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <div className="w-8 h-8 border-3 border-violet-100 border-t-violet-500 rounded-full animate-spin" />
-            <p className="text-gray-400 text-xs">Loading clients...</p>
-          </div>
-        ) : paginated.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-12 h-12 bg-gray-100 rounded-2xl flex items-center justify-center mb-3">
-              <FiUsers size={22} className="text-gray-300" />
-            </div>
-            <h2 className="text-sm font-bold text-slate-600">No Clients Found</h2>
-            <p className="text-xs text-gray-400 mt-1">
-              {searchTerm ? "Try a different search" : "Add your first client to get started"}
-            </p>
-            {!searchTerm && (
-              <button onClick={openCreate} className="mt-4 flex items-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700 transition-all">
-                <FiPlus size={13} /> New Client
-              </button>
-            )}
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-              {paginated.map((client) => {
-                const health = HEALTH_CONFIG[client.healthStatus] || HEALTH_CONFIG.Green;
-                const grad = avatarColor(client.companyName);
-                return (
-                  <div
-                    key={client._id}
-                    className="group bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col"
-                  >
-                    {/* CARD TOP */}
-                    <div className="flex items-start gap-3 mb-3">
-                      {/* Avatar */}
-                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${grad} flex items-center justify-center text-white font-bold text-base flex-shrink-0`}>
-                        {client.companyName.charAt(0).toUpperCase()}
+        {/* FILTER */}
+        <select
+          value={serviceFilter}
+          onChange={(e) =>
+            setServiceFilter(
+              e.target.value
+            )
+          }
+          className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-[12px] outline-none focus:ring-2 focus:ring-blue-500 w-full lg:w-[180px]"
+        >
+          <option value="All">
+            All Services
+          </option>
+
+          <option value="Digital Marketing">
+            Digital Marketing
+          </option>
+
+          <option value="Website">
+            Website
+          </option>
+
+          <option value="SEO">
+            SEO
+          </option>
+        </select>
+      </div>
+
+      {/* LOADING */}
+      {loading && (
+        <div className="flex items-center justify-center py-10">
+          <div className="w-8 h-8 border-[3px] border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+
+      {/* GRID */}
+      {!loading && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+          {filteredClients.length >
+          0 ? (
+            filteredClients.map(
+              (client) => (
+                <div
+                  key={client._id}
+                  className="relative overflow-hidden bg-white border border-gray-100 rounded-2xl p-3 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                >
+                  {/* TOP LINE */}
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-purple-500"></div>
+
+                  {/* HEADER */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 text-white flex items-center justify-center text-[13px] font-semibold shrink-0">
+                        {client.companyName?.charAt(
+                          0
+                        )}
                       </div>
 
-                      {/* Name & Industry */}
-                      <div className="flex-1 min-w-0">
-                        <h3
-                          className="text-sm font-bold text-slate-800 group-hover:text-violet-600 transition-colors truncate"
-                          title={client.companyName}
-                        >
-                          {client.companyName}
-                        </h3>
-                        <p className="text-[10px] text-gray-400 font-medium truncate">{client.industry}</p>
-                      </div>
+                      <div className="min-w-0">
+                        <h2 className="text-[13px] font-semibold text-gray-800 truncate">
+                          {
+                            client.companyName
+                          }
+                        </h2>
 
-                      {/* Health + Actions */}
-                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${health.pill}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${health.dot}`} />
-                          {client.healthStatus}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => openEdit(client)}
-                            className="w-6 h-6 rounded-md bg-amber-50 text-amber-500 flex items-center justify-center hover:bg-amber-100 transition-all"
-                            title="Edit"
-                          >
-                            <FiEdit2 size={11} />
-                          </button>
-                          <button
-                            onClick={() => dispatch(deleteClient(client._id))}
-                            className="w-6 h-6 rounded-md bg-rose-50 text-rose-500 flex items-center justify-center hover:bg-rose-100 transition-all"
-                            title="Delete"
-                          >
-                            <FiTrash2 size={11} />
-                          </button>
+                        <p className="text-[10px] text-gray-500 truncate">
+                          {
+                            client.industry
+                          }
+                        </p>
+
+                        {/* PHONE */}
+                        <div className="mt-1 space-y-1">
+                          <div className="flex items-center gap-1 text-[10px] text-gray-500 truncate">
+                            <FiPhone size={9} />
+
+                            {
+                              client.phoneNumber
+                            }
+                          </div>
+
+                          <div className="flex items-center gap-1 text-[10px] text-gray-500 truncate">
+                            <FiMail size={9} />
+
+                            {client.email}
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    {/* CONTACT INFO */}
-                    <div className="grid grid-cols-2 gap-2 mb-3">
-                      <div className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-2 py-1.5 min-w-0">
-                        <FiPhone size={10} className="text-gray-400 shrink-0" />
-                        <span className="text-[11px] text-gray-600 truncate font-medium" title={client.primaryContact}>
-                          {client.primaryContact || "—"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-2 py-1.5 min-w-0">
-                        <FiMail size={10} className="text-gray-400 shrink-0" />
-                        <span className="text-[11px] text-gray-600 truncate font-medium" title={client.email}>
-                          {client.email || "—"}
-                        </span>
-                      </div>
+                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-lg text-[9px] font-medium whitespace-nowrap">
+                      {client.service}
+                    </span>
+                  </div>
+
+                  {/* BUDGET */}
+                  <div className="grid grid-cols-2 gap-2 mt-3">
+                    <div className="bg-gray-50 rounded-xl p-2">
+                      <p className="text-[9px] text-gray-400">
+                        Budget
+                      </p>
+
+                      <h3 className="text-[12px] font-semibold text-gray-800 mt-1">
+                        ₹
+                        {Number(
+                          client.budget
+                        ).toLocaleString(
+                          "en-IN"
+                        )}
+                      </h3>
                     </div>
 
-                    {/* SERVICES */}
-                    {client.services?.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {client.services.map((s) => (
-                          <span key={s} className={SERVICE_TAG}>{s}</span>
-                        ))}
+                    <div className="bg-green-50 rounded-xl p-2">
+                      <p className="text-[9px] text-gray-400">
+                        Total
+                      </p>
+
+                      <h3 className="text-[12px] font-semibold text-green-600 mt-1">
+                        ₹
+                        {Number(
+                          client.totalBudget
+                        ).toLocaleString(
+                          "en-IN"
+                        )}
+                      </h3>
+                    </div>
+                  </div>
+
+                  {/* GST */}
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-[9px] font-medium inline-flex">
+                      GST {client.gst}%
+                    </span>
+                    {client.assignedTo && (
+                      <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-[9px] font-semibold inline-flex items-center gap-1 border border-slate-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                        Assigned: {client.assignedTo.name || client.assignedTo.email}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* COMMITMENT */}
+                  <div className="mt-3">
+                    <h4 className="text-[10px] font-semibold text-gray-700 mb-2">
+                      Commitment
+                    </h4>
+
+                    {/* DIGITAL MARKETING */}
+                    {client.service ===
+                      "Digital Marketing" && (
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap gap-1">
+                          <span className="bg-gray-100 px-2 py-1 rounded-lg text-[9px]">
+                            Reels :{" "}
+                            {client.reels ||
+                              0}
+                          </span>
+
+                          <span className="bg-gray-100 px-2 py-1 rounded-lg text-[9px]">
+                            Posts :{" "}
+                            {client.posts ||
+                              0}
+                          </span>
+
+                          <span className="bg-gray-100 px-2 py-1 rounded-lg text-[9px]">
+                            Videos :{" "}
+                            {client.videos ||
+                              0}
+                          </span>
+                        </div>
+
+                        {/* DSLR */}
+                        {client.needDslr && (
+                          <div className="flex flex-wrap gap-1">
+                            <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-[9px]">
+                              {
+                                client.needDslr
+                              }
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
 
-                    {/* NOTES */}
-                    {client.notes && (
-                      <div className="pt-2.5 mt-auto border-t border-gray-100">
-                        <p className="text-[11px] text-gray-400 italic line-clamp-2">
-                          {client.notes}
-                        </p>
+                    {/* WEBSITE */}
+                    {client.service ===
+                      "Website" && (
+                      <div className="bg-green-100 text-green-700 px-2 py-1 rounded-lg text-[10px] inline-flex">
+                        Pages :{" "}
+                        {client.pages ||
+                          0}
+                      </div>
+                    )}
+
+                    {/* SEO */}
+                    {client.service ===
+                      "SEO" && (
+                      <div className="flex flex-wrap gap-1">
+                        {client.onpage && (
+                          <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-[9px]">
+                            On Page
+                          </span>
+                        )}
+
+                        {client.offpage && (
+                          <span className="bg-pink-100 text-pink-700 px-2 py-1 rounded-full text-[9px]">
+                            Off Page
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
-                );
-              })}
-            </div>
 
-            {/* PAGINATION */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between gap-3 mt-5 pt-4 border-t border-gray-200">
-                <span className="text-xs text-gray-400">
-                  {start + 1}–{Math.min(start + CLIENTS_PER_PAGE, filtered.length)} of {filtered.length}
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                    disabled={currentPage === 1}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 disabled:opacity-40 transition-all"
-                  >
-                    <FiChevronLeft size={14} />
-                  </button>
-                  {Array.from({ length: totalPages }).map((_, i) => (
+                  {/* ACTIONS */}
+                  <div className="flex items-center gap-2 mt-4">
                     <button
-                      key={i}
-                      onClick={() => setCurrentPage(i + 1)}
-                      className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${
-                        currentPage === i + 1
-                          ? "bg-violet-600 text-white shadow-sm"
-                          : "bg-white border border-gray-200 text-gray-500 hover:bg-gray-50"
-                      }`}
+                      onClick={() =>
+                        handleEdit(
+                          client
+                        )
+                      }
+                      className="flex-1 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 py-2 rounded-xl flex items-center justify-center gap-1 text-[10px] font-medium transition-all duration-300"
                     >
-                      {i + 1}
+                      <FiEdit size={11} />
+                      Edit
                     </button>
-                  ))}
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg border border-gray-200 text-gray-600 bg-white hover:bg-gray-50 disabled:opacity-40 transition-all"
-                  >
-                    <FiChevronRight size={14} />
-                  </button>
+
+                    <button
+                      onClick={() =>
+                        setClientToDelete(
+                          client
+                        )
+                      }
+                      className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 py-2 rounded-xl flex items-center justify-center gap-1 text-[10px] font-medium transition-all duration-300"
+                    >
+                      <FiTrash2 size={11} />
+                      Delete
+                    </button>
+                  </div>
                 </div>
+              )
+            )
+          ) : (
+            <div className="col-span-full py-16 flex flex-col items-center justify-center text-center bg-white rounded-2xl border border-dashed border-gray-300">
+              <div className="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center mb-3">
+                <FiUsers
+                  className="text-blue-600"
+                  size={20}
+                />
               </div>
-            )}
-          </>
-        )}
-      </div>
 
-      {/* ── MODAL ── */}
-      {openModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-3 z-50">
-          <div className="bg-white w-full max-w-lg rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
-
-            {/* MODAL HEADER */}
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-slate-50/60">
-              <h2 className="text-sm font-bold text-slate-800">
-                {editClient ? "✏️ Update Client" : "✨ New Client"}
+              <h2 className="text-[14px] font-semibold text-gray-700">
+                No Clients Found
               </h2>
+
+              <p className="text-[10px] text-gray-500 mt-1">
+                Add your first client
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* MODAL */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3">
+          <div className="bg-white w-full max-w-3xl rounded-2xl overflow-hidden shadow-2xl max-h-[95vh] overflow-y-auto">
+            {/* HEADER */}
+            <div className=" px-4 py-3 flex items-center justify-between">
+              <div>
+                <h2 className="text-[16px] font-semibold">
+                  {editId
+                    ? "Edit Client"
+                    : "Add Client"}
+                </h2>
+
+                <p className="text-blue-800 text-[10px] mt-1">
+                  Manage client
+                  information
+                </p>
+              </div>
+
               <button
-                onClick={() => setOpenModal(false)}
-                className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all"
+                onClick={() =>
+                  setShowModal(false)
+                }
+                className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center"
               >
                 <FiX size={14} />
               </button>
             </div>
 
             {/* FORM */}
-            <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3 max-h-[78vh] overflow-y-auto">
-
-              {/* Name + Industry */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Company Name *</label>
-                  <input
-                    name="companyName" required value={formData.companyName} onChange={handleChange}
-                    placeholder="Acme Corp"
-                    className="w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all text-sm text-slate-700"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Industry *</label>
-                  <input
-                    name="industry" required value={formData.industry} onChange={handleChange}
-                    placeholder="Technology"
-                    className="w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all text-sm text-slate-700"
-                  />
-                </div>
-              </div>
-
-              {/* Phone + Email */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Phone *</label>
-                  <input
-                    name="primaryContact" required value={formData.primaryContact} onChange={handleChange}
-                    placeholder="+91 98765 43210"
-                    className="w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all text-sm text-slate-700"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Email *</label>
-                  <input
-                    type="email" name="email" required value={formData.email} onChange={handleChange}
-                    placeholder="contact@acme.com"
-                    className="w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all text-sm text-slate-700"
-                  />
-                </div>
-              </div>
-
-              {/* Services + Health */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Services</label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {ALL_SERVICES.map((s) => (
-                      <button
-                        key={s} type="button" onClick={() => handleService(s)}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
-                          formData.services.includes(s)
-                            ? "bg-violet-600 text-white border-violet-600"
-                            : "bg-white text-slate-500 border-gray-200 hover:bg-gray-50"
-                        }`}
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Health Status</label>
-                  <select
-                    name="healthStatus" value={formData.healthStatus} onChange={handleChange}
-                    className="w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all text-sm text-slate-700 cursor-pointer"
-                  >
-                    <option>Green</option>
-                    <option>Yellow</option>
-                    <option>Red</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Notes */}
+            <form
+              onSubmit={handleSubmit}
+              className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3"
+            >
+              {/* COMPANY */}
               <div>
-                <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Notes</label>
-                <textarea
-                  name="notes" rows="2" value={formData.notes} onChange={handleChange}
-                  placeholder="Client relationship notes..."
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all text-sm text-slate-700 resize-none"
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">
+                  Company Name
+                </label>
+
+                <input
+                  type="text"
+                  name="companyName"
+                  value={
+                    formData.companyName
+                  }
+                  onChange={handleChange}
+                  placeholder="Enter company name"
+                  className="w-full h-10 rounded-lg border border-gray-200 px-3 outline-none focus:ring-2 focus:ring-blue-500 text-[12px]"
+                  required
                 />
               </div>
 
+              {/* INDUSTRY */}
+              <div>
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">
+                  Industry
+                </label>
+
+                <input
+                  type="text"
+                  name="industry"
+                  value={formData.industry}
+                  onChange={handleChange}
+                  placeholder="Enter industry"
+                  className="w-full h-10 rounded-lg border border-gray-200 px-3 outline-none focus:ring-2 focus:ring-blue-500 text-[12px]"
+                  required
+                />
+              </div>
+
+              {/* PHONE */}
+              <div>
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">
+                  Phone Number
+                </label>
+
+                <input
+                  type="text"
+                  name="phoneNumber"
+                  value={
+                    formData.phoneNumber
+                  }
+                  onChange={handleChange}
+                  placeholder="Enter phone number"
+                  className="w-full h-10 rounded-lg border border-gray-200 px-3 outline-none focus:ring-2 focus:ring-blue-500 text-[12px]"
+                />
+              </div>
+
+              {/* EMAIL */}
+              <div>
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">
+                  Email ID
+                </label>
+
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="Enter email id"
+                  className="w-full h-10 rounded-lg border border-gray-200 px-3 outline-none focus:ring-2 focus:ring-blue-500 text-[12px]"
+                />
+              </div>
+
+              {/* BUDGET */}
+              <div>
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">
+                  Budget
+                </label>
+
+                <input
+                  type="number"
+                  name="budget"
+                  value={formData.budget}
+                  onChange={handleChange}
+                  placeholder="Enter budget"
+                  className="w-full h-10 rounded-lg border border-gray-200 px-3 outline-none focus:ring-2 focus:ring-blue-500 text-[12px]"
+                />
+              </div>
+
+              {/* GST */}
+              <div>
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">
+                  GST %
+                </label>
+
+                <input
+                  type="number"
+                  name="gst"
+                  value={formData.gst}
+                  onChange={handleChange}
+                  placeholder="Enter GST"
+                  className="w-full h-10 rounded-lg border border-gray-200 px-3 outline-none focus:ring-2 focus:ring-blue-500 text-[12px]"
+                />
+              </div>
+
+              {/* TOTAL */}
+              <div>
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">
+                  Total Budget
+                </label>
+
+                <input
+                  type="text"
+                  value={`₹${calculateTotal().toLocaleString(
+                    "en-IN"
+                  )}`}
+                  readOnly
+                  className="w-full h-10 rounded-lg bg-green-50 border border-green-100 px-3 text-green-600 font-medium text-[12px]"
+                />
+              </div>
+
+
+                 {/* ASSIGNED TO */}
+              <div>
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">
+                  Assign to Admin User
+                </label>
+
+                <select
+                  name="assignedTo"
+                  value={formData.assignedTo}
+                  onChange={handleChange}
+                  className="w-full h-10 rounded-lg border border-gray-200 px-3 outline-none focus:ring-2 focus:ring-blue-500 text-[12px]"
+                >
+                  <option value="">
+                    Select Admin User
+                  </option>
+
+                  {adminUsers.map((u) => (
+                    <option key={u._id} value={u._id}>
+                      {u.name} ({u.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+
+              {/* SERVICE */}
+              <div>
+                <label className="block text-[11px] font-medium text-gray-700 mb-1">
+                  Service
+                </label>
+
+                <select
+                  name="service"
+                  value={formData.service}
+                  onChange={handleChange}
+                  className="w-full h-10 rounded-lg border border-gray-200 px-3 outline-none focus:ring-2 focus:ring-blue-500 text-[12px]"
+                >
+                  <option value="">
+                    Select Service
+                  </option>
+
+                  <option value="Digital Marketing">
+                    Digital Marketing
+                  </option>
+
+                  <option value="Website">
+                    Website
+                  </option>
+
+                  <option value="SEO">
+                    SEO
+                  </option>
+                </select>
+              </div>
+
+           
+
+              {/* DIGITAL MARKETING */}
+              {formData.service ===
+                "Digital Marketing" && (
+                <div className="md:col-span-2 bg-blue-50 border border-blue-100 rounded-xl p-3">
+                  <h3 className="text-[13px] font-semibold text-blue-700 mb-3">
+                    Commitment
+                    Details
+                  </h3>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <input
+                      type="number"
+                      name="reels"
+                      value={formData.reels}
+                      onChange={handleChange}
+                      placeholder="No.of Reels"
+                      className="h-10 rounded-lg border border-gray-200 px-3 text-[12px]"
+                    />
+
+                    <input
+                      type="number"
+                      name="posts"
+                      value={formData.posts}
+                      onChange={handleChange}
+                      placeholder="No.of Posts"
+                      className="h-10 rounded-lg border border-gray-200 px-3 text-[12px]"
+                    />
+
+                    <input
+                      type="number"
+                      name="videos"
+                      value={formData.videos}
+                      onChange={handleChange}
+                      placeholder="No.of Videos"
+                      className="h-10 rounded-lg border border-gray-200 px-3 text-[12px]"
+                    />
+                  </div>
+
+                  {/* DSLR */}
+                  <div className="mt-3">
+                    <label className="block text-[11px] font-medium text-gray-700 mb-2">
+                      DSLR Requirement
+                    </label>
+
+                    <select
+                      name="needDslr"
+                      value={
+                        formData.needDslr
+                      }
+                      onChange={handleChange}
+                      className="w-full md:w-[220px] h-10 rounded-lg border border-gray-200 px-3 text-[12px] outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">
+                        Select DSLR
+                        Requirement
+                      </option>
+
+                      <option value="Need DSLR">
+                        Need DSLR
+                      </option>
+
+                      <option value="No DSLR">
+                        No DSLR
+                      </option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* WEBSITE */}
+              {formData.service ===
+                "Website" && (
+                <div className="md:col-span-2 bg-green-50 border border-green-100 rounded-xl p-3">
+                  <h3 className="text-[13px] font-semibold text-green-700 mb-3">
+                    Website
+                    Commitment
+                  </h3>
+
+                  <input
+                    type="number"
+                    name="pages"
+                    value={formData.pages}
+                    onChange={handleChange}
+                    placeholder="No.of Pages"
+                    className="w-full md:w-1/2 h-10 rounded-lg border border-gray-200 px-3 text-[12px]"
+                  />
+                </div>
+              )}
+
+              {/* SEO */}
+              {formData.service ===
+                "SEO" && (
+                <div className="md:col-span-2 bg-purple-50 border border-purple-100 rounded-xl p-3">
+                  <h3 className="text-[13px] font-semibold text-purple-700 mb-3">
+                    SEO Commitment
+                  </h3>
+
+                  <div className="flex flex-wrap gap-2">
+                    <label className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 text-[11px]">
+                      <input
+                        type="checkbox"
+                        name="onpage"
+                        checked={
+                          formData.onpage
+                        }
+                        onChange={handleChange}
+                      />
+                      On Page SEO
+                    </label>
+
+                    <label className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-gray-200 text-[11px]">
+                      <input
+                        type="checkbox"
+                        name="offpage"
+                        checked={
+                          formData.offpage
+                        }
+                        onChange={handleChange}
+                      />
+                      Off Page SEO
+                    </label>
+                  </div>
+                </div>
+              )}
+
               {/* BUTTONS */}
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+              <div className="md:col-span-2 flex justify-end gap-2 pt-1">
                 <button
-                  type="button" onClick={() => setOpenModal(false)}
-                  className="px-4 py-2 rounded-xl border border-gray-200 text-slate-600 font-semibold text-xs hover:bg-gray-50 transition-all"
+                  type="button"
+                  onClick={() =>
+                    setShowModal(false)
+                  }
+                  className="px-4 py-2 rounded-lg border border-gray-300 font-medium hover:bg-gray-100 transition-all duration-300 text-[11px]"
                 >
                   Cancel
                 </button>
+
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r
-                          from-cyan-500
-                          to-blue-600  text-white font-bold text-xs shadow-sm shadow-violet-200 transition-all active:scale-95"
+                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-medium shadow hover:scale-[1.01] transition-all duration-300 text-[11px]"
                 >
-                  {editClient ? "Save Changes" : "Create Client"}
+                  {editId
+                    ? "Update Client"
+                    : "Save Client"}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {clientToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-3">
+          <div className="bg-white w-full max-w-md rounded-2xl overflow-hidden shadow-2xl p-5 border border-red-100">
+            <h2 className="text-[16px] font-bold text-gray-800 flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center">
+                <FiTrash2 size={14} />
+              </span>
+              Confirm Delete
+            </h2>
+            
+            <p className="text-[12px] text-gray-600 mt-3 leading-relaxed">
+              Are you sure you want to delete client <span className="font-semibold text-red-600">"{clientToDelete.companyName}"</span>? This action cannot be undone.
+            </p>
+
+            {/* BUTTONS */}
+            <div className="flex justify-end gap-2 mt-5">
+              <button
+                type="button"
+                onClick={() => setClientToDelete(null)}
+                className="px-4 py-2 rounded-lg border border-gray-300 font-medium hover:bg-gray-100 transition-all duration-300 text-[11px]"
+              >
+                No, Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  await dispatch(deleteClient(clientToDelete._id));
+                  setClientToDelete(null);
+                }}
+                className="px-4 py-2 rounded-lg bg-gradient-to-r from-red-600 to-rose-500 text-white font-medium shadow hover:scale-[1.01] transition-all duration-300 text-[11px]"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
 export default Clients;

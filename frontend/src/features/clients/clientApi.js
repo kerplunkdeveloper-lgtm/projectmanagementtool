@@ -8,7 +8,7 @@ import axiosInstance from "../../services/axiosInstance";
 export const getClientsAPI = async () => {
   const response =
     await axiosInstance.get(
-      "/clients/all"
+      "/clients"
     );
 
   return response.data;
@@ -21,7 +21,7 @@ export const createClientAPI =
   async (data) => {
     const response =
       await axiosInstance.post(
-        "/clients/create",
+        "/clients",
         data
       );
 
@@ -35,7 +35,7 @@ export const updateClientAPI =
   async (id, data) => {
     const response =
       await axiosInstance.put(
-        `/clients/update/${id}`,
+        `/clients/${id}`,
         data
       );
 
@@ -49,7 +49,7 @@ export const deleteClientAPI =
   async (id) => {
     const response =
       await axiosInstance.delete(
-        `/clients/delete/${id}`
+        `/clients/${id}`
       );
 
     return response.data;

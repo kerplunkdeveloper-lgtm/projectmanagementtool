@@ -46,13 +46,12 @@ app.use(limiter);
 // Route files
 const auth = require('./routes/authRoutes');
 const profiles = require('./routes/profileRoutes');
-const projects = require('./routes/projectRoutes');
+
 const clientRoutes = require(
   "./routes/clientRoutes"
 );
 const eodReports = require('./routes/eodReportRoutes');
 const eventRoutes = require('./routes/eventRoutes');
-const taskRoutes = require('./routes/taskRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const businessProjectRoutes = require("./routes/businessProjectRoutes");
 const overheadRoutes = require("./routes/overheadRoutes");
@@ -61,18 +60,37 @@ app.get("/", (req, res) => {
   res.send("hello");
 });
 
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    status: "UP",
+    uptime: process.uptime(),
+    timestamp: new Date(),
+    message: "Server is healthy",
+  });
+});
+
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    success: true,
+    status: "UP",
+    uptime: process.uptime(),
+    timestamp: new Date(),
+    message: "Server is healthy",
+  });
+});
+
 
 
 // Mount routers
 app.use('/api/auth', auth);
 app.use('/api/users', users);
 app.use('/api/profile', profiles);
-app.use('/api/projects', projects);
+
 app.use('/api/clients', clientRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/eod-reports', eodReports);
 app.use('/api/events', eventRoutes);
-app.use('/api/tasks', taskRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/business-projects', businessProjectRoutes);
 app.use('/api/overheads', overheadRoutes);
