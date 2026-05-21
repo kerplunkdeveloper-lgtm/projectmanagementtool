@@ -5,6 +5,7 @@ import {
   FiCheckSquare,
   FiBarChart2,
   FiCalendar,
+  FiBell,
 } from "react-icons/fi";
 import { FaRegUserCircle } from "react-icons/fa";
 import { TbReportSearch } from "react-icons/tb";
@@ -71,7 +72,11 @@ export const sidebarConfig = {
     },
 
 
-
+     {
+      name: "Notifications",
+      path: "/admin/notifications",
+      icon: FiBell,
+    },
 
 
      {
@@ -112,6 +117,11 @@ export const sidebarConfig = {
       icon: FiUsers,
     },
       {
+      name: "Notifications",
+      path: "/operationmanager/notifications",
+      icon: FiBell,
+    },
+      {
       name: "profile",
       path: "/operationmanager/profile",
       icon: FaRegUserCircle,
@@ -134,6 +144,11 @@ export const sidebarConfig = {
       name: "EOD Reports",
       path: "/team/eod-reports",
       icon: FiBarChart2,
+    },
+     {
+      name: "Notifications",
+      path: "/team/notifications",
+      icon: FiBell,
     },
      {
       name: "profile",

@@ -55,6 +55,8 @@ const eventRoutes = require('./routes/eventRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const businessProjectRoutes = require("./routes/businessProjectRoutes");
 const overheadRoutes = require("./routes/overheadRoutes");
+const projectRoutes = require("./routes/projectRoutes");
+const taskRoutes = require("./routes/taskRoutes");
 
 app.get("/", (req, res) => {
   res.send("hello");
@@ -94,6 +96,8 @@ app.use('/api/events', eventRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/business-projects', businessProjectRoutes);
 app.use('/api/overheads', overheadRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/tasks', taskRoutes);
 
 const PORT = process.env.PORT || 5000;
 

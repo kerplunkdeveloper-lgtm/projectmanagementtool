@@ -70,9 +70,6 @@ const Navbar = ({ setSidebarOpen }) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setOpenDropdown(false);
       }
-      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
-        setOpenNotifications(false);
-      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -83,12 +80,6 @@ const Navbar = ({ setSidebarOpen }) => {
     dispatch(clearProfile());
     toast.success("Logout Success");
     navigate("/");
-  };
-
-  const handleMarkAsRead = (id) => dispatch(markAsRead(id));
-  const handleMarkAllAsRead = () => {
-    dispatch(markAllAsRead());
-    setOpenNotifications(false);
   };
 
   return (
@@ -145,9 +136,9 @@ const Navbar = ({ setSidebarOpen }) => {
         </div>
 
         {/* NOTIFICATIONS */}
-        <div className="relative" ref={notificationRef}>
+        <div className="relative">
           <button
-            onClick={() => setOpenNotifications(!openNotifications)}
+            onClick={() => navigate(`/${user?.role}/notifications`)}
             className="
               relative w-8 h-8
               rounded-lg border border-gray-200 bg-white
@@ -169,63 +160,6 @@ const Navbar = ({ setSidebarOpen }) => {
               </span>
             )}
           </button>
-
-          {/* NOTIFICATION DROPDOWN */}
-          <AnimatePresence>
-            {openNotifications && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 8 }}
-                className="
-                  absolute right-0 mt-2
-                  w-[280px] sm:w-[310px]
-                  bg-white rounded-xl
-                  border border-gray-200 shadow-lg
-                  overflow-hidden z-50
-                "
-              >
-                <div className="px-3 py-2.5 border-b border-gray-100 flex items-center justify-between">
-                  <h3 className="text-xs font-semibold text-gray-800">Notifications</h3>
-                  {unreadCount > 0 && (
-                    <button
-                      onClick={handleMarkAllAsRead}
-                      className="text-[10px] font-medium text-blue-600 hover:text-blue-700"
-                    >
-                      Mark all
-                    </button>
-                  )}
-                </div>
-
-                <div className="max-h-[300px] overflow-y-auto">
-                  {notifications.length === 0 ? (
-                    <div className="p-5 text-center">
-                      <p className="text-xs text-gray-400">No notifications</p>
-                    </div>
-                  ) : (
-                    notifications.map((n) => (
-                      <div
-                        key={n._id}
-                        onClick={() => handleMarkAsRead(n._id)}
-                        className={`p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-all ${!n.isRead ? "bg-blue-50/30" : ""}`}
-                      >
-                        <div className="flex gap-2.5">
-                          <div className="w-7 h-7 rounded-md bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                            {n.type === "project_assigned" ? (
-                              <FiBriefcase size={13} />
-                            ) : (
-                              <FiCheckSquare size={13} />
-                            )}
-                          </div>
-                          <p className="text-[12px] text-gray-700 font-medium leading-snug">{n.message}</p>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
 
         {/* PROFILE DROPDOWN */}

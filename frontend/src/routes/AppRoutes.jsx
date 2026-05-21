@@ -29,6 +29,8 @@ import ProtectedRoute from "../components/common/ProtectedRoute.jsx";
 import Templatelib from "../pages/admin/templatelibrary/Templatelib.jsx";
 import Clients from "../pages/admin/clients/Clients.jsx";
 import CalendarPage from "../pages/calendar/CalendarPage.jsx";
+import Notifications from "../pages/notifications/Notifications.jsx";
+import Task from "../pages/tasks/Task.jsx";
 
 const AppRoutes = () => {
   return (
@@ -62,6 +64,11 @@ const AppRoutes = () => {
         <Route
           path="projects"
           element={<Project />} 
+        />
+
+        <Route
+          path="tasks"
+          element={<Task />} 
         />
 
         
@@ -104,6 +111,11 @@ const AppRoutes = () => {
           element={<PartnerHub />}
         />
         
+        <Route
+          path="notifications"
+          element={<Notifications />}
+        />
+        
       
         
       </Route>
@@ -129,10 +141,12 @@ const AppRoutes = () => {
           element={<Project />} 
         />
 
-    
+        <Route
+          path="tasks"
+          element={<Task />}   
+        />
 
-
-          <Route
+        <Route
           path="profile"
           element={<Profile />}
         />
@@ -147,6 +161,11 @@ const AppRoutes = () => {
         <Route
           path="users"
           element={<AdminUsers />}
+        />
+
+        <Route
+          path="notifications"
+          element={<Notifications />}
         />
 
 
@@ -170,7 +189,10 @@ const AppRoutes = () => {
           element={<Dashboardmain />}
         />
 
-      
+        <Route
+          path="tasks"
+          element={<Task />}   
+        />
 
         <Route
           path="eod-reports"
@@ -180,6 +202,11 @@ const AppRoutes = () => {
         <Route
           path="profile"
           element={<Profile />}
+        />
+
+        <Route
+          path="notifications"
+          element={<Notifications />}
         />
       </Route>
      

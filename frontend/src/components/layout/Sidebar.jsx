@@ -1,23 +1,34 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import logo from "../../assets/logo.avif";
 
 import { NavLink, useNavigate } from "react-router-dom";
 
-import { FiX, FiLogOut } from "react-icons/fi";
+import { FiX, FiLogOut, FiFolder } from "react-icons/fi";
 
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 
 import toast from "react-hot-toast";
 
 import { sidebarConfig } from "../../config/sidebarConfig";
 
 import { logoutUser } from "../../features/auth/authSlice";
+import { getProjects } from "../../features/projects/projectSlice";
 
 const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const menuItems = sidebarConfig[role] || [];
+  
+  const { notifications } = useSelector((state) => state.notifications);
+  const unreadCount = notifications ? notifications.filter((n) => !n.isRead).length : 0;
+  
+  const { projects } = useSelector((state) => state.projects);
+  const [isWorkOpen, setIsWorkOpen] = useState(true);
+
+  useEffect(() => {
+    dispatch(getProjects());
+  }, [dispatch]);
 
   const handleLogout = async () => {
     await dispatch(logoutUser());
@@ -141,73 +152,175 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             const Icon = item.icon;
 
             return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={() => setSidebarOpen(false)}
-                end={
-                  item.path === "/admin" ||
-                  item.path === "/operationmanager" ||
-                  item.path === "/team"
-                }
-                className={({ isActive }) =>
-                  `
-                    flex
-                    items-center
-                    gap-2.5
+              <React.Fragment key={item.path}>
+                <NavLink
+                  to={item.path}
+                  onClick={() => setSidebarOpen(false)}
+                  end={
+                    item.path === "/admin" ||
+                    item.path === "/operationmanager" ||
+                    item.path === "/team"
+                  }
+                  className={({ isActive }) =>
+                    `
+                      flex
+                      items-center
+                      gap-2.5
 
-                    px-2.5
-                    py-2
+                      px-2.5
+                      py-2
 
-                    rounded-xl
+                      rounded-xl
 
-                    border
+                      border
 
-                    transition-all
-                    duration-200
+                      transition-all
+                      duration-200
 
-                    ${
-                      isActive
-                        ? `
-                          bg-gradient-to-r
-                          from-cyan-500
-                          to-blue-600
+                      ${
+                        isActive
+                          ? `
+                            bg-gradient-to-r
+                            from-cyan-500
+                            to-blue-600
 
-                          text-white
+                            text-white
 
-                          border-cyan-400
+                            border-cyan-400
 
-                          shadow-md
-                        `
-                        : `
-                          text-gray-700
+                            shadow-md
+                          `
+                          : `
+                            text-gray-700
 
-                          border-transparent
+                            border-transparent
 
-                          hover:bg-cyan-50
-                          hover:text-cyan-700
-                        `
-                    }
-                  `
-                }
-              >
-                <Icon size={12} className="shrink-0" />
-
-                <span
-                  className="
-                    text-[10px]
-                    lg:text-[10px]
-
-                    font-medium
-
-                    truncate
-                  "
+                            hover:bg-cyan-50
+                            hover:text-cyan-700
+                          `
+                      }
+                    `
+                  }
                 >
-                  {item.name}
-                </span>
-              </NavLink>
+                  <Icon size={12} className="shrink-0" />
+
+                  <span
+                    className="
+                      text-[10px]
+                      lg:text-[10px]
+
+                      font-medium
+
+                      truncate
+                    "
+                  >
+                    {item.name}
+                  </span>
+
+                  {item.name === "Notifications" && unreadCount > 0 && (
+                    <span className="
+                      ml-auto
+                      min-w-[16px] h-[16px] px-1
+                      bg-red-500 text-white rounded-full
+                      flex items-center justify-center
+                      text-[9px] font-bold animate-pulse
+                    ">
+                      {unreadCount}
+                    </span>
+                  )}
+                </NavLink>
+
+                {item.name === "Projects" && (
+                  <div className="space-y-1 pt-1 pb-2 border-b border-gray-100 pl-4 pr-2">
+                    <button
+                      onClick={() => setIsWorkOpen(!isWorkOpen)}
+                      className="w-full flex items-center justify-between gap-2 py-1 text-gray-700 hover:text-cyan-700 transition-all font-bold"
+                    >
+                      <div className="flex items-center gap-2">
+                        <FiFolder size={12} className="text-gray-500" />
+                        <span className="text-[10px] font-semibold uppercase tracking-wider">Work</span>
+                      </div>
+                      <svg
+                        className={`w-3 h-3 transform transition-transform duration-200 ${isWorkOpen ? 'rotate-180' : ''}`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    
+                    {isWorkOpen && (
+                      <div className="pl-3.5 space-y-1 overflow-y-auto max-h-[160px] scrollbar-thin">
+                        {projects.length === 0 ? (
+                          <span className="text-[9px] text-gray-400 italic block py-1">No Projects</span>
+                        ) : (
+                          projects.map((project) => (
+                            <button
+                              key={project._id}
+                              onClick={() => {
+                                setSidebarOpen(false);
+                                navigate(`/${role}/projects?id=${project._id}`);
+                              }}
+                              className="w-full text-left block text-[10px] font-semibold text-gray-600 hover:text-cyan-600 py-1 truncate"
+                              title={project.name}
+                            >
+                              • {project.name}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </React.Fragment>
             );
           })}
+
+          {/* FALLBACK FOR ROLES WITHOUT PROJECTS LISTED */}
+          {!menuItems.some((item) => item.name === "Projects") && (
+            <div className="space-y-1 pt-2 border-t border-gray-100 px-2.5">
+              <button
+                onClick={() => setIsWorkOpen(!isWorkOpen)}
+                className="w-full flex items-center justify-between gap-2 py-2 text-gray-700 hover:text-cyan-700 transition-all font-bold"
+              >
+                <div className="flex items-center gap-2">
+                  <FiFolder size={12} className="text-gray-500" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider">Work</span>
+                </div>
+                <svg
+                  className={`w-3 h-3 transform transition-transform duration-200 ${isWorkOpen ? 'rotate-180' : ''}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {isWorkOpen && (
+                <div className="pl-3.5 space-y-1 overflow-y-auto max-h-[160px] scrollbar-thin">
+                  {projects.length === 0 ? (
+                    <span className="text-[9px] text-gray-400 italic block py-1">No Projects</span>
+                  ) : (
+                    projects.map((project) => (
+                      <button
+                        key={project._id}
+                        onClick={() => {
+                          setSidebarOpen(false);
+                          navigate(`/${role}/projects?id=${project._id}`);
+                        }}
+                        className="w-full text-left block text-[10px] font-semibold text-gray-600 hover:text-cyan-600 py-1 truncate"
+                        title={project.name}
+                      >
+                        • {project.name}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </nav>
 
         {/* FOOTER */}

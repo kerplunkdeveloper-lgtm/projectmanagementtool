@@ -40,27 +40,28 @@ const DashboardCards = () => {
 
   const cards = [
     {
+      title: "Active Clients",
+      value: activeClientsCount,
+      icon: FiBriefcase,
+      gradient: "from-yellow-600 via-amber-600 to-orange-600",
+      iconBg: "bg-white/15 border border-white/10 backdrop-blur-md",
+      titleColor: "text-yellow-100/90",
+      valueColor: "text-white",
+      glowColor: "rgba(59, 130, 246, 0.4)",
+      subtitle: "Total managed client accounts",
+    },
+    {
       title: "Projects",
       value: 0,
       icon: FiBriefcase,
-      gradient: "from-gray-900 via-gray-900 to-gray-900",
+      gradient: "from-blue-900 via-indigo-900 to-violet-900",
       iconBg: "bg-white/15 border border-white/10 backdrop-blur-md",
       titleColor: "text-blue-100/90",
       valueColor: "text-white",
       glowColor: "rgba(59, 130, 246, 0.4)",
       subtitle: "Total projects",
     },
-    {
-      title: "Active Clients",
-      value: activeClientsCount,
-      icon: FiBriefcase,
-      gradient: "from-blue-600 via-indigo-600 to-violet-600",
-      iconBg: "bg-white/15 border border-white/10 backdrop-blur-md",
-      titleColor: "text-blue-100/90",
-      valueColor: "text-white",
-      glowColor: "rgba(59, 130, 246, 0.4)",
-      subtitle: "Total managed client accounts",
-    },
+
     {
       title: "Team Strength",
       value: teamStrengthCount,

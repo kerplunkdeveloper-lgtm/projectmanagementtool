@@ -64,9 +64,7 @@ const WelcomeUser = () => {
                 {user?.role || "Guest"}
               </span>
             </div>
-            <p className="hidden md:block text-[10px] text-gray-400 font-semibold mt-0.5">
-              Overview of your workspace dashboard today.
-            </p>
+           
           </div>
         </div>
 
