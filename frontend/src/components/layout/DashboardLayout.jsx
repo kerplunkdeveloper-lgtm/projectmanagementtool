@@ -35,11 +35,11 @@ const DashboardLayout = ({ role }) => {
 
         {/* IMPERSONATION BANNER */}
         {originalAdminUser && (
-          <div className="bg-yellow-500 text-black px-4 py-2 text-xs font-semibold flex items-center justify-between shadow-md z-50">
+          <div className="bg-blue-400 text-white px-4 py-2 text-xs flex items-center justify-between shadow-md z-50">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />
+              <span className="w-2.5 h-2.5 rounded-full bg-green-900 animate-pulse" />
               <span>
-                Viewing as <strong>{user?.name}</strong> ({user?.role}). Original account: <strong>{originalAdminUser.name}</strong>.
+                Viewing as <strong>{user?.name}</strong> ({role}) in Original account: <strong>{originalAdminUser.name}</strong>.
               </span>
             </div>
             <button

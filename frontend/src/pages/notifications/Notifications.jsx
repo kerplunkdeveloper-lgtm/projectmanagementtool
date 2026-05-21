@@ -161,9 +161,9 @@ const Notifications = () => {
                     if (!n.isRead) {
                       handleMarkAsRead(n._id);
                     }
-                    if (n.project) {
+                    if (n.project && user?.role !== "team") {
                       navigate(`/${user?.role}/projects?id=${n.project}`);
-                    } else if (n.task) {
+                    } else {
                       navigate(`/${user?.role}/tasks`);
                     }
                   }}

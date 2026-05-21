@@ -230,14 +230,14 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   )}
                 </NavLink>
 
-                {item.name === "Projects" && (
-                  <div className="space-y-1 pt-1 pb-2 border-b border-gray-100 pl-4 pr-2">
+                {item.name === "Projects" && projects && projects.length > 0 && (
+                  <div className="space-y-1 pt-1 pb-2 bg-blue-100 rounded-2xl border-b border-gray-100 pl-4 pr-2 mt-1">
                     <button
                       onClick={() => setIsWorkOpen(!isWorkOpen)}
                       className="w-full flex items-center justify-between gap-2 py-1 text-gray-700 hover:text-cyan-700 transition-all font-bold"
                     >
                       <div className="flex items-center gap-2">
-                        <FiFolder size={12} className="text-gray-500" />
+                    
                         <span className="text-[10px] font-semibold uppercase tracking-wider">Work</span>
                       </div>
                       <svg
@@ -252,23 +252,19 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                     
                     {isWorkOpen && (
                       <div className="pl-3.5 space-y-1 overflow-y-auto max-h-[160px] scrollbar-thin">
-                        {projects.length === 0 ? (
-                          <span className="text-[9px] text-gray-400 italic block py-1">No Projects</span>
-                        ) : (
-                          projects.map((project) => (
-                            <button
-                              key={project._id}
-                              onClick={() => {
-                                setSidebarOpen(false);
-                                navigate(`/${role}/projects?id=${project._id}`);
-                              }}
-                              className="w-full text-left block text-[10px] font-semibold text-gray-600 hover:text-cyan-600 py-1 truncate"
-                              title={project.name}
-                            >
-                              • {project.name}
-                            </button>
-                          ))
-                        )}
+                        {projects.map((project) => (
+                          <button
+                            key={project._id}
+                            onClick={() => {
+                              setSidebarOpen(false);
+                              navigate(`/${role}/projects?id=${project._id}`);
+                            }}
+                            className="w-full text-left block text-[10px] font-semibold text-gray-600 hover:text-cyan-600 py-1 truncate"
+                            title={project.name}
+                          >
+                            • {project.name}
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -278,7 +274,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           })}
 
           {/* FALLBACK FOR ROLES WITHOUT PROJECTS LISTED */}
-          {!menuItems.some((item) => item.name === "Projects") && (
+          {role !== "team" && !menuItems.some((item) => item.name === "Projects") && projects && projects.length > 0 && (
             <div className="space-y-1 pt-2 border-t border-gray-100 px-2.5">
               <button
                 onClick={() => setIsWorkOpen(!isWorkOpen)}
@@ -300,23 +296,19 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
               
               {isWorkOpen && (
                 <div className="pl-3.5 space-y-1 overflow-y-auto max-h-[160px] scrollbar-thin">
-                  {projects.length === 0 ? (
-                    <span className="text-[9px] text-gray-400 italic block py-1">No Projects</span>
-                  ) : (
-                    projects.map((project) => (
-                      <button
-                        key={project._id}
-                        onClick={() => {
-                          setSidebarOpen(false);
-                          navigate(`/${role}/projects?id=${project._id}`);
-                        }}
-                        className="w-full text-left block text-[10px] font-semibold text-gray-600 hover:text-cyan-600 py-1 truncate"
-                        title={project.name}
-                      >
-                        • {project.name}
-                      </button>
-                    ))
-                  )}
+                  {projects.map((project) => (
+                    <button
+                      key={project._id}
+                      onClick={() => {
+                        setSidebarOpen(false);
+                        navigate(`/${role}/projects?id=${project._id}`);
+                      }}
+                      className="w-full text-left block text-[10px] font-semibold text-gray-600 hover:text-cyan-600 py-1 truncate"
+                      title={project.name}
+                    >
+                      • {project.name}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>

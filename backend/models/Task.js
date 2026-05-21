@@ -45,6 +45,11 @@ const TaskSchema = new mongoose.Schema(
       enum: ["Pending", "In Progress", "Completed", "On Hold"],
       default: "Pending",
     },
+    priority: {
+      type: String,
+      enum: ["Low", "Medium", "High"],
+      default: "Medium",
+    },
     subtasks: [SubtaskSchema],
   },
   {

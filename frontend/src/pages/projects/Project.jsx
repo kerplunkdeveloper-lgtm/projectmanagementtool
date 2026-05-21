@@ -10,6 +10,7 @@ import {
   FiInfo,
   FiX,
   FiTrash2,
+  FiEdit2,
   FiCheck,
   FiChevronDown,
   FiChevronRight,
@@ -20,6 +21,8 @@ import {
 import {
   getProjects,
   createProject,
+  updateProject,
+  deleteProject,
 } from "../../features/projects/projectSlice";
 import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
@@ -42,16 +45,32 @@ const Project = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   // Form State for creating project
   const [name, setName] = useState("");
   const [clientId, setClientId] = useState("");
   const [status, setStatus] = useState("Active");
 
+  // Form State for editing project
+  const [editProjectId, setEditProjectId] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editClientId, setEditClientId] = useState("");
+  const [editStatus, setEditStatus] = useState("Active");
+
   // Interactive inline state
   const [inlineTaskTitle, setInlineTaskTitle] = useState("");
   const [expandedTasks, setExpandedTasks] = useState({}); // taskId -> boolean
   const [inlineSubtaskTitle, setInlineSubtaskTitle] = useState({}); // taskId -> string
+
+  // Form State for creating task inline
+  const [taskAssigneeId, setTaskAssigneeId] = useState("");
+  const [taskDueDate, setTaskDueDate] = useState(
+    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+  );
+  const [taskPriority, setTaskPriority] = useState("Medium");
+  const [showTaskCreator, setShowTaskCreator] = useState(false);
+  const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
 
   // Load Data
   useEffect(() => {
@@ -100,6 +119,41 @@ const Project = () => {
       })
     );
     setShowCreateModal(false);
+  };
+
+  // Handle Open Edit Modal
+  const handleOpenEdit = (e, project) => {
+    e.stopPropagation();
+    setEditProjectId(project._id);
+    setEditName(project.name);
+    setEditClientId(project.client?._id || project.client || "");
+    setEditStatus(project.status);
+    setShowEditModal(true);
+  };
+
+  // Submit Edit Project
+  const handleEditSubmit = (e) => {
+    e.preventDefault();
+    if (!editName || !editClientId) return;
+    dispatch(
+      updateProject({
+        id: editProjectId,
+        data: {
+          name: editName,
+          client: editClientId,
+          status: editStatus,
+        },
+      })
+    );
+    setShowEditModal(false);
+  };
+
+  // Handle Delete Project
+  const handleProjectDelete = (e, projectId) => {
+    e.stopPropagation();
+    if (window.confirm("Are you sure you want to delete this project?")) {
+      dispatch(deleteProject(projectId));
+    }
   };
 
   // Submit Task Creation Inline
@@ -222,7 +276,7 @@ const Project = () => {
   // VIEW 1: ACTIVE PROJECT TASK BOARD WORKSPACE
   if (activeProjectId && activeProject) {
     return (
-      <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      <div className="space-y-6 max-w-7xl mx-auto">
         {/* WORKSPACE HEADER & PROGRESS */}
         {(() => {
           const totalTasks = activeProjectTasks.length;
@@ -230,58 +284,41 @@ const Project = () => {
           const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
           return (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="md:col-span-2 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between min-h-[140px]">
+            <div>
+              <div className="flex justify-between">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 uppercase tracking-wide">
-                      {activeProject.client?.companyName || "No Client"}
+                    <span className="text-[9px] font-black px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 uppercase tracking-wide">
+                      Client : {activeProject.client?.companyName || "No Client"}
                     </span>
-                    <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-lg border uppercase tracking-wider ${getStatusBadge(activeProject.status)}`}>
+                    <span className={`text-[8px] font-extrabold px-2.5 py-1 rounded-lg border uppercase tracking-wider ${getStatusBadge(activeProject.status)}`}>
                       {activeProject.status}
                     </span>
                   </div>
-                  <h1 className="text-2xl font-black text-slate-800">{activeProject.name}</h1>
+                  <h1 className="text-xl font-black text-slate-800">{activeProject.name}</h1>
                 </div>
 
                 <div className="pt-4">
                   <button
                     onClick={() => navigate(`/${currentUser?.role}/projects`)}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs transition-all w-fit"
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200  text-slate-600 bg-blue-600 text-white font-bold text-xs transition-all w-fit"
                   >
                     <FiX size={16} />
                     Exit Workspace
                   </button>
                 </div>
+
+                </div>
               </div>
 
-              {/* PROGRESS CARD */}
-              <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex flex-col justify-between gap-4 min-h-[140px]">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Project Progress</h3>
-                    <p className="text-slate-500 text-xs mt-1 font-bold">{completedTasks} / {totalTasks} Tasks</p>
-                  </div>
-                  <span className="text-2xl font-black text-blue-600">{progressPercent}%</span>
-                </div>
-                <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-              </div>
-            </div>
+            
+           
           );
         })()}
 
         {/* TASK MANAGEMENT BOARD TABLE */}
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-black text-slate-800">Task Board</h2>
-              <p className="text-slate-500 text-xs mt-1">Manage and assign tasks or subtasks inline</p>
-            </div>
+        <div className="overflow-hidden">
+          <div className=" border-b border-slate-100 flex items-center justify-between">
             {isAdminOrManager && (
               <button
                 onClick={() => {
@@ -634,7 +671,7 @@ const Project = () => {
       </div>
 
       {/* FILTER AND SEARCH BAR */}
-      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
+      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center ">
         <div className="flex-1 relative">
           <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input
@@ -645,20 +682,21 @@ const Project = () => {
             className="w-full pl-11 pr-4 py-3 rounded-2xl bg-slate-50 border border-slate-100 focus:outline-none focus:border-blue-500 focus:bg-white text-sm text-slate-700 transition-all"
           />
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-1 md:pb-0">
-          {["All", "Active", "On Hold", "Completed", "Inactive"].map((status) => (
-            <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all border shrink-0 ${
-                statusFilter === status
-                  ? "bg-slate-800 text-white border-slate-800 shadow-sm"
-                  : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-              }`}
-            >
-              {status}
-            </button>
-          ))}
+        <div className="relative shrink-0">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="appearance-none px-5 py-3 pr-11 rounded-2xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:border-slate-300 focus:outline-none focus:border-blue-500 cursor-pointer shadow-sm min-w-[140px] transition-all"
+          >
+            <option value="All">All Status</option>
+            <option value="Active">Active</option>
+            <option value="On Hold">On Hold</option>
+            <option value="Completed">Completed</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+            <FiChevronDown size={14} />
+          </div>
         </div>
       </div>
 
@@ -678,10 +716,12 @@ const Project = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 text-slate-500 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100">
+                <tr className="bg-slate-50 text-slate-505 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100">
                   <th className="px-6 py-4">Project Name</th>
                   <th className="px-6 py-4">Client Name</th>
                   <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4">Progress</th>
+                  {isAdmin && <th className="px-6 py-4 text-center w-36">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs">
@@ -691,7 +731,7 @@ const Project = () => {
                     onClick={() => navigate(`/${currentUser?.role}/projects?id=${project._id}`)}
                     className="hover:bg-slate-50/70 transition-colors cursor-pointer"
                   >
-                    <td className="px-6 py-4 font-extrabold text-slate-800 group-hover:text-blue-600">
+                    <td className="px-6 py-4 font-extrabold text-slate-800">
                       {project.name}
                     </td>
                     <td className="px-6 py-4">
@@ -704,6 +744,48 @@ const Project = () => {
                         {project.status}
                       </span>
                     </td>
+                    <td className="px-6 py-4">
+                      {(() => {
+                        const projectTasks = tasks.filter((t) => t.project?._id === project._id || t.project === project._id);
+                        const total = projectTasks.length;
+                        const completed = projectTasks.filter((t) => t.status === "Completed").length;
+                        const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+                        return (
+                          <div className="flex flex-col gap-1.5 max-w-[160px]">
+                            <div className="flex justify-between items-center text-[10px] font-bold text-slate-500">
+                              <span>{completed}/{total} Tasks</span>
+                              <span className="text-blue-600 font-extrabold">{percent}%</span>
+                            </div>
+                            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                              <div
+                                className="bg-gradient-to-r from-blue-500 to-indigo-650 h-full rounded-full transition-all duration-350"
+                                style={{ width: `${percent}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </td>
+                    {isAdmin && (
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex justify-center items-center gap-3">
+                          <button
+                            onClick={(e) => handleOpenEdit(e, project)}
+                            className="text-slate-400 hover:text-blue-600 transition-colors p-1"
+                            title="Edit Project"
+                          >
+                            <FiEdit2 size={13} />
+                          </button>
+                          <button
+                            onClick={(e) => handleProjectDelete(e, project._id)}
+                            className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                            title="Delete Project"
+                          >
+                            <FiTrash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -712,79 +794,234 @@ const Project = () => {
         </div>
       )}
 
-      {/* CREATE MODAL */}
+      {/* CREATE PROJECT OFFCANVAS DRAWER */}
       <AnimatePresence>
         {showCreateModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowCreateModal(false)}></div>
+          <div className="fixed inset-0 z-50 flex justify-end">
+            {/* Backdrop overlay */}
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-[2rem] shadow-2xl max-w-lg w-full relative z-10 overflow-hidden border border-slate-100"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowCreateModal(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]"
+            />
+            {/* Side Sheet */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "tween", ease: "easeOut", duration: 0.3 }}
+              className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col z-10 border-l border-slate-100"
             >
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-slate-50 to-white">
-                <h2 className="text-xl font-black text-slate-800">Add New Project</h2>
-                <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-slate-600">
-                  <FiX size={20} />
+              {/* Header */}
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                    <FiBriefcase size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-slate-800">Add New Project</h2>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Project Details</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="w-8 h-8 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <FiX size={18} />
                 </button>
               </div>
 
-              <form onSubmit={handleCreateSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Project Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter project name..."
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-blue-500 text-sm text-slate-700"
-                  />
+              {/* Form Content */}
+              <form onSubmit={handleCreateSubmit} className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+                  {/* Name field */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Project Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Enter project name..."
+                      className="w-full px-4 py-3 rounded-2xl bg-slate-50/60 border border-slate-155 focus:outline-none focus:border-blue-500 focus:bg-white text-sm text-slate-700 placeholder-slate-400 transition-all focus:shadow-sm"
+                    />
+                  </div>
+
+                  {/* Client Select field */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Client Name</label>
+                    <div className="relative">
+                      <select
+                        value={clientId}
+                        onChange={(e) => setClientId(e.target.value)}
+                        className="w-full px-4 py-3 pr-10 rounded-2xl bg-slate-50/60 border border-slate-155 focus:outline-none focus:border-blue-500 focus:bg-white text-sm text-slate-700 cursor-pointer appearance-none transition-all focus:shadow-sm"
+                      >
+                        {clients.map((c) => (
+                          <option key={c._id} value={c._id}>
+                            {c.companyName}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <FiChevronDown size={16} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status Select field */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Status</label>
+                    <div className="relative">
+                      <select
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value)}
+                        className="w-full px-4 py-3 pr-10 rounded-2xl bg-slate-50/60 border border-slate-155 focus:outline-none focus:border-blue-500 focus:bg-white text-sm text-slate-700 cursor-pointer appearance-none transition-all focus:shadow-sm"
+                      >
+                        <option value="Active">Active</option>
+                        <option value="On Hold">On Hold</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Inactive">Inactive</option>
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <FiChevronDown size={16} />
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Client Details</label>
-                  <select
-                    value={clientId}
-                    onChange={(e) => setClientId(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-blue-500 text-sm text-slate-700 cursor-pointer"
-                  >
-                    {clients.map((c) => (
-                      <option key={c._id} value={c._id}>
-                        {c.companyName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Status</label>
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:border-blue-500 text-sm text-slate-700 cursor-pointer"
-                  >
-                    <option value="Active">Active</option>
-                    <option value="On Hold">On Hold</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
-                </div>
-
-                <div className="pt-4 flex justify-end gap-3">
+                {/* Sticky Footer */}
+                <div className="p-6 border-t border-slate-100 bg-slate-50/30 flex justify-end gap-3 shrink-0">
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
-                    className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50"
+                    className="px-5 py-3 rounded-2xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 active:scale-95 transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-md shadow-blue-500/10"
+                    className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-md shadow-blue-500/10 active:scale-95 transition-all"
                   >
                     Create Project
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+
+        {/* EDIT PROJECT OFFCANVAS DRAWER */}
+        {showEditModal && (
+          <div className="fixed inset-0 z-50 flex justify-end">
+            {/* Backdrop overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowEditModal(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]"
+            />
+            {/* Side Sheet */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "tween", ease: "easeOut", duration: 0.3 }}
+              className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col z-10 border-l border-slate-100"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                    <FiBriefcase size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-slate-800">Edit Project</h2>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Modify Settings</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="w-8 h-8 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <FiX size={18} />
+                </button>
+              </div>
+
+              {/* Form Content */}
+              <form onSubmit={handleEditSubmit} className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+                  {/* Name field */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Project Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="Enter project name..."
+                      className="w-full px-4 py-3 rounded-2xl bg-slate-50/60 border border-slate-155 focus:outline-none focus:border-blue-500 focus:bg-white text-sm text-slate-700 placeholder-slate-400 transition-all focus:shadow-sm"
+                    />
+                  </div>
+
+                  {/* Client Select field */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Client Name</label>
+                    <div className="relative">
+                      <select
+                        value={editClientId}
+                        onChange={(e) => setEditClientId(e.target.value)}
+                        className="w-full px-4 py-3 pr-10 rounded-2xl bg-slate-50/60 border border-slate-155 focus:outline-none focus:border-blue-500 focus:bg-white text-sm text-slate-700 cursor-pointer appearance-none transition-all focus:shadow-sm"
+                      >
+                        {clients.map((c) => (
+                          <option key={c._id} value={c._id}>
+                            {c.companyName}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <FiChevronDown size={16} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status Select field */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Status</label>
+                    <div className="relative">
+                      <select
+                        value={editStatus}
+                        onChange={(e) => setEditStatus(e.target.value)}
+                        className="w-full px-4 py-3 pr-10 rounded-2xl bg-slate-50/60 border border-slate-155 focus:outline-none focus:border-blue-500 focus:bg-white text-sm text-slate-700 cursor-pointer appearance-none transition-all focus:shadow-sm"
+                      >
+                        <option value="Active">Active</option>
+                        <option value="On Hold">On Hold</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Inactive">Inactive</option>
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <FiChevronDown size={16} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sticky Footer */}
+                <div className="p-6 border-t border-slate-100 bg-slate-50/30 flex justify-end gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditModal(false)}
+                    className="px-5 py-3 rounded-2xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 active:scale-95 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-md shadow-blue-500/10 active:scale-95 transition-all"
+                  >
+                    Save Changes
                   </button>
                 </div>
               </form>

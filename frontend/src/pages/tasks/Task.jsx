@@ -93,6 +93,19 @@ const Task = () => {
     }
   };
 
+  const getPriorityStyle = (priority) => {
+    switch (priority) {
+      case "High":
+        return "bg-rose-50 text-rose-700 border-rose-200/50";
+      case "Medium":
+        return "bg-amber-50 text-amber-700 border-amber-200/50";
+      case "Low":
+        return "bg-slate-50 text-slate-700 border-slate-200/50";
+      default:
+        return "bg-gray-50 text-gray-700 border-gray-200/50";
+    }
+  };
+
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* HEADER */}
@@ -140,6 +153,7 @@ const Task = () => {
                   <th className="px-6 py-4 w-12 text-center">Status Toggle</th>
                   <th className="px-6 py-4">Task Details</th>
                   <th className="px-6 py-4">Associated Project</th>
+                  <th className="px-6 py-4">Priority</th>
                   <th className="px-6 py-4">Due Date</th>
                   <th className="px-6 py-4 w-40">Status Select</th>
                 </tr>
@@ -193,6 +207,13 @@ const Task = () => {
                           </span>
                         </td>
 
+                        {/* Priority */}
+                        <td className="px-6 py-4">
+                          <span className={`px-2.5 py-1 rounded-lg border text-[10px] font-extrabold uppercase tracking-wider ${getPriorityStyle(task.priority || "Medium")}`}>
+                            {task.priority || "Medium"}
+                          </span>
+                        </td>
+
                         {/* Due Date */}
                         <td className="px-6 py-4">
                           <span className="inline-flex items-center gap-1.5 text-slate-500 font-medium">
@@ -220,7 +241,7 @@ const Task = () => {
                       {isExpanded && task.subtasks?.length > 0 && (
                         <tr className="bg-slate-50/20">
                           <td></td>
-                          <td colSpan={4} className="px-6 py-3">
+                          <td colSpan={5} className="px-6 py-3">
                             <div className="space-y-2 border-l-2 border-slate-100 pl-4 py-1">
                               <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-2">Subtasks</h4>
                               {task.subtasks.map((sub) => {

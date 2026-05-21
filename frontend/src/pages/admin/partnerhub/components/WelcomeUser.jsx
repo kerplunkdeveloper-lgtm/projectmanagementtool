@@ -40,53 +40,52 @@ const WelcomeUser = () => {
   });
 
   return (
-    <div className="relative overflow-hidden bg-white border border-slate-200/70 shadow-sm rounded-2xl p-3 mb-3 animate-fadeIn">
+    <div className="relative overflow-hidden bg-white border border-slate-200/70 shadow-sm rounded-2xl p-2 mb-2 animate-fadeIn">
       {/* Background Blurs */}
       <div className="absolute -top-20 -right-20 w-44 h-44 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-full blur-3xl opacity-40 pointer-events-none" />
       <div className="absolute -bottom-20 -left-20 w-44 h-44 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full blur-3xl opacity-40 pointer-events-none" />
 
-      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
         {/* Left Side: Greeting */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shadow-inner flex-shrink-0">
-            <Icon className={`text-sm ${iconColor}`} />
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center shadow-inner flex-shrink-0">
+            <Icon className={`text-xs ${iconColor}`} />
           </div>
 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
-              <h1 className="text-sm sm:text-base font-extrabold text-slate-800 leading-tight truncate">
+              <h1 className="text-xs sm:text-sm font-extrabold text-slate-800 leading-tight truncate">
                 {greeting},{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500">
                   {user?.name || "User"}
                 </span>
               </h1>
-              <span className="px-2 py-0.5 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 text-[9px] font-bold uppercase tracking-wider whitespace-nowrap shadow-sm">
+              <span className="px-1.5 py-0.5 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 text-[8px] font-bold uppercase tracking-wider whitespace-nowrap shadow-sm">
                 {user?.role || "Guest"}
               </span>
             </div>
-           
           </div>
         </div>
 
         {/* Right Side: Date/Time */}
-        <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-xl px-3 py-1.5 shadow-sm self-start sm:self-auto">
+        <div className="flex items-center gap-2.5 bg-slate-50 border border-slate-100 rounded-xl px-2 py-1 shadow-sm self-start sm:self-auto">
           {/* Date */}
           <div className="flex items-center gap-1.5 min-w-0">
-            <FiCalendar size={11} className="text-slate-400 flex-shrink-0" />
+            <FiCalendar size={9} className="text-slate-400 flex-shrink-0" />
             <div className="min-w-0">
-              <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Date</p>
-              <p className="text-[10px] font-bold text-slate-700 truncate">{formattedDate}</p>
+              <p className="text-[7.5px] font-bold uppercase tracking-wider text-slate-400 leading-none mb-0.5">Date</p>
+              <p className="text-[9px] font-bold text-slate-700 truncate leading-none">{formattedDate}</p>
             </div>
           </div>
 
-          <div className="w-px h-6 bg-slate-200 flex-shrink-0" />
+          <div className="w-px h-5 bg-slate-200 flex-shrink-0" />
 
           {/* Time */}
           <div className="flex items-center gap-1.5 min-w-0">
-            <FiClock size={11} className="text-indigo-500 flex-shrink-0" />
+            <FiClock size={9} className="text-indigo-500 flex-shrink-0" />
             <div className="min-w-0">
-              <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Time</p>
-              <p className="text-[10px] font-bold text-slate-700 font-mono tracking-tight whitespace-nowrap">{formattedTime}</p>
+              <p className="text-[7.5px] font-bold uppercase tracking-wider text-slate-400 leading-none mb-0.5">Time</p>
+              <p className="text-[9px] font-bold text-slate-700 font-mono tracking-tight whitespace-nowrap leading-none">{formattedTime}</p>
             </div>
           </div>
         </div>
