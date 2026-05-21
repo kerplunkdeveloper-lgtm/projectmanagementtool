@@ -57,10 +57,13 @@ const Navbar = ({ setSidebarOpen }) => {
 
   useEffect(() => {
     if (user) {
-      if (!profile) dispatch(getProfile());
+      const profileUserId = profile?.user?._id || profile?.user;
+      if (!profile || profileUserId !== (user.id || user._id)) {
+        dispatch(getProfile());
+      }
       dispatch(getNotifications());
     }
-  }, [dispatch, user]);
+  }, [dispatch, user, profile]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {

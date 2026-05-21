@@ -141,6 +141,17 @@ const AppRoutes = () => {
           path="calendar"
           element={<CalendarPage />}
         />
+
+
+
+        <Route
+          path="users"
+          element={<AdminUsers />}
+        />
+
+
+
+
       </Route>
 
 

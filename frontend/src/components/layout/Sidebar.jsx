@@ -1,34 +1,19 @@
 import React from "react";
 import logo from "../../assets/logo.avif";
 
-import {
-  NavLink,
-  useNavigate,
-} from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
-import {
-  FiX,
-  FiLogOut,
-} from "react-icons/fi";
+import { FiX, FiLogOut } from "react-icons/fi";
 
-import {
-  useDispatch,
-} from "react-redux";
+import { useDispatch } from "react-redux";
 
 import toast from "react-hot-toast";
 
 import { sidebarConfig } from "../../config/sidebarConfig";
 
-import {
-  logoutUser,
-} from "../../features/auth/authSlice";
+import { logoutUser } from "../../features/auth/authSlice";
 
-const Sidebar = ({
-  role,
-  sidebarOpen,
-  setSidebarOpen,
-}) => {
-
+const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -50,11 +35,7 @@ const Sidebar = ({
           bg-black/40 backdrop-blur-sm
           transition-all duration-300
           lg:hidden
-          ${
-            sidebarOpen
-              ? "opacity-100 visible"
-              : "opacity-0 invisible"
-          }
+          ${sidebarOpen ? "opacity-100 visible" : "opacity-0 invisible"}
         `}
       />
 
@@ -81,13 +62,10 @@ const Sidebar = ({
           transition-all duration-300 ease-in-out
 
           ${
-            sidebarOpen
-              ? "translate-x-0"
-              : "-translate-x-full lg:translate-x-0"
+            sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           }
         `}
       >
-
         {/* HEADER */}
         <div
           className="
@@ -101,7 +79,6 @@ const Sidebar = ({
             border-b border-gray-200
           "
         >
-
           {/* LOGO */}
           <div className="overflow-hidden">
             <img
@@ -139,13 +116,11 @@ const Sidebar = ({
               transition-all
             "
           >
-            <FiX
-              size={18}
-              className="text-gray-700"
-            />
+            <FiX size={18} className="text-gray-700" />
           </button>
-
         </div>
+
+
 
         {/* MENU */}
         <nav
@@ -162,9 +137,7 @@ const Sidebar = ({
             scrollbar-thumb-gray-300
           "
         >
-
           {menuItems.map((item) => {
-
             const Icon = item.icon;
 
             return (
@@ -218,11 +191,7 @@ const Sidebar = ({
                   `
                 }
               >
-
-                <Icon
-                  size={12}
-                  className="shrink-0"
-                />
+                <Icon size={12} className="shrink-0" />
 
                 <span
                   className="
@@ -236,7 +205,6 @@ const Sidebar = ({
                 >
                   {item.name}
                 </span>
-
               </NavLink>
             );
           })}
@@ -244,7 +212,6 @@ const Sidebar = ({
 
         {/* FOOTER */}
         <div className="p-3 border-t border-gray-200">
-
           <button
             onClick={handleLogout}
             className="
@@ -278,9 +245,7 @@ const Sidebar = ({
             <FiLogOut size={16} />
             Logout
           </button>
-
         </div>
-
       </aside>
     </>
   );

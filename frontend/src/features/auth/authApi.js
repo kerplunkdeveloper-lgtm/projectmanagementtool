@@ -16,3 +16,12 @@ export const logoutAPI = async () => {
 
   return response.data;
 };
+
+export const impersonateAPI = async (userId) => {
+  const response = await axiosInstance.post(
+    "/auth/impersonate",
+    { userId }
+  );
+
+  return response.data;
+};

@@ -105,6 +105,12 @@ export const sidebarConfig = {
       path: "/operationmanager/calendar",
       icon: FiCalendar,
     },
+
+      {
+      name: "Users",
+      path: "/operationmanager/users",
+      icon: FiUsers,
+    },
       {
       name: "profile",
       path: "/operationmanager/profile",

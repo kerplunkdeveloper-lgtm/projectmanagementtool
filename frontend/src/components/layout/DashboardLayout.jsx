@@ -1,12 +1,24 @@
 import React, { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import toast from "react-hot-toast";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import useSocket from "../../hooks/useSocket.jsx";
+import { exitImpersonation } from "../../features/auth/authSlice";
 
 const DashboardLayout = ({ role }) => {
   useSocket();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, originalAdminUser } = useSelector((state) => state.auth);
+
+  const handleSwitchBack = () => {
+    dispatch(exitImpersonation());
+    toast.success("Returned to Admin account");
+    navigate("/admin");
+  };
 
   return (
     <div className="h-screen overflow-hidden bg-gray-50">
@@ -20,6 +32,24 @@ const DashboardLayout = ({ role }) => {
 
       {/* RIGHT SIDE */}
       <div className="lg:ml-[220px] xl:ml-[230px] h-screen flex flex-col">
+
+        {/* IMPERSONATION BANNER */}
+        {originalAdminUser && (
+          <div className="bg-yellow-500 text-black px-4 py-2 text-xs font-semibold flex items-center justify-between shadow-md z-50">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-600 animate-pulse" />
+              <span>
+                Viewing as <strong>{user?.name}</strong> ({user?.role}). Original account: <strong>{originalAdminUser.name}</strong>.
+              </span>
+            </div>
+            <button
+              onClick={handleSwitchBack}
+              className="bg-black hover:bg-gray-800 text-white px-3 py-1 rounded font-medium text-[10px] uppercase tracking-wider transition-all"
+            >
+              Switch Back
+            </button>
+          </div>
+        )}
 
         {/* NAVBAR */}
         <Navbar setSidebarOpen={setSidebarOpen} />

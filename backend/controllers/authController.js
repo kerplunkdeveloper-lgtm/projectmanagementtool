@@ -98,6 +98,30 @@ exports.logout = async (req, res) => {
   });
 };
 
+// @desc    Impersonate another user
+// @route   POST /api/auth/impersonate
+// @access  Private/Admin
+exports.impersonateUser = async (req, res, next) => {
+  try {
+    const { userId } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    sendTokenResponse(user, 200, res);
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
 
 
 

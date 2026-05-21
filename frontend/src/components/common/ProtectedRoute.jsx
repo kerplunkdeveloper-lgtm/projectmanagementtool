@@ -7,7 +7,7 @@ const ProtectedRoute = ({
   allowedRoles,
 }) => {
 
-  const { user } = useSelector(
+  const { user, originalAdminUser, originalRole } = useSelector(
     (state) => state.auth
   );
 
@@ -15,7 +15,12 @@ const ProtectedRoute = ({
     return <Navigate to="/" />;
   }
 
-  if (!allowedRoles.includes(user.role)) {
+  const isPrimaryAdmin =
+    user.role === "admin" ||
+    originalRole === "admin" ||
+    originalAdminUser?.role === "admin";
+
+  if (!isPrimaryAdmin && !allowedRoles.includes(user.role)) {
     return <Navigate to="/" />;
   }
 

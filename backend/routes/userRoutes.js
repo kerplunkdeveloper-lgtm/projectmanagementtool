@@ -29,20 +29,20 @@ router.get(
 );
 
 
-// CREATE - Admin & Operation Manager
+// CREATE - Admin only
 router.post(
   '/',
   protect,
-  authorize('admin', 'operationmanager'),
+  authorize('admin'),
   createUser
 );
 
 
-// UPDATE - Admin & Operation Manager
+// UPDATE - Admin only
 router.put(
   '/:id',
   protect,
-  authorize('admin', 'operationmanager'),
+  authorize('admin'),
   updateUser
 );
 

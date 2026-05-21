@@ -29,7 +29,7 @@ router.post(
 router.get(
   "/",
   protect,
-  authorize("admin"),
+  authorize("admin", "operationmanager", "team"),
   getClients
 );
 
@@ -38,7 +38,7 @@ router.get(
 router.get(
   "/:id",
   protect,
-  authorize("admin"),
+  authorize("admin", "operationmanager", "team"),
   getClient
 );
 

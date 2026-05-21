@@ -3,6 +3,7 @@ import React, {
   useState,
 } from "react";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
 
 import {
   useDispatch,
@@ -19,6 +20,8 @@ import {
   clearUserError,
 } from "../../features/users/userSlice";
 
+import { impersonateUser } from "../../features/auth/authSlice";
+
 import UserHeader from "./users/UserHeader";
 import UserTable from "./users/UserTable";
 import UserModal from "./users/UserModel";
@@ -29,6 +32,7 @@ const USERS_PER_PAGE = 5;
 const AdminUsers = () => {
 
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const {
     users,
@@ -37,6 +41,12 @@ const AdminUsers = () => {
   } = useSelector(
     (state) => state.users
   );
+
+  const { user } = useSelector(
+    (state) => state.auth
+  );
+
+  const isReadOnly = user?.role === "operationmanager";
 
   const [openModal, setOpenModal] =
     useState(false);
@@ -152,6 +162,24 @@ const AdminUsers = () => {
     }
   };
 
+  // IMPERSONATE USER
+  const handleImpersonate = async (userId) => {
+    try {
+      const result = await dispatch(impersonateUser(userId)).unwrap();
+      toast.success("Successfully logged in as user");
+      const targetRole = result.data.user.role;
+      if (targetRole === "admin") {
+        navigate("/admin");
+      } else if (targetRole === "operationmanager") {
+        navigate("/operationmanager");
+      } else if (targetRole === "team") {
+        navigate("/team");
+      }
+    } catch (err) {
+      toast.error(err || "Failed to impersonate");
+    }
+  };
+
   // FILTER & SORT LOGIC
   const filteredUsers = [...users]
     .filter((user) => {
@@ -197,6 +225,7 @@ const AdminUsers = () => {
         setSearchTerm={setSearchTerm}
         filterDept={filterDept}
         setFilterDept={setFilterDept}
+        isReadOnly={isReadOnly}
       />
 
       {/* TABLE */}
@@ -208,6 +237,8 @@ const AdminUsers = () => {
         }
         setOpenModal={setOpenModal}
         setEditUser={setEditUser}
+        handleImpersonate={handleImpersonate}
+        isReadOnly={isReadOnly}
       />
 
       {/* PAGINATION & COUNT */}

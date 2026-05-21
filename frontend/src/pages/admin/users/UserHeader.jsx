@@ -6,7 +6,7 @@ const DEPARTMENTS = [
   "Editor Team", "Scriptwriter Team", "Cameraman Team", "SEO Team",
 ];
 
-const UserHeader = ({ setOpenModal, searchTerm, setSearchTerm, filterDept, setFilterDept }) => (
+const UserHeader = ({ setOpenModal, searchTerm, setSearchTerm, filterDept, setFilterDept, isReadOnly }) => (
   <div className="flex flex-col gap-3 mb-5">
     {/* TOP ROW */}
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -22,14 +22,16 @@ const UserHeader = ({ setOpenModal, searchTerm, setSearchTerm, filterDept, setFi
        
       </div>
 
-      <button
-        onClick={() => setOpenModal(true)}
-        className="self-start sm:self-auto flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r
-                          from-cyan-500
-                          to-blue-600 text-white font-semibold text-sm shadow-sm shadow-cyan-200 transition-all active:scale-95"
-      >
-        <FiPlus size={16} /> Add User
-      </button>
+      {!isReadOnly && (
+        <button
+          onClick={() => setOpenModal(true)}
+          className="self-start sm:self-auto flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r
+                            from-cyan-500
+                            to-blue-600 text-white font-semibold text-sm shadow-sm shadow-cyan-200 transition-all active:scale-95"
+        >
+          <FiPlus size={16} /> Add User
+        </button>
+      )}
     </div>
 
     {/* FILTER ROW */}
