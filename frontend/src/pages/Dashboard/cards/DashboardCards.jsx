@@ -40,6 +40,17 @@ const DashboardCards = () => {
 
   const cards = [
     {
+      title: "Projects",
+      value: 0,
+      icon: FiBriefcase,
+      gradient: "from-gray-900 via-gray-900 to-gray-900",
+      iconBg: "bg-white/15 border border-white/10 backdrop-blur-md",
+      titleColor: "text-blue-100/90",
+      valueColor: "text-white",
+      glowColor: "rgba(59, 130, 246, 0.4)",
+      subtitle: "Total projects",
+    },
+    {
       title: "Active Clients",
       value: activeClientsCount,
       icon: FiBriefcase,
@@ -66,7 +77,7 @@ const DashboardCards = () => {
   return (
     <div className="w-full">
       {/* GRID */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl">
         {cards.map((card, index) => {
           const Icon = card.icon;
 
