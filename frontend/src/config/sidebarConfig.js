@@ -72,11 +72,7 @@ export const sidebarConfig = {
     },
 
 
-     {
-      name: "Notifications",
-      path: "/admin/notifications",
-      icon: FiBell,
-    },
+
 
 
      {
@@ -116,11 +112,7 @@ export const sidebarConfig = {
       path: "/operationmanager/users",
       icon: FiUsers,
     },
-      {
-      name: "Notifications",
-      path: "/operationmanager/notifications",
-      icon: FiBell,
-    },
+
       {
       name: "profile",
       path: "/operationmanager/profile",
@@ -145,11 +137,7 @@ export const sidebarConfig = {
       path: "/team/eod-reports",
       icon: FiBarChart2,
     },
-     {
-      name: "Notifications",
-      path: "/team/notifications",
-      icon: FiBell,
-    },
+
      {
       name: "profile",
       path: "/team/profile",

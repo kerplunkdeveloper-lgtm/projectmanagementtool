@@ -106,7 +106,7 @@ const Login = () => {
 
     <div className="min-h-screen flex items-center justify-center">
 
-      <div className="w-full  overflow-hidden  grid grid-cols-1 lg:grid-cols-2">
+      <div className="w-full h-[100vh]  overflow-hidden  grid grid-cols-1 lg:grid-cols-2">
 
         {/* LEFT SIDE IMAGE SECTION */}
 
@@ -119,7 +119,7 @@ const Login = () => {
           />
 
            {/* BLUE OVERLAY */}
-  <div className="absolute inset-0 bg-blue-400/60"></div>
+  <div className="absolute inset-0 bg-blue-500/70"></div>
 
           <div className="absolute inset-0 bg-black/50 flex flex-col justify-center px-16 text-white">
 
@@ -145,7 +145,7 @@ const Login = () => {
         <div className="flex flex-col items-center justify-center p-6 sm:p-10 lg:p-16 bg-white">
 
           <div>
-            <img src={logo} alt=""  className="mb-6 w-[200px] "/>
+            <img src={logo} alt=""  className="mb-6 w-[130px] "/>
           </div>
 
           <form
@@ -159,7 +159,7 @@ const Login = () => {
                 Welcome Back
               </h2>
 
-              <p className="text-blue-500 text-center text-[11px]">
+              <p className="text-gray-500 text-center text-[11px]">
                 Login to continue managing your projects
               </p>
 

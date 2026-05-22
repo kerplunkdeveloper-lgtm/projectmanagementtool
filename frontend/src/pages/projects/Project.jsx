@@ -378,14 +378,14 @@ const Project = () => {
 
         {/* TASK MANAGEMENT BOARD TABLE */}
         <div className="overflow-hidden">
-          <div className=" border-b border-slate-100 flex items-center justify-between">
+          <div className=" border-b border-slate-100 flex mb-5 items-center justify-between">
             {isAdminOrManager && (
               <button
                 onClick={handleAddDraftTask}
-                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-650 hover:from-blue-500 hover:to-indigo-600 text-white font-bold text-xs shadow-lg shadow-blue-500/20 active:scale-95 transition-all duration-200 border-none"
+                className="flex items-center gap-1.5 px-3 py-2 text-[10px] rounded-lg bg-gradient-to-r from-blue-400 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/20 hover:shadow-indigo-500/30 active:scale-95 transition-all duration-200"
               >
-                <FiPlus size={14} />
-                Add task
+                <FiPlus size={18} />
+                Add Task
               </button>
             )}
           </div>
@@ -945,9 +945,9 @@ const Project = () => {
 
   // VIEW 2: DEFAULT PROJECT DIRECTORY TABLE
   return (
-    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+    <div className=" space-y-6 max-w-7xl mx-auto">
       {/* HEADER SECTION */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex justify-between items-center gap-4">
         <div>
           <h1 className="text-xl font-black tracking-tight text-slate-800">All Projects</h1>
           <p className="text-slate-500 text-[10px] mt-1">Comprehensive directory of current projects and clients</p>
@@ -955,7 +955,7 @@ const Project = () => {
         {isAdmin && (
           <button
             onClick={handleOpenCreate}
-            className="flex items-center gap-2 px-3 py-2 text-[10px] rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/20 hover:shadow-indigo-500/30 active:scale-95 transition-all duration-200"
+            className="flex items-center gap-2 px-3 py-2 text-[10px] rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/20 hover:shadow-indigo-500/30 active:scale-95 transition-all duration-200 shrink-0"
           >
             <FiPlus size={18} />
             Create Project
@@ -964,7 +964,7 @@ const Project = () => {
       </div>
 
       {/* FILTER AND SEARCH BAR */}
-      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center ">
+      <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
         <div className="flex-1 relative">
           <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input
@@ -975,11 +975,11 @@ const Project = () => {
             className="w-full pl-11 pr-4 py-3 rounded-2xl bg-slate-50 border border-slate-100 focus:outline-none focus:border-blue-500 focus:bg-white text-sm text-slate-700 transition-all"
           />
         </div>
-        <div className="relative shrink-0">
+        <div className="relative shrink-0 w-full md:w-auto">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="appearance-none px-5 py-3 pr-11 rounded-2xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:border-slate-300 focus:outline-none focus:border-blue-500 cursor-pointer shadow-sm min-w-[140px] transition-all"
+            className="w-full appearance-none px-5 py-3 pr-11 rounded-2xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:border-slate-300 focus:outline-none focus:border-blue-500 cursor-pointer shadow-sm md:min-w-[140px] transition-all"
           >
             <option value="All">All Status</option>
             <option value="Active">Active</option>

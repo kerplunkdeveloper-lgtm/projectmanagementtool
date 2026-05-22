@@ -63,23 +63,23 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
         {/* FORM */}
         <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3">
           <div>
-            <label className={LABEL}>Full Name *</label>
-            <input type="text" name="name" required value={formData.name} onChange={handleChange} placeholder="John Doe" className={INPUT} />
+            <label className={LABEL}>Full Name <span className="normal-case text-red-600">*</span></label>
+            <input type="text" name="name" required value={formData.name} onChange={handleChange} placeholder="Enter user name" className={INPUT} />
           </div>
 
           <div>
-            <label className={LABEL}>Email *</label>
-            <input type="email" name="email" required value={formData.email} onChange={handleChange} placeholder="john@example.com" className={INPUT} />
+            <label className={LABEL}>Email <span className="normal-case text-red-600">*</span></label>
+            <input type="email" name="email" required value={formData.email} onChange={handleChange} placeholder="Enter user email id" className={INPUT} />
           </div>
 
           <div>
-            <label className={LABEL}>Password {editUser && <span className="normal-case text-gray-400">(leave blank to keep)</span>}</label>
-            <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="••••••••" className={INPUT} />
+            <label className={LABEL}>Password <span className="normal-case text-red-600">*</span> {editUser && <span className="normal-case text-gray-400">(leave blank to keep)</span>}</label>
+            <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Enter user password" className={INPUT} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={LABEL}>Role</label>
+              <label className={LABEL}>Role <span className="normal-case text-red-600">*</span></label>
               <select name="role" value={formData.role} onChange={handleChange} className={INPUT + " cursor-pointer"}>
                 <option value="team">Team</option>
                 <option value="admin">Admin</option>
@@ -89,7 +89,7 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
 
             {formData.role === "team" && (
               <div>
-                <label className={LABEL}>Department *</label>
+                <label className={LABEL}>Department <span className="normal-case text-red-600">*</span></label>
                 <select name="department" value={formData.department} onChange={handleChange} required className={INPUT + " cursor-pointer"}>
                   <option value="">Select...</option>
                   {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}

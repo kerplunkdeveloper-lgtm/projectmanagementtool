@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import format from "date-fns/format";
 import parse from "date-fns/parse";
@@ -28,6 +28,29 @@ const TYPE_COLORS = {
   Report: "#10b981",
 };
 
+const playNotificationSound = () => {
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const playTone = (frequency, startTime, duration) => {
+      const osc = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(frequency, startTime);
+      gainNode.gain.setValueAtTime(0.15, startTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+      osc.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+    };
+    const now = audioCtx.currentTime;
+    playTone(1046.50, now, 0.15); // C6 tone
+    playTone(1567.98, now + 0.1, 0.3); // G6 tone
+  } catch (error) {
+    console.error("Audio Context not supported or allowed:", error);
+  }
+};
+
 const CalendarPage = () => {
   const dispatch = useDispatch();
   const { events } = useSelector((s) => s.events);
@@ -36,7 +59,55 @@ const CalendarPage = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isEditing, setIsEditing]       = useState(false);
 
+  const notifiedEvents = useRef(new Set());
+
   useEffect(() => { dispatch(getEvents()); }, [dispatch]);
+
+  useEffect(() => {
+    if (events && events.length > 0) {
+      const today = new Date();
+      const todayString = today.toDateString();
+      let shouldPlaySound = false;
+
+      events.forEach((event) => {
+        const eventDate = new Date(event.date);
+        if (eventDate.toDateString() === todayString) {
+          if (!notifiedEvents.current.has(event._id)) {
+            notifiedEvents.current.add(event._id);
+            shouldPlaySound = true;
+
+            toast((t) => (
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 mt-0.5">
+                  <FiCalendar size={15} />
+                </div>
+                <div>
+                  <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-wide">Event Today!</h4>
+                  <p className="text-xs font-bold text-slate-700 mt-0.5">{event.title}</p>
+                  <p className="text-[9px] text-gray-400 font-semibold">{event.client?.companyName || "Client Event"}</p>
+                </div>
+              </div>
+            ), {
+              duration: 6000,
+              position: "top-right",
+              style: {
+                borderRadius: "16px",
+                background: "#ffffff",
+                color: "#1e293b",
+                boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+                border: "1px solid #f1f5f9",
+                padding: "12px",
+              }
+            });
+          }
+        }
+      });
+
+      if (shouldPlaySound) {
+        playNotificationSound();
+      }
+    }
+  }, [events]);
 
   const handleSelectSlot = ({ start }) => {
     setSelectedEvent({ start }); setIsEditing(false); setOpenModal(true);
@@ -98,34 +169,26 @@ const CalendarPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      <div className="max-w-7xl mx-auto px-3 sm:px-5 py-4 sm:py-6">
+      <div className="max-w-7xl mx-auto py-4 sm:py-6">
 
         {/* HEADER */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+        <div className="flex justify-between items-center gap-3 mb-5">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
-              <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
+              <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
                 <FiCalendar size={14} className="text-white" />
               </div>
-              <h1 className="text-lg sm:text-xl font-bold text-slate-800">Content Calendar</h1>
+              <h1 className="text-sm sm:text-lg md:text-xl font-bold text-slate-800">Content Calendar</h1>
             </div>
-            <p className="text-xs text-gray-400 ml-9">Orchestrate content cycles and marketing initiatives</p>
+            <p className="text-[10px] sm:text-xs text-gray-400 ml-9 hidden xs:block">Orchestrate content cycles and marketing initiatives</p>
           </div>
 
-          <div className="flex items-center gap-2">
-            {isEditing && openModal && (
-              <button
-                onClick={handleDeleteEvent}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 font-semibold text-xs hover:bg-rose-100 transition-all"
-              >
-                <FiTrash2 size={13} /> Delete Event
-              </button>
-            )}
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => { setSelectedEvent(null); setIsEditing(false); setOpenModal(true); }}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-sm shadow-blue-200 transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm shadow-sm shadow-blue-200 transition-all active:scale-95 shrink-0"
             >
-              <FiPlus size={16} /> New Event
+              <FiPlus size={14} /> New Event
             </button>
           </div>
         </div>
@@ -155,6 +218,7 @@ const CalendarPage = () => {
         onSubmit={handleEventSubmit}
         initialData={selectedEvent}
         isEditing={isEditing}
+        onDelete={handleDeleteEvent}
       />
 
       <style>{`

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FiX, FiCalendar } from "react-icons/fi";
+import { FiX, FiCalendar, FiTrash2 } from "react-icons/fi";
 import { useSelector, useDispatch } from "react-redux";
 import { getClients } from "../../features/clients/clientslice";
 
@@ -13,7 +13,7 @@ const TYPE_COLORS = {
   Report: { bg: "bg-emerald-500",text: "text-emerald-600",light: "bg-emerald-50 border-emerald-200" },
 };
 
-const EventModal = ({ open, setOpen, onSubmit, initialData, isEditing }) => {
+const EventModal = ({ open, setOpen, onSubmit, initialData, isEditing, onDelete }) => {
   const dispatch = useDispatch();
   const { clients } = useSelector((s) => s.clients);
 
@@ -176,20 +176,34 @@ const EventModal = ({ open, setOpen, onSubmit, initialData, isEditing }) => {
           </div>
 
           {/* BUTTONS */}
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="px-4 py-2 rounded-xl border border-gray-200 text-slate-600 font-semibold text-xs hover:bg-gray-50 transition-all"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className={`px-5 py-2 rounded-xl text-white font-bold text-xs shadow-sm transition-all active:scale-95 ${typeConf.bg} hover:opacity-90`}
-            >
-              {isEditing ? "Update Event" : "Create Event"}
-            </button>
+          <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-100">
+            {isEditing ? (
+              <button
+                type="button"
+                onClick={onDelete}
+                className="px-3.5 py-2 rounded-xl border border-rose-200 bg-rose-50 text-rose-600 font-semibold text-xs hover:bg-rose-100 transition-all flex items-center gap-1.5 shrink-0"
+              >
+                <FiTrash2 size={13} /> Delete Event
+              </button>
+            ) : (
+              <div />
+            )}
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="px-4 py-2 rounded-xl border border-gray-200 text-slate-600 font-semibold text-xs hover:bg-gray-50 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className={`px-5 py-2 rounded-xl text-white font-bold text-xs shadow-sm transition-all active:scale-95 ${typeConf.bg} hover:opacity-90`}
+              >
+                {isEditing ? "Update Event" : "Create Event"}
+              </button>
+            </div>
           </div>
         </form>
       </div>

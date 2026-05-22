@@ -18,6 +18,8 @@ import {
   FiChevronDown,
   FiCheckSquare,
   FiBriefcase,
+  FiCheck,
+  FiInfo,
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -36,6 +38,36 @@ const Navbar = ({ setSidebarOpen }) => {
   const { notifications } = useSelector((state) => state.notifications);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const getNotificationDetails = (type) => {
+    switch (type) {
+      case "project_assigned":
+        return {
+          icon: FiBriefcase,
+          bgColor: "bg-amber-50 text-amber-600 border border-amber-100/50",
+        };
+      case "task_assigned":
+        return {
+          icon: FiCheckSquare,
+          bgColor: "bg-blue-50 text-blue-600 border border-blue-100/50",
+        };
+      case "task_completed":
+        return {
+          icon: FiCheck,
+          bgColor: "bg-emerald-50 text-emerald-600 border border-emerald-100/50",
+        };
+      case "task_updated":
+        return {
+          icon: FiInfo,
+          bgColor: "bg-purple-50 text-purple-600 border border-purple-100/50",
+        };
+      default:
+        return {
+          icon: FiBell,
+          bgColor: "bg-slate-50 text-slate-600 border border-slate-100/50",
+        };
+    }
+  };
 
   const getPageTitle = () => {
     const path = location.pathname.toLowerCase();
@@ -70,6 +102,9 @@ const Navbar = ({ setSidebarOpen }) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setOpenDropdown(false);
       }
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setOpenNotifications(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -91,8 +126,7 @@ const Navbar = ({ setSidebarOpen }) => {
         h-[56px] lg:h-[60px]
         px-3 md:px-5
         flex items-center justify-between
-        bg-white/95 backdrop-blur-xl
-        border-b border-gray-200
+        bg-white backdrop-blur-3xl
         shadow-sm
       "
     >
@@ -136,30 +170,139 @@ const Navbar = ({ setSidebarOpen }) => {
         </div>
 
         {/* NOTIFICATIONS */}
-        <div className="relative">
+        <div className="relative" ref={notificationRef}>
           <button
-            onClick={() => navigate(`/${user?.role}/notifications`)}
-            className="
-              relative w-8 h-8
-              rounded-lg border border-gray-200 bg-white
-              text-gray-600
-              flex items-center justify-center
-              hover:bg-gray-50 transition-all
-            "
+            onClick={() => setOpenNotifications(!openNotifications)}
+            className={`
+              relative w-8 h-8 rounded-lg border flex items-center justify-center transition-all duration-200
+              ${openNotifications
+                ? "bg-blue-50 border-blue-200 text-blue-600 ring-2 ring-blue-500/10"
+                : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-800"
+              }
+            `}
           >
             <FiBell className="text-[15px]" />
             {unreadCount > 0 && (
-              <span className="
-                absolute -top-1 -right-1
-                min-w-[16px] h-[16px] px-1
-                rounded-full bg-red-500
-                text-white text-[9px] font-bold
-                flex items-center justify-center
-              ">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
+              <>
+                <span className="
+                  absolute -top-1.5 -right-1.5
+                  min-w-[17px] h-[17px] px-1
+                  rounded-full bg-rose-500
+                  text-white text-[8px] font-black
+                  flex items-center justify-center
+                  border-2 border-white shadow-sm z-10
+                ">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+                <span className="absolute -top-1.5 -right-1.5 w-[17px] h-[17px] rounded-full bg-rose-500 animate-ping opacity-60 border-2 border-white" />
+              </>
             )}
           </button>
+
+          {/* DROPDOWN MENU */}
+          <AnimatePresence>
+            {openNotifications && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="
+                  absolute right-0 mt-2
+                  w-[340px] max-w-[calc(100vw-32px)]
+                  bg-white rounded-2xl border border-slate-100
+                  shadow-xl z-50 overflow-hidden
+                "
+              >
+                {/* Header */}
+                <div className="px-4 py-3 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-extrabold text-[11px] text-slate-800 uppercase tracking-wider">Notifications</span>
+                    {unreadCount > 0 && (
+                      <span className="bg-blue-100 text-blue-600 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                        {unreadCount} new
+                      </span>
+                    )}
+                  </div>
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={() => {
+                        dispatch(markAllAsRead());
+                      }}
+                      className="text-[10px] text-blue-600 hover:text-blue-700 font-bold transition-colors cursor-pointer hover:underline"
+                    >
+                      Mark all as read
+                    </button>
+                  )}
+                </div>
+
+                {/* List */}
+                <div className="max-h-[300px] overflow-y-auto divide-y divide-slate-100/60 scrollbar-thin">
+                  {(notifications || []).length === 0 ? (
+                    <div className="py-12 text-center flex flex-col items-center justify-center text-slate-400">
+                      <FiBell className="text-2xl mb-2 opacity-30 text-slate-400" />
+                      <span className="text-[11px] font-bold">No notifications yet</span>
+                      <p className="text-[9px] text-slate-400 mt-0.5 px-6">You will be notified here when tasks are assigned or updated.</p>
+                    </div>
+                  ) : (
+                    (notifications || []).map((n) => {
+                      const details = getNotificationDetails(n.type);
+                      const Icon = details.icon;
+                      return (
+                        <div
+                          key={n._id}
+                          onClick={() => {
+                            if (!n.isRead) {
+                              dispatch(markAsRead(n._id));
+                            }
+                            setOpenNotifications(false);
+                            if (n.project && user?.role !== "team") {
+                              navigate(`/${user?.role}/projects?id=${n.project}`);
+                            } else {
+                              navigate(`/${user?.role}/tasks`);
+                            }
+                          }}
+                          className={`
+                            px-4 py-3 text-left transition-all cursor-pointer flex items-start gap-3 relative
+                            ${!n.isRead ? "bg-blue-50/20 hover:bg-blue-50/40" : "bg-white hover:bg-slate-50/60"}
+                          `}
+                        >
+                          <div className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 shadow-sm ${details.bgColor}`}>
+                            <Icon size={13} />
+                          </div>
+                          <div className="flex-1 min-w-0 pr-4">
+                            <p className={`text-[11px] leading-relaxed break-words ${!n.isRead ? "text-slate-800 font-extrabold" : "text-slate-500 font-medium"}`}>
+                              {n.message}
+                            </p>
+                            <span className="text-[9px] text-slate-400 block mt-1 font-semibold">
+                              {new Date(n.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })} at{" "}
+                              {new Date(n.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          </div>
+                          {!n.isRead && (
+                            <span className="absolute top-1/2 -translate-y-1/2 right-3 w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse shadow-lg shadow-blue-500/50" />
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="px-4 py-2.5 bg-slate-50/50 border-t border-slate-100 text-center">
+                  <button
+                    onClick={() => {
+                      setOpenNotifications(false);
+                      navigate(`/${user?.role}/notifications`);
+                    }}
+                    className="text-[10px] text-slate-500 hover:text-slate-700 font-bold tracking-wide uppercase transition-colors"
+                  >
+                    View All History
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* PROFILE DROPDOWN */}
@@ -185,7 +328,7 @@ const Navbar = ({ setSidebarOpen }) => {
               </div>
             )}
 
-            <div className="hidden lg:block text-left">
+            <div className="text-left">
               <h3 className="text-[12px] font-semibold text-gray-800 leading-tight">{user?.name}</h3>
               <p className="text-[10px] text-gray-400 capitalize leading-tight">{user?.role}</p>
             </div>
