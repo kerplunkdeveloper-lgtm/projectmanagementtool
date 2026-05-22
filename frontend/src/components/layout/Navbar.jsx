@@ -7,6 +7,7 @@ import {
   getNotifications,
   markAsRead,
   markAllAsRead,
+  deleteNotification,
 } from "../../features/notifications/notificationSlice";
 import toast from "react-hot-toast";
 import { HiOutlineMenuAlt3 } from "react-icons/hi";
@@ -20,6 +21,7 @@ import {
   FiBriefcase,
   FiCheck,
   FiInfo,
+  FiTrash2,
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -209,8 +211,9 @@ const Navbar = ({ setSidebarOpen }) => {
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 transition={{ duration: 0.15 }}
                 className="
-                  absolute right-0 mt-2
-                  w-[340px] max-w-[calc(100vw-32px)]
+                  fixed top-[62px] left-4 right-4
+                  md:absolute md:top-auto md:left-auto md:right-0 md:mt-2
+                  md:w-[340px] md:max-w-none
                   bg-white rounded-2xl border border-slate-100
                   shadow-xl z-50 overflow-hidden
                 "
@@ -264,14 +267,14 @@ const Navbar = ({ setSidebarOpen }) => {
                             }
                           }}
                           className={`
-                            px-4 py-3 text-left transition-all cursor-pointer flex items-start gap-3 relative
+                            px-4 py-3 text-left transition-all cursor-pointer flex items-start gap-3 relative group
                             ${!n.isRead ? "bg-blue-50/20 hover:bg-blue-50/40" : "bg-white hover:bg-slate-50/60"}
                           `}
                         >
                           <div className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 shadow-sm ${details.bgColor}`}>
                             <Icon size={13} />
                           </div>
-                          <div className="flex-1 min-w-0 pr-4">
+                          <div className="flex-1 min-w-0 pr-6">
                             <p className={`text-[11px] leading-relaxed break-words ${!n.isRead ? "text-slate-800 font-extrabold" : "text-slate-500 font-medium"}`}>
                               {n.message}
                             </p>
@@ -280,9 +283,25 @@ const Navbar = ({ setSidebarOpen }) => {
                               {new Date(n.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </span>
                           </div>
-                          {!n.isRead && (
-                            <span className="absolute top-1/2 -translate-y-1/2 right-3 w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse shadow-lg shadow-blue-500/50" />
-                          )}
+                          <div className="flex items-center gap-1 shrink-0 absolute right-3 top-1/2 -translate-y-1/2">
+                            {!n.isRead && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse shadow-lg shadow-blue-500/50" />
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                dispatch(deleteNotification(n._id));
+                                toast.success("Notification deleted");
+                              }}
+                              className="
+                                p-1 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all duration-150
+                                opacity-100 lg:opacity-0 lg:group-hover:opacity-100 focus:opacity-100
+                              "
+                              title="Delete Notification"
+                            >
+                              <FiTrash2 size={12} />
+                            </button>
+                          </div>
                         </div>
                       );
                     })

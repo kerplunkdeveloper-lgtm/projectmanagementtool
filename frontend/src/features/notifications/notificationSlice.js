@@ -37,6 +37,18 @@ export const markAllAsRead = createAsyncThunk(
   }
 );
 
+export const deleteNotification = createAsyncThunk(
+  'notifications/deleteNotification',
+  async (id, thunkAPI) => {
+    try {
+      const response = await axiosInstance.delete(`/notifications/${id}`);
+      return response.data.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response.data.message);
+    }
+  }
+);
+
 const notificationSlice = createSlice({
   name: 'notifications',
   initialState: {
@@ -73,6 +85,9 @@ const notificationSlice = createSlice({
       })
       .addCase(markAllAsRead.fulfilled, (state) => {
         state.notifications.forEach(n => n.isRead = true);
+      })
+      .addCase(deleteNotification.fulfilled, (state, action) => {
+        state.notifications = state.notifications.filter(n => n._id !== action.payload);
       });
   },
 });

@@ -239,7 +239,11 @@ const Project = () => {
 
   // Update Task fields inline
   const handleTaskFieldChange = (taskId, fields) => {
-    dispatch(updateTask({ id: taskId, taskData: fields }));
+    const sanitizedFields = { ...fields };
+    if (sanitizedFields.assignedTo === "") sanitizedFields.assignedTo = null;
+    if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
+
+    dispatch(updateTask({ id: taskId, taskData: sanitizedFields }));
     setTimeout(() => {
       dispatch(getTasks());
     }, 500);
@@ -254,8 +258,8 @@ const Project = () => {
     const newSubtask = {
       title: title.trim(),
       status: "Pending",
-      assignedTo: "",
-      dueDate: "",
+      assignedTo: null,
+      dueDate: null,
     };
 
     const updatedSubtasks = [...(task.subtasks || []), newSubtask];
@@ -269,8 +273,12 @@ const Project = () => {
 
   // Update specific subtask fields
   const handleSubtaskFieldChange = (task, subtaskId, updatedFields) => {
+    const sanitizedFields = { ...updatedFields };
+    if (sanitizedFields.assignedTo === "") sanitizedFields.assignedTo = null;
+    if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
+
     const updatedSubtasks = task.subtasks.map((sub) =>
-      sub._id === subtaskId ? { ...sub, ...updatedFields } : sub
+      sub._id === subtaskId ? { ...sub, ...sanitizedFields } : sub
     );
     dispatch(updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } }));
     setTimeout(() => {

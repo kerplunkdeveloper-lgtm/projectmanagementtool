@@ -21,12 +21,23 @@ const EventModal = ({ open, setOpen, onSubmit, initialData, isEditing, onDelete 
     title: "", description: "", date: "", type: "Post", client: "", color: "#3b82f6",
   });
 
+  const fmt = (d) => {
+    if (!d) return "";
+    const dateObj = new Date(d);
+    const pad = (n) => String(n).padStart(2, "0");
+    const year = dateObj.getFullYear();
+    const month = pad(dateObj.getMonth() + 1);
+    const day = pad(dateObj.getDate());
+    const hours = pad(dateObj.getHours());
+    const minutes = pad(dateObj.getMinutes());
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   useEffect(() => {
     if (!open) return;
     dispatch(getClients());
 
     if (isEditing && initialData) {
-      const fmt = (d) => d ? new Date(d).toISOString().split("T")[0] : "";
       setFormData({
         title: initialData.title || "",
         description: initialData.description || "",
@@ -38,7 +49,7 @@ const EventModal = ({ open, setOpen, onSubmit, initialData, isEditing, onDelete 
     } else if (initialData?.start) {
       setFormData({
         title: "", description: "",
-        date: new Date(initialData.start).toISOString().split("T")[0],
+        date: fmt(initialData.start),
         type: "Post", client: "", color: "#3b82f6",
       });
     } else {
@@ -136,9 +147,9 @@ const EventModal = ({ open, setOpen, onSubmit, initialData, isEditing, onDelete 
               </select>
             </div>
             <div>
-              <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Date *</label>
+              <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Date & Time *</label>
               <input
-                type="date"
+                type="datetime-local"
                 name="date"
                 required
                 value={formData.date}

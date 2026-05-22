@@ -64,14 +64,20 @@ const CalendarPage = () => {
   useEffect(() => { dispatch(getEvents()); }, [dispatch]);
 
   useEffect(() => {
-    if (events && events.length > 0) {
-      const today = new Date();
-      const todayString = today.toDateString();
+    if (!events || events.length === 0) return;
+
+    const checkUpcomingEvents = () => {
+      const now = new Date();
       let shouldPlaySound = false;
 
       events.forEach((event) => {
-        const eventDate = new Date(event.date);
-        if (eventDate.toDateString() === todayString) {
+        const eventTime = new Date(event.date);
+        const timeDiffMs = eventTime.getTime() - now.getTime();
+        const timeDiffMins = timeDiffMs / (1000 * 60);
+
+        // Notify if the event starts in the next 10 minutes (or has started in the last 1 minute)
+        // and has not been notified yet.
+        if (timeDiffMins >= -1 && timeDiffMins <= 10) {
           if (!notifiedEvents.current.has(event._id)) {
             notifiedEvents.current.add(event._id);
             shouldPlaySound = true;
@@ -82,13 +88,16 @@ const CalendarPage = () => {
                   <FiCalendar size={15} />
                 </div>
                 <div>
-                  <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-wide">Event Today!</h4>
+                  <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-wide">Event Starting Soon!</h4>
                   <p className="text-xs font-bold text-slate-700 mt-0.5">{event.title}</p>
-                  <p className="text-[9px] text-gray-400 font-semibold">{event.client?.companyName || "Client Event"}</p>
+                  <p className="text-[9px] text-gray-400 font-semibold">
+                    {event.client?.companyName || "Client Event"} at{" "}
+                    {eventTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </p>
                 </div>
               </div>
             ), {
-              duration: 6000,
+              duration: 8000,
               position: "top-right",
               style: {
                 borderRadius: "16px",
@@ -106,7 +115,11 @@ const CalendarPage = () => {
       if (shouldPlaySound) {
         playNotificationSound();
       }
-    }
+    };
+
+    checkUpcomingEvents();
+    const interval = setInterval(checkUpcomingEvents, 30000);
+    return () => clearInterval(interval);
   }, [events]);
 
   const handleSelectSlot = ({ start }) => {
@@ -139,9 +152,11 @@ const CalendarPage = () => {
     } catch (err) { toast.error(err); }
   };
 
-  const calendarEvents = events.map((e) => ({
-    ...e, start: new Date(e.date), end: new Date(e.date),
-  }));
+  const calendarEvents = events.map((e) => {
+    const start = new Date(e.date);
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+    return { ...e, start, end };
+  });
 
   const eventStyleGetter = (event) => ({
     style: {

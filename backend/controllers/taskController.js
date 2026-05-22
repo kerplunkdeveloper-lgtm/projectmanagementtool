@@ -1,5 +1,6 @@
 const Task = require("../models/Task");
 const Notification = require("../models/Notification");
+const User = require("../models/User");
 
 // @desc    Get all tasks
 // @route   GET /api/tasks
@@ -84,23 +85,44 @@ exports.updateTask = async (req, res) => {
 
     // Check if task status has been updated (e.g. marked completed)
     if (req.body.status && req.body.status !== previousStatus) {
-      // Notify task assignee if admin updated it, or notify creator/admin if assignee updated it
-      const recipient = req.user.id === task.assignedTo?._id?.toString() ? task.project?.client : task.assignedTo?._id;
-      
-      if (recipient) {
-        const notification = await Notification.create({
-          recipient,
-          sender: req.user.id,
-          type: "task_updated",
-          message: `Task "${task.title}" status updated to: ${task.status}`,
-          task: task._id,
-          project: task.project?._id,
-        });
+      const io = req.app.get("io");
+      const isAssignee = task.assignedTo?._id?.toString() === req.user.id;
 
-        const io = req.app.get("io");
-        if (io) {
-          const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
-          io.to(recipient.toString()).emit("notification", populatedNotification);
+      if (isAssignee) {
+        // A member updated their own task status. Notify all admins and operation managers!
+        const managers = await User.find({ role: { $in: ["admin", "operationmanager"] } });
+        for (const manager of managers) {
+          const notification = await Notification.create({
+            recipient: manager._id,
+            sender: req.user.id,
+            type: "task_updated",
+            message: `Member ${req.user.name} updated task "${task.title}" to: ${task.status}`,
+            task: task._id,
+            project: task.project?._id,
+          });
+
+          if (io) {
+            const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
+            io.to(manager._id.toString()).emit("notification", populatedNotification);
+          }
+        }
+      } else {
+        // An admin/manager updated the task status. Notify the assignee!
+        const recipient = task.assignedTo?._id;
+        if (recipient) {
+          const notification = await Notification.create({
+            recipient,
+            sender: req.user.id,
+            type: "task_updated",
+            message: `Task "${task.title}" status updated to: ${task.status}`,
+            task: task._id,
+            project: task.project?._id,
+          });
+
+          if (io) {
+            const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
+            io.to(recipient.toString()).emit("notification", populatedNotification);
+          }
         }
       }
     }

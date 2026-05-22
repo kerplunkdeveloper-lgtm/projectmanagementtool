@@ -77,12 +77,12 @@ const Notifications = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-4xl mx-auto">
+    <div className=" space-y-6 max-w-7xl mx-auto">
       {/* HEADER CARD */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl sm:text-2xl font-black text-slate-800">Notification Center</h1>
+            <h1 className="text-xl  font-black text-slate-800">Notification Center</h1>
             {unreadCount > 0 && (
               <span className="bg-red-500 text-white text-[10px] font-black px-2.5 py-1 rounded-full animate-pulse uppercase tracking-wider">
                 {unreadCount} Unread

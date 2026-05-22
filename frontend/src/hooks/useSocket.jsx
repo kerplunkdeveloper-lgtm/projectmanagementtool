@@ -4,20 +4,53 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addNotification } from '../features/notifications/notificationSlice';
 import toast from 'react-hot-toast';
 
+const playNotificationSound = () => {
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const playTone = (time, freq, duration) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, time);
+      
+      gain.gain.setValueAtTime(0, time);
+      gain.gain.linearRampToValueAtTime(0.12, time + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+      
+      osc.start(time);
+      osc.stop(time + duration);
+    };
+
+    const now = audioCtx.currentTime;
+    playTone(now, 880, 0.15); // A5
+    playTone(now + 0.08, 1109, 0.3); // C#6
+  } catch (err) {
+    console.error("Audio Context playback failed:", err);
+  }
+};
+
 const useSocket = () => {
   const socket = useRef();
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    if (user && user._id) {
-      socket.current = io('http://localhost:5000');
+    const userId = user?._id || user?.id;
+    if (user && userId) {
+      socket.current = io(import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000');
 
-      socket.current.emit('join', user._id);
+      socket.current.emit('join', userId);
 
       socket.current.on('notification', (notification) => {
         dispatch(addNotification(notification));
         
+        // Play premium audio chime
+        playNotificationSound();
+
         // Premium Real-time Toast
         toast.custom((t) => (
           <div
