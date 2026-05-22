@@ -122,8 +122,8 @@ const Templatelib = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
-      <div className="max-w-7xl mx-auto px-3 sm:px-5 py-4 sm:py-6">
+    <div className="min-h-screen">
+      <div className="max-w-7xl mx-auto py-4 sm:py-6">
 
         {/* ── HEADER ── */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
@@ -145,7 +145,7 @@ const Templatelib = () => {
 
           <button
             onClick={openCreate}
-            className="self-start sm:self-auto flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r
+            className="self-start sm:self-auto flex items-center  gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r
                           from-cyan-500
                           to-blue-600 text-white font-semibold text-sm shadow-sm shadow-blue-200 transition-all active:scale-95"
           >
@@ -155,9 +155,9 @@ const Templatelib = () => {
         </div>
 
         {/* ── FILTERS ROW ── */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mb-5">
+        <div className=" mt-10 flex flex-col sm:flex-row items-start sm:items-center gap-2 mb-5">
           {/* TABS */}
-          <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1 overflow-x-auto scrollbar-hide w-full sm:w-auto">
+          <div className=" flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1 overflow-x-auto scrollbar-hide w-full sm:w-auto">
           {TABS.map((tab) => (
   <button
     key={tab.id}

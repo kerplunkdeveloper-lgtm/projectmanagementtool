@@ -222,19 +222,19 @@ const Clients = () => {
   ]);
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb] p-3">
+    <div className="min-h-screen">
       {/* HEADER */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
+      <div className="flex justify-between items-center gap-3 mb-4">
         <div>
-          <h1 className="text-[20px] font-semibold text-gray-800 flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 text-white flex items-center justify-center shadow">
+          <h1 className="text-sm sm:text-lg md:text-[20px] font-semibold text-gray-800 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 text-white flex items-center justify-center shadow shrink-0">
               <FiUsers size={14} />
             </div>
 
             Client Details
           </h1>
 
-          <p className="text-[10px] text-gray-500 mt-1">
+          <p className="text-[10px] text-gray-500 mt-1 hidden xs:block ml-10">
             Manage all client details
           </p>
         </div>
@@ -247,7 +247,7 @@ const Clients = () => {
 
             setFormData(initialForm);
           }}
-          className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-4 py-2 rounded-xl flex items-center justify-center gap-1.5 shadow text-[12px] font-medium w-fit"
+          className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-3.5 py-2 sm:px-4 sm:py-2 rounded-xl flex items-center justify-center gap-1.5 shadow text-[10px] sm:text-[12px] font-medium w-fit shrink-0 active:scale-95 transition-all"
         >
           <FiPlus size={12} />
           Add Client

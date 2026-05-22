@@ -35,16 +35,16 @@ const DashboardLayout = ({ role }) => {
 
         {/* IMPERSONATION BANNER */}
         {originalAdminUser && (
-          <div className="bg-blue-400 text-white px-4 py-2 text-xs flex items-center justify-between shadow-md z-50">
+          <div className="bg-blue-500 text-white px-4 py-2 text-[10px] flex items-center justify-between gap-5 shadow-md z-50">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-green-900 animate-pulse" />
+              <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse" />
               <span>
                 Viewing as <strong>{user?.name}</strong> ({role}) in Original account: <strong>{originalAdminUser.name}</strong>.
               </span>
             </div>
             <button
               onClick={handleSwitchBack}
-              className="bg-black hover:bg-gray-800 text-white px-3 py-1 rounded font-medium text-[10px] uppercase tracking-wider transition-all"
+              className="bg-black hover:bg-gray-800 text-white px-3 py-1 rounded font-medium text-[9px] uppercase tracking-wider transition-all"
             >
               Switch Back
             </button>

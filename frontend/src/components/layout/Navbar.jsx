@@ -127,6 +127,7 @@ const Navbar = ({ setSidebarOpen }) => {
         px-3 md:px-5
         flex items-center justify-between
         bg-white backdrop-blur-3xl
+        border-b border-gray-200
         shadow-sm
       "
     >

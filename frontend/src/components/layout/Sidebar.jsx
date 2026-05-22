@@ -11,24 +11,50 @@ import toast from "react-hot-toast";
 
 import { sidebarConfig } from "../../config/sidebarConfig";
 
-import { logoutUser } from "../../features/auth/authSlice";
+import { logoutUser, impersonateUser } from "../../features/auth/authSlice";
 import { getProjects } from "../../features/projects/projectSlice";
+import { getUsers } from "../../features/users/userSlice";
 
 const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   const menuItems = sidebarConfig[role] || [];
-  
+
   const { notifications } = useSelector((state) => state.notifications);
-  const unreadCount = notifications ? notifications.filter((n) => !n.isRead).length : 0;
-  
+  const unreadCount = notifications
+    ? notifications.filter((n) => !n.isRead).length
+    : 0;
+
   const { projects } = useSelector((state) => state.projects);
+  const { users } = useSelector((state) => state.users);
+  const { user: currentUser } = useSelector((state) => state.auth);
   const [isWorkOpen, setIsWorkOpen] = useState(true);
 
   useEffect(() => {
     dispatch(getProjects());
-  }, [dispatch]);
+    if (role === "admin") {
+      dispatch(getUsers());
+    }
+  }, [dispatch, role]);
+
+  const handleSwitchUser = async (userId) => {
+    try {
+      const result = await dispatch(impersonateUser(userId)).unwrap();
+      toast.success("Successfully logged in as user");
+      setSidebarOpen(false);
+      const targetRole = result.data.user.role;
+      if (targetRole === "admin") {
+        navigate("/admin");
+      } else if (targetRole === "operationmanager") {
+        navigate("/operationmanager");
+      } else if (targetRole === "team") {
+        navigate("/team");
+      }
+    } catch (err) {
+      toast.error(err || "Failed to switch user");
+    }
+  };
 
   const handleLogout = async () => {
     await dispatch(logoutUser());
@@ -42,7 +68,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       <div
         onClick={() => setSidebarOpen(false)}
         className={`
-          fixed inset-0 z-40
+          fixed inset-0 z-[90]
           bg-black/40 backdrop-blur-sm
           transition-all duration-300
           lg:hidden
@@ -56,11 +82,11 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           fixed
           top-0
           left-0
-          z-50
+          z-[100]
 
           h-screen
 
-          w-[200px]
+          w-[260px]
           lg:w-[220px]
           xl:w-[230px]
 
@@ -84,10 +110,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             items-center
             justify-between
 
-            px-3
-            py-3
+            px-4
+            py-4
 
-            border-b border-gray-200
+            border-b border-gray-100
           "
         >
           {/* LOGO */}
@@ -96,7 +122,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
               src={logo}
               alt="logo"
               className="
-                w-[100px]
+                w-[110px]
                 lg:w-[110px]
                 xl:w-[120px]
 
@@ -131,16 +157,14 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           </button>
         </div>
 
-
-
         {/* MENU */}
         <nav
           className="
             flex-1
             overflow-y-auto
 
-            px-2
-            py-2
+            px-3.5
+            py-3
 
             space-y-1.5
 
@@ -165,10 +189,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                     `
                       flex
                       items-center
-                      gap-2.5
+                      gap-3
 
-                      px-2.5
-                      py-2
+                      px-3
+                      py-2.5
 
                       rounded-xl
 
@@ -202,12 +226,13 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                     `
                   }
                 >
-                  <Icon size={12} className="shrink-0" />
+                  <Icon size={14} className="shrink-0" />
 
                   <span
                     className="
-                      text-[10px]
-                      lg:text-[10px]
+                      text-xs
+                      lg:text-[11px]
+                      xl:text-xs
 
                       font-medium
 
@@ -218,105 +243,190 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   </span>
 
                   {item.name === "Notifications" && unreadCount > 0 && (
-                    <span className="
+                    <span
+                      className="
                       ml-auto
                       min-w-[16px] h-[16px] px-1
                       bg-red-500 text-white rounded-full
                       flex items-center justify-center
                       text-[9px] font-bold animate-pulse
-                    ">
+                    "
+                    >
                       {unreadCount}
                     </span>
                   )}
                 </NavLink>
 
-                {item.name === "Projects" && projects && projects.length > 0 && (
-                  <div className="space-y-1 pt-1 pb-2 bg-blue-100 rounded-2xl border-b border-gray-100 pl-4 pr-2 mt-1">
-                    <button
-                      onClick={() => setIsWorkOpen(!isWorkOpen)}
-                      className="w-full flex items-center justify-between gap-2 py-1 text-gray-700 hover:text-cyan-700 transition-all font-bold"
-                    >
-                      <div className="flex items-center gap-2">
-                    
-                        <span className="text-[10px] font-semibold uppercase tracking-wider">Work</span>
-                      </div>
-                      <svg
-                        className={`w-3 h-3 transform transition-transform duration-200 ${isWorkOpen ? 'rotate-180' : ''}`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                {item.name === "Projects" &&
+                  projects &&
+                  projects.length > 0 && (
+                    <div className="space-y-1 pt-1 pb-2 bg-blue-100 rounded-2xl border-b border-gray-100 pl-4 pr-2 mt-1">
+                      <button
+                        onClick={() => setIsWorkOpen(!isWorkOpen)}
+                        className="w-full flex items-center justify-between gap-2 py-1 text-gray-700 hover:text-cyan-700 transition-all font-bold"
                       >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    
-                    {isWorkOpen && (
-                      <div className="pl-3.5 space-y-1 overflow-y-auto max-h-[160px] scrollbar-thin">
-                        {projects.map((project) => (
-                          <button
-                            key={project._id}
-                            onClick={() => {
-                              setSidebarOpen(false);
-                              navigate(`/${role}/projects?id=${project._id}`);
-                            }}
-                            className="w-full text-left block text-[10px] font-semibold text-gray-600 hover:text-cyan-600 py-1 truncate"
-                            title={project.name}
-                          >
-                            • {project.name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-semibold uppercase tracking-wider">
+                            Work
+                          </span>
+                        </div>
+                        <svg
+                          className={`w-3 h-3 transform transition-transform duration-200 ${isWorkOpen ? "rotate-180" : ""}`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2.5}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </button>
+
+                      {isWorkOpen && (
+                        <div className="pl-3.5 space-y-1 overflow-y-auto max-h-[160px] scrollbar-thin">
+                          {projects.map((project) => (
+                            <button
+                              key={project._id}
+                              onClick={() => {
+                                setSidebarOpen(false);
+                                navigate(`/${role}/projects?id=${project._id}`);
+                              }}
+                              className="w-full text-left block text-[10px] font-semibold text-gray-600 hover:text-cyan-600 py-1 truncate"
+                              title={project.name}
+                            >
+                              • {project.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
               </React.Fragment>
             );
           })}
 
           {/* FALLBACK FOR ROLES WITHOUT PROJECTS LISTED */}
-          {role !== "team" && !menuItems.some((item) => item.name === "Projects") && projects && projects.length > 0 && (
-            <div className="space-y-1 pt-2 border-t border-gray-100 px-2.5">
-              <button
-                onClick={() => setIsWorkOpen(!isWorkOpen)}
-                className="w-full flex items-center justify-between gap-2 py-2 text-gray-700 hover:text-cyan-700 transition-all font-bold"
-              >
-                <div className="flex items-center gap-2">
-                  <FiFolder size={12} className="text-gray-500" />
-                  <span className="text-[10px] font-semibold uppercase tracking-wider">Work</span>
-                </div>
-                <svg
-                  className={`w-3 h-3 transform transition-transform duration-200 ${isWorkOpen ? 'rotate-180' : ''}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+          {role !== "team" &&
+            !menuItems.some((item) => item.name === "Projects") &&
+            projects &&
+            projects.length > 0 && (
+              <div className="space-y-1 pt-2 border-t border-gray-100 px-2.5">
+                <button
+                  onClick={() => setIsWorkOpen(!isWorkOpen)}
+                  className="w-full flex items-center justify-between gap-2 py-2 text-gray-700 hover:text-cyan-700 transition-all font-bold"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              
-              {isWorkOpen && (
-                <div className="pl-3.5 space-y-1 overflow-y-auto max-h-[160px] scrollbar-thin">
-                  {projects.map((project) => (
-                    <button
-                      key={project._id}
-                      onClick={() => {
-                        setSidebarOpen(false);
-                        navigate(`/${role}/projects?id=${project._id}`);
-                      }}
-                      className="w-full text-left block text-[10px] font-semibold text-gray-600 hover:text-cyan-600 py-1 truncate"
-                      title={project.name}
-                    >
-                      • {project.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                  <div className="flex items-center gap-2">
+                    <FiFolder size={12} className="text-gray-500" />
+                    <span className="text-[10px] font-semibold uppercase tracking-wider">
+                      Work
+                    </span>
+                  </div>
+                  <svg
+                    className={`w-3 h-3 transform transition-transform duration-200 ${isWorkOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+
+                {isWorkOpen && (
+                  <div className="pl-3.5 space-y-1 overflow-y-auto max-h-[160px] scrollbar-thin">
+                    {projects.map((project) => (
+                      <button
+                        key={project._id}
+                        onClick={() => {
+                          setSidebarOpen(false);
+                          navigate(`/${role}/projects?id=${project._id}`);
+                        }}
+                        className="w-full text-left block text-[10px] font-semibold text-gray-600 hover:text-cyan-600 py-1 truncate"
+                        title={project.name}
+                      >
+                        • {project.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
         </nav>
 
         {/* FOOTER */}
-        <div className="p-3 border-t border-gray-200">
+        <div className="p-3 border-t border-gray-200 space-y-2">
+          {role === "admin" && users && users.length > 0 && (
+            <div className="bg-slate-50 border border-slate-200/60 rounded-xl p-2 text-left">
+              <label className="block text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1 px-0.5">
+                Quick Switch User
+              </label>
+              <div className="relative flex items-center">
+                <select
+                  value={currentUser?._id || currentUser?.id || ""}
+                  onChange={(e) => {
+                    if (
+                      e.target.value &&
+                      e.target.value !== (currentUser?._id || currentUser?.id)
+                    ) {
+                      handleSwitchUser(e.target.value);
+                    }
+                  }}
+                  className="w-full bg-white border border-slate-200 rounded-lg pl-2 pr-7 py-1.5 text-[10px] font-semibold text-slate-700 outline-none cursor-pointer focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all appearance-none"
+                >
+                  {users.map((u) => {
+                    const isCurrent =
+                      u._id === (currentUser?._id || currentUser?.id);
+                    const displayRole =
+                      u.role === "operationmanager"
+                        ? "Operation Manager"
+                        : u.role === "admin"
+                          ? "Admin"
+                          : "Team";
+                    const displayDept =
+                      u.role === "team" && u.department
+                        ? ` - ${u.department}`
+                        : "";
+                    return (
+                      <option
+                        key={u._id}
+                        value={u._id}
+                        className={
+                          isCurrent ? "font-bold text-blue-600 bg-blue-50" : ""
+                        }
+                      >
+                        {isCurrent ? "● " : ""}
+                        {u.name} ({displayRole}
+                        {displayDept}){isCurrent ? " — Active" : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+                <div className="absolute right-2 pointer-events-none text-slate-400">
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          )}
+
           <button
             onClick={handleLogout}
             className="
