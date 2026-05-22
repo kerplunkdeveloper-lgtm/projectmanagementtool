@@ -86,7 +86,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
           h-screen
 
-          w-[260px]
+          w-[300px]
           lg:w-[220px]
           xl:w-[230px]
 
