@@ -6,6 +6,7 @@ import {
   FiBarChart2,
   FiCalendar,
   FiBell,
+  FiMessageSquare,
 } from "react-icons/fi";
 import { FaRegUserCircle } from "react-icons/fa";
 import { TbReportSearch } from "react-icons/tb";
@@ -80,9 +81,11 @@ export const sidebarConfig = {
       path: "/admin/profile",
       icon: FaRegUserCircle,
     },
-
-
-
+    {
+      name: "Chat",
+      path: "/admin/chat",
+      icon: FiMessageSquare,
+    },
   ],
 
   operationmanager: [
@@ -118,6 +121,11 @@ export const sidebarConfig = {
       path: "/operationmanager/profile",
       icon: FaRegUserCircle,
     },
+    {
+      name: "Chat",
+      path: "/operationmanager/chat",
+      icon: FiMessageSquare,
+    },
   ],
 
   team: [
@@ -142,6 +150,11 @@ export const sidebarConfig = {
       name: "profile",
       path: "/team/profile",
       icon: FaRegUserCircle,
+    },
+    {
+      name: "Chat",
+      path: "/team/chat",
+      icon: FiMessageSquare,
     },
   ],
 

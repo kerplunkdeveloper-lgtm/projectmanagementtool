@@ -57,6 +57,7 @@ const businessProjectRoutes = require("./routes/businessProjectRoutes");
 const overheadRoutes = require("./routes/overheadRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const taskRoutes = require("./routes/taskRoutes");
+const messageRoutes = require("./routes/messageRoutes");
 
 app.get("/", (req, res) => {
   res.send("hello");
@@ -98,6 +99,7 @@ app.use('/api/business-projects', businessProjectRoutes);
 app.use('/api/overheads', overheadRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/messages', messageRoutes);
 
 const PORT = process.env.PORT || 5000;
 
@@ -119,7 +121,8 @@ io.on('connection', (socket) => {
 
   socket.on('join', (userId) => {
     socket.join(userId);
-    console.log(`User ${userId} joined their room`);
+    socket.join("group_chat");
+    console.log(`User ${userId} joined room & group_chat`);
   });
 
   socket.on('disconnect', () => {

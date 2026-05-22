@@ -9,6 +9,7 @@ import eodReportReducer from "../features/eodReports/eodReportSlice";
 import eventReducer from "../features/events/eventSlice";
 import taskReducer from "../features/tasks/taskSlice";
 import notificationReducer from "../features/notifications/notificationSlice";
+import chatReducer from "../features/chat/chatSlice";
 
 export const store = configureStore({
   reducer: {
@@ -22,5 +23,6 @@ export const store = configureStore({
     events: eventReducer,
     tasks: taskReducer,
     notifications: notificationReducer,
+    chat: chatReducer,
   },
 });

@@ -31,6 +31,7 @@ import Clients from "../pages/admin/clients/Clients.jsx";
 import CalendarPage from "../pages/calendar/CalendarPage.jsx";
 import Notifications from "../pages/notifications/Notifications.jsx";
 import Task from "../pages/tasks/Task.jsx";
+import ChatPage from "../pages/chat/ChatPage.jsx";
 
 const AppRoutes = () => {
   return (
@@ -116,6 +117,11 @@ const AppRoutes = () => {
           element={<Notifications />}
         />
         
+        <Route
+          path="chat"
+          element={<ChatPage />}
+        />
+        
       
         
       </Route>
@@ -168,6 +174,11 @@ const AppRoutes = () => {
           element={<Notifications />}
         />
 
+        <Route
+          path="chat"
+          element={<ChatPage />}
+        />
+
 
 
 
@@ -207,6 +218,11 @@ const AppRoutes = () => {
         <Route
           path="notifications"
           element={<Notifications />}
+        />
+
+        <Route
+          path="chat"
+          element={<ChatPage />}
         />
       </Route>
      
