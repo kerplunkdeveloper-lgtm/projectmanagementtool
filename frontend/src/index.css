@@ -1,6 +1,153 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 body {
   font-family: 'Poppins', sans-serif;
+  @apply transition-colors duration-300 bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100;
+}
+
+.dark {
+  /* Core background colors */
+  --color-white: #0f172a; 
+  --color-slate-50: #020617; 
+  --color-gray-50: #020617; 
+  
+  /* Borders */
+  --color-slate-100: #1e293b; 
+  --color-gray-100: #1e293b; 
+  --color-slate-200: #334155; 
+  --color-gray-200: #334155; 
+  
+  /* Text colors */
+  --color-slate-800: #f8fafc; 
+  --color-gray-800: #f8fafc; 
+  --color-slate-700: #f1f5f9; 
+  --color-gray-700: #f1f5f9; 
+  --color-slate-600: #e2e8f0; 
+  --color-gray-600: #e2e8f0; 
+  --color-slate-500: #cbd5e1; 
+  --color-gray-500: #cbd5e1; 
+  --color-slate-400: #94a3b8; 
+  --color-gray-400: #94a3b8; 
+
+  /* Standard status tag color mappings for premium dark theme contrast */
+  --color-emerald-50: rgba(16, 185, 129, 0.1);
+  --color-emerald-700: #34d399;
+  --color-emerald-200: rgba(16, 185, 129, 0.2);
+  
+  --color-blue-50: rgba(59, 130, 246, 0.1);
+  --color-blue-700: #60a5fa;
+  --color-blue-200: rgba(59, 130, 246, 0.2);
+
+  --color-amber-50: rgba(245, 158, 11, 0.15);
+  --color-amber-700: #fbbf24;
+  --color-amber-200: rgba(245, 158, 11, 0.25);
+
+  --color-rose-50: rgba(239, 68, 68, 0.1);
+  --color-rose-700: #fca5a5;
+  --color-rose-200: rgba(239, 68, 68, 0.2);
+
+  --color-purple-50: rgba(139, 92, 246, 0.1);
+  --color-purple-700: #c084fc;
+  --color-purple-200: rgba(139, 92, 246, 0.2);
+
+  color-scheme: dark;
+
+  /* React Big Calendar Overrides for dark theme */
+  .rbc-calendar {
+    color: #f1f5f9 !important;
+  }
+  .rbc-month-view, .rbc-time-view, .rbc-agenda-view {
+    background-color: #0f172a !important;
+    border-color: #1e293b !important;
+  }
+  .rbc-header {
+    border-bottom-color: #1e293b !important;
+    color: #cbd5e1 !important;
+    background-color: #1e293b !important;
+    font-weight: 700;
+  }
+  .rbc-header + .rbc-header {
+    border-left-color: #1e293b !important;
+  }
+  .rbc-day-bg {
+    border-color: #1e293b !important;
+  }
+  .rbc-day-bg + .rbc-day-bg {
+    border-left-color: #1e293b !important;
+  }
+  .rbc-month-row {
+    border-color: #1e293b !important;
+  }
+  .rbc-off-range-bg {
+    background: #020617 !important;
+  }
+  .rbc-today {
+    background-color: rgba(59, 130, 246, 0.15) !important;
+  }
+  .rbc-time-header {
+    border-bottom-color: #1e293b !important;
+  }
+  .rbc-time-header-content {
+    border-left-color: #1e293b !important;
+  }
+  .rbc-time-content {
+    border-top-color: #1e293b !important;
+  }
+  .rbc-timeslot-group {
+    border-bottom-color: #1e293b !important;
+  }
+  .rbc-time-slot {
+    border-top-color: #1e293b !important;
+  }
+  .rbc-event {
+    border: none !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    border-radius: 6px !important;
+  }
+  .rbc-show-more {
+    color: #38bdf8 !important;
+    font-weight: 700 !important;
+    background: transparent !important;
+  }
+  .rbc-toolbar button {
+    color: #cbd5e1 !important;
+    border-color: #334155 !important;
+    background-color: #1e293b !important;
+    font-weight: 700 !important;
+  }
+  .rbc-toolbar button:active, .rbc-toolbar button.rbc-active {
+    background-color: #3b82f6 !important;
+    color: #fff !important;
+    box-shadow: none !important;
+  }
+  .rbc-toolbar button:hover {
+    background-color: #334155 !important;
+    color: #fff !important;
+  }
+
+  /* React Big Calendar Event Modal fields & specific elements selector */
+  .event-modal-container input[type="text"],
+  .event-modal-container input[type="email"],
+  .event-modal-container input[type="password"],
+  .event-modal-container input[type="date"],
+  .event-modal-container input[type="time"],
+  .event-modal-container select,
+  .event-modal-container textarea {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+    border-color: #334155 !important;
+  }
+
+  /* Global input text & placeholder visibility overrides in dark mode */
+  input, select, textarea {
+    color: #ffffff !important;
+  }
+  input::placeholder, textarea::placeholder {
+    color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
 }

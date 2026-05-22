@@ -814,8 +814,8 @@ const Project = () => {
                         </button>
 
                         {activeAssigneeDropdownId === draft.id && (
-                          <div className="absolute left-0 top-9 bg-white border border-slate-200 rounded-xl shadow-xl z-30 min-w-[180px] py-1.5 max-h-48 overflow-y-auto">
-                            <div className="px-3 py-1 text-[9px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                          <div className="absolute left-0 bottom-9 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-30 min-w-[180px] py-1.5 max-h-48 overflow-y-auto">
+                            <div className="px-3 py-1 text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider border-b border-slate-100 dark:border-slate-850">
                               Assign Task To
                             </div>
                             <button
@@ -824,9 +824,9 @@ const Project = () => {
                                 updateDraftField(draft.id, "assignedTo", "");
                                 setActiveAssigneeDropdownId(null);
                               }}
-                              className="w-full text-left px-3 py-1.5 hover:bg-slate-50 text-xs font-semibold text-slate-500 flex items-center gap-2 border-b border-slate-50"
+                              className="w-full text-left px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-2 border-b border-slate-50 dark:border-slate-850"
                             >
-                              <div className="w-4 h-4 rounded-full border border-dashed border-slate-350 flex items-center justify-center text-slate-400 text-[10px]">
+                              <div className="w-4 h-4 rounded-full border border-dashed border-slate-350 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500 text-[10px]">
                                 ✕
                               </div>
                               <span>Unassigned</span>
@@ -839,7 +839,7 @@ const Project = () => {
                                   updateDraftField(draft.id, "assignedTo", u._id);
                                   setActiveAssigneeDropdownId(null);
                                 }}
-                                className="w-full text-left px-3 py-1.5 hover:bg-slate-50 text-xs font-semibold text-slate-700 flex items-center gap-2"
+                                className="w-full text-left px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2"
                               >
                                 {u.profileImage?.url ? (
                                   <img src={u.profileImage.url} alt={u.name} className="w-4 h-4 rounded-full object-cover" />
@@ -1016,8 +1016,8 @@ const Project = () => {
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 text-slate-505 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100">
+              <thead className="bg-gradient-to-r from-cyan-500 to-blue-600">
+                <tr className="text-slate-505 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100">
                   <th className="px-6 py-4">Project Name</th>
                   <th className="px-6 py-4">Client Name</th>
                   <th className="px-6 py-4">Status</th>

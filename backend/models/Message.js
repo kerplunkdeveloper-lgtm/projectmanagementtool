@@ -19,13 +19,24 @@ const MessageSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    replyTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Message",
+    },
     sticker: {
       type: String, // Code/emoji/URL of the sticker
     },
     messageType: {
       type: String,
-      enum: ["text", "sticker", "call"],
+      enum: ["text", "sticker", "call", "file"],
       default: "text",
+    },
+    file: {
+      url: { type: String },
+      public_id: { type: String },
+      filename: { type: String },
+      fileType: { type: String }, // "image", "video", "audio", "document"
+      size: { type: Number },
     },
     callStatus: {
       type: String, // 'started', 'missed', 'ended'

@@ -3,7 +3,7 @@ import { FiX, FiCalendar, FiTrash2 } from "react-icons/fi";
 import { useSelector, useDispatch } from "react-redux";
 import { getClients } from "../../features/clients/clientslice";
 
-const EVENT_TYPES = ["Post", "Reel", "Story", "Ad", "Report"];
+const EVENT_TYPES = ["Post", "Reel", "Story", "Ad", "Report", "Birthday Celebration"];
 
 const TYPE_COLORS = {
   Post:   { bg: "bg-blue-600",   text: "text-blue-600",   light: "bg-blue-50 border-blue-200"   },
@@ -11,6 +11,16 @@ const TYPE_COLORS = {
   Story:  { bg: "bg-violet-600", text: "text-violet-600", light: "bg-violet-50 border-violet-200" },
   Ad:     { bg: "bg-amber-500",  text: "text-amber-600",  light: "bg-amber-50 border-amber-200" },
   Report: { bg: "bg-emerald-500",text: "text-emerald-600",light: "bg-emerald-50 border-emerald-200" },
+  "Birthday Celebration": { bg: "bg-pink-500", text: "text-pink-600", light: "bg-pink-50 border-pink-200" },
+};
+
+const TYPE_HEX_COLORS = {
+  Post: "#3b82f6",
+  Reel: "#ef4444",
+  Story: "#8b5cf6",
+  Ad: "#f59e0b",
+  Report: "#10b981",
+  "Birthday Celebration": "#ec4899",
 };
 
 const EventModal = ({ open, setOpen, onSubmit, initialData, isEditing, onDelete }) => {
@@ -72,7 +82,13 @@ const EventModal = ({ open, setOpen, onSubmit, initialData, isEditing, onDelete 
     setFormData((p) => ({ ...p, [name]: value }));
   };
 
-  const handleSubmit = (e) => { e.preventDefault(); onSubmit(formData); };
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSubmit({
+      ...formData,
+      client: formData.client || null,
+    });
+  };
 
   if (!open) return null;
 
@@ -80,7 +96,7 @@ const EventModal = ({ open, setOpen, onSubmit, initialData, isEditing, onDelete 
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-3">
-      <div className="bg-white w-full max-w-md rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
+      <div className="event-modal-container bg-white w-full max-w-md rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
 
         {/* HEADER */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-slate-50/60">
@@ -115,7 +131,11 @@ const EventModal = ({ open, setOpen, onSubmit, initialData, isEditing, onDelete 
                   <button
                     key={t}
                     type="button"
-                    onClick={() => setFormData((p) => ({ ...p, type: t }))}
+                    onClick={() => setFormData((p) => ({
+                      ...p,
+                      type: t,
+                      color: TYPE_HEX_COLORS[t] || p.color
+                    }))}
                     className={`px-3 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
                       formData.type === t
                         ? `${conf.bg} text-white border-transparent`
@@ -132,10 +152,9 @@ const EventModal = ({ open, setOpen, onSubmit, initialData, isEditing, onDelete 
           {/* CLIENT + DATE */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Client *</label>
+              <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1">Client</label>
               <select
                 name="client"
-                required
                 value={formData.client}
                 onChange={handleChange}
                 className="w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all text-xs text-slate-700 cursor-pointer"

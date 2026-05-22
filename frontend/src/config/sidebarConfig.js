@@ -1,90 +1,66 @@
 import {
-  FiHome,
-  FiFolder,
-  FiUsers,
-  FiCheckSquare,
-  FiBarChart2,
-  FiCalendar,
-  FiBell,
-  FiMessageSquare,
-} from "react-icons/fi";
-import { FaRegUserCircle } from "react-icons/fa";
-import { TbReportSearch } from "react-icons/tb";
-import { FaHandsHoldingCircle } from "react-icons/fa6";
+  LuBuilding2,
+  LuFolderKanban,
+  LuLayoutTemplate,
+  LuUsers,
+  LuCalendarDays,
+  LuHandshake,
+  LuMessagesSquare,
+  LuClipboardCheck,
+} from "react-icons/lu";
+import { FiBarChart2, FiUser, FiHome } from "react-icons/fi";
 
 export const sidebarConfig = {
-
   admin: [
     {
       name: "Dashboard",
       path: "/admin",
       icon: FiHome,
     },
-
-       {
+    {
       name: "Clients",
       path: "/admin/clients",
-      icon: FiFolder,
+      icon: LuBuilding2,
     },
-
-    
     {
       name: "Projects",
       path: "/admin/projects",
-      icon: FiFolder,
+      icon: LuFolderKanban,
     },
-
-
-    
-
-   
-
-       {
+    {
       name: "Template Library",
       path: "/admin/template-library",
-      icon: FiFolder,
+      icon: LuLayoutTemplate,
     },
     {
       name: "Users",
       path: "/admin/users",
-      icon: FiUsers,
+      icon: LuUsers,
     },
-  
-  
-
-    
-
     {
       name: "EOD Reports",
       path: "/admin/eod-reports",
-      icon: TbReportSearch,
+      icon: FiBarChart2,
     },
     {
       name: "Calendar",
       path: "/admin/calendar",
-      icon: FiCalendar,
+      icon: LuCalendarDays,
     },
-
-
-     {
+    {
       name: "PartnerHub",
       path: "/admin/partnerhub",
-      icon: FaHandsHoldingCircle,
+      icon: LuHandshake,
     },
-
-
-
-
-
-     {
-      name: "profile",
+    {
+      name: "Profile",
       path: "/admin/profile",
-      icon: FaRegUserCircle,
+      icon: FiUser,
     },
     {
       name: "Chat",
       path: "/admin/chat",
-      icon: FiMessageSquare,
+      icon: LuMessagesSquare,
     },
   ],
 
@@ -97,34 +73,32 @@ export const sidebarConfig = {
     {
       name: "Projects",
       path: "/operationmanager/projects",
-      icon: FiFolder,
+      icon: LuFolderKanban,
     },
     {
       name: "Tasks",
       path: "/operationmanager/tasks",
-      icon: FiCheckSquare,
+      icon: LuClipboardCheck,
     },
     {
       name: "Calendar",
       path: "/operationmanager/calendar",
-      icon: FiCalendar,
+      icon: LuCalendarDays,
     },
-
-      {
+    {
       name: "Users",
       path: "/operationmanager/users",
-      icon: FiUsers,
+      icon: LuUsers,
     },
-
-      {
-      name: "profile",
+    {
+      name: "Profile",
       path: "/operationmanager/profile",
-      icon: FaRegUserCircle,
+      icon: FiUser,
     },
     {
       name: "Chat",
       path: "/operationmanager/chat",
-      icon: FiMessageSquare,
+      icon: LuMessagesSquare,
     },
   ],
 
@@ -137,25 +111,22 @@ export const sidebarConfig = {
     {
       name: "My Tasks",
       path: "/team/tasks",
-      icon: FiCheckSquare,
+      icon: LuClipboardCheck,
     },
-
     {
       name: "EOD Reports",
       path: "/team/eod-reports",
       icon: FiBarChart2,
     },
-
-     {
-      name: "profile",
+    {
+      name: "Profile",
       path: "/team/profile",
-      icon: FaRegUserCircle,
+      icon: FiUser,
     },
     {
       name: "Chat",
       path: "/team/chat",
-      icon: FiMessageSquare,
+      icon: LuMessagesSquare,
     },
   ],
-
 };

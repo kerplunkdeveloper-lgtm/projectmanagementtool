@@ -12,7 +12,7 @@ const eventSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['Post', 'Reel', 'Story', 'Ad', 'Report'],
+    enum: ['Post', 'Reel', 'Story', 'Ad', 'Report', 'Birthday Celebration'],
     default: 'Post',
   },
   client: {

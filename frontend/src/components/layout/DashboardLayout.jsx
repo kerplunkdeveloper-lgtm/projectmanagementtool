@@ -21,7 +21,7 @@ const DashboardLayout = ({ role }) => {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-gray-50">
+    <div className="h-screen overflow-hidden bg-gray-50 dark:bg-slate-950">
 
       {/* SIDEBAR */}
       <Sidebar
@@ -39,12 +39,12 @@ const DashboardLayout = ({ role }) => {
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse" />
               <span>
-                Viewing as <strong>{user?.name}</strong> ({role}) in Original account: <strong>{originalAdminUser.name}</strong>.
+                Viewing as <strong className="text-yellow-400">{user?.name}</strong> <span className="font-medium text-yellow-400"> ({role})</span> in Original account: <strong className="text-yellow-400">{originalAdminUser.name}</strong>.
               </span>
             </div>
             <button
               onClick={handleSwitchBack}
-              className="bg-black hover:bg-gray-800 text-white px-3 py-1 rounded font-medium text-[9px] uppercase tracking-wider transition-all"
+              className=" bg-yellow-500 text-white font-bold cursor-pointer  px-3 py-1 rounded text-[12px] uppercase tracking-wider transition-all"
             >
               Switch Back
             </button>
@@ -55,8 +55,8 @@ const DashboardLayout = ({ role }) => {
         <Navbar setSidebarOpen={setSidebarOpen} />
 
         {/* SCROLLABLE CONTENT */}
-        <main className="flex-1 overflow-y-auto p-2 sm:p-3 md:p-4 bg-gray-50">
-          <div className="min-h-full rounded-2xl bg-white border border-gray-200 shadow-sm p-3 md:p-4">
+        <main className="flex-1 overflow-y-auto p-2 sm:p-3 md:p-4 bg-gray-50 dark:bg-slate-950">
+          <div className="min-h-full rounded-2xl bg-white border border-gray-200 dark:bg-slate-900  dark:shadow-none shadow-sm p-3 md:p-4">
             <Outlet />
           </div>
         </main>

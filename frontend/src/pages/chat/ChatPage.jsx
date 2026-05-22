@@ -6,6 +6,8 @@ import {
   fetchGroupMessages,
   sendMessageAction,
   receiveMessage,
+  removeMessage,
+  deleteMessageAction,
   fetchRooms,
   createRoomAction,
   updateRoomAction,
@@ -31,11 +33,24 @@ import {
   FiUsers,
   FiTrash2,
   FiLogOut,
+  FiDownload,
+  FiFileText,
+  FiPaperclip,
+  FiCornerUpLeft,
+  FiArrowRight,
+  FiShare2,
 } from "react-icons/fi";
 import io from "socket.io-client";
 import toast from "react-hot-toast";
+import axiosInstance from "../../services/axiosInstance";
 
-const STICKERS = ["👾", "🚀", "🎉", "🔥", "👏", "❤️", "😂", "👍", "💡", "💯", "🌟", "✨"];
+const EMOJIS = [
+  "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "😜", "🧐", "🤓", "😎", "🤩", "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😣", "😖", "😫", "😩", "🥺", "😢", "😭", "😤", "😠", "😡", "🤬", "🤯", "😳", "🥵", "🥶", "😱", "😨", "😰", "😥", "😓", "🤗", "🤔", "🤭", "🤫", "🤥", "😶", "😐", "😑", "😬", "🙄", "🔥", "👍", "👎", "👏", "🙌", "🙏", "🤝", "❤️", "💔", "💖", "✨", "🎉", "🚀", "💡", "💯"
+];
+
+const STICKERS = [
+  "👾", "🛸", "🦄", "🐼", "🦊", "🦁", "🐰", "🐱", "🐶", "🐯", "🐨", "🐷", "🐸", "🐵", "🐒", "🐔", "🐧", "🐦", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🕷️", "🦂", "🐢", "🐍", "🦎", "🐙", "🦑", "🦞", "🦀", "🐡", "🐠", "🐟", "🐬", "🐳", "🐋", "🦈", "🐊", "🐅", "🐆", "🦓", "🦍", "🐘", "🦛", "🦏", "🐪", "🐫", "🦒", "🦘", "🐃", "🐂", "🐄", "🐎", "🐖", "🐏", "🐑", "🐐", "🦌", "🐕", "🐩", "🐈", "🐓", "🦃", "🕊️", "🐇", "🐁", "🐀", "🐿️", "🦔"
+];
 
 const ChatPage = () => {
   const dispatch = useDispatch();
@@ -47,7 +62,16 @@ const ChatPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [inputText, setInputText] = useState("");
   const [showStickerPicker, setShowStickerPicker] = useState(false);
+  const [pickerTab, setPickerTab] = useState("emoji"); // 'emoji' or 'sticker'
   const [showChatWindowMobile, setShowChatWindowMobile] = useState(false);
+
+  // New Reply, Forward & Share State
+  const [replyingToMessage, setReplyingToMessage] = useState(null);
+  const [forwardingMessage, setForwardingMessage] = useState(null);
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [forwardSearchTerm, setForwardSearchTerm] = useState("");
+  const [showShareMenu, setShowShareMenu] = useState(null);
+  const [sharingMessage, setSharingMessage] = useState(null);
 
   // Group Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -69,10 +93,12 @@ const ChatPage = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [isCamOff, setIsCamOff] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+  const [uploadingFile, setUploadingFile] = useState(false);
 
   const socketRef = useRef();
   const messagesEndRef = useRef();
   const callTimerRef = useRef();
+  const fileInputRef = useRef();
 
   const currentUserId = user?._id || user?.id;
 
@@ -116,6 +142,10 @@ const ChatPage = () => {
       if (activeChat === msg.chatRoom) {
         dispatch(receiveMessage(msg));
       }
+    });
+
+    socketRef.current.on("message_deleted", ({ messageId }) => {
+      dispatch(removeMessage(messageId));
     });
 
     return () => {
@@ -177,34 +207,124 @@ const ChatPage = () => {
   };
 
   // Messages form handles
-  const handleSendMessage = async (e) => {
-    e?.preventDefault();
-    if (!inputText.trim()) return;
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 50 * 1024 * 1024) {
+      return toast.error("File is too large. Max size is 50MB.");
+    }
 
     const isGroupType = activeChat === "group" || rooms.some((r) => r._id === activeChat);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setUploadingFile(true);
+    const toastId = toast.loading(`Uploading "${file.name}"...`);
+
+    try {
+      const res = await axiosInstance.post("/messages/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      const fileData = res.data.data;
+
+      const payload = {
+        recipient: isGroupType ? null : activeChat,
+        chatRoom: isGroupType ? activeChat : "direct",
+        messageType: "file",
+        file: fileData,
+        text: `Sent a file: ${fileData.filename}`,
+      };
+
+      await dispatch(sendMessageAction(payload)).unwrap();
+      toast.success("File sent successfully!", { id: toastId });
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error(error.response?.data?.message || "File upload failed", { id: toastId });
+    } finally {
+      setUploadingFile(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleSendMessage = async (e) => {
+    e?.preventDefault();
+    const trimmedText = inputText.trim();
+    if (!trimmedText) return;
+
+    const isGroupType = activeChat === "group" || rooms.some((r) => r._id === activeChat);
+    const isSingleSticker = STICKERS.includes(trimmedText) || EMOJIS.includes(trimmedText);
 
     const payload = {
       recipient: isGroupType ? null : activeChat,
       chatRoom: isGroupType ? activeChat : "direct",
-      text: inputText,
-      messageType: "text",
+      ...(isSingleSticker
+        ? { sticker: trimmedText, messageType: "sticker" }
+        : { text: inputText, messageType: "text" }
+      ),
+      replyTo: replyingToMessage?._id || null,
     };
 
     setInputText("");
+    setReplyingToMessage(null);
     await dispatch(sendMessageAction(payload)).unwrap();
   };
 
-  const handleSendSticker = async (sticker) => {
-    setShowStickerPicker(false);
-    const isGroupType = activeChat === "group" || rooms.some((r) => r._id === activeChat);
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      await dispatch(deleteMessageAction(messageId)).unwrap();
+      toast.success("Message deleted");
+    } catch (err) {
+      toast.error(err || "Failed to delete message");
+    }
+  };
+
+  const handleForwardSubmit = async (targetId, type) => {
+    if (!forwardingMessage) return;
 
     const payload = {
-      recipient: isGroupType ? null : activeChat,
-      chatRoom: isGroupType ? activeChat : "direct",
-      sticker,
-      messageType: "sticker",
+      recipient: type === "direct" ? targetId : null,
+      chatRoom: type === "group" ? targetId : "direct",
+      messageType: forwardingMessage.messageType,
+      text: forwardingMessage.text,
+      sticker: forwardingMessage.sticker,
+      file: forwardingMessage.file,
     };
-    await dispatch(sendMessageAction(payload)).unwrap();
+
+    try {
+      await dispatch(sendMessageAction(payload)).unwrap();
+      toast.success("Message forwarded");
+      setShowForwardModal(false);
+      setForwardingMessage(null);
+      setForwardSearchTerm("");
+    } catch (err) {
+      toast.error(err || "Failed to forward message");
+    }
+  };
+
+  const handleShareExternal = (msg, platform) => {
+    let shareText = "";
+    if (msg.messageType === "file" && msg.file) {
+      shareText = `Shared File: ${msg.file.filename}\nLink: ${msg.file.url}`;
+    } else if (msg.messageType === "sticker") {
+      shareText = `Shared Sticker: ${msg.sticker}`;
+    } else {
+      shareText = msg.text;
+    }
+
+    if (platform === "whatsapp") {
+      const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+      window.open(url, "_blank");
+    } else if (platform === "email") {
+      const url = `mailto:?subject=Shared Chat Message&body=${encodeURIComponent(shareText)}`;
+      window.open(url, "_blank");
+    }
+    setShowShareMenu(null);
   };
 
   // Create Group Room Action
@@ -346,22 +466,22 @@ const ChatPage = () => {
   });
 
   return (
-    <div className="flex h-[calc(100vh-80px)] overflow-hidden relative">
+    <div className="flex h-[calc(100vh-80px)] bg-slate-50/50 dark:bg-slate-900/40 rounded-3xl overflow-hidden border border-slate-100  shadow-sm relative transition-colors duration-300">
       
       {/* LEFT PANEL: CHATS & DIRECT MESSAGE DIRECTORY */}
       <div
-        className={`w-full md:w-80 shrink-0 bg-white border-r border-slate-100 flex flex-col ${
+        className={`w-full md:w-80 shrink-0 bg-white dark:bg-slate-900 border-r border-slate-100  flex flex-col transition-colors duration-300 ${
           showChatWindowMobile ? "hidden md:flex" : "flex"
         }`}
       >
-        <div className="border-b border-slate-100/60">
+        <div className="p-4 border-b border-slate-100/60 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/20">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-extrabold text-slate-800 uppercase tracking-wide flex items-center gap-2">
+            <h2 className="text-base font-extrabold text-slate-800 dark:text-blue-500 uppercase tracking-wide flex items-center gap-2">
               <FiMessageSquare className="text-blue-500" /> Messaging
             </h2>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="w-7 h-7 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-all cursor-pointer"
+              className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center transition-all cursor-pointer"
               title="Create Custom Group"
             >
               <FiPlus size={16} />
@@ -369,13 +489,13 @@ const ChatPage = () => {
           </div>
 
           <div className="relative">
-            <FiSearch className="absolute left-3 top-2.5 text-slate-400 text-sm" />
+            <FiSearch className="absolute left-3 top-2.5 text-slate-400 dark:text-slate-500 text-sm" />
             <input
               type="text"
               placeholder="Search team member..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-2xl pl-9 pr-4 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all placeholder:text-slate-400 text-slate-700"
+              className="w-full bg-white  border border-slate-200   rounded-2xl pl-9 pr-4 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/35 focus:border-blue-400 dark:focus:border-blue-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-700 dark:text-slate-200"
             />
           </div>
         </div>
@@ -390,8 +510,8 @@ const ChatPage = () => {
             }}
             className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
               activeChat === "group"
-                ? "bg-blue-50/60 border border-blue-100 text-blue-900 font-bold"
-                : "hover:bg-slate-50/60 text-slate-600 border border-transparent"
+                ? "bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-blue-900 dark:text-blue-300 font-bold"
+                : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 text-slate-650 dark:text-slate-400 border border-transparent"
             }`}
           >
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-md font-bold shrink-0">
@@ -402,15 +522,15 @@ const ChatPage = () => {
                 <span className="text-xs font-bold truncate">General Team Chat</span>
                 <span className="text-[9px] font-black uppercase text-blue-500 tracking-wider">All</span>
               </div>
-              <p className="text-[10px] text-slate-400 truncate font-semibold mt-0.5">All developers and admins</p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate font-semibold mt-0.5">All developers and admins</p>
             </div>
           </button>
 
           {/* CUSTOM GROUP CHATS */}
           {rooms.length > 0 && (
             <>
-              <div className="h-px bg-slate-100 my-2" />
-              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-3 mb-1.5">Custom Groups</p>
+              <div className="h-px bg-slate-100 dark:bg-slate-800 my-2" />
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mb-1.5">Custom Groups</p>
               
               {rooms.map((r) => (
                 <button
@@ -421,8 +541,8 @@ const ChatPage = () => {
                   }}
                   className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
                     activeChat === r._id
-                      ? "bg-blue-50/60 border border-blue-100 text-blue-900 font-bold"
-                      : "hover:bg-slate-50/60 text-slate-600 border border-transparent"
+                      ? "bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-blue-900 dark:text-blue-300 font-bold"
+                      : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 text-slate-650 dark:text-slate-400 border border-transparent"
                   }`}
                 >
                   <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-md font-bold shrink-0">
@@ -430,10 +550,10 @@ const ChatPage = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold truncate text-slate-800">{r.name}</span>
-                      <span className="text-[9px] text-slate-400 font-bold">{r.members.length} members</span>
+                      <span className="text-xs font-bold truncate text-slate-800 dark:text-slate-200">{r.name}</span>
+                      <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold">{r.members.length} members</span>
                     </div>
-                    <p className="text-[10px] text-slate-400 truncate font-semibold mt-0.5">
+                    <p className="text-[10px] text-slate-400 dark:text-slate-550 truncate font-semibold mt-0.5">
                       {r.description || "No description"}
                     </p>
                   </div>
@@ -442,12 +562,12 @@ const ChatPage = () => {
             </>
           )}
 
-          <div className="h-px bg-slate-100 my-2" />
-          <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 px-3 mb-1.5">Direct Messages</p>
+          <div className="h-px bg-slate-100 dark:bg-slate-800 my-2" />
+          <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-550 px-3 mb-1.5">Direct Messages</p>
 
           {/* User List */}
           {filteredUsers?.length === 0 ? (
-            <p className="text-[10px] text-slate-400 text-center py-6 font-semibold">No members found</p>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center py-6 font-semibold">No members found</p>
           ) : (
             filteredUsers?.map((u) => (
               <button
@@ -458,8 +578,8 @@ const ChatPage = () => {
                 }}
                 className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
                   activeChat === u._id
-                    ? "bg-blue-50/60 border border-blue-100 text-blue-900 font-bold"
-                    : "hover:bg-slate-50/60 text-slate-600 border border-transparent"
+                    ? "bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-blue-900 dark:text-blue-300 font-bold"
+                    : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 text-slate-650 dark:text-slate-400 border border-transparent"
                 }`}
               >
                 <div className="relative shrink-0">
@@ -467,19 +587,19 @@ const ChatPage = () => {
                     <img
                       src={u.profile.profileImage.url}
                       alt="profile"
-                      className="w-10 h-10 rounded-2xl object-cover border border-slate-200/80"
+                      className="w-10 h-10 rounded-2xl object-cover border border-slate-200/80 dark:border-slate-800"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-2xl bg-slate-100 border border-slate-200/80 flex items-center justify-center font-bold text-slate-700 text-xs">
+                    <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center font-bold text-slate-700 dark:text-slate-300 text-xs">
                       {u.name.charAt(0)}
                     </div>
                   )}
-                  <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white shadow-sm" />
+                  <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-sm" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-xs font-bold text-slate-800 truncate block">{u.name}</span>
-                  <p className="text-[9px] text-slate-400 font-semibold capitalize mt-0.5 truncate">
-                    {u.role} — {u.department || "No Dept"}
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate block">{u.name}</span>
+                  <p className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold capitalize mt-0.5 truncate">
+                    {u.role}{u.department ? ` — ${u.department}` : ""}
                   </p>
                 </div>
               </button>
@@ -490,16 +610,16 @@ const ChatPage = () => {
 
       {/* RIGHT PANEL: ACTIVE CHAT SCREEN */}
       <div
-        className={`flex-1 flex flex-col bg-slate-50/30 ${
+        className={`flex-1 flex flex-col bg-slate-50/30 dark:bg-slate-950/10 transition-colors duration-300 ${
           showChatWindowMobile ? "flex" : "hidden md:flex"
         }`}
       >
         {/* HEADER */}
-        <div className="px-4 py-3 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
+        <div className="px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 transition-colors duration-300">
           <div className="flex items-center gap-2.5 min-w-0">
             <button
               onClick={() => setShowChatWindowMobile(false)}
-              className="md:hidden p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 transition-all shrink-0"
+              className="md:hidden p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-all shrink-0 cursor-pointer"
             >
               <FiChevronLeft size={18} />
             </button>
@@ -510,7 +630,7 @@ const ChatPage = () => {
                   <FiLayers size={16} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-xs font-black text-slate-800 leading-tight">General Team Chat</h3>
+                  <h3 className="text-xs font-black text-slate-800 dark:text-blue-500 leading-tight">General Team Chat</h3>
                   <p className="text-[9px] text-emerald-500 font-black uppercase tracking-wider leading-none mt-1 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" /> Active Room
                   </p>
@@ -522,10 +642,10 @@ const ChatPage = () => {
                   <FiUsers size={16} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-xs font-black text-slate-800 leading-tight truncate max-w-[150px] sm:max-w-xs">{activeCustomRoom.name}</h3>
+                  <h3 className="text-xs font-black text-slate-800 dark:text-blue-500 leading-tight truncate max-w-[150px] sm:max-w-xs">{activeCustomRoom.name}</h3>
                   <button
                     onClick={handleOpenManageModal}
-                    className="text-[9px] text-blue-500 hover:text-blue-600 font-bold uppercase tracking-wider leading-none mt-1 flex items-center gap-1 cursor-pointer"
+                    className="text-[9px] text-blue-500 dark:text-blue-400 hover:text-blue-650 dark:hover:text-blue-300 font-bold uppercase tracking-wider leading-none mt-1 flex items-center gap-1 cursor-pointer"
                   >
                     <FiSettings size={10} /> Manage Members
                   </button>
@@ -537,17 +657,17 @@ const ChatPage = () => {
                   <img
                     src={activeChatUser.profile.profileImage.url}
                     alt="profile"
-                    className="w-10 h-10 rounded-2xl object-cover border border-slate-200/80 shrink-0"
+                    className="w-10 h-10 rounded-2xl object-cover border border-slate-200/80 dark:border-slate-800 shrink-0"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-2xl bg-slate-100 border border-slate-200/80 flex items-center justify-center font-black text-slate-700 text-xs shrink-0">
+                  <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-750 flex items-center justify-center font-black text-slate-700 dark:text-slate-300 text-xs shrink-0">
                     {activeChatUser.name.charAt(0)}
                   </div>
                 )}
                 <div className="min-w-0">
-                  <h3 className="text-xs font-black text-slate-800 leading-tight">{activeChatUser.name}</h3>
-                  <p className="text-[9px] text-slate-400 font-semibold capitalize mt-0.5 leading-none">
-                    {activeChatUser.role} — {activeChatUser.department || "No Department"}
+                  <h3 className="text-xs font-black text-slate-800 dark:text-blue-500 leading-tight">{activeChatUser.name}</h3>
+                  <p className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold capitalize mt-0.5 leading-none">
+                    {activeChatUser.role}{activeChatUser.department ? ` — ${activeChatUser.department}` : ""}
                   </p>
                 </div>
               </>
@@ -558,14 +678,14 @@ const ChatPage = () => {
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={() => startCall("voice")}
-              className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-blue-600 transition-all cursor-pointer"
+              className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer"
               title="Voice Call"
             >
               <FiPhone size={14} />
             </button>
             <button
               onClick={() => startCall("video")}
-              className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-blue-600 transition-all cursor-pointer"
+              className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer"
               title="Video Call"
             >
               <FiVideo size={14} />
@@ -577,13 +697,13 @@ const ChatPage = () => {
         <div className="flex-1 overflow-y-auto p-4 space-y-3.5 scrollbar-thin">
           {loading ? (
             <div className="flex items-center justify-center h-full">
-              <span className="text-xs text-slate-400 font-semibold">Loading conversation...</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500 font-semibold">Loading conversation...</span>
             </div>
           ) : messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-slate-400">
+            <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-600">
               <FiMessageSquare size={32} className="opacity-20 mb-2" />
               <p className="text-xs font-bold">Start the conversation</p>
-              <p className="text-[10px] text-slate-400 mt-0.5">Send stickers, call details, or messages</p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Send stickers, call details, or messages</p>
             </div>
           ) : (
             messages.map((m) => {
@@ -594,7 +714,7 @@ const ChatPage = () => {
               if (m.messageType === "call") {
                 return (
                   <div key={m._id} className="flex justify-center my-2">
-                    <div className="bg-slate-100 border border-slate-200 rounded-full px-4 py-1.5 flex items-center gap-2 text-[10px] font-bold text-slate-600 shadow-sm">
+                    <div className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-4 py-1.5 flex items-center gap-2 text-[10px] font-bold text-slate-600 dark:text-slate-400 shadow-sm">
                       {m.text.includes("Video") ? <FiVideo size={12} /> : <FiPhone size={12} />}
                       <span>{m.text}</span>
                     </div>
@@ -603,25 +723,44 @@ const ChatPage = () => {
               }
 
               return (
-                <div key={m._id} className={`flex items-start gap-2.5 ${isMe ? "flex-row-reverse" : ""}`}>
+                <div key={m._id} className={`flex items-start gap-2.5 ${isMe ? "flex-row-reverse" : ""} group`}>
                   {!isMe && (
                     m.sender?.profile?.profileImage?.url ? (
                       <img
                         src={m.sender.profile.profileImage.url}
                         alt="profile"
-                        className="w-7 h-7 rounded-lg object-cover border border-slate-300 shrink-0"
+                        className="w-7 h-7 rounded-lg object-cover border border-slate-300 dark:border-slate-800 shrink-0"
                       />
                     ) : (
-                      <div className="w-7 h-7 rounded-lg bg-slate-200 border border-slate-300 text-[10px] font-black text-slate-700 flex items-center justify-center shrink-0">
+                      <div className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-[10px] font-black text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
                         {senderInitial}
                       </div>
                     )
                   )}
 
                   <div className={`max-w-[70%] flex flex-col ${isMe ? "items-end" : ""}`}>
+                    {/* Replied message block preview inside bubble */}
+                    {m.replyTo && (
+                      <div className={`mb-1.5 p-2 rounded-lg border-l-2 bg-slate-50/50 dark:bg-slate-950/30 text-[10px] text-slate-600 dark:text-slate-400 text-left max-w-xs ${
+                        isMe
+                          ? "border-blue-300"
+                          : "border-slate-400 dark:border-slate-600"
+                      }`}>
+                        <div className="font-extrabold text-slate-700 dark:text-slate-250 text-[9px] mb-0.5">
+                          Replying to {m.replyTo.sender?.name || "User"}
+                        </div>
+                        <div className="truncate opacity-85 font-medium text-[10px]">
+                          {m.replyTo.messageType === "file"
+                            ? `📁 ${m.replyTo.file?.filename || "Attachment"}`
+                            : m.replyTo.messageType === "sticker"
+                            ? `🎨 Sticker: ${m.replyTo.sticker}`
+                            : m.replyTo.text}
+                        </div>
+                      </div>
+                    )}
                     {/* Sender Label */}
                     {!isMe && (
-                      <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-0.5 ml-1">
+                      <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-0.5 ml-1">
                         {m.sender?.name} ({m.sender?.role})
                       </span>
                     )}
@@ -631,12 +770,74 @@ const ChatPage = () => {
                       <div className="text-5xl select-none py-1 filter drop-shadow-md transform active:scale-90 transition-transform">
                         {m.sticker}
                       </div>
+                    ) : m.messageType === "file" && m.file ? (
+                      <div
+                        className={`rounded-[1.25rem] overflow-hidden shadow-sm border max-w-xs md:max-w-sm ${
+                          isMe
+                            ? "bg-blue-600 text-white border-blue-500 rounded-tr-none"
+                            : "bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-100 dark:border-slate-800 rounded-tl-none"
+                        }`}
+                      >
+                        {m.file.fileType === "image" ? (
+                          <a href={m.file.url} target="_blank" rel="noopener noreferrer" className="block relative group cursor-pointer">
+                            <img
+                              src={m.file.url}
+                              alt={m.file.filename}
+                              className="max-h-60 w-full object-cover rounded-t-[1.25rem]"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[11px] font-bold gap-1.5">
+                              <FiDownload size={14} /> Open Photo
+                            </div>
+                            <div className="p-3 bg-black/5 dark:bg-white/5 border-t border-slate-200/10 text-xs font-semibold truncate flex items-center gap-1.5 justify-between">
+                              <span className="truncate">{m.file.filename}</span>
+                              <span className="text-[9px] opacity-60 font-medium shrink-0">{(m.file.size / 1024 / 1024).toFixed(2)} MB</span>
+                            </div>
+                          </a>
+                        ) : m.file.fileType === "video" ? (
+                          <div className="p-1">
+                            <video
+                              src={m.file.url}
+                              controls
+                              className="w-full max-h-60 rounded-[1rem] object-cover bg-black"
+                            />
+                            <div className="p-2 text-xs font-semibold truncate flex items-center gap-1.5 justify-between">
+                              <span className="truncate">{m.file.filename}</span>
+                              <span className="text-[9px] opacity-60 font-medium shrink-0">{(m.file.size / 1024 / 1024).toFixed(2)} MB</span>
+                            </div>
+                          </div>
+                        ) : m.file.fileType === "audio" ? (
+                          <div className="p-3 w-64">
+                            <div className="text-xs font-bold truncate mb-2">{m.file.filename}</div>
+                            <audio src={m.file.url} controls className="w-full h-8" />
+                          </div>
+                        ) : (
+                          // Document / generic file card
+                          <a
+                            href={m.file.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download={m.file.filename}
+                            className="flex items-center gap-3 p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-all text-xs cursor-pointer"
+                          >
+                            <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
+                              <FiFileText size={18} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="font-bold truncate leading-tight">{m.file.filename}</div>
+                              <div className="text-[9px] opacity-60 mt-0.5">{(m.file.size / 1024 / 1024).toFixed(2)} MB • File</div>
+                            </div>
+                            <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center shrink-0">
+                              <FiDownload size={12} />
+                            </div>
+                          </a>
+                        )}
+                      </div>
                     ) : (
                       <div
                         className={`px-4 py-2.5 rounded-[1.25rem] text-xs font-medium leading-relaxed break-words shadow-sm ${
                           isMe
                             ? "bg-blue-600 text-white rounded-tr-none"
-                            : "bg-white text-slate-800 border border-slate-100 rounded-tl-none"
+                            : "bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-800 rounded-tl-none"
                         }`}
                       >
                         {m.text}
@@ -644,9 +845,73 @@ const ChatPage = () => {
                     )}
 
                     {/* Timestamp */}
-                    <span className="text-[9px] text-slate-400 font-semibold mt-1 px-1">
+                    <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-1 px-1">
                       {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </span>
+                  </div>
+
+                  {/* Message Options Hover Menu */}
+                  <div className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity self-center shrink-0 ${isMe ? "flex-row-reverse" : ""}`}>
+                    <button
+                      type="button"
+                      onClick={() => setReplyingToMessage(m)}
+                      className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-pointer"
+                      title="Reply"
+                    >
+                      <FiCornerUpLeft size={11} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForwardingMessage(m);
+                        setShowForwardModal(true);
+                      }}
+                      className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-pointer"
+                      title="Forward"
+                    >
+                      <FiArrowRight size={11} />
+                    </button>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSharingMessage(m);
+                          setShowShareMenu(showShareMenu === m._id ? null : m._id);
+                        }}
+                        className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-pointer"
+                        title="Share"
+                      >
+                        <FiShare2 size={11} />
+                      </button>
+                      {showShareMenu === m._id && (
+                        <div className={`absolute bottom-7 ${isMe ? "right-0" : "left-0"} bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-1 shadow-lg z-30 w-28`}>
+                          <button
+                            type="button"
+                            onClick={() => handleShareExternal(m, "whatsapp")}
+                            className="w-full px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-left text-[9px] font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 cursor-pointer"
+                          >
+                            WhatsApp
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleShareExternal(m, "email")}
+                            className="w-full px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-left text-[9px] font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 cursor-pointer"
+                          >
+                            Email
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {(isMe || user.role === "admin") && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteMessage(m._id)}
+                        className="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 cursor-pointer"
+                        title="Delete"
+                      >
+                        <FiTrash2 size={11} />
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -656,19 +921,53 @@ const ChatPage = () => {
         </div>
 
         {/* INPUT FORM CONTAINER */}
-        <div className="px-4 py-3 bg-white border-t border-slate-100 relative shrink-0">
+        <div className="px-4 py-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 relative shrink-0 transition-colors duration-300">
           
           {/* Sticker Picker Drawer */}
           {showStickerPicker && (
-            <div className="absolute bottom-16 left-4 bg-white border border-slate-200/80 rounded-2xl p-3 shadow-xl z-20 w-64">
-              <p className="text-[9px] font-black uppercase text-slate-400 mb-2 tracking-wider">Premium Team Stickers</p>
-              <div className="grid grid-cols-6 gap-2">
-                {STICKERS.map((s) => (
+            <div className="absolute bottom-16 left-4 bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-2xl p-3 shadow-xl z-20 w-72">
+              <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-100 dark:border-slate-700">
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPickerTab("emoji")}
+                    className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg cursor-pointer ${
+                      pickerTab === "emoji"
+                        ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400"
+                        : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    }`}
+                  >
+                    Emojis
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPickerTab("sticker")}
+                    className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg cursor-pointer ${
+                      pickerTab === "sticker"
+                        ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400"
+                        : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                    }`}
+                  >
+                    Stickers
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowStickerPicker(false)}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  <FiX size={12} />
+                </button>
+              </div>
+              <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto pr-1">
+                {(pickerTab === "emoji" ? EMOJIS : STICKERS).map((s) => (
                   <button
                     key={s}
                     type="button"
-                    onClick={() => handleSendSticker(s)}
-                    className="text-2xl p-1 hover:bg-slate-50 active:scale-90 transition-all rounded-lg cursor-pointer"
+                    onClick={() => {
+                      setInputText((prev) => prev + s);
+                    }}
+                    className="text-2xl p-1 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-90 transition-all rounded-lg cursor-pointer flex items-center justify-center"
                   >
                     {s}
                   </button>
@@ -677,12 +976,60 @@ const ChatPage = () => {
             </div>
           )}
 
+          {/* Replying To Preview Bar */}
+          {replyingToMessage && (
+            <div className="mb-2 p-2 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl flex items-center justify-between z-10 animate-slide-up">
+              <div className="flex items-center gap-2 text-[10px] text-slate-650 dark:text-slate-350 min-w-0">
+                <FiCornerUpLeft className="text-blue-500 shrink-0" size={12} />
+                <div className="truncate font-medium">
+                  <span className="font-extrabold text-blue-600 dark:text-blue-400">Replying to {replyingToMessage.sender?.name || "User"}:</span>{" "}
+                  <span className="italic opacity-90">
+                    {replyingToMessage.messageType === "file"
+                      ? `📁 ${replyingToMessage.file?.filename}`
+                      : replyingToMessage.messageType === "sticker"
+                      ? `🎨 Sticker: ${replyingToMessage.sticker}`
+                      : replyingToMessage.text}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReplyingToMessage(null)}
+                className="w-5 h-5 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+              >
+                <FiX size={10} className="stroke-[3]" />
+              </button>
+            </div>
+          )}
+
           <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+            {/* Hidden File Input */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+            />
+
+            <button
+              type="button"
+              disabled={uploadingFile}
+              onClick={() => fileInputRef.current?.click()}
+              className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400 ${
+                uploadingFile ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+              }`}
+              title="Attach files, photo, video"
+            >
+              <FiPaperclip size={16} className={uploadingFile ? "animate-pulse" : ""} />
+            </button>
+
             <button
               type="button"
               onClick={() => setShowStickerPicker(!showStickerPicker)}
               className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all ${
-                showStickerPicker ? "bg-blue-50 border-blue-200 text-blue-600" : "bg-slate-50 border-slate-200 text-slate-400 hover:text-slate-600"
+                showStickerPicker 
+                  ? "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400" 
+                  : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400"
               }`}
               title="Stickers"
             >
@@ -694,13 +1041,13 @@ const ChatPage = () => {
               placeholder="Type message or reply..."
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all text-slate-700 placeholder:text-slate-400"
+              className="flex-1 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-xs outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 transition-all text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500"
             />
 
             <button
               type="submit"
               disabled={!inputText.trim()}
-              className="w-9 h-9 bg-blue-600 text-white rounded-xl flex items-center justify-center hover:bg-blue-700 transition-all shadow-md shadow-blue-100 hover:shadow-blue-200 active:scale-95 disabled:opacity-50 disabled:shadow-none shrink-0"
+              className="w-9 h-9 bg-blue-600 text-white rounded-xl flex items-center justify-center hover:bg-blue-700 transition-all shadow-md shadow-blue-100 hover:shadow-blue-200 active:scale-95 disabled:opacity-50 disabled:shadow-none shrink-0 cursor-pointer"
             >
               <FiSend size={14} />
             </button>
@@ -708,12 +1055,105 @@ const ChatPage = () => {
         </div>
       </div>
 
+      {/* FORWARD MESSAGE MODAL */}
+      {showForwardModal && forwardingMessage && (
+        <div className="fixed inset-0 z-[250] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-slate-200/50 dark:border-slate-800 flex flex-col max-h-[80vh]">
+            
+            {/* Modal Header */}
+            <div className="px-4 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-slate-950/25">
+              <div>
+                <h2 className="text-[13px] font-black text-slate-800 dark:text-white flex items-center gap-2">
+                  <FiArrowRight size={14} className="text-blue-500" />
+                  Forward Message
+                </h2>
+                <p className="text-slate-400 dark:text-slate-500 text-[9px] font-semibold mt-0.5">
+                  Select a recipient or group to forward this message to.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowForwardModal(false);
+                  setForwardingMessage(null);
+                  setForwardSearchTerm("");
+                }}
+                className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-transparent flex items-center justify-center text-slate-400 dark:text-slate-350 hover:text-rose-500 transition-all cursor-pointer shadow-sm"
+              >
+                <FiX size={12} className="stroke-[3]" />
+              </button>
+            </div>
+
+            {/* Recipients Search & List */}
+            <div className="p-4 flex-1 overflow-y-auto space-y-4">
+              <div className="relative">
+                <FiSearch size={12} className="absolute top-1/2 -translate-y-1/2 left-3 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search rooms or people..."
+                  value={forwardSearchTerm}
+                  onChange={(e) => setForwardSearchTerm(e.target.value)}
+                  className="w-full h-9 pl-9 pr-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs outline-none focus:ring-2 focus:ring-blue-500/20"
+                />
+              </div>
+
+              {/* Group Rooms */}
+              <div className="space-y-2">
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Group Rooms</p>
+                <div className="space-y-1.5">
+                  {rooms
+                    .filter((r) => r.name.toLowerCase().includes(forwardSearchTerm.toLowerCase()))
+                    .map((r) => (
+                      <div key={r._id} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-transparent dark:border-transparent dark:hover:border-slate-800 transition-all">
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{r.name}</p>
+                          <p className="text-[9px] text-slate-400 dark:text-slate-500 truncate">{r.members?.length || 0} members</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleForwardSubmit(r._id, "group")}
+                          className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                        >
+                          Send
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              </div>
+
+              {/* Direct Contacts */}
+              <div className="space-y-2 pt-2">
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Direct Contacts</p>
+                <div className="space-y-1.5">
+                  {users
+                    .filter((u) => u._id !== currentUserId && u.name.toLowerCase().includes(forwardSearchTerm.toLowerCase()))
+                    .map((u) => (
+                      <div key={u._id} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-transparent dark:border-transparent dark:hover:border-slate-800 transition-all">
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{u.name}</p>
+                          <p className="text-[9px] text-slate-400 dark:text-slate-500 truncate capitalize">{u.role}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleForwardSubmit(u._id, "direct")}
+                          className="bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer"
+                        >
+                          Send
+                        </button>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CREATE CUSTOM GROUP MODAL */}
       {showCreateModal && (
         <div className="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-3xl overflow-hidden border border-slate-100 shadow-2xl flex flex-col p-6 text-slate-800">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
-              <h3 className="text-base font-black text-slate-800 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-2xl flex flex-col p-6 text-slate-800 dark:text-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
+              <h3 className="text-base font-black text-slate-800 dark:text-blue-500 flex items-center gap-2">
                 <FiUsers className="text-blue-500" /> Create Custom Group
               </h3>
               <button
@@ -723,7 +1163,7 @@ const ChatPage = () => {
                   setGroupDesc("");
                   setSelectedMembers([]);
                 }}
-                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all cursor-pointer"
+                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-all cursor-pointer"
               >
                 <FiX size={18} />
               </button>
@@ -731,44 +1171,44 @@ const ChatPage = () => {
 
             <form onSubmit={handleCreateGroup} className="space-y-4">
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1">Group Name</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block mb-1">Group Name</label>
                 <input
                   type="text"
                   placeholder="e.g. Frontend Devs"
                   value={groupName}
                   onChange={(e) => setGroupName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all text-slate-700"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 transition-all text-slate-700 dark:text-slate-200"
                 />
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1">Description (Optional)</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block mb-1">Description (Optional)</label>
                 <textarea
                   placeholder="What is this group for?"
                   rows={2}
                   value={groupDesc}
                   onChange={(e) => setGroupDesc(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all text-slate-700 resize-none"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 transition-all text-slate-700 dark:text-slate-200 resize-none"
                 />
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1">Select Members</label>
-                <div className="max-h-40 overflow-y-auto border border-slate-100 rounded-xl p-2 space-y-1 bg-slate-50/50 scrollbar-thin">
+                <label className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block mb-1">Select Members</label>
+                <div className="max-h-40 overflow-y-auto border border-slate-100 dark:border-slate-800 rounded-xl p-2 space-y-1 bg-slate-50/50 dark:bg-slate-950/20 scrollbar-thin">
                   {filteredUsers?.map((u) => (
                     <label
                       key={u._id}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer select-none"
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer select-none"
                     >
                       <input
                         type="checkbox"
                         checked={selectedMembers.includes(u._id)}
                         onChange={() => handleToggleMember(u._id)}
-                        className="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                        className="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 dark:border-slate-700 focus:ring-blue-500"
                       />
                       <div className="min-w-0 flex-1">
-                        <span className="text-xs font-bold text-slate-700 block truncate">{u.name}</span>
-                        <span className="text-[9px] text-slate-400 capitalize block leading-none">{u.role}</span>
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-200 block truncate">{u.name}</span>
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 capitalize block leading-none">{u.role}</span>
                       </div>
                     </label>
                   ))}
@@ -784,13 +1224,13 @@ const ChatPage = () => {
                     setGroupDesc("");
                     setSelectedMembers([]);
                   }}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all"
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-100 hover:shadow-blue-200 transition-all"
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-100 hover:shadow-blue-200 transition-all cursor-pointer"
                 >
                   Create Group
                 </button>
@@ -803,14 +1243,14 @@ const ChatPage = () => {
       {/* MANAGE GROUP MEMBERS & DETAILS MODAL */}
       {showManageModal && activeCustomRoom && (
         <div className="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-3xl overflow-hidden border border-slate-100 shadow-2xl flex flex-col p-6 text-slate-800">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-4">
-              <h3 className="text-base font-black text-slate-800 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-2xl flex flex-col p-6 text-slate-800 dark:text-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
+              <h3 className="text-base font-black text-slate-800 dark:text-blue-500 flex items-center gap-2">
                 <FiSettings className="text-blue-500" /> Manage Custom Group
               </h3>
               <button
                 onClick={() => setShowManageModal(false)}
-                className="p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-all cursor-pointer"
+                className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-650 dark:hover:text-slate-300 transition-all cursor-pointer"
               >
                 <FiX size={18} />
               </button>
@@ -818,33 +1258,33 @@ const ChatPage = () => {
 
             <form onSubmit={handleUpdateGroup} className="space-y-4">
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1">Group Name</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block mb-1">Group Name</label>
                 <input
                   type="text"
                   value={manageGroupName}
                   disabled={!isCreatorOfActiveRoom && !isAdmin}
                   onChange={(e) => setManageGroupName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all text-slate-700 disabled:opacity-60"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 transition-all text-slate-700 dark:text-slate-200 disabled:opacity-60"
                 />
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1">Description</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block mb-1">Description</label>
                 <textarea
                   rows={2}
                   value={manageGroupDesc}
                   disabled={!isCreatorOfActiveRoom && !isAdmin}
                   onChange={(e) => setManageGroupDesc(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all text-slate-700 resize-none disabled:opacity-60"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 transition-all text-slate-700 dark:text-slate-200 resize-none disabled:opacity-60"
                 />
               </div>
 
               {/* Members Checklist / Viewer */}
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1">
+                <label className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block mb-1">
                   {(isCreatorOfActiveRoom || isAdmin) ? "Add/Remove Members" : "Group Members"}
                 </label>
-                <div className="max-h-40 overflow-y-auto border border-slate-100 rounded-xl p-2 space-y-1 bg-slate-50/50 scrollbar-thin">
+                <div className="max-h-40 overflow-y-auto border border-slate-100 dark:border-slate-800 rounded-xl p-2 space-y-1 bg-slate-50/50 dark:bg-slate-950/20 scrollbar-thin">
                   {filteredUsers?.map((u) => {
                     const isChecked = manageSelectedMembers.includes(u._id);
                     const isRoomCreator = activeCustomRoom.creator._id === u._id;
@@ -853,11 +1293,11 @@ const ChatPage = () => {
                     if (!isCreatorOfActiveRoom && !isAdmin) {
                       if (!isChecked) return null;
                       return (
-                        <div key={u._id} className="flex items-center gap-3 p-2 rounded-lg bg-white border border-slate-100">
-                          <div className="w-5 h-5 rounded bg-slate-100 flex items-center justify-center text-[10px] font-bold">
+                        <div key={u._id} className="flex items-center gap-3 p-2 rounded-lg bg-white dark:bg-slate-850 border border-slate-100 dark:border-slate-850">
+                          <div className="w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold">
                             {u.name.charAt(0)}
                           </div>
-                          <span className="text-xs font-bold text-slate-700">{u.name} ({u.role})</span>
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{u.name} ({u.role})</span>
                         </div>
                       );
                     }
@@ -866,7 +1306,7 @@ const ChatPage = () => {
                     return (
                       <label
                         key={u._id}
-                        className={`flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer select-none ${
+                        className={`flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer select-none ${
                           isRoomCreator ? "opacity-55 cursor-not-allowed" : ""
                         }`}
                       >
@@ -875,13 +1315,13 @@ const ChatPage = () => {
                           checked={isChecked || isRoomCreator}
                           disabled={isRoomCreator}
                           onChange={() => handleToggleManageMember(u._id)}
-                          className="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                          className="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 dark:border-slate-700 focus:ring-blue-500"
                         />
                         <div className="min-w-0 flex-1">
-                          <span className="text-xs font-bold text-slate-700 block truncate">
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-200 block truncate">
                             {u.name} {isRoomCreator && <span className="text-[9px] text-amber-500 font-bold ml-1">(Creator)</span>}
                           </span>
-                          <span className="text-[9px] text-slate-400 capitalize block leading-none">{u.role}</span>
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500 capitalize block leading-none">{u.role}</span>
                         </div>
                       </label>
                     );
@@ -890,14 +1330,14 @@ const ChatPage = () => {
               </div>
 
               {/* ACTION FOOTER */}
-              <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
                 {/* Delete / Leave Actions */}
                 <div className="flex items-center gap-2">
                   {(isCreatorOfActiveRoom || isAdmin) ? (
                     <button
                       type="button"
                       onClick={handleDeleteGroup}
-                      className="px-3.5 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+                      className="px-3.5 py-2 bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                       title="Delete Group"
                     >
                       <FiTrash2 size={13} /> Delete
@@ -906,7 +1346,7 @@ const ChatPage = () => {
                     <button
                       type="button"
                       onClick={handleLeaveGroup}
-                      className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"
+                      className="px-3.5 py-2 bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-100 dark:hover:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                       title="Leave Group"
                     >
                       <FiLogOut size={13} /> Leave Group
@@ -918,14 +1358,14 @@ const ChatPage = () => {
                   <button
                     type="button"
                     onClick={() => setShowManageModal(false)}
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all"
+                    className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
                   >
                     Close
                   </button>
                   {(isCreatorOfActiveRoom || isAdmin) && (
                     <button
                       type="submit"
-                      className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-100 hover:shadow-blue-200 transition-all"
+                      className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-100 hover:shadow-blue-200 transition-all cursor-pointer"
                     >
                       Save Changes
                     </button>
@@ -1043,7 +1483,7 @@ const ChatPage = () => {
                 <button
                   onClick={() => setIsMuted(!isMuted)}
                   className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
-                    isMuted ? "bg-rose-500/20 text-rose-400" : "bg-slate-800 hover:bg-slate-700 text-slate-300"
+                    isMuted ? "bg-rose-50/20 text-rose-450" : "bg-slate-800 hover:bg-slate-700 text-slate-300"
                   }`}
                 >
                   {isMuted ? <FiMicOff size={14} /> : <FiMic size={14} />}
@@ -1053,7 +1493,7 @@ const ChatPage = () => {
                   <button
                     onClick={() => setIsCamOff(!isCamOff)}
                     className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
-                      isCamOff ? "bg-rose-500/20 text-rose-400" : "bg-slate-800 hover:bg-slate-700 text-slate-300"
+                      isCamOff ? "bg-rose-50/20 text-rose-450" : "bg-slate-800 hover:bg-slate-700 text-slate-300"
                     }`}
                   >
                     {isCamOff ? <FiVideoOff size={14} /> : <FiCamera size={14} />}
@@ -1069,7 +1509,7 @@ const ChatPage = () => {
 
               <button
                 onClick={endCall}
-                className="px-5 h-9 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shadow-lg shadow-rose-900/30 active:scale-95 transition-all"
+                className="px-5 h-9 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shadow-lg shadow-rose-900/30 active:scale-95 transition-all cursor-pointer"
               >
                 End Call
               </button>

@@ -2,6 +2,7 @@ const Message = require("../models/Message");
 const Notification = require("../models/Notification");
 const User = require("../models/User");
 const ChatRoom = require("../models/ChatRoom");
+const cloudinary = require("../config/cloudinary");
 
 // @desc    Get direct messages between logged in user and another user
 // @route   GET /api/messages/direct/:userId
@@ -25,6 +26,10 @@ exports.getDirectMessages = async (req, res) => {
         path: "recipient",
         select: "name email role profile",
         populate: { path: "profile" }
+      })
+      .populate({
+        path: "replyTo",
+        populate: { path: "sender", select: "name" }
       });
 
     res.status(200).json({
@@ -48,6 +53,10 @@ exports.getGroupMessages = async (req, res) => {
         path: "sender",
         select: "name email role profile",
         populate: { path: "profile" }
+      })
+      .populate({
+        path: "replyTo",
+        populate: { path: "sender", select: "name" }
       });
 
     res.status(200).json({
@@ -64,7 +73,7 @@ exports.getGroupMessages = async (req, res) => {
 // @access  Private
 exports.sendMessage = async (req, res) => {
   try {
-    const { recipient, chatRoom, text, sticker, messageType, callStatus, callDuration } = req.body;
+    const { recipient, chatRoom, text, sticker, messageType, file, callStatus, callDuration, replyTo } = req.body;
 
     const message = await Message.create({
       sender: req.user.id,
@@ -73,8 +82,10 @@ exports.sendMessage = async (req, res) => {
       text,
       sticker,
       messageType: messageType || "text",
+      file,
       callStatus,
       callDuration,
+      replyTo,
     });
 
     const populatedMessage = await Message.findById(message._id)
@@ -87,6 +98,10 @@ exports.sendMessage = async (req, res) => {
         path: "recipient",
         select: "name email role profile",
         populate: { path: "profile" }
+      })
+      .populate({
+        path: "replyTo",
+        populate: { path: "sender", select: "name" }
       });
 
     const io = req.app.get("io");
@@ -111,11 +126,12 @@ exports.sendMessage = async (req, res) => {
         io.to(recipient.toString()).emit("direct_message", populatedMessage);
         
         // Also send a real-time notification to the recipient so they get a chime + toast immediately if on a different page!
+        const notificationText = text || (messageType === 'sticker' ? 'Sent a sticker' : messageType === 'file' ? `Sent a file: ${file?.filename || 'Attachment'}` : 'Call log');
         const notification = await Notification.create({
           recipient,
           sender: req.user.id,
           type: "message_received",
-          message: `New message from ${req.user.name}: "${text || (messageType === 'sticker' ? 'Sent a sticker' : 'Call log')}"`,
+          message: `New message from ${req.user.name}: "${notificationText}"`,
         });
         
         const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
@@ -252,3 +268,91 @@ exports.deleteRoom = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+// @desc    Upload file for chat attachment
+// @route   POST /api/messages/upload
+// @access  Private
+exports.uploadFile = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No file provided" });
+    }
+
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: "chat_attachments",
+      resource_type: "auto",
+    });
+
+    let fileType = "document";
+    const mime = req.file.mimetype;
+    if (mime.startsWith("image/")) {
+      fileType = "image";
+    } else if (mime.startsWith("video/")) {
+      fileType = "video";
+    } else if (mime.startsWith("audio/")) {
+      fileType = "audio";
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        url: result.secure_url,
+        public_id: result.public_id,
+        filename: req.file.originalname,
+        fileType,
+        size: req.file.size,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Delete a message
+// @route   DELETE /api/messages/:messageId
+// @access  Private
+exports.deleteMessage = async (req, res) => {
+  try {
+    const message = await Message.findById(req.params.messageId);
+    if (!message) {
+      return res.status(404).json({ success: false, message: "Message not found" });
+    }
+
+    // Only sender can delete their message
+    if (message.sender.toString() !== req.user.id.toString() && req.user.role !== "admin") {
+      return res.status(403).json({ success: false, message: "Not authorized to delete this message" });
+    }
+
+    const chatRoom = message.chatRoom;
+    const senderId = message.sender;
+    const recipientId = message.recipient;
+    const messageId = message._id;
+
+    await message.deleteOne();
+
+    const io = req.app.get("io");
+    if (io) {
+      if (chatRoom === "group") {
+        io.to("group_chat").emit("message_deleted", { messageId });
+      } else if (chatRoom !== "direct") {
+        const ChatRoom = require("../models/ChatRoom");
+        const room = await ChatRoom.findById(chatRoom);
+        if (room) {
+          room.members.forEach((memberId) => {
+            io.to(memberId.toString()).emit("message_deleted", { messageId });
+          });
+        }
+      } else {
+        io.to(senderId.toString()).emit("message_deleted", { messageId });
+        if (recipientId) {
+          io.to(recipientId.toString()).emit("message_deleted", { messageId });
+        }
+      }
+    }
+
+    res.status(200).json({ success: true, message: "Message deleted successfully", data: messageId });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+

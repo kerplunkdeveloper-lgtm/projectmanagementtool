@@ -7,16 +7,21 @@ const {
   createRoom,
   updateRoom,
   deleteRoom,
+  uploadFile,
+  deleteMessage,
 } = require("../controllers/messageController");
 const { protect } = require("../middleware/auth");
+const chatUpload = require("../middleware/chatUpload");
 
 const router = express.Router();
 
 router.use(protect);
 
+router.post("/upload", chatUpload.single("file"), uploadFile);
 router.post("/", sendMessage);
 router.get("/group/:roomId?", getGroupMessages);
 router.get("/direct/:userId", getDirectMessages);
+router.delete("/:messageId", deleteMessage);
 
 // Custom Group Chat Room Routes
 router.get("/rooms", getRooms);

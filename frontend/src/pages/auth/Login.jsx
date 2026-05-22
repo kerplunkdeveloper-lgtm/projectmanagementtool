@@ -180,7 +180,7 @@ const Login = () => {
                   name="email"
                   placeholder="Enter your email"
                   required
-                  className="w-full outline-none bg-transparent"
+                  className="w-full outline-none bg-transparent px-4 p-2"
                   onChange={handleChange}
                 />
 
@@ -203,7 +203,7 @@ const Login = () => {
       name="password"
       required
       placeholder="Enter your password"
-      className="w-full outline-none bg-transparent"
+      className="w-full outline-none bg-transparent px-4 p-2"
       onChange={handleChange}
     />
 

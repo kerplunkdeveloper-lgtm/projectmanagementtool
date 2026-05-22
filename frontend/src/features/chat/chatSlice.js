@@ -90,6 +90,18 @@ export const deleteRoomAction = createAsyncThunk(
   }
 );
 
+export const deleteMessageAction = createAsyncThunk(
+  "chat/deleteMessageAction",
+  async (messageId, thunkAPI) => {
+    try {
+      await axiosInstance.delete(`/messages/${messageId}`);
+      return messageId;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data?.message || "Failed to delete message");
+    }
+  }
+);
+
 const chatSlice = createSlice({
   name: "chat",
   initialState: {
@@ -104,6 +116,9 @@ const chatSlice = createSlice({
       if (!exists) {
         state.messages.push(action.payload);
       }
+    },
+    removeMessage: (state, action) => {
+      state.messages = state.messages.filter((m) => m._id !== action.payload);
     },
     clearMessages: (state) => {
       state.messages = [];
@@ -155,9 +170,12 @@ const chatSlice = createSlice({
       })
       .addCase(deleteRoomAction.fulfilled, (state, action) => {
         state.rooms = state.rooms.filter((r) => r._id !== action.payload);
+      })
+      .addCase(deleteMessageAction.fulfilled, (state, action) => {
+        state.messages = state.messages.filter((m) => m._id !== action.payload);
       });
   },
 });
 
-export const { receiveMessage, clearMessages } = chatSlice.actions;
+export const { receiveMessage, removeMessage, clearMessages } = chatSlice.actions;
 export default chatSlice.reducer;
