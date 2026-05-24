@@ -165,3 +165,24 @@ body {
     opacity: 1 !important;
   }
 }
+
+@keyframes borderBlink {
+  0%, 100% {
+    border-color: #3b82f6;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  }
+  33% {
+    border-color: #06b6d4;
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+  }
+  66% {
+    border-color: #6366f1;
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+  }
+}
+
+.blinking-border {
+  border-width: 3px !important;
+  border-style: solid !important;
+  animation: borderBlink 4s infinite linear;
+}
