@@ -115,6 +115,9 @@ const io = require('socket.io')(server, {
   },
 });
 
+// Keep track of active calls in memory
+const activeCalls = {};
+
 // Socket.io connection logic
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
@@ -125,8 +128,65 @@ io.on('connection', (socket) => {
     console.log(`User ${userId} joined room & group_chat`);
   });
 
+  // WebRTC Signaling Events for Video/Audio Meetings
+  socket.on('join-call-room', ({ roomId, userId, userName, userAvatar, hasVideo }) => {
+    socket.join(roomId);
+    if (!activeCalls[roomId]) {
+      activeCalls[roomId] = [];
+    }
+    // Prevent duplicate entries for the same socket connection
+    activeCalls[roomId] = activeCalls[roomId].filter(u => u.socketId !== socket.id);
+    activeCalls[roomId].push({ socketId: socket.id, userId, userName, userAvatar, hasVideo });
+    
+    console.log(`Socket ${socket.id} (${userName}) joined call room ${roomId}`);
+    
+    // Send list of existing users to the newly joined user
+    const otherUsers = activeCalls[roomId].filter(u => u.socketId !== socket.id);
+    socket.emit('all-call-users', otherUsers);
+    
+    // Notify existing users in the room
+    socket.to(roomId).emit('call-user-joined', {
+      socketId: socket.id,
+      userId,
+      userName,
+      userAvatar,
+      hasVideo
+    });
+  });
+
+  socket.on('call-send-signal', ({ targetSocketId, signal }) => {
+    io.to(targetSocketId).emit('call-signal-received', {
+      senderSocketId: socket.id,
+      signal
+    });
+  });
+
+  socket.on('leave-call-room', ({ roomId }) => {
+    socket.leave(roomId);
+    if (activeCalls[roomId]) {
+      activeCalls[roomId] = activeCalls[roomId].filter(u => u.socketId !== socket.id);
+      if (activeCalls[roomId].length === 0) {
+        delete activeCalls[roomId];
+      } else {
+        io.to(roomId).emit('call-user-left', { socketId: socket.id });
+      }
+    }
+    console.log(`Socket ${socket.id} left call room ${roomId}`);
+  });
+
   socket.on('disconnect', () => {
-    console.log('User disconnected');
+    console.log('User disconnected:', socket.id);
+    // Cleanup any active calls this socket was a part of
+    for (const roomId in activeCalls) {
+      const userIndex = activeCalls[roomId].findIndex(u => u.socketId === socket.id);
+      if (userIndex !== -1) {
+        activeCalls[roomId].splice(userIndex, 1);
+        io.to(roomId).emit('call-user-left', { socketId: socket.id });
+        if (activeCalls[roomId].length === 0) {
+          delete activeCalls[roomId];
+        }
+      }
+    }
   });
 });
 

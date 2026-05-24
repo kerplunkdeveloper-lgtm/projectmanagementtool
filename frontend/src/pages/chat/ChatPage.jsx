@@ -39,6 +39,8 @@ import {
   FiCornerUpLeft,
   FiArrowRight,
   FiShare2,
+  FiMonitor,
+  FiCopy,
 } from "react-icons/fi";
 import io from "socket.io-client";
 import toast from "react-hot-toast";
@@ -51,6 +53,45 @@ const EMOJIS = [
 const STICKERS = [
   "👾", "🛸", "🦄", "🐼", "🦊", "🦁", "🐰", "🐱", "🐶", "🐯", "🐨", "🐷", "🐸", "🐵", "🐒", "🐔", "🐧", "🐦", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🕷️", "🦂", "🐢", "🐍", "🦎", "🐙", "🦑", "🦞", "🦀", "🐡", "🐠", "🐟", "🐬", "🐳", "🐋", "🦈", "🐊", "🐅", "🐆", "🦓", "🦍", "🐘", "🦛", "🦏", "🐪", "🐫", "🦒", "🦘", "🐃", "🐂", "🐄", "🐎", "🐖", "🐏", "🐑", "🐐", "🦌", "🐕", "🐩", "🐈", "🐓", "🦃", "🕊️", "🐇", "🐁", "🐀", "🐿️", "🦔"
 ];
+
+const VideoFeed = ({ stream, userName, userAvatar, isMuted, isLocal }) => {
+  const videoRef = useRef(null);
+
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream]);
+
+  return (
+    <div className="relative bg-slate-900 border border-slate-700/50 rounded-2xl overflow-hidden aspect-video flex items-center justify-center shadow-md">
+      {stream && stream.getVideoTracks().length > 0 ? (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted={isLocal || isMuted}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <div className="flex flex-col items-center justify-center space-y-2 p-4 text-center">
+          {userAvatar ? (
+            <img src={userAvatar} alt="avatar" className="w-14 h-14 rounded-full object-cover border border-slate-700 shadow" />
+          ) : (
+            <div className="w-14 h-14 rounded-full bg-blue-600/30 border border-blue-500/50 flex items-center justify-center text-lg font-bold text-blue-400 uppercase shrink-0">
+              {userName ? userName.charAt(0) : "U"}
+            </div>
+          )}
+          <span className="text-[10px] text-slate-300 font-bold uppercase tracking-wider truncate max-w-[120px]">{userName}</span>
+        </div>
+      )}
+      <div className="absolute bottom-2.5 left-2.5 bg-slate-950/80 backdrop-blur-sm px-2 py-0.5 rounded-lg text-[9px] font-bold text-slate-200 flex items-center gap-1.5 border border-slate-800/40">
+        <span className="truncate max-w-[80px]">{isLocal ? "You" : userName}</span>
+        {isMuted && <span className="text-red-500 font-black">&bull; Muted</span>}
+      </div>
+    </div>
+  );
+};
 
 const ChatPage = () => {
   const dispatch = useDispatch();
@@ -96,6 +137,15 @@ const ChatPage = () => {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [activeMessageMenu, setActiveMessageMenu] = useState(null);
 
+  // WebRTC States & Refs
+  const [localStream, setLocalStream] = useState(null);
+  const [remoteFeeds, setRemoteFeeds] = useState([]);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+
+  const pcsRef = useRef({});
+  const localStreamRef = useRef(null);
+  const screenStreamRef = useRef(null);
+
   const socketRef = useRef();
   const messagesEndRef = useRef();
   const callTimerRef = useRef();
@@ -123,6 +173,80 @@ const ChatPage = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // WebRTC Peer Connection Helper
+  const createPeerConnection = (targetSocketId, otherUser, isInitiator) => {
+    if (pcsRef.current[targetSocketId]) {
+      pcsRef.current[targetSocketId].close();
+    }
+
+    const pc = new RTCPeerConnection({
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+        { urls: "stun:stun2.l.google.com:19302" }
+      ]
+    });
+
+    pcsRef.current[targetSocketId] = pc;
+
+    // Add local tracks to the connection
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => {
+        pc.addTrack(track, localStreamRef.current);
+      });
+    }
+
+    // Handle ICE candidates
+    pc.onicecandidate = (event) => {
+      if (event.candidate && socketRef.current) {
+        socketRef.current.emit("call-send-signal", {
+          targetSocketId,
+          signal: { type: "candidate", candidate: event.candidate }
+        });
+      }
+    };
+
+    // Handle incoming remote media tracks
+    pc.ontrack = (event) => {
+      console.log("Received remote track from:", targetSocketId);
+      const remoteStream = event.streams[0];
+      setRemoteFeeds(prev => {
+        const exists = prev.some(feed => feed.socketId === targetSocketId);
+        if (exists) {
+          return prev.map(feed => feed.socketId === targetSocketId ? { ...feed, stream: remoteStream } : feed);
+        }
+        return [...prev, {
+          socketId: targetSocketId,
+          stream: remoteStream,
+          userId: otherUser.userId,
+          userName: otherUser.userName,
+          userAvatar: otherUser.userAvatar,
+          hasVideo: otherUser.hasVideo
+        }];
+      });
+    };
+
+    // If initiator, create and send offer
+    if (isInitiator) {
+      pc.onnegotiationneeded = async () => {
+        try {
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          if (socketRef.current) {
+            socketRef.current.emit("call-send-signal", {
+              targetSocketId,
+              signal: { type: "offer", sdp: pc.localDescription }
+            });
+          }
+        } catch (err) {
+          console.error("Error creating offer:", err);
+        }
+      };
+    }
+
+    return pc;
+  };
+
   // Socket Connection & Real-Time Listeners
   useEffect(() => {
     const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -149,6 +273,87 @@ const ChatPage = () => {
       dispatch(removeMessage(messageId));
     });
 
+    // WebRTC Signaling listeners
+    socketRef.current.on("all-call-users", (usersList) => {
+      console.log("All existing users in call room:", usersList);
+      usersList.forEach(peer => {
+        setRemoteFeeds(prev => {
+          if (prev.some(f => f.socketId === peer.socketId)) return prev;
+          return [...prev, {
+            socketId: peer.socketId,
+            stream: null,
+            userId: peer.userId,
+            userName: peer.userName,
+            userAvatar: peer.userAvatar,
+            hasVideo: peer.hasVideo
+          }];
+        });
+        createPeerConnection(peer.socketId, peer, true);
+      });
+    });
+
+    socketRef.current.on("call-user-joined", (peer) => {
+      console.log("New user joined call:", peer);
+      setRemoteFeeds(prev => {
+        if (prev.some(f => f.socketId === peer.socketId)) return prev;
+        return [...prev, {
+          socketId: peer.socketId,
+          stream: null,
+          userId: peer.userId,
+          userName: peer.userName,
+          userAvatar: peer.userAvatar,
+          hasVideo: peer.hasVideo
+        }];
+      });
+    });
+
+    socketRef.current.on("call-user-left", ({ socketId }) => {
+      console.log("User left call:", socketId);
+      if (pcsRef.current[socketId]) {
+        pcsRef.current[socketId].close();
+        delete pcsRef.current[socketId];
+      }
+      setRemoteFeeds(prev => prev.filter(f => f.socketId !== socketId));
+    });
+
+    socketRef.current.on("call-signal-received", async ({ senderSocketId, signal }) => {
+      let pc = pcsRef.current[senderSocketId];
+
+      if (signal.type === "offer") {
+        if (!pc) {
+          // Attempt to find user info from remote feeds or create a fallback
+          let peerInfo = null;
+          setRemoteFeeds(prev => {
+            peerInfo = prev.find(f => f.socketId === senderSocketId);
+            return prev;
+          });
+          if (!peerInfo) {
+            peerInfo = { userId: "", userName: "Peer", userAvatar: "", hasVideo: true };
+          }
+          pc = createPeerConnection(senderSocketId, peerInfo, false);
+        }
+        await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        socketRef.current.emit("call-send-signal", {
+          targetSocketId: senderSocketId,
+          signal: { type: "answer", sdp: pc.localDescription }
+        });
+      } else if (signal.type === "answer") {
+        if (pc) {
+          await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+        }
+      } else if (signal.type === "candidate") {
+        if (pc) {
+          try {
+            await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+          } catch (err) {
+            console.error("Error adding ice candidate:", err);
+          }
+        }
+      }
+    });
+
     return () => {
       socketRef.current.disconnect();
     };
@@ -172,23 +377,203 @@ const ChatPage = () => {
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
 
-  // Start Voice/Video Call
-  const startCall = (type) => {
+  // Start Real WebRTC Voice/Video Call
+  const startCall = async (type) => {
     setActiveCall(type);
     setCallState("connecting");
     setCallDuration(0);
     setIsMuted(false);
     setIsCamOff(false);
+    setRemoteFeeds([]);
 
-    setTimeout(() => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: type === "video",
+        audio: true
+      });
+      localStreamRef.current = stream;
+      setLocalStream(stream);
       setCallState("connected");
-    }, 2500);
+
+      // Determine clean, unique Call Room ID
+      const roomId = activeChat === "group" || rooms.some(r => r._id === activeChat)
+        ? activeChat
+        : [currentUserId, activeChat].sort().join("-");
+
+      if (socketRef.current) {
+        socketRef.current.emit("join-call-room", {
+          roomId,
+          userId: currentUserId,
+          userName: user.name,
+          userAvatar: user.profile?.profileImage?.url,
+          hasVideo: type === "video"
+        });
+      }
+
+      // Automatically post a join button link to the room
+      const isGroupType = activeChat === "group" || rooms.some((r) => r._id === activeChat);
+      const payload = {
+        recipient: isGroupType ? null : activeChat,
+        chatRoom: isGroupType ? activeChat : "direct",
+        text: `📞 Join my live ${type === "video" ? "Video Meet" : "Audio Call"}! Room ID: ${roomId}`,
+        messageType: "text",
+      };
+      await dispatch(sendMessageAction(payload)).unwrap();
+      toast.success("Meeting Started");
+
+    } catch (err) {
+      console.error("Failed to start WebRTC stream:", err);
+      toast.error("Could not access camera/microphone. Please check browser permissions.");
+      setCallState("ended");
+      setActiveCall(null);
+    }
   };
 
-  // End Call
+  // Join existing WebRTC Room via clicked meeting invitation
+  const joinCallRoom = async (roomId, type) => {
+    setActiveCall(type);
+    setCallState("connecting");
+    setCallDuration(0);
+    setIsMuted(false);
+    setIsCamOff(false);
+    setRemoteFeeds([]);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: type === "video",
+        audio: true
+      });
+      localStreamRef.current = stream;
+      setLocalStream(stream);
+      setCallState("connected");
+
+      if (socketRef.current) {
+        socketRef.current.emit("join-call-room", {
+          roomId,
+          userId: currentUserId,
+          userName: user.name,
+          userAvatar: user.profile?.profileImage?.url,
+          hasVideo: type === "video"
+        });
+      }
+      toast.success("Joined Meeting");
+    } catch (err) {
+      console.error("Failed to join WebRTC stream:", err);
+      toast.error("Could not access camera/microphone. Please check browser permissions.");
+      setCallState("ended");
+      setActiveCall(null);
+    }
+  };
+
+  // Screen Sharing toggle for Google Meet style functionality
+  const toggleScreenShare = async () => {
+    if (!isScreenSharing) {
+      try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        screenStreamRef.current = screenStream;
+        const screenVideoTrack = screenStream.getVideoTracks()[0];
+
+        // Replace track in all peer connections
+        for (const socketId in pcsRef.current) {
+          const senders = pcsRef.current[socketId].getSenders();
+          const sender = senders.find(s => s.track && s.track.kind === "video");
+          if (sender) {
+            sender.replaceTrack(screenVideoTrack);
+          }
+        }
+
+        // Display screen track inside local preview
+        const localScreenStream = new MediaStream([
+          screenVideoTrack,
+          ...(localStreamRef.current ? localStreamRef.current.getAudioTracks() : [])
+        ]);
+        setLocalStream(localScreenStream);
+        setIsScreenSharing(true);
+
+        screenVideoTrack.onended = () => {
+          stopScreenShare();
+        };
+      } catch (err) {
+        console.error("Screen share fail:", err);
+        toast.error("Screen sharing canceled");
+      }
+    } else {
+      stopScreenShare();
+    }
+  };
+
+  const stopScreenShare = () => {
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach(track => track.stop());
+      screenStreamRef.current = null;
+    }
+
+    if (localStreamRef.current) {
+      const cameraVideoTrack = localStreamRef.current.getVideoTracks()[0];
+      for (const socketId in pcsRef.current) {
+        const senders = pcsRef.current[socketId].getSenders();
+        const sender = senders.find(s => s.track && s.track.kind === "video");
+        if (sender) {
+          sender.replaceTrack(cameraVideoTrack);
+        }
+      }
+      setLocalStream(localStreamRef.current);
+    }
+    setIsScreenSharing(false);
+  };
+
+  const toggleMic = () => {
+    if (localStreamRef.current) {
+      const audioTrack = localStreamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setIsMuted(!audioTrack.enabled);
+      }
+    }
+  };
+
+  const toggleCamera = () => {
+    if (localStreamRef.current) {
+      const videoTrack = localStreamRef.current.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setIsCamOff(!videoTrack.enabled);
+      }
+    }
+  };
+
+  // End call and release camera/screen share streams
   const endCall = async () => {
     setCallState("ended");
     clearInterval(callTimerRef.current);
+
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
+    }
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach(track => track.stop());
+      screenStreamRef.current = null;
+    }
+    setLocalStream(null);
+    setIsScreenSharing(false);
+
+    // Close and remove all RTC peer connections
+    for (const socketId in pcsRef.current) {
+      if (pcsRef.current[socketId]) {
+        pcsRef.current[socketId].close();
+      }
+    }
+    pcsRef.current = {};
+    setRemoteFeeds([]);
+
+    const roomId = activeChat === "group" || rooms.some(r => r._id === activeChat)
+      ? activeChat
+      : [currentUserId, activeChat].sort().join("-");
+
+    if (socketRef.current) {
+      socketRef.current.emit("leave-call-room", { roomId });
+    }
 
     const durationStr = formatDuration(callDuration);
     const logText = `${activeCall === "video" ? "📹 Video Call" : "📞 Voice Call"} - Duration: ${durationStr}`;
@@ -203,7 +588,7 @@ const ChatPage = () => {
     };
 
     await dispatch(sendMessageAction(payload)).unwrap();
-    toast.success("Call Logged");
+    toast.success("Call Ended");
     setActiveCall(null);
   };
 
@@ -846,7 +1231,31 @@ const ChatPage = () => {
                             : "bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-800 rounded-tl-none"
                         }`}
                       >
-                        {m.text}
+                        {m.text.includes("Join my live") ? (
+                          <div className="flex flex-col gap-2.5 p-0.5">
+                            <span className="font-semibold">{m.text}</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const match = m.text.match(/Room ID:\s*([a-zA-Z0-9\-_]+)/);
+                                if (match) {
+                                  const roomId = match[1];
+                                  joinCallRoom(roomId, m.text.includes("Video") ? "video" : "voice");
+                                }
+                              }}
+                              className={`w-full py-1.5 px-3 rounded-lg text-[10px] font-black uppercase tracking-wider text-center cursor-pointer transition-all ${
+                                isMe
+                                  ? "bg-white text-blue-600 hover:bg-blue-50"
+                                  : "bg-blue-600 text-white hover:bg-blue-700 shadow shadow-blue-500/20"
+                              }`}
+                            >
+                              Join Call Meeting
+                            </button>
+                          </div>
+                        ) : (
+                          m.text
+                        )}
                       </div>
                     )}
 
@@ -1414,146 +1823,187 @@ const ChatPage = () => {
       )}
 
       {/* PREMIUM CALLING INTERFACE OVERLAY */}
-      {activeCall && (
-        <div className="fixed inset-0 z-[200] bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
-          <div className="bg-slate-800 w-full max-w-xl rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-700 shadow-2xl flex flex-col relative text-white h-[75vh] sm:h-auto sm:aspect-video">
-            
-            {/* Call State: Connecting */}
-            {callState === "connecting" && (
-              <div className="flex-1 flex flex-col items-center justify-center space-y-4">
-                {activeChat === "group" || activeCustomRoom ? (
-                  <div className="w-20 h-20 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center font-black text-2xl text-slate-300 animate-pulse">
-                    G
-                  </div>
-                ) : activeChatUser?.profile?.profileImage?.url ? (
-                  <img
-                    src={activeChatUser.profile.profileImage.url}
-                    alt="avatar"
-                    className="w-20 h-20 rounded-full object-cover border-2 border-slate-600 animate-pulse shrink-0"
-                  />
-                ) : (
-                  <div className="w-20 h-20 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center font-black text-2xl text-slate-300 animate-pulse shrink-0">
-                    {activeChatUser?.name.charAt(0) || "C"}
-                  </div>
-                )}
-                <div className="text-center">
-                  <h4 className="text-sm font-bold tracking-wide">
-                    {activeChat === "group"
-                      ? "General Group Video Call"
-                      : activeCustomRoom
-                      ? `${activeCustomRoom.name} Group Call`
-                      : activeChatUser?.name}
-                  </h4>
-                  <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-black animate-pulse">Connecting call...</p>
-                </div>
-              </div>
-            )}
+      {activeCall && (() => {
+        const roomId = activeChat === "group" || activeCustomRoom
+          ? activeChat
+          : [currentUserId, activeChat].sort().join("-");
 
-            {/* Call State: Connected */}
-            {callState === "connected" && (
-              <div className="flex-1 flex flex-col md:flex-row relative bg-slate-950">
-                {activeCall === "video" ? (
-                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-px h-full">
-                    {/* User Feed */}
-                    <div className="relative bg-slate-900 flex items-center justify-center border-r border-slate-800">
-                      {isCamOff ? (
-                        <div className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center">
-                          <FiVideoOff size={16} />
-                        </div>
-                      ) : (
-                        <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center">
-                          <FiUser size={36} className="opacity-20 animate-bounce" />
-                          <span className="text-[9px] text-slate-400 absolute bottom-3 left-3 bg-slate-950/80 px-2 py-0.5 rounded-md font-bold">You (Camera)</span>
-                        </div>
-                      )}
+        const handleCopyRoomId = () => {
+          navigator.clipboard.writeText(roomId);
+          toast.success("Meeting Room ID copied!");
+        };
+
+        const totalFeeds = 1 + remoteFeeds.length;
+        const gridCols = totalFeeds === 1 ? "grid-cols-1" : totalFeeds === 2 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-2 lg:grid-cols-3";
+
+        return (
+          <div className="fixed inset-0 z-[200] bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
+            <div className="bg-slate-800 w-full max-w-2xl rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-700 shadow-2xl flex flex-col relative text-white h-[80vh] sm:h-[65vh]">
+              
+              {/* Meeting Header */}
+              <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-slate-900/85 backdrop-blur px-3 py-1.5 rounded-full border border-slate-750 text-[10px] font-black uppercase text-slate-350">
+                <span>Room ID: {roomId.slice(0, 15)}...</span>
+                <button onClick={handleCopyRoomId} className="hover:text-white cursor-pointer transition-colors" title="Copy Meeting Room ID">
+                  <FiCopy size={11} />
+                </button>
+              </div>
+
+              {/* Call State: Connecting */}
+              {callState === "connecting" && (
+                <div className="flex-1 flex flex-col items-center justify-center space-y-4">
+                  {activeChat === "group" || activeCustomRoom ? (
+                    <div className="w-20 h-20 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center font-black text-2xl text-slate-350 animate-pulse">
+                      G
                     </div>
-                    {/* Remote Feed */}
-                    <div className="relative bg-slate-900 flex items-center justify-center">
-                      <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center">
-                        {activeChat === "group" || activeCustomRoom ? (
-                          <div className="w-16 h-16 rounded-full bg-blue-600/30 border border-blue-500 flex items-center justify-center font-black text-lg text-blue-400">
-                            G
-                          </div>
-                        ) : activeChatUser?.profile?.profileImage?.url ? (
-                          <img
-                            src={activeChatUser.profile.profileImage.url}
-                            alt="avatar"
-                            className="w-16 h-16 rounded-full object-cover border border-blue-500 shrink-0"
-                          />
-                        ) : (
-                          <div className="w-16 h-16 rounded-full bg-blue-600/30 border border-blue-500 flex items-center justify-center font-black text-lg text-blue-400 shrink-0">
-                            {activeChatUser?.name.charAt(0)}
-                          </div>
-                        )}
-                        <span className="text-[9px] text-slate-400 absolute bottom-3 left-3 bg-slate-950/80 px-2 py-0.5 rounded-md font-bold">
-                          {activeChat === "group" || activeCustomRoom ? "Team Feed" : activeChatUser?.name}
+                  ) : activeChatUser?.profile?.profileImage?.url ? (
+                    <img
+                      src={activeChatUser.profile.profileImage.url}
+                      alt="avatar"
+                      className="w-20 h-20 rounded-full object-cover border-2 border-slate-600 animate-pulse shrink-0"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center font-black text-2xl text-slate-350 animate-pulse shrink-0">
+                      {activeChatUser?.name.charAt(0) || "C"}
+                    </div>
+                  )}
+                  <div className="text-center">
+                    <h4 className="text-sm font-bold tracking-wide">
+                      {activeChat === "group"
+                        ? "General Group Video Call"
+                        : activeCustomRoom
+                        ? `${activeCustomRoom.name} Group Call`
+                        : activeChatUser?.name}
+                    </h4>
+                    <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-black animate-pulse">Connecting call...</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Call State: Connected */}
+              {callState === "connected" && (
+                <div className="flex-1 flex flex-col relative bg-slate-950 p-4 pt-16 overflow-y-auto">
+                  {activeCall === "video" ? (
+                    <div className={`grid ${gridCols} gap-3 items-center justify-center w-full my-auto`}>
+                      {/* Local Preview */}
+                      <VideoFeed
+                        stream={localStream}
+                        userName={`${user?.name} (You)`}
+                        userAvatar={user?.profile?.profileImage?.url}
+                        isLocal={true}
+                        isMuted={isMuted}
+                      />
+                      {/* Remote Feeds */}
+                      {remoteFeeds.map(feed => (
+                        <VideoFeed
+                          key={feed.socketId}
+                          stream={feed.stream}
+                          userName={feed.userName}
+                          userAvatar={feed.userAvatar}
+                          isLocal={false}
+                          isMuted={false}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center space-y-4 my-auto">
+                      <div className="flex items-center justify-center -space-x-3">
+                        <div className="w-16 h-16 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0">
+                          <FiPhone className="text-blue-500 animate-bounce" size={20} />
+                        </div>
+                        {remoteFeeds.map(feed => (
+                          feed.userAvatar ? (
+                            <img
+                              key={feed.socketId}
+                              src={feed.userAvatar}
+                              alt="avatar"
+                              className="w-12 h-12 rounded-full object-cover border border-slate-700 shrink-0"
+                            />
+                          ) : (
+                            <div key={feed.socketId} className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center font-bold text-xs uppercase shrink-0">
+                              {feed.userName.charAt(0)}
+                            </div>
+                          )
+                        ))}
+                      </div>
+                      <div className="text-center">
+                        <h4 className="text-sm font-bold">
+                          {activeChat === "group"
+                            ? "Group Voice Room"
+                            : activeCustomRoom
+                            ? activeCustomRoom.name
+                            : activeChatUser?.name}
+                        </h4>
+                        <p className="text-[10px] text-slate-400 tracking-wide font-black mt-1">
+                          ONGOING MEETING &bull; {formatDuration(callDuration)}
+                        </p>
+                        <span className="text-[9px] text-slate-500 font-semibold block mt-1.5">
+                          {remoteFeeds.length} other person{remoteFeeds.length !== 1 ? "s" : ""} joined
                         </span>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center space-y-3">
-                    <div className="w-20 h-20 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center">
-                      <FiPhone className="text-blue-500 animate-bounce" size={24} />
-                    </div>
-                    <div className="text-center">
-                      <h4 className="text-sm font-bold">
-                        {activeChat === "group"
-                          ? "Group Voice Room"
-                          : activeCustomRoom
-                          ? activeCustomRoom.name
-                          : activeChatUser?.name}
-                      </h4>
-                      <span className="text-[10px] text-slate-400 tracking-wide font-black">
-                        ONGOING CALL &bull; {formatDuration(callDuration)}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* CALL CONTROLS DRAWER */}
-            <div className="h-16 bg-slate-900 border-t border-slate-800 flex items-center justify-between px-6 shrink-0 z-10">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setIsMuted(!isMuted)}
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
-                    isMuted ? "bg-rose-50/20 text-rose-450" : "bg-slate-800 hover:bg-slate-700 text-slate-300"
-                  }`}
-                >
-                  {isMuted ? <FiMicOff size={14} /> : <FiMic size={14} />}
-                </button>
-
-                {activeCall === "video" && (
-                  <button
-                    onClick={() => setIsCamOff(!isCamOff)}
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
-                      isCamOff ? "bg-rose-50/20 text-rose-450" : "bg-slate-800 hover:bg-slate-700 text-slate-300"
-                    }`}
-                  >
-                    {isCamOff ? <FiVideoOff size={14} /> : <FiCamera size={14} />}
-                  </button>
-                )}
-              </div>
-
-              {callState === "connected" && (
-                <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest hidden xs:inline">
-                  {formatDuration(callDuration)}
-                </span>
+                  )}
+                </div>
               )}
 
-              <button
-                onClick={endCall}
-                className="px-5 h-9 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shadow-lg shadow-rose-900/30 active:scale-95 transition-all cursor-pointer"
-              >
-                End Call
-              </button>
-            </div>
+              {/* CALL CONTROLS DRAWER */}
+              <div className="h-16 bg-slate-900 border-t border-slate-850 flex items-center justify-between px-6 shrink-0 z-10">
+                <div className="flex items-center gap-3">
+                  {/* Microphone Toggle */}
+                  <button
+                    onClick={toggleMic}
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                      isMuted ? "bg-rose-500/20 text-rose-500 border border-rose-500/30" : "bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700/50"
+                    }`}
+                    title={isMuted ? "Unmute Mic" : "Mute Mic"}
+                  >
+                    {isMuted ? <FiMicOff size={14} /> : <FiMic size={14} />}
+                  </button>
 
+                  {/* Camera Toggle */}
+                  {activeCall === "video" && (
+                    <button
+                      onClick={toggleCamera}
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                        isCamOff ? "bg-rose-500/20 text-rose-500 border border-rose-500/30" : "bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700/50"
+                      }`}
+                      title={isCamOff ? "Turn Camera On" : "Turn Camera Off"}
+                    >
+                      {isCamOff ? <FiVideoOff size={14} /> : <FiCamera size={14} />}
+                    </button>
+                  )}
+
+                  {/* Screen Share Toggle */}
+                  {activeCall === "video" && (
+                    <button
+                      onClick={toggleScreenShare}
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                        isScreenSharing ? "bg-blue-600 hover:bg-blue-700 text-white border border-blue-500" : "bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700/50"
+                      }`}
+                      title={isScreenSharing ? "Stop Screen Share" : "Share Screen"}
+                    >
+                      <FiMonitor size={14} />
+                    </button>
+                  )}
+                </div>
+
+                {callState === "connected" && (
+                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest hidden xs:inline">
+                    {formatDuration(callDuration)}
+                  </span>
+                )}
+
+                <button
+                  onClick={endCall}
+                  className="px-5 h-9 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shadow-lg shadow-rose-900/30 active:scale-95 transition-all cursor-pointer"
+                >
+                  Leave Meeting
+                </button>
+              </div>
+
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
     </div>
   );
