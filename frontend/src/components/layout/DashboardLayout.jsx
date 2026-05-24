@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Outlet, useNavigate } from "react-router-dom";
+import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import toast from "react-hot-toast";
 import Navbar from "./Navbar";
@@ -11,6 +11,8 @@ const DashboardLayout = ({ role }) => {
   useSocket();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isChatPage = location.pathname.endsWith("/chat") || location.pathname.includes("/chat");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, originalAdminUser } = useSelector((state) => state.auth);
 
@@ -31,7 +33,7 @@ const DashboardLayout = ({ role }) => {
       />
 
       {/* RIGHT SIDE */}
-      <div className="lg:ml-[220px] xl:ml-[230px] h-screen flex flex-col">
+      <div className="lg:ml-60 xl:ml-64 h-screen flex flex-col">
 
         {/* IMPERSONATION BANNER */}
         {originalAdminUser && (
@@ -55,8 +57,8 @@ const DashboardLayout = ({ role }) => {
         <Navbar setSidebarOpen={setSidebarOpen} />
 
         {/* SCROLLABLE CONTENT */}
-        <main className="flex-1 overflow-y-auto p-1.5 sm:p-3 md:p-4 bg-gray-50 dark:bg-slate-950">
-          <div className="min-h-full rounded-xl sm:rounded-2xl bg-white border border-gray-200 dark:bg-slate-900  dark:shadow-none shadow-sm p-2 sm:p-3 md:p-4">
+        <main className={`flex-1 ${isChatPage ? "overflow-hidden p-0" : "overflow-y-auto p-1.5 sm:p-3 md:p-4"} bg-gray-50 dark:bg-slate-950`}>
+          <div className={isChatPage ? "h-full bg-white dark:bg-slate-900" : "min-h-full rounded-xl sm:rounded-2xl bg-white border border-gray-200 dark:bg-slate-900  dark:shadow-none shadow-sm p-2 sm:p-3 md:p-4"}>
             <Outlet />
           </div>
         </main>

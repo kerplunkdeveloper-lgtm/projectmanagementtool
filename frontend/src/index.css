@@ -3,6 +3,17 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@media (min-width: 1024px) {
+  html {
+    font-size: 13px;
+  }
+}
+@media (min-width: 1280px) {
+  html {
+    font-size: 12px;
+  }
+}
+
 body {
   font-family: 'Poppins', sans-serif;
   @apply transition-colors duration-300 bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100;
@@ -10,15 +21,18 @@ body {
 
 .dark {
   /* Core background colors */
-  --color-white: #0f172a; 
-  --color-slate-50: #020617; 
-  --color-gray-50: #020617; 
+  --color-white: #000000; 
+  --color-slate-50: #000000; 
+  --color-gray-50: #000000; 
+  --color-slate-950: #000000;
+  --color-slate-900: #000000;
+  --color-slate-800: #0d0d0d;
   
   /* Borders */
-  --color-slate-100: #1e293b; 
-  --color-gray-100: #1e293b; 
-  --color-slate-200: #334155; 
-  --color-gray-200: #334155; 
+  --color-slate-100: #1a1a1a; 
+  --color-gray-100: #1a1a1a; 
+  --color-slate-200: #262626; 
+  --color-gray-200: #262626; 
   
   /* Text colors */
   --color-slate-800: #f8fafc; 
@@ -60,47 +74,47 @@ body {
     color: #f1f5f9 !important;
   }
   .rbc-month-view, .rbc-time-view, .rbc-agenda-view {
-    background-color: #0f172a !important;
-    border-color: #1e293b !important;
+    background-color: #000000 !important;
+    border-color: #1a1a1a !important;
   }
   .rbc-header {
-    border-bottom-color: #1e293b !important;
+    border-bottom-color: #1a1a1a !important;
     color: #cbd5e1 !important;
-    background-color: #1e293b !important;
+    background-color: #0d0d0d !important;
     font-weight: 700;
   }
   .rbc-header + .rbc-header {
-    border-left-color: #1e293b !important;
+    border-left-color: #1a1a1a !important;
   }
   .rbc-day-bg {
-    border-color: #1e293b !important;
+    border-color: #1a1a1a !important;
   }
   .rbc-day-bg + .rbc-day-bg {
-    border-left-color: #1e293b !important;
+    border-left-color: #1a1a1a !important;
   }
   .rbc-month-row {
-    border-color: #1e293b !important;
+    border-color: #1a1a1a !important;
   }
   .rbc-off-range-bg {
-    background: #020617 !important;
+    background: #0d0d0d !important;
   }
   .rbc-today {
     background-color: rgba(59, 130, 246, 0.15) !important;
   }
   .rbc-time-header {
-    border-bottom-color: #1e293b !important;
+    border-bottom-color: #1a1a1a !important;
   }
   .rbc-time-header-content {
-    border-left-color: #1e293b !important;
+    border-left-color: #1a1a1a !important;
   }
   .rbc-time-content {
-    border-top-color: #1e293b !important;
+    border-top-color: #1a1a1a !important;
   }
   .rbc-timeslot-group {
-    border-bottom-color: #1e293b !important;
+    border-bottom-color: #1a1a1a !important;
   }
   .rbc-time-slot {
-    border-top-color: #1e293b !important;
+    border-top-color: #1a1a1a !important;
   }
   .rbc-event {
     border: none !important;
@@ -115,8 +129,8 @@ body {
   }
   .rbc-toolbar button {
     color: #cbd5e1 !important;
-    border-color: #334155 !important;
-    background-color: #1e293b !important;
+    border-color: #262626 !important;
+    background-color: #0d0d0d !important;
     font-weight: 700 !important;
   }
   .rbc-toolbar button:active, .rbc-toolbar button.rbc-active {
@@ -125,7 +139,7 @@ body {
     box-shadow: none !important;
   }
   .rbc-toolbar button:hover {
-    background-color: #334155 !important;
+    background-color: #262626 !important;
     color: #fff !important;
   }
 
@@ -137,9 +151,9 @@ body {
   .event-modal-container input[type="time"],
   .event-modal-container select,
   .event-modal-container textarea {
-    background-color: #1e293b !important;
+    background-color: #0d0d0d !important;
     color: #f8fafc !important;
-    border-color: #334155 !important;
+    border-color: #262626 !important;
   }
 
   /* Global input text & placeholder visibility overrides in dark mode */

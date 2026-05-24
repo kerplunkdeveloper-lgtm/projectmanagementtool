@@ -33,6 +33,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   const { projects } = useSelector((state) => state.projects);
   const { users } = useSelector((state) => state.users);
   const { user: currentUser } = useSelector((state) => state.auth);
+  const { unreadCounts = {} } = useSelector((state) => state.chat);
+  const totalUnreadChatCount = Object.values(unreadCounts).reduce((sum, val) => sum + (val || 0), 0);
   const [isWorkOpen, setIsWorkOpen] = useState(true);
 
   useEffect(() => {
@@ -84,7 +86,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       <aside
         className={`
           fixed top-0 left-0 z-[100] h-screen
-          w-[280px] sm:w-[300px] lg:w-[220px] xl:w-[230px]
+          w-72 lg:w-60 xl:w-64
           bg-white dark:bg-slate-900
           border-r border-gray-200 dark:border-slate-800
           flex flex-col
@@ -176,6 +178,12 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       {item.name === "Notifications" && unreadCount > 0 && (
                         <span className="ml-auto min-w-[16px] h-[16px] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse">
                           {unreadCount}
+                        </span>
+                      )}
+
+                      {item.name === "Chat" && totalUnreadChatCount > 0 && (
+                        <span className="ml-auto min-w-[16px] h-[16px] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse">
+                          {totalUnreadChatCount}
                         </span>
                       )}
                     </motion.div>

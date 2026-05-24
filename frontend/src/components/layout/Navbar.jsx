@@ -142,7 +142,7 @@ const Navbar = ({ setSidebarOpen }) => {
       animate={{ y: 0, opacity: 1 }}
       className="
         sticky top-0 z-50
-        h-[56px] lg:h-[60px]
+        h-14
         px-3 md:px-5
         flex items-center justify-between
         bg-white/80 dark:bg-slate-900/80 backdrop-blur-3xl
@@ -360,7 +360,9 @@ const Navbar = ({ setSidebarOpen }) => {
                               dispatch(markAsRead(n._id));
                             }
                             setOpenNotifications(false);
-                            if (n.project && user?.role !== "team") {
+                            if (n.type === "message_received" || n.chatRoomId) {
+                              navigate(`/${user?.role}/chat?id=${n.chatRoomId}`);
+                            } else if (n.project && user?.role !== "team") {
                               navigate(`/${user?.role}/projects?id=${n.project}`);
                             } else {
                               navigate(`/${user?.role}/tasks`);

@@ -68,6 +68,11 @@ const Notifications = () => {
           icon: FiInfo,
           bgColor: "bg-purple-50 text-purple-600 border-purple-100",
         };
+      case "message_received":
+        return {
+          icon: FiMail,
+          bgColor: "bg-teal-50 text-teal-600 border-teal-100",
+        };
       default:
         return {
           icon: FiBell,
@@ -161,7 +166,9 @@ const Notifications = () => {
                     if (!n.isRead) {
                       handleMarkAsRead(n._id);
                     }
-                    if (n.project && user?.role !== "team") {
+                    if (n.type === "message_received" || n.chatRoomId) {
+                      navigate(`/${user?.role}/chat?id=${n.chatRoomId}`);
+                    } else if (n.project && user?.role !== "team") {
                       navigate(`/${user?.role}/projects?id=${n.project}`);
                     } else {
                       navigate(`/${user?.role}/tasks`);

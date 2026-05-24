@@ -110,14 +110,46 @@ exports.sendMessage = async (req, res) => {
       // Emit to all users in group chat
       if (io) {
         io.to("group_chat").emit("group_message", populatedMessage);
+
+        // Also send a real-time notification to all other users in the database
+        const notificationText = text || (messageType === 'sticker' ? 'Sent a sticker' : messageType === 'file' ? `Sent a file: ${file?.filename || 'Attachment'}` : 'Call log');
+        const allUsers = await User.find({ _id: { $ne: req.user.id } });
+        
+        for (const otherUser of allUsers) {
+          const notification = await Notification.create({
+            recipient: otherUser._id,
+            sender: req.user.id,
+            type: "message_received",
+            message: `New message in General Team Chat from ${req.user.name}: "${notificationText}"`,
+            chatRoomId: "group",
+            chatRoomType: "group",
+          });
+          const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
+          io.to(otherUser._id.toString()).emit("notification", populatedNotification);
+        }
       }
     } else if (chatRoom !== "direct") {
       // Custom Group Chat Room: Emit to all members of the group
       const room = await ChatRoom.findById(chatRoom);
       if (room && io) {
-        room.members.forEach((memberId) => {
+        const notificationText = text || (messageType === 'sticker' ? 'Sent a sticker' : messageType === 'file' ? `Sent a file: ${file?.filename || 'Attachment'}` : 'Call log');
+        
+        for (const memberId of room.members) {
           io.to(memberId.toString()).emit("group_message", populatedMessage);
-        });
+          
+          if (memberId.toString() !== req.user.id.toString()) {
+            const notification = await Notification.create({
+              recipient: memberId,
+              sender: req.user.id,
+              type: "message_received",
+              message: `New message in ${room.name} from ${req.user.name}: "${notificationText}"`,
+              chatRoomId: room._id.toString(),
+              chatRoomType: "group",
+            });
+            const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
+            io.to(memberId.toString()).emit("notification", populatedNotification);
+          }
+        }
       }
     } else {
       // Emit to both sender and recipient rooms
@@ -132,6 +164,8 @@ exports.sendMessage = async (req, res) => {
           sender: req.user.id,
           type: "message_received",
           message: `New message from ${req.user.name}: "${notificationText}"`,
+          chatRoomId: req.user.id.toString(),
+          chatRoomType: "direct",
         });
         
         const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
@@ -351,6 +385,55 @@ exports.deleteMessage = async (req, res) => {
     }
 
     res.status(200).json({ success: true, message: "Message deleted successfully", data: messageId });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get the last message for each direct chat and group room
+// @route   GET /api/messages/last
+// @access  Private
+exports.getLastMessages = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Find all direct messages involving the logged-in user
+    const directMessages = await Message.find({
+      chatRoom: "direct",
+      $or: [{ sender: userId }, { recipient: userId }]
+    }).sort({ createdAt: -1 });
+
+    // Find all group messages
+    const groupMessages = await Message.find({
+      chatRoom: { $ne: "direct" }
+    }).sort({ createdAt: -1 });
+
+    const lastMessagesMap = {};
+
+    // Group direct messages by the other user's ID and keep the newest
+    for (const msg of directMessages) {
+      if (!msg.sender || !msg.recipient) continue;
+      const otherUserId = msg.sender.toString() === userId.toString()
+        ? msg.recipient.toString()
+        : msg.sender.toString();
+      if (!lastMessagesMap[otherUserId]) {
+        lastMessagesMap[otherUserId] = msg;
+      }
+    }
+
+    // Group room messages by chatRoom (roomId) and keep the newest
+    for (const msg of groupMessages) {
+      if (!msg.chatRoom) continue;
+      const roomId = msg.chatRoom.toString();
+      if (!lastMessagesMap[roomId]) {
+        lastMessagesMap[roomId] = msg;
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      data: lastMessagesMap
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

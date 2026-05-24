@@ -9,6 +9,7 @@ const {
   deleteRoom,
   uploadFile,
   deleteMessage,
+  getLastMessages,
 } = require("../controllers/messageController");
 const { protect } = require("../middleware/auth");
 const chatUpload = require("../middleware/chatUpload");
@@ -19,6 +20,7 @@ router.use(protect);
 
 router.post("/upload", chatUpload.single("file"), uploadFile);
 router.post("/", sendMessage);
+router.get("/last", getLastMessages);
 router.get("/group/:roomId?", getGroupMessages);
 router.get("/direct/:userId", getDirectMessages);
 router.delete("/:messageId", deleteMessage);

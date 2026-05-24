@@ -1,6 +1,18 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axiosInstance from "../../services/axiosInstance";
 
+export const fetchLastMessages = createAsyncThunk(
+  "chat/fetchLastMessages",
+  async (_, thunkAPI) => {
+    try {
+      const response = await axiosInstance.get("/messages/last");
+      return response.data.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data?.message || "Failed to load last messages");
+    }
+  }
+);
+
 export const fetchDirectMessages = createAsyncThunk(
   "chat/fetchDirectMessages",
   async (userId, thunkAPI) => {
@@ -109,13 +121,42 @@ const chatSlice = createSlice({
     rooms: [],
     loading: false,
     error: null,
+    unreadCounts: JSON.parse(localStorage.getItem("chatUnreadCounts") || "{}"),
+    lastMessages: JSON.parse(localStorage.getItem("chatLastMessages") || "{}"),
   },
   reducers: {
     receiveMessage: (state, action) => {
-      const exists = state.messages.some((m) => m._id === action.payload._id);
+      const { message, currentUserId, activeChatId } = action.payload;
+      if (!message) return;
+
+      const chatId = message.chatRoom === "direct"
+        ? (message.sender._id || message.sender) === currentUserId
+          ? (message.recipient._id || message.recipient)
+          : (message.sender._id || message.sender)
+        : message.chatRoom;
+
+      const exists = state.messages.some((m) => m._id === message._id);
       if (!exists) {
-        state.messages.push(action.payload);
+        if (chatId === activeChatId) {
+          state.messages.push(message);
+        }
       }
+
+      // Update last message
+      state.lastMessages[chatId] = message;
+      localStorage.setItem("chatLastMessages", JSON.stringify(state.lastMessages));
+
+      // Increment unread count if it's not the active chat room, and sender is not current user
+      const senderId = message.sender._id || message.sender;
+      if (chatId !== activeChatId && senderId !== currentUserId) {
+        state.unreadCounts[chatId] = (state.unreadCounts[chatId] || 0) + 1;
+        localStorage.setItem("chatUnreadCounts", JSON.stringify(state.unreadCounts));
+      }
+    },
+    markChatAsRead: (state, action) => {
+      const chatId = action.payload;
+      state.unreadCounts[chatId] = 0;
+      localStorage.setItem("chatUnreadCounts", JSON.stringify(state.unreadCounts));
     },
     removeMessage: (state, action) => {
       state.messages = state.messages.filter((m) => m._id !== action.payload);
@@ -151,14 +192,26 @@ const chatSlice = createSlice({
         state.error = action.payload;
       })
       .addCase(sendMessageAction.fulfilled, (state, action) => {
-        const exists = state.messages.some((m) => m._id === action.payload._id);
+        const message = action.payload;
+        const exists = state.messages.some((m) => m._id === message._id);
         if (!exists) {
-          state.messages.push(action.payload);
+          state.messages.push(message);
         }
+        
+        const chatId = message.chatRoom === "direct"
+          ? (message.recipient._id || message.recipient)
+          : message.chatRoom;
+          
+        state.lastMessages[chatId] = message;
+        localStorage.setItem("chatLastMessages", JSON.stringify(state.lastMessages));
       })
       // Rooms/Groups Reducers
       .addCase(fetchRooms.fulfilled, (state, action) => {
         state.rooms = action.payload;
+      })
+      .addCase(fetchLastMessages.fulfilled, (state, action) => {
+        state.lastMessages = { ...state.lastMessages, ...action.payload };
+        localStorage.setItem("chatLastMessages", JSON.stringify(state.lastMessages));
       })
       .addCase(createRoomAction.fulfilled, (state, action) => {
         state.rooms.push(action.payload);
@@ -177,5 +230,5 @@ const chatSlice = createSlice({
   },
 });
 
-export const { receiveMessage, removeMessage, clearMessages } = chatSlice.actions;
+export const { receiveMessage, removeMessage, clearMessages, markChatAsRead } = chatSlice.actions;
 export default chatSlice.reducer;

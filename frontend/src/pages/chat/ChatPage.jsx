@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { useSearchParams } from "react-router-dom";
 import { getUsers } from "../../features/users/userSlice";
 import {
   fetchDirectMessages,
@@ -12,6 +13,8 @@ import {
   createRoomAction,
   updateRoomAction,
   deleteRoomAction,
+  markChatAsRead,
+  fetchLastMessages,
 } from "../../features/chat/chatSlice";
 import {
   FiSend,
@@ -47,11 +50,171 @@ import toast from "react-hot-toast";
 import axiosInstance from "../../services/axiosInstance";
 
 const EMOJIS = [
-  "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "😜", "🧐", "🤓", "😎", "🤩", "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😣", "😖", "😫", "😩", "🥺", "😢", "😭", "😤", "😠", "😡", "🤬", "🤯", "😳", "🥵", "🥶", "😱", "😨", "😰", "😥", "😓", "🤗", "🤔", "🤭", "🤫", "🤥", "😶", "😐", "😑", "😬", "🙄", "🔥", "👍", "👎", "👏", "🙌", "🙏", "🤝", "❤️", "💔", "💖", "✨", "🎉", "🚀", "💡", "💯"
+  "😀",
+  "😃",
+  "😄",
+  "😁",
+  "😆",
+  "😅",
+  "😂",
+  "🤣",
+  "😊",
+  "😇",
+  "🙂",
+  "🙃",
+  "😉",
+  "😌",
+  "😍",
+  "🥰",
+  "😘",
+  "😗",
+  "😙",
+  "😚",
+  "😋",
+  "😛",
+  "😝",
+  "😜",
+  "😜",
+  "🧐",
+  "🤓",
+  "😎",
+  "🤩",
+  "🥳",
+  "😏",
+  "😒",
+  "😞",
+  "😔",
+  "😟",
+  "😕",
+  "🙁",
+  "☹️",
+  "😣",
+  "😖",
+  "😫",
+  "😩",
+  "🥺",
+  "😢",
+  "😭",
+  "😤",
+  "😠",
+  "😡",
+  "🤬",
+  "🤯",
+  "😳",
+  "🥵",
+  "🥶",
+  "😱",
+  "😨",
+  "😰",
+  "😥",
+  "😓",
+  "🤗",
+  "🤔",
+  "🤭",
+  "🤫",
+  "🤥",
+  "😶",
+  "😐",
+  "😑",
+  "😬",
+  "🙄",
+  "🔥",
+  "👍",
+  "👎",
+  "👏",
+  "🙌",
+  "🙏",
+  "🤝",
+  "❤️",
+  "💔",
+  "💖",
+  "✨",
+  "🎉",
+  "🚀",
+  "💡",
+  "💯",
 ];
 
 const STICKERS = [
-  "👾", "🛸", "🦄", "🐼", "🦊", "🦁", "🐰", "🐱", "🐶", "🐯", "🐨", "🐷", "🐸", "🐵", "🐒", "🐔", "🐧", "🐦", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🐝", "🐛", "🦋", "🐌", "🐞", "🐜", "🕷️", "🦂", "🐢", "🐍", "🦎", "🐙", "🦑", "🦞", "🦀", "🐡", "🐠", "🐟", "🐬", "🐳", "🐋", "🦈", "🐊", "🐅", "🐆", "🦓", "🦍", "🐘", "🦛", "🦏", "🐪", "🐫", "🦒", "🦘", "🐃", "🐂", "🐄", "🐎", "🐖", "🐏", "🐑", "🐐", "🦌", "🐕", "🐩", "🐈", "🐓", "🦃", "🕊️", "🐇", "🐁", "🐀", "🐿️", "🦔"
+  "👾",
+  "🛸",
+  "🦄",
+  "🐼",
+  "🦊",
+  "🦁",
+  "🐰",
+  "🐱",
+  "🐶",
+  "🐯",
+  "🐨",
+  "🐷",
+  "🐸",
+  "🐵",
+  "🐒",
+  "🐔",
+  "🐧",
+  "🐦",
+  "🦆",
+  "🦅",
+  "🦉",
+  "🦇",
+  "🐺",
+  "🐗",
+  "🐴",
+  "🐝",
+  "🐛",
+  "🦋",
+  "🐌",
+  "🐞",
+  "🐜",
+  "🕷️",
+  "🦂",
+  "🐢",
+  "🐍",
+  "🦎",
+  "🐙",
+  "🦑",
+  "🦞",
+  "🦀",
+  "🐡",
+  "🐠",
+  "🐟",
+  "🐬",
+  "🐳",
+  "🐋",
+  "🦈",
+  "🐊",
+  "🐅",
+  "🐆",
+  "🦓",
+  "🦍",
+  "🐘",
+  "🦛",
+  "🦏",
+  "🐪",
+  "🐫",
+  "🦒",
+  "🦘",
+  "🐃",
+  "🐂",
+  "🐄",
+  "🐎",
+  "🐖",
+  "🐏",
+  "🐑",
+  "🐐",
+  "🦌",
+  "🐕",
+  "🐩",
+  "🐈",
+  "🐓",
+  "🦃",
+  "🕊️",
+  "🐇",
+  "🐁",
+  "🐀",
+  "🐿️",
+  "🦔",
 ];
 
 const VideoFeed = ({ stream, userName, userAvatar, isMuted, isLocal }) => {
@@ -76,18 +239,28 @@ const VideoFeed = ({ stream, userName, userAvatar, isMuted, isLocal }) => {
       ) : (
         <div className="flex flex-col items-center justify-center space-y-2 p-4 text-center">
           {userAvatar ? (
-            <img src={userAvatar} alt="avatar" className="w-14 h-14 rounded-full object-cover border border-slate-700 shadow" />
+            <img
+              src={userAvatar}
+              alt="avatar"
+              className="w-14 h-14 rounded-full object-cover border border-slate-700 shadow"
+            />
           ) : (
             <div className="w-14 h-14 rounded-full bg-blue-600/30 border border-blue-500/50 flex items-center justify-center text-lg font-bold text-blue-400 uppercase shrink-0">
               {userName ? userName.charAt(0) : "U"}
             </div>
           )}
-          <span className="text-[10px] text-slate-300 font-bold uppercase tracking-wider truncate max-w-[120px]">{userName}</span>
+          <span className="text-[10px] text-slate-300 font-bold uppercase tracking-wider truncate max-w-[120px]">
+            {userName}
+          </span>
         </div>
       )}
       <div className="absolute bottom-2.5 left-2.5 bg-slate-950/80 backdrop-blur-sm px-2 py-0.5 rounded-lg text-[9px] font-bold text-slate-200 flex items-center gap-1.5 border border-slate-800/40">
-        <span className="truncate max-w-[80px]">{isLocal ? "You" : userName}</span>
-        {isMuted && <span className="text-red-500 font-black">&bull; Muted</span>}
+        <span className="truncate max-w-[80px]">
+          {isLocal ? "You" : userName}
+        </span>
+        {isMuted && (
+          <span className="text-red-500 font-black">&bull; Muted</span>
+        )}
       </div>
     </div>
   );
@@ -95,9 +268,16 @@ const VideoFeed = ({ stream, userName, userAvatar, isMuted, isLocal }) => {
 
 const ChatPage = () => {
   const dispatch = useDispatch();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { users } = useSelector((s) => s.users);
   const { user } = useSelector((s) => s.auth);
-  const { messages, rooms, loading } = useSelector((s) => s.chat);
+  const {
+    messages,
+    rooms,
+    loading,
+    unreadCounts = {},
+    lastMessages = {},
+  } = useSelector((s) => s.chat);
 
   const [activeChat, setActiveChat] = useState("group"); // 'group' or custom roomId or userId
   const [searchTerm, setSearchTerm] = useState("");
@@ -153,10 +333,33 @@ const ChatPage = () => {
 
   const currentUserId = user?._id || user?.id;
 
+  // Active chat ref to avoid socket listener recreation stale state
+  const activeChatRef = useRef(activeChat);
+  useEffect(() => {
+    activeChatRef.current = activeChat;
+  }, [activeChat]);
+
+  // Load chat query param
+  useEffect(() => {
+    const queryId = searchParams.get("id");
+    if (queryId) {
+      setActiveChat(queryId);
+      setShowChatWindowMobile(true);
+    }
+  }, [searchParams]);
+
+  // Mark chat as read
+  useEffect(() => {
+    if (activeChat) {
+      dispatch(markChatAsRead(activeChat));
+    }
+  }, [activeChat, dispatch]);
+
   // Load directories and rooms
   useEffect(() => {
     dispatch(getUsers());
     dispatch(fetchRooms());
+    dispatch(fetchLastMessages());
   }, [dispatch]);
 
   // Load chat history on activeChat change
@@ -183,15 +386,15 @@ const ChatPage = () => {
       iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
         { urls: "stun:stun1.l.google.com:19302" },
-        { urls: "stun:stun2.l.google.com:19302" }
-      ]
+        { urls: "stun:stun2.l.google.com:19302" },
+      ],
     });
 
     pcsRef.current[targetSocketId] = pc;
 
     // Add local tracks to the connection
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => {
+      localStreamRef.current.getTracks().forEach((track) => {
         pc.addTrack(track, localStreamRef.current);
       });
     }
@@ -201,7 +404,7 @@ const ChatPage = () => {
       if (event.candidate && socketRef.current) {
         socketRef.current.emit("call-send-signal", {
           targetSocketId,
-          signal: { type: "candidate", candidate: event.candidate }
+          signal: { type: "candidate", candidate: event.candidate },
         });
       }
     };
@@ -210,19 +413,26 @@ const ChatPage = () => {
     pc.ontrack = (event) => {
       console.log("Received remote track from:", targetSocketId);
       const remoteStream = event.streams[0];
-      setRemoteFeeds(prev => {
-        const exists = prev.some(feed => feed.socketId === targetSocketId);
+      setRemoteFeeds((prev) => {
+        const exists = prev.some((feed) => feed.socketId === targetSocketId);
         if (exists) {
-          return prev.map(feed => feed.socketId === targetSocketId ? { ...feed, stream: remoteStream } : feed);
+          return prev.map((feed) =>
+            feed.socketId === targetSocketId
+              ? { ...feed, stream: remoteStream }
+              : feed,
+          );
         }
-        return [...prev, {
-          socketId: targetSocketId,
-          stream: remoteStream,
-          userId: otherUser.userId,
-          userName: otherUser.userName,
-          userAvatar: otherUser.userAvatar,
-          hasVideo: otherUser.hasVideo
-        }];
+        return [
+          ...prev,
+          {
+            socketId: targetSocketId,
+            stream: remoteStream,
+            userId: otherUser.userId,
+            userName: otherUser.userName,
+            userAvatar: otherUser.userAvatar,
+            hasVideo: otherUser.hasVideo,
+          },
+        ];
       });
     };
 
@@ -235,7 +445,7 @@ const ChatPage = () => {
           if (socketRef.current) {
             socketRef.current.emit("call-send-signal", {
               targetSocketId,
-              signal: { type: "offer", sdp: pc.localDescription }
+              signal: { type: "offer", sdp: pc.localDescription },
             });
           }
         } catch (err) {
@@ -249,7 +459,8 @@ const ChatPage = () => {
 
   // Socket Connection & Real-Time Listeners
   useEffect(() => {
-    const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+    const apiBase =
+      import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
     socketRef.current = io(apiBase);
 
     if (currentUserId) {
@@ -257,16 +468,23 @@ const ChatPage = () => {
     }
 
     socketRef.current.on("direct_message", (msg) => {
-      const otherUser = msg.sender._id === currentUserId ? msg.recipient._id : msg.sender._id;
-      if (activeChat === otherUser) {
-        dispatch(receiveMessage(msg));
-      }
+      dispatch(
+        receiveMessage({
+          message: msg,
+          currentUserId,
+          activeChatId: activeChatRef.current,
+        }),
+      );
     });
 
     socketRef.current.on("group_message", (msg) => {
-      if (activeChat === msg.chatRoom) {
-        dispatch(receiveMessage(msg));
-      }
+      dispatch(
+        receiveMessage({
+          message: msg,
+          currentUserId,
+          activeChatId: activeChatRef.current,
+        }),
+      );
     });
 
     socketRef.current.on("message_deleted", ({ messageId }) => {
@@ -276,17 +494,20 @@ const ChatPage = () => {
     // WebRTC Signaling listeners
     socketRef.current.on("all-call-users", (usersList) => {
       console.log("All existing users in call room:", usersList);
-      usersList.forEach(peer => {
-        setRemoteFeeds(prev => {
-          if (prev.some(f => f.socketId === peer.socketId)) return prev;
-          return [...prev, {
-            socketId: peer.socketId,
-            stream: null,
-            userId: peer.userId,
-            userName: peer.userName,
-            userAvatar: peer.userAvatar,
-            hasVideo: peer.hasVideo
-          }];
+      usersList.forEach((peer) => {
+        setRemoteFeeds((prev) => {
+          if (prev.some((f) => f.socketId === peer.socketId)) return prev;
+          return [
+            ...prev,
+            {
+              socketId: peer.socketId,
+              stream: null,
+              userId: peer.userId,
+              userName: peer.userName,
+              userAvatar: peer.userAvatar,
+              hasVideo: peer.hasVideo,
+            },
+          ];
         });
         createPeerConnection(peer.socketId, peer, true);
       });
@@ -294,16 +515,19 @@ const ChatPage = () => {
 
     socketRef.current.on("call-user-joined", (peer) => {
       console.log("New user joined call:", peer);
-      setRemoteFeeds(prev => {
-        if (prev.some(f => f.socketId === peer.socketId)) return prev;
-        return [...prev, {
-          socketId: peer.socketId,
-          stream: null,
-          userId: peer.userId,
-          userName: peer.userName,
-          userAvatar: peer.userAvatar,
-          hasVideo: peer.hasVideo
-        }];
+      setRemoteFeeds((prev) => {
+        if (prev.some((f) => f.socketId === peer.socketId)) return prev;
+        return [
+          ...prev,
+          {
+            socketId: peer.socketId,
+            stream: null,
+            userId: peer.userId,
+            userName: peer.userName,
+            userAvatar: peer.userAvatar,
+            hasVideo: peer.hasVideo,
+          },
+        ];
       });
     });
 
@@ -313,51 +537,61 @@ const ChatPage = () => {
         pcsRef.current[socketId].close();
         delete pcsRef.current[socketId];
       }
-      setRemoteFeeds(prev => prev.filter(f => f.socketId !== socketId));
+      setRemoteFeeds((prev) => prev.filter((f) => f.socketId !== socketId));
     });
 
-    socketRef.current.on("call-signal-received", async ({ senderSocketId, signal }) => {
-      let pc = pcsRef.current[senderSocketId];
+    socketRef.current.on(
+      "call-signal-received",
+      async ({ senderSocketId, signal }) => {
+        let pc = pcsRef.current[senderSocketId];
 
-      if (signal.type === "offer") {
-        if (!pc) {
-          // Attempt to find user info from remote feeds or create a fallback
-          let peerInfo = null;
-          setRemoteFeeds(prev => {
-            peerInfo = prev.find(f => f.socketId === senderSocketId);
-            return prev;
-          });
-          if (!peerInfo) {
-            peerInfo = { userId: "", userName: "Peer", userAvatar: "", hasVideo: true };
+        if (signal.type === "offer") {
+          if (!pc) {
+            // Attempt to find user info from remote feeds or create a fallback
+            let peerInfo = null;
+            setRemoteFeeds((prev) => {
+              peerInfo = prev.find((f) => f.socketId === senderSocketId);
+              return prev;
+            });
+            if (!peerInfo) {
+              peerInfo = {
+                userId: "",
+                userName: "Peer",
+                userAvatar: "",
+                hasVideo: true,
+              };
+            }
+            pc = createPeerConnection(senderSocketId, peerInfo, false);
           }
-          pc = createPeerConnection(senderSocketId, peerInfo, false);
-        }
-        await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        socketRef.current.emit("call-send-signal", {
-          targetSocketId: senderSocketId,
-          signal: { type: "answer", sdp: pc.localDescription }
-        });
-      } else if (signal.type === "answer") {
-        if (pc) {
           await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
-        }
-      } else if (signal.type === "candidate") {
-        if (pc) {
-          try {
-            await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
-          } catch (err) {
-            console.error("Error adding ice candidate:", err);
+          const answer = await pc.createAnswer();
+          await pc.setLocalDescription(answer);
+          socketRef.current.emit("call-send-signal", {
+            targetSocketId: senderSocketId,
+            signal: { type: "answer", sdp: pc.localDescription },
+          });
+        } else if (signal.type === "answer") {
+          if (pc) {
+            await pc.setRemoteDescription(
+              new RTCSessionDescription(signal.sdp),
+            );
+          }
+        } else if (signal.type === "candidate") {
+          if (pc) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+            } catch (err) {
+              console.error("Error adding ice candidate:", err);
+            }
           }
         }
-      }
-    });
+      },
+    );
 
     return () => {
       socketRef.current.disconnect();
     };
-  }, [activeChat, currentUserId, dispatch]);
+  }, [currentUserId, dispatch]);
 
   // Call timer effect
   useEffect(() => {
@@ -389,16 +623,17 @@ const ChatPage = () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: type === "video",
-        audio: true
+        audio: true,
       });
       localStreamRef.current = stream;
       setLocalStream(stream);
       setCallState("connected");
 
       // Determine clean, unique Call Room ID
-      const roomId = activeChat === "group" || rooms.some(r => r._id === activeChat)
-        ? activeChat
-        : [currentUserId, activeChat].sort().join("-");
+      const roomId =
+        activeChat === "group" || rooms.some((r) => r._id === activeChat)
+          ? activeChat
+          : [currentUserId, activeChat].sort().join("-");
 
       if (socketRef.current) {
         socketRef.current.emit("join-call-room", {
@@ -406,12 +641,13 @@ const ChatPage = () => {
           userId: currentUserId,
           userName: user.name,
           userAvatar: user.profile?.profileImage?.url,
-          hasVideo: type === "video"
+          hasVideo: type === "video",
         });
       }
 
       // Automatically post a join button link to the room
-      const isGroupType = activeChat === "group" || rooms.some((r) => r._id === activeChat);
+      const isGroupType =
+        activeChat === "group" || rooms.some((r) => r._id === activeChat);
       const payload = {
         recipient: isGroupType ? null : activeChat,
         chatRoom: isGroupType ? activeChat : "direct",
@@ -420,10 +656,11 @@ const ChatPage = () => {
       };
       await dispatch(sendMessageAction(payload)).unwrap();
       toast.success("Meeting Started");
-
     } catch (err) {
       console.error("Failed to start WebRTC stream:", err);
-      toast.error("Could not access camera/microphone. Please check browser permissions.");
+      toast.error(
+        "Could not access camera/microphone. Please check browser permissions.",
+      );
       setCallState("ended");
       setActiveCall(null);
     }
@@ -441,7 +678,7 @@ const ChatPage = () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: type === "video",
-        audio: true
+        audio: true,
       });
       localStreamRef.current = stream;
       setLocalStream(stream);
@@ -453,13 +690,15 @@ const ChatPage = () => {
           userId: currentUserId,
           userName: user.name,
           userAvatar: user.profile?.profileImage?.url,
-          hasVideo: type === "video"
+          hasVideo: type === "video",
         });
       }
       toast.success("Joined Meeting");
     } catch (err) {
       console.error("Failed to join WebRTC stream:", err);
-      toast.error("Could not access camera/microphone. Please check browser permissions.");
+      toast.error(
+        "Could not access camera/microphone. Please check browser permissions.",
+      );
       setCallState("ended");
       setActiveCall(null);
     }
@@ -469,14 +708,18 @@ const ChatPage = () => {
   const toggleScreenShare = async () => {
     if (!isScreenSharing) {
       try {
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+        });
         screenStreamRef.current = screenStream;
         const screenVideoTrack = screenStream.getVideoTracks()[0];
 
         // Replace track in all peer connections
         for (const socketId in pcsRef.current) {
           const senders = pcsRef.current[socketId].getSenders();
-          const sender = senders.find(s => s.track && s.track.kind === "video");
+          const sender = senders.find(
+            (s) => s.track && s.track.kind === "video",
+          );
           if (sender) {
             sender.replaceTrack(screenVideoTrack);
           }
@@ -485,7 +728,9 @@ const ChatPage = () => {
         // Display screen track inside local preview
         const localScreenStream = new MediaStream([
           screenVideoTrack,
-          ...(localStreamRef.current ? localStreamRef.current.getAudioTracks() : [])
+          ...(localStreamRef.current
+            ? localStreamRef.current.getAudioTracks()
+            : []),
         ]);
         setLocalStream(localScreenStream);
         setIsScreenSharing(true);
@@ -504,7 +749,7 @@ const ChatPage = () => {
 
   const stopScreenShare = () => {
     if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks().forEach(track => track.stop());
+      screenStreamRef.current.getTracks().forEach((track) => track.stop());
       screenStreamRef.current = null;
     }
 
@@ -512,7 +757,7 @@ const ChatPage = () => {
       const cameraVideoTrack = localStreamRef.current.getVideoTracks()[0];
       for (const socketId in pcsRef.current) {
         const senders = pcsRef.current[socketId].getSenders();
-        const sender = senders.find(s => s.track && s.track.kind === "video");
+        const sender = senders.find((s) => s.track && s.track.kind === "video");
         if (sender) {
           sender.replaceTrack(cameraVideoTrack);
         }
@@ -548,11 +793,11 @@ const ChatPage = () => {
     clearInterval(callTimerRef.current);
 
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current.getTracks().forEach((track) => track.stop());
       localStreamRef.current = null;
     }
     if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks().forEach(track => track.stop());
+      screenStreamRef.current.getTracks().forEach((track) => track.stop());
       screenStreamRef.current = null;
     }
     setLocalStream(null);
@@ -567,9 +812,10 @@ const ChatPage = () => {
     pcsRef.current = {};
     setRemoteFeeds([]);
 
-    const roomId = activeChat === "group" || rooms.some(r => r._id === activeChat)
-      ? activeChat
-      : [currentUserId, activeChat].sort().join("-");
+    const roomId =
+      activeChat === "group" || rooms.some((r) => r._id === activeChat)
+        ? activeChat
+        : [currentUserId, activeChat].sort().join("-");
 
     if (socketRef.current) {
       socketRef.current.emit("leave-call-room", { roomId });
@@ -579,8 +825,14 @@ const ChatPage = () => {
     const logText = `${activeCall === "video" ? "📹 Video Call" : "📞 Voice Call"} - Duration: ${durationStr}`;
 
     const payload = {
-      recipient: activeChat === "group" || rooms.some((r) => r._id === activeChat) ? null : activeChat,
-      chatRoom: activeChat === "group" || rooms.some((r) => r._id === activeChat) ? activeChat : "direct",
+      recipient:
+        activeChat === "group" || rooms.some((r) => r._id === activeChat)
+          ? null
+          : activeChat,
+      chatRoom:
+        activeChat === "group" || rooms.some((r) => r._id === activeChat)
+          ? activeChat
+          : "direct",
       text: logText,
       messageType: "call",
       callStatus: "ended",
@@ -601,7 +853,8 @@ const ChatPage = () => {
       return toast.error("File is too large. Max size is 50MB.");
     }
 
-    const isGroupType = activeChat === "group" || rooms.some((r) => r._id === activeChat);
+    const isGroupType =
+      activeChat === "group" || rooms.some((r) => r._id === activeChat);
     const formData = new FormData();
     formData.append("file", file);
 
@@ -629,7 +882,9 @@ const ChatPage = () => {
       toast.success("File sent successfully!", { id: toastId });
     } catch (error) {
       console.error("Upload error:", error);
-      toast.error(error.response?.data?.message || "File upload failed", { id: toastId });
+      toast.error(error.response?.data?.message || "File upload failed", {
+        id: toastId,
+      });
     } finally {
       setUploadingFile(false);
       if (fileInputRef.current) {
@@ -643,16 +898,17 @@ const ChatPage = () => {
     const trimmedText = inputText.trim();
     if (!trimmedText) return;
 
-    const isGroupType = activeChat === "group" || rooms.some((r) => r._id === activeChat);
-    const isSingleSticker = STICKERS.includes(trimmedText) || EMOJIS.includes(trimmedText);
+    const isGroupType =
+      activeChat === "group" || rooms.some((r) => r._id === activeChat);
+    const isSingleSticker =
+      STICKERS.includes(trimmedText) || EMOJIS.includes(trimmedText);
 
     const payload = {
       recipient: isGroupType ? null : activeChat,
       chatRoom: isGroupType ? activeChat : "direct",
       ...(isSingleSticker
         ? { sticker: trimmedText, messageType: "sticker" }
-        : { text: inputText, messageType: "text" }
-      ),
+        : { text: inputText, messageType: "text" }),
       replyTo: replyingToMessage?._id || null,
     };
 
@@ -726,7 +982,7 @@ const ChatPage = () => {
           name: groupName,
           description: groupDesc,
           members: selectedMembers,
-        })
+        }),
       ).unwrap();
 
       toast.success("Group created successfully!");
@@ -767,7 +1023,7 @@ const ChatPage = () => {
             description: manageGroupDesc,
             members: manageSelectedMembers,
           },
-        })
+        }),
       ).unwrap();
 
       toast.success("Group updated successfully!");
@@ -794,7 +1050,7 @@ const ChatPage = () => {
           roomData: {
             members: updatedMembers,
           },
-        })
+        }),
       ).unwrap();
 
       toast.success("You left the group");
@@ -841,9 +1097,13 @@ const ChatPage = () => {
 
   // Get active conversation target metadata
   const activeCustomRoom = rooms.find((r) => r._id === activeChat);
-  const activeChatUser = activeChat !== "group" && !activeCustomRoom ? users?.find((u) => u._id === activeChat) : null;
+  const activeChatUser =
+    activeChat !== "group" && !activeCustomRoom
+      ? users?.find((u) => u._id === activeChat)
+      : null;
 
-  const isCreatorOfActiveRoom = activeCustomRoom && activeCustomRoom.creator._id === currentUserId;
+  const isCreatorOfActiveRoom =
+    activeCustomRoom && activeCustomRoom.creator._id === currentUserId;
   const isAdmin = user?.role === "admin";
 
   const filteredUsers = users?.filter((u) => {
@@ -851,12 +1111,40 @@ const ChatPage = () => {
     return u.name.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
+  const formatLastMessageText = (msg) => {
+    if (!msg) return "";
+    if (msg.messageType === "sticker") return "🎨 Sent a sticker";
+    if (msg.messageType === "file")
+      return `📁 Sent a file: ${msg.file?.filename || "Attachment"}`;
+    if (msg.messageType === "call") return "📞 Live Call Meet";
+    return msg.text;
+  };
+
+  const sortedDMs = filteredUsers
+    ? [...filteredUsers].sort((a, b) => {
+        const msgA = lastMessages[a._id];
+        const msgB = lastMessages[b._id];
+        const timeA = msgA ? new Date(msgA.createdAt).getTime() : 0;
+        const timeB = msgB ? new Date(msgB.createdAt).getTime() : 0;
+        return timeB - timeA;
+      })
+    : [];
+
+  const sortedRooms = rooms
+    ? [...rooms].sort((a, b) => {
+        const msgA = lastMessages[a._id];
+        const msgB = lastMessages[b._id];
+        const timeA = msgA ? new Date(msgA.createdAt).getTime() : 0;
+        const timeB = msgB ? new Date(msgB.createdAt).getTime() : 0;
+        return timeB - timeA;
+      })
+    : [];
+
   return (
-    <div className="flex h-[calc(100vh-90px)] sm:h-[calc(100vh-110px)] md:h-[calc(100vh-130px)] lg:h-[calc(100vh-140px)] bg-slate-50/50 dark:bg-slate-900/40 rounded-xl md:rounded-3xl overflow-hidden border-0 md:border border-slate-100 dark:border-slate-800 shadow-sm relative transition-colors duration-300">
-      
+    <div className="flex h-full w-full bg-slate-50/50 dark:bg-slate-900/40 md:rounded-3xl overflow-hidden border-0 md:border border-slate-100 dark:border-slate-800 shadow-sm relative transition-colors duration-300">
       {/* LEFT PANEL: CHATS & DIRECT MESSAGE DIRECTORY */}
       <div
-        className={`w-full md:w-80 shrink-0 bg-white dark:bg-slate-900 border-r border-slate-100  flex flex-col transition-colors duration-300 ${
+        className={`w-full md:w-80 shrink-0 bg-white dark:bg-slate-900 border-r border-slate-100 flex flex-col h-full transition-colors duration-300 ${
           showChatWindowMobile ? "hidden md:flex" : "flex"
         }`}
       >
@@ -875,13 +1163,13 @@ const ChatPage = () => {
           </div>
 
           <div className="relative">
-            <FiSearch className="absolute left-3 top-2.5 text-slate-400 dark:text-slate-500 text-sm" />
+            <FiSearch className="absolute left-3 top-2.5 text-slate-400 dark:text-slate-550 text-sm" />
             <input
               type="text"
               placeholder="Search team member..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white  border border-slate-200   rounded-2xl pl-9 pr-4 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/35 focus:border-blue-400 dark:focus:border-blue-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-700 dark:text-slate-200"
+              className="w-full bg-white  border border-slate-200   rounded-2xl pl-9 pr-4 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/35 focus:border-blue-400 dark:focus:border-blue-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-550 text-slate-700 dark:text-slate-200"
             />
           </div>
         </div>
@@ -897,7 +1185,9 @@ const ChatPage = () => {
             className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
               activeChat === "group"
                 ? "bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-blue-900 dark:text-blue-300 font-bold"
-                : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 text-slate-650 dark:text-slate-400 border border-transparent"
+                : unreadCounts["group"] > 0
+                  ? "bg-blue-50/20 dark:bg-blue-950/10 border border-blue-100/40 dark:border-blue-900/20 text-slate-800 dark:text-slate-200 font-extrabold shadow-sm ring-1 ring-blue-500/10"
+                  : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 text-slate-650 dark:text-slate-400 border border-transparent"
             }`}
           >
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-md font-bold shrink-0">
@@ -905,20 +1195,39 @@ const ChatPage = () => {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold truncate">General Team Chat</span>
-                <span className="text-[9px] font-black uppercase text-blue-500 tracking-wider">All</span>
+                <span className="text-xs font-bold truncate">
+                  General Team Chat
+                </span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {unreadCounts["group"] > 0 && (
+                    <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shrink-0 min-w-[16px] text-center shadow-sm">
+                      {unreadCounts["group"]}
+                    </span>
+                  )}
+                  <span className="text-[9px] font-black uppercase text-blue-500 tracking-wider">
+                    All
+                  </span>
+                </div>
               </div>
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate font-semibold mt-0.5">All developers and admins</p>
+              <p
+                className={`text-[10px] truncate mt-0.5 ${unreadCounts["group"] > 0 ? "text-blue-600 dark:text-blue-400 font-extrabold" : "text-slate-400 dark:text-slate-500 font-semibold"}`}
+              >
+                {lastMessages["group"]
+                  ? formatLastMessageText(lastMessages["group"])
+                  : "All developers and admins"}
+              </p>
             </div>
           </button>
 
           {/* CUSTOM GROUP CHATS */}
-          {rooms.length > 0 && (
+          {sortedRooms.length > 0 && (
             <>
               <div className="h-px bg-slate-100 dark:bg-slate-800 my-2" />
-              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mb-1.5">Custom Groups</p>
-              
-              {rooms.map((r) => (
+              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mb-1.5">
+                Custom Groups
+              </p>
+
+              {sortedRooms.map((r) => (
                 <button
                   key={r._id}
                   onClick={() => {
@@ -928,7 +1237,9 @@ const ChatPage = () => {
                   className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
                     activeChat === r._id
                       ? "bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-blue-900 dark:text-blue-300 font-bold"
-                      : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 text-slate-650 dark:text-slate-400 border border-transparent"
+                      : unreadCounts[r._id] > 0
+                        ? "bg-blue-50/20 dark:bg-blue-950/10 border border-blue-100/40 dark:border-blue-900/20 text-slate-800 dark:text-slate-200 font-extrabold shadow-sm ring-1 ring-blue-500/10"
+                        : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 text-slate-650 dark:text-slate-400 border border-transparent"
                   }`}
                 >
                   <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-md font-bold shrink-0">
@@ -936,11 +1247,26 @@ const ChatPage = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold truncate text-slate-800 dark:text-slate-200">{r.name}</span>
-                      <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold">{r.members.length} members</span>
+                      <span className="text-xs font-bold truncate text-slate-800 dark:text-slate-200">
+                        {r.name}
+                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {unreadCounts[r._id] > 0 && (
+                          <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shrink-0 min-w-[16px] text-center shadow-sm">
+                            {unreadCounts[r._id]}
+                          </span>
+                        )}
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold">
+                          {r.members.length} members
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-550 truncate font-semibold mt-0.5">
-                      {r.description || "No description"}
+                    <p
+                      className={`text-[10px] truncate mt-0.5 ${unreadCounts[r._id] > 0 ? "text-blue-600 dark:text-blue-400 font-extrabold" : "text-slate-400 dark:text-slate-500 font-semibold"}`}
+                    >
+                      {lastMessages[r._id]
+                        ? formatLastMessageText(lastMessages[r._id])
+                        : r.description || "No description"}
                     </p>
                   </div>
                 </button>
@@ -949,13 +1275,17 @@ const ChatPage = () => {
           )}
 
           <div className="h-px bg-slate-100 dark:bg-slate-800 my-2" />
-          <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-550 px-3 mb-1.5">Direct Messages</p>
+          <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mb-1.5">
+            Direct Messages
+          </p>
 
           {/* User List */}
-          {filteredUsers?.length === 0 ? (
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center py-6 font-semibold">No members found</p>
+          {sortedDMs.length === 0 ? (
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center py-6 font-semibold">
+              No members found
+            </p>
           ) : (
-            filteredUsers?.map((u) => (
+            sortedDMs.map((u) => (
               <button
                 key={u._id}
                 onClick={() => {
@@ -965,7 +1295,9 @@ const ChatPage = () => {
                 className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
                   activeChat === u._id
                     ? "bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-blue-900 dark:text-blue-300 font-bold"
-                    : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 text-slate-650 dark:text-slate-400 border border-transparent"
+                    : unreadCounts[u._id] > 0
+                      ? "bg-blue-50/20 dark:bg-blue-950/10 border border-blue-100/40 dark:border-blue-900/20 text-slate-800 dark:text-slate-200 font-extrabold shadow-sm ring-1 ring-blue-500/10"
+                      : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 text-slate-650 dark:text-slate-400 border border-transparent"
                 }`}
               >
                 <div className="relative shrink-0">
@@ -983,9 +1315,22 @@ const ChatPage = () => {
                   <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-sm" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate block">{u.name}</span>
-                  <p className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold capitalize mt-0.5 truncate">
-                    {u.role}{u.department ? ` — ${u.department}` : ""}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate block">
+                      {u.name}
+                    </span>
+                    {unreadCounts[u._id] > 0 && (
+                      <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shrink-0 min-w-[16px] text-center shadow-sm">
+                        {unreadCounts[u._id]}
+                      </span>
+                    )}
+                  </div>
+                  <p
+                    className={`text-[10px] truncate mt-0.5 ${unreadCounts[u._id] > 0 ? "text-blue-600 dark:text-blue-400 font-extrabold" : "text-slate-400 dark:text-slate-500 font-semibold"}`}
+                  >
+                    {lastMessages[u._id]
+                      ? formatLastMessageText(lastMessages[u._id])
+                      : `${u.role}${u.department ? ` — ${u.department}` : ""}`}
                   </p>
                 </div>
               </button>
@@ -996,7 +1341,7 @@ const ChatPage = () => {
 
       {/* RIGHT PANEL: ACTIVE CHAT SCREEN */}
       <div
-        className={`flex-1 flex flex-col bg-slate-50/30 dark:bg-slate-950/10 transition-colors duration-300 ${
+        className={`flex-1 flex flex-col bg-slate-50/30 dark:bg-slate-950/10 transition-colors duration-300 h-full ${
           showChatWindowMobile ? "flex" : "hidden md:flex"
         }`}
       >
@@ -1016,9 +1361,12 @@ const ChatPage = () => {
                   <FiLayers size={16} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-xs font-black text-slate-800 dark:text-blue-500 leading-tight">General Team Chat</h3>
+                  <h3 className="text-xs font-black text-slate-800 dark:text-blue-500 leading-tight truncate max-w-[120px] sm:max-w-xs">
+                    General Team Chat
+                  </h3>
                   <p className="text-[9px] text-emerald-500 font-black uppercase tracking-wider leading-none mt-1 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" /> Active Room
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />{" "}
+                    Active Room
                   </p>
                 </div>
               </>
@@ -1028,7 +1376,9 @@ const ChatPage = () => {
                   <FiUsers size={16} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-xs font-black text-slate-800 dark:text-blue-500 leading-tight truncate max-w-[150px] sm:max-w-xs">{activeCustomRoom.name}</h3>
+                  <h3 className="text-xs font-black text-slate-800 dark:text-blue-500 leading-tight truncate max-w-[120px] sm:max-w-xs">
+                    {activeCustomRoom.name}
+                  </h3>
                   <button
                     onClick={handleOpenManageModal}
                     className="text-[9px] text-blue-500 dark:text-blue-400 hover:text-blue-650 dark:hover:text-blue-300 font-bold uppercase tracking-wider leading-none mt-1 flex items-center gap-1 cursor-pointer"
@@ -1051,9 +1401,14 @@ const ChatPage = () => {
                   </div>
                 )}
                 <div className="min-w-0">
-                  <h3 className="text-xs font-black text-slate-800 dark:text-blue-500 leading-tight">{activeChatUser.name}</h3>
-                  <p className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold capitalize mt-0.5 leading-none">
-                    {activeChatUser.role}{activeChatUser.department ? ` — ${activeChatUser.department}` : ""}
+                  <h3 className="text-xs font-black text-slate-800 dark:text-blue-500 leading-tight truncate max-w-[120px] sm:max-w-xs">
+                    {activeChatUser.name}
+                  </h3>
+                  <p className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold capitalize mt-0.5 leading-none truncate max-w-[120px] sm:max-w-xs">
+                    {activeChatUser.role}
+                    {activeChatUser.department
+                      ? ` — ${activeChatUser.department}`
+                      : ""}
                   </p>
                 </div>
               </>
@@ -1080,16 +1435,20 @@ const ChatPage = () => {
         </div>
 
         {/* MESSAGES LIST AREA */}
-        <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-3.5 scrollbar-thin">
+        <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-3.5 scrollbar-thin bg-chat-wallpaper-light dark:bg-chat-wallpaper-dark">
           {loading ? (
             <div className="flex items-center justify-center h-full">
-              <span className="text-xs text-slate-400 dark:text-slate-500 font-semibold">Loading conversation...</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500 font-semibold">
+                Loading conversation...
+              </span>
             </div>
           ) : messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-600">
               <FiMessageSquare size={32} className="opacity-20 mb-2" />
               <p className="text-xs font-bold">Start the conversation</p>
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Send stickers, call details, or messages</p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                Send stickers, call details, or messages
+              </p>
             </div>
           ) : (
             messages.map((m) => {
@@ -1101,7 +1460,11 @@ const ChatPage = () => {
                 return (
                   <div key={m._id} className="flex justify-center my-2">
                     <div className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-4 py-1.5 flex items-center gap-2 text-[10px] font-bold text-slate-600 dark:text-slate-400 shadow-sm">
-                      {m.text.includes("Video") ? <FiVideo size={12} /> : <FiPhone size={12} />}
+                      {m.text.includes("Video") ? (
+                        <FiVideo size={12} />
+                      ) : (
+                        <FiPhone size={12} />
+                      )}
                       <span>{m.text}</span>
                     </div>
                   </div>
@@ -1111,11 +1474,15 @@ const ChatPage = () => {
               return (
                 <div
                   key={m._id}
-                  onClick={() => setActiveMessageMenu(activeMessageMenu === m._id ? null : m._id)}
+                  onClick={() =>
+                    setActiveMessageMenu(
+                      activeMessageMenu === m._id ? null : m._id,
+                    )
+                  }
                   className={`flex items-start gap-2.5 ${isMe ? "flex-row-reverse" : ""} group cursor-pointer`}
                 >
-                  {!isMe && (
-                    m.sender?.profile?.profileImage?.url ? (
+                  {!isMe &&
+                    (m.sender?.profile?.profileImage?.url ? (
                       <img
                         src={m.sender.profile.profileImage.url}
                         alt="profile"
@@ -1125,17 +1492,20 @@ const ChatPage = () => {
                       <div className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-[10px] font-black text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
                         {senderInitial}
                       </div>
-                    )
-                  )}
+                    ))}
 
-                  <div className={`max-w-[85%] md:max-w-[70%] flex flex-col ${isMe ? "items-end" : ""}`}>
+                  <div
+                    className={`max-w-[85%] md:max-w-[70%] flex flex-col ${isMe ? "items-end" : ""}`}
+                  >
                     {/* Replied message block preview inside bubble */}
                     {m.replyTo && (
-                      <div className={`mb-1.5 p-2 rounded-lg border-l-2 bg-slate-50/50 dark:bg-slate-950/30 text-[10px] text-slate-650 dark:text-slate-400 text-left max-w-xs ${
-                        isMe
-                          ? "border-blue-300"
-                          : "border-slate-400 dark:border-slate-600"
-                      }`}>
+                      <div
+                        className={`mb-1.5 p-2 rounded-lg border-l-2 bg-slate-50/50 dark:bg-slate-950/30 text-[10px] text-slate-650 dark:text-slate-400 text-left max-w-xs ${
+                          isMe
+                            ? "border-blue-300"
+                            : "border-slate-400 dark:border-slate-600"
+                        }`}
+                      >
                         <div className="font-extrabold text-slate-700 dark:text-slate-200 text-[9px] mb-0.5">
                           Replying to {m.replyTo.sender?.name || "User"}
                         </div>
@@ -1143,8 +1513,8 @@ const ChatPage = () => {
                           {m.replyTo.messageType === "file"
                             ? `📁 ${m.replyTo.file?.filename || "Attachment"}`
                             : m.replyTo.messageType === "sticker"
-                            ? `🎨 Sticker: ${m.replyTo.sticker}`
-                            : m.replyTo.text}
+                              ? `🎨 Sticker: ${m.replyTo.sticker}`
+                              : m.replyTo.text}
                         </div>
                       </div>
                     )}
@@ -1169,7 +1539,13 @@ const ChatPage = () => {
                         }`}
                       >
                         {m.file.fileType === "image" ? (
-                          <a href={m.file.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="block relative group cursor-pointer">
+                          <a
+                            href={m.file.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="block relative group cursor-pointer"
+                          >
                             <img
                               src={m.file.url}
                               alt={m.file.filename}
@@ -1179,26 +1555,46 @@ const ChatPage = () => {
                               <FiDownload size={14} /> Open Photo
                             </div>
                             <div className="p-3 bg-black/5 dark:bg-white/5 border-t border-slate-200/10 text-xs font-semibold truncate flex items-center gap-1.5 justify-between">
-                              <span className="truncate">{m.file.filename}</span>
-                              <span className="text-[9px] opacity-60 font-medium shrink-0">{(m.file.size / 1024 / 1024).toFixed(2)} MB</span>
+                              <span className="truncate">
+                                {m.file.filename}
+                              </span>
+                              <span className="text-[9px] opacity-60 font-medium shrink-0">
+                                {(m.file.size / 1024 / 1024).toFixed(2)} MB
+                              </span>
                             </div>
                           </a>
                         ) : m.file.fileType === "video" ? (
-                          <div className="p-1" onClick={(e) => e.stopPropagation()}>
+                          <div
+                            className="p-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <video
                               src={m.file.url}
                               controls
                               className="w-full max-h-60 rounded-[1rem] object-cover bg-black"
                             />
                             <div className="p-2 text-xs font-semibold truncate flex items-center gap-1.5 justify-between">
-                              <span className="truncate">{m.file.filename}</span>
-                              <span className="text-[9px] opacity-60 font-medium shrink-0">{(m.file.size / 1024 / 1024).toFixed(2)} MB</span>
+                              <span className="truncate">
+                                {m.file.filename}
+                              </span>
+                              <span className="text-[9px] opacity-60 font-medium shrink-0">
+                                {(m.file.size / 1024 / 1024).toFixed(2)} MB
+                              </span>
                             </div>
                           </div>
                         ) : m.file.fileType === "audio" ? (
-                          <div className="p-3 w-64" onClick={(e) => e.stopPropagation()}>
-                            <div className="text-xs font-bold truncate mb-2">{m.file.filename}</div>
-                            <audio src={m.file.url} controls className="w-full h-8" />
+                          <div
+                            className="p-3 w-64"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="text-xs font-bold truncate mb-2">
+                              {m.file.filename}
+                            </div>
+                            <audio
+                              src={m.file.url}
+                              controls
+                              className="w-full h-8"
+                            />
                           </div>
                         ) : (
                           // Document / generic file card
@@ -1214,8 +1610,13 @@ const ChatPage = () => {
                               <FiFileText size={18} />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <div className="font-bold truncate leading-tight">{m.file.filename}</div>
-                              <div className="text-[9px] opacity-60 mt-0.5">{(m.file.size / 1024 / 1024).toFixed(2)} MB • File</div>
+                              <div className="font-bold truncate leading-tight">
+                                {m.file.filename}
+                              </div>
+                              <div className="text-[9px] opacity-60 mt-0.5">
+                                {(m.file.size / 1024 / 1024).toFixed(2)} MB •
+                                File
+                              </div>
                             </div>
                             <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center shrink-0">
                               <FiDownload size={12} />
@@ -1238,10 +1639,17 @@ const ChatPage = () => {
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                const match = m.text.match(/Room ID:\s*([a-zA-Z0-9\-_]+)/);
+                                const match = m.text.match(
+                                  /Room ID:\s*([a-zA-Z0-9\-_]+)/,
+                                );
                                 if (match) {
                                   const roomId = match[1];
-                                  joinCallRoom(roomId, m.text.includes("Video") ? "video" : "voice");
+                                  joinCallRoom(
+                                    roomId,
+                                    m.text.includes("Video")
+                                      ? "video"
+                                      : "voice",
+                                  );
                                 }
                               }}
                               className={`w-full py-1.5 px-3 rounded-lg text-[10px] font-black uppercase tracking-wider text-center cursor-pointer transition-all ${
@@ -1261,7 +1669,10 @@ const ChatPage = () => {
 
                     {/* Timestamp */}
                     <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-1 px-1">
-                      {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(m.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </span>
                   </div>
 
@@ -1306,7 +1717,9 @@ const ChatPage = () => {
                         onClick={(e) => {
                           e.stopPropagation();
                           setSharingMessage(m);
-                          setShowShareMenu(showShareMenu === m._id ? null : m._id);
+                          setShowShareMenu(
+                            showShareMenu === m._id ? null : m._id,
+                          );
                         }}
                         className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-pointer"
                         title="Share"
@@ -1367,7 +1780,6 @@ const ChatPage = () => {
 
         {/* INPUT FORM CONTAINER */}
         <div className="px-2 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 relative shrink-0 transition-colors duration-300">
-          
           {/* Sticker Picker Drawer */}
           {showStickerPicker && (
             <div className="absolute bottom-16 left-2 right-2 sm:left-4 sm:right-auto bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-2xl p-3 shadow-xl z-20 w-auto sm:w-72">
@@ -1427,13 +1839,15 @@ const ChatPage = () => {
               <div className="flex items-center gap-2 text-[10px] text-slate-650 dark:text-slate-350 min-w-0">
                 <FiCornerUpLeft className="text-blue-500 shrink-0" size={12} />
                 <div className="truncate font-medium">
-                  <span className="font-extrabold text-blue-600 dark:text-blue-400">Replying to {replyingToMessage.sender?.name || "User"}:</span>{" "}
+                  <span className="font-extrabold text-blue-600 dark:text-blue-400">
+                    Replying to {replyingToMessage.sender?.name || "User"}:
+                  </span>{" "}
                   <span className="italic opacity-90">
                     {replyingToMessage.messageType === "file"
                       ? `📁 ${replyingToMessage.file?.filename}`
                       : replyingToMessage.messageType === "sticker"
-                      ? `🎨 Sticker: ${replyingToMessage.sticker}`
-                      : replyingToMessage.text}
+                        ? `🎨 Sticker: ${replyingToMessage.sticker}`
+                        : replyingToMessage.text}
                   </span>
                 </div>
               </div>
@@ -1447,7 +1861,10 @@ const ChatPage = () => {
             </div>
           )}
 
-          <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+          <form
+            onSubmit={handleSendMessage}
+            className="flex items-center gap-2"
+          >
             {/* Hidden File Input */}
             <input
               type="file"
@@ -1460,20 +1877,25 @@ const ChatPage = () => {
               type="button"
               disabled={uploadingFile}
               onClick={() => fileInputRef.current?.click()}
-              className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400 ${
-                uploadingFile ? "opacity-50 cursor-not-allowed" : "cursor-pointer"
+              className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400 shrink-0 ${
+                uploadingFile
+                  ? "opacity-50 cursor-not-allowed"
+                  : "cursor-pointer"
               }`}
               title="Attach files, photo, video"
             >
-              <FiPaperclip size={16} className={uploadingFile ? "animate-pulse" : ""} />
+              <FiPaperclip
+                size={16}
+                className={uploadingFile ? "animate-pulse" : ""}
+              />
             </button>
 
             <button
               type="button"
               onClick={() => setShowStickerPicker(!showStickerPicker)}
-              className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all ${
-                showStickerPicker 
-                  ? "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400" 
+              className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all shrink-0 cursor-pointer ${
+                showStickerPicker
+                  ? "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400"
                   : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400"
               }`}
               title="Stickers"
@@ -1504,7 +1926,6 @@ const ChatPage = () => {
       {showForwardModal && forwardingMessage && (
         <div className="fixed inset-0 z-[250] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 animate-fade-in">
           <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-slate-200/50 dark:border-slate-800 flex flex-col max-h-[80vh]">
-            
             {/* Modal Header */}
             <div className="px-4 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-slate-950/25">
               <div>
@@ -1531,7 +1952,10 @@ const ChatPage = () => {
             {/* Recipients Search & List */}
             <div className="p-4 flex-1 overflow-y-auto space-y-4">
               <div className="relative">
-                <FiSearch size={12} className="absolute top-1/2 -translate-y-1/2 left-3 text-slate-400" />
+                <FiSearch
+                  size={12}
+                  className="absolute top-1/2 -translate-y-1/2 left-3 text-slate-400"
+                />
                 <input
                   type="text"
                   placeholder="Search rooms or people..."
@@ -1543,15 +1967,28 @@ const ChatPage = () => {
 
               {/* Group Rooms */}
               <div className="space-y-2">
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Group Rooms</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                  Group Rooms
+                </p>
                 <div className="space-y-1.5">
                   {rooms
-                    .filter((r) => r.name.toLowerCase().includes(forwardSearchTerm.toLowerCase()))
+                    .filter((r) =>
+                      r.name
+                        .toLowerCase()
+                        .includes(forwardSearchTerm.toLowerCase()),
+                    )
                     .map((r) => (
-                      <div key={r._id} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-transparent dark:border-transparent dark:hover:border-slate-800 transition-all">
+                      <div
+                        key={r._id}
+                        className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-transparent dark:border-transparent dark:hover:border-slate-800 transition-all"
+                      >
                         <div className="min-w-0">
-                          <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{r.name}</p>
-                          <p className="text-[9px] text-slate-400 dark:text-slate-500 truncate">{r.members?.length || 0} members</p>
+                          <p className="text-xs font-bold text-slate-800 dark:text-white truncate">
+                            {r.name}
+                          </p>
+                          <p className="text-[9px] text-slate-400 dark:text-slate-500 truncate">
+                            {r.members?.length || 0} members
+                          </p>
                         </div>
                         <button
                           type="button"
@@ -1567,15 +2004,30 @@ const ChatPage = () => {
 
               {/* Direct Contacts */}
               <div className="space-y-2 pt-2">
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Direct Contacts</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                  Direct Contacts
+                </p>
                 <div className="space-y-1.5">
                   {users
-                    .filter((u) => u._id !== currentUserId && u.name.toLowerCase().includes(forwardSearchTerm.toLowerCase()))
+                    .filter(
+                      (u) =>
+                        u._id !== currentUserId &&
+                        u.name
+                          .toLowerCase()
+                          .includes(forwardSearchTerm.toLowerCase()),
+                    )
                     .map((u) => (
-                      <div key={u._id} className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-transparent dark:border-transparent dark:hover:border-slate-800 transition-all">
+                      <div
+                        key={u._id}
+                        className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-transparent dark:border-transparent dark:hover:border-slate-800 transition-all"
+                      >
                         <div className="min-w-0">
-                          <p className="text-xs font-bold text-slate-800 dark:text-white truncate">{u.name}</p>
-                          <p className="text-[9px] text-slate-400 dark:text-slate-500 truncate capitalize">{u.role}</p>
+                          <p className="text-xs font-bold text-slate-800 dark:text-white truncate">
+                            {u.name}
+                          </p>
+                          <p className="text-[9px] text-slate-400 dark:text-slate-500 truncate capitalize">
+                            {u.role}
+                          </p>
                         </div>
                         <button
                           type="button"
@@ -1614,9 +2066,14 @@ const ChatPage = () => {
               </button>
             </div>
 
-            <form onSubmit={handleCreateGroup} className="space-y-4 overflow-y-auto pr-1 flex-1 scrollbar-thin">
+            <form
+              onSubmit={handleCreateGroup}
+              className="space-y-4 overflow-y-auto pr-1 flex-1 scrollbar-thin"
+            >
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block mb-1">Group Name</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block mb-1">
+                  Group Name
+                </label>
                 <input
                   type="text"
                   placeholder="e.g. Frontend Devs"
@@ -1627,7 +2084,9 @@ const ChatPage = () => {
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block mb-1">Description (Optional)</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block mb-1">
+                  Description (Optional)
+                </label>
                 <textarea
                   placeholder="What is this group for?"
                   rows={2}
@@ -1638,7 +2097,9 @@ const ChatPage = () => {
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block mb-1">Select Members</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block mb-1">
+                  Select Members
+                </label>
                 <div className="max-h-40 overflow-y-auto border border-slate-100 dark:border-slate-800 rounded-xl p-2 space-y-1 bg-slate-50/50 dark:bg-slate-950/20 scrollbar-thin">
                   {filteredUsers?.map((u) => (
                     <label
@@ -1652,8 +2113,12 @@ const ChatPage = () => {
                         className="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 dark:border-slate-700 focus:ring-blue-500"
                       />
                       <div className="min-w-0 flex-1">
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-200 block truncate">{u.name}</span>
-                        <span className="text-[9px] text-slate-400 dark:text-slate-500 capitalize block leading-none">{u.role}</span>
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-200 block truncate">
+                          {u.name}
+                        </span>
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 capitalize block leading-none">
+                          {u.role}
+                        </span>
                       </div>
                     </label>
                   ))}
@@ -1701,9 +2166,14 @@ const ChatPage = () => {
               </button>
             </div>
 
-            <form onSubmit={handleUpdateGroup} className="space-y-4 overflow-y-auto pr-1 flex-1 scrollbar-thin">
+            <form
+              onSubmit={handleUpdateGroup}
+              className="space-y-4 overflow-y-auto pr-1 flex-1 scrollbar-thin"
+            >
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block mb-1">Group Name</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block mb-1">
+                  Group Name
+                </label>
                 <input
                   type="text"
                   value={manageGroupName}
@@ -1714,7 +2184,9 @@ const ChatPage = () => {
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block mb-1">Description</label>
+                <label className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block mb-1">
+                  Description
+                </label>
                 <textarea
                   rows={2}
                   value={manageGroupDesc}
@@ -1727,22 +2199,30 @@ const ChatPage = () => {
               {/* Members Checklist / Viewer */}
               <div>
                 <label className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block mb-1">
-                  {(isCreatorOfActiveRoom || isAdmin) ? "Add/Remove Members" : "Group Members"}
+                  {isCreatorOfActiveRoom || isAdmin
+                    ? "Add/Remove Members"
+                    : "Group Members"}
                 </label>
                 <div className="max-h-40 overflow-y-auto border border-slate-100 dark:border-slate-800 rounded-xl p-2 space-y-1 bg-slate-50/50 dark:bg-slate-950/20 scrollbar-thin">
                   {filteredUsers?.map((u) => {
                     const isChecked = manageSelectedMembers.includes(u._id);
-                    const isRoomCreator = activeCustomRoom.creator._id === u._id;
+                    const isRoomCreator =
+                      activeCustomRoom.creator._id === u._id;
 
                     // Non-creator/Non-admin just see members
                     if (!isCreatorOfActiveRoom && !isAdmin) {
                       if (!isChecked) return null;
                       return (
-                        <div key={u._id} className="flex items-center gap-3 p-2 rounded-lg bg-white dark:bg-slate-850 border border-slate-100 dark:border-slate-850">
+                        <div
+                          key={u._id}
+                          className="flex items-center gap-3 p-2 rounded-lg bg-white dark:bg-slate-850 border border-slate-100 dark:border-slate-850"
+                        >
                           <div className="w-5 h-5 rounded bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold">
                             {u.name.charAt(0)}
                           </div>
-                          <span className="text-xs font-bold text-slate-700 dark:text-slate-200">{u.name} ({u.role})</span>
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                            {u.name} ({u.role})
+                          </span>
                         </div>
                       );
                     }
@@ -1764,9 +2244,16 @@ const ChatPage = () => {
                         />
                         <div className="min-w-0 flex-1">
                           <span className="text-xs font-bold text-slate-700 dark:text-slate-200 block truncate">
-                            {u.name} {isRoomCreator && <span className="text-[9px] text-amber-500 font-bold ml-1">(Creator)</span>}
+                            {u.name}{" "}
+                            {isRoomCreator && (
+                              <span className="text-[9px] text-amber-500 font-bold ml-1">
+                                (Creator)
+                              </span>
+                            )}
                           </span>
-                          <span className="text-[9px] text-slate-400 dark:text-slate-500 capitalize block leading-none">{u.role}</span>
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500 capitalize block leading-none">
+                            {u.role}
+                          </span>
                         </div>
                       </label>
                     );
@@ -1778,7 +2265,7 @@ const ChatPage = () => {
               <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800">
                 {/* Delete / Leave Actions */}
                 <div className="flex items-center gap-2">
-                  {(isCreatorOfActiveRoom || isAdmin) ? (
+                  {isCreatorOfActiveRoom || isAdmin ? (
                     <button
                       type="button"
                       onClick={handleDeleteGroup}
@@ -1823,188 +2310,220 @@ const ChatPage = () => {
       )}
 
       {/* PREMIUM CALLING INTERFACE OVERLAY */}
-      {activeCall && (() => {
-        const roomId = activeChat === "group" || activeCustomRoom
-          ? activeChat
-          : [currentUserId, activeChat].sort().join("-");
+      {activeCall &&
+        (() => {
+          const roomId =
+            activeChat === "group" || activeCustomRoom
+              ? activeChat
+              : [currentUserId, activeChat].sort().join("-");
 
-        const handleCopyRoomId = () => {
-          navigator.clipboard.writeText(roomId);
-          toast.success("Meeting Room ID copied!");
-        };
+          const handleCopyRoomId = () => {
+            navigator.clipboard.writeText(roomId);
+            toast.success("Meeting Room ID copied!");
+          };
 
-        const totalFeeds = 1 + remoteFeeds.length;
-        const gridCols = totalFeeds === 1 ? "grid-cols-1" : totalFeeds === 2 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-2 lg:grid-cols-3";
+          const totalFeeds = 1 + remoteFeeds.length;
+          const gridCols =
+            totalFeeds === 1
+              ? "grid-cols-1"
+              : totalFeeds === 2
+                ? "grid-cols-1 sm:grid-cols-2"
+                : "grid-cols-2 lg:grid-cols-3";
 
-        return (
-          <div className="fixed inset-0 z-[200] bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
-            <div className="bg-slate-800 w-full max-w-2xl rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-700 shadow-2xl flex flex-col relative text-white h-[80vh] sm:h-[65vh]">
-              
-              {/* Meeting Header */}
-              <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-slate-900/85 backdrop-blur px-3 py-1.5 rounded-full border border-slate-750 text-[10px] font-black uppercase text-slate-350">
-                <span>Room ID: {roomId.slice(0, 15)}...</span>
-                <button onClick={handleCopyRoomId} className="hover:text-white cursor-pointer transition-colors" title="Copy Meeting Room ID">
-                  <FiCopy size={11} />
-                </button>
-              </div>
-
-              {/* Call State: Connecting */}
-              {callState === "connecting" && (
-                <div className="flex-1 flex flex-col items-center justify-center space-y-4">
-                  {activeChat === "group" || activeCustomRoom ? (
-                    <div className="w-20 h-20 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center font-black text-2xl text-slate-350 animate-pulse">
-                      G
-                    </div>
-                  ) : activeChatUser?.profile?.profileImage?.url ? (
-                    <img
-                      src={activeChatUser.profile.profileImage.url}
-                      alt="avatar"
-                      className="w-20 h-20 rounded-full object-cover border-2 border-slate-600 animate-pulse shrink-0"
-                    />
-                  ) : (
-                    <div className="w-20 h-20 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center font-black text-2xl text-slate-350 animate-pulse shrink-0">
-                      {activeChatUser?.name.charAt(0) || "C"}
-                    </div>
-                  )}
-                  <div className="text-center">
-                    <h4 className="text-sm font-bold tracking-wide">
-                      {activeChat === "group"
-                        ? "General Group Video Call"
-                        : activeCustomRoom
-                        ? `${activeCustomRoom.name} Group Call`
-                        : activeChatUser?.name}
-                    </h4>
-                    <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-black animate-pulse">Connecting call...</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Call State: Connected */}
-              {callState === "connected" && (
-                <div className="flex-1 flex flex-col relative bg-slate-950 p-4 pt-16 overflow-y-auto">
-                  {activeCall === "video" ? (
-                    <div className={`grid ${gridCols} gap-3 items-center justify-center w-full my-auto`}>
-                      {/* Local Preview */}
-                      <VideoFeed
-                        stream={localStream}
-                        userName={`${user?.name} (You)`}
-                        userAvatar={user?.profile?.profileImage?.url}
-                        isLocal={true}
-                        isMuted={isMuted}
-                      />
-                      {/* Remote Feeds */}
-                      {remoteFeeds.map(feed => (
-                        <VideoFeed
-                          key={feed.socketId}
-                          stream={feed.stream}
-                          userName={feed.userName}
-                          userAvatar={feed.userAvatar}
-                          isLocal={false}
-                          isMuted={false}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center space-y-4 my-auto">
-                      <div className="flex items-center justify-center -space-x-3">
-                        <div className="w-16 h-16 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0">
-                          <FiPhone className="text-blue-500 animate-bounce" size={20} />
-                        </div>
-                        {remoteFeeds.map(feed => (
-                          feed.userAvatar ? (
-                            <img
-                              key={feed.socketId}
-                              src={feed.userAvatar}
-                              alt="avatar"
-                              className="w-12 h-12 rounded-full object-cover border border-slate-700 shrink-0"
-                            />
-                          ) : (
-                            <div key={feed.socketId} className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center font-bold text-xs uppercase shrink-0">
-                              {feed.userName.charAt(0)}
-                            </div>
-                          )
-                        ))}
-                      </div>
-                      <div className="text-center">
-                        <h4 className="text-sm font-bold">
-                          {activeChat === "group"
-                            ? "Group Voice Room"
-                            : activeCustomRoom
-                            ? activeCustomRoom.name
-                            : activeChatUser?.name}
-                        </h4>
-                        <p className="text-[10px] text-slate-400 tracking-wide font-black mt-1">
-                          ONGOING MEETING &bull; {formatDuration(callDuration)}
-                        </p>
-                        <span className="text-[9px] text-slate-500 font-semibold block mt-1.5">
-                          {remoteFeeds.length} other person{remoteFeeds.length !== 1 ? "s" : ""} joined
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* CALL CONTROLS DRAWER */}
-              <div className="h-16 bg-slate-900 border-t border-slate-850 flex items-center justify-between px-6 shrink-0 z-10">
-                <div className="flex items-center gap-3">
-                  {/* Microphone Toggle */}
+          return (
+            <div className="fixed inset-0 z-[200] bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
+              <div className="bg-slate-800 w-full max-w-2xl rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-700 shadow-2xl flex flex-col relative text-white h-[80vh] sm:h-[65vh]">
+                {/* Meeting Header */}
+                <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-slate-900/85 backdrop-blur px-3 py-1.5 rounded-full border border-slate-750 text-[10px] font-black uppercase text-slate-350">
+                  <span>Room ID: {roomId.slice(0, 15)}...</span>
                   <button
-                    onClick={toggleMic}
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
-                      isMuted ? "bg-rose-500/20 text-rose-500 border border-rose-500/30" : "bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700/50"
-                    }`}
-                    title={isMuted ? "Unmute Mic" : "Mute Mic"}
+                    onClick={handleCopyRoomId}
+                    className="hover:text-white cursor-pointer transition-colors"
+                    title="Copy Meeting Room ID"
                   >
-                    {isMuted ? <FiMicOff size={14} /> : <FiMic size={14} />}
+                    <FiCopy size={11} />
                   </button>
-
-                  {/* Camera Toggle */}
-                  {activeCall === "video" && (
-                    <button
-                      onClick={toggleCamera}
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
-                        isCamOff ? "bg-rose-500/20 text-rose-500 border border-rose-500/30" : "bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700/50"
-                      }`}
-                      title={isCamOff ? "Turn Camera On" : "Turn Camera Off"}
-                    >
-                      {isCamOff ? <FiVideoOff size={14} /> : <FiCamera size={14} />}
-                    </button>
-                  )}
-
-                  {/* Screen Share Toggle */}
-                  {activeCall === "video" && (
-                    <button
-                      onClick={toggleScreenShare}
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
-                        isScreenSharing ? "bg-blue-600 hover:bg-blue-700 text-white border border-blue-500" : "bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700/50"
-                      }`}
-                      title={isScreenSharing ? "Stop Screen Share" : "Share Screen"}
-                    >
-                      <FiMonitor size={14} />
-                    </button>
-                  )}
                 </div>
 
-                {callState === "connected" && (
-                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest hidden xs:inline">
-                    {formatDuration(callDuration)}
-                  </span>
+                {/* Call State: Connecting */}
+                {callState === "connecting" && (
+                  <div className="flex-1 flex flex-col items-center justify-center space-y-4">
+                    {activeChat === "group" || activeCustomRoom ? (
+                      <div className="w-20 h-20 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center font-black text-2xl text-slate-350 animate-pulse">
+                        G
+                      </div>
+                    ) : activeChatUser?.profile?.profileImage?.url ? (
+                      <img
+                        src={activeChatUser.profile.profileImage.url}
+                        alt="avatar"
+                        className="w-20 h-20 rounded-full object-cover border-2 border-slate-600 animate-pulse shrink-0"
+                      />
+                    ) : (
+                      <div className="w-20 h-20 rounded-full bg-slate-700 border-2 border-slate-600 flex items-center justify-center font-black text-2xl text-slate-350 animate-pulse shrink-0">
+                        {activeChatUser?.name.charAt(0) || "C"}
+                      </div>
+                    )}
+                    <div className="text-center">
+                      <h4 className="text-sm font-bold tracking-wide">
+                        {activeChat === "group"
+                          ? "General Group Video Call"
+                          : activeCustomRoom
+                            ? `${activeCustomRoom.name} Group Call`
+                            : activeChatUser?.name}
+                      </h4>
+                      <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-widest font-black animate-pulse">
+                        Connecting call...
+                      </p>
+                    </div>
+                  </div>
                 )}
 
-                <button
-                  onClick={endCall}
-                  className="px-5 h-9 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shadow-lg shadow-rose-900/30 active:scale-95 transition-all cursor-pointer"
-                >
-                  Leave Meeting
-                </button>
+                {/* Call State: Connected */}
+                {callState === "connected" && (
+                  <div className="flex-1 flex flex-col relative bg-slate-950 p-4 pt-16 overflow-y-auto">
+                    {activeCall === "video" ? (
+                      <div
+                        className={`grid ${gridCols} gap-3 items-center justify-center w-full my-auto`}
+                      >
+                        {/* Local Preview */}
+                        <VideoFeed
+                          stream={localStream}
+                          userName={`${user?.name} (You)`}
+                          userAvatar={user?.profile?.profileImage?.url}
+                          isLocal={true}
+                          isMuted={isMuted}
+                        />
+                        {/* Remote Feeds */}
+                        {remoteFeeds.map((feed) => (
+                          <VideoFeed
+                            key={feed.socketId}
+                            stream={feed.stream}
+                            userName={feed.userName}
+                            userAvatar={feed.userAvatar}
+                            isLocal={false}
+                            isMuted={false}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex-1 flex flex-col items-center justify-center space-y-4 my-auto">
+                        <div className="flex items-center justify-center -space-x-3">
+                          <div className="w-16 h-16 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0">
+                            <FiPhone
+                              className="text-blue-500 animate-bounce"
+                              size={20}
+                            />
+                          </div>
+                          {remoteFeeds.map((feed) =>
+                            feed.userAvatar ? (
+                              <img
+                                key={feed.socketId}
+                                src={feed.userAvatar}
+                                alt="avatar"
+                                className="w-12 h-12 rounded-full object-cover border border-slate-700 shrink-0"
+                              />
+                            ) : (
+                              <div
+                                key={feed.socketId}
+                                className="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center font-bold text-xs uppercase shrink-0"
+                              >
+                                {feed.userName.charAt(0)}
+                              </div>
+                            ),
+                          )}
+                        </div>
+                        <div className="text-center">
+                          <h4 className="text-sm font-bold">
+                            {activeChat === "group"
+                              ? "Group Voice Room"
+                              : activeCustomRoom
+                                ? activeCustomRoom.name
+                                : activeChatUser?.name}
+                          </h4>
+                          <p className="text-[10px] text-slate-400 tracking-wide font-black mt-1">
+                            ONGOING MEETING &bull;{" "}
+                            {formatDuration(callDuration)}
+                          </p>
+                          <span className="text-[9px] text-slate-500 font-semibold block mt-1.5">
+                            {remoteFeeds.length} other person
+                            {remoteFeeds.length !== 1 ? "s" : ""} joined
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* CALL CONTROLS DRAWER */}
+                <div className="h-16 bg-slate-900 border-t border-slate-850 flex items-center justify-between px-6 shrink-0 z-10">
+                  <div className="flex items-center gap-3">
+                    {/* Microphone Toggle */}
+                    <button
+                      onClick={toggleMic}
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                        isMuted
+                          ? "bg-rose-500/20 text-rose-500 border border-rose-500/30"
+                          : "bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700/50"
+                      }`}
+                      title={isMuted ? "Unmute Mic" : "Mute Mic"}
+                    >
+                      {isMuted ? <FiMicOff size={14} /> : <FiMic size={14} />}
+                    </button>
+
+                    {/* Camera Toggle */}
+                    {activeCall === "video" && (
+                      <button
+                        onClick={toggleCamera}
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                          isCamOff
+                            ? "bg-rose-500/20 text-rose-500 border border-rose-500/30"
+                            : "bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700/50"
+                        }`}
+                        title={isCamOff ? "Turn Camera On" : "Turn Camera Off"}
+                      >
+                        {isCamOff ? (
+                          <FiVideoOff size={14} />
+                        ) : (
+                          <FiCamera size={14} />
+                        )}
+                      </button>
+                    )}
+
+                    {/* Screen Share Toggle */}
+                    {activeCall === "video" && (
+                      <button
+                        onClick={toggleScreenShare}
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer ${
+                          isScreenSharing
+                            ? "bg-blue-600 hover:bg-blue-700 text-white border border-blue-500"
+                            : "bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-700/50"
+                        }`}
+                        title={
+                          isScreenSharing ? "Stop Screen Share" : "Share Screen"
+                        }
+                      >
+                        <FiMonitor size={14} />
+                      </button>
+                    )}
+                  </div>
+
+                  {callState === "connected" && (
+                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest hidden xs:inline">
+                      {formatDuration(callDuration)}
+                    </span>
+                  )}
+
+                  <button
+                    onClick={endCall}
+                    className="px-5 h-9 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shadow-lg shadow-rose-900/30 active:scale-95 transition-all cursor-pointer"
+                  >
+                    Leave Meeting
+                  </button>
+                </div>
               </div>
-
             </div>
-          </div>
-        );
-      })()}
-
+          );
+        })()}
     </div>
   );
 };
