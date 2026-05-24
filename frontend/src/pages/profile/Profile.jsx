@@ -70,7 +70,7 @@ const Profile = () => {
 
         {/* PAGE TITLE */}
         <div className="mb-5">
-          <h1 className="text-lg sm:text-xl font-bold text-slate-800">My Profile</h1>
+          <h1 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-yellow-50">My Profile</h1>
           <p className="text-xs text-gray-400">Manage your personal information</p>
         </div>
 
@@ -137,7 +137,7 @@ const Profile = () => {
 
           {/* ── RIGHT CARD ── */}
           <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-            <h2 className="text-sm font-bold text-slate-800 mb-4">Edit Information</h2>
+            <h2 className="text-sm font-bold text-slate-800 mb-4 dark:text-yellow-50">Edit Information</h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">
 

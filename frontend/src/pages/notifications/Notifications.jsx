@@ -13,32 +13,34 @@ import {
   FiMail,
 } from "react-icons/fi";
 import {
-  getNotifications,
-  markAsRead,
-  markAllAsRead,
-} from "../../features/notifications/notificationSlice";
+  useGetNotificationsQuery,
+  useMarkAsReadMutation,
+  useMarkAllAsReadMutation,
+} from "../../features/api/apiSlice";
 
 const Notifications = () => {
-  const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { notifications, loading } = useSelector((state) => state.notifications);
   const { user } = useSelector((state) => state.auth);
   
+  // RTK Query hooks for Notifications API
+  const { data: notifications = [], isLoading: loading } = useGetNotificationsQuery(undefined, {
+    skip: !user,
+  });
+
+  const [markAsReadTrigger] = useMarkAsReadMutation();
+  const [markAllAsReadTrigger] = useMarkAllAsReadMutation();
+
   const [filter, setFilter] = useState("All"); // "All", "Unread", "Read"
 
-  useEffect(() => {
-    dispatch(getNotifications());
-  }, [dispatch]);
-
   const handleMarkAsRead = (id) => {
-    dispatch(markAsRead(id));
+    markAsReadTrigger(id);
   };
 
   const handleMarkAllAsRead = () => {
-    dispatch(markAllAsRead());
+    markAllAsReadTrigger();
   };
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const unreadCount = (notifications || []).filter((n) => !n.isRead).length;
 
   const filteredNotifications = notifications.filter((n) => {
     if (filter === "Unread") return !n.isRead;

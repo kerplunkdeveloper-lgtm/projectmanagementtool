@@ -48,7 +48,7 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
                           to-blue-600 flex items-center justify-center">
               <FiUsers size={13} className="text-white" />
             </div>
-            <h2 className="text-sm font-bold text-slate-800">
+            <h2 className="text-sm font-bold text-slate-800 dark:text-yellow-50">
               {editUser ? "Update User" : "Add New User"}
             </h2>
           </div>

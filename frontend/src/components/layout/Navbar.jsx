@@ -5,11 +5,11 @@ import { getProfile, clearProfile } from "../../features/profile/profileSlice";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "../../context/ThemeContext";
 import {
-  getNotifications,
-  markAsRead,
-  markAllAsRead,
-  deleteNotification,
-} from "../../features/notifications/notificationSlice";
+  useGetNotificationsQuery,
+  useMarkAsReadMutation,
+  useMarkAllAsReadMutation,
+  useDeleteNotificationMutation,
+} from "../../features/api/apiSlice";
 import toast from "react-hot-toast";
 import { HiOutlineMenuAlt3 } from "react-icons/hi";
 import {
@@ -44,10 +44,17 @@ const Navbar = ({ setSidebarOpen }) => {
 
   const { user } = useSelector((state) => state.auth);
   const { profile } = useSelector((state) => state.profile);
-  const { notifications } = useSelector((state) => state.notifications);
   const { theme, setTheme } = useTheme();
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const { data: notifications = [] } = useGetNotificationsQuery(undefined, {
+    skip: !user,
+  });
+
+  const [markAsReadTrigger] = useMarkAsReadMutation();
+  const [markAllAsReadTrigger] = useMarkAllAsReadMutation();
+  const [deleteNotificationTrigger] = useDeleteNotificationMutation();
+
+  const unreadCount = (notifications || []).filter((n) => !n.isRead).length;
 
   const getNotificationDetails = (type) => {
     switch (type) {
@@ -103,7 +110,6 @@ const Navbar = ({ setSidebarOpen }) => {
       if (!profile || profileUserId !== (user.id || user._id)) {
         dispatch(getProfile());
       }
-      dispatch(getNotifications());
     }
   }, [dispatch, user, profile]);
 
@@ -331,7 +337,7 @@ const Navbar = ({ setSidebarOpen }) => {
                   {unreadCount > 0 && (
                     <button
                       onClick={() => {
-                        dispatch(markAllAsRead());
+                        markAllAsReadTrigger();
                       }}
                       className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-500 font-bold transition-colors cursor-pointer hover:underline"
                     >
@@ -357,7 +363,7 @@ const Navbar = ({ setSidebarOpen }) => {
                           key={n._id}
                           onClick={() => {
                             if (!n.isRead) {
-                              dispatch(markAsRead(n._id));
+                              markAsReadTrigger(n._id);
                             }
                             setOpenNotifications(false);
                             if (n.type === "message_received" || n.chatRoomId) {
@@ -395,7 +401,7 @@ const Navbar = ({ setSidebarOpen }) => {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                dispatch(deleteNotification(n._id));
+                                deleteNotificationTrigger(n._id);
                                 toast.success("Notification deleted");
                               }}
                               className="
@@ -437,8 +443,8 @@ const Navbar = ({ setSidebarOpen }) => {
             className="
               flex items-center gap-1.5
               px-1.5 py-1
-              rounded-lg border border-gray-200 dark:border-transparent bg-white dark:bg-slate-900
-              hover:bg-gray-50 dark:hover:bg-slate-800 transition-all cursor-pointer
+              rounded-lg border border-gray-200 dark:border-transparent bg-white dark:bg-gray-800
+               transition-all cursor-pointer
             "
           >
             {profile?.profileImage?.url ? (
@@ -448,14 +454,14 @@ const Navbar = ({ setSidebarOpen }) => {
                 className="w-7 h-7 rounded-full object-cover"
               />
             ) : (
-              <div className="w-7 h-7 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white flex items-center justify-center">
+              <div className="w-7 h-7 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500  flex items-center justify-center">
                 <FiUser size={13} />
               </div>
             )}
 
-            <div className="text-left hidden sm:block">
-              <h3 className="text-[12px] font-semibold text-gray-800 dark:text-slate-200 leading-tight">{user?.name}</h3>
-              <p className="text-[10px] text-gray-400 capitalize leading-tight">{user?.role}</p>
+            <div className="text-left ">
+              <h3 className="text-[12px] font-semibold text-gray-800 dark:text-yellow-50 leading-tight">{user?.name}</h3>
+              <p className="text-[10px] text-gray-400 dark:text-blue-300 capitalize leading-tight">{user?.role}</p>
             </div>
 
             <FiChevronDown
@@ -473,7 +479,7 @@ const Navbar = ({ setSidebarOpen }) => {
                 className="
                   absolute right-0 top-10
                   w-52 rounded-xl
-                  bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800
+                  bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-800
                   shadow-lg p-1.5 z-50
                 "
               >
@@ -487,8 +493,7 @@ const Navbar = ({ setSidebarOpen }) => {
                   className="
                     w-full px-3 py-2 rounded-lg
                     flex items-center gap-2
-                    text-xs text-gray-700 dark:text-slate-200
-                    hover:bg-blue-50 dark:hover:bg-slate-800 transition-all cursor-pointer
+                    text-xs text-gray-700 dark:text-yellow-50 transition-all cursor-pointer
                   "
                 >
                   <FiUser className="text-blue-500" size={13} />

@@ -15,7 +15,7 @@ const AdminEodReports = () => {
       <div className="max-w-[1500px] mx-auto">
         {/* HEADER */}
         <div className="mb-6 flex flex-col gap-2">
-          <h1 className="text-md font-bold text-slate-800">
+          <h1 className="text-md font-bold text-slate-800  dark:text-yellow-50">
             Team EOD Reports
           </h1>
 
@@ -103,7 +103,7 @@ const AdminEodReports = () => {
                   </div>
 
                   <div className="min-w-0">
-                    <p className="text-[12px] font-semibold text-slate-800 truncate">
+                    <p className="text-[12px] font-semibold text-slate-800  dark:text-yellow-50 truncate">
                       {report.user?.name || "Anonymous"}
                     </p>
                   </div>

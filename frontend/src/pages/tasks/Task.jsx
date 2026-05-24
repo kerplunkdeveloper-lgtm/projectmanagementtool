@@ -12,19 +12,22 @@ import {
   FiChevronDown,
   FiChevronRight,
 } from "react-icons/fi";
-import { getTasks, updateTask } from "../../features/tasks/taskSlice";
+import {
+  useGetTasksQuery,
+  useUpdateTaskMutation,
+} from "../../features/api/apiSlice";
 
 const Task = () => {
-  const dispatch = useDispatch();
-  const { tasks, loading } = useSelector((state) => state.tasks);
   const { user } = useSelector((state) => state.auth);
+  
+  const { data: tasks = [], isLoading: loading } = useGetTasksQuery(undefined, {
+    skip: !user,
+  });
+
+  const [updateTaskTrigger] = useUpdateTaskMutation();
 
   const [statusFilter, setStatusFilter] = useState("All");
   const [expandedTasks, setExpandedTasks] = useState({});
-
-  useEffect(() => {
-    dispatch(getTasks());
-  }, [dispatch]);
 
   const currentUserId = user?._id || user?.id;
 
@@ -42,12 +45,12 @@ const Task = () => {
   // Handle task status toggle
   const handleToggleStatus = (task) => {
     const newStatus = task.status === "Completed" ? "Pending" : "Completed";
-    dispatch(updateTask({ id: task._id, taskData: { status: newStatus } }));
+    updateTaskTrigger({ id: task._id, taskData: { status: newStatus } });
   };
 
   // Handle task status update via dropdown
   const handleStatusChange = (taskId, newStatus) => {
-    dispatch(updateTask({ id: taskId, taskData: { status: newStatus } }));
+    updateTaskTrigger({ id: taskId, taskData: { status: newStatus } });
   };
 
   // Toggle subtask status
@@ -57,7 +60,7 @@ const Task = () => {
         ? { ...sub, status: sub.status === "Completed" ? "Pending" : "Completed" }
         : sub
     );
-    dispatch(updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } }));
+    updateTaskTrigger({ id: task._id, taskData: { subtasks: updatedSubtasks } });
   };
 
   const toggleTaskExpanded = (taskId) => {

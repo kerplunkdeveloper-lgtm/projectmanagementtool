@@ -54,7 +54,7 @@ const WelcomeUser = () => {
 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
-              <h1 className="text-xs sm:text-sm font-extrabold text-slate-800 leading-tight truncate">
+              <h1 className="text-xs sm:text-sm font-extrabold text-black dark:text-yellow-50 leading-tight truncate">
                 {greeting},{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500">
                   {user?.name || "User"}

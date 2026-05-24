@@ -10,6 +10,7 @@ import eventReducer from "../features/events/eventSlice";
 import taskReducer from "../features/tasks/taskSlice";
 import notificationReducer from "../features/notifications/notificationSlice";
 import chatReducer from "../features/chat/chatSlice";
+import { apiSlice } from "../features/api/apiSlice";
 
 export const store = configureStore({
   reducer: {
@@ -24,5 +25,8 @@ export const store = configureStore({
     tasks: taskReducer,
     notifications: notificationReducer,
     chat: chatReducer,
+    [apiSlice.reducerPath]: apiSlice.reducer,
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(apiSlice.middleware),
 });

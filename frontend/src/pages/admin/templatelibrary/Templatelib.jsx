@@ -134,7 +134,7 @@ const Templatelib = () => {
                           to-blue-600 flex items-center justify-center">
                 <FiLayers size={14} className="text-white" />
               </div>
-              <h1 className="text-lg sm:text-xl font-bold text-slate-800">
+              <h1 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-yellow-50">
                 Template Library
               </h1>
             </div>
@@ -202,12 +202,12 @@ const Templatelib = () => {
               return (
                 <div
                   key={template._id}
-                  className="group bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col"
+                  className="group bg-white border border-blue-400 rounded-2xl p-4 shadow-lg hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 flex flex-col"
                 >
                   {/* CARD TOP */}
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <div className="flex-1 min-w-0">
-                      <h2 className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors truncate">
+                      <h2 className="text-sm font-bold text-slate-800 dark:text-yellow-50 group-hover:text-blue-600 transition-colors truncate">
                         {template.title}
                       </h2>
                       <span
@@ -292,7 +292,7 @@ const Templatelib = () => {
 
             {/* MODAL HEADER */}
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-slate-50/60">
-              <h2 className="text-sm font-bold text-slate-800">
+              <h2 className="text-sm font-bold text-slate-800 dark:text-yellow-50">
                 {editMode ? "✏️ Update Template" : "✨ New Template"}
               </h2>
               <button

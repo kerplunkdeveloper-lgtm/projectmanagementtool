@@ -17,7 +17,7 @@ const UserHeader = ({ setOpenModal, searchTerm, setSearchTerm, filterDept, setFi
                           to-blue-600 flex items-center justify-center">
             <FiUsers size={14} className="text-white" />
           </div>
-          <h1 className="text-sm md:text-lg font-bold text-slate-800">User Management</h1>
+          <h1 className="text-sm md:text-lg font-bold text-slate-800 dark:text-yellow-50">User Management</h1>
         </div>
       </div>
 

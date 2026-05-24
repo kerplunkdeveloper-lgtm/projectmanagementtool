@@ -1247,7 +1247,7 @@ const ChatPage = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold truncate text-slate-800 dark:text-slate-200">
+                      <span className="text-xs font-bold truncate text-slate-800 dark:text-yellow-50">
                         {r.name}
                       </span>
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -1305,10 +1305,10 @@ const ChatPage = () => {
                     <img
                       src={u.profile.profileImage.url}
                       alt="profile"
-                      className="w-10 h-10 rounded-2xl object-cover border border-slate-200/80 dark:border-slate-800"
+                      className="w-10 h-10 rounded-2xl object-cover border border-slate-200/80 dark:border-blue-500"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 flex items-center justify-center font-bold text-slate-700 dark:text-slate-300 text-xs">
+                    <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-blue-500 flex items-center justify-center font-bold text-slate-700 dark:text-slate-300 text-xs">
                       {u.name.charAt(0)}
                     </div>
                   )}
@@ -1316,7 +1316,7 @@ const ChatPage = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate block">
+                    <span className="text-xs font-bold text-slate-800 dark:text-yellow-100 truncate block">
                       {u.name}
                     </span>
                     {unreadCounts[u._id] > 0 && (
@@ -1341,7 +1341,7 @@ const ChatPage = () => {
 
       {/* RIGHT PANEL: ACTIVE CHAT SCREEN */}
       <div
-        className={`flex-1 flex flex-col bg-slate-50/30 dark:bg-slate-950/10 transition-colors duration-300 h-full ${
+        className={`flex-1 flex flex-col bg-gray-200 dark:bg-gray-100/70 transition-colors duration-300 h-full ${
           showChatWindowMobile ? "flex" : "hidden md:flex"
         }`}
       >

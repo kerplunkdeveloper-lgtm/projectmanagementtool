@@ -363,7 +363,7 @@ const Project = () => {
                       {activeProject.status}
                     </span>
                   </div>
-                  <h1 className="text-xl font-black text-slate-800">{activeProject.name}</h1>
+                  <h1 className="text-xl font-black text-slate-800  dark:text-yellow-50">{activeProject.name}</h1>
                 </div>
 
                 <div className="pt-4">
@@ -428,7 +428,7 @@ const Project = () => {
                     return (
                       <React.Fragment key={task._id}>
                         {/* Parent Task Row */}
-                        <tr className={`hover:bg-slate-50/50 transition-colors group ${isCompleted ? "bg-slate-50/30 text-slate-400" : "text-slate-800"}`}>
+                        <tr className={`hover:bg-slate-50/50 transition-colors group ${isCompleted ? "bg-slate-50/30 text-slate-400" : "text-slate-800  dark:text-yellow-50"}`}>
                           {/* Name Field with Circle Checkbox */}
                           <td className="px-6 py-3.5 font-semibold">
                             <div className="flex items-center gap-3">
@@ -957,7 +957,7 @@ const Project = () => {
       {/* HEADER SECTION */}
       <div className="flex justify-between items-center gap-4">
         <div>
-          <h1 className="text-xl font-black tracking-tight text-slate-800">All Projects</h1>
+          <h1 className="text-xl font-black tracking-tight text-slate-800  dark:text-yellow-50 ">All Projects</h1>
           <p className="text-slate-500 text-[10px] mt-1">Comprehensive directory of current projects and clients</p>
         </div>
         {isAdmin && (
@@ -1032,7 +1032,7 @@ const Project = () => {
                     onClick={() => navigate(`/${currentUser?.role}/projects?id=${project._id}`)}
                     className="hover:bg-slate-50/70 transition-colors cursor-pointer"
                   >
-                    <td className="px-6 py-4 font-extrabold text-slate-800">
+                    <td className="px-6 py-4 font-extrabold text-slate-800  dark:text-yellow-50">
                       {project.name}
                     </td>
                     <td className="px-6 py-4">
@@ -1122,7 +1122,7 @@ const Project = () => {
                     <FiBriefcase size={20} />
                   </div>
                   <div>
-                    <h2 className="text-base font-black text-slate-800">Add New Project</h2>
+                    <h2 className="text-base font-black text-slate-800  dark:text-yellow-50">Add New Project</h2>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Project Details</p>
                   </div>
                 </div>
@@ -1239,7 +1239,7 @@ const Project = () => {
                     <FiBriefcase size={20} />
                   </div>
                   <div>
-                    <h2 className="text-base font-black text-slate-800">Edit Project</h2>
+                    <h2 className="text-base font-black text-slate-800  dark:text-yellow-50">Edit Project</h2>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Modify Settings</p>
                   </div>
                 </div>
