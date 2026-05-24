@@ -94,6 +94,7 @@ const ChatPage = () => {
   const [isCamOff, setIsCamOff] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [activeMessageMenu, setActiveMessageMenu] = useState(null);
 
   const socketRef = useRef();
   const messagesEndRef = useRef();
@@ -466,7 +467,7 @@ const ChatPage = () => {
   });
 
   return (
-    <div className="flex h-[calc(100vh-80px)] bg-slate-50/50 dark:bg-slate-900/40 rounded-3xl overflow-hidden border border-slate-100  shadow-sm relative transition-colors duration-300">
+    <div className="flex h-[calc(100vh-90px)] sm:h-[calc(100vh-110px)] md:h-[calc(100vh-130px)] lg:h-[calc(100vh-140px)] bg-slate-50/50 dark:bg-slate-900/40 rounded-xl md:rounded-3xl overflow-hidden border-0 md:border border-slate-100 dark:border-slate-800 shadow-sm relative transition-colors duration-300">
       
       {/* LEFT PANEL: CHATS & DIRECT MESSAGE DIRECTORY */}
       <div
@@ -694,7 +695,7 @@ const ChatPage = () => {
         </div>
 
         {/* MESSAGES LIST AREA */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3.5 scrollbar-thin">
+        <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-3.5 scrollbar-thin">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <span className="text-xs text-slate-400 dark:text-slate-500 font-semibold">Loading conversation...</span>
@@ -723,7 +724,11 @@ const ChatPage = () => {
               }
 
               return (
-                <div key={m._id} className={`flex items-start gap-2.5 ${isMe ? "flex-row-reverse" : ""} group`}>
+                <div
+                  key={m._id}
+                  onClick={() => setActiveMessageMenu(activeMessageMenu === m._id ? null : m._id)}
+                  className={`flex items-start gap-2.5 ${isMe ? "flex-row-reverse" : ""} group cursor-pointer`}
+                >
                   {!isMe && (
                     m.sender?.profile?.profileImage?.url ? (
                       <img
@@ -738,15 +743,15 @@ const ChatPage = () => {
                     )
                   )}
 
-                  <div className={`max-w-[70%] flex flex-col ${isMe ? "items-end" : ""}`}>
+                  <div className={`max-w-[85%] md:max-w-[70%] flex flex-col ${isMe ? "items-end" : ""}`}>
                     {/* Replied message block preview inside bubble */}
                     {m.replyTo && (
-                      <div className={`mb-1.5 p-2 rounded-lg border-l-2 bg-slate-50/50 dark:bg-slate-950/30 text-[10px] text-slate-600 dark:text-slate-400 text-left max-w-xs ${
+                      <div className={`mb-1.5 p-2 rounded-lg border-l-2 bg-slate-50/50 dark:bg-slate-950/30 text-[10px] text-slate-650 dark:text-slate-400 text-left max-w-xs ${
                         isMe
                           ? "border-blue-300"
                           : "border-slate-400 dark:border-slate-600"
                       }`}>
-                        <div className="font-extrabold text-slate-700 dark:text-slate-250 text-[9px] mb-0.5">
+                        <div className="font-extrabold text-slate-700 dark:text-slate-200 text-[9px] mb-0.5">
                           Replying to {m.replyTo.sender?.name || "User"}
                         </div>
                         <div className="truncate opacity-85 font-medium text-[10px]">
@@ -779,7 +784,7 @@ const ChatPage = () => {
                         }`}
                       >
                         {m.file.fileType === "image" ? (
-                          <a href={m.file.url} target="_blank" rel="noopener noreferrer" className="block relative group cursor-pointer">
+                          <a href={m.file.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="block relative group cursor-pointer">
                             <img
                               src={m.file.url}
                               alt={m.file.filename}
@@ -794,7 +799,7 @@ const ChatPage = () => {
                             </div>
                           </a>
                         ) : m.file.fileType === "video" ? (
-                          <div className="p-1">
+                          <div className="p-1" onClick={(e) => e.stopPropagation()}>
                             <video
                               src={m.file.url}
                               controls
@@ -806,7 +811,7 @@ const ChatPage = () => {
                             </div>
                           </div>
                         ) : m.file.fileType === "audio" ? (
-                          <div className="p-3 w-64">
+                          <div className="p-3 w-64" onClick={(e) => e.stopPropagation()}>
                             <div className="text-xs font-bold truncate mb-2">{m.file.filename}</div>
                             <audio src={m.file.url} controls className="w-full h-8" />
                           </div>
@@ -817,6 +822,7 @@ const ChatPage = () => {
                             target="_blank"
                             rel="noopener noreferrer"
                             download={m.file.filename}
+                            onClick={(e) => e.stopPropagation()}
                             className="flex items-center gap-3 p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-all text-xs cursor-pointer"
                           >
                             <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
@@ -850,11 +856,23 @@ const ChatPage = () => {
                     </span>
                   </div>
 
-                  {/* Message Options Hover Menu */}
-                  <div className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity self-center shrink-0 ${isMe ? "flex-row-reverse" : ""}`}>
+                  {/* Message Options Menu */}
+                  <div
+                    className={`flex items-center gap-1 transition-opacity self-center shrink-0 ${
+                      isMe ? "flex-row-reverse" : ""
+                    } ${
+                      activeMessageMenu === m._id
+                        ? "opacity-100"
+                        : "opacity-0 md:group-hover:opacity-100"
+                    }`}
+                  >
                     <button
                       type="button"
-                      onClick={() => setReplyingToMessage(m)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setReplyingToMessage(m);
+                        setActiveMessageMenu(null);
+                      }}
                       className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-pointer"
                       title="Reply"
                     >
@@ -862,9 +880,11 @@ const ChatPage = () => {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setForwardingMessage(m);
                         setShowForwardModal(true);
+                        setActiveMessageMenu(null);
                       }}
                       className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-pointer"
                       title="Forward"
@@ -874,7 +894,8 @@ const ChatPage = () => {
                     <div className="relative">
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setSharingMessage(m);
                           setShowShareMenu(showShareMenu === m._id ? null : m._id);
                         }}
@@ -884,18 +905,29 @@ const ChatPage = () => {
                         <FiShare2 size={11} />
                       </button>
                       {showShareMenu === m._id && (
-                        <div className={`absolute bottom-7 ${isMe ? "right-0" : "left-0"} bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-1 shadow-lg z-30 w-28`}>
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className={`absolute bottom-7 ${isMe ? "right-0" : "left-0"} bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-1 shadow-lg z-30 w-28`}
+                        >
                           <button
                             type="button"
-                            onClick={() => handleShareExternal(m, "whatsapp")}
-                            className="w-full px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-left text-[9px] font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShareExternal(m, "whatsapp");
+                              setActiveMessageMenu(null);
+                            }}
+                            className="w-full px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-750 text-left text-[9px] font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 cursor-pointer"
                           >
                             WhatsApp
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleShareExternal(m, "email")}
-                            className="w-full px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 text-left text-[9px] font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShareExternal(m, "email");
+                              setActiveMessageMenu(null);
+                            }}
+                            className="w-full px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-750 text-left text-[9px] font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 cursor-pointer"
                           >
                             Email
                           </button>
@@ -905,7 +937,11 @@ const ChatPage = () => {
                     {(isMe || user.role === "admin") && (
                       <button
                         type="button"
-                        onClick={() => handleDeleteMessage(m._id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteMessage(m._id);
+                          setActiveMessageMenu(null);
+                        }}
                         className="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 cursor-pointer"
                         title="Delete"
                       >
@@ -921,11 +957,11 @@ const ChatPage = () => {
         </div>
 
         {/* INPUT FORM CONTAINER */}
-        <div className="px-4 py-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 relative shrink-0 transition-colors duration-300">
+        <div className="px-2 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 relative shrink-0 transition-colors duration-300">
           
           {/* Sticker Picker Drawer */}
           {showStickerPicker && (
-            <div className="absolute bottom-16 left-4 bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-2xl p-3 shadow-xl z-20 w-72">
+            <div className="absolute bottom-16 left-2 right-2 sm:left-4 sm:right-auto bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-2xl p-3 shadow-xl z-20 w-auto sm:w-72">
               <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-100 dark:border-slate-700">
                 <div className="flex gap-2">
                   <button
@@ -1150,8 +1186,8 @@ const ChatPage = () => {
 
       {/* CREATE CUSTOM GROUP MODAL */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-2xl flex flex-col p-6 text-slate-800 dark:text-slate-200">
+        <div className="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-2xl flex flex-col max-h-[90vh] p-4 sm:p-6 text-slate-800 dark:text-slate-200">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
               <h3 className="text-base font-black text-slate-800 dark:text-blue-500 flex items-center gap-2">
                 <FiUsers className="text-blue-500" /> Create Custom Group
@@ -1169,7 +1205,7 @@ const ChatPage = () => {
               </button>
             </div>
 
-            <form onSubmit={handleCreateGroup} className="space-y-4">
+            <form onSubmit={handleCreateGroup} className="space-y-4 overflow-y-auto pr-1 flex-1 scrollbar-thin">
               <div>
                 <label className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block mb-1">Group Name</label>
                 <input
@@ -1242,8 +1278,8 @@ const ChatPage = () => {
 
       {/* MANAGE GROUP MEMBERS & DETAILS MODAL */}
       {showManageModal && activeCustomRoom && (
-        <div className="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-2xl flex flex-col p-6 text-slate-800 dark:text-slate-200">
+        <div className="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-2xl flex flex-col max-h-[90vh] p-4 sm:p-6 text-slate-800 dark:text-slate-200">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
               <h3 className="text-base font-black text-slate-800 dark:text-blue-500 flex items-center gap-2">
                 <FiSettings className="text-blue-500" /> Manage Custom Group
@@ -1256,7 +1292,7 @@ const ChatPage = () => {
               </button>
             </div>
 
-            <form onSubmit={handleUpdateGroup} className="space-y-4">
+            <form onSubmit={handleUpdateGroup} className="space-y-4 overflow-y-auto pr-1 flex-1 scrollbar-thin">
               <div>
                 <label className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider block mb-1">Group Name</label>
                 <input
@@ -1379,8 +1415,8 @@ const ChatPage = () => {
 
       {/* PREMIUM CALLING INTERFACE OVERLAY */}
       {activeCall && (
-        <div className="fixed inset-0 z-[200] bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-800 w-full max-w-xl aspect-video rounded-3xl overflow-hidden border border-slate-700 shadow-2xl flex flex-col relative text-white">
+        <div className="fixed inset-0 z-[200] bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-slate-800 w-full max-w-xl rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-700 shadow-2xl flex flex-col relative text-white h-[75vh] sm:h-auto sm:aspect-video">
             
             {/* Call State: Connecting */}
             {callState === "connecting" && (
@@ -1417,7 +1453,7 @@ const ChatPage = () => {
             {callState === "connected" && (
               <div className="flex-1 flex flex-col md:flex-row relative bg-slate-950">
                 {activeCall === "video" ? (
-                  <div className="flex-1 grid grid-cols-2 gap-px h-full">
+                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-px h-full">
                     {/* User Feed */}
                     <div className="relative bg-slate-900 flex items-center justify-center border-r border-slate-800">
                       {isCamOff ? (

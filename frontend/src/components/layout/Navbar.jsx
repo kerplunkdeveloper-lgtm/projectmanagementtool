@@ -74,7 +74,7 @@ const Navbar = ({ setSidebarOpen }) => {
       default:
         return {
           icon: FiBell,
-          bgColor: "bg-slate-50 dark:bg-slate-800/30 text-slate-600 dark:text-slate-355 border border-slate-100/50 dark:border-slate-800/30",
+          bgColor: "bg-slate-50 dark:bg-slate-800/30 text-slate-600 dark:text-slate-400 border border-slate-100/50 dark:border-slate-800/30",
         };
     }
   };
@@ -157,10 +157,10 @@ const Navbar = ({ setSidebarOpen }) => {
           onClick={() => setSidebarOpen(true)}
           className="
             lg:hidden w-8 h-8
-            rounded-lg border border-gray-200 dark:border-transparent bg-gray-50 dark:bg-slate-850
-            text-gray-600 dark:text-slate-305
+            rounded-lg border border-gray-200 dark:border-transparent bg-gray-50 dark:bg-slate-800
+            text-gray-600 dark:text-slate-300
             flex items-center justify-center
-            hover:bg-gray-100 dark:hover:bg-slate-100 transition-all cursor-pointer
+            hover:bg-gray-100 dark:hover:bg-slate-800 transition-all cursor-pointer
           "
         >
           <HiOutlineMenuAlt3 className="text-lg" />
@@ -183,7 +183,7 @@ const Navbar = ({ setSidebarOpen }) => {
             className="
               bg-transparent outline-none p-1 rounded-lg px-2
               text-xs text-gray-700 dark:text-slate-200
-              placeholder:text-gray-400 dark:placeholder:text-slate-555
+              placeholder:text-gray-400 dark:placeholder:text-slate-500
               w-[110px] lg:w-[140px]
             "
           />
@@ -226,7 +226,7 @@ const Navbar = ({ setSidebarOpen }) => {
                     w-full px-2.5 py-1.5 rounded-lg flex items-center gap-2 text-xs transition-all cursor-pointer
                     ${theme === "light"
                       ? "bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 font-bold"
-                      : "text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-100"
+                      : "text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800"
                     }
                   `}
                 >
@@ -243,7 +243,7 @@ const Navbar = ({ setSidebarOpen }) => {
                     w-full px-2.5 py-1.5 rounded-lg flex items-center gap-2 text-xs transition-all cursor-pointer
                     ${theme === "dark"
                       ? "bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 font-bold"
-                      : "text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-100"
+                      : "text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800"
                     }
                   `}
                 >
@@ -260,7 +260,7 @@ const Navbar = ({ setSidebarOpen }) => {
                     w-full px-2.5 py-1.5 rounded-lg flex items-center gap-2 text-xs transition-all cursor-pointer
                     ${theme === "system"
                       ? "bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 font-bold"
-                      : "text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-100"
+                      : "text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800"
                     }
                   `}
                 >
@@ -279,8 +279,8 @@ const Navbar = ({ setSidebarOpen }) => {
             className={`
               relative w-8 h-8 rounded-lg border flex items-center justify-center transition-all duration-200 cursor-pointer
               ${openNotifications
-                ? "bg-blue-50 dark:bg-slate-100 border-blue-200 dark:border-transparent text-blue-600 dark:text-blue-400 ring-2 ring-blue-500/10"
-                : "border-gray-200 dark:border-transparent bg-white dark:bg-slate-900 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-100 hover:text-gray-800 dark:hover:text-slate-100"
+                ? "bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-transparent text-blue-600 dark:text-blue-400 ring-2 ring-blue-500/10"
+                : "border-gray-200 dark:border-transparent bg-white dark:bg-slate-900 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-800 dark:hover:text-slate-100"
               }
             `}
           >
@@ -370,7 +370,7 @@ const Navbar = ({ setSidebarOpen }) => {
                             px-4 py-3 text-left transition-all cursor-pointer flex items-start gap-3 relative group
                             ${!n.isRead 
                               ? "bg-blue-50/20 dark:bg-blue-950/10 hover:bg-blue-50/40 dark:hover:bg-blue-950/20" 
-                              : "bg-white dark:bg-slate-900 hover:bg-slate-50/60 dark:hover:bg-slate-100/60"
+                              : "bg-white dark:bg-slate-900 hover:bg-slate-50/60 dark:hover:bg-slate-800/60"
                             }
                           `}
                         >
@@ -418,7 +418,7 @@ const Navbar = ({ setSidebarOpen }) => {
                       setOpenNotifications(false);
                       navigate(`/${user?.role}/notifications`);
                     }}
-                    className="text-[10px] text-slate-500 dark:text-slate-405 hover:text-slate-700 dark:hover:text-slate-200 font-bold tracking-wide uppercase transition-colors cursor-pointer"
+                    className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-205 font-bold tracking-wide uppercase transition-colors cursor-pointer"
                   >
                     View All History
                   </button>
@@ -436,7 +436,7 @@ const Navbar = ({ setSidebarOpen }) => {
               flex items-center gap-1.5
               px-1.5 py-1
               rounded-lg border border-gray-200 dark:border-transparent bg-white dark:bg-slate-900
-              hover:bg-gray-50 dark:hover:bg-slate-100 transition-all cursor-pointer
+              hover:bg-gray-50 dark:hover:bg-slate-800 transition-all cursor-pointer
             "
           >
             {profile?.profileImage?.url ? (
@@ -486,7 +486,7 @@ const Navbar = ({ setSidebarOpen }) => {
                     w-full px-3 py-2 rounded-lg
                     flex items-center gap-2
                     text-xs text-gray-700 dark:text-slate-200
-                    hover:bg-blue-50 dark:hover:bg-slate-100 transition-all cursor-pointer
+                    hover:bg-blue-50 dark:hover:bg-slate-800 transition-all cursor-pointer
                   "
                 >
                   <FiUser className="text-blue-500" size={13} />

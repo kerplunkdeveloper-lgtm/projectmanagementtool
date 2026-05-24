@@ -84,7 +84,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       <aside
         className={`
           fixed top-0 left-0 z-[100] h-screen
-          w-[300px] lg:w-[220px] xl:w-[230px]
+          w-[280px] sm:w-[300px] lg:w-[220px] xl:w-[230px]
           bg-white dark:bg-slate-900
           border-r border-gray-200 dark:border-slate-800
           flex flex-col
@@ -130,7 +130,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   className={({ isActive }) => {
                     const activeClass = isActive
                       ? `bg-gradient-to-r from-cyan-500 to-blue-600 text-white border-cyan-400 shadow-md`
-                      : `text-gray-700 dark:text-slate-300 border-transparent hover:bg-cyan-50 hover:text-cyan-700 dark:hover:bg-slate-100 dark:hover:text-cyan-400`;
+                      : `text-gray-700 dark:text-slate-300 border-transparent hover:bg-cyan-50 hover:text-cyan-700 dark:hover:bg-slate-800/60 dark:hover:text-cyan-400`;
 
                     return `block rounded-xl border transition-all duration-200 ${activeClass}`;
                   }}
