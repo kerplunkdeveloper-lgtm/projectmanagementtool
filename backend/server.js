@@ -25,7 +25,7 @@ app.use(cookieParser());
 
 const allowedOrigins = [
   "http://localhost:5174",
-  "https://projecttoolmanagement.vercel.app"
+  process.env.FRONTEND_URL
 ];
 
 app.use(cors({
