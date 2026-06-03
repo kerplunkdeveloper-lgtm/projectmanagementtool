@@ -131,7 +131,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   }
                   className={({ isActive }) => {
                     const activeClass = isActive
-                      ? `bg-gradient-to-r from-cyan-500 to-blue-600 text-white border-cyan-400 shadow-md`
+                      ? ` dashboard-btn-primary dark:dashboard-btn-primary  border-cyan-400 shadow-md`
                       : `text-gray-700 dark:text-slate-300 border-transparent hover:bg-cyan-50 hover:text-cyan-700 dark:hover:bg-slate-800/60 dark:hover:text-cyan-400`;
 
                     return `block rounded-xl border transition-all duration-200 ${activeClass}`;

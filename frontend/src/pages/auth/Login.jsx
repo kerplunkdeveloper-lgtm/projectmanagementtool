@@ -9,7 +9,9 @@ import { loginUser } from "../../features/auth/authSlice";
 import { useNavigate } from "react-router-dom";
 
 import toast from "react-hot-toast";
-import logo from "../../assets/logo.avif";
+
+import lightlogin from "../../assets/lightlogin.jpeg";
+import darklogin from "../../assets/darklogin.jpeg";
 
 const Login = () => {
   const dispatch = useDispatch();
@@ -62,90 +64,65 @@ const Login = () => {
   }, [error]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="w-full h-[100vh]  overflow-hidden  grid grid-cols-1 lg:grid-cols-2">
-        {/* LEFT SIDE IMAGE SECTION */}
+    <div className="min-h-screen theme-bg-main flex flex-col lg:flex-row ">
+      {/* TOP / LEFT SIDE IMAGE SECTION */}
+      <div className="relative w-full h-[35vh] sm:h-[45vh] lg:h-[100vh] lg:w-7/12 overflow-hidden bg-black flex items-center justify-center shadow-2xl shrink-0 z-0">
+        <img
+          src={lightlogin}
+          alt="Project Management Light"
+          className="absolute inset-0 w-full h-full object-cover block dark:hidden  hover:scale-105 transition-transform duration-[15s] ease-out"
+        />
+        <img
+          src={darklogin}
+          alt="Project Management Dark"
+          className="absolute inset-0 w-full h-full object-cover hidden dark:block  hover:scale-105 transition-transform duration-[15s] ease-out"
+        />
+      </div>
 
-        <div className="hidden lg:flex relative">
-          <img
-            src="https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=1470&auto=format&fit=crop"
-            alt="Project Management"
-            className="w-full h-full object-cover "
-          />
-
-          {/* BLUE OVERLAY */}
-          <div className="absolute inset-0 bg-blue-500/70"></div>
-
-          <div className="absolute inset-0 bg-black/50 flex flex-col justify-center px-16 text-white dark:text-yellow-500">
-            <h1 className="text-5xl font-bold leading-tight mb-6">
-              Project
-              <br />
-              Management
-              <br />
-              Tool
-            </h1>
-
-            <p className="text-lg text-gray-200 dark:text-yellow-50 leading-8">
-              Manage projects, teams, tasks and workflows with a modern project
-              management platform.
-            </p>
-          </div>
-        </div>
-
-        {/* RIGHT SIDE LOGIN FORM */}
-
-        <div className="flex flex-col items-center justify-center p-6 sm:p-10 lg:p-16 bg-white">
-          <div>
-            <img src={logo} alt="" className="mb-6 w-[130px] " />
-          </div>
-
-          <form onSubmit={handleSubmit} className="w-full max-w-md">
-            <div className="mb-10">
-              <h2 className="text-xl font-bold text-center  text-gray-800 mb-3 dark:text-yellow-500">
+      {/* BOTTOM / RIGHT SIDE LOGIN FORM */}
+      <div className="w-full lg:w-5/12  flex-1 flex items-center justify-center p-6 sm:p-12 lg:p-20 theme-bg-card relative rounded-t-[40px] lg:rounded-none -mt-8 lg:mt-0 z-10 shadow-[0_-15px_40px_rgba(0,0,0,0.1)] lg:shadow-none">
+        <div className="w-full max-w-[420px] relative z-10">
+          <form onSubmit={handleSubmit} className="w-full">
+            <div className="mb-10 text-center">
+              <h2 className="text-3xl font-black mb-2 theme-text-primary tracking-tight">
                 Welcome Back
               </h2>
-
-              <p className="text-gray-500 text-center text-[11px]">
+              <p className="text-[13px] theme-text-secondary font-medium">
                 Login to continue managing your projects
               </p>
             </div>
 
             {/* EMAIL */}
-
             <div className="mb-5">
-              <div className="flex items-center border border-gray-300 rounded-xl mt-2 px-4 py-3 focus-within:border-blue-500">
-                <FaEnvelope className="text-gray-400 mr-3" />
-
+              <div className="flex items-center border theme-border rounded-2xl mt-2 px-5 py-4 bg-slate-50/50 dark:bg-black/20 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all shadow-sm">
+                <FaEnvelope className="theme-icon mr-3 text-lg" />
                 <input
                   type="email"
                   name="email"
-                  placeholder="Enter your email"
+                  placeholder="Enter your email address"
                   required
-                  className="w-full outline-none bg-transparent px-4 p-2"
+                  className="w-full outline-none bg-transparent px-2 text-[14px] theme-text-primary placeholder:text-slate-400 font-semibold"
                   onChange={handleChange}
                 />
               </div>
             </div>
 
             {/* PASSWORD */}
-
-            <div className="mb-6">
-              <div className="flex items-center border border-gray-300 rounded-xl mt-2 px-4 py-3 focus-within:border-blue-500">
-                <FaLock className="text-gray-400 mr-3" />
-
+            <div className="mb-8">
+              <div className="flex items-center border theme-border rounded-2xl mt-2 px-5 py-4 bg-slate-50/50 dark:bg-black/20 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all shadow-sm">
+                <FaLock className="theme-icon mr-3 text-lg" />
                 <input
                   type={showPassword ? "text" : "password"}
                   name="password"
                   required
                   placeholder="Enter your password"
-                  className="w-full outline-none bg-transparent px-4 p-2"
+                  className="w-full outline-none bg-transparent px-2 text-[14px] theme-text-primary placeholder:text-slate-400 font-semibold"
                   onChange={handleChange}
                 />
-
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="text-gray-500 text-lg"
+                  className="theme-icon text-lg hover:text-blue-500 transition-colors ml-2 cursor-pointer"
                 >
                   {showPassword ? <FaEyeSlash /> : <FaEye />}
                 </button>
@@ -163,21 +140,12 @@ const Login = () => {
 
     w-full
 
-    h-[42px]
-    lg:h-[46px]
+    h-[55px]
+    lg:h-[66px]
 
     rounded-xl
 
-    bg-gradient-to-r
-    from-blue-600
-    via-cyan-500
-    to-indigo-600
-
-    hover:from-blue-700
-    hover:via-cyan-600
-    hover:to-indigo-700
-
-    text-white
+    dashboard-btn-primary dark:dashboard-btn-primary 
 
     text-[13px]
     lg:text-[14px]
@@ -226,30 +194,28 @@ const Login = () => {
 
             {/* FOOTER */}
 
-       <p className="text-center mt-8 text-sm">
-  <span className="relative inline-flex items-center justify-center px-6 py-3 rounded-full overflow-hidden">
+            <p className="text-center mt-8 text-sm">
+              <span className="relative inline-flex items-center justify-center px-6 py-3 rounded-full overflow-hidden">
+                {/* Animated Gradient Border */}
+                <span className="absolute inset-0 rounded-full p-[2px] bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 animate-spin-slow">
+                  <span className="block w-full h-full rounded-full bg-white dark:bg-gray-900"></span>
+                </span>
 
-    {/* Animated Gradient Border */}
-    <span className="absolute inset-0 rounded-full p-[2px] bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 animate-spin-slow">
-      <span className="block w-full h-full rounded-full bg-white dark:bg-gray-900"></span>
-    </span>
+                {/* Glow Effect */}
+                <span className="absolute inset-0 rounded-full bg-cyan-400 opacity-20 blur-xl animate-pulse"></span>
 
-    {/* Glow Effect */}
-    <span className="absolute inset-0 rounded-full bg-cyan-400 opacity-20 blur-xl animate-pulse"></span>
+                {/* Content */}
+                <span className="relative z-10 flex items-center gap-1">
+                  <span className="text-gray-600 dark:text-gray-300 font-medium">
+                    Developed by
+                  </span>
 
-    {/* Content */}
-    <span className="relative z-10 flex items-center gap-1">
-      <span className="text-gray-600 dark:text-gray-300 font-medium">
-        Developed by
-      </span>
-
-      <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 animate-pulse">
-        Kerplunk Media
-      </span>
-    </span>
-
-  </span>
-</p>
+                  <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 animate-pulse">
+                    Kerplunk Media
+                  </span>
+                </span>
+              </span>
+            </p>
           </form>
         </div>
       </div>

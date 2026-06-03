@@ -275,7 +275,7 @@ const AdminUsers = () => {
                     flex-shrink-0
                     ${
                       currentPage === index + 1
-                        ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-sm"
+                        ? "dashboard-btn-primary dark:dashboard-btn-primary shadow-sm"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                     }
                   `}

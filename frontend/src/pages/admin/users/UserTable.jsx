@@ -28,9 +28,7 @@ const UserTable = ({ users, loading, handleDeleteUser, setOpenModal, setEditUser
         <table className="w-full min-w-[700px]">
           {/* HEADER */}
           <thead>
-            <tr className="border-b border-gray-100 bg-gradient-to-r
-                          from-cyan-500
-                          to-blue-600 ">
+            <tr className="border-b border-gray-100  ">
               {["User", "Email", "Role", "Department", !isReadOnly && "Actions"].filter(Boolean).map((h) => (
                 <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-white uppercase tracking-wider">
                   {h}

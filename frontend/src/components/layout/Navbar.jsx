@@ -36,11 +36,8 @@ const Navbar = ({ setSidebarOpen }) => {
   
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
-  const themeRef = useRef(null);
-
   const [openDropdown, setOpenDropdown] = useState(false);
   const [openNotifications, setOpenNotifications] = useState(false);
-  const [openThemeMenu, setOpenThemeMenu] = useState(false);
 
   const { user } = useSelector((state) => state.auth);
   const { profile } = useSelector((state) => state.profile);
@@ -121,9 +118,6 @@ const Navbar = ({ setSidebarOpen }) => {
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
         setOpenNotifications(false);
       }
-      if (themeRef.current && !themeRef.current.contains(event.target)) {
-        setOpenThemeMenu(false);
-      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -137,9 +131,8 @@ const Navbar = ({ setSidebarOpen }) => {
   };
 
   const getThemeIcon = () => {
-    if (theme === "light") return <FiSun size={14} className="text-amber-500" />;
     if (theme === "dark") return <FiMoon size={14} className="text-indigo-400" />;
-    return <FiMonitor size={14} className="text-slate-400 dark:text-slate-350" />;
+    return <FiSun size={14} className="text-amber-500" />;
   };
 
   return (
@@ -173,7 +166,7 @@ const Navbar = ({ setSidebarOpen }) => {
         </button>
 
         {/* PAGE TITLE */}
-        <h1 className="text-[15px] sm:text-[17px] lg:text-[18px] font-extrabold uppercase tracking-wider bg-gradient-to-r from-blue-400 to-indigo-500 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent">
+        <h1 className="text-[15px] sm:text-[17px] lg:text-[18px] font-extrabold uppercase tracking-wider">
           {pageTitle}
         </h1>
       </div>
@@ -195,88 +188,17 @@ const Navbar = ({ setSidebarOpen }) => {
           />
         </div>
 
-        {/* PREMIUM LIGHT/DARK/SYSTEM THEME DROPDOWN */}
-        <div className="relative" ref={themeRef}>
-          <button
-            onClick={() => setOpenThemeMenu(!openThemeMenu)}
-            className={`
-              w-8 h-8 rounded-lg border flex items-center justify-center transition-all duration-200 cursor-pointer
-              ${openThemeMenu
-                ? "bg-blue-50/50 dark:bg-slate-800 border-blue-200 dark:border-transparent"
-                : "border-gray-200 dark:border-transparent bg-white dark:bg-slate-900 text-gray-600 dark:text-slate-300 "
-              }
-            `}
-            title="Switch Theme"
-          >
-            {getThemeIcon()}  
-          </button>
-
-          <AnimatePresence>
-            {openThemeMenu && (
-              <motion.div
-                initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                className="
-                  absolute right-0 mt-2 w-36 rounded-xl
-                  bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800
-                  shadow-xl p-1.5 z-50 flex flex-col gap-0.5
-                "
-              >
-                <button
-                  onClick={() => {
-                    setTheme("light");
-                    setOpenThemeMenu(false);
-                  }}
-                  className={`
-                    w-full px-2.5 py-1.5 rounded-lg flex items-center gap-2 text-xs transition-all cursor-pointer
-                    ${theme === "light"
-                      ? "bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 font-bold"
-                      : "text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800"
-                    }
-                  `}
-                >
-                  <FiSun size={13} className="text-amber-500" />
-                  <span>Light</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setTheme("dark");
-                    setOpenThemeMenu(false);
-                  }}
-                  className={`
-                    w-full px-2.5 py-1.5 rounded-lg flex items-center gap-2 text-xs transition-all cursor-pointer
-                    ${theme === "dark"
-                      ? "bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 font-bold"
-                      : "text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800"
-                    }
-                  `}
-                >
-                  <FiMoon size={13} className="text-indigo-400" />
-                  <span>Dark</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setTheme("system");
-                    setOpenThemeMenu(false);
-                  }}
-                  className={`
-                    w-full px-2.5 py-1.5 rounded-lg flex items-center gap-2 text-xs transition-all cursor-pointer
-                    ${theme === "system"
-                      ? "bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 font-bold"
-                      : "text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800"
-                    }
-                  `}
-                >
-                  <FiMonitor size={13} className="text-slate-400" />
-                  <span>System</span>
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        {/* LIGHT/DARK MODE TOGGLE */}
+        <button
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="
+            w-8 h-8 rounded-lg border flex items-center justify-center transition-all duration-200 cursor-pointer
+            border-gray-200 dark:border-transparent bg-white dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-800
+          "
+          title="Toggle Theme"
+        >
+          {getThemeIcon()}  
+        </button>
 
         {/* NOTIFICATIONS */}
         <div className="relative" ref={notificationRef}>

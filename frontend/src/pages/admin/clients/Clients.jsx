@@ -189,7 +189,7 @@ const Clients = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
           <h1 className="text-xl md:text-2xl font-black text-gray-900 dark:text-yellow-50 tracking-tight flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/10 shrink-0">
+            <div className="w-10 h-10 rounded-2xl  dashboard-btn-primary dark:dashboard-btn-primary text-white flex items-center justify-center  shrink-0">
               <FiUsers size={18} />
             </div>
             <div>
@@ -206,7 +206,7 @@ const Clients = () => {
             setActiveTab("profile");
             setShowModal(true);
           }}
-          className="bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 px-5 py-3 rounded-xl flex items-center text-white dark:text-yellow-50 justify-center gap-2.5 shadow-md hover:shadow-lg text-xs font-black active:scale-[0.98] transition-all cursor-pointer"
+          className="dashboard-btn-primary dark:dashboard-btn-primary   px-5 py-3 rounded-xl flex items-center text-white dark:text-yellow-50 justify-center gap-2.5 shadow-md hover:shadow-lg text-xs font-black active:scale-[0.98] transition-all cursor-pointer"
         >
           <FiPlus size={15} className="stroke-[3]" />
           Add New Client
@@ -257,226 +257,160 @@ const Clients = () => {
         </div>
       )}
 
-      {/* MAIN CONTENT GRID */}
+      {/* MAIN CONTENT TABLE */}
       {!loading && (
         <motion.div 
           layout
-          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+          className="theme-bg-card border theme-border rounded-2xl shadow-sm overflow-hidden"
         >
-          <AnimatePresence mode="popLayout">
-            {filteredClients.length > 0 ? (
-              filteredClients.map((client) => {
-                const conf = getServiceStyles(client.service);
-                const ServiceIcon = conf.icon;
-                return (
-                  <motion.div
-                    layout
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.25 }}
-                    whileHover={{ y: -5, transition: { duration: 0.2 } }}
-                    key={client._id}
-                    className="group relative overflow-hidden bg-white dark:bg-slate-800 border border-slate-200/50 dark:border-slate-800/80 rounded-2xl p-5 shadow-sm hover:shadow-xl dark:shadow-none transition-all duration-300 flex flex-col justify-between"
-                  >
-                    {/* Decorative Border Line */}
-                    <div className={`absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r ${conf.gradient}`}></div>
-
-                    <div>
-                      {/* CARD HEADER */}
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3.5 min-w-0">
-                          <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${conf.gradient} text-white flex items-center justify-center text-sm font-black shrink-0 shadow-md`}>
-                            {client.companyName?.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="min-w-0">
-                            <h2 className="text-[14px] font-black text-slate-800 dark:text-yellow-50 truncate group-hover:text-blue-600 transition-colors">
-                              {client.companyName}
-                            </h2>
-                            <p className="text-[10px] text-slate-400 dark:text-slate-400 font-bold flex items-center gap-1.5 mt-0.5 truncate">
-                              <FiBriefcase size={10} className="text-slate-400 dark:text-slate-500" />
-                              {client.industry}
-                            </p>
-                          </div>
-                        </div>
-
-                        <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black tracking-wider uppercase shrink-0 ${conf.pill} flex items-center gap-1`}>
-                          <ServiceIcon size={9} />
-                          {client.service || "Contract"}
-                        </span>
-                      </div>
-
-                      {/* CONTACT CARD SECTION */}
-                      <div className="mt-4 p-3 bg-slate-50 dark:bg-black/45 rounded-xl space-y-1.5 border border-slate-100/70 dark:border-slate-800/40">
-                        {client.phoneNumber && (
-                          <a
-                            href={`tel:${client.phoneNumber}`}
-                            className="flex items-center gap-2 text-[10px] text-slate-650 dark:text-slate-300 hover:text-blue-500 dark:hover:text-blue-450 transition-colors font-semibold truncate"
-                          >
-                            <FiPhone size={11} className="text-slate-400 dark:text-slate-500 shrink-0" />
-                            {client.phoneNumber}
-                          </a>
-                        )}
-                        {client.email && (
-                          <a
-                            href={`mailto:${client.email}`}
-                            className="flex items-center gap-2 text-[10px] text-slate-650 dark:text-slate-300 hover:text-blue-500 dark:hover:text-blue-450 transition-colors font-semibold truncate"
-                          >
-                            <FiMail size={11} className="text-slate-400 dark:text-slate-500 shrink-0" />
-                            {client.email}
-                          </a>
-                        )}
-                      </div>
-
-                      {/* BUDGET INFORMATION */}
-                      <div className="grid grid-cols-2 gap-3 mt-4">
-                        <div className="bg-slate-50 dark:bg-black/30 rounded-xl p-3 border border-slate-100/50 dark:border-slate-800/30">
-                          <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">
-                            Base Budget
-                          </p>
-                          <h3 className="text-[13px] font-extrabold text-slate-800 dark:text-slate-200 mt-1 flex items-center">
-                            ₹{Number(client.budget || 0).toLocaleString("en-IN")}
-                          </h3>
-                        </div>
-
-                        <div className="bg-emerald-500/5 dark:bg-emerald-950/10 rounded-xl p-3 border border-emerald-500/10 dark:border-emerald-900/20">
-                          <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">
-                            Total (Inc. GST)
-                          </p>
-                          <h3 className="text-[13px] font-black text-emerald-600 dark:text-emerald-400 mt-1 flex items-center">
-                            ₹{Number(client.totalBudget || 0).toLocaleString("en-IN")}
-                          </h3>
-                        </div>
-                      </div>
-
-                      {/* TAX AND ASSIGNED TO ACCENTS */}
-                      <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800/60 pb-3">
-                        <span className="bg-amber-100/50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wide border border-amber-200/30 dark:border-amber-900/20">
-                          GST: {client.gst}%
-                        </span>
-                        {client.assignedTo && (
-                          <span className="bg-blue-50/50 dark:bg-blue-950/10 text-slate-600 dark:text-slate-350 px-2 py-0.5 rounded-full text-[9px] font-semibold flex items-center gap-1 border border-slate-200/50 dark:border-slate-800/60">
-                            <FiUser size={9} className="text-slate-400 dark:text-slate-500 shrink-0" />
-                            Mgr: {client.assignedTo.name || client.assignedTo.email}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* CLIENT COMMITMENT DELIVERABLES */}
-                      <div className="mt-4">
-                        <h4 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
-                          Deliverable Commitments
-                        </h4>
-
-                        {/* Digital Marketing Deliverables */}
-                        {client.service === "Digital Marketing" && (
-                          <div className="space-y-2">
-                            <div className="flex flex-wrap gap-1.5">
-                              <span className="bg-slate-50 dark:bg-black/40 border border-slate-200/30 dark:border-slate-800/40 px-2.5 py-1.5 rounded-lg text-[10px] text-slate-650 dark:text-slate-300 flex items-center gap-1 font-semibold">
-                                <FiVideo size={10} className="text-blue-550" />
-                                Reels: <strong className="text-slate-800 dark:text-white font-extrabold">{client.reels || 0}</strong>
-                              </span>
-
-                              <span className="bg-slate-50 dark:bg-black/40 border border-slate-200/30 dark:border-slate-800/40 px-2.5 py-1.5 rounded-lg text-[10px] text-slate-650 dark:text-slate-300 flex items-center gap-1 font-semibold">
-                                <FiImage size={10} className="text-cyan-555" />
-                                Posts: <strong className="text-slate-800 dark:text-white font-extrabold">{client.posts || 0}</strong>
-                              </span>
-
-                              <span className="bg-slate-50 dark:bg-black/40 border border-slate-200/30 dark:border-slate-800/40 px-2.5 py-1.5 rounded-lg text-[10px] text-slate-650 dark:text-slate-300 flex items-center gap-1 font-semibold">
-                                <FiLayers size={10} className="text-purple-550" />
-                                Videos: <strong className="text-slate-800 dark:text-white font-extrabold">{client.videos || 0}</strong>
-                              </span>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse whitespace-nowrap min-w-[900px]">
+              <thead>
+                <tr className="theme-bg-main border-b theme-border text-[10px] uppercase tracking-wider theme-text-secondary font-black">
+                  <th className="px-5 py-4">Client Details</th>
+                  <th className="px-5 py-4">Contact Info</th>
+                  <th className="px-5 py-4">Service & Plan</th>
+                  <th className="px-5 py-4">Budget (INR)</th>
+                  <th className="px-5 py-4 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <AnimatePresence>
+                  {filteredClients.length > 0 ? (
+                    filteredClients.map((client) => {
+                      const conf = getServiceStyles(client.service);
+                      const ServiceIcon = conf.icon;
+                      return (
+                        <motion.tr
+                          layout
+                          initial={{ opacity: 0, y: 15 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          transition={{ duration: 0.2 }}
+                          key={client._id}
+                          className="border-b theme-border hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group"
+                        >
+                          {/* Client Info */}
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${conf.gradient} text-white flex items-center justify-center text-xs font-black shrink-0 shadow-sm`}>
+                                {client.companyName?.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-[120px]">
+                                <h2 className="text-[13px] font-black theme-text-primary group-hover:text-blue-600 transition-colors truncate">
+                                  {client.companyName}
+                                </h2>
+                                <p className="text-[10px] theme-text-secondary font-bold flex items-center gap-1.5 mt-0.5 truncate">
+                                  <FiBriefcase size={10} />
+                                  {client.industry}
+                                </p>
+                              </div>
                             </div>
+                          </td>
 
-                            {client.needDslr && (
-                              <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wide border ${
-                                client.needDslr === "Need DSLR"
-                                  ? "bg-purple-50 border-purple-100 text-purple-650 dark:bg-purple-950/20 dark:border-purple-900/30 dark:text-purple-400"
-                                  : "bg-slate-100 border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-800 dark:text-slate-400"
-                              }`}>
-                                🎥 {client.needDslr}
+                          {/* Contact Info */}
+                          <td className="px-5 py-4">
+                            <div className="space-y-1.5">
+                              {client.phoneNumber ? (
+                                <a
+                                  href={`tel:${client.phoneNumber}`}
+                                  className="flex items-center gap-1.5 text-[10px] theme-text-secondary hover:text-blue-500 font-semibold"
+                                >
+                                  <FiPhone size={10} className="theme-icon" />
+                                  {client.phoneNumber}
+                                </a>
+                              ) : <span className="text-[10px] theme-text-secondary italic">No Phone</span>}
+                              
+                              {client.email ? (
+                                <a
+                                  href={`mailto:${client.email}`}
+                                  className="flex items-center gap-1.5 text-[10px] theme-text-secondary hover:text-blue-500 font-semibold truncate max-w-[150px]"
+                                >
+                                  <FiMail size={10} className="theme-icon" />
+                                  {client.email}
+                                </a>
+                              ) : <span className="text-[10px] theme-text-secondary italic">No Email</span>}
+                            </div>
+                          </td>
+
+                          {/* Service Info */}
+                          <td className="px-5 py-4">
+                            <div className="space-y-2">
+                              <span className={`inline-flex px-2 py-0.5 rounded-lg text-[9px] font-black tracking-wider uppercase ${conf.pill} items-center gap-1`}>
+                                <ServiceIcon size={9} />
+                                {client.service || "Contract"}
                               </span>
-                            )}
+                              <div className="text-[10px] font-semibold theme-text-secondary flex items-center gap-1">
+                                {client.assignedTo ? (
+                                  <>
+                                    <FiUser size={10} className="theme-icon" />
+                                    Mgr: {client.assignedTo.name || client.assignedTo.email}
+                                  </>
+                                ) : (
+                                  <span className="italic">Unassigned</span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Budget Info */}
+                          <td className="px-5 py-4">
+                            <div className="space-y-1">
+                              <p className="text-[10px] theme-text-secondary font-bold">
+                                Base: <span className="theme-text-primary font-black">₹{Number(client.budget || 0).toLocaleString("en-IN")}</span>
+                              </p>
+                              <p className="text-[10px] theme-text-secondary font-bold">
+                                Total: <span className="text-emerald-600 dark:text-emerald-400 font-black">₹{Number(client.totalBudget || 0).toLocaleString("en-IN")}</span>
+                              </p>
+                              <p className="text-[9px] text-amber-600 dark:text-amber-500 font-bold">
+                                GST: {client.gst}%
+                              </p>
+                            </div>
+                          </td>
+
+                          {/* Actions */}
+                          <td className="px-5 py-4 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                onClick={() => handleEdit(client)}
+                                className="w-8 h-8 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/20 dark:hover:bg-amber-950/40 text-amber-600 flex items-center justify-center transition-all"
+                                title="Edit Record"
+                              >
+                                <FiEdit size={12} className="stroke-[3]" />
+                              </button>
+                              <button
+                                onClick={() => setClientToDelete(client)}
+                                className="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-rose-600 flex items-center justify-center transition-all"
+                                title="Delete Record"
+                              >
+                                <FiTrash2 size={12} className="stroke-[3]" />
+                              </button>
+                            </div>
+                          </td>
+                        </motion.tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan="5" className="px-5 py-16">
+                        <div className="flex flex-col items-center justify-center text-center">
+                          <div className="w-14 h-14 rounded-full theme-bg-main flex items-center justify-center mb-3">
+                            <FiUsers className="text-blue-500 animate-pulse" size={22} />
                           </div>
-                        )}
-
-                        {/* Website Deliverables */}
-                        {client.service === "Website" && (
-                          <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100/30 dark:border-emerald-900/20 text-emerald-700 dark:text-emerald-450 px-3 py-2 rounded-xl text-[10px] inline-flex items-center gap-2 font-bold">
-                            <FiGlobe size={11} className="animate-spin-slow text-emerald-500" />
-                            Total Pages Commitment: {client.pages || 0} Pages
-                          </div>
-                        )}
-
-                        {/* SEO Deliverables */}
-                        {client.service === "SEO" && (
-                          <div className="flex flex-wrap gap-1.5">
-                            {client.onpage && (
-                              <span className="bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 text-amber-700 dark:text-amber-400 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
-                                <FiCheck size={10} className="stroke-[3]" />
-                                On-Page Setup
-                              </span>
-                            )}
-
-                            {client.offpage && (
-                              <span className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-rose-700 dark:text-rose-450 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
-                                <FiCheck size={10} className="stroke-[3]" />
-                                Off-Page Links
-                              </span>
-                            )}
-
-                            {!client.onpage && !client.offpage && (
-                              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold italic">
-                                No SEO deliverables checked.
-                              </span>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Fallback for no Service */}
-                        {!client.service && (
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold italic">
-                            No service selected for commitments.
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* CARD ACTIONS */}
-                    <div className="flex items-center gap-2 mt-5 border-t border-slate-100 dark:border-slate-800/60 pt-4">
-                      <button
-                        onClick={() => handleEdit(client)}
-                        className="flex-1 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/20 dark:hover:bg-amber-950/40 text-amber-700 dark:text-amber-400 py-2 rounded-xl flex items-center justify-center gap-1 text-[10px] font-extrabold transition-all cursor-pointer"
-                      >
-                        <FiEdit size={11} className="stroke-[3]" />
-                        Edit Record
-                      </button>
-
-                      <button
-                        onClick={() => setClientToDelete(client)}
-                        className="flex-1 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-rose-700 dark:text-rose-400 py-2 rounded-xl flex items-center justify-center gap-1 text-[10px] font-extrabold transition-all cursor-pointer"
-                      >
-                        <FiTrash2 size={11} className="stroke-[3]" />
-                        Delete
-                      </button>
-                    </div>
-                  </motion.div>
-                );
-              })
-            ) : (
-              <div className="col-span-full py-16 flex flex-col items-center justify-center text-center bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 shadow-sm p-6">
-                <div className="w-14 h-14 rounded-full bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center mb-3">
-                  <FiUsers className="text-blue-50 animate-pulse" size={22} />
-                </div>
-                <h2 className="text-[14px] font-extrabold text-slate-800 dark:text-yellow-50">
-                  No Registered Clients Found
-                </h2>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 max-w-xs leading-relaxed">
-                  Add a new client and configure budgets, services, and commitment deliverables.
-                </p>
-              </div>
-            )}
-          </AnimatePresence>
+                          <h2 className="text-[14px] font-extrabold theme-text-primary">
+                            No Registered Clients Found
+                          </h2>
+                          <p className="text-[11px] theme-text-secondary mt-1 max-w-xs leading-relaxed">
+                            Add a new client and configure budgets, services, and commitment deliverables.
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </AnimatePresence>
+              </tbody>
+            </table>
+          </div>
         </motion.div>
       )}
 

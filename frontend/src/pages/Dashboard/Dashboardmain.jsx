@@ -90,17 +90,17 @@ const Dashboardmain = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl">
         
         {/* UPCOMING EVENTS SECTION */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-5 border-b border-slate-100 dark:border-slate-800/60 pb-3">
+        <div className="lg:col-span-2 theme-bg-card border theme-border rounded-2xl p-5 shadow-sm">
+          <div className="flex items-center justify-between mb-5 border-b theme-border pb-3">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-sm">
                 <FiCalendar size={15} />
               </div>
               <div>
-                <h2 className="text-[13px] font-black text-slate-850 dark:text-yellow-50 uppercase tracking-wider">
+                <h2 className="text-[13px] font-black theme-text-primary uppercase tracking-wider">
                   Upcoming Events & Deliverables
                 </h2>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold">
+                <p className="text-[10px] theme-text-secondary font-bold">
                   Next scheduled calendar initiatives and marketing deadlines
                 </p>
               </div>
@@ -119,7 +119,7 @@ const Dashboardmain = () => {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-10 gap-2">
               <div className="w-7 h-7 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              <span className="text-[10px] text-slate-400 font-bold">Refreshing schedule...</span>
+              <span className="text-[10px] theme-text-secondary font-bold">Refreshing schedule...</span>
             </div>
           ) : upcomingEvents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -132,10 +132,10 @@ const Dashboardmain = () => {
                   <motion.div
                     whileHover={{ y: -2, transition: { duration: 0.15 } }}
                     key={event._id}
-                    className={`relative overflow-hidden p-4 rounded-xl border flex flex-col justify-between transition-all bg-slate-50 dark:bg-black/35 ${
+                    className={`relative overflow-hidden p-4 rounded-xl border flex flex-col justify-between transition-all theme-bg-main ${
                       eventIsToday
                         ? 'border-indigo-500/40 dark:border-indigo-900/40 ring-1 ring-indigo-500/10 shadow-[0_0_15px_rgba(99,102,241,0.05)]'
-                        : 'border-slate-200/50 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-750'
+                        : 'theme-border hover:border-slate-300 dark:hover:border-slate-750'
                     }`}
                   >
                     {/* Live Pulse Badge for Today's events */}
@@ -154,31 +154,31 @@ const Dashboardmain = () => {
                           {event.type}
                         </span>
 
-                        <span className="text-[9px] text-slate-400 dark:text-slate-550 font-bold flex items-center gap-1">
+                        <span className="text-[9px] theme-text-secondary font-bold flex items-center gap-1">
                           <FiClock size={10} />
                           {getRelativeTimeString(event.date)}
                         </span>
                       </div>
 
                       {/* Event Title */}
-                      <h3 className="text-xs font-black text-slate-800 dark:text-white line-clamp-1">
+                      <h3 className="text-xs font-black theme-text-primary line-clamp-1">
                         {event.title}
                       </h3>
 
                       {/* Description */}
                       {event.description && (
-                        <p className="text-[10px] text-slate-500 dark:text-slate-450 mt-1 leading-normal font-medium line-clamp-2">
+                        <p className="text-[10px] theme-text-secondary mt-1 leading-normal font-medium line-clamp-2">
                           {event.description}
                         </p>
                       )}
                     </div>
 
                     {/* Client Footer */}
-                    <div className="mt-3.5 pt-2.5 border-t border-slate-200/40 dark:border-slate-800/40 flex items-center justify-between text-[9px] font-bold">
-                      <span className="text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                    <div className="mt-3.5 pt-2.5 border-t theme-border flex items-center justify-between text-[9px] font-bold">
+                      <span className="theme-text-secondary uppercase tracking-wider">
                         Client Account
                       </span>
-                      <span className="text-slate-750 dark:text-slate-300 font-extrabold max-w-[150px] truncate">
+                      <span className="theme-text-primary font-extrabold max-w-[150px] truncate">
                         {event.client?.companyName || "Internal Event"}
                       </span>
                     </div>
@@ -188,13 +188,13 @@ const Dashboardmain = () => {
             </div>
           ) : (
             <div className="py-12 flex flex-col items-center justify-center text-center">
-              <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-900 flex items-center justify-center mb-3 text-slate-400">
+              <div className="w-12 h-12 rounded-full theme-bg-main flex items-center justify-center mb-3 theme-icon">
                 <FiAlertCircle size={18} />
               </div>
-              <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              <h4 className="text-xs font-bold theme-text-primary">
                 No Upcoming Scheduled Initiatives
               </h4>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 max-w-xs">
+              <p className="text-[10px] theme-text-secondary mt-1 max-w-xs">
                 There are no scheduled events, reports, or content deliverables listed for today or the coming week.
               </p>
             </div>
@@ -202,17 +202,17 @@ const Dashboardmain = () => {
         </div>
 
         {/* WORKSPACE & ACTION SHORTCUTS */}
-        <div className="bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+        <div className="theme-bg-card border theme-border rounded-2xl p-5 shadow-sm flex flex-col justify-between">
           <div>
-            <div className="flex items-center gap-2 mb-4 border-b border-slate-100 dark:border-slate-800/60 pb-3">
+            <div className="flex items-center gap-2 mb-4 border-b theme-border pb-3">
               <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 shadow-sm">
                 <FiTarget size={15} />
               </div>
               <div>
-                <h2 className="text-[13px] font-black text-slate-850 dark:text-yellow-50 uppercase tracking-wider">
+                <h2 className="text-[13px] font-black theme-text-primary uppercase tracking-wider">
                   Shortcut Navigation
                 </h2>
-                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold">
+                <p className="text-[10px] theme-text-secondary font-bold">
                   Quick access to operational zones
                 </p>
               </div>
@@ -221,48 +221,48 @@ const Dashboardmain = () => {
             <div className="space-y-2">
               <Link
                 to={`/${user?.role}/projects`}
-                className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100/70 dark:bg-black/35 dark:hover:bg-black/50 border border-slate-200/40 dark:border-slate-800/60 transition-all group cursor-pointer"
+                className="flex items-center justify-between p-3 rounded-xl theme-bg-main hover:bg-slate-100/70 border theme-border transition-all group cursor-pointer"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span className="w-6 h-6 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
                     <FiLayers size={12} />
                   </span>
-                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-350 truncate">
+                  <span className="text-[11px] font-bold theme-text-primary truncate">
                     Active Projects & Tasks
                   </span>
                 </div>
-                <FiChevronRight size={12} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                <FiChevronRight size={12} className="theme-icon group-hover:translate-x-0.5 transition-transform" />
               </Link>
 
               <Link
                 to={`/${user?.role}/chat`}
-                className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100/70 dark:bg-black/35 dark:hover:bg-black/50 border border-slate-200/40 dark:border-slate-800/60 transition-all group cursor-pointer"
+                className="flex items-center justify-between p-3 rounded-xl theme-bg-main hover:bg-slate-100/70 border theme-border transition-all group cursor-pointer"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span className="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0">
                     <FiUser size={12} />
                   </span>
-                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-350 truncate">
+                  <span className="text-[11px] font-bold theme-text-primary truncate">
                     Team Chats & Rooms
                   </span>
                 </div>
-                <FiChevronRight size={12} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                <FiChevronRight size={12} className="theme-icon group-hover:translate-x-0.5 transition-transform" />
               </Link>
 
               {user?.role === 'admin' && (
                 <Link
                   to={`/admin/clients`}
-                  className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100/70 dark:bg-black/35 dark:hover:bg-black/50 border border-slate-200/40 dark:border-slate-800/60 transition-all group cursor-pointer"
+                  className="flex items-center justify-between p-3 rounded-xl theme-bg-main hover:bg-slate-100/70 border theme-border transition-all group cursor-pointer"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
                       <FiUser size={12} />
                     </span>
-                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-350 truncate">
+                    <span className="text-[11px] font-bold theme-text-primary truncate">
                       Manage Portfolios
                     </span>
                   </div>
-                  <FiChevronRight size={12} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                  <FiChevronRight size={12} className="theme-icon group-hover:translate-x-0.5 transition-transform" />
                 </Link>
               )}
             </div>

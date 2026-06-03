@@ -17,12 +17,11 @@ const PartnerHub = () => {
   const [loading, setLoading] = useState(true);
 
 
-
-
-
   const fetchDashboardData = async () => {
     try {
-      setLoading(true);
+      if (projects.length === 0 && team.length === 0) {
+        setLoading(true);
+      }
       const [usersRes, projectsRes, overheadsRes] = await Promise.all([
         axiosInstance.get('/users'),
         axiosInstance.get('/business-projects'),
@@ -39,8 +38,10 @@ const PartnerHub = () => {
   };
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    if (activeTab === "overview") {
+      fetchDashboardData();
+    }
+  }, [activeTab]);
 
 
 

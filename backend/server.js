@@ -24,7 +24,7 @@ app.use(cookieParser());
 
 
 const allowedOrigins = [
-  "http://localhost:5173",
+  "http://localhost:5174",
   "https://projecttoolmanagement.vercel.app"
 ];
 
@@ -203,3 +203,4 @@ process.on('unhandledRejection', (err, promise) => {
   // Close server & exit process
   server.close(() => process.exit(1));
 });
+// Nodemon trigger

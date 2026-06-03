@@ -3,48 +3,74 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-@media (min-width: 1024px) {
+
+/* Responsive base font sizes for proper scaling across devices */
+html {
+  font-size: 14px; /* Base size for mobile devices */
+}
+
+@media (min-width: 768px) {
   html {
-    font-size: 13px;
+    font-size: 15px; /* Tablet size */
   }
 }
-@media (min-width: 1280px) {
+
+@media (min-width: 1024px) {
   html {
-    font-size: 12px;
+    font-size: 16px; /* Desktop/Laptop standard size */
   }
+}
+
+:root {
+  /* Premium Light Mode Palette */
+  --color-white: #ffffff;
+  --color-slate-50: #f4f4f5; /* Body Background */
+  --color-slate-100: #e4e4e7; /* Borders */
+  --color-slate-200: #d4d4d8;
+  --color-slate-700: #3f3f46;
+  --color-slate-800: #27272a;
+  --color-slate-900: #18181b;
+  --color-slate-950: #09090b; /* Primary Text */
 }
 
 body {
   font-family: 'Poppins', sans-serif;
-  @apply transition-colors duration-300 bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100;
+  background-color: var(--color-slate-50) !important;
+  color: var(--color-slate-950) !important;
+  @apply transition-colors duration-300;
+}
+
+aside {
+  background-color: var(--color-white) !important;
+  color: var(--color-slate-900) !important;
+  border-right-color: var(--color-slate-100) !important;
 }
 
 .dark {
-  /* Core background colors */
-  --color-white: #0a0a0a; 
-  --color-slate-50: #000000; 
-  --color-gray-50: #000000; 
-  --color-slate-950: #000000;
-  --color-slate-900: #0a0a0a;
-  --color-slate-800: #121212;
+  /* Premium Dark Mode Palette */
+  --color-white: #18181b; /* Cards / Sidebar */
+  --color-slate-50: #171719; /* Body Background */
+  --color-gray-50: #171719; 
+  --color-slate-100: #27272a; /* Borders */
+  --color-gray-100: #27272a; 
+  --color-slate-200: #3f3f46; 
+  --color-gray-200: #3f3f46; 
   
-  /* Borders */
-  --color-slate-100: #1c1c1c; 
-  --color-gray-100: #1c1c1c; 
-  --color-slate-200: #2a2a2a; 
-  --color-gray-200: #2a2a2a; 
+  --color-slate-800: #18181b;
+  --color-slate-900: #18181b;
+  --color-slate-950: #09090b;
   
   /* Text colors */
-  --color-slate-850: #f8fafc; 
-  --color-gray-850: #f8fafc; 
-  --color-slate-700: #f1f5f9; 
-  --color-gray-700: #f1f5f9; 
-  --color-slate-600: #e2e8f0; 
-  --color-gray-600: #e2e8f0; 
-  --color-slate-500: #cbd5e1; 
-  --color-gray-500: #cbd5e1; 
-  --color-slate-400: #94a3b8; 
-  --color-gray-400: #94a3b8; 
+  --color-slate-850: #fafafa; 
+  --color-gray-850: #fafafa; 
+  --color-slate-700: #f4f4f5; 
+  --color-gray-700: #f4f4f5; 
+  --color-slate-600: #e4e4e7; 
+  --color-gray-600: #e4e4e7; 
+  --color-slate-500: #a1a1aa; 
+  --color-gray-500: #a1a1aa; 
+  --color-slate-400: #71717a; 
+  --color-gray-400: #71717a; 
 
   /* Standard status tag color mappings for premium dark theme contrast */
   --color-emerald-50: rgba(16, 185, 129, 0.1);
@@ -185,4 +211,67 @@ body {
   border-width: 3px !important;
   border-style: solid !important;
   animation: borderBlink 4s infinite linear;
+}
+
+/* Dashboard Action Buttons Override */
+button.bg-\[\#7c5ff0\],
+button.bg-indigo-600,
+button.bg-blue-600,
+button.bg-blue-500,
+button.bg-slate-900,
+.dashboard-btn-primary {
+  background: linear-gradient(to right, #111827, #000000) !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+.dark button.bg-\[\#7c5ff0\],
+.dark button.bg-indigo-600,
+.dark button.bg-blue-600,
+.dark button.bg-blue-500,
+.dark button.bg-slate-900,
+.dark .dashboard-btn-primary {
+  background: #e5ff00 !important;
+  color: #151414 !important;
+}
+
+/* Dashboard Table Heading Override */
+thead th, thead tr {
+  background: linear-gradient(to right, #111827, #000000) !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+.dark thead th, .dark thead tr {
+  background: #1c1c1c !important;
+  color: #f1f5f9 !important;
+}
+
+/* =========================================
+   REUSABLE GLOBAL THEME CLASSES
+   These automatically adapt to light/dark mode
+   based on the palette defined at the top.
+========================================= */
+.theme-bg-main {
+  background-color: var(--color-slate-50) !important;
+}
+
+.theme-bg-card {
+  background-color: var(--color-white) !important;
+}
+
+.theme-text-primary {
+  color: var(--color-slate-950) !important;
+}
+
+.theme-text-secondary {
+  color: var(--color-slate-500) !important;
+}
+
+.theme-border {
+  border-color: var(--color-slate-100) !important;
+}
+
+.theme-icon {
+  color: var(--color-slate-400) !important;
 }
