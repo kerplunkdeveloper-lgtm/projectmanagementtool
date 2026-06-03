@@ -66,7 +66,7 @@ const Login = () => {
   return (
     <div className="min-h-screen theme-bg-main flex flex-col lg:flex-row ">
       {/* TOP / LEFT SIDE IMAGE SECTION */}
-      <div className="relative w-full h-[35vh] sm:h-[45vh] lg:h-[95vh] lg:w-7/11  overflow-hidden  flex items-center justify-center shrink-0 z-0">
+      <div className="relative w-full h-[35vh] sm:h-[45vh] lg:h-[95vh] lg:w-7/12  overflow-hidden  flex items-center justify-center shrink-0 z-0">
         <img
           src={lightlogin}
           alt="Project Management Light"
@@ -81,13 +81,13 @@ const Login = () => {
 
       {/* BOTTOM / RIGHT SIDE LOGIN FORM */}
       <div className="w-full lg:w-5/12  flex-1 flex items-center justify-center p-6 sm:p-12 lg:p-20 theme-bg-card relative rounded-t-[40px] lg:rounded-none -mt-8 lg:mt-0 z-10 shadow-[0_-15px_40px_rgba(0,0,0,0.1)] lg:shadow-none">
-        <div className="w-full max-w-[420px] relative z-10">
+        <div className="w-full max-w-[850px] relative z-10">
           <form onSubmit={handleSubmit} className="w-full">
             <div className="mb-10 text-center">
-              <h2 className="text-3xl font-black mb-2 theme-text-primary tracking-tight">
+              <h2 className="text-3xl font-black mb-2 text-gray-600 dark:text-gray-300 tracking-tight">
                 Welcome Back
               </h2>
-              <p className="text-[13px] theme-text-secondary font-medium">
+              <p className="text-[13px]  font-medium theme-text-secondary">
                 Login to continue managing your projects
               </p>
             </div>
@@ -101,7 +101,7 @@ const Login = () => {
                   name="email"
                   placeholder="Enter your email address"
                   required
-                  className="w-full outline-none bg-transparent px-2 text-[14px] theme-text-primary placeholder:text-slate-400 font-semibold"
+                  className="w-full outline-none bg-transparent px-2 py-2 text-[14px] theme-text-primary placeholder:text-slate-400 font-semibold"
                   onChange={handleChange}
                 />
               </div>
@@ -116,7 +116,7 @@ const Login = () => {
                   name="password"
                   required
                   placeholder="Enter your password"
-                  className="w-full outline-none bg-transparent px-2 text-[14px] theme-text-primary placeholder:text-slate-400 font-semibold"
+                  className="w-full outline-none bg-transparent px-2 py-2 text-[14px] theme-text-primary placeholder:text-slate-400 font-semibold"
                   onChange={handleChange}
                 />
                 <button
