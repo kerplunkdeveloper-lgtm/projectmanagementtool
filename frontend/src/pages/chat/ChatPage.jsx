@@ -782,12 +782,12 @@ const ChatPage = () => {
       >
         <div className="p-4 border-b border-slate-100/60 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/20">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-extrabold text-slate-800 dark:text-blue-500 uppercase tracking-wide flex items-center gap-2">
-              <FiMessageSquare className="text-blue-500" /> Messaging
+            <h2 className="text-base font-extrabold text-slate-800 dark:text-[#8b73ee] uppercase tracking-wide flex items-center gap-2">
+              <FiMessageSquare className="" /> Messaging
             </h2>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center transition-all cursor-pointer"
+              className="w-7 h-7 rounded-lg bg-[#8b73ee] dark:bg-[#8b73ee] hover:bg-blue-100 dark:hover:bg-blue-900/40 text-white dark:text-white flex items-center justify-center transition-all cursor-pointer"
               title="Create Custom Group"
             >
               <FiPlus size={16} />
@@ -819,15 +819,15 @@ const ChatPage = () => {
                 ? "bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-blue-900 dark:text-blue-300 font-bold"
                 : unreadCounts["group"] > 0
                   ? "bg-blue-50/20 dark:bg-blue-950/10 border border-blue-100/40 dark:border-blue-900/20 text-slate-800 dark:text-slate-200 font-extrabold shadow-sm ring-1 ring-blue-500/10"
-                  : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 text-slate-650 dark:text-slate-400 border border-transparent"
+                  : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 text-slate-650 dark:text-slate-200 border border-transparent"
             }`}
           >
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-md font-bold shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-[#8b73ee] dark:bg-[#8b73ee] flex items-center justify-center shadow-md font-bold shrink-0">
               <FiLayers size={16} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold truncate">
+                <span className="text-xs font-bold truncate text-[#8b73ee] dark:text-[#8b73ee]">
                   General Team Chat
                 </span>
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -836,13 +836,13 @@ const ChatPage = () => {
                       {unreadCounts["group"]}
                     </span>
                   )}
-                  <span className="text-[9px] font-black uppercase text-blue-500 tracking-wider">
+                  <span className="text-[9px] font-black uppercase text-[#8b73ee] dark:text-[#8b73ee] tracking-wider">
                     All
                   </span>
                 </div>
               </div>
               <p
-                className={`text-[10px] truncate mt-0.5 ${unreadCounts["group"] > 0 ? "text-blue-600 dark:text-blue-400 font-extrabold" : "text-slate-400 dark:text-slate-500 font-semibold"}`}
+                className={`text-[10px] truncate mt-0.5 ${unreadCounts["group"] > 0 ? "text-[#8b73ee] dark:text-[#8b73ee] font-extrabold" : "text-slate-400 dark:text-slate-500 font-semibold"}`}
               >
                 {lastMessages["group"]
                   ? formatLastMessageText(lastMessages["group"])
@@ -855,7 +855,7 @@ const ChatPage = () => {
           {sortedRooms.length > 0 && (
             <>
               <div className="h-px bg-slate-100 dark:bg-slate-800 my-2" />
-              <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mb-1.5">
+              <p className="text-[10px] font-black uppercase tracking-wider text-[#8b73ee] dark:text-[#8b73ee]  px-3 mb-1.5">
                 Custom Groups
               </p>
 
@@ -868,7 +868,7 @@ const ChatPage = () => {
                   }}
                   className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
                     activeChat === r._id
-                      ? "bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-blue-900 dark:text-blue-300 font-bold"
+                      ? "bg-[#8b73ee] dark:bg-[#8b73ee] text-[#8b73ee] dark:text-[#8b73ee]  font-bold"
                       : unreadCounts[r._id] > 0
                         ? "bg-blue-50/20 dark:bg-blue-950/10 border border-blue-100/40 dark:border-blue-900/20 text-slate-800 dark:text-slate-200 font-extrabold shadow-sm ring-1 ring-blue-500/10"
                         : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 text-slate-650 dark:text-slate-400 border border-transparent"
@@ -879,7 +879,7 @@ const ChatPage = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold truncate text-slate-800 dark:text-yellow-50">
+                      <span className="text-xs font-bold truncate text-[#8b73ee] dark:text-[#8b73ee]">
                         {r.name}
                       </span>
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -888,13 +888,13 @@ const ChatPage = () => {
                             {unreadCounts[r._id]}
                           </span>
                         )}
-                        <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold">
+                        <span className="text-[9px] text-[#8b73ee] dark:text-[#8b73ee] font-bold">
                           {r.members.length} members
                         </span>
                       </div>
                     </div>
                     <p
-                      className={`text-[10px] truncate mt-0.5 ${unreadCounts[r._id] > 0 ? "text-blue-600 dark:text-blue-400 font-extrabold" : "text-slate-400 dark:text-slate-500 font-semibold"}`}
+                      className={`text-[10px] truncate mt-0.5 ${unreadCounts[r._id] > 0 ? "text-[#8b73ee] dark:text-[#8b73ee] font-extrabold" : "text-slate-400 dark:text-slate-500 font-semibold"}`}
                     >
                       {lastMessages[r._id]
                         ? formatLastMessageText(lastMessages[r._id])
@@ -913,7 +913,7 @@ const ChatPage = () => {
 
           {/* User List */}
           {sortedDMs.length === 0 ? (
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center py-6 font-semibold">
+            <p className="text-[10px] text-[#8b73ee] dark:text-[#8b73ee] text-center py-6 font-semibold">
               No members found
             </p>
           ) : (
@@ -928,7 +928,7 @@ const ChatPage = () => {
                   activeChat === u._id
                     ? "bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-blue-900 dark:text-blue-300 font-bold"
                     : unreadCounts[u._id] > 0
-                      ? "bg-blue-50/20 dark:bg-blue-950/10 border border-blue-100/40 dark:border-blue-900/20 text-slate-800 dark:text-slate-200 font-extrabold shadow-sm ring-1 ring-blue-500/10"
+                      ? "bg-blue-50/20 dark:bg-blue-950/10 border border-blue-100/40 dark:border-blue-900/20 text-[#8b73ee] dark:text-[#8b73ee]  font-extrabold shadow-sm ring-1 ring-blue-500/10"
                       : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 text-slate-650 dark:text-slate-400 border border-transparent"
                 }`}
               >
@@ -940,7 +940,7 @@ const ChatPage = () => {
                       className="w-10 h-10 rounded-2xl object-cover border border-slate-200/80 dark:border-blue-500"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-blue-500 flex items-center justify-center font-bold text-slate-700 dark:text-slate-300 text-xs">
+                    <div className="w-10 h-10 rounded-2xl bg-[#8b73ee] dark:bg-[#8b73ee] text-[#8b73ee] dark:text-[#8b73ee]  border border-slate-200/80 dark:border-blue-500 flex items-center justify-center font-bold text-slate-700 dark:text-slate-300 text-xs">
                       {u.name.charAt(0)}
                     </div>
                   )}
@@ -948,7 +948,7 @@ const ChatPage = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800 dark:text-yellow-100 truncate block">
+                    <span className="text-xs font-bold text-[#8b73ee] dark:text-[#8b73ee] truncate block">
                       {u.name}
                     </span>
                     {unreadCounts[u._id] > 0 && (
@@ -958,7 +958,7 @@ const ChatPage = () => {
                     )}
                   </div>
                   <p
-                    className={`text-[10px] truncate mt-0.5 ${unreadCounts[u._id] > 0 ? "text-blue-600 dark:text-blue-400 font-extrabold" : "text-slate-400 dark:text-slate-500 font-semibold"}`}
+                    className={`text-[10px] truncate mt-0.5 ${unreadCounts[u._id] > 0 ? "text-[#8b73ee] dark:text-[#8b73ee] font-extrabold" : "text-slate-400 dark:text-slate-500 text-[#8b73ee] dark:text-[#8b73ee] font-semibold"}`}
                   >
                     {lastMessages[u._id]
                       ? formatLastMessageText(lastMessages[u._id])
@@ -989,7 +989,7 @@ const ChatPage = () => {
 
             {activeChat === "group" ? (
               <>
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold shadow-md shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-[#8b73ee] dark:bg-[#8b73ee] text-[#8b73ee] dark:text-[#8b73ee] border border-slate-200/80 dark:border-blue-500 flex items-center justify-center font-bold shadow-md shrink-0">
                   <FiLayers size={16} />
                 </div>
                 <div className="min-w-0">
@@ -1033,10 +1033,10 @@ const ChatPage = () => {
                   </div>
                 )}
                 <div className="min-w-0">
-                  <h3 className="text-xs font-black text-slate-800 dark:text-blue-500 leading-tight truncate max-w-[120px] sm:max-w-xs">
+                  <h3 className="text-xs font-black text-[#8b73ee] dark:text-[#8b73ee] leading-tight truncate max-w-[120px] sm:max-w-xs">
                     {activeChatUser.name}
                   </h3>
-                  <p className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold capitalize mt-0.5 leading-none truncate max-w-[120px] sm:max-w-xs">
+                  <p className="text-[9px]  text-[#8b73ee] dark:text-[#8b73ee] font-semibold capitalize mt-0.5 leading-none truncate max-w-[120px] sm:max-w-xs">
                     {activeChatUser.role}
                     {activeChatUser.department
                       ? ` — ${activeChatUser.department}`
@@ -1051,14 +1051,14 @@ const ChatPage = () => {
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={() => startCall("voice")}
-              className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer"
+              className="w-8 h-8 rounded-lg  bg-[#8b73ee] dark:bg-[#8b73ee] flex items-center justify-center text-white dark:text-white  transition-all cursor-pointer"
               title="Voice Call"
             >
               <FiPhone size={14} />
             </button>
             <button
               onClick={() => startCall("video")}
-              className="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all cursor-pointer"
+              className="w-8 h-8 rounded-lg  bg-[#8b73ee] dark:bg-[#8b73ee] flex items-center justify-center text-white dark:text-white  transition-all cursor-pointer"
               title="Video Call"
             >
               <FiVideo size={14} />
@@ -1070,15 +1070,15 @@ const ChatPage = () => {
         <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-3.5 scrollbar-thin bg-chat-wallpaper-light dark:bg-chat-wallpaper-dark">
           {loading ? (
             <div className="flex items-center justify-center h-full">
-              <span className="text-xs text-slate-400 dark:text-slate-500 font-semibold">
+              <span className="text-xs text-[#8b73ee] dark:text-[#8b73ee] font-semibold">
                 Loading conversation...
               </span>
             </div>
           ) : messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-slate-400 dark:text-slate-600">
+            <div className="flex flex-col items-center justify-center h-full text-[#8b73ee] dark:text-[#8b73ee]">
               <FiMessageSquare size={32} className="opacity-20 mb-2" />
               <p className="text-xs font-bold">Start the conversation</p>
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+              <p className="text-[10px] text-[#8b73ee] dark:text-[#8b73ee] mt-0.5">
                 Send stickers, call details, or messages
               </p>
             </div>
@@ -1121,7 +1121,7 @@ const ChatPage = () => {
                         className="w-7 h-7 rounded-lg object-cover border border-slate-300 dark:border-slate-800 shrink-0"
                       />
                     ) : (
-                      <div className="w-7 h-7 rounded-lg bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-[10px] font-black text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
+                      <div className="w-7 h-7 rounded-lg bg-[#8b73ee] dark:bg-[#8b73ee] text-[10px] font-black text-white dark:text-white flex items-center justify-center shrink-0">
                         {senderInitial}
                       </div>
                     ))}
@@ -1132,13 +1132,13 @@ const ChatPage = () => {
                     {/* Replied message block preview inside bubble */}
                     {m.replyTo && (
                       <div
-                        className={`mb-1.5 p-2 rounded-lg border-l-2 bg-slate-50/50 dark:bg-slate-950/30 text-[10px] text-slate-650 dark:text-slate-400 text-left max-w-xs ${
+                        className={`mb-1.5 p-2 rounded-lg border-l-2 bg-[#8b73ee] dark:bg-[#8b73ee] text-[10px] text-slate-650 dark:text-slate-400 text-left max-w-xs ${
                           isMe
                             ? "border-blue-300"
                             : "border-slate-400 dark:border-slate-600"
                         }`}
                       >
-                        <div className="font-extrabold text-slate-700 dark:text-slate-200 text-[9px] mb-0.5">
+                        <div className="font-extrabold text-[#8b73ee] dark:text-[#8b73ee] text-[9px] mb-0.5">
                           Replying to {m.replyTo.sender?.name || "User"}
                         </div>
                         <div className="truncate opacity-85 font-medium text-[10px]">
@@ -1166,7 +1166,7 @@ const ChatPage = () => {
                       <div
                         className={`rounded-[1.25rem] overflow-hidden shadow-sm border max-w-xs md:max-w-sm ${
                           isMe
-                            ? "bg-blue-600 text-white border-blue-500 rounded-tr-none"
+                            ? "bg-[#8b73ee] text-white border-[#8b73ee] rounded-tr-none"
                             : "bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-100 dark:border-slate-800 rounded-tl-none"
                         }`}
                       >
@@ -1238,7 +1238,7 @@ const ChatPage = () => {
                             onClick={(e) => e.stopPropagation()}
                             className="flex items-center gap-3 p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-all text-xs cursor-pointer"
                           >
-                            <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
+                            <div className="w-9 h-9 rounded-xl bg-white text-white dark:bg-slate-900 dark:text-slate-400 flex items-center justify-center shrink-0">
                               <FiFileText size={18} />
                             </div>
                             <div className="min-w-0 flex-1">
@@ -1260,7 +1260,7 @@ const ChatPage = () => {
                       <div
                         className={`px-4 py-2.5 rounded-[1.25rem] text-xs font-medium leading-relaxed break-words shadow-sm ${
                           isMe
-                            ? "bg-blue-600 text-white rounded-tr-none"
+                            ? "bg-[#8b73ee] dark:bg-[#8b73ee] text-white rounded-tr-none"
                             : "bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-800 rounded-tl-none"
                         }`}
                       >
@@ -1286,8 +1286,8 @@ const ChatPage = () => {
                               }}
                               className={`w-full py-1.5 px-3 rounded-lg text-[10px] font-black uppercase tracking-wider text-center cursor-pointer transition-all ${
                                 isMe
-                                  ? "bg-white text-blue-600 hover:bg-blue-50"
-                                  : "bg-blue-600 text-white hover:bg-blue-700 shadow shadow-blue-500/20"
+                                  ? "bg-red-500 text-white dark:bg-red-500 dark:text-white "
+                                  : "bg-[#8b73ee] text-white hover:bg-[#8b73ee] shadow shadow-[#8b73ee]/20"
                               }`}
                             >
                               Join Call Meeting

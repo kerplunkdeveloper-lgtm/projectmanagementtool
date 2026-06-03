@@ -220,7 +220,7 @@ button.bg-blue-600,
 button.bg-blue-500,
 button.bg-slate-900,
 .dashboard-btn-primary {
-  background: linear-gradient(to right, #111827, #000000) !important;
+  background: #8b73ee !important;
   color: #ffffff !important;
   border: none !important;
 }

@@ -54,7 +54,7 @@ const DashboardCards = () => {
       title: "No.of Active Clients",
       value: activeClientsCount,
       icon: FiBriefcase,
-      gradient: "from-yellow-600 via-amber-600 to-orange-600",
+      gradient: "from-yellow-400 via-amber-500 to-orange-400",
       iconBg: "bg-white/15 border border-white/10 backdrop-blur-md",
       titleColor: "text-yellow-100/90",
       valueColor: "text-white",
@@ -65,7 +65,7 @@ const DashboardCards = () => {
       title: "No.of Projects",
       value: activeProjectsCount,
       icon: FiBriefcase,
-      gradient: "from-blue-900 via-indigo-900 to-violet-900",
+      gradient: "from-blue-400 via-indigo-500 to-violet-400",
       iconBg: "bg-white/15 border border-white/10 backdrop-blur-md",
       titleColor: "text-blue-100/90",
       valueColor: "text-white",
@@ -77,7 +77,7 @@ const DashboardCards = () => {
       title: "Total Strength",
       value: teamStrengthCount,
       icon: FiUsers,
-      gradient: "from-emerald-500 via-teal-600 to-cyan-600",
+      gradient: "from-emerald-400 via-teal-500 to-cyan-400",
       iconBg: "bg-white/15 border border-white/10 backdrop-blur-md",
       titleColor: "text-emerald-100/90",
       valueColor: "text-white",
@@ -128,7 +128,7 @@ const DashboardCards = () => {
                     <p className={`text-[10px] font-bold uppercase tracking-wider ${card.titleColor}`}>
                       {card.title}
                     </p>
-                    <h2 className={`text-2xl sm:text-3xl font-extrabold tracking-tight mt-2 ${card.valueColor}`}>
+                    <h2 className={`text-2xl sm:text-3xl font-extrabold tracking-tight mt-2 ${card.titleColor}`}>
                       {card.value}
                     </h2>
                     <p className={`text-[10px] font-medium mt-2 opacity-80 ${card.titleColor}`}>
