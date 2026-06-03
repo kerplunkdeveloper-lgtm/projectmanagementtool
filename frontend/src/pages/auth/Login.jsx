@@ -66,16 +66,16 @@ const Login = () => {
   return (
     <div className="min-h-screen theme-bg-main flex flex-col lg:flex-row ">
       {/* TOP / LEFT SIDE IMAGE SECTION */}
-      <div className="relative w-full h-[35vh] sm:h-[45vh] lg:h-[100vh] lg:w-7/12 overflow-hidden bg-black flex items-center justify-center shadow-2xl shrink-0 z-0">
+      <div className="relative w-full h-[35vh] sm:h-[45vh] lg:h-[95vh] lg:w-7/11  overflow-hidden  flex items-center justify-center shrink-0 z-0">
         <img
           src={lightlogin}
           alt="Project Management Light"
-          className="absolute inset-0 w-full h-full object-cover block dark:hidden  hover:scale-105 transition-transform duration-[15s] ease-out"
+          className="absolute inset-0 w-full h-full md:mt-10   object-cover block dark:hidden  hover:scale-105 transition-transform duration-[15s] ease-out"
         />
         <img
           src={darklogin}
           alt="Project Management Dark"
-          className="absolute inset-0 w-full h-full object-cover hidden dark:block  hover:scale-105 transition-transform duration-[15s] ease-out"
+          className="absolute inset-0 w-full h-full mt-10 object-cover hidden dark:block  hover:scale-105 transition-transform duration-[15s] ease-out"
         />
       </div>
 
@@ -141,7 +141,7 @@ const Login = () => {
     w-full
 
     h-[55px]
-    lg:h-[66px]
+    lg:h-[55px]
 
     rounded-xl
 
@@ -210,7 +210,7 @@ const Login = () => {
                     Developed by
                   </span>
 
-                  <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 animate-pulse">
+                  <span className="  text-gray-600 dark:text-gray-300 ">
                     Kerplunk Media
                   </span>
                 </span>

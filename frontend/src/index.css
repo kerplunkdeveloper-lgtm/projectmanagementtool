@@ -49,8 +49,8 @@ aside {
 .dark {
   /* Premium Dark Mode Palette */
   --color-white: #18181b; /* Cards / Sidebar */
-  --color-slate-50: #171719; /* Body Background */
-  --color-gray-50: #171719; 
+  --color-slate-50: #151516; /* Body Background */
+  --color-gray-50: #151516; 
   --color-slate-100: #27272a; /* Borders */
   --color-gray-100: #27272a; 
   --color-slate-200: #3f3f46; 
@@ -231,7 +231,7 @@ button.bg-slate-900,
 .dark button.bg-blue-500,
 .dark button.bg-slate-900,
 .dark .dashboard-btn-primary {
-  background: #e5ff00 !important;
+  background: #775be2 !important;
   color: #151414 !important;
 }
 
