@@ -158,12 +158,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           hover: {
                             rotate: 10,
                             scale: 1.25,
-                            color: isActive ? "#ffffff" : "#06b6d4",
                           },
                           initial: {
                             rotate: 0,
                             scale: 1,
-                            color: isActive ? "#ffffff" : "currentColor",
                           },
                         }}
                         className="shrink-0"
