@@ -157,7 +157,7 @@ const Profile = () => {
               {/* PHONE + ADDRESS */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Phone Number</label>
+                  <label className="block text-xs font-semibold mb-1.5">Phone Number</label>
                   <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
                     <FiPhone size={13} className="text-blue-400 shrink-0" />
                     <input
@@ -166,7 +166,7 @@ const Profile = () => {
                       value={formData.phone}
                       onChange={handleChange}
                       placeholder="+91 98765 43210"
-                      className="w-full bg-transparent py-2 text-sm text-slate-700 outline-none"
+                      className="w-full bg-transparent py-2 text-sm dark:text-white outline-none"
                     />
                   </div>
                 </div>
