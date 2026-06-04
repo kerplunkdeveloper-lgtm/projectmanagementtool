@@ -252,7 +252,7 @@ const Clients = () => {
       {/* LOADING LOADER */}
       {loading && (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <div className="w-10 h-10 border-[3.5px] border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-10 h-10 border-[3.5px]  rounded-full animate-spin"></div>
           <span className="text-xs text-slate-400 font-semibold animate-pulse">Syncing client details...</span>
         </div>
       )}
@@ -261,12 +261,12 @@ const Clients = () => {
       {!loading && (
         <motion.div 
           layout
-          className="theme-bg-card border theme-border rounded-2xl shadow-sm overflow-hidden"
+          className=" border theme-border rounded-2xl shadow-sm overflow-hidden"
         >
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse whitespace-nowrap min-w-[900px]">
               <thead>
-                <tr className="theme-bg-main border-b theme-border text-[10px] uppercase tracking-wider theme-text-secondary font-black">
+                <tr className="border-b theme-border text-[10px] uppercase tracking-wider theme-text-secondary font-black">
                   <th className="px-5 py-4">Client Details</th>
                   <th className="px-5 py-4">Contact Info</th>
                   <th className="px-5 py-4">Service & Plan</th>
@@ -288,16 +288,14 @@ const Clients = () => {
                           exit={{ opacity: 0, scale: 0.95 }}
                           transition={{ duration: 0.2 }}
                           key={client._id}
-                          className="border-b theme-border hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group"
+                          className="border-b theme-border hover:bg-[#8b73ee]/5  dark:hover:bg-slate-800/50 hover:border-[#8b73ee] transition-colors group"
                         >
                           {/* Client Info */}
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-3">
-                              <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${conf.gradient} text-white flex items-center justify-center text-xs font-black shrink-0 shadow-sm`}>
-                                {client.companyName?.charAt(0).toUpperCase()}
-                              </div>
+                             
                               <div className="min-w-[120px]">
-                                <h2 className="text-[13px] font-black theme-text-primary group-hover:text-blue-600 transition-colors truncate">
+                                <h2 className="text-[13px] text-[#8b73ee] font-extrabold transition-colors truncate">
                                   {client.companyName}
                                 </h2>
                                 <p className="text-[10px] theme-text-secondary font-bold flex items-center gap-1.5 mt-0.5 truncate">
@@ -357,7 +355,7 @@ const Clients = () => {
                           <td className="px-5 py-4">
                             <div className="space-y-1">
                               <p className="text-[10px] theme-text-secondary font-bold">
-                                Base: <span className="theme-text-primary font-black">₹{Number(client.budget || 0).toLocaleString("en-IN")}</span>
+                                Base: <span className="">₹{Number(client.budget || 0).toLocaleString("en-IN")}</span>
                               </p>
                               <p className="text-[10px] theme-text-secondary font-bold">
                                 Total: <span className="text-emerald-600 dark:text-emerald-400 font-black">₹{Number(client.totalBudget || 0).toLocaleString("en-IN")}</span>

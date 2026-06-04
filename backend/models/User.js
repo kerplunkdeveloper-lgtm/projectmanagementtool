@@ -32,6 +32,8 @@ const userSchema = new mongoose.Schema({
   department: {
     type: String,
     enum: [
+      "Managing partner",
+      "operationmanager",
       "Social Media Team",
       "Website Team",
       "Designer Team",
@@ -40,9 +42,6 @@ const userSchema = new mongoose.Schema({
       "Cameraman Team",
       "SEO Team",
     ],
-    required: function () {
-      return this.role === "team";
-    },
   },
 
   salary: {

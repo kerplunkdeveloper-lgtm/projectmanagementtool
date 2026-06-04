@@ -237,14 +237,14 @@ button.bg-slate-900,
 
 /* Dashboard Table Heading Override */
 thead th, thead tr {
-  background: linear-gradient(to right, #111827, #000000) !important;
+  background: #8b73ee !important;
   color: #ffffff !important;
   border: none !important;
 }
 
 .dark thead th, .dark thead tr {
-  background: #1c1c1c !important;
-  color: #f1f5f9 !important;
+  background: #8b73ee !important;
+  color: #ffffff !important;
 }
 
 /* =========================================
