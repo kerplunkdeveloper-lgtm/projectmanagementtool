@@ -112,7 +112,7 @@ const Profile = () => {
             </div>
 
             {/* NAME + ROLE */}
-            <h2 className="text-base font-bold text-slate-800">{user?.name || "User"}</h2>
+            <h2 className="text-base font-bold text-slate-800 dark:text-yellow-50">{user?.name || "User"}</h2>
             <span className="mt-1 px-3 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-semibold uppercase tracking-wider">
               {user?.role || "Team"}
             </span>
@@ -136,14 +136,14 @@ const Profile = () => {
           </div>
 
           {/* ── RIGHT CARD ── */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+          <div className=" border border-gray-200 rounded-2xl p-5 shadow-sm">
             <h2 className="text-sm font-bold text-slate-800 mb-4 dark:text-yellow-50">Edit Information</h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">
 
               {/* BIO */}
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Bio</label>
+                <label className="block text-xs font-semibold  mb-1.5">Bio</label>
                 <textarea
                   rows="3"
                   name="bio"
@@ -157,7 +157,7 @@ const Profile = () => {
               {/* PHONE + ADDRESS */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold mb-1.5">Phone Number</label>
+                  <label className="block text-xs font-semibold text-slate-800 dark:text-yellow-50 mb-1.5">Phone Number</label>
                   <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
                     <FiPhone size={13} className="text-blue-400 shrink-0" />
                     <input
@@ -165,14 +165,14 @@ const Profile = () => {
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
-                      placeholder="+91 98765 43210"
-                      className="w-full bg-transparent py-2 text-sm dark:text-white outline-none"
+                      placeholder="Enter your phone number"
+                      className="w-full bg-transparent py-2 px-2 text-sm outline-none"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 mb-1.5">Address</label>
+                  <label className="block text-xs font-semibold text-slate-800 dark:text-yellow-50 mb-1.5">Address</label>
                   <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 focus-within:border-pink-400 focus-within:ring-2 focus-within:ring-pink-100 transition-all">
                     <FiMapPin size={13} className="text-pink-400 shrink-0" />
                     <input
@@ -181,7 +181,7 @@ const Profile = () => {
                       value={formData.address}
                       onChange={handleChange}
                       placeholder="City, State"
-                      className="w-full bg-transparent py-2 text-sm text-slate-700 outline-none"
+                      className="w-full bg-transparent py-2 text-sm px-2 dark:text-white outline-none"
                     />
                   </div>
                 </div>
@@ -189,7 +189,7 @@ const Profile = () => {
 
               {/* EMAIL (disabled) */}
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Email Address</label>
+                <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">Email Address</label>
                 <div className="flex items-center gap-2 bg-gray-100 border border-gray-200 rounded-xl px-3">
                   <FiMail size={13} className="text-gray-400 shrink-0" />
                   <input

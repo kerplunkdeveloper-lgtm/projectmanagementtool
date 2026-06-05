@@ -86,7 +86,7 @@ const StatCard = ({
         </div>
       </div>
 
-      <h2 className="text-2xl font-black text-white leading-none mb-2 relative z-10 tracking-tight drop-shadow-sm">
+      <h2 className="text-3xl text-white  font-semibold  leading-none mb-2 relative z-10  drop-shadow-sm">
         {formatINR(value)}
       </h2>
 
@@ -157,7 +157,7 @@ const RevenueStatCards = ({
 
       subType: "up",
 
-      bg: "bg-gradient-to-br from-green-400 via-green-500 to-green-400",
+      bg: "bg-gradient-to-br from-green-800 via-green-500 to-green-800",
 
       glow:
         "from-green-400 to-green-400",
@@ -175,7 +175,7 @@ const RevenueStatCards = ({
 
       subType: "neutral",
 
-      bg: "bg-gradient-to-br from-blue-400 via-blue-500 to-blue-400",
+      bg: "bg-gradient-to-br from-blue-800 via-violet-500 to-blue-800",
 
       glow:
         "from-blue-400 to-blue-400",
@@ -198,7 +198,7 @@ const RevenueStatCards = ({
           ? "up"
           : "down",
 
-      bg: "bg-gradient-to-br from-red-500 via-red-500 to-red-500",
+      bg: "bg-gradient-to-br from-red-800 via-pink-500 to-red-800",
 
       glow:
         "from-red-400 to-red-400",

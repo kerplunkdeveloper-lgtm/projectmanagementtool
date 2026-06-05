@@ -17,7 +17,7 @@ html {
 
 @media (min-width: 1024px) {
   html {
-    font-size: 16px; /* Desktop/Laptop standard size */
+    font-size: 17px; /* Desktop/Laptop standard size */
   }
 }
 
@@ -48,9 +48,9 @@ aside {
 
 .dark {
   /* Premium Dark Mode Palette */
-  --color-white: #18181b; /* Cards / Sidebar */
-  --color-slate-50: #151516; /* Body Background */
-  --color-gray-50: #151516; 
+  --color-white: #000000; /* Cards / Sidebar */
+  --color-slate-50: #000000; /* Body Background */
+  --color-gray-50: #000000; 
   --color-slate-100: #27272a; /* Borders */
   --color-gray-100: #27272a; 
   --color-slate-200: #3f3f46; 

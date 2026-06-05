@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import lightlogin from "../../assets/lightlogin.jpeg";
-import darklogin from "../../assets/darklogin.jpeg";
+import darklogin from "../../assets/darklogin.jpg";
 
 const Login = () => {
   const dispatch = useDispatch();

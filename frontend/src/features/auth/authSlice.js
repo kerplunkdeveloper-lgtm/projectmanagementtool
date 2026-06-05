@@ -114,12 +114,14 @@ const authSlice = createSlice({
       // LOGIN
       .addCase(loginUser.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
 
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
         state.user = action.payload.data.user;
         state.token = action.payload.token;
+        state.error = null;
 
         localStorage.setItem(
           "user",
@@ -144,6 +146,7 @@ const authSlice = createSlice({
         state.originalRole = null;
         state.originalAdminUser = null;
         state.originalAdminToken = null;
+        state.error = null;
 
         localStorage.removeItem("user");
         localStorage.removeItem("token");
@@ -155,6 +158,7 @@ const authSlice = createSlice({
       // IMPERSONATE
       .addCase(impersonateUser.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(impersonateUser.fulfilled, (state, action) => {
         state.loading = false;
@@ -169,6 +173,7 @@ const authSlice = createSlice({
 
         state.user = action.payload.data.user;
         state.token = action.payload.token;
+        state.error = null;
 
         localStorage.setItem(
           "user",

@@ -19,7 +19,7 @@ const OverheadConfig = ({ overheads, onUpdate }) => {
             <FiBriefcase size={14} />
           </div>
           <div>
-            <h3 className="text-slate-800 font-bold text-sm leading-tight">
+            <h3 className="text-[#775be2] font-bold text-sm leading-tight">
               Overhead Config
             </h3>
             <p className="text-[10px] text-gray-400">Manage operational overheads</p>
@@ -27,7 +27,7 @@ const OverheadConfig = ({ overheads, onUpdate }) => {
         </div>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-1 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 hover:text-slate-800 font-semibold text-xs rounded-xl transition-colors shadow-sm"
+          className="flex items-center gap-1 px-3 py-1.5 bg-[#775be2] hover:bg-[#775be2]/80 border border-[#775be2] text-white hover:text-slate-800 font-semibold text-xs rounded-xl transition-colors shadow-sm"
         >
           <FiEdit2 size={12} /> Edit
         </button>
@@ -61,7 +61,7 @@ const OverheadConfig = ({ overheads, onUpdate }) => {
         
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="w-full py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-bold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-1 active:scale-98"
+          className="w-full py-2 bg-[#775be2] hover:bg-[#775be2]/80 border border-[#775be2] text-white font-semibold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-1 active:scale-98"
         >
           <FiPlus size={14} /> Update Overhead
         </button>

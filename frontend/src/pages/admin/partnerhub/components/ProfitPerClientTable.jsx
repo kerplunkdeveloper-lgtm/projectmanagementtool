@@ -24,7 +24,7 @@ const ProfitPerClientTable = ({ clients }) => {
             <FiDollarSign size={14} />
           </div>
           <div>
-            <h3 className="text-slate-800 font-bold text-sm leading-tight">
+            <h3 className="text-[#775be2] font-bold text-sm leading-tight">
               Profit per Client
             </h3>
             <p className="text-[10px] text-gray-400">Current active monthly breakdown</p>

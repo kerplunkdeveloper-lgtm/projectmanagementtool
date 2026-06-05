@@ -123,13 +123,54 @@ const PartnerHub = () => {
     }
   };
 
+  const handleExportCSV = () => {
+    let csvContent = "data:text/csv;charset=utf-8,";
+
+    // 1. Overview Section
+    csvContent += "Financial Overview\n";
+    csvContent += "Total Revenue,Total Cost,Net Profit,Margin (%),Total Overhead\n";
+    csvContent += `${revenueData.totalRevenue},${revenueData.totalCost},${revenueData.netProfit},${revenueData.marginPercent}%,${revenueData.overhead}\n\n`;
+
+    // 2. Client Profit Data
+    csvContent += "Client Profitability\n";
+    csvContent += "Project Name,Revenue,Profit,Margin (%)\n";
+    clientProfitData.forEach(client => {
+      csvContent += `"${client.name || ''}",${client.revenue},${client.profit},${client.margin}%\n`;
+    });
+    csvContent += "\n";
+
+    // 3. Project Categories
+    csvContent += "Project Categories\n";
+    csvContent += "Category,Project Count,Revenue\n";
+    projectCategoriesArray.forEach(cat => {
+      csvContent += `"${cat.name || ''}",${cat.count},${cat.revenue}\n`;
+    });
+    csvContent += "\n";
+
+    // 4. Overheads
+    csvContent += "Operational Overheads\n";
+    csvContent += "Item,Amount\n";
+    overheadItems.forEach(item => {
+      csvContent += `"${item.name || ''}",${item.amount}\n`;
+    });
+    csvContent += "\n";
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Financial_Report_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="min-h-screen">
       {/* Navigation */}
       <FinancialsNav
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onExport={() => window.print()}
+        onExport={handleExportCSV}
       />
 
       {/* Tab Content area */}

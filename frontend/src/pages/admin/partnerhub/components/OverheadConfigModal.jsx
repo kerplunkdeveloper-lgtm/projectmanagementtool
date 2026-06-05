@@ -59,7 +59,7 @@ const OverheadConfigModal = ({ isOpen, onClose, currentOverheads, onUpdate }) =>
         
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-100">
-          <h2 className="text-slate-800 text-sm font-bold flex items-center gap-1.5">
+          <h2 className="text-[#775be2] text-sm font-bold flex items-center gap-1.5">
             <span>🏢</span> Operational Overheads
           </h2>
           <button 
