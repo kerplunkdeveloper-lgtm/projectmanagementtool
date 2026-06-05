@@ -14,7 +14,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <ThemeProvider>
         <App />
         <Toaster 
-          position="top-center"
+          position="bottom-right"
           toastOptions={{
             className: "!theme-bg-card !theme-text-primary !border !theme-border !shadow-2xl !rounded-2xl !text-sm !font-bold !tracking-wide !px-4 !py-3",
             duration: 4000,

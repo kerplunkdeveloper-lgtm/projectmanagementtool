@@ -47,6 +47,13 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   const { unreadCounts = {} } = useSelector((state) => state.chat);
   const totalUnreadChatCount = Object.values(unreadCounts).reduce((sum, val) => sum + (val || 0), 0);
   const [isWorkOpen, setIsWorkOpen] = useState(true);
+  const [isProjectsMenuOpen, setIsProjectsMenuOpen] = useState(location.pathname.includes("/projects"));
+
+  useEffect(() => {
+    if (location.pathname.includes("/projects")) {
+      setIsProjectsMenuOpen(true);
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     dispatch(getProjects());
@@ -130,136 +137,204 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
             return (
               <React.Fragment key={item.path}>
-                <NavLink
-                  to={item.path}
-                  onClick={() => setSidebarOpen(false)}
-                  end={
-                    item.path === "/admin" ||
-                    item.path === "/operationmanager" ||
-                    item.path === "/team"
-                  }
-                  className={({ isActive }) => {
-                    const activeClass = isActive
-                      ? ` dashboard-btn-primary shadow-md`
-                      : `theme-text-primary border-transparent hover:theme-bg-main hover:theme-text-primary`;
-
-                    return `block rounded-xl border transition-all duration-200 ${activeClass}`;
-                  }}
-                >
-                  {({ isActive }) => (
-                    <motion.div
-                      className="flex items-center gap-3 px-3 py-2.5 w-full"
-                      initial="initial"
-                      whileHover="hover"
-                      whileTap="tap"
-                      variants={{
-                        hover: { x: 4 },
-                        tap: { scale: 0.98 },
-                      }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 400,
-                        damping: 18,
-                      }}
+                {item.name === "Projects" ? (
+                  <div className="space-y-1">
+                    {/* Main Projects Toggle Button */}
+                    <button
+                      onClick={() => setIsProjectsMenuOpen(!isProjectsMenuOpen)}
+                      className={`w-full flex items-center justify-between rounded-xl border transition-all duration-200 px-3 py-2.5 ${
+                        location.pathname.includes("/projects")
+                          ? "dashboard-btn-primary shadow-sm"
+                          : "theme-text-primary border-transparent hover:theme-bg-main hover:theme-text-primary"
+                      }`}
                     >
-                      <motion.div
-                        variants={{
-                          hover: {
-                            rotate: 10,
-                            scale: 1.25,
-                          },
-                          initial: {
-                            rotate: 0,
-                            scale: 1,
-                          },
-                        }}
-                        className="shrink-0"
+                      <div className="flex items-center gap-3">
+                        <span className="shrink-0">
+                          <Icon size={16} />
+                        </span>
+                        <span className="text-xs lg:text-[11px] xl:text-xs font-semibold">
+                          Projects
+                        </span>
+                      </div>
+                      <svg
+                        className={`w-3 h-3 transform transition-transform duration-200 ${
+                          isProjectsMenuOpen ? "rotate-180" : ""
+                        }`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
                       >
-                        <Icon size={16} />
-                      </motion.div>
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2.5}
+                          d="M19 9l-7 7-7-7"
+                        />
+                      </svg>
+                    </button>
 
-                      <span className="text-xs lg:text-[11px] xl:text-xs font-semibold truncate">
-                        {item.name}
-                      </span>
-
-                      {item.name === "Notifications" && unreadCount > 0 && (
-                        <span className="ml-auto min-w-[16px] h-[16px] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse">
-                          {unreadCount}
-                        </span>
-                      )}
-
-                      {item.name === "Chat" && totalUnreadChatCount > 0 && (
-                        <span className="ml-auto min-w-[16px] h-[16px] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse">
-                          {totalUnreadChatCount}
-                        </span>
-                      )}
-                    </motion.div>
-                  )}
-                </NavLink>
-
-                {item.name === "Projects management" &&
-                  projects &&
-                  projects.length > 0 && (
-                    <div className="space-y-1 pt-1 pb-2 theme-bg-main rounded-2xl border theme-border pl-4 pr-2 mt-1">
-                      <button
-                        onClick={() => setIsWorkOpen(!isWorkOpen)}
-                        className="w-full flex items-center justify-between gap-2 py-1 theme-text-primary hover:theme-text-secondary transition-all font-bold"
-                      >
-                        <span className="text-[10px] font-semibold uppercase tracking-wider">
-                          My Projects
-                        </span>
-                        <svg
-                          className={`w-3 h-3 transform transition-transform duration-200 ${isWorkOpen ? "rotate-180" : ""}`}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
+                    {/* Submenu Accordion Panel */}
+                    {isProjectsMenuOpen && (
+                      <div className="pl-3.5 pr-2 py-2 space-y-2.5 theme-bg-main rounded-2xl border theme-border mt-1 transition-all">
+                        {/* Nested Item 1: Projects Management Link */}
+                        <NavLink
+                          to={item.path}
+                          onClick={() => setSidebarOpen(false)}
+                          className={({ isActive }) =>
+                            `flex items-center gap-2 text-[10px] font-bold py-1.5 rounded-lg px-2 transition-colors ${
+                              isActive && !activeProjectId
+                                ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400"
+                                : "theme-text-secondary hover:theme-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/40"
+                            }`
+                          }
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2.5}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      </button>
+                          <FiFolder size={12} className="shrink-0 text-slate-400 dark:text-slate-500" />
+                          <span>Projects Management</span>
+                        </NavLink>
 
-                      {isWorkOpen && (
-                        <div className="pl-3.5 space-y-1 overflow-y-auto max-h-[160px] scrollbar-thin">
-                          {projects.map((project, index) => {
-                            const isActive = activeProjectId === project._id;
-                            return (
-                              <button
-                                key={project._id}
-                                onClick={() => {
-                                  setSidebarOpen(false);
-                                  navigate(`/${role}/projects?id=${project._id}`);
-                                }}
-                                className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1.5 rounded-lg px-1.5 transition-colors group ${
-                                  isActive
-                                    ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400"
-                                    : "theme-text-secondary hover:theme-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                        {/* Nested Item 2: My Projects Accordion */}
+                        {projects && projects.length > 0 && (
+                          <div className="space-y-1">
+                            <button
+                              onClick={() => setIsWorkOpen(!isWorkOpen)}
+                              className="w-full flex items-center justify-between gap-2 py-1 px-2 theme-text-primary hover:theme-text-secondary transition-all font-bold"
+                            >
+                              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                                My Projects
+                              </span>
+                              <svg
+                                className={`w-2.5 h-2.5 transform transition-transform duration-200 ${
+                                  isWorkOpen ? "rotate-180" : ""
                                 }`}
-                                title={project.name}
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
                               >
-                                <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${projectColors[index % projectColors.length]} group-hover:scale-110 transition-transform`}>
-                                  <span className="text-[8px] font-black uppercase opacity-90">{project.name.charAt(0)}</span>
-                                </div>
-                                <span className="truncate">{project.name}</span>
-                                {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2.5}
+                                  d="M19 9l-7 7-7-7"
+                                />
+                              </svg>
+                            </button>
+
+                            {isWorkOpen && (
+                              <div className="pl-2 space-y-0.5 overflow-y-auto max-h-[160px] scrollbar-thin">
+                                {projects.map((project, index) => {
+                                  const isActive = activeProjectId === project._id;
+                                  return (
+                                    <button
+                                      key={project._id}
+                                      onClick={() => {
+                                        setSidebarOpen(false);
+                                        navigate(`/${role}/projects?id=${project._id}`);
+                                      }}
+                                      className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1.5 rounded-lg px-1.5 transition-colors group ${
+                                        isActive
+                                          ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-bold"
+                                          : "theme-text-secondary hover:theme-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/40"
+                                      }`}
+                                      title={project.name}
+                                    >
+                                      <div
+                                        className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${
+                                          projectColors[index % projectColors.length]
+                                        } group-hover:scale-110 transition-transform`}
+                                      >
+                                        <span className="text-[8px] font-black uppercase opacity-90">
+                                          {project.name.charAt(0)}
+                                        </span>
+                                      </div>
+                                      <span className="truncate">{project.name}</span>
+                                      {isActive && (
+                                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <NavLink
+                    to={item.path}
+                    onClick={() => setSidebarOpen(false)}
+                    end={
+                      item.path === "/admin" ||
+                      item.path === "/operationmanager" ||
+                      item.path === "/team"
+                    }
+                    className={({ isActive }) => {
+                      const activeClass = isActive
+                        ? ` dashboard-btn-primary shadow-md`
+                        : `theme-text-primary border-transparent hover:theme-bg-main hover:theme-text-primary`;
+
+                      return `block rounded-xl border transition-all duration-200 ${activeClass}`;
+                    }}
+                  >
+                    {({ isActive }) => (
+                      <motion.div
+                        className="flex items-center gap-3 px-3 py-2.5 w-full"
+                        initial="initial"
+                        whileHover="hover"
+                        whileTap="tap"
+                        variants={{
+                          hover: { x: 4 },
+                          tap: { scale: 0.98 },
+                        }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 18,
+                        }}
+                      >
+                        <motion.div
+                          variants={{
+                            hover: {
+                              rotate: 10,
+                              scale: 1.25,
+                            },
+                            initial: {
+                              rotate: 0,
+                              scale: 1,
+                            },
+                          }}
+                          className="shrink-0"
+                        >
+                          <Icon size={16} />
+                        </motion.div>
+
+                        <span className="text-xs lg:text-[11px] xl:text-xs font-semibold truncate">
+                          {item.name}
+                        </span>
+
+                        {item.name === "Notifications" && unreadCount > 0 && (
+                          <span className="ml-auto min-w-[16px] h-[16px] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse">
+                            {unreadCount}
+                          </span>
+                        )}
+
+                        {item.name === "Chat" && totalUnreadChatCount > 0 && (
+                          <span className="ml-auto min-w-[16px] h-[16px] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse">
+                            {totalUnreadChatCount}
+                          </span>
+                        )}
+                      </motion.div>
+                    )}
+                  </NavLink>
+                )}
               </React.Fragment>
             );
           })}
 
           {/* FALLBACK FOR ROLES WITHOUT PROJECTS LISTED */}
           {role !== "team" &&
-            !menuItems.some((item) => item.name === "Projects") &&
+            !menuItems.some((item) => item.name === "Projects" || item.name === "Projects management") &&
             projects &&
             projects.length > 0 && (
               <div className="space-y-1 pt-2 px-2.5">

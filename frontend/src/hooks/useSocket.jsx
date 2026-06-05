@@ -57,22 +57,22 @@ const useSocket = () => {
           <div
             className={`${
               t.visible ? 'animate-enter' : 'animate-leave'
-            } max-w-md w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-[0_15px_40px_rgba(0,0,0,0.12)] border border-slate-100 dark:border-slate-800 rounded-2xl pointer-events-auto flex items-center p-4 pr-10 relative`}
+            } max-w-[340px] w-full bg-gradient-to-r from-blue-600 to-indigo-700 shadow-[0_12px_30px_rgba(59,130,246,0.25)] border border-blue-500/30 rounded-xl pointer-events-auto flex items-center p-3 pr-8 relative`}
           >
-            {/* Animated Pulsing Bell Icon */}
+            {/* White/Glass Icon Wrapper */}
             <div className="flex-shrink-0 relative">
-              <div className="absolute inset-0 bg-blue-500/20 rounded-xl animate-pulse" />
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-md relative z-10">
-                <FiBell size={18} />
+              <div className="absolute inset-0 bg-white/20 rounded-lg animate-pulse" />
+              <div className="h-8 w-8 rounded-lg bg-white flex items-center justify-center text-blue-600 shadow-sm relative z-10">
+                <FiBell size={14} />
               </div>
             </div>
 
             {/* Content text */}
-            <div className="ml-4 flex-1 min-w-0">
-              <p className="text-[10px] font-black text-slate-800 dark:text-yellow-50 tracking-wider uppercase">
+            <div className="ml-3 flex-1 min-w-0">
+              <p className="text-[9px] font-bold text-blue-200 tracking-wider uppercase">
                 New Notification
               </p>
-              <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
+              <p className="mt-0.5 text-[11px] font-bold text-white leading-normal">
                 {notification.message}
               </p>
             </div>
@@ -80,9 +80,9 @@ const useSocket = () => {
             {/* Top-Right Dismiss Button */}
             <button
               onClick={() => toast.dismiss(t.id)}
-              className="absolute top-3 right-3 w-6 h-6 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+              className="absolute top-2.5 right-2.5 w-5 h-5 rounded-md hover:bg-white/10 flex items-center justify-center text-blue-100 hover:text-white transition-colors"
             >
-              <FiX size={14} />
+              <FiX size={12} />
             </button>
           </div>
         ), { duration: 5000 });

@@ -23,9 +23,15 @@ export const sidebarConfig = {
       icon: LuBuilding2,
     },
     {
-      name: "Projects management",
+      name: "Projects",
       path: "/admin/projects",
       icon: LuFolderKanban,
+    },
+
+    {
+      name: "Tasks",
+      path: "/admin/tasks",
+      icon: LuClipboardCheck,
     },
     {
       name: "Template Library",
@@ -71,7 +77,7 @@ export const sidebarConfig = {
       icon: FiHome,
     },
     {
-      name: "Projects management",
+      name: "Projects",
       path: "/operationmanager/projects",
       icon: LuFolderKanban,
     },
