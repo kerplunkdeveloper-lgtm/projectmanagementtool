@@ -92,17 +92,10 @@ exports.getProfile = async (req, res) => {
 
 // UPDATE PROFILE
 exports.updateProfile = async (req, res) => {
-
   try {
+    const { bio, phone, address } = req.body;
 
-    const {
-      bio,
-      phone,
-      address,
-    } = req.body;
-
-    const user = await User.findById(req.user.id)
-      .populate("profile");
+    const user = await User.findById(req.user.id).populate("profile");
 
     if (!user.profile) {
       return res.status(404).json({
@@ -111,33 +104,40 @@ exports.updateProfile = async (req, res) => {
       });
     }
 
-    const profile = await Profile.findById(user.profile._id);
+    const profile = user.profile;
 
-    profile.bio = bio || profile.bio;
-    profile.phone = phone || profile.phone;
-    profile.address = address || profile.address;
-
+    if (bio !== undefined) profile.bio = bio;
+    if (phone !== undefined) profile.phone = phone;
+    if (address !== undefined) profile.address = address;
 
     // IMAGE UPDATE
     if (req.file) {
-
       // DELETE OLD IMAGE
-      if (profile.profileImage.public_id) {
-
-        await cloudinary.uploader.destroy(
-          profile.profileImage.public_id
-        );
+      if (profile.profileImage && profile.profileImage.public_id) {
+        try {
+          await cloudinary.uploader.destroy(profile.profileImage.public_id);
+        } catch (err) {
+          console.error("Cloudinary destroy error:", err);
+        }
       }
 
       // UPLOAD NEW IMAGE
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: "profiles",
-      });
+      try {
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: "profiles",
+        });
 
-      profile.profileImage = {
-        public_id: result.public_id,
-        url: result.secure_url,
-      };
+        profile.profileImage = {
+          public_id: result.public_id,
+          url: result.secure_url,
+        };
+      } catch (uploadErr) {
+        console.error("CLOUDINARY UPLOAD REJECTED:", uploadErr);
+        return res.status(400).json({
+          success: false,
+          message: "Cloudinary rejected the image: " + (uploadErr.message || JSON.stringify(uploadErr)),
+        });
+      }
     }
 
     await profile.save();
@@ -148,7 +148,8 @@ exports.updateProfile = async (req, res) => {
     });
 
   } catch (error) {
-
+    require('fs').writeFileSync('error.txt', error.stack || error.message);
+    console.error("UPDATE PROFILE ERROR:", error);
     res.status(500).json({
       success: false,
       message: error.message,
@@ -169,7 +170,7 @@ exports.deleteProfileImage = async (req, res) => {
 
     const profile = await Profile.findById(user.profile._id);
 
-    if (profile.profileImage.public_id) {
+    if (profile.profileImage && profile.profileImage.public_id) {
 
       await cloudinary.uploader.destroy(
         profile.profileImage.public_id

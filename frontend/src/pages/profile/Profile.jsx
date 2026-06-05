@@ -58,7 +58,11 @@ const Profile = () => {
 
     toast.promise(
       dispatch(profile ? updateProfile(data) : createProfile(data)).unwrap(),
-      { loading: "Saving...", success: "Profile updated!", error: "Failed to update" }
+      {
+        loading: "Saving...",
+        success: "Profile updated!",
+        error: (err) => `Failed: ${typeof err === 'object' ? JSON.stringify(err) : (err || "Unknown error")}`,
+      }
     );
   };
 

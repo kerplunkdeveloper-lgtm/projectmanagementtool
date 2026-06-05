@@ -6,7 +6,6 @@ import {
   FiPlus,
   FiUser,
   FiCalendar,
-  FiSearch,
   FiInfo,
   FiX,
   FiTrash2,
@@ -974,13 +973,13 @@ const Project = () => {
       {/* FILTER AND SEARCH BAR */}
       <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
         <div className="flex-1 relative">
-          <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+         
           <input
             type="text"
             placeholder="Search projects..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-11 pr-4 py-3 rounded-2xl bg-slate-50 border border-slate-100 focus:outline-none focus:border-blue-500 focus:bg-white text-sm text-slate-700 transition-all"
+            className="w-full pl-11 pr-4  py-3 rounded-2xl bg-slate-50 border border-slate-100 focus:outline-none focus:border-blue-500 focus:bg-white text-sm text-slate-700 transition-all"
           />
         </div>
         <div className="relative shrink-0 w-full md:w-auto">

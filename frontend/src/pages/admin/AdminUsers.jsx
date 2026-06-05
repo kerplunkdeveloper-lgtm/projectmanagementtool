@@ -245,10 +245,10 @@ const AdminUsers = () => {
       {totalEntries > 0 && (
         <div className="mt-2 flex flex-col md:flex-row items-center justify-between gap-6 px-2">
           {/* Count Details */}
-          <p className="text-black text-[10px] font-medium order-2 md:order-1">
-            Showing <span className="text-black">{startEntry}</span> to{" "}
-            <span className="text-black">{endEntry}</span> of{" "}
-            <span className="text-black">{totalEntries}</span> entries
+          <p className="theme-text-secondary text-[13px] font-medium order-2 md:order-1">
+            Showing <span className="theme-text-primary font-semibold">{startEntry}</span> to{" "}
+            <span className="theme-text-primary font-semibold">{endEntry}</span> of{" "}
+            <span className="theme-text-primary font-semibold">{totalEntries}</span> entries
           </p>
 
           {/* Pagination Buttons */}

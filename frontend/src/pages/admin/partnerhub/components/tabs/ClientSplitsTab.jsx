@@ -190,7 +190,7 @@ const ClientSplitsTab = () => {
                 }`}
               >
                 {/* Column Header */}
-                <div className="bg-slate-700 text-white text-center py-2 px-2 flex justify-center items-center gap-1.5">
+                <div className=" text-center py-2 px-2 flex justify-center items-center gap-1.5">
                   <span className="text-[10px]">📋</span>
                   <h3 className="font-extrabold text-xs truncate">Unassigned Clients</h3>
                   <span className="bg-slate-600 text-white text-[9px] px-1.5 py-0.2 rounded-full font-bold">

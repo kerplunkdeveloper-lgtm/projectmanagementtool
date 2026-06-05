@@ -4,7 +4,7 @@ import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
 
 import { useDispatch, useSelector } from "react-redux";
 
-import { loginUser } from "../../features/auth/authSlice";
+import { loginUser, clearError } from "../../features/auth/authSlice";
 
 import { useNavigate } from "react-router-dom";
 
@@ -60,34 +60,36 @@ const Login = () => {
   useEffect(() => {
     if (error) {
       toast.error(error);
+      dispatch(clearError());
     }
-  }, [error]);
+  }, [error, dispatch]);
 
   return (
-    <div className="min-h-screen theme-bg-main flex flex-col lg:flex-row ">
+    <div className="min-h-screen theme-bg-main flex flex-col lg:flex-row overflow-hidden">
       {/* TOP / LEFT SIDE IMAGE SECTION */}
-      <div className="relative w-full h-[35vh] sm:h-[45vh] lg:h-[95vh] lg:w-7/12  overflow-hidden  flex items-center justify-center shrink-0 z-0">
+      <div className="relative w-full h-[35vh] sm:h-[45vh] lg:h-screen lg:w-[55%] xl:w-[60%] overflow-hidden flex items-center justify-center shrink-0 z-0">
         <img
           src={lightlogin}
           alt="Project Management Light"
-          className="absolute inset-0 w-full h-full md:mt-10   object-cover block dark:hidden  hover:scale-105 transition-transform duration-[15s] ease-out"
+          className="absolute inset-0 w-full h-full object-cover block dark:hidden hover:scale-105 transition-transform duration-[15s] ease-out"
         />
         <img
           src={darklogin}
           alt="Project Management Dark"
-          className="absolute inset-0 w-full h-full mt-10 object-cover hidden dark:block  hover:scale-105 transition-transform duration-[15s] ease-out"
+          className="absolute inset-0 w-full h-full object-cover hidden dark:block hover:scale-105 transition-transform duration-[15s] ease-out opacity-90"
         />
+        
       </div>
 
       {/* BOTTOM / RIGHT SIDE LOGIN FORM */}
-      <div className="w-full lg:w-5/12  flex-1 flex items-center justify-center p-6 sm:p-12 lg:p-20 theme-bg-card relative rounded-t-[40px] lg:rounded-none -mt-8 lg:mt-0 z-10 shadow-[0_-15px_40px_rgba(0,0,0,0.1)] lg:shadow-none">
-        <div className="w-full max-w-[850px] relative z-10">
+      <div className="w-full lg:w-[45%] xl:w-[40%] lg:h-screen flex flex-col justify-center p-6 sm:p-12 lg:px-16 xl:px-24 theme-bg-card relative rounded-t-[40px] lg:rounded-none -mt-8 lg:mt-0 z-10 shadow-[0_-15px_40px_rgba(0,0,0,0.1)] lg:shadow-[-20px_0_50px_rgba(0,0,0,0.1)] lg:dark:shadow-[-20px_0_50px_rgba(0,0,0,0.5)] border-t lg:border-t-0 lg:border-l border-white/50 dark:border-slate-800/50 backdrop-blur-xl">
+        <div className="w-full max-w-[420px] mx-auto relative z-10">
           <form onSubmit={handleSubmit} className="w-full">
-            <div className="mb-10 text-center">
-              <h2 className="text-3xl font-black mb-2 text-gray-600 dark:text-gray-300 tracking-tight">
+            <div className="mb-10 lg:mb-12 text-center lg:text-left">
+              <h2 className="text-3xl lg:text-4xl font-black mb-3 text-slate-800 dark:text-white tracking-tight">
                 Welcome Back
               </h2>
-              <p className="text-[13px]  font-medium theme-text-secondary">
+              <p className="text-[13px] lg:text-[15px] font-medium theme-text-secondary">
                 Login to continue managing your projects
               </p>
             </div>

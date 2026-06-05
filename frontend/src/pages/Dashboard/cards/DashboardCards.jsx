@@ -54,34 +54,36 @@ const DashboardCards = () => {
       title: "No.of Active Clients",
       value: activeClientsCount,
       icon: FiBriefcase,
-      gradient: "from-yellow-400 via-amber-500 to-orange-400",
-      iconBg: "bg-white/15 border border-white/10 backdrop-blur-md",
-      titleColor: "text-yellow-100/90",
-      valueColor: "text-white",
-      glowColor: "rgba(59, 130, 246, 0.4)",
+      gradient: "bg-gradient-to-br from-amber-400 to-orange-500 dark:from-amber-500/10 dark:to-orange-500/5",
+      border: "border-white/30 dark:border-amber-500/20",
+      titleColor: "text-amber-50 dark:text-amber-400",
+      valueColor: "text-white dark:text-amber-300",
+      glowColor: "rgba(245, 158, 11, 0.4)",
+      subtitleColor: "text-white/80 dark:text-amber-500/70",
       subtitle: "Total managed client accounts",
     },
     {
       title: "No.of Projects",
       value: activeProjectsCount,
       icon: FiBriefcase,
-      gradient: "from-blue-400 via-indigo-500 to-violet-400",
-      iconBg: "bg-white/15 border border-white/10 backdrop-blur-md",
-      titleColor: "text-blue-100/90",
-      valueColor: "text-white",
+      gradient: "bg-gradient-to-br from-blue-500 to-indigo-500 dark:from-blue-500/10 dark:to-indigo-500/5",
+      border: "border-white/30 dark:border-blue-500/20",
+      titleColor: "text-blue-50 dark:text-blue-400",
+      valueColor: "text-white dark:text-blue-300",
       glowColor: "rgba(59, 130, 246, 0.4)",
+      subtitleColor: "text-white/80 dark:text-blue-500/70",
       subtitle: `Completed: ${completedProjectsCount} • On Hold: ${onHoldProjectsCount} • Inactive: ${inactiveProjectsCount} • Active: ${totalProjectsCount}`,
     },
-
     {
       title: "Total Strength",
       value: teamStrengthCount,
       icon: FiUsers,
-      gradient: "from-emerald-400 via-teal-500 to-cyan-400",
-      iconBg: "bg-white/15 border border-white/10 backdrop-blur-md",
-      titleColor: "text-emerald-100/90",
-      valueColor: "text-white",
+      gradient: "bg-gradient-to-br from-emerald-400 to-teal-500 dark:from-emerald-500/10 dark:to-teal-500/5",
+      border: "border-white/30 dark:border-emerald-500/20",
+      titleColor: "text-emerald-50 dark:text-emerald-400",
+      valueColor: "text-white dark:text-emerald-300",
       glowColor: "rgba(16, 185, 129, 0.4)",
+      subtitleColor: "text-white/80 dark:text-emerald-500/70",
       subtitle: "Active registered team members",
     }
   ];
@@ -113,38 +115,26 @@ const DashboardCards = () => {
                 y: -4,
                 scale: 1.01,
               }}
-              className={`relative overflow-hidden rounded-2xl border border-white/20 shadow-md hover:shadow-xl transition-all duration-500 bg-gradient-to-br ${card.gradient}`}
-              style={{
-                boxShadow: `0 10px 25px -10px ${card.glowColor}`,
-              }}
+              className={`relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 theme-bg-card ${card.gradient} ${card.border}`}
             >
               {/* SHINE EFFECT Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10 dark:via-white/[0.02] dark:to-white/[0.05] pointer-events-none" />
 
               {/* CONTENT */}
-              <div className="p-4 sm:p-5">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <p className={`text-[10px] font-bold uppercase tracking-wider ${card.titleColor}`}>
-                      {card.title}
-                    </p>
-                    <h2 className={`text-2xl sm:text-3xl font-extrabold tracking-tight mt-2 ${card.titleColor}`}>
-                      {card.value}
-                    </h2>
-                    <p className={`text-[10px] font-medium mt-2 opacity-80 ${card.titleColor}`}>
-                      {card.subtitle}
-                    </p>
-                  </div>
-
-                  {/* ICON */}
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-inner ${card.iconBg}`}
-                  >
-                    <Icon
-                      size={18}
-                      className="text-white"
-                    />
-                  </div>
+              <div className="p-5 sm:p-6 md:p-8 flex items-center justify-between w-full h-full relative z-10">
+                {/* Left side: Title */}
+                <p className={`text-base sm:text-xl md:text-2xl lg:text-[22px] font-black uppercase tracking-wider ${card.titleColor}`}>
+                  {card.title}
+                </p>
+                
+                {/* Right side: Value and Subtitle */}
+                <div className="flex flex-col items-end">
+                  <h2 className={`text-2xl sm:text-3xl md:text-4xl font-black tracking-tight ${card.valueColor}`}>
+                    {card.value}
+                  </h2>
+                  <p className={`text-xs font-semibold mt-1 ${card.subtitleColor}`}>
+                    {card.subtitle}
+                  </p>
                 </div>
               </div>
             </motion.div>

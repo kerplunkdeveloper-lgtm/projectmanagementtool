@@ -23,14 +23,25 @@ html {
 
 :root {
   /* Premium Light Mode Palette */
-  --color-white: #ffffff;
-  --color-slate-50: #f4f4f5; /* Body Background */
-  --color-slate-100: #e4e4e7; /* Borders */
-  --color-slate-200: #d4d4d8;
-  --color-slate-700: #3f3f46;
-  --color-slate-800: #27272a;
-  --color-slate-900: #18181b;
-  --color-slate-950: #09090b; /* Primary Text */
+  --color-white: #ffffff; /* Card / Container Bg */
+  --color-slate-50: #f8fafc; /* Body Background */
+  --color-slate-100: #f1f5f9; /* Subtle Borders */
+  --color-slate-200: #e2e8f0; /* Default Borders */
+  --color-slate-300: #cbd5e1;
+  
+  --color-slate-400: #94a3b8; /* Muted Icon / Text */
+  --color-slate-500: #64748b; /* Secondary Text */
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a; /* Headings */
+  --color-slate-950: #0f172a; /* Primary Text */
+
+  /* Theme-specific variables */
+  --color-brand-primary: #6366f1; /* Indigo Accent */
+  --color-brand-hover: #4f46e5;
+  --color-brand-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  --color-card-gradient: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
 }
 
 body {
@@ -43,104 +54,115 @@ body {
 aside {
   background-color: var(--color-white) !important;
   color: var(--color-slate-900) !important;
-  border-right-color: var(--color-slate-100) !important;
+  border-right: 1px solid var(--color-slate-100) !important;
 }
 
 .dark {
   /* Premium Dark Mode Palette */
-  --color-white: #000000; /* Cards / Sidebar */
-  --color-slate-50: #000000; /* Body Background */
-  --color-gray-50: #000000; 
-  --color-slate-100: #27272a; /* Borders */
-  --color-gray-100: #27272a; 
-  --color-slate-200: #3f3f46; 
-  --color-gray-200: #3f3f46; 
+  --color-white: #0f172a; /* Card / Container Bg - Slate 900 */
+  --color-slate-50: #05070c; /* Body Background - Dark Midnight Navy */
+  --color-gray-50: #05070c; 
   
-  --color-slate-800: #18181b;
-  --color-slate-900: #18181b;
-  --color-slate-950: #09090b;
+  --color-slate-100: #1e293b; /* Subtle Borders - Slate 800 */
+  --color-gray-100: #1e293b; 
   
-  /* Text colors */
-  --color-slate-850: #fafafa; 
-  --color-gray-850: #fafafa; 
-  --color-slate-700: #f4f4f5; 
-  --color-gray-700: #f4f4f5; 
-  --color-slate-600: #e4e4e7; 
-  --color-gray-600: #e4e4e7; 
-  --color-slate-500: #a1a1aa; 
-  --color-gray-500: #a1a1aa; 
-  --color-slate-400: #71717a; 
-  --color-gray-400: #71717a; 
+  --color-slate-200: #334155; /* Default Borders - Slate 700 */
+  --color-gray-200: #334155; 
+  
+  --color-slate-700: #e2e8f0; /* Light text secondary - Slate 200 */
+  --color-gray-700: #e2e8f0; 
+  
+  --color-slate-800: #f1f5f9; /* Light text primary - Slate 100 */
+  --color-slate-900: #f8fafc; /* Headings - Slate 50 */
+  --color-slate-950: #f8fafc; /* Primary Text */
+  
+  /* Text and Icon Colors */
+  --color-slate-600: #cbd5e1; /* Medium Slate Text */
+  --color-gray-600: #cbd5e1;
+  --color-slate-500: #94a3b8; /* Secondary Text - Slate 400 */
+  --color-gray-500: #94a3b8; 
+  
+  --color-slate-400: #64748b; /* Muted Icon / Text - Slate 500 */
+  --color-gray-400: #64748b; 
+
+  --color-slate-850: #0f172a;
+  --color-gray-850: #0f172a;
 
   /* Standard status tag color mappings for premium dark theme contrast */
-  --color-emerald-50: rgba(16, 185, 129, 0.1);
+  --color-emerald-50: rgba(52, 211, 153, 0.1);
   --color-emerald-700: #34d399;
-  --color-emerald-200: rgba(16, 185, 129, 0.2);
+  --color-emerald-200: rgba(52, 211, 153, 0.2);
   
-  --color-blue-50: rgba(59, 130, 246, 0.1);
+  --color-blue-50: rgba(96, 165, 250, 0.1);
   --color-blue-700: #60a5fa;
-  --color-blue-200: rgba(59, 130, 246, 0.2);
+  --color-blue-200: rgba(96, 165, 250, 0.2);
 
-  --color-amber-50: rgba(245, 158, 11, 0.15);
+  --color-amber-50: rgba(251, 191, 36, 0.15);
   --color-amber-700: #fbbf24;
-  --color-amber-200: rgba(245, 158, 11, 0.25);
+  --color-amber-200: rgba(251, 191, 36, 0.25);
 
-  --color-rose-50: rgba(239, 68, 68, 0.1);
-  --color-rose-700: #fca5a5;
-  --color-rose-200: rgba(239, 68, 68, 0.2);
+  --color-rose-50: rgba(248, 113, 113, 0.1);
+  --color-rose-700: #f87171;
+  --color-rose-200: rgba(248, 113, 113, 0.2);
 
-  --color-purple-50: rgba(139, 92, 246, 0.1);
+  --color-purple-50: rgba(192, 132, 252, 0.1);
   --color-purple-700: #c084fc;
-  --color-purple-200: rgba(139, 92, 246, 0.2);
+  --color-purple-200: rgba(192, 132, 252, 0.2);
+
+  /* Theme-specific variables in Dark */
+  --color-brand-primary: #8b5cf6; /* Violet Accent */
+  --color-brand-hover: #7c3aed;
+  --color-brand-gradient: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  --color-card-gradient: linear-gradient(135deg, #0f172a 0%, #090d16 100%);
 
   color-scheme: dark;
 
   /* React Big Calendar Overrides for dark theme */
   .rbc-calendar {
-    color: #f1f5f9 !important;
+    color: #f8fafc !important;
   }
   .rbc-month-view, .rbc-time-view, .rbc-agenda-view {
-    background-color: #000000 !important;
-    border-color: #1a1a1a !important;
+    background-color: #0f172a !important;
+    border-color: #1e293b !important;
   }
   .rbc-header {
-    border-bottom-color: #1a1a1a !important;
-    color: #cbd5e1 !important;
-    background-color: #0d0d0d !important;
+    border-bottom-color: #1e293b !important;
+    color: #f1f5f9 !important;
+    background-color: #05070c !important;
     font-weight: 700;
   }
   .rbc-header + .rbc-header {
-    border-left-color: #1a1a1a !important;
+    border-left-color: #1e293b !important;
   }
   .rbc-day-bg {
-    border-color: #1a1a1a !important;
+    border-color: #1e293b !important;
   }
   .rbc-day-bg + .rbc-day-bg {
-    border-left-color: #1a1a1a !important;
+    border-left-color: #1e293b !important;
   }
   .rbc-month-row {
-    border-color: #1a1a1a !important;
+    border-color: #1e293b !important;
   }
   .rbc-off-range-bg {
-    background: #0d0d0d !important;
+    background: #05070c !important;
   }
   .rbc-today {
-    background-color: rgba(59, 130, 246, 0.15) !important;
+    background-color: rgba(139, 92, 246, 0.15) !important;
   }
   .rbc-time-header {
-    border-bottom-color: #1a1a1a !important;
+    border-bottom-color: #1e293b !important;
   }
   .rbc-time-header-content {
-    border-left-color: #1a1a1a !important;
+    border-left-color: #1e293b !important;
   }
   .rbc-time-content {
-    border-top-color: #1a1a1a !important;
+    border-top-color: #1e293b !important;
   }
   .rbc-timeslot-group {
-    border-bottom-color: #1a1a1a !important;
+    border-bottom-color: #1e293b !important;
   }
   .rbc-time-slot {
-    border-top-color: #1a1a1a !important;
+    border-top-color: #1e293b !important;
   }
   .rbc-event {
     border: none !important;
@@ -149,23 +171,23 @@ aside {
     border-radius: 6px !important;
   }
   .rbc-show-more {
-    color: #38bdf8 !important;
+    color: #a78bfa !important;
     font-weight: 700 !important;
     background: transparent !important;
   }
   .rbc-toolbar button {
-    color: #cbd5e1 !important;
-    border-color: #262626 !important;
-    background-color: #0d0d0d !important;
+    color: #f1f5f9 !important;
+    border-color: #1e293b !important;
+    background-color: #05070c !important;
     font-weight: 700 !important;
   }
   .rbc-toolbar button:active, .rbc-toolbar button.rbc-active {
-    background-color: #3b82f6 !important;
+    background-color: #8b5cf6 !important;
     color: #fff !important;
     box-shadow: none !important;
   }
   .rbc-toolbar button:hover {
-    background-color: #262626 !important;
+    background-color: #1e293b !important;
     color: #fff !important;
   }
 
@@ -177,33 +199,49 @@ aside {
   .event-modal-container input[type="time"],
   .event-modal-container select,
   .event-modal-container textarea {
-    background-color: #0d0d0d !important;
+    background-color: #05070c !important;
     color: #f8fafc !important;
-    border-color: #262626 !important;
+    border-color: #1e293b !important;
   }
 
   /* Global input text & placeholder visibility overrides in dark mode */
   input, select, textarea {
-    color: #ffffff !important;
+    color: #f8fafc !important;
   }
   input::placeholder, textarea::placeholder {
-    color: #94a3b8 !important;
+    color: #64748b !important;
     opacity: 1 !important;
   }
 }
 
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-slate-200);
+  border-radius: 10px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--color-slate-100);
+}
+
 @keyframes borderBlink {
   0%, 100% {
-    border-color: #3b82f6;
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+    border-color: #6366f1;
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
   }
   33% {
-    border-color: #06b6d4;
-    box-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+    border-color: #a855f7;
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
   }
   66% {
-    border-color: #6366f1;
-    box-shadow: 0 0 20px rgba(99, 102, 241, 0.5);
+    border-color: #ec4899;
+    box-shadow: 0 0 20px rgba(236, 72, 153, 0.4);
   }
 }
 
@@ -213,6 +251,11 @@ aside {
   animation: borderBlink 4s infinite linear;
 }
 
+/* Reusable Theme Classes */
+.theme-card-gradient {
+  background: var(--color-card-gradient) !important;
+}
+
 /* Dashboard Action Buttons Override */
 button.bg-\[\#7c5ff0\],
 button.bg-indigo-600,
@@ -220,38 +263,61 @@ button.bg-blue-600,
 button.bg-blue-500,
 button.bg-slate-900,
 .dashboard-btn-primary {
-  background: #8b73ee !important;
+  background: var(--color-brand-gradient) !important;
   color: #ffffff !important;
   border: none !important;
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.15) !important;
+  transition: all 0.2s ease-in-out !important;
+  cursor: pointer;
 }
 
 .dark button.bg-\[\#7c5ff0\],
 .dark button.bg-indigo-600,
+.dark button.bg-blue-650,
 .dark button.bg-blue-600,
+.dark button.bg-blue-505,
 .dark button.bg-blue-500,
 .dark button.bg-slate-900,
 .dark .dashboard-btn-primary {
-  background: #775be2 !important;
-  color: #151414 !important;
+  background: var(--color-brand-gradient) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.15) !important;
+}
+
+button.bg-\[\#7c5ff0\]:hover,
+button.bg-indigo-600:hover,
+button.bg-blue-600:hover,
+button.bg-blue-500:hover,
+button.bg-slate-900:hover,
+.dashboard-btn-primary:hover {
+  opacity: 0.95 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.25) !important;
+}
+
+.dark button.bg-\[\#7c5ff0\]:hover,
+.dark button.bg-indigo-600:hover,
+.dark button.bg-blue-600:hover,
+.dark button.bg-blue-500:hover,
+.dark button.bg-slate-900:hover,
+.dark .dashboard-btn-primary:hover {
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.25) !important;
 }
 
 /* Dashboard Table Heading Override */
 thead th, thead tr {
-  background: #8b73ee !important;
-  color: #ffffff !important;
-  border: none !important;
+  background: var(--color-slate-100) !important;
+  color: var(--color-slate-900) !important;
+  border-bottom: 2px solid var(--color-slate-200) !important;
 }
 
 .dark thead th, .dark thead tr {
-  background: #8b73ee !important;
-  color: #ffffff !important;
+  background: var(--color-slate-100) !important;
+  color: var(--color-slate-900) !important;
+  border-bottom: 2px solid var(--color-slate-200) !important;
 }
 
-/* =========================================
-   REUSABLE GLOBAL THEME CLASSES
-   These automatically adapt to light/dark mode
-   based on the palette defined at the top.
-========================================= */
+/* Reusable Global Theme Classes */
 .theme-bg-main {
   background-color: var(--color-slate-50) !important;
 }
@@ -275,3 +341,88 @@ thead th, thead tr {
 .theme-icon {
   color: var(--color-slate-400) !important;
 }
+
+/* Reusable Global Table, Form, Modal Overrides */
+table {
+  border-color: var(--color-slate-100) !important;
+}
+th {
+  background-color: var(--color-slate-100) !important;
+  color: var(--color-slate-900) !important;
+  font-weight: 700 !important;
+}
+td {
+  border-color: var(--color-slate-100) !important;
+  color: var(--color-slate-950) !important;
+}
+tr:hover {
+  background-color: rgba(99, 102, 241, 0.03) !important;
+}
+.dark tr:hover {
+  background-color: rgba(139, 92, 246, 0.03) !important;
+}
+
+/* Forms & Inputs styling */
+input, select, textarea {
+  background-color: var(--color-slate-50) !important;
+  color: var(--color-slate-950) !important;
+  border: 1px solid var(--color-slate-200) !important;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--color-brand-primary) !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15) !important;
+  outline: none;
+  background-color: var(--color-white) !important;
+}
+.dark input:focus, .dark select:focus, .dark textarea:focus {
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15) !important;
+  background-color: var(--color-white) !important;
+}
+
+/* Card gradients for dashboard widgets */
+.dashboard-gradient-card {
+  background: var(--color-card-gradient) !important;
+  border: 1px solid var(--color-slate-100) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02) !important;
+}
+.dark .dashboard-gradient-card {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Protect literal white text & backgrounds from variable override */
+.text-white { color: #ffffff !important; }
+.bg-white { background-color: var(--color-white) !important; }
+.dark .text-white { color: #ffffff !important; }
+.dark .dark\:text-white { color: #ffffff !important; }
+.dark .bg-white\/5 { background-color: rgba(255, 255, 255, 0.05) !important; }
+.dark .bg-white\/10 { background-color: rgba(255, 255, 255, 0.1) !important; }
+.dark .bg-white\/15 { background-color: rgba(255, 255, 255, 0.15) !important; }
+.dark .bg-white\/20 { background-color: rgba(255, 255, 255, 0.2) !important; }
+.dark .bg-white\/30 { background-color: rgba(255, 255, 255, 0.3) !important; }
+.dark .border-white\/10 { border-color: rgba(255, 255, 255, 0.1) !important; }
+.dark .border-white\/20 { border-color: rgba(255, 255, 255, 0.2) !important; }
+.dark .border-white\/30 { border-color: rgba(255, 255, 255, 0.3) !important; }
+
+/* Force correct dropdown option colors in dark mode across all browsers */
+.dark select option {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+}
+.dark select option:checked {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+}
+
+/* Enforce high contrast text colors for metric card values */
+.metric-card-value {
+  color: #0f172a !important;
+}
+.dark .metric-card-value {
+  color: #ffffff !important;
+}
+

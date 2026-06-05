@@ -23,14 +23,14 @@ const UserTable = ({ users, loading, handleDeleteUser, setOpenModal, setEditUser
   const { user: currentUser } = useSelector((state) => state.auth);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+    <div className=" border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[700px]">
           {/* HEADER */}
           <thead>
             <tr className="border-b border-gray-100  ">
               {["User", "Email", "Role", "Department", !isReadOnly && "Actions"].filter(Boolean).map((h) => (
-                <th key={h} className="px-4 py-3 text-left text-[10px] font-bold text-white uppercase tracking-wider">
+                <th key={h} className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-wider">
                   {h}
                 </th>
               ))}

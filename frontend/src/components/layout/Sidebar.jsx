@@ -82,13 +82,12 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         `}
       />
 
-      {/* SIDEBAR */}
       <aside
         className={`
           fixed top-0 left-0 z-[100] h-screen
           w-72 lg:w-60 xl:w-64
-          bg-white dark:bg-slate-900
-          border-r border-gray-200 dark:border-slate-800
+          theme-bg-card
+          border-r theme-border
           flex flex-col
           transition-all duration-300 ease-in-out
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
@@ -105,12 +104,11 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             />
           </div>
 
-          {/* MOBILE CLOSE */}
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden w-8 h-8 rounded-lg bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 flex items-center justify-center transition-all"
+            className="lg:hidden w-8 h-8 rounded-lg theme-bg-main hover:opacity-85 flex items-center justify-center transition-all border theme-border"
           >
-            <FiX size={18} className="text-gray-700 dark:text-slate-300" />
+            <FiX size={18} className="theme-text-primary" />
           </button>
         </div>
 
@@ -131,8 +129,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   }
                   className={({ isActive }) => {
                     const activeClass = isActive
-                      ? ` dashboard-btn-primary dark:dashboard-btn-primary  border-cyan-400 shadow-md`
-                      : `text-gray-700 dark:text-slate-300 border-transparent hover:bg-cyan-50 hover:text-[#8b73ee] dark:hover:bg-slate-800/60 dark:hover:text-cyan-400`;
+                      ? ` dashboard-btn-primary shadow-md`
+                      : `theme-text-primary border-transparent hover:theme-bg-main hover:theme-text-primary`;
 
                     return `block rounded-xl border transition-all duration-200 ${activeClass}`;
                   }}
@@ -191,10 +189,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                 {item.name === "Projects" &&
                   projects &&
                   projects.length > 0 && (
-                    <div className="space-y-1 pt-1 pb-2 bg-blue-50/50 dark:bg-slate-800/30 rounded-2xl border border-blue-100/50 dark:border-slate-800 pl-4 pr-2 mt-1">
+                    <div className="space-y-1 pt-1 pb-2 theme-bg-main rounded-2xl border theme-border pl-4 pr-2 mt-1">
                       <button
                         onClick={() => setIsWorkOpen(!isWorkOpen)}
-                        className="w-full flex items-center justify-between gap-2 py-1 text-gray-700 dark:text-slate-300 hover:text-cyan-700 dark:hover:text-cyan-400 transition-all font-bold"
+                        className="w-full flex items-center justify-between gap-2 py-1 theme-text-primary hover:theme-text-secondary transition-all font-bold"
                       >
                         <span className="text-[10px] font-semibold uppercase tracking-wider">
                           Work
@@ -223,7 +221,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                 setSidebarOpen(false);
                                 navigate(`/${role}/projects?id=${project._id}`);
                               }}
-                              className="w-full text-left block text-[10px] font-semibold text-gray-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 py-1 truncate"
+                              className="w-full text-left block text-[10px] font-semibold theme-text-secondary hover:theme-text-primary py-1 truncate"
                               title={project.name}
                             >
                               • {project.name}
@@ -245,7 +243,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
               <div className="space-y-1 pt-2 px-2.5">
                 <button
                   onClick={() => setIsWorkOpen(!isWorkOpen)}
-                  className="w-full flex items-center justify-between gap-2 py-2 text-gray-700 dark:text-slate-300 hover:text-cyan-700 dark:hover:text-cyan-400 transition-all font-bold"
+                  className="w-full flex items-center justify-between gap-2 py-2 theme-text-primary hover:theme-text-secondary transition-all font-bold"
                 >
                   <div className="flex items-center gap-2">
                     <FiFolder size={12} className="text-gray-500" />
@@ -277,7 +275,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           setSidebarOpen(false);
                           navigate(`/${role}/projects?id=${project._id}`);
                         }}
-                        className="w-full text-left block text-[10px] font-semibold text-gray-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 py-1 truncate"
+                        className="w-full text-left block text-[10px] font-semibold theme-text-secondary hover:theme-text-primary py-1 truncate"
                         title={project.name}
                       >
                         • {project.name}
@@ -290,10 +288,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         </nav>
 
         {/* FOOTER */}
-        <div className="p-3 border-t border-gray-200 dark:border-slate-800 space-y-2">
+        <div className="p-3 border-t theme-border space-y-2">
           {role === "admin" && users && users.length > 0 && (
             <div className="p-2 text-left">
-              <label className="block text-[9px] font-black text-slate-500 dark:text-blue-600 uppercase tracking-wider mb-1 px-0.5">
+              <label className="block text-[9px] font-black theme-text-secondary uppercase tracking-wider mb-1 px-0.5">
                 Switch User
               </label>
               <div className="relative flex items-center">
@@ -307,7 +305,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       handleSwitchUser(e.target.value);
                     }
                   }}
-                  className="w-full bg-white border-slate-200 dark:border-blue-500  rounded-lg pl-2 pr-7 py-1.5 text-[10px] font-semibold text-slate-700 dark:text-slate-200 outline-none cursor-pointer focus:border-blue-400 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 transition-all appearance-none"
+                  className="w-full theme-bg-card border theme-border rounded-lg pl-2 pr-7 py-1.5 text-[10px] font-bold theme-text-primary outline-none cursor-pointer focus:border-indigo-500 dark:focus:border-indigo-400 transition-all appearance-none"
                 >
                   {users.map((u) => {
                     const isCurrent =
@@ -328,9 +326,13 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         value={u._id}
                         className={
                           isCurrent
-                            ? "font-bold text-blue-600 bg-blue-50 dark:bg-slate-900"
-                            : "dark:bg-slate-900"
+                            ? "font-bold text-indigo-600 dark:text-white bg-indigo-50 dark:bg-[#1e293b]"
+                            : "bg-white dark:bg-[#0f172a] text-gray-800 dark:text-white"
                         }
+                        style={{
+                          backgroundColor: isDark ? (isCurrent ? "#1e293b" : "#0f172a") : (isCurrent ? "#e0e7ff" : "#ffffff"),
+                          color: isDark ? "#ffffff" : (isCurrent ? "#4f46e5" : "#1f2937")
+                        }}
                       >
                         {isCurrent ? "● " : ""}
                         {u.name} ({displayRole}
@@ -339,7 +341,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                     );
                   })}
                 </select>
-                <div className="absolute right-2 pointer-events-none text-slate-400 dark:text-slate-500">
+                <div className="absolute right-2 pointer-events-none theme-text-secondary">
                   <svg
                     className="w-3 h-3"
                     fill="none"

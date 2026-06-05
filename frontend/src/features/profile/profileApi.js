@@ -18,11 +18,7 @@ export const createProfileAPI = async (formData) => {
   const response = await axiosInstance.post(
     "/profile/create",
     formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }
+   
   );
 
   return response.data;
@@ -34,12 +30,8 @@ export const updateProfileAPI = async (formData) => {
 
   const response = await axiosInstance.put(
     "/profile/update",
-    formData,
-    {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    }
+    formData
+
   );
 
   return response.data;

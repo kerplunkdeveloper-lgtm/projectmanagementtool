@@ -773,17 +773,17 @@ const ChatPage = () => {
     : [];
 
   return (
-    <div className="flex h-full w-full bg-slate-50/50 dark:bg-slate-900/40 md:rounded-3xl overflow-hidden border-0 md:border border-slate-100 dark:border-slate-800 shadow-sm relative transition-colors duration-300">
+    <div className="flex h-full w-full theme-bg-card md:rounded-3xl overflow-hidden border-0 md:border theme-border shadow-sm relative transition-colors duration-300">
       {/* LEFT PANEL: CHATS & DIRECT MESSAGE DIRECTORY */}
       <div
-        className={`w-full md:w-80 shrink-0 bg-white dark:bg-slate-900 border-r border-slate-100 flex flex-col h-full transition-colors duration-300 ${
+        className={`w-full md:w-80 shrink-0 theme-bg-main border-r theme-border flex flex-col h-full transition-colors duration-300 ${
           showChatWindowMobile ? "hidden md:flex" : "flex"
         }`}
       >
-        <div className="p-4 border-b border-slate-100/60 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-950/20">
+        <div className="p-4 border-b theme-border theme-bg-main">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-extrabold text-slate-800 dark:text-[#8b73ee] uppercase tracking-wide flex items-center gap-2">
-              <FiMessageSquare className="" /> Messaging
+            <h2 className="text-base font-extrabold theme-text-primary uppercase tracking-wide flex items-center gap-2">
+              <FiMessageSquare className="theme-icon" /> Messaging
             </h2>
             <button
               onClick={() => setShowCreateModal(true)}
@@ -795,39 +795,43 @@ const ChatPage = () => {
           </div>
 
           <div className="relative">
-            <FiSearch className="absolute left-3 top-2.5 text-slate-400 dark:text-slate-550 text-sm" />
+            <FiSearch className="absolute left-3 top-2.5 theme-icon text-sm" />
             <input
               type="text"
               placeholder="Search team member..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white  border border-slate-200   rounded-2xl pl-9 pr-4 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/35 focus:border-blue-400 dark:focus:border-blue-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-550 text-slate-700 dark:text-slate-200"
+              className="w-full bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-xl pl-9 pr-4 py-2 text-xs outline-none focus:border-[#8b73ee] dark:focus:border-[#8b73ee] focus:ring-2 focus:ring-[#8b73ee]/20 transition-all theme-text-primary placeholder:theme-text-secondary"
             />
           </div>
         </div>
 
-        {/* ROOM TABS */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin">
-          {/* Global Group Card */}
-          <button
+        {/* DIRECTORY LIST */}
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 scrollbar-thin">
+          {/* 1. Global Group Chat */}
+          <div>
+            <h3 className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-2 px-1">
+              Global Group
+            </h3>
+            <button
             onClick={() => {
               setActiveChat("group");
               setShowChatWindowMobile(true);
             }}
             className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
               activeChat === "group"
-                ? "bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-blue-900 dark:text-blue-300 font-bold"
+                ? "bg-[#8b73ee] text-white font-bold shadow-md"
                 : unreadCounts["group"] > 0
-                  ? "bg-blue-50/20 dark:bg-blue-950/10 border border-blue-100/40 dark:border-blue-900/20 text-slate-800 dark:text-slate-200 font-extrabold shadow-sm ring-1 ring-blue-500/10"
-                  : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 text-slate-650 dark:text-slate-200 border border-transparent"
+                  ? "bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 theme-text-primary font-extrabold shadow-sm"
+                  : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 theme-text-secondary hover:theme-text-primary border border-transparent"
             }`}
           >
-            <div className="w-10 h-10 rounded-2xl bg-[#8b73ee] dark:bg-[#8b73ee] flex items-center justify-center shadow-md font-bold shrink-0">
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${activeChat === "group" ? "bg-white/20 text-white" : "bg-[#8b73ee] text-white shadow-sm"}`}>
               <FiLayers size={16} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold truncate text-[#8b73ee] dark:text-[#8b73ee]">
+                <span className={`text-xs font-bold truncate ${activeChat === "group" ? "text-white" : "text-[#8b73ee] dark:text-[#a78bfa]"}`}>
                   General Team Chat
                 </span>
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -836,13 +840,13 @@ const ChatPage = () => {
                       {unreadCounts["group"]}
                     </span>
                   )}
-                  <span className="text-[9px] font-black uppercase text-[#8b73ee] dark:text-[#8b73ee] tracking-wider">
+                  <span className={`text-[9px] font-black uppercase tracking-wider ${activeChat === "group" ? "text-white/80" : "text-[#8b73ee] dark:text-[#a78bfa]"}`}>
                     All
                   </span>
                 </div>
               </div>
               <p
-                className={`text-[10px] truncate mt-0.5 ${unreadCounts["group"] > 0 ? "text-[#8b73ee] dark:text-[#8b73ee] font-extrabold" : "text-slate-400 dark:text-slate-500 font-semibold"}`}
+                className={`text-[10px] truncate mt-0.5 ${activeChat === "group" ? "text-white/90" : unreadCounts["group"] > 0 ? "theme-text-primary font-extrabold" : "theme-text-secondary font-semibold"}`}
               >
                 {lastMessages["group"]
                   ? formatLastMessageText(lastMessages["group"])
@@ -850,12 +854,13 @@ const ChatPage = () => {
               </p>
             </div>
           </button>
+          </div>
 
           {/* CUSTOM GROUP CHATS */}
           {sortedRooms.length > 0 && (
             <>
-              <div className="h-px bg-slate-100 dark:bg-slate-800 my-2" />
-              <p className="text-[10px] font-black uppercase tracking-wider text-[#8b73ee] dark:text-[#8b73ee]  px-3 mb-1.5">
+              <div className="h-px theme-border border-t my-2" />
+              <p className="text-[10px] font-black uppercase tracking-wider text-indigo-500 dark:text-indigo-400 px-3 mb-1.5">
                 Custom Groups
               </p>
 
@@ -868,18 +873,18 @@ const ChatPage = () => {
                   }}
                   className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
                     activeChat === r._id
-                      ? "bg-[#8b73ee] dark:bg-[#8b73ee] text-[#8b73ee] dark:text-[#8b73ee]  font-bold"
+                      ? "bg-[#8b73ee] text-white font-bold shadow-md"
                       : unreadCounts[r._id] > 0
-                        ? "bg-blue-50/20 dark:bg-blue-950/10 border border-blue-100/40 dark:border-blue-900/20 text-slate-800 dark:text-slate-200 font-extrabold shadow-sm ring-1 ring-blue-500/10"
-                        : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 text-slate-650 dark:text-slate-400 border border-transparent"
+                        ? "bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 theme-text-primary font-extrabold shadow-sm"
+                        : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 theme-text-secondary hover:theme-text-primary border border-transparent"
                   }`}
                 >
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-md font-bold shrink-0">
+                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${activeChat === r._id ? "bg-white/20 text-white" : "bg-gradient-to-tr from-amber-500 to-orange-600 text-white shadow-sm"}`}>
                     <FiUsers size={16} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold truncate text-[#8b73ee] dark:text-[#8b73ee]">
+                      <span className={`text-xs font-bold truncate ${activeChat === r._id ? "text-white" : "text-[#8b73ee] dark:text-[#a78bfa]"}`}>
                         {r.name}
                       </span>
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -888,13 +893,13 @@ const ChatPage = () => {
                             {unreadCounts[r._id]}
                           </span>
                         )}
-                        <span className="text-[9px] text-[#8b73ee] dark:text-[#8b73ee] font-bold">
+                        <span className={`text-[9px] font-bold ${activeChat === r._id ? "text-white/80" : "text-[#8b73ee] dark:text-[#a78bfa]"}`}>
                           {r.members.length} members
                         </span>
                       </div>
                     </div>
                     <p
-                      className={`text-[10px] truncate mt-0.5 ${unreadCounts[r._id] > 0 ? "text-[#8b73ee] dark:text-[#8b73ee] font-extrabold" : "text-slate-400 dark:text-slate-500 font-semibold"}`}
+                      className={`text-[10px] truncate mt-0.5 ${activeChat === r._id ? "text-white/90" : unreadCounts[r._id] > 0 ? "theme-text-primary font-extrabold" : "theme-text-secondary font-semibold"}`}
                     >
                       {lastMessages[r._id]
                         ? formatLastMessageText(lastMessages[r._id])
@@ -906,14 +911,14 @@ const ChatPage = () => {
             </>
           )}
 
-          <div className="h-px bg-slate-100 dark:bg-slate-800 my-2" />
-          <p className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 px-3 mb-1.5">
+          <div className="h-px theme-border border-t my-2" />
+          <p className="text-[10px] font-black uppercase tracking-wider theme-text-secondary px-3 mb-1.5">
             Direct Messages
           </p>
 
           {/* User List */}
           {sortedDMs.length === 0 ? (
-            <p className="text-[10px] text-[#8b73ee] dark:text-[#8b73ee] text-center py-6 font-semibold">
+            <p className="text-[10px] theme-text-secondary text-center py-6 font-semibold">
               No members found
             </p>
           ) : (
@@ -926,10 +931,10 @@ const ChatPage = () => {
                 }}
                 className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
                   activeChat === u._id
-                    ? "bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 text-blue-900 dark:text-blue-300 font-bold"
+                    ? "bg-[#8b73ee] text-white font-bold shadow-md"
                     : unreadCounts[u._id] > 0
-                      ? "bg-blue-50/20 dark:bg-blue-950/10 border border-blue-100/40 dark:border-blue-900/20 text-[#8b73ee] dark:text-[#8b73ee]  font-extrabold shadow-sm ring-1 ring-blue-500/10"
-                      : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 text-slate-650 dark:text-slate-400 border border-transparent"
+                      ? "bg-indigo-50/20 dark:bg-indigo-900/10 border border-indigo-100/40 dark:border-indigo-800/40 theme-text-primary font-extrabold shadow-sm ring-1 ring-indigo-500/10"
+                      : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 theme-text-secondary hover:theme-text-primary border border-transparent"
                 }`}
               >
                 <div className="relative shrink-0">
@@ -937,18 +942,18 @@ const ChatPage = () => {
                     <img
                       src={u.profile.profileImage.url}
                       alt="profile"
-                      className="w-10 h-10 rounded-2xl object-cover border border-slate-200/80 dark:border-blue-500"
+                      className={`w-10 h-10 rounded-2xl object-cover border ${activeChat === u._id ? "border-white/20" : "theme-border"}`}
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-2xl bg-[#8b73ee] dark:bg-[#8b73ee] text-[#8b73ee] dark:text-[#8b73ee]  border border-slate-200/80 dark:border-blue-500 flex items-center justify-center font-bold text-slate-700 dark:text-slate-300 text-xs">
+                    <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center font-bold text-xs ${activeChat === u._id ? "bg-white/20 border-white/20 text-white" : "bg-indigo-100 dark:bg-indigo-900/40 border-indigo-200/80 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400"}`}>
                       {u.name.charAt(0)}
                     </div>
                   )}
-                  <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-sm" />
+                  <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 shadow-sm ${activeChat === u._id ? "border-[#8b73ee]" : "border-white dark:border-slate-900"}`} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#8b73ee] dark:text-[#8b73ee] truncate block">
+                    <span className={`text-xs font-bold truncate block ${activeChat === u._id ? "text-white" : "text-[#8b73ee] dark:text-[#a78bfa]"}`}>
                       {u.name}
                     </span>
                     {unreadCounts[u._id] > 0 && (
@@ -958,8 +963,14 @@ const ChatPage = () => {
                     )}
                   </div>
                   <p
-                    className={`text-[10px] truncate mt-0.5 ${unreadCounts[u._id] > 0 ? "text-[#8b73ee] dark:text-[#8b73ee] font-extrabold" : "text-slate-400 dark:text-slate-500 text-[#8b73ee] dark:text-[#8b73ee] font-semibold"}`}
-                  >
+  className={`text-[10px] truncate mt-0.5 ${
+    activeChat === u._id
+      ? "text-white/90"
+      : unreadCounts[u._id] > 0
+      ? "theme-text-primary font-extrabold"
+      : "theme-text-secondary font-semibold"
+  }`}
+>
                     {lastMessages[u._id]
                       ? formatLastMessageText(lastMessages[u._id])
                       : `${u.role}${u.department ? ` — ${u.department}` : ""}`}
@@ -973,27 +984,27 @@ const ChatPage = () => {
 
       {/* RIGHT PANEL: ACTIVE CHAT SCREEN */}
       <div
-        className={`flex-1 flex flex-col bg-gray-200 dark:bg-gray-100/70 transition-colors duration-300 h-full ${
+        className={`flex-1 flex flex-col theme-bg-main transition-colors duration-300 h-full ${
           showChatWindowMobile ? "flex" : "hidden md:flex"
         }`}
       >
         {/* HEADER */}
-        <div className="px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0 transition-colors duration-300">
+        <div className="px-4 py-3 theme-bg-card border-b theme-border flex items-center justify-between shrink-0 transition-colors duration-300">
           <div className="flex items-center gap-2.5 min-w-0">
             <button
               onClick={() => setShowChatWindowMobile(false)}
-              className="md:hidden p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-all shrink-0 cursor-pointer"
+              className="md:hidden p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 theme-icon transition-all shrink-0 cursor-pointer"
             >
               <FiChevronLeft size={18} />
             </button>
 
             {activeChat === "group" ? (
               <>
-                <div className="w-10 h-10 rounded-2xl bg-[#8b73ee] dark:bg-[#8b73ee] text-[#8b73ee] dark:text-[#8b73ee] border border-slate-200/80 dark:border-blue-500 flex items-center justify-center font-bold shadow-md shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-[#8b73ee] text-white border border-indigo-200/50 dark:border-indigo-800/50 flex items-center justify-center font-bold shadow-md shrink-0">
                   <FiLayers size={16} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-xs font-black text-slate-800 dark:text-blue-500 leading-tight truncate max-w-[120px] sm:max-w-xs">
+                  <h3 className="text-xs font-black theme-text-primary leading-tight truncate max-w-[120px] sm:max-w-xs">
                     General Team Chat
                   </h3>
                   <p className="text-[9px] text-emerald-500 font-black uppercase tracking-wider leading-none mt-1 flex items-center gap-1">
@@ -1008,12 +1019,12 @@ const ChatPage = () => {
                   <FiUsers size={16} />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-xs font-black text-slate-800 dark:text-blue-500 leading-tight truncate max-w-[120px] sm:max-w-xs">
+                  <h3 className="text-xs font-black theme-text-primary leading-tight truncate max-w-[120px] sm:max-w-xs">
                     {activeCustomRoom.name}
                   </h3>
                   <button
                     onClick={handleOpenManageModal}
-                    className="text-[9px] text-blue-500 dark:text-blue-400 hover:text-blue-650 dark:hover:text-blue-300 font-bold uppercase tracking-wider leading-none mt-1 flex items-center gap-1 cursor-pointer"
+                    className="text-[9px] text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 font-bold uppercase tracking-wider leading-none mt-1 flex items-center gap-1 cursor-pointer"
                   >
                     <FiSettings size={10} /> Manage Members
                   </button>
@@ -1025,18 +1036,18 @@ const ChatPage = () => {
                   <img
                     src={activeChatUser.profile.profileImage.url}
                     alt="profile"
-                    className="w-10 h-10 rounded-2xl object-cover border border-slate-200/80 dark:border-slate-800 shrink-0"
+                    className="w-10 h-10 rounded-2xl object-cover border theme-border shrink-0"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-750 flex items-center justify-center font-black text-slate-700 dark:text-slate-300 text-xs shrink-0">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-800/60 flex items-center justify-center font-black text-indigo-600 dark:text-indigo-400 text-xs shrink-0">
                     {activeChatUser.name.charAt(0)}
                   </div>
                 )}
                 <div className="min-w-0">
-                  <h3 className="text-xs font-black text-[#8b73ee] dark:text-[#8b73ee] leading-tight truncate max-w-[120px] sm:max-w-xs">
+                  <h3 className="text-xs font-black theme-text-primary leading-tight truncate max-w-[120px] sm:max-w-xs">
                     {activeChatUser.name}
                   </h3>
-                  <p className="text-[9px]  text-[#8b73ee] dark:text-[#8b73ee] font-semibold capitalize mt-0.5 leading-none truncate max-w-[120px] sm:max-w-xs">
+                  <p className="text-[9px] theme-text-secondary font-semibold capitalize mt-0.5 leading-none truncate max-w-[120px] sm:max-w-xs">
                     {activeChatUser.role}
                     {activeChatUser.department
                       ? ` — ${activeChatUser.department}`
@@ -1070,15 +1081,15 @@ const ChatPage = () => {
         <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-3.5 scrollbar-thin bg-chat-wallpaper-light dark:bg-chat-wallpaper-dark">
           {loading ? (
             <div className="flex items-center justify-center h-full">
-              <span className="text-xs text-[#8b73ee] dark:text-[#8b73ee] font-semibold">
+              <span className="text-xs theme-text-secondary font-semibold">
                 Loading conversation...
               </span>
             </div>
           ) : messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-[#8b73ee] dark:text-[#8b73ee]">
+            <div className="flex flex-col items-center justify-center h-full theme-text-secondary">
               <FiMessageSquare size={32} className="opacity-20 mb-2" />
               <p className="text-xs font-bold">Start the conversation</p>
-              <p className="text-[10px] text-[#8b73ee] dark:text-[#8b73ee] mt-0.5">
+              <p className="text-[10px] opacity-70 mt-0.5">
                 Send stickers, call details, or messages
               </p>
             </div>
@@ -1091,7 +1102,7 @@ const ChatPage = () => {
               if (m.messageType === "call") {
                 return (
                   <div key={m._id} className="flex justify-center my-2">
-                    <div className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-4 py-1.5 flex items-center gap-2 text-[10px] font-bold text-slate-600 dark:text-slate-400 shadow-sm">
+                    <div className="theme-bg-main border theme-border rounded-full px-4 py-1.5 flex items-center gap-2 text-[10px] font-bold theme-text-secondary shadow-sm">
                       {m.text.includes("Video") ? (
                         <FiVideo size={12} />
                       ) : (
@@ -1132,13 +1143,13 @@ const ChatPage = () => {
                     {/* Replied message block preview inside bubble */}
                     {m.replyTo && (
                       <div
-                        className={`mb-1.5 p-2 rounded-lg border-l-2 bg-[#8b73ee] dark:bg-[#8b73ee] text-[10px] text-slate-650 dark:text-slate-400 text-left max-w-xs ${
+                        className={`mb-1.5 p-2 rounded-lg border-l-2 text-[10px] text-left max-w-xs ${
                           isMe
-                            ? "border-blue-300"
-                            : "border-slate-400 dark:border-slate-600"
+                            ? "bg-white/10 text-white border-white/40"
+                            : "theme-bg-main theme-text-secondary border-indigo-500/40"
                         }`}
                       >
-                        <div className="font-extrabold text-[#8b73ee] dark:text-[#8b73ee] text-[9px] mb-0.5">
+                        <div className={`font-extrabold text-[9px] mb-0.5 ${isMe ? "text-white" : "text-indigo-500 dark:text-indigo-400"}`}>
                           Replying to {m.replyTo.sender?.name || "User"}
                         </div>
                         <div className="truncate opacity-85 font-medium text-[10px]">
@@ -1167,7 +1178,7 @@ const ChatPage = () => {
                         className={`rounded-[1.25rem] overflow-hidden shadow-sm border max-w-xs md:max-w-sm ${
                           isMe
                             ? "bg-[#8b73ee] text-white border-[#8b73ee] rounded-tr-none"
-                            : "bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-100 dark:border-slate-800 rounded-tl-none"
+                            : "theme-bg-card theme-text-primary theme-border rounded-tl-none"
                         }`}
                       >
                         {m.file.fileType === "image" ? (
@@ -1238,7 +1249,7 @@ const ChatPage = () => {
                             onClick={(e) => e.stopPropagation()}
                             className="flex items-center gap-3 p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-all text-xs cursor-pointer"
                           >
-                            <div className="w-9 h-9 rounded-xl bg-white text-white dark:bg-slate-900 dark:text-slate-400 flex items-center justify-center shrink-0">
+                            <div className="w-9 h-9 rounded-xl theme-bg-main theme-text-primary border theme-border flex items-center justify-center shrink-0">
                               <FiFileText size={18} />
                             </div>
                             <div className="min-w-0 flex-1">
@@ -1250,7 +1261,7 @@ const ChatPage = () => {
                                 File
                               </div>
                             </div>
-                            <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center shrink-0">
+                            <div className="w-7 h-7 rounded-lg bg-black/5 dark:bg-white/10 theme-text-secondary flex items-center justify-center shrink-0">
                               <FiDownload size={12} />
                             </div>
                           </a>
@@ -1258,10 +1269,10 @@ const ChatPage = () => {
                       </div>
                     ) : (
                       <div
-                        className={`px-4 py-2.5 rounded-[1.25rem] text-xs font-medium leading-relaxed break-words shadow-sm ${
+                        className={`px-4 py-2.5 rounded-[1.25rem] text-xs font-medium leading-relaxed break-words shadow-sm border ${
                           isMe
-                            ? "bg-[#8b73ee] dark:bg-[#8b73ee] text-white rounded-tr-none"
-                            : "bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-800 rounded-tl-none"
+                            ? "bg-[#8b73ee] text-white border-[#8b73ee] rounded-tr-none"
+                            : "theme-bg-card theme-text-primary theme-border rounded-tl-none"
                         }`}
                       >
                         {m.text.includes("Join my live") ? (
@@ -1325,7 +1336,7 @@ const ChatPage = () => {
                         setReplyingToMessage(m);
                         setActiveMessageMenu(null);
                       }}
-                      className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-pointer"
+                      className="p-1 rounded-lg theme-bg-main hover:theme-bg-card theme-text-secondary hover:theme-text-primary border theme-border cursor-pointer"
                       title="Reply"
                     >
                       <FiCornerUpLeft size={11} />
@@ -1338,7 +1349,7 @@ const ChatPage = () => {
                         setShowForwardModal(true);
                         setActiveMessageMenu(null);
                       }}
-                      className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-pointer"
+                      className="p-1 rounded-lg theme-bg-main hover:theme-bg-card theme-text-secondary hover:theme-text-primary border theme-border cursor-pointer"
                       title="Forward"
                     >
                       <FiArrowRight size={11} />
@@ -1353,7 +1364,7 @@ const ChatPage = () => {
                             showShareMenu === m._id ? null : m._id,
                           );
                         }}
-                        className="p-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 cursor-pointer"
+                        className="p-1 rounded-lg theme-bg-main hover:theme-bg-card theme-text-secondary hover:theme-text-primary border theme-border cursor-pointer"
                         title="Share"
                       >
                         <FiShare2 size={11} />
@@ -1361,7 +1372,7 @@ const ChatPage = () => {
                       {showShareMenu === m._id && (
                         <div
                           onClick={(e) => e.stopPropagation()}
-                          className={`absolute bottom-7 ${isMe ? "right-0" : "left-0"} bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl py-1 shadow-lg z-30 w-28`}
+                          className={`absolute bottom-7 ${isMe ? "right-0" : "left-0"} theme-bg-card border theme-border rounded-xl py-1 shadow-lg z-30 w-28`}
                         >
                           <button
                             type="button"
@@ -1370,7 +1381,7 @@ const ChatPage = () => {
                               handleShareExternal(m, "whatsapp");
                               setActiveMessageMenu(null);
                             }}
-                            className="w-full px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-750 text-left text-[9px] font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 cursor-pointer"
+                            className="w-full px-2.5 py-1.5 hover:theme-bg-main text-left text-[9px] font-bold theme-text-primary flex items-center gap-1.5 cursor-pointer"
                           >
                             WhatsApp
                           </button>
@@ -1381,7 +1392,7 @@ const ChatPage = () => {
                               handleShareExternal(m, "email");
                               setActiveMessageMenu(null);
                             }}
-                            className="w-full px-2.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-750 text-left text-[9px] font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 cursor-pointer"
+                            className="w-full px-2.5 py-1.5 hover:theme-bg-main text-left text-[9px] font-bold theme-text-primary flex items-center gap-1.5 cursor-pointer"
                           >
                             Email
                           </button>
@@ -1411,19 +1422,19 @@ const ChatPage = () => {
         </div>
 
         {/* INPUT FORM CONTAINER */}
-        <div className="px-2 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 relative shrink-0 transition-colors duration-300">
+        <div className="px-2 sm:px-4 py-2.5 sm:py-3 theme-bg-card border-t theme-border relative shrink-0 transition-colors duration-300">
           {/* Sticker Picker Drawer */}
           {showStickerPicker && (
-            <div className="absolute bottom-16 left-2 right-2 sm:left-4 sm:right-auto bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-2xl p-3 shadow-xl z-20 w-auto sm:w-72">
-              <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-100 dark:border-slate-700">
+            <div className="absolute bottom-16 left-2 right-2 sm:left-4 sm:right-auto theme-bg-card border theme-border rounded-2xl p-3 shadow-xl z-20 w-auto sm:w-72">
+              <div className="flex items-center justify-between mb-2 pb-2 border-b theme-border">
                 <div className="flex gap-2">
                   <button
                     type="button"
                     onClick={() => setPickerTab("emoji")}
                     className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg cursor-pointer ${
                       pickerTab === "emoji"
-                        ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400"
-                        : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        ? "bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400"
+                        : "theme-text-secondary hover:theme-text-primary"
                     }`}
                   >
                     Emojis
@@ -1433,8 +1444,8 @@ const ChatPage = () => {
                     onClick={() => setPickerTab("sticker")}
                     className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg cursor-pointer ${
                       pickerTab === "sticker"
-                        ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400"
-                        : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        ? "bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400"
+                        : "theme-text-secondary hover:theme-text-primary"
                     }`}
                   >
                     Stickers
@@ -1456,7 +1467,7 @@ const ChatPage = () => {
                     onClick={() => {
                       setInputText((prev) => prev + s);
                     }}
-                    className="text-2xl p-1 hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-90 transition-all rounded-lg cursor-pointer flex items-center justify-center"
+                    className="text-2xl p-1 hover:theme-bg-main active:scale-90 transition-all rounded-lg cursor-pointer flex items-center justify-center"
                   >
                     {s}
                   </button>
@@ -1467,11 +1478,11 @@ const ChatPage = () => {
 
           {/* Replying To Preview Bar */}
           {replyingToMessage && (
-            <div className="mb-2 p-2 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl flex items-center justify-between z-10 animate-slide-up">
-              <div className="flex items-center gap-2 text-[10px] text-slate-650 dark:text-slate-350 min-w-0">
-                <FiCornerUpLeft className="text-blue-500 shrink-0" size={12} />
+            <div className="mb-2 p-2 theme-bg-main border theme-border rounded-xl flex items-center justify-between z-10 animate-slide-up">
+              <div className="flex items-center gap-2 text-[10px] theme-text-secondary min-w-0">
+                <FiCornerUpLeft className="text-indigo-500 shrink-0" size={12} />
                 <div className="truncate font-medium">
-                  <span className="font-extrabold text-blue-600 dark:text-blue-400">
+                  <span className="font-extrabold text-indigo-600 dark:text-indigo-400">
                     Replying to {replyingToMessage.sender?.name || "User"}:
                   </span>{" "}
                   <span className="italic opacity-90">
@@ -1509,7 +1520,7 @@ const ChatPage = () => {
               type="button"
               disabled={uploadingFile}
               onClick={() => fileInputRef.current?.click()}
-              className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400 shrink-0 ${
+              className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all theme-bg-main theme-border theme-text-secondary hover:theme-text-primary shrink-0 ${
                 uploadingFile
                   ? "opacity-50 cursor-not-allowed"
                   : "cursor-pointer"
@@ -1527,8 +1538,8 @@ const ChatPage = () => {
               onClick={() => setShowStickerPicker(!showStickerPicker)}
               className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all shrink-0 cursor-pointer ${
                 showStickerPicker
-                  ? "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 text-blue-600 dark:text-blue-400"
-                  : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400"
+                  ? "bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-900 text-indigo-600 dark:text-indigo-400"
+                  : "theme-bg-main theme-border theme-text-secondary hover:theme-text-primary"
               }`}
               title="Stickers"
             >
@@ -1540,7 +1551,7 @@ const ChatPage = () => {
               placeholder="Type message or reply..."
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              className="flex-1 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2 text-xs outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 transition-all text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              className="flex-1 theme-bg-main border theme-border rounded-xl px-4 py-2 text-xs outline-none focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 transition-all theme-text-primary placeholder:theme-text-secondary"
             />
 
             <button
@@ -1557,9 +1568,9 @@ const ChatPage = () => {
       {/* FORWARD MESSAGE MODAL */}
       {showForwardModal && forwardingMessage && (
         <div className="fixed inset-0 z-[250] bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-3 animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-slate-200/50 dark:border-slate-800 flex flex-col max-h-[80vh]">
+          <div className="theme-bg-card w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border theme-border flex flex-col max-h-[80vh]">
             {/* Modal Header */}
-            <div className="px-4 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-slate-950/25">
+            <div className="px-4 py-3.5 border-b theme-border flex items-center justify-between theme-bg-main">
               <div>
                 <h2 className="text-[13px] font-black text-slate-800 dark:text-white flex items-center gap-2">
                   <FiArrowRight size={14} className="text-blue-500" />
@@ -1680,7 +1691,7 @@ const ChatPage = () => {
       {/* CREATE CUSTOM GROUP MODAL */}
       {showCreateModal && (
         <div className="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-2xl flex flex-col max-h-[90vh] p-4 sm:p-6 text-slate-800 dark:text-slate-200">
+          <div className="theme-bg-card w-full max-w-md rounded-2xl sm:rounded-3xl overflow-hidden border theme-border shadow-2xl flex flex-col max-h-[90vh] p-4 sm:p-6 theme-text-primary">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
               <h3 className="text-base font-black text-slate-800 dark:text-blue-500 flex items-center gap-2">
                 <FiUsers className="text-blue-500" /> Create Custom Group
@@ -1785,7 +1796,7 @@ const ChatPage = () => {
       {/* MANAGE GROUP MEMBERS & DETAILS MODAL */}
       {showManageModal && activeCustomRoom && (
         <div className="fixed inset-0 z-[200] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-2xl flex flex-col max-h-[90vh] p-4 sm:p-6 text-slate-800 dark:text-slate-200">
+          <div className="theme-bg-card w-full max-w-md rounded-2xl sm:rounded-3xl overflow-hidden border theme-border shadow-2xl flex flex-col max-h-[90vh] p-4 sm:p-6 theme-text-primary">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4 mb-4">
               <h3 className="text-base font-black text-slate-800 dark:text-blue-500 flex items-center gap-2">
                 <FiSettings className="text-blue-500" /> Manage Custom Group

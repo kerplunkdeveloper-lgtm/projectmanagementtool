@@ -143,7 +143,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, employeeToEdit }) 
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                placeholder="Lakshmi"
+
                 className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 placeholder:text-slate-400"
               />
             </div>
@@ -156,7 +156,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, employeeToEdit }) 
                 name="roleText"
                 value={formData.roleText}
                 onChange={handleChange}
-                placeholder="Operations Manager"
+            
                 className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 placeholder:text-slate-400"
               />
             </div>
@@ -172,7 +172,6 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, employeeToEdit }) 
                 name="salary"
                 value={formData.salary}
                 onChange={handleChange}
-                placeholder="25000"
                 className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 placeholder:text-slate-400 font-bold"
               />
             </div>
@@ -185,7 +184,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, employeeToEdit }) 
                 name="overheadPercent"
                 value={formData.overheadPercent}
                 onChange={handleChange}
-                placeholder="15"
+            
                 className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 placeholder:text-slate-400"
               />
             </div>
@@ -216,7 +215,7 @@ const AddEmployeeModal = ({ isOpen, onClose, onEmployeeAdded, employeeToEdit }) 
                 name="capacity"
                 value={formData.capacity}
                 onChange={handleChange}
-                placeholder="5"
+          
                 className="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400 placeholder:text-slate-400"
               />
             </div>

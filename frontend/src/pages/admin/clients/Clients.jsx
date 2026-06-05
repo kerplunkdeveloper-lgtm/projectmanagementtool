@@ -10,20 +10,17 @@ import {
   FiTrash2,
   FiX,
   FiUsers,
-  FiSearch,
   FiPhone,
   FiMail,
   FiBriefcase,
   FiDollarSign,
   FiPercent,
-  FiCheck,
-  FiVideo,
-  FiImage,
   FiGlobe,
   FiLayers,
   FiUser,
   FiAlertTriangle,
   FiBookOpen,
+  FiSearch,
 } from "react-icons/fi";
 
 import {
@@ -218,10 +215,7 @@ const Clients = () => {
         
         {/* SEARCH BOX */}
         <div className="relative w-full md:w-80">
-          <FiSearch
-            size={14}
-            className="absolute top-1/2 -translate-y-1/2 left-3.5 text-slate-400 dark:text-slate-500"
-          />
+         
           <input
             type="text"
             placeholder="Search company or industry..."

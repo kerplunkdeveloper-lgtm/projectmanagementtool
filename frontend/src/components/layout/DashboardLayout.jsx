@@ -23,7 +23,7 @@ const DashboardLayout = ({ role }) => {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-gray-50 dark:bg-slate-950">
+    <div className="h-screen overflow-hidden theme-bg-main">
 
       {/* SIDEBAR */}
       <Sidebar
@@ -57,8 +57,8 @@ const DashboardLayout = ({ role }) => {
         <Navbar setSidebarOpen={setSidebarOpen} />
 
         {/* SCROLLABLE CONTENT */}
-        <main className={`flex-1 ${isChatPage ? "overflow-hidden p-0" : "overflow-y-auto p-1.5 sm:p-3 md:p-4"} bg-gray-50 dark:bg-slate-950`}>
-          <div className={isChatPage ? "h-full bg-white dark:bg-slate-900" : "min-h-full rounded-xl sm:rounded-2xl bg-white border border-gray-200 dark:bg-slate-900  dark:shadow-none shadow-sm p-2 sm:p-3 md:p-4"}>
+        <main className={`flex-1 ${isChatPage ? "overflow-hidden p-0" : "overflow-y-auto p-1.5 sm:p-3 md:p-4"} theme-bg-main`}>
+          <div className={isChatPage ? "h-full theme-bg-card" : "min-h-full rounded-xl sm:rounded-2xl theme-bg-card border theme-border dark:shadow-none shadow-sm p-2 sm:p-3 md:p-4"}>
             <Outlet />
           </div>
         </main>

@@ -41,7 +41,7 @@ const useSocket = () => {
   useEffect(() => {
     const userId = user?._id || user?.id;
     if (user && userId) {
-      socket.current = io(import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000');
+      socket.current = io(import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001');
 
       socket.current.emit('join', userId);
 

@@ -144,8 +144,8 @@ const Navbar = ({ setSidebarOpen }) => {
         h-14
         px-3 md:px-5
         flex items-center justify-between
-        bg-white/80 dark:bg-slate-900/80 backdrop-blur-3xl
-        
+        theme-bg-card
+        border-b theme-border
         shadow-sm transition-all duration-300
       "
     >
@@ -156,10 +156,10 @@ const Navbar = ({ setSidebarOpen }) => {
           onClick={() => setSidebarOpen(true)}
           className="
             lg:hidden w-8 h-8
-            rounded-lg border border-gray-200 dark:border-transparent bg-gray-50 dark:bg-slate-800
-            text-gray-600 dark:text-slate-300
+            rounded-lg border theme-border theme-bg-main
+            theme-text-secondary
             flex items-center justify-center
-            hover:bg-gray-100 dark:hover:bg-slate-800 transition-all cursor-pointer
+            hover:opacity-90 transition-all cursor-pointer
           "
         >
           <HiOutlineMenuAlt3 className="text-lg" />
@@ -173,27 +173,14 @@ const Navbar = ({ setSidebarOpen }) => {
 
       {/* RIGHT */}
       <div className="flex items-center gap-2">
-        {/* SEARCH */}
-        <div className="hidden md:flex items-center gap-2 h-8 px-3 rounded-lg border border-gray-200 dark:border-transparent bg-gray-50 ">
-          <FiSearch className="text-gray-400 dark:text-slate-500 text-xs" />
-          <input
-            type="text"
-            placeholder="Search..."
-            className="
-              bg-transparent outline-none p-1 rounded-lg px-2
-              text-xs text-gray-700 dark:text-slate-200
-              placeholder:text-gray-400 dark:placeholder:text-slate-500
-              w-[110px] lg:w-[140px]
-            "
-          />
-        </div>
+        
 
         {/* LIGHT/DARK MODE TOGGLE */}
         <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           className="
             w-8 h-8 rounded-lg border flex items-center justify-center transition-all duration-200 cursor-pointer
-            border-gray-200 dark:border-transparent bg-white dark:bg-slate-900 hover:bg-gray-50 dark:hover:bg-slate-800
+            theme-border theme-bg-card hover:theme-bg-main
           "
           title="Toggle Theme"
         >
@@ -207,8 +194,8 @@ const Navbar = ({ setSidebarOpen }) => {
             className={`
               relative w-8 h-8 rounded-lg border flex items-center justify-center transition-all duration-200 cursor-pointer
               ${openNotifications
-                ? "bg-blue-50 dark:bg-slate-800 border-blue-200 dark:border-transparent text-blue-600 dark:text-blue-400 ring-2 ring-blue-500/10"
-                : "border-gray-200 dark:border-transparent bg-white dark:bg-slate-900 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-800 dark:hover:text-slate-100"
+                ? "theme-bg-main border-indigo-500 dark:border-indigo-400 theme-text-primary ring-2 ring-indigo-500/10"
+                : "theme-border theme-bg-card theme-text-secondary hover:theme-bg-main hover:theme-text-primary"
               }
             `}
           >
@@ -242,16 +229,16 @@ const Navbar = ({ setSidebarOpen }) => {
                   fixed top-[62px] left-4 right-4
                   md:absolute md:top-auto md:left-auto md:right-0 md:mt-2
                   md:w-[340px] md:max-w-none
-                  bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800
+                  bg-white dark:bg-slate-900 rounded-2xl border theme-border
                   shadow-2xl z-50 overflow-hidden
                 "
               >
                 {/* Header */}
-                <div className="px-4 py-3 bg-gradient-to-r from-blue-400 to indido-500  border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div className="px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 border-b theme-border flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-[11px] text-slate-800 dark:text-slate-100 uppercase tracking-wider">Notifications</span>
+                    <span className="font-extrabold text-[11px] text-white uppercase tracking-wider">Notifications</span>
                     {unreadCount > 0 && (
-                      <span className="bg-blue-100 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                      <span className="bg-white/20 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full">
                         {unreadCount} new
                       </span>
                     )}
@@ -261,7 +248,7 @@ const Navbar = ({ setSidebarOpen }) => {
                       onClick={() => {
                         markAllAsReadTrigger();
                       }}
-                      className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-500 font-bold transition-colors cursor-pointer hover:underline"
+                      className="text-[10px] text-white/90 hover:text-white font-bold transition-colors cursor-pointer hover:underline"
                     >
                       Mark all as read
                     </button>
@@ -269,7 +256,7 @@ const Navbar = ({ setSidebarOpen }) => {
                 </div>
 
                 {/* List */}
-                <div className="max-h-[300px] overflow-y-auto divide-y divide-slate-100/60 dark:divide-slate-800 scrollbar-thin">
+                <div className="max-h-[300px] overflow-y-auto divide-y theme-border scrollbar-thin">
                   {(notifications || []).length === 0 ? (
                     <div className="py-12 text-center flex flex-col items-center justify-center text-slate-400">
                       <FiBell className="text-2xl mb-2 opacity-30 text-slate-400" />
@@ -299,8 +286,8 @@ const Navbar = ({ setSidebarOpen }) => {
                           className={`
                             px-4 py-3 text-left transition-all cursor-pointer flex items-start gap-3 relative group
                             ${!n.isRead 
-                              ? "bg-blue-50/20 dark:bg-blue-950/10 hover:bg-blue-50/40 dark:hover:bg-blue-950/20" 
-                              : "bg-white dark:bg-slate-900 hover:bg-slate-50/60 dark:hover:bg-slate-800/60"
+                              ? "bg-indigo-500/5 hover:bg-indigo-500/10" 
+                              : "theme-bg-card hover:theme-bg-main"
                             }
                           `}
                         >
@@ -308,7 +295,7 @@ const Navbar = ({ setSidebarOpen }) => {
                             <Icon size={13} />
                           </div>
                           <div className="flex-1 min-w-0 pr-6">
-                            <p className={`text-[11px] leading-relaxed break-words ${!n.isRead ? "text-slate-800 dark:text-slate-100 font-extrabold" : "text-slate-500 dark:text-slate-400 font-medium"}`}>
+                            <p className={`text-[11px] leading-relaxed break-words ${!n.isRead ? "theme-text-primary font-black" : "theme-text-secondary font-medium"}`}>
                               {n.message}
                             </p>
                             <span className="text-[9px] text-slate-400 block mt-1 font-semibold">
@@ -342,13 +329,13 @@ const Navbar = ({ setSidebarOpen }) => {
                 </div>
 
                 {/* Footer */}
-                <div className="px-4 py-2.5 bg-gradient-to-r from-blue-400 to indido-500  border-t border-slate-100 dark:border-slate-800 text-center">
+                <div className="px-4 py-2.5 theme-bg-main border-t theme-border text-center">
                   <button
                     onClick={() => {
                       setOpenNotifications(false);
                       navigate(`/${user?.role}/notifications`);
                     }}
-                    className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-205 font-bold tracking-wide uppercase transition-colors cursor-pointer"
+                    className="text-[10px] theme-text-secondary hover:theme-text-primary font-bold tracking-wide uppercase transition-colors cursor-pointer"
                   >
                     View All History
                   </button>
@@ -365,8 +352,8 @@ const Navbar = ({ setSidebarOpen }) => {
             className="
               flex items-center gap-1.5
               px-1.5 py-1
-              rounded-lg border border-gray-200 dark:border-transparent bg-white dark:bg-gray-800
-               transition-all cursor-pointer
+              rounded-lg border theme-border theme-bg-card
+              transition-all cursor-pointer
             "
           >
             {profile?.profileImage?.url ? (
@@ -382,8 +369,8 @@ const Navbar = ({ setSidebarOpen }) => {
             )}
 
             <div className="text-left ">
-              <h3 className="text-[12px] font-semibold text-gray-800 dark:text-yellow-50 leading-tight">{user?.name}</h3>
-              <p className="text-[10px] text-gray-400 dark:text-blue-300 capitalize leading-tight">{user?.role}</p>
+              <h3 className="text-[12px] font-black theme-text-primary leading-tight">{user?.name}</h3>
+              <p className="text-[10px] theme-text-secondary capitalize leading-tight">{user?.role}</p>
             </div>
 
             <FiChevronDown
@@ -401,7 +388,7 @@ const Navbar = ({ setSidebarOpen }) => {
                 className="
                   absolute right-0 top-10
                   w-52 rounded-xl
-                  bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-800
+                  theme-bg-card border theme-border
                   shadow-lg p-1.5 z-50
                 "
               >
@@ -415,7 +402,7 @@ const Navbar = ({ setSidebarOpen }) => {
                   className="
                     w-full px-3 py-2 rounded-lg
                     flex items-center gap-2
-                    text-xs text-gray-700 dark:text-yellow-50 transition-all cursor-pointer
+                    text-xs theme-text-primary hover:theme-bg-main transition-all cursor-pointer
                   "
                 >
                   <FiUser className="text-blue-500" size={13} />

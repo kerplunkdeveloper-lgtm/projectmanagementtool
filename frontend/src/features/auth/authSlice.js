@@ -93,6 +93,9 @@ const authSlice = createSlice({
         localStorage.removeItem("originalRole");
       }
     },
+    clearError: (state) => {
+      state.error = null;
+    },
     exitImpersonation: (state) => {
       if (state.originalAdminUser) {
         state.user = state.originalAdminUser;
@@ -154,6 +157,20 @@ const authSlice = createSlice({
         localStorage.removeItem("originalAdminUser");
         localStorage.removeItem("originalAdminToken");
       })
+      .addCase(logoutUser.rejected, (state) => {
+        state.user = null;
+        state.token = null;
+        state.originalRole = null;
+        state.originalAdminUser = null;
+        state.originalAdminToken = null;
+        state.error = null;
+
+        localStorage.removeItem("user");
+        localStorage.removeItem("token");
+        localStorage.removeItem("originalRole");
+        localStorage.removeItem("originalAdminUser");
+        localStorage.removeItem("originalAdminToken");
+      })
 
       // IMPERSONATE
       .addCase(impersonateUser.pending, (state) => {
@@ -192,6 +209,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { switchViewingRole, resetViewingRole, exitImpersonation } = authSlice.actions;
+export const { switchViewingRole, resetViewingRole, exitImpersonation, clearError } = authSlice.actions;
 
 export default authSlice.reducer;

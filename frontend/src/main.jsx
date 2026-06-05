@@ -13,7 +13,32 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <ThemeProvider>
         <App />
-        <Toaster />
+        <Toaster 
+          position="top-center"
+          toastOptions={{
+            className: "!theme-bg-card !theme-text-primary !border !theme-border !shadow-2xl !rounded-2xl !text-sm !font-bold !tracking-wide !px-4 !py-3",
+            duration: 4000,
+            style: {
+              background: 'transparent',
+              color: 'inherit',
+              boxShadow: 'none',
+              border: 'none',
+              padding: 0,
+            },
+            success: {
+              iconTheme: {
+                primary: '#10b981',
+                secondary: '#fff',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: '#f43f5e',
+                secondary: '#fff',
+              },
+            },
+          }}
+        />
       </ThemeProvider>
     </BrowserRouter>
   </Provider>

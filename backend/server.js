@@ -193,6 +193,16 @@ io.on('connection', (socket) => {
 // Make io accessible to our routers
 app.set('io', io);
 
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error("GLOBAL ERROR HANDLER CAUGHT:", err);
+  require('fs').writeFileSync('global_error.txt', err.stack || err.message || "Unknown error");
+  res.status(500).json({
+    success: false,
+    message: err.message || "Server Error from Middleware",
+  });
+});
+
 server.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });
