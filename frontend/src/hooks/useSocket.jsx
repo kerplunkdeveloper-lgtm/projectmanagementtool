@@ -3,6 +3,7 @@ import { io } from 'socket.io-client';
 import { useDispatch, useSelector } from 'react-redux';
 import { addNotification } from '../features/notifications/notificationSlice';
 import toast from 'react-hot-toast';
+import { FiBell, FiX } from 'react-icons/fi';
 
 const playNotificationSound = () => {
   try {
@@ -56,33 +57,33 @@ const useSocket = () => {
           <div
             className={`${
               t.visible ? 'animate-enter' : 'animate-leave'
-            } max-w-md w-full bg-white shadow-2xl rounded-[1.5rem] pointer-events-auto flex ring-1 ring-black ring-opacity-5 border border-blue-50 overflow-hidden`}
+            } max-w-md w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-[0_15px_40px_rgba(0,0,0,0.12)] border border-slate-100 dark:border-slate-800 rounded-2xl pointer-events-auto flex items-center p-4 pr-10 relative`}
           >
-            <div className="flex-1 w-0 p-5">
-              <div className="flex items-start">
-                <div className="flex-shrink-0 pt-0.5">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg">
-                    <span className="font-black text-xs">NEW</span>
-                  </div>
-                </div>
-                <div className="ml-4 flex-1">
-                  <p className="text-sm font-black text-slate-800">
-                    Tactical Update
-                  </p>
-                  <p className="mt-1 text-xs font-medium text-slate-500 leading-relaxed">
-                    {notification.message}
-                  </p>
-                </div>
+            {/* Animated Pulsing Bell Icon */}
+            <div className="flex-shrink-0 relative">
+              <div className="absolute inset-0 bg-blue-500/20 rounded-xl animate-pulse" />
+              <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-md relative z-10">
+                <FiBell size={18} />
               </div>
             </div>
-            <div className="flex border-l border-gray-100">
-              <button
-                onClick={() => toast.dismiss(t.id)}
-                className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-xs font-black text-blue-600 hover:text-blue-500 focus:outline-none"
-              >
-                CLOSE
-              </button>
+
+            {/* Content text */}
+            <div className="ml-4 flex-1 min-w-0">
+              <p className="text-[10px] font-black text-slate-800 dark:text-yellow-50 tracking-wider uppercase">
+                New Notification
+              </p>
+              <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400 leading-relaxed">
+                {notification.message}
+              </p>
             </div>
+
+            {/* Top-Right Dismiss Button */}
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="absolute top-3 right-3 w-6 h-6 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
+            >
+              <FiX size={14} />
+            </button>
           </div>
         ), { duration: 5000 });
       });

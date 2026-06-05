@@ -79,25 +79,25 @@ const taskSlice = createSlice({
       .addCase(getTasks.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
-        toast.error(action.payload);
+        console.log(action.payload);
       })
       .addCase(createTask.fulfilled, (state, action) => {
         state.tasks.unshift(action.payload.data);
-        toast.success("Task Created");
+
       })
       .addCase(createTask.rejected, (state, action) => {
         state.error = action.payload;
-        toast.error(action.payload);
+        console.log(action.payload);
       })
       .addCase(updateTask.fulfilled, (state, action) => {
         state.tasks = state.tasks.map((task) =>
           task._id === action.payload.data._id ? action.payload.data : task
         );
-        toast.success("Task Updated");
+
       })
       .addCase(updateTask.rejected, (state, action) => {
         state.error = action.payload;
-        toast.error(action.payload);
+        console.log(action.payload);
       })
       .addCase(deleteTask.fulfilled, (state, action) => {
         state.tasks = state.tasks.filter((task) => task._id !== action.meta.arg);
@@ -105,7 +105,7 @@ const taskSlice = createSlice({
       })
       .addCase(deleteTask.rejected, (state, action) => {
         state.error = action.payload;
-        toast.error(action.payload);
+        console.log(action.payload);
       });
   },
 });

@@ -18,6 +18,11 @@ const SubtaskSchema = new mongoose.Schema({
   dueDate: {
     type: Date,
   },
+  priority: {
+    type: String,
+    enum: ["Low", "Medium", "High"],
+    default: "Medium",
+  },
 });
 
 const TaskSchema = new mongoose.Schema(
@@ -35,7 +40,6 @@ const TaskSchema = new mongoose.Schema(
     assignedTo: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
     },
     dueDate: {
       type: Date,
