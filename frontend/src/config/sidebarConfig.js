@@ -23,7 +23,7 @@ export const sidebarConfig = {
       icon: LuBuilding2,
     },
     {
-      name: "Projects",
+      name: "Projects management",
       path: "/admin/projects",
       icon: LuFolderKanban,
     },
@@ -71,7 +71,7 @@ export const sidebarConfig = {
       icon: FiHome,
     },
     {
-      name: "Projects",
+      name: "Projects management",
       path: "/operationmanager/projects",
       icon: LuFolderKanban,
     },

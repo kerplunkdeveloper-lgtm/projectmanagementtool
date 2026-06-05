@@ -40,14 +40,12 @@ const WelcomeUser = () => {
   });
 
   return (
-    <div className="relative overflow-hidden p-4 sm:p-5 mb-4 rounded-2xl theme-bg-card border theme-border shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fadeIn">
-      {/* Background ambient glows */}
-      <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 dark:bg-indigo-400/5 rounded-full blur-xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-16 h-16 bg-pink-500/5 dark:bg-pink-400/5 rounded-full blur-lg pointer-events-none" />
+    <div className="relative overflow-hidden  mb-4 rounded-2xl theme-bg-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fadeIn">
+      
 
       {/* Left Side: Greeting */}
       <div className="flex items-center gap-3.5 min-w-0 relative z-10">
-        <div className="w-10 h-10 rounded-xl bg-indigo-500/10 dark:bg-indigo-400/10 border border-indigo-500/20 dark:border-indigo-400/20 flex items-center justify-center shadow-sm flex-shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-indigo-500/10 dark:bg-indigo-400/10  flex items-center justify-center  flex-shrink-0">
           <Icon className={`text-lg ${iconColor}`} />
         </div>
 

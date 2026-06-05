@@ -128,31 +128,31 @@ const Dashboardmain = () => {
   };
 
   return (
-    <div className="space-y-6 pb-8">
+    <div className="space-y-4 pb-6">
       {/* GREETING */}
       <WelcomeUser />
 
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 mb-6 ">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 mb-4 ">
 
         <div className='col-span-1'>
           <DashboardCards />
         </div>
 
-        <div className='col-span-1 theme-bg-card border theme-border rounded-2xl p-5 shadow-sm'>
-          <h1 className="text-[13px] font-black theme-text-primary uppercase tracking-wider mb-5">Projects</h1>
+        <div className='col-span-1 theme-bg-card border theme-border rounded-xl p-4 shadow-sm'>
+          <h1 className="text-[13px] font-black theme-text-primary uppercase tracking-wider mb-4">Projects</h1>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* CREATE PROJECT BUTTON */}
             {user?.role === "admin" && (
               <button 
                 onClick={() => setShowCreateModal(true)} 
-                className="flex items-center gap-3 group text-left"
+                className="flex items-center gap-2 group text-left"
               >
-                <div className="w-12 h-12 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover:border-slate-400 dark:group-hover:border-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-400 transition-colors shrink-0">
-                  <FiPlus size={20} />
+                <div className="w-10 h-10 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover:border-slate-400 dark:group-hover:border-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-400 transition-colors shrink-0">
+                  <FiPlus size={18} />
                 </div>
-                <span className="text-[13px] font-semibold text-slate-600 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-300 transition-colors">Create project</span>
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-300 transition-colors">Create project</span>
               </button>
             )}
 
@@ -161,12 +161,12 @@ const Dashboardmain = () => {
               <button 
                  key={project._id}
                  onClick={() => navigate(`/${user?.role}/projects?id=${project._id}`)}
-                 className="flex items-center gap-3 group text-left"
+                 className="flex items-center gap-2 group text-left"
               >
-                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${projectColors[index % projectColors.length]} transition-transform group-hover:scale-[1.03] shrink-0`}>
-                   <FiList size={22} className="opacity-90" />
+                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${projectColors[index % projectColors.length]} transition-transform group-hover:scale-[1.03] shrink-0`}>
+                   <FiList size={18} className="opacity-90" />
                  </div>
-                 <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 line-clamp-2">{project.name}</span>
+                 <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 line-clamp-2">{project.name}</span>
               </button>
             ))}
           </div>
@@ -183,11 +183,11 @@ const Dashboardmain = () => {
     
 
       {/* TWO-COLUMN LOWER DASHBOARD SECTION */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 max-w-7xl">
         
         {/* UPCOMING EVENTS SECTION */}
-        <div className="lg:col-span-2 theme-bg-card border theme-border rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center justify-between mb-5 border-b theme-border pb-3">
+        <div className="lg:col-span-2 theme-bg-card border theme-border rounded-xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-4 border-b theme-border pb-3">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 shadow-sm">
                 <FiCalendar size={15} />
@@ -228,7 +228,7 @@ const Dashboardmain = () => {
                   <motion.div
                     whileHover={{ y: -2, transition: { duration: 0.15 } }}
                     key={event._id}
-                    className={`relative overflow-hidden p-4 rounded-xl border flex flex-col justify-between transition-all theme-bg-main ${
+                    className={`relative overflow-hidden p-3.5 rounded-xl border flex flex-col justify-between transition-all theme-bg-main ${
                       eventIsToday
                         ? 'border-indigo-500/40 dark:border-indigo-900/40 ring-1 ring-indigo-500/10 shadow-[0_0_15px_rgba(99,102,241,0.05)]'
                         : 'theme-border hover:border-slate-300 dark:hover:border-slate-750'
@@ -298,7 +298,7 @@ const Dashboardmain = () => {
         </div>
 
         {/* WORKSPACE & ACTION SHORTCUTS */}
-        <div className="theme-bg-card border theme-border rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+        <div className="theme-bg-card border theme-border rounded-xl p-4 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-4 border-b theme-border pb-3">
               <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0 shadow-sm">

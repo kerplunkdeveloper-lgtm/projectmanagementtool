@@ -117,19 +117,18 @@ const DashboardCards = () => {
               }}
               className={`relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 theme-bg-card ${card.gradient} ${card.border}`}
             >
-              {/* SHINE EFFECT Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10 dark:via-white/[0.02] dark:to-white/[0.05] pointer-events-none" />
+              
 
               {/* CONTENT */}
               <div className="p-5 sm:p-6 md:p-8 flex items-center justify-between w-full h-full relative z-10">
                 {/* Left side: Title */}
-                <p className={`text-base sm:text-xl md:text-2xl lg:text-[22px] font-black uppercase tracking-wider ${card.titleColor}`}>
+                <p className={`text-sm  md:text-md  uppercase tracking-wider ${card.titleColor}`}>
                   {card.title}
                 </p>
                 
                 {/* Right side: Value and Subtitle */}
                 <div className="flex flex-col items-end">
-                  <h2 className={`text-2xl sm:text-3xl md:text-4xl font-black tracking-tight ${card.valueColor}`}>
+                  <h2 className={`text-sm md:text-xl  tracking-tight ${card.valueColor}`}>
                     {card.value}
                   </h2>
                   <p className={`text-xs font-semibold mt-1 ${card.subtitleColor}`}>

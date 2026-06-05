@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import logo from "../../assets/logo.avif";
 import logoDark from "../../assets/logodark.png";
 import { useTheme } from "../../context/ThemeContext";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { FiX, FiLogOut, FiFolder } from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
@@ -12,7 +12,18 @@ import { logoutUser, impersonateUser } from "../../features/auth/authSlice";
 import { getProjects } from "../../features/projects/projectSlice";
 import { getUsers } from "../../features/users/userSlice";
 
+const projectColors = [
+  "bg-fuchsia-300 text-fuchsia-900 dark:bg-fuchsia-400 dark:text-fuchsia-950",
+  "bg-emerald-300 text-emerald-900 dark:bg-emerald-400 dark:text-emerald-950",
+  "bg-lime-300 text-lime-900 dark:bg-lime-400 dark:text-lime-950",
+  "bg-indigo-300 text-indigo-900 dark:bg-indigo-400 dark:text-indigo-950",
+  "bg-rose-300 text-rose-900 dark:bg-rose-400 dark:text-rose-950",
+  "bg-cyan-300 text-cyan-900 dark:bg-cyan-400 dark:text-cyan-950"
+];
+
 const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
+  const location = useLocation();
+  const activeProjectId = new URLSearchParams(location.search).get("id");
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -186,7 +197,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   )}
                 </NavLink>
 
-                {item.name === "Projects" &&
+                {item.name === "Projects management" &&
                   projects &&
                   projects.length > 0 && (
                     <div className="space-y-1 pt-1 pb-2 theme-bg-main rounded-2xl border theme-border pl-4 pr-2 mt-1">
@@ -195,7 +206,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         className="w-full flex items-center justify-between gap-2 py-1 theme-text-primary hover:theme-text-secondary transition-all font-bold"
                       >
                         <span className="text-[10px] font-semibold uppercase tracking-wider">
-                          Work
+                          My Projects
                         </span>
                         <svg
                           className={`w-3 h-3 transform transition-transform duration-200 ${isWorkOpen ? "rotate-180" : ""}`}
@@ -214,19 +225,30 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
                       {isWorkOpen && (
                         <div className="pl-3.5 space-y-1 overflow-y-auto max-h-[160px] scrollbar-thin">
-                          {projects.map((project) => (
-                            <button
-                              key={project._id}
-                              onClick={() => {
-                                setSidebarOpen(false);
-                                navigate(`/${role}/projects?id=${project._id}`);
-                              }}
-                              className="w-full text-left block text-[10px] font-semibold theme-text-secondary hover:theme-text-primary py-1 truncate"
-                              title={project.name}
-                            >
-                              • {project.name}
-                            </button>
-                          ))}
+                          {projects.map((project, index) => {
+                            const isActive = activeProjectId === project._id;
+                            return (
+                              <button
+                                key={project._id}
+                                onClick={() => {
+                                  setSidebarOpen(false);
+                                  navigate(`/${role}/projects?id=${project._id}`);
+                                }}
+                                className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1.5 rounded-lg px-1.5 transition-colors group ${
+                                  isActive
+                                    ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400"
+                                    : "theme-text-secondary hover:theme-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                                }`}
+                                title={project.name}
+                              >
+                                <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${projectColors[index % projectColors.length]} group-hover:scale-110 transition-transform`}>
+                                  <span className="text-[8px] font-black uppercase opacity-90">{project.name.charAt(0)}</span>
+                                </div>
+                                <span className="truncate">{project.name}</span>
+                                {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />}
+                              </button>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -248,7 +270,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   <div className="flex items-center gap-2">
                     <FiFolder size={12} className="text-gray-500" />
                     <span className="text-[10px] font-semibold uppercase tracking-wider">
-                      Work
+                      My Projects
                     </span>
                   </div>
                   <svg
@@ -268,19 +290,30 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
                 {isWorkOpen && (
                   <div className="pl-3.5 space-y-1 overflow-y-auto max-h-[160px] scrollbar-thin">
-                    {projects.map((project) => (
-                      <button
-                        key={project._id}
-                        onClick={() => {
-                          setSidebarOpen(false);
-                          navigate(`/${role}/projects?id=${project._id}`);
-                        }}
-                        className="w-full text-left block text-[10px] font-semibold theme-text-secondary hover:theme-text-primary py-1 truncate"
-                        title={project.name}
-                      >
-                        • {project.name}
-                      </button>
-                    ))}
+                    {projects.map((project, index) => {
+                      const isActive = activeProjectId === project._id;
+                      return (
+                        <button
+                          key={project._id}
+                          onClick={() => {
+                            setSidebarOpen(false);
+                            navigate(`/${role}/projects?id=${project._id}`);
+                          }}
+                          className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1.5 rounded-lg px-1.5 transition-colors group ${
+                            isActive
+                              ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400"
+                              : "theme-text-secondary hover:theme-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                          }`}
+                          title={project.name}
+                        >
+                          <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${projectColors[index % projectColors.length]} group-hover:scale-110 transition-transform`}>
+                            <span className="text-[8px] font-black uppercase opacity-90">{project.name.charAt(0)}</span>
+                          </div>
+                          <span className="truncate">{project.name}</span>
+                          {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
