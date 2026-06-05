@@ -1,8 +1,11 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { useNavigate } from 'react-router-dom'
 import WelcomeUser from '../admin/partnerhub/components/WelcomeUser'
 import DashboardCards from './cards/DashboardCards'
 import { getEvents } from '../../features/events/eventSlice'
+import { getProjects, createProject } from '../../features/projects/projectSlice'
+import { getClients } from '../../features/clients/clientslice'
 import {
   FiCalendar,
   FiClock,
@@ -13,10 +16,15 @@ import {
   FiFileText,
   FiUser,
   FiChevronRight,
-  FiAlertCircle
+  FiAlertCircle,
+  FiPlus,
+  FiList,
+  FiBriefcase,
+  FiX,
+  FiChevronDown
 } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 
 const TYPE_CONFIG = {
   Post: { color: "text-blue-500 bg-blue-500/10 border-blue-500/20", icon: FiInstagram },
@@ -29,12 +37,55 @@ const TYPE_CONFIG = {
 
 const Dashboardmain = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const { events, loading } = useSelector((state) => state.events);
+  const { projects } = useSelector((state) => state.projects);
+  const { clients } = useSelector((state) => state.clients);
+
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [name, setName] = useState("");
+  const [clientId, setClientId] = useState("");
+  const [status, setStatus] = useState("Active");
 
   useEffect(() => {
     dispatch(getEvents());
-  }, [dispatch]);
+    dispatch(getProjects());
+    if (user?.role === "admin") {
+      dispatch(getClients());
+    }
+  }, [dispatch, user]);
+
+  useEffect(() => {
+    if (clients && clients.length > 0 && !clientId) {
+      setClientId(clients[0]._id);
+    }
+  }, [clients, clientId]);
+
+  const handleCreateSubmit = (e) => {
+    e.preventDefault();
+    if (!name || !clientId) return;
+    dispatch(
+      createProject({
+        name,
+        client: clientId,
+        status,
+      })
+    );
+    setShowCreateModal(false);
+    setName("");
+    setClientId(clients[0]?._id || "");
+    setStatus("Active");
+  };
+
+  const projectColors = [
+    "bg-fuchsia-300 text-fuchsia-900 dark:bg-fuchsia-400 dark:text-fuchsia-950",
+    "bg-emerald-300 text-emerald-900 dark:bg-emerald-400 dark:text-emerald-950",
+    "bg-lime-300 text-lime-900 dark:bg-lime-400 dark:text-lime-950",
+    "bg-indigo-300 text-indigo-900 dark:bg-indigo-400 dark:text-indigo-950",
+    "bg-rose-300 text-rose-900 dark:bg-rose-400 dark:text-rose-950",
+    "bg-cyan-300 text-cyan-900 dark:bg-cyan-400 dark:text-cyan-950"
+  ];
 
   // Filter and sort upcoming events (today and future)
   const upcomingEvents = React.useMemo(() => {
@@ -81,10 +132,55 @@ const Dashboardmain = () => {
       {/* GREETING */}
       <WelcomeUser />
 
-      {/* STATS CARDS FOR ADMIN */}
-      {user?.role === 'admin' && (
-        <DashboardCards />
-      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 mb-6 ">
+
+        <div className='col-span-1'>
+          <DashboardCards />
+        </div>
+
+        <div className='col-span-1 theme-bg-card border theme-border rounded-2xl p-5 shadow-sm'>
+          <h1 className="text-[13px] font-black theme-text-primary uppercase tracking-wider mb-5">Projects</h1>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* CREATE PROJECT BUTTON */}
+            {user?.role === "admin" && (
+              <button 
+                onClick={() => setShowCreateModal(true)} 
+                className="flex items-center gap-3 group text-left"
+              >
+                <div className="w-12 h-12 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover:border-slate-400 dark:group-hover:border-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-400 transition-colors shrink-0">
+                  <FiPlus size={20} />
+                </div>
+                <span className="text-[13px] font-semibold text-slate-600 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-300 transition-colors">Create project</span>
+              </button>
+            )}
+
+            {/* PROJECTS LIST */}
+            {projects && projects.map((project, index) => (
+              <button 
+                 key={project._id}
+                 onClick={() => navigate(`/${user?.role}/projects?id=${project._id}`)}
+                 className="flex items-center gap-3 group text-left"
+              >
+                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${projectColors[index % projectColors.length]} transition-transform group-hover:scale-[1.03] shrink-0`}>
+                   <FiList size={22} className="opacity-90" />
+                 </div>
+                 <span className="text-[13px] font-semibold text-slate-800 dark:text-slate-200 line-clamp-2">{project.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+
+
+      {/* {user?.role === 'admin' && (
+            <DashboardCards />
+      )} */}
+
+      </div>
+
+    
 
       {/* TWO-COLUMN LOWER DASHBOARD SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl">
@@ -272,6 +368,119 @@ const Dashboardmain = () => {
         </div>
 
       </div>
+
+      {/* CREATE PROJECT OFFCANVAS DRAWER */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <div className="fixed inset-0 z-50 flex justify-end">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowCreateModal(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]"
+            />
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "tween", ease: "easeOut", duration: 0.3 }}
+              className="relative w-full max-w-md theme-bg-card h-full shadow-2xl flex flex-col z-10 border-l theme-border"
+            >
+              {/* Header */}
+              <div className="p-6 border-b theme-border flex justify-between items-center theme-bg-main">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                    <FiBriefcase size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black theme-text-primary">Add New Project</h2>
+                    <p className="text-[10px] theme-text-secondary font-bold uppercase tracking-wider mt-0.5">Project Details</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="w-8 h-8 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center theme-text-secondary hover:theme-text-primary transition-colors"
+                >
+                  <FiX size={18} />
+                </button>
+              </div>
+
+              {/* Form Content */}
+              <form onSubmit={handleCreateSubmit} className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold theme-text-secondary uppercase tracking-wide">Project Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Enter project name..."
+                      className="w-full px-4 py-3 rounded-2xl theme-bg-main border theme-border focus:outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 text-sm theme-text-primary placeholder-slate-400 transition-all focus:shadow-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold theme-text-secondary uppercase tracking-wide">Client Name</label>
+                    <div className="relative">
+                      <select
+                        value={clientId}
+                        onChange={(e) => setClientId(e.target.value)}
+                        className="w-full px-4 py-3 pr-10 rounded-2xl theme-bg-main border theme-border focus:outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 text-sm theme-text-primary cursor-pointer appearance-none transition-all focus:shadow-sm"
+                      >
+                        {clients && clients.map((c) => (
+                          <option key={c._id} value={c._id}>
+                            {c.companyName}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none theme-text-secondary">
+                        <FiChevronDown size={16} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold theme-text-secondary uppercase tracking-wide">Status</label>
+                    <div className="relative">
+                      <select
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value)}
+                        className="w-full px-4 py-3 pr-10 rounded-2xl theme-bg-main border theme-border focus:outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 text-sm theme-text-primary cursor-pointer appearance-none transition-all focus:shadow-sm"
+                      >
+                        <option value="Active">Active</option>
+                        <option value="On Hold">On Hold</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Inactive">Inactive</option>
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none theme-text-secondary">
+                        <FiChevronDown size={16} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 border-t theme-border theme-bg-main flex justify-end gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="px-5 py-3 rounded-2xl border theme-border theme-text-secondary text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-md shadow-blue-500/10 active:scale-95 transition-all"
+                  >
+                    Create Project
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

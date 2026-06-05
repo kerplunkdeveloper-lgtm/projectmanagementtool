@@ -40,7 +40,7 @@ const WelcomeUser = () => {
   });
 
   return (
-    <div className="relative overflow-hidden bg-white border border-slate-200/70 shadow-sm rounded-2xl p-2 mb-2 animate-fadeIn">
+    <div className="relative overflow-hidden  p-2 mb-2 animate-fadeIn">
       {/* Background Blurs */}
       <div className="absolute -top-20 -right-20 w-44 h-44 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-full blur-3xl opacity-40 pointer-events-none" />
       <div className="absolute -bottom-20 -left-20 w-44 h-44 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full blur-3xl opacity-40 pointer-events-none" />
