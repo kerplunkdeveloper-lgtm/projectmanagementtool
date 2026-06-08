@@ -6,6 +6,13 @@ const Client = require("../models/Client");
 // @access  Private
 exports.createClient = async (req, res) => {
   try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Only administrators are authorized to perform CRUD operations on clients",
+      });
+    }
+
     const {
       companyName,
       industry,
@@ -68,9 +75,17 @@ exports.createClient = async (req, res) => {
 // @desc    Get All Clients
 // @route   GET /api/clients
 // @access  Private
+// @desc    Get All Clients
+// @route   GET /api/clients
+// @access  Private
 exports.getClients = async (req, res) => {
   try {
-    const clients = await Client.find()
+    let query = {};
+    if (req.user.role !== "admin") {
+      query.assignedTo = req.user._id;
+    }
+
+    const clients = await Client.find(query)
       .populate(
         "createdBy",
         "name email role"
@@ -113,6 +128,13 @@ exports.getClient = async (req, res) => {
       });
     }
 
+    if (req.user.role !== "admin" && (!client.assignedTo || client.assignedTo._id.toString() !== req.user._id.toString())) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to view this client",
+      });
+    }
+
     res.status(200).json({
       success: true,
       data: client,
@@ -131,6 +153,13 @@ exports.getClient = async (req, res) => {
 // @access  Private
 exports.updateClient = async (req, res) => {
   try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Only administrators are authorized to perform CRUD operations on clients",
+      });
+    }
+
     const budget = Number(req.body.budget);
     const gst = Number(req.body.gst);
 
@@ -174,6 +203,13 @@ exports.updateClient = async (req, res) => {
 // @access  Private
 exports.deleteClient = async (req, res) => {
   try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Only administrators are authorized to perform CRUD operations on clients",
+      });
+    }
+
     const client = await Client.findById(
       req.params.id
     );

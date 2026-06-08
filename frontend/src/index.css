@@ -60,8 +60,8 @@ aside {
 .dark {
   /* Premium Dark Mode Palette */
   --color-white: #0f172a; /* Card / Container Bg - Slate 900 */
-  --color-slate-50: #05070c; /* Body Background - Dark Midnight Navy */
-  --color-gray-50: #05070c; 
+  --color-slate-50: #020710; /* Body Background - Dark Midnight Navy */
+  --color-gray-50: #020710; 
   
   --color-slate-100: #1e293b; /* Subtle Borders - Slate 800 */
   --color-gray-100: #1e293b; 
@@ -128,7 +128,7 @@ aside {
   .rbc-header {
     border-bottom-color: #1e293b !important;
     color: #f1f5f9 !important;
-    background-color: #05070c !important;
+    background-color: #020710 !important;
     font-weight: 700;
   }
   .rbc-header + .rbc-header {
@@ -144,7 +144,7 @@ aside {
     border-color: #1e293b !important;
   }
   .rbc-off-range-bg {
-    background: #05070c !important;
+    background: #020710 !important;
   }
   .rbc-today {
     background-color: rgba(139, 92, 246, 0.15) !important;
@@ -178,7 +178,7 @@ aside {
   .rbc-toolbar button {
     color: #f1f5f9 !important;
     border-color: #1e293b !important;
-    background-color: #05070c !important;
+    background-color: #020710 !important;
     font-weight: 700 !important;
   }
   .rbc-toolbar button:active, .rbc-toolbar button.rbc-active {
@@ -199,7 +199,7 @@ aside {
   .event-modal-container input[type="time"],
   .event-modal-container select,
   .event-modal-container textarea {
-    background-color: #05070c !important;
+    background-color: #020710 !important;
     color: #f8fafc !important;
     border-color: #1e293b !important;
   }
@@ -263,12 +263,21 @@ button.bg-blue-600,
 button.bg-blue-500,
 button.bg-slate-900,
 .dashboard-btn-primary {
-  background: var(--color-brand-gradient) !important;
+  background: linear-gradient(180deg, #92d1ef 0%, #69afe2 50%, #408ed8 100%) !important;
   color: #ffffff !important;
   border: none !important;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.15) !important;
+  box-shadow: 0 4px 14px rgba(64, 142, 216, 0.25) !important;
   transition: all 0.2s ease-in-out !important;
   cursor: pointer;
+}
+
+button.bg-\[\#7c5ff0\] *,
+button.bg-indigo-600 *,
+button.bg-blue-600 *,
+button.bg-blue-500 *,
+button.bg-slate-900 *,
+.dashboard-btn-primary * {
+  color: #ffffff !important;
 }
 
 .dark button.bg-\[\#7c5ff0\],
@@ -278,10 +287,24 @@ button.bg-slate-900,
 .dark button.bg-blue-505,
 .dark button.bg-blue-500,
 .dark button.bg-slate-900,
-.dark .dashboard-btn-primary {
-  background: var(--color-brand-gradient) !important;
-  color: #ffffff !important;
-  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.15) !important;
+.dark .dashboard-btn-primary,
+.dark button[type="submit"] {
+  background: #e5ff00 !important;
+  background-color: #e5ff00 !important;
+  color: #000000 !important;
+  box-shadow: 0 4px 14px rgba(229, 255, 0, 0.2) !important;
+}
+
+.dark button.bg-\[\#7c5ff0\] *,
+.dark button.bg-indigo-600 *,
+.dark button.bg-blue-650 *,
+.dark button.bg-blue-600 *,
+.dark button.bg-blue-505 *,
+.dark button.bg-blue-500 *,
+.dark button.bg-slate-900 *,
+.dark .dashboard-btn-primary *,
+.dark button[type="submit"] * {
+  color: #000000 !important;
 }
 
 button.bg-\[\#7c5ff0\]:hover,
@@ -290,9 +313,9 @@ button.bg-blue-600:hover,
 button.bg-blue-500:hover,
 button.bg-slate-900:hover,
 .dashboard-btn-primary:hover {
-  opacity: 0.95 !important;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.25) !important;
+  opacity: 1 !important;
+  transform: none !important;
+  box-shadow: 0 4px 14px rgba(64, 142, 216, 0.25) !important;
 }
 
 .dark button.bg-\[\#7c5ff0\]:hover,
@@ -300,8 +323,12 @@ button.bg-slate-900:hover,
 .dark button.bg-blue-600:hover,
 .dark button.bg-blue-500:hover,
 .dark button.bg-slate-900:hover,
-.dark .dashboard-btn-primary:hover {
-  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.25) !important;
+.dark .dashboard-btn-primary:hover,
+.dark button[type="submit"]:hover {
+  background: #d4ec00 !important;
+  background-color: #d4ec00 !important;
+  color: #000000 !important;
+  box-shadow: 0 6px 20px rgba(229, 255, 0, 0.3) !important;
 }
 
 /* Dashboard Table Heading Override */
@@ -424,5 +451,48 @@ input:focus, select:focus, textarea:focus {
 }
 .dark .metric-card-value {
   color: #ffffff !important;
+}
+
+/* Login Page Desktop Split View Override */
+@media (min-width: 768px) {
+  #login-image-section {
+    width: 55% !important;
+    height: 100vh !important;
+  }
+  #login-form-section {
+    width: 45% !important;
+    height: 100vh !important;
+    margin-top: 0 !important;
+    border-radius: 0 !important;
+  }
+}
+
+@media (min-width: 1280px) {
+  #login-image-section {
+    width: 60% !important;
+  }
+  #login-form-section {
+    width: 40% !important;
+  }
+}
+
+/* Custom Webkit Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+}
+::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+/* Light Mode Scrollbar Thumb */
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #92d1ef 0%, #69afe2 50%, #408ed8 100%) !important;
+  border-radius: 9999px !important;
+}
+/* Dark Mode Scrollbar Thumb */
+.dark ::-webkit-scrollbar-thumb,
+.dark::-webkit-scrollbar-thumb {
+  background: #e5ff00 !important;
+  border-radius: 9999px !important;
 }
 

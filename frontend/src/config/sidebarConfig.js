@@ -7,6 +7,7 @@ import {
   LuHandshake,
   LuMessagesSquare,
   LuClipboardCheck,
+  LuFolderOpen,
 } from "react-icons/lu";
 import { FiBarChart2, FiUser, FiHome } from "react-icons/fi";
 
@@ -21,6 +22,11 @@ export const sidebarConfig = {
       name: "Clients",
       path: "/admin/clients",
       icon: LuBuilding2,
+    },
+    {
+      name: "Portfolio",
+      path: "/admin/portfolio",
+      icon: LuFolderOpen,
     },
     {
       name: "Projects",
@@ -77,6 +83,11 @@ export const sidebarConfig = {
       icon: FiHome,
     },
     {
+      name: "Clients",
+      path: "/operationmanager/clients",
+      icon: LuBuilding2,
+    },
+    {
       name: "Projects",
       path: "/operationmanager/projects",
       icon: LuFolderKanban,
@@ -113,6 +124,11 @@ export const sidebarConfig = {
       name: "Dashboard",
       path: "/team",
       icon: FiHome,
+    },
+     {
+      name: "Clients",
+      path: "/team/clients",
+      icon: LuBuilding2,
     },
     {
       name: "My Tasks",

@@ -43,6 +43,7 @@ const Clients = () => {
 
   const { clients, loading } = useSelector((state) => state.clients);
   const { users } = useSelector((state) => state.users);
+  const { user } = useSelector((state) => state.auth);
 
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -119,8 +120,8 @@ const Clients = () => {
     setShowModal(true);
   };
 
-  const adminUsers = useMemo(() => {
-    return (users || []).filter((u) => u.role === "admin");
+  const allUsers = useMemo(() => {
+    return users || [];
   }, [users]);
 
   const filteredClients = useMemo(() => {
@@ -185,29 +186,31 @@ const Clients = () => {
       {/* HEADER SECTION */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-xl md:text-2xl font-black text-gray-900 dark:text-yellow-50 tracking-tight flex items-center gap-3">
+          <h1 className="text-xl md:text-2xl font-black tracking-tight flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl  dashboard-btn-primary dark:dashboard-btn-primary text-white flex items-center justify-center  shrink-0">
               <FiUsers size={18} />
             </div>
             <div>
               <span>Client Portfolio</span>
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold tracking-normal mt-0.5">Manage accounts, budgets, and deliverable agreements</p>
+              <p className="text-[10px] theme-text-secondary font-bold tracking-normal mt-0.5">Manage accounts, budgets, and deliverable agreements</p>
             </div>
           </h1>
         </div>
 
-        <button
-          onClick={() => {
-            setFormData(initialForm);
-            setEditId(null);
-            setActiveTab("profile");
-            setShowModal(true);
-          }}
-          className="dashboard-btn-primary dark:dashboard-btn-primary   px-5 py-3 rounded-xl flex items-center text-white dark:text-yellow-50 justify-center gap-2.5 shadow-md hover:shadow-lg text-xs font-black active:scale-[0.98] transition-all cursor-pointer"
-        >
-          <FiPlus size={15} className="stroke-[3]" />
-          Add New Client
-        </button>
+        {user?.role === "admin" && (
+          <button
+            onClick={() => {
+              setFormData(initialForm);
+              setEditId(null);
+              setActiveTab("profile");
+              setShowModal(true);
+            }}
+            className="dashboard-btn-primary dark:dashboard-btn-primary   px-5 py-3 rounded-xl flex items-center  justify-center gap-2.5 shadow-md hover:shadow-lg text-xs font-black active:scale-[0.98] transition-all cursor-pointer"
+          >
+            <FiPlus size={15} className="stroke-[3]" />
+            Add New Client
+          </button>
+        )}
       </div>
 
       {/* SEARCH + FILTER CONTROLS */}
@@ -265,7 +268,7 @@ const Clients = () => {
                   <th className="px-5 py-4">Contact Info</th>
                   <th className="px-5 py-4">Service & Plan</th>
                   <th className="px-5 py-4">Budget (INR)</th>
-                  <th className="px-5 py-4 text-center">Actions</th>
+                  {user?.role === "admin" && <th className="px-5 py-4 text-center">Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -282,14 +285,14 @@ const Clients = () => {
                           exit={{ opacity: 0, scale: 0.95 }}
                           transition={{ duration: 0.2 }}
                           key={client._id}
-                          className="border-b theme-border hover:bg-[#8b73ee]/5  dark:hover:bg-slate-800/50 hover:border-[#8b73ee] transition-colors group"
+                          className="border-b theme-border hover:bg-blue-300/10 dark:hover:bg-[#e5ff00]/10 hover:border-blue-300 dark:hover:border-[#e5ff00] transition-colors group"
                         >
                           {/* Client Info */}
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-3">
                              
                               <div className="min-w-[120px]">
-                                <h2 className="text-[13px] text-[#8b73ee] font-extrabold transition-colors truncate">
+                                <h2 className="text-[13px] text-blue-300 dark:text-[#e5ff00] font-extrabold transition-colors truncate">
                                   {client.companyName}
                                 </h2>
                                 <p className="text-[10px] theme-text-secondary font-bold flex items-center gap-1.5 mt-0.5 truncate">
@@ -361,30 +364,32 @@ const Clients = () => {
                           </td>
 
                           {/* Actions */}
-                          <td className="px-5 py-4 text-center">
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                onClick={() => handleEdit(client)}
-                                className="w-8 h-8 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/20 dark:hover:bg-amber-950/40 text-amber-600 flex items-center justify-center transition-all"
-                                title="Edit Record"
-                              >
-                                <FiEdit size={12} className="stroke-[3]" />
-                              </button>
-                              <button
-                                onClick={() => setClientToDelete(client)}
-                                className="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-rose-600 flex items-center justify-center transition-all"
-                                title="Delete Record"
-                              >
-                                <FiTrash2 size={12} className="stroke-[3]" />
-                              </button>
-                            </div>
-                          </td>
+                          {user?.role === "admin" && (
+                            <td className="px-5 py-4 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  onClick={() => handleEdit(client)}
+                                  className="w-8 h-8 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/20 dark:hover:bg-amber-950/40 text-amber-600 flex items-center justify-center transition-all"
+                                  title="Edit Record"
+                                >
+                                  <FiEdit size={12} className="stroke-[3]" />
+                                </button>
+                                <button
+                                  onClick={() => setClientToDelete(client)}
+                                  className="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-rose-600 flex items-center justify-center transition-all"
+                                  title="Delete Record"
+                                >
+                                  <FiTrash2 size={12} className="stroke-[3]" />
+                                </button>
+                              </div>
+                            </td>
+                          )}
                         </motion.tr>
                       );
                     })
                   ) : (
                     <tr>
-                      <td colSpan="5" className="px-5 py-16">
+                      <td colSpan={user?.role === "admin" ? 5 : 4} className="px-5 py-16">
                         <div className="flex flex-col items-center justify-center text-center">
                           <div className="w-14 h-14 rounded-full theme-bg-main flex items-center justify-center mb-3">
                             <FiUsers className="text-blue-500 animate-pulse" size={22} />
@@ -555,7 +560,7 @@ const Clients = () => {
 
                       <div>
                         <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1">
-                          Assign to Administrator
+                          Assign to  members 
                         </label>
                         <select
                           name="assignedTo"
@@ -563,8 +568,8 @@ const Clients = () => {
                           onChange={handleChange}
                           className="w-full h-10 rounded-xl border border-slate-205 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold cursor-pointer"
                         >
-                          <option value="">Select Account Owner</option>
-                          {adminUsers.map((u) => (
+                          <option value="">Select member</option>
+                          {allUsers.map((u) => (
                             <option key={u._id} value={u._id}>
                               {u.name} ({u.email})
                             </option>

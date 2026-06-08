@@ -54,7 +54,7 @@ const DashboardCards = () => {
       title: "No.of Active Clients",
       value: activeClientsCount,
       icon: FiBriefcase,
-      gradient: "bg-gradient-to-br from-amber-400 to-orange-500 dark:from-amber-500/10 dark:to-orange-500/5",
+      gradient: "bg-gradient-to-br from-amber-300 to-orange-400 dark:from-amber-400/10 dark:to-orange-400/5",
       border: "border-white/30 dark:border-amber-500/20",
       titleColor: "text-amber-50 dark:text-amber-400",
       valueColor: "text-white dark:text-amber-300",
@@ -66,7 +66,7 @@ const DashboardCards = () => {
       title: "No.of Projects",
       value: activeProjectsCount,
       icon: FiBriefcase,
-      gradient: "bg-gradient-to-br from-blue-500 to-indigo-500 dark:from-blue-500/10 dark:to-indigo-500/5",
+      gradient: "bg-gradient-to-br from-blue-400 to-indigo-400 dark:from-blue-400/10 dark:to-indigo-400/5",
       border: "border-white/30 dark:border-blue-500/20",
       titleColor: "text-blue-50 dark:text-blue-400",
       valueColor: "text-white dark:text-blue-300",
@@ -78,7 +78,7 @@ const DashboardCards = () => {
       title: "Total Strength",
       value: teamStrengthCount,
       icon: FiUsers,
-      gradient: "bg-gradient-to-br from-emerald-400 to-teal-500 dark:from-emerald-500/10 dark:to-teal-500/5",
+      gradient: "bg-gradient-to-br from-emerald-300 to-teal-400 dark:from-emerald-400/10 dark:to-teal-400/5",
       border: "border-white/30 dark:border-emerald-500/20",
       titleColor: "text-emerald-50 dark:text-emerald-400",
       valueColor: "text-white dark:text-emerald-300",
@@ -96,47 +96,39 @@ const DashboardCards = () => {
           const Icon = card.icon;
 
           return (
-            <motion.div
-              key={index}
-              initial={{
-                opacity: 0,
-                y: 20,
-              }}
-              animate={{
-                opacity: 1,
-                y: 0,
-              }}
-              transition={{
-                duration: 0.5,
-                delay: index * 0.1,
-                ease: "easeOut"
-              }}
-              whileHover={{
-                y: -4,
-                scale: 1.01,
-              }}
-              className={`relative overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 theme-bg-card ${card.gradient} ${card.border}`}
-            >
-              
+           <motion.div
+  key={index}
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{
+    duration: 0.5,
+    delay: index * 0.1,
+    ease: "easeOut",
+  }}
+  whileHover={{
+    y: -3,
+    scale: 1.01,
+  }}
+  className={`relative overflow-hidden rounded-xl border shadow-md hover:shadow-lg transition-all duration-300 theme-bg-card ${card.gradient} ${card.border}`}
+>
+  <div className="px-4 py-3 md:px-6 md:py-3 flex items-center justify-between relative z-10">
+    
+    <p
+      className={`text-xs md:text-sm uppercase tracking-wider font-bold ${card.titleColor}`}
+    >
+      {card.title}
+    </p>
 
-              {/* CONTENT */}
-              <div className="p-5 sm:p-6 md:p-8 flex items-center justify-between w-full h-full relative z-10">
-                {/* Left side: Title */}
-                <p className={`text-sm  md:text-md  uppercase tracking-wider ${card.titleColor}`}>
-                  {card.title}
-                </p>
-                
-                {/* Right side: Value and Subtitle */}
-                <div className="flex flex-col items-end">
-                  <h2 className={`text-sm md:text-xl  tracking-tight ${card.valueColor}`}>
-                    {card.value}
-                  </h2>
-                  <p className={`text-xs font-semibold mt-1 ${card.subtitleColor}`}>
-                    {card.subtitle}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
+    <div className="flex flex-col items-end">
+      <h2
+        className={`text-base md:text-lg font-bold ${card.valueColor}`}
+      >
+        {card.value}
+      </h2>
+    </div>
+
+  </div>
+</motion.div>
           );
         })}
       </div>

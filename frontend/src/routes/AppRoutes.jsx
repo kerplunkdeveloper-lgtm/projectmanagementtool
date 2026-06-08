@@ -32,6 +32,7 @@ import CalendarPage from "../pages/calendar/CalendarPage.jsx";
 import Notifications from "../pages/notifications/Notifications.jsx";
 import Task from "../pages/tasks/Task.jsx";
 import ChatPage from "../pages/chat/ChatPage.jsx";
+import Portfolio from "../pages/admin/portfolio/Portfolio.jsx";
 
 const AppRoutes = () => {
   return (
@@ -60,6 +61,11 @@ const AppRoutes = () => {
           <Route
           path="clients"
           element={<Clients />}
+        />
+
+        <Route
+          path="portfolio"
+          element={<Portfolio />}
         />
 
         <Route
@@ -142,6 +148,11 @@ const AppRoutes = () => {
           element={<Dashboardmain/>}
         />
 
+         <Route
+          path="clients"
+          element={<Clients />}
+        />
+
         <Route
           path="projects"
           element={<Project />} 
@@ -198,6 +209,11 @@ const AppRoutes = () => {
         <Route
           index
           element={<Dashboardmain />}
+        />
+
+        <Route
+          path="clients"
+          element={<Clients />}
         />
 
         <Route

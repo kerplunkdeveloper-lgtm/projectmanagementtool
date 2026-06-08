@@ -218,7 +218,6 @@ const STICKERS = [
   "🦔",
 ];
 
-
 const ChatPage = () => {
   const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -410,71 +409,78 @@ const ChatPage = () => {
   }, [currentUserId, dispatch]);
 
   // Zego Meeting Container Callback Ref
-  const zegoMeetingRef = useCallback((element) => {
-    if (!element) {
-      zegoInitializedRef.current = false;
-      return;
-    }
-    if (zegoInitializedRef.current) return;
-    zegoInitializedRef.current = true;
-
-    const initZego = async () => {
-      try {
-        const appID = parseInt(import.meta.env.VITE_ZEGO_APP_ID);
-        const serverSecret = import.meta.env.VITE_ZEGO_SERVER_SECRET;
-
-        if (!appID || !serverSecret) {
-          toast.error("Zego App ID or Server Secret is missing. Please check .env");
-          return;
-        }
-
-        const room = callRoomId || "room_" + Math.random().toString(36).substring(7);
-        const uID = currentUserId || "user_" + Math.random().toString(36).substring(7);
-        const uName = user?.name || `User_${uID.slice(-4)}`;
-
-        const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
-          appID,
-          serverSecret,
-          room,
-          uID,
-          uName
-        );
-
-        const zp = ZegoUIKitPrebuilt.create(kitToken);
-        zegoInstanceRef.current = zp;
-
-        zp.joinRoom({
-          container: element,
-          sharedLinks: [
-            {
-              name: 'Join Link',
-              url: `${window.location.origin}${window.location.pathname}?id=${activeChat}&roomID=${room}&type=${activeCall}`,
-            },
-          ],
-          scenario: {
-            mode: ZegoUIKitPrebuilt.GroupCall, // GroupCall supports multi-user video/audio calling
-          },
-          showPreJoinView: false,
-          turnOnMicrophoneWhenJoining: true,
-          turnOnCameraWhenJoining: activeCall === "video",
-          showMyCameraToggleButton: true,
-          showMyMicrophoneToggleButton: true,
-          showAudioVideoSettingsButton: true,
-          showScreenSharingButton: true,
-          showUserList: true,
-          showTextChat: false,
-          onLeaveRoom: () => {
-            endCall();
-          },
-        });
-      } catch (err) {
-        console.error("Zego initialization error:", err);
-        toast.error("Failed to start call");
+  const zegoMeetingRef = useCallback(
+    (element) => {
+      if (!element) {
+        zegoInitializedRef.current = false;
+        return;
       }
-    };
+      if (zegoInitializedRef.current) return;
+      zegoInitializedRef.current = true;
 
-    initZego();
-  }, [callRoomId, activeCall, currentUserId, user, activeChat, endCall]);
+      const initZego = async () => {
+        try {
+          const appID = parseInt(import.meta.env.VITE_ZEGO_APP_ID);
+          const serverSecret = import.meta.env.VITE_ZEGO_SERVER_SECRET;
+
+          if (!appID || !serverSecret) {
+            toast.error(
+              "Zego App ID or Server Secret is missing. Please check .env",
+            );
+            return;
+          }
+
+          const room =
+            callRoomId || "room_" + Math.random().toString(36).substring(7);
+          const uID =
+            currentUserId || "user_" + Math.random().toString(36).substring(7);
+          const uName = user?.name || `User_${uID.slice(-4)}`;
+
+          const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
+            appID,
+            serverSecret,
+            room,
+            uID,
+            uName,
+          );
+
+          const zp = ZegoUIKitPrebuilt.create(kitToken);
+          zegoInstanceRef.current = zp;
+
+          zp.joinRoom({
+            container: element,
+            sharedLinks: [
+              {
+                name: "Join Link",
+                url: `${window.location.origin}${window.location.pathname}?id=${activeChat}&roomID=${room}&type=${activeCall}`,
+              },
+            ],
+            scenario: {
+              mode: ZegoUIKitPrebuilt.GroupCall, // GroupCall supports multi-user video/audio calling
+            },
+            showPreJoinView: false,
+            turnOnMicrophoneWhenJoining: true,
+            turnOnCameraWhenJoining: activeCall === "video",
+            showMyCameraToggleButton: true,
+            showMyMicrophoneToggleButton: true,
+            showAudioVideoSettingsButton: true,
+            showScreenSharingButton: true,
+            showUserList: true,
+            showTextChat: false,
+            onLeaveRoom: () => {
+              endCall();
+            },
+          });
+        } catch (err) {
+          console.error("Zego initialization error:", err);
+          toast.error("Failed to start call");
+        }
+      };
+
+      initZego();
+    },
+    [callRoomId, activeCall, currentUserId, user, activeChat, endCall],
+  );
 
   // Messages form handles
   const handleFileChange = async (e) => {
@@ -787,7 +793,7 @@ const ChatPage = () => {
             </h2>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="w-7 h-7 rounded-lg bg-[#8b73ee] dark:bg-[#8b73ee] hover:bg-blue-100 dark:hover:bg-blue-900/40 text-white dark:text-white flex items-center justify-center transition-all cursor-pointer"
+              className="w-7 h-7 rounded-lg  bg-blue-300  dark:bg-[#e5ff00]  dark:text-gray-900  flex items-center justify-center transition-all cursor-pointer"
               title="Create Custom Group"
             >
               <FiPlus size={16} />
@@ -795,13 +801,12 @@ const ChatPage = () => {
           </div>
 
           <div className="relative">
-            <FiSearch className="absolute left-3 top-2.5 theme-icon text-sm" />
             <input
               type="text"
               placeholder="Search team member..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-100/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-xl pl-9 pr-4 py-2 text-xs outline-none focus:border-[#8b73ee] dark:focus:border-[#8b73ee] focus:ring-2 focus:ring-[#8b73ee]/20 transition-all theme-text-primary placeholder:theme-text-secondary"
+              className="w-full bg-slate-100/50 dark:bg-slate-800/50 border border-slate-205 dark:border-slate-700/50 rounded-xl pl-9 pr-4 py-2 text-xs outline-none focus:border-blue-300 dark:focus:border-[#e5ff00] focus:ring-2 focus:ring-blue-300/20 dark:focus:ring-[#e5ff00]/20 transition-all theme-text-primary placeholder:theme-text-secondary"
             />
           </div>
         </div>
@@ -814,53 +819,59 @@ const ChatPage = () => {
               Global Group
             </h3>
             <button
-            onClick={() => {
-              setActiveChat("group");
-              setShowChatWindowMobile(true);
-            }}
-            className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
-              activeChat === "group"
-                ? "bg-[#8b73ee] text-white font-bold shadow-md"
-                : unreadCounts["group"] > 0
-                  ? "bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 theme-text-primary font-extrabold shadow-sm"
-                  : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 theme-text-secondary hover:theme-text-primary border border-transparent"
-            }`}
-          >
-            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${activeChat === "group" ? "bg-white/20 text-white" : "bg-[#8b73ee] text-white shadow-sm"}`}>
-              <FiLayers size={16} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <span className={`text-xs font-bold truncate ${activeChat === "group" ? "text-white" : "text-[#8b73ee] dark:text-[#a78bfa]"}`}>
-                  General Team Chat
-                </span>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {unreadCounts["group"] > 0 && (
-                    <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shrink-0 min-w-[16px] text-center shadow-sm">
-                      {unreadCounts["group"]}
-                    </span>
-                  )}
-                  <span className={`text-[9px] font-black uppercase tracking-wider ${activeChat === "group" ? "text-white/80" : "text-[#8b73ee] dark:text-[#a78bfa]"}`}>
-                    All
-                  </span>
-                </div>
-              </div>
-              <p
-                className={`text-[10px] truncate mt-0.5 ${activeChat === "group" ? "text-white/90" : unreadCounts["group"] > 0 ? "theme-text-primary font-extrabold" : "theme-text-secondary font-semibold"}`}
+              onClick={() => {
+                setActiveChat("group");
+                setShowChatWindowMobile(true);
+              }}
+              className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
+                activeChat === "group"
+                  ? "bg-blue-300 text-black dark:bg-[#e5ff00] dark:text-black font-bold shadow-md"
+                  : unreadCounts["group"] > 0
+                    ? " bg-indigo-50/50 dark:bg-indigo-900/20 font-extrabold shadow-sm"
+                    : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 theme-text-secondary hover:theme-text-primary border border-transparent"
+              }`}
+            >
+              <div
+                className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${activeChat === "group" ? "bg-slate-900/10 text-black dark:bg-black/20 dark:text-black" : "bg-blue-300 text-black dark:bg-[#e5ff00] dark:text-black shadow-sm"}`}
               >
-                {lastMessages["group"]
-                  ? formatLastMessageText(lastMessages["group"])
-                  : "All developers and admins"}
-              </p>
-            </div>
-          </button>
+                <FiLayers size={16} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between">
+                  <span
+                    className={`text-xs font-bold truncate ${activeChat === "group" ? "text-black dark:text-black font-bold" : "text-blue-300 dark:text-[#a78bfa]"}`}
+                  >
+                    Common group Chat
+                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {unreadCounts["group"] > 0 && (
+                      <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shrink-0 min-w-[16px] text-center shadow-sm">
+                        {unreadCounts["group"]}
+                      </span>
+                    )}
+                    <span
+                      className={`text-[9px] font-black uppercase tracking-wider ${activeChat === "group" ? "text-black/80 dark:text-black/85 font-black" : "text-blue-300 dark:text-[#a78bfa]"}`}
+                    >
+                      All
+                    </span>
+                  </div>
+                </div>
+                <p
+                  className={`text-[10px] truncate mt-0.5 ${activeChat === "group" ? "text-black/95 dark:text-black/95 font-bold" : unreadCounts["group"] > 0 ? "theme-text-primary font-extrabold" : "theme-text-secondary font-semibold"}`}
+                >
+                  {lastMessages["group"]
+                    ? formatLastMessageText(lastMessages["group"])
+                    : "All developers and admins"}
+                </p>
+              </div>
+            </button>
           </div>
 
           {/* CUSTOM GROUP CHATS */}
           {sortedRooms.length > 0 && (
             <>
               <div className="h-px theme-border border-t my-2" />
-              <p className="text-[10px] font-black uppercase tracking-wider text-indigo-500 dark:text-indigo-400 px-3 mb-1.5">
+              <p className="text-[10px] font-black uppercase tracking-wider  px-3 mb-1.5">
                 Custom Groups
               </p>
 
@@ -873,18 +884,22 @@ const ChatPage = () => {
                   }}
                   className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
                     activeChat === r._id
-                      ? "bg-[#8b73ee] text-white font-bold shadow-md"
+                      ? "bg-blue-300 text-black dark:bg-[#e5ff00] dark:text-black font-bold shadow-md"
                       : unreadCounts[r._id] > 0
-                        ? "bg-indigo-50/50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 theme-text-primary font-extrabold shadow-sm"
-                        : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 theme-text-secondary hover:theme-text-primary border border-transparent"
+                        ? "bg-indigo-50/50 dark:bg-indigo-900/20 font-extrabold shadow-sm"
+                        : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 theme-text-secondary hover:theme-theme-text-primary border border-transparent"
                   }`}
                 >
-                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${activeChat === r._id ? "bg-white/20 text-white" : "bg-gradient-to-tr from-amber-500 to-orange-600 text-white shadow-sm"}`}>
+                  <div
+                    className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${activeChat === r._id ? "bg-slate-900/10 text-black dark:bg-black/20 dark:text-black" : "bg-blue-300 text-black dark:bg-[#e5ff00] dark:text-black shadow-sm"}`}
+                  >
                     <FiUsers size={16} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className={`text-xs font-bold truncate ${activeChat === r._id ? "text-white" : "text-[#8b73ee] dark:text-[#a78bfa]"}`}>
+                      <span
+                        className={`text-xs font-bold truncate ${activeChat === r._id ? "text-black dark:text-black font-bold" : "text-blue-300 dark:text-[#a78bfa]"}`}
+                      >
                         {r.name}
                       </span>
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -893,13 +908,15 @@ const ChatPage = () => {
                             {unreadCounts[r._id]}
                           </span>
                         )}
-                        <span className={`text-[9px] font-bold ${activeChat === r._id ? "text-white/80" : "text-[#8b73ee] dark:text-[#a78bfa]"}`}>
+                        <span
+                          className={`text-[9px] font-bold ${activeChat === r._id ? "text-black/80 dark:text-black/85 font-black" : "text-blue-300 dark:text-[#a78bfa]"}`}
+                        >
                           {r.members.length} members
                         </span>
                       </div>
                     </div>
                     <p
-                      className={`text-[10px] truncate mt-0.5 ${activeChat === r._id ? "text-white/90" : unreadCounts[r._id] > 0 ? "theme-text-primary font-extrabold" : "theme-text-secondary font-semibold"}`}
+                      className={`text-[10px] truncate mt-0.5 ${activeChat === r._id ? "text-black/95 dark:text-black/95 font-bold" : unreadCounts[r._id] > 0 ? "theme-text-primary font-extrabold" : "theme-text-secondary font-semibold"}`}
                     >
                       {lastMessages[r._id]
                         ? formatLastMessageText(lastMessages[r._id])
@@ -931,7 +948,7 @@ const ChatPage = () => {
                 }}
                 className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
                   activeChat === u._id
-                    ? "bg-[#8b73ee] text-white font-bold shadow-md"
+                    ? "bg-blue-300 text-black dark:bg-[#e5ff00] dark:text-black font-bold shadow-md"
                     : unreadCounts[u._id] > 0
                       ? "bg-indigo-50/20 dark:bg-indigo-900/10 border border-indigo-100/40 dark:border-indigo-800/40 theme-text-primary font-extrabold shadow-sm ring-1 ring-indigo-500/10"
                       : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 theme-text-secondary hover:theme-text-primary border border-transparent"
@@ -942,18 +959,24 @@ const ChatPage = () => {
                     <img
                       src={u.profile.profileImage.url}
                       alt="profile"
-                      className={`w-10 h-10 rounded-2xl object-cover border ${activeChat === u._id ? "border-white/20" : "theme-border"}`}
+                      className={`w-10 h-10 rounded-2xl object-cover border ${activeChat === u._id ? "border-black/20 dark:border-black/30" : "theme-border"}`}
                     />
                   ) : (
-                    <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center font-bold text-xs ${activeChat === u._id ? "bg-white/20 border-white/20 text-white" : "bg-indigo-100 dark:bg-indigo-900/40 border-indigo-200/80 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400"}`}>
+                    <div
+                      className={`w-10 h-10 rounded-2xl border flex items-center justify-center font-bold text-xs ${activeChat === u._id ? "bg-black/10 border-black/20 text-black dark:bg-black/20  dark:text-black font-bold" : "bg-indigo-100 dark:bg-indigo-900/40 border-indigo-200/80 dark:border-indigo-800/60"}`}
+                    >
                       {u.name.charAt(0)}
                     </div>
                   )}
-                  <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 shadow-sm ${activeChat === u._id ? "border-[#8b73ee]" : "border-white dark:border-slate-900"}`} />
+                  <span
+                    className={`absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 shadow-sm ${activeChat === u._id ? "border-blue-300 dark:border-[#e5ff00]" : "border-white dark:border-slate-900"}`}
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className={`text-xs font-bold truncate block ${activeChat === u._id ? "text-white" : "text-[#8b73ee] dark:text-[#a78bfa]"}`}>
+                    <span
+                      className={`text-xs font-bold truncate block ${activeChat === u._id ? "text-black dark:text-black font-bold" : "text-blue-300 dark:text-[#a78bfa]"}`}
+                    >
                       {u.name}
                     </span>
                     {unreadCounts[u._id] > 0 && (
@@ -963,14 +986,14 @@ const ChatPage = () => {
                     )}
                   </div>
                   <p
-  className={`text-[10px] truncate mt-0.5 ${
-    activeChat === u._id
-      ? "text-white/90"
-      : unreadCounts[u._id] > 0
-      ? "theme-text-primary font-extrabold"
-      : "theme-text-secondary font-semibold"
-  }`}
->
+                    className={`text-[10px] truncate mt-0.5 ${
+                      activeChat === u._id
+                        ? "text-black/95 dark:text-black/95 font-bold"
+                        : unreadCounts[u._id] > 0
+                          ? "theme-text-primary font-extrabold"
+                          : "theme-text-secondary font-semibold"
+                    }`}
+                  >
                     {lastMessages[u._id]
                       ? formatLastMessageText(lastMessages[u._id])
                       : `${u.role}${u.department ? ` — ${u.department}` : ""}`}
@@ -1000,7 +1023,7 @@ const ChatPage = () => {
 
             {activeChat === "group" ? (
               <>
-                <div className="w-10 h-10 rounded-2xl bg-[#8b73ee] text-white border border-indigo-200/50 dark:border-indigo-800/50 flex items-center justify-center font-bold shadow-md shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-blue-300 dark:bg-[#e5ff00] text-gray-50 flex items-center justify-center font-bold shadow-md shrink-0">
                   <FiLayers size={16} />
                 </div>
                 <div className="min-w-0">
@@ -1062,14 +1085,14 @@ const ChatPage = () => {
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={() => startCall("voice")}
-              className="w-8 h-8 rounded-lg  bg-[#8b73ee] dark:bg-[#8b73ee] flex items-center justify-center text-white dark:text-white  transition-all cursor-pointer"
+              className="w-8 h-8 rounded-lg  bg-blue-300 dark:bg-[#e5ff00] flex items-center justify-center text-black dark:text-black font-bold dark:font-bold transition-all cursor-pointer"
               title="Voice Call"
             >
               <FiPhone size={14} />
             </button>
             <button
               onClick={() => startCall("video")}
-              className="w-8 h-8 rounded-lg  bg-[#8b73ee] dark:bg-[#8b73ee] flex items-center justify-center text-white dark:text-white  transition-all cursor-pointer"
+              className="w-8 h-8 rounded-lg  bg-blue-300 dark:bg-[#e5ff00] flex items-center justify-center text-black dark:text-black font-bold dark:font-bold transition-all cursor-pointer"
               title="Video Call"
             >
               <FiVideo size={14} />
@@ -1132,7 +1155,7 @@ const ChatPage = () => {
                         className="w-7 h-7 rounded-lg object-cover border border-slate-300 dark:border-slate-800 shrink-0"
                       />
                     ) : (
-                      <div className="w-7 h-7 rounded-lg bg-[#8b73ee] dark:bg-[#8b73ee] text-[10px] font-black text-white dark:text-white flex items-center justify-center shrink-0">
+                      <div className="w-7 h-7 rounded-lg bg-blue-300 dark:bg-[#e5ff00] text-[10px] font-black text-slate-900 dark:text-slate-900 flex items-center justify-center shrink-0">
                         {senderInitial}
                       </div>
                     ))}
@@ -1149,7 +1172,9 @@ const ChatPage = () => {
                             : "theme-bg-main theme-text-secondary border-indigo-500/40"
                         }`}
                       >
-                        <div className={`font-extrabold text-[9px] mb-0.5 ${isMe ? "text-white" : "text-indigo-500 dark:text-indigo-400"}`}>
+                        <div
+                          className={`font-extrabold text-[9px] mb-0.5 ${isMe ? "text-white" : "text-indigo-500 dark:text-indigo-400"}`}
+                        >
                           Replying to {m.replyTo.sender?.name || "User"}
                         </div>
                         <div className="truncate opacity-85 font-medium text-[10px]">
@@ -1177,7 +1202,7 @@ const ChatPage = () => {
                       <div
                         className={`rounded-[1.25rem] overflow-hidden shadow-sm border max-w-xs md:max-w-sm ${
                           isMe
-                            ? "bg-[#8b73ee] text-white border-[#8b73ee] rounded-tr-none"
+                            ? "bg-blue-300 text-black font-bold border-blue-300 dark:bg-[#e5ff00] dark:text-black dark:font-bold dark:border-[#e5ff00] rounded-tr-none"
                             : "theme-bg-card theme-text-primary theme-border rounded-tl-none"
                         }`}
                       >
@@ -1271,7 +1296,7 @@ const ChatPage = () => {
                       <div
                         className={`px-4 py-2.5 rounded-[1.25rem] text-xs font-medium leading-relaxed break-words shadow-sm border ${
                           isMe
-                            ? "bg-[#8b73ee] text-white border-[#8b73ee] rounded-tr-none"
+                            ? "bg-blue-300 text-black font-bold border-blue-300 dark:bg-[#e5ff00] dark:text-black dark:font-bold dark:border-[#e5ff00] rounded-tr-none"
                             : "theme-bg-card theme-text-primary theme-border rounded-tl-none"
                         }`}
                       >
@@ -1298,7 +1323,7 @@ const ChatPage = () => {
                               className={`w-full py-1.5 px-3 rounded-lg text-[10px] font-black uppercase tracking-wider text-center cursor-pointer transition-all ${
                                 isMe
                                   ? "bg-red-500 text-white dark:bg-red-500 dark:text-white "
-                                  : "bg-[#8b73ee] text-white hover:bg-[#8b73ee] shadow shadow-[#8b73ee]/20"
+                                  : "bg-blue-300 text-black hover:bg-blue-400 dark:bg-[#e5ff00] dark:text-black dark:font-bold dark:hover:bg-[#d4ec00] shadow shadow-blue-300/20 dark:shadow-[#e5ff00]/20"
                               }`}
                             >
                               Join Call Meeting
@@ -1480,7 +1505,10 @@ const ChatPage = () => {
           {replyingToMessage && (
             <div className="mb-2 p-2 theme-bg-main border theme-border rounded-xl flex items-center justify-between z-10 animate-slide-up">
               <div className="flex items-center gap-2 text-[10px] theme-text-secondary min-w-0">
-                <FiCornerUpLeft className="text-indigo-500 shrink-0" size={12} />
+                <FiCornerUpLeft
+                  className="text-indigo-500 shrink-0"
+                  size={12}
+                />
                 <div className="truncate font-medium">
                   <span className="font-extrabold text-indigo-600 dark:text-indigo-400">
                     Replying to {replyingToMessage.sender?.name || "User"}:
@@ -1956,8 +1984,8 @@ const ChatPage = () => {
       {activeCall && (
         <div className="fixed inset-0 z-[200] bg-slate-900/95 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in">
           <div className="bg-slate-800 w-full max-w-5xl rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-700 shadow-2xl flex flex-col relative text-white h-[85vh] sm:h-[80vh]">
-            <div 
-              ref={zegoMeetingRef} 
+            <div
+              ref={zegoMeetingRef}
               className="w-full h-full"
               style={{ width: "100%", height: "100%" }}
             />

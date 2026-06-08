@@ -10,8 +10,8 @@ import { useNavigate } from "react-router-dom";
 
 import toast from "react-hot-toast";
 
-import lightlogin from "../../assets/lightlogin.jpeg";
-import darklogin from "../../assets/darklogin.jpg";
+import lightlogin from "../../assets/loginleft.png";
+import darklogin from "../../assets/darklogin.png";
 
 const Login = () => {
   const dispatch = useDispatch();
@@ -65,9 +65,9 @@ const Login = () => {
   }, [error, dispatch]);
 
   return (
-    <div className="min-h-screen theme-bg-main flex flex-col lg:flex-row overflow-hidden">
+    <div className="min-h-screen theme-bg-main flex flex-col md:flex-row overflow-hidden">
       {/* TOP / LEFT SIDE IMAGE SECTION */}
-      <div className="relative w-full h-[35vh] sm:h-[45vh] lg:h-screen lg:w-[55%] xl:w-[60%] overflow-hidden flex items-center justify-center shrink-0 z-0">
+      <div id="login-image-section" className=" relative w-full h-[45vh] sm:h-[45vh] md:h-screen md:w-[55%] xl:w-[60%] overflow-hidden flex items-center justify-center shrink-0 z-0">
         <img
           src={lightlogin}
           alt="Project Management Light"
@@ -78,18 +78,17 @@ const Login = () => {
           alt="Project Management Dark"
           className="absolute inset-0 w-full h-full object-cover hidden dark:block hover:scale-105 transition-transform duration-[15s] ease-out opacity-90"
         />
-        
       </div>
 
       {/* BOTTOM / RIGHT SIDE LOGIN FORM */}
-      <div className="w-full lg:w-[45%] xl:w-[40%] lg:h-screen flex flex-col justify-center p-6 sm:p-12 lg:px-16 xl:px-24 theme-bg-card relative rounded-t-[40px] lg:rounded-none -mt-8 lg:mt-0 z-10 shadow-[0_-15px_40px_rgba(0,0,0,0.1)] lg:shadow-[-20px_0_50px_rgba(0,0,0,0.1)] lg:dark:shadow-[-20px_0_50px_rgba(0,0,0,0.5)] border-t lg:border-t-0 lg:border-l border-white/50 dark:border-slate-800/50 backdrop-blur-xl">
+      <div id="login-form-section" className="w-full md:w-[45%] xl:w-[40%] md:h-screen flex flex-col justify-center p-6 sm:p-12 md:px-10 lg:px-16 xl:px-24  relative rounded-t-[40px] md:rounded-none -mt-8 md:mt-0 z-10 backdrop-blur-xl">
         <div className="w-full max-w-[420px] mx-auto relative z-10">
           <form onSubmit={handleSubmit} className="w-full">
-            <div className="mb-10 lg:mb-12 text-center lg:text-left">
-              <h2 className="text-3xl lg:text-4xl font-black mb-3 text-slate-800 dark:text-white tracking-tight">
+            <div className="mb-10 md:mb-12 text-center md:text-left">
+              <h2 className="text-3xl md:text-4xl font-black mb-3 text-slate-800 dark:text-white tracking-tight">
                 Welcome Back
               </h2>
-              <p className="text-[13px] lg:text-[15px] font-medium theme-text-secondary">
+              <p className="text-[13px] md:text-[15px] font-medium theme-text-secondary">
                 Login to continue managing your projects
               </p>
             </div>
@@ -103,7 +102,7 @@ const Login = () => {
                   name="email"
                   placeholder="Enter your email address"
                   required
-                  className="w-full outline-none bg-transparent px-2 py-2 text-[14px] theme-text-primary placeholder:text-slate-400 font-semibold"
+                  className="w-full !outline-none !bg-transparent !border-none !shadow-none !px-2 !py-2 text-[14px] theme-text-primary placeholder:text-slate-400 font-semibold"
                   onChange={handleChange}
                 />
               </div>
@@ -118,7 +117,7 @@ const Login = () => {
                   name="password"
                   required
                   placeholder="Enter your password"
-                  className="w-full outline-none bg-transparent px-2 py-2 text-[14px] theme-text-primary placeholder:text-slate-400 font-semibold"
+                  className="w-full !outline-none !bg-transparent !border-none !shadow-none !px-2 !py-2 text-[14px] theme-text-primary placeholder:text-slate-400 font-semibold"
                   onChange={handleChange}
                 />
                 <button
@@ -143,14 +142,14 @@ const Login = () => {
     w-full
 
     h-[55px]
-    lg:h-[55px]
+    md:h-[55px]
 
     rounded-xl
 
     dashboard-btn-primary dark:dashboard-btn-primary 
 
     text-[13px]
-    lg:text-[14px]
+    md:text-[14px]
 
     font-semibold
 

@@ -33,7 +33,7 @@ const Navbar = ({ setSidebarOpen }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
   const [openDropdown, setOpenDropdown] = useState(false);
@@ -58,27 +58,32 @@ const Navbar = ({ setSidebarOpen }) => {
       case "project_assigned":
         return {
           icon: FiBriefcase,
-          bgColor: "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100/50 dark:border-amber-900/30",
+          bgColor:
+            "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100/50 dark:border-amber-900/30",
         };
       case "task_assigned":
         return {
           icon: FiCheckSquare,
-          bgColor: "bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-900/30",
+          bgColor:
+            "bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-900/30",
         };
       case "task_completed":
         return {
           icon: FiCheck,
-          bgColor: "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-900/30",
+          bgColor:
+            "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-900/30",
         };
       case "task_updated":
         return {
           icon: FiInfo,
-          bgColor: "bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 border border-purple-100/50 dark:border-purple-900/30",
+          bgColor:
+            "bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 border border-purple-100/50 dark:border-purple-900/30",
         };
       default:
         return {
           icon: FiBell,
-          bgColor: "bg-slate-50 dark:bg-slate-800/30 text-slate-600 dark:text-slate-400 border border-slate-100/50 dark:border-slate-800/30",
+          bgColor:
+            "bg-slate-50 dark:bg-slate-800/30 text-slate-600 dark:text-slate-400 border border-slate-100/50 dark:border-slate-800/30",
         };
     }
   };
@@ -95,7 +100,8 @@ const Navbar = ({ setSidebarOpen }) => {
     if (path.includes("users")) return "Users";
     if (path.includes("template")) return "Template";
     if (path.includes("report") || path.includes("eod")) return "EOD";
-    if (path.includes("calendar") || path.includes("calendor")) return "Calendar";
+    if (path.includes("calendar") || path.includes("calendor"))
+      return "Calendar";
     return "Dashboard";
   };
 
@@ -115,7 +121,10 @@ const Navbar = ({ setSidebarOpen }) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setOpenDropdown(false);
       }
-      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+      if (
+        notificationRef.current &&
+        !notificationRef.current.contains(event.target)
+      ) {
         setOpenNotifications(false);
       }
     };
@@ -131,7 +140,8 @@ const Navbar = ({ setSidebarOpen }) => {
   };
 
   const getThemeIcon = () => {
-    if (theme === "dark") return <FiMoon size={14} className="text-indigo-400" />;
+    if (theme === "dark")
+      return <FiMoon size={14} className="text-indigo-400" />;
     return <FiSun size={14} className="text-amber-500" />;
   };
 
@@ -166,25 +176,23 @@ const Navbar = ({ setSidebarOpen }) => {
         </button>
 
         {/* PAGE TITLE */}
-        <h1 className="text-[15px] sm:text-[17px] lg:text-[18px] text-[#8b73ee] dark:text-[#8b73ee] font-extrabold uppercase tracking-wider">
+        <h1 className="text-[15px] sm:text-[17px] lg:text-[18px] font-extrabold uppercase tracking-wider">
           {pageTitle}
         </h1>
       </div>
 
       {/* RIGHT */}
       <div className="flex items-center gap-2">
-        
-
         {/* LIGHT/DARK MODE TOGGLE */}
         <button
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           className="
             w-8 h-8 rounded-lg border flex items-center justify-center transition-all duration-200 cursor-pointer
             theme-border theme-bg-card hover:theme-bg-main
           "
           title="Toggle Theme"
         >
-          {getThemeIcon()}  
+          {getThemeIcon()}
         </button>
 
         {/* NOTIFICATIONS */}
@@ -193,23 +201,26 @@ const Navbar = ({ setSidebarOpen }) => {
             onClick={() => setOpenNotifications(!openNotifications)}
             className={`
               relative w-8 h-8 rounded-lg border flex items-center justify-center transition-all duration-200 cursor-pointer
-              ${openNotifications
-                ? "theme-bg-main border-indigo-500 dark:border-indigo-400 theme-text-primary ring-2 ring-indigo-500/10"
-                : "theme-border theme-bg-card theme-text-secondary hover:theme-bg-main hover:theme-text-primary"
+              ${
+                openNotifications
+                  ? "theme-bg-main border-indigo-500 dark:border-indigo-400 theme-text-primary ring-2 ring-indigo-500/10"
+                  : "theme-border theme-bg-card theme-text-secondary hover:theme-bg-main hover:theme-text-primary"
               }
             `}
           >
             <FiBell className="text-[15px]" />
             {unreadCount > 0 && (
               <>
-                <span className="
+                <span
+                  className="
                   absolute -top-1.5 -right-1.5
                   min-w-[17px] h-[17px] px-1
                   rounded-full bg-rose-500
                   text-white text-[8px] font-black
                   flex items-center justify-center
                   border-2 border-white  shadow-sm z-10
-                ">
+                "
+                >
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
                 <span className="absolute -top-1.5 -right-1.5 w-[17px] h-[17px] rounded-full bg-rose-500 animate-ping opacity-60 border-2 border-white dark:border-slate-900" />
@@ -236,7 +247,9 @@ const Navbar = ({ setSidebarOpen }) => {
                 {/* Header */}
                 <div className="px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 border-b theme-border flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-[11px] text-white uppercase tracking-wider">Notifications</span>
+                    <span className="font-extrabold text-[11px] text-white uppercase tracking-wider">
+                      Notifications
+                    </span>
                     {unreadCount > 0 && (
                       <span className="bg-white/20 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full">
                         {unreadCount} new
@@ -260,8 +273,13 @@ const Navbar = ({ setSidebarOpen }) => {
                   {(notifications || []).length === 0 ? (
                     <div className="py-12 text-center flex flex-col items-center justify-center text-slate-400">
                       <FiBell className="text-2xl mb-2 opacity-30 text-slate-400" />
-                      <span className="text-[11px] font-bold">No notifications yet</span>
-                      <p className="text-[9px] text-slate-400 mt-0.5 px-6">You will be notified here when tasks are assigned or updated.</p>
+                      <span className="text-[11px] font-bold">
+                        No notifications yet
+                      </span>
+                      <p className="text-[9px] text-slate-400 mt-0.5 px-6">
+                        You will be notified here when tasks are assigned or
+                        updated.
+                      </p>
                     </div>
                   ) : (
                     (notifications || []).map((n) => {
@@ -276,31 +294,47 @@ const Navbar = ({ setSidebarOpen }) => {
                             }
                             setOpenNotifications(false);
                             if (n.type === "message_received" || n.chatRoomId) {
-                              navigate(`/${user?.role}/chat?id=${n.chatRoomId}`);
+                              navigate(
+                                `/${user?.role}/chat?id=${n.chatRoomId}`,
+                              );
                             } else if (n.project && user?.role !== "team") {
-                              navigate(`/${user?.role}/projects?id=${n.project}`);
+                              navigate(
+                                `/${user?.role}/projects?id=${n.project}`,
+                              );
                             } else {
                               navigate(`/${user?.role}/tasks`);
                             }
                           }}
                           className={`
                             px-4 py-3 text-left transition-all cursor-pointer flex items-start gap-3 relative group
-                            ${!n.isRead 
-                              ? "bg-indigo-500/5 hover:bg-indigo-500/10" 
-                              : "theme-bg-card hover:theme-bg-main"
+                            ${
+                              !n.isRead
+                                ? "bg-indigo-500/5 hover:bg-indigo-500/10"
+                                : "theme-bg-card hover:theme-bg-main"
                             }
                           `}
                         >
-                          <div className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 shadow-sm ${details.bgColor}`}>
+                          <div
+                            className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 shadow-sm ${details.bgColor}`}
+                          >
                             <Icon size={13} />
                           </div>
                           <div className="flex-1 min-w-0 pr-6">
-                            <p className={`text-[11px] leading-relaxed break-words ${!n.isRead ? "theme-text-primary font-black" : "theme-text-secondary font-medium"}`}>
+                            <p
+                              className={`text-[11px] leading-relaxed break-words ${!n.isRead ? "theme-text-primary font-black" : "theme-text-secondary font-medium"}`}
+                            >
                               {n.message}
                             </p>
                             <span className="text-[9px] text-slate-400 block mt-1 font-semibold">
-                              {new Date(n.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })} at{" "}
-                              {new Date(n.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              {new Date(n.createdAt).toLocaleDateString([], {
+                                month: "short",
+                                day: "numeric",
+                              })}{" "}
+                              at{" "}
+                              {new Date(n.createdAt).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
                             </span>
                           </div>
                           <div className="flex items-center gap-1 shrink-0 absolute right-3 top-1/2 -translate-y-1/2">
@@ -369,8 +403,12 @@ const Navbar = ({ setSidebarOpen }) => {
             )}
 
             <div className="text-left ">
-              <h3 className="text-[12px] font-black theme-text-primary leading-tight">{user?.name}</h3>
-              <p className="text-[10px] theme-text-secondary capitalize leading-tight">{user?.role}</p>
+              <h3 className="text-[12px] font-black theme-text-primary leading-tight">
+                {user?.name}
+              </h3>
+              <p className="text-[10px] theme-text-secondary capitalize leading-tight">
+                {user?.role}
+              </p>
             </div>
 
             <FiChevronDown
@@ -392,8 +430,6 @@ const Navbar = ({ setSidebarOpen }) => {
                   shadow-lg p-1.5 z-50
                 "
               >
-
-
                 <button
                   onClick={() => {
                     navigate(`/${user?.role}/profile`);
