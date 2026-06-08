@@ -21,10 +21,34 @@ import {
   FiPieChart,
 } from "react-icons/fi";
 
-import { getTasks, createTask, updateTask, deleteTask } from "../../features/tasks/taskSlice";
+import {
+  getTasks,
+  createTask,
+  updateTask,
+  deleteTask,
+} from "../../features/tasks/taskSlice";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+
+const StrictModeDroppable = ({ children, ...props }) => {
+  const [enabled, setEnabled] = useState(false);
+  useEffect(() => {
+    const animation = requestAnimationFrame(() => setEnabled(true));
+    return () => {
+      cancelAnimationFrame(animation);
+      setEnabled(false);
+    };
+  }, []);
+  if (!enabled) return null;
+  return <Droppable {...props}>{children}</Droppable>;
+};
 
 // Task Title Input Component for autosaving inline without cursor jump
-const TaskTitleInput = ({ task, canToggle, handleTaskFieldChange, isCompleted }) => {
+const TaskTitleInput = ({
+  task,
+  canToggle,
+  handleTaskFieldChange,
+  isCompleted,
+}) => {
   const [title, setTitle] = useState(task.title);
 
   useEffect(() => {
@@ -110,7 +134,9 @@ const SubtaskRow = ({
           onChange={(e) => setSubTitle(e.target.value)}
           onBlur={() => {
             if (subTitle.trim() && subTitle !== sub.title) {
-              handleSubtaskFieldChange(task, sub._id, { title: subTitle.trim() });
+              handleSubtaskFieldChange(task, sub._id, {
+                title: subTitle.trim(),
+              });
             }
           }}
           onKeyDown={(e) => {
@@ -126,7 +152,10 @@ const SubtaskRow = ({
         />
       </div>
 
-      <div className="flex items-center gap-3 shrink-0 text-[10px]" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="flex items-center gap-3 shrink-0 text-[10px]"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Subtask Assignee */}
         <div className="flex items-center gap-1">
           {isAdminOrManager ? (
@@ -158,7 +187,11 @@ const SubtaskRow = ({
           {isAdminOrManager ? (
             <input
               type="date"
-              value={sub.dueDate ? new Date(sub.dueDate).toISOString().split("T")[0] : ""}
+              value={
+                sub.dueDate
+                  ? new Date(sub.dueDate).toISOString().split("T")[0]
+                  : ""
+              }
               onChange={(e) =>
                 handleSubtaskFieldChange(task, sub._id, {
                   dueDate: e.target.value || null,
@@ -187,8 +220,8 @@ const SubtaskRow = ({
                 sub.priority === "High"
                   ? "bg-rose-50 text-rose-700 border-rose-200/50"
                   : sub.priority === "Medium"
-                  ? "bg-amber-50 text-amber-700 border-amber-200/50"
-                  : "bg-slate-50 text-slate-600 border-slate-200"
+                    ? "bg-amber-50 text-amber-700 border-amber-200/50"
+                    : "bg-slate-50 text-slate-600 border-slate-200"
               }`}
             >
               <option value="Low">Low</option>
@@ -201,8 +234,8 @@ const SubtaskRow = ({
                 sub.priority === "High"
                   ? "bg-rose-50 text-rose-700 border-rose-200/50"
                   : sub.priority === "Medium"
-                  ? "bg-amber-50 text-amber-700 border-amber-200/50"
-                  : "bg-slate-50 text-slate-600 border-slate-200"
+                    ? "bg-amber-50 text-amber-700 border-amber-200/50"
+                    : "bg-slate-50 text-slate-600 border-slate-200"
               }`}
             >
               {sub.priority || "Medium"}
@@ -246,10 +279,41 @@ const ProjectTaskBoard = ({
   const [inlineSubtaskTitle, setInlineSubtaskTitle] = useState({}); // taskId -> string
   const [selectedTaskId, setSelectedTaskId] = useState(null); // Live task ID for Drawer preview
 
-  // Filter tasks for this project
-  const activeProjectTasks = tasks.filter(
-    (t) => t.project?._id === activeProjectId || t.project === activeProjectId
+  // Add optimistic tasks state for dragging
+  const [localTasks, setLocalTasks] = useState([]);
+
+  useEffect(() => {
+    setLocalTasks(tasks);
+  }, [tasks]);
+
+  // Filter tasks for this project using localTasks for optimistic UI
+  const activeProjectTasks = localTasks.filter(
+    (t) => t.project?._id === activeProjectId || t.project === activeProjectId,
   );
+
+  const handleDragEnd = (result) => {
+    const { destination, source, draggableId } = result;
+    if (!destination) return;
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    )
+      return;
+
+    // Optimistically update local UI
+    const updatedTasks = localTasks.map((t) =>
+      t._id === draggableId ? { ...t, status: destination.droppableId } : t,
+    );
+    setLocalTasks(updatedTasks);
+
+    // Send to backend
+    dispatch(
+      updateTask({
+        id: draggableId,
+        taskData: { status: destination.droppableId },
+      }),
+    );
+  };
 
   // Live selected task from Redux state
   const selectedTask = tasks.find((t) => t._id === selectedTaskId);
@@ -264,7 +328,7 @@ const ProjectTaskBoard = ({
         dueDate: null,
         priority: "Medium",
         status: "Pending",
-      })
+      }),
     );
     setTimeout(() => {
       dispatch(getTasks());
@@ -281,7 +345,7 @@ const ProjectTaskBoard = ({
         dueDate: null,
         priority: "Medium",
         status: status,
-      })
+      }),
     );
     setTimeout(() => {
       dispatch(getTasks());
@@ -313,7 +377,9 @@ const ProjectTaskBoard = ({
     };
 
     const updatedSubtasks = [...(task.subtasks || []), newSubtask];
-    dispatch(updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } }));
+    dispatch(
+      updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } }),
+    );
     setTimeout(() => {
       dispatch(getTasks());
     }, 550);
@@ -336,9 +402,11 @@ const ProjectTaskBoard = ({
     if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
 
     const updatedSubtasks = task.subtasks.map((sub) =>
-      sub._id === subtaskId ? { ...sub, ...sanitizedFields } : sub
+      sub._id === subtaskId ? { ...sub, ...sanitizedFields } : sub,
     );
-    dispatch(updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } }));
+    dispatch(
+      updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } }),
+    );
     setTimeout(() => {
       dispatch(getTasks());
     }, 550);
@@ -346,8 +414,12 @@ const ProjectTaskBoard = ({
 
   // Delete Subtask
   const handleDeleteSubtask = (task, subtaskId) => {
-    const updatedSubtasks = task.subtasks.filter((sub) => sub._id !== subtaskId);
-    dispatch(updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } }));
+    const updatedSubtasks = task.subtasks.filter(
+      (sub) => sub._id !== subtaskId,
+    );
+    dispatch(
+      updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } }),
+    );
     setTimeout(() => {
       dispatch(getTasks());
     }, 550);
@@ -372,9 +444,13 @@ const ProjectTaskBoard = ({
 
   // Dashboard calculations
   const totalTasks = activeProjectTasks.length;
-  const completedTasks = activeProjectTasks.filter((t) => t.status === "Completed").length;
-  const incompleteTasks = activeProjectTasks.filter((t) => t.status !== "Completed").length;
-  
+  const completedTasks = activeProjectTasks.filter(
+    (t) => t.status === "Completed",
+  ).length;
+  const incompleteTasks = activeProjectTasks.filter(
+    (t) => t.status !== "Completed",
+  ).length;
+
   // Overdue count calculation
   const overdueTasks = activeProjectTasks.filter((t) => {
     if (t.status === "Completed") return false;
@@ -386,12 +462,19 @@ const ProjectTaskBoard = ({
     return due < today;
   }).length;
 
-  const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const progressPercent =
+    totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   // Breakdown of incomplete tasks for Bar Chart
-  const pendingCount = activeProjectTasks.filter((t) => t.status === "Pending").length;
-  const inProgressCount = activeProjectTasks.filter((t) => t.status === "In Progress").length;
-  const onHoldCount = activeProjectTasks.filter((t) => t.status === "On Hold").length;
+  const pendingCount = activeProjectTasks.filter(
+    (t) => t.status === "Pending",
+  ).length;
+  const inProgressCount = activeProjectTasks.filter(
+    (t) => t.status === "In Progress",
+  ).length;
+  const onHoldCount = activeProjectTasks.filter(
+    (t) => t.status === "On Hold",
+  ).length;
 
   // Drawer Subtask continuous form
   const DrawerSubtaskForm = ({ task }) => {
@@ -441,13 +524,15 @@ const ProjectTaskBoard = ({
               </span>
               <span
                 className={`text-[8px] font-extrabold px-2.5 py-1 rounded-lg border uppercase tracking-wider ${getStatusBadge(
-                  activeProject.status
+                  activeProject.status,
                 )}`}
               >
                 {activeProject.status}
               </span>
             </div>
-            <h1 className="text-xl font-black text-slate-800 dark:text-white">{activeProject.name}</h1>
+            <h1 className="text-xl font-black text-slate-800 dark:text-white">
+              {activeProject.name}
+            </h1>
           </div>
 
           <div className="pt-1">
@@ -471,7 +556,7 @@ const ProjectTaskBoard = ({
               onClick={() => setActiveTab(tab)}
               className={`relative px-6 py-2.5 text-xs font-black uppercase tracking-wider transition-all duration-300 rounded-xl ${
                 activeTab === tab
-                  ? "text-blue-600 dark:text-blue-400 shadow-md"
+                  ? "text-blue-600 dark:text-[#e5ff00] shadow-md"
                   : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
               }`}
             >
@@ -500,7 +585,9 @@ const ProjectTaskBoard = ({
         {activeTab === "List" && (
           <div className="overflow-hidden">
             <div className="flex justify-between items-center mb-5">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-white">Tasks List</h3>
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-white">
+                Tasks List
+              </h3>
               {isAdminOrManager && (
                 <button
                   onClick={handleAddTask}
@@ -527,8 +614,12 @@ const ProjectTaskBoard = ({
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
                   {activeProjectTasks.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">
-                        No tasks assigned to this project yet. Click "+ Add task" to get started.
+                      <td
+                        colSpan={6}
+                        className="px-6 py-12 text-center text-slate-400 italic"
+                      >
+                        No tasks assigned to this project yet. Click "+ Add
+                        task" to get started.
                       </td>
                     </tr>
                   ) : (
@@ -547,7 +638,9 @@ const ProjectTaskBoard = ({
                             <tr
                               onClick={() => setSelectedTaskId(task._id)}
                               className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors group cursor-pointer ${
-                                isCompleted ? "bg-slate-50/30 text-slate-400 dark:text-slate-500" : "text-slate-800 dark:text-slate-100"
+                                isCompleted
+                                  ? "bg-slate-50/30 text-slate-400 dark:text-slate-500"
+                                  : "text-slate-800 dark:text-slate-100"
                               } ${selectedTaskId === task._id ? "bg-blue-50/40 dark:bg-blue-950/20" : ""}`}
                             >
                               {/* Name Field with Circle Checkbox */}
@@ -559,13 +652,17 @@ const ProjectTaskBoard = ({
                                       e.stopPropagation();
                                       if (canToggle) {
                                         handleTaskFieldChange(task._id, {
-                                          status: isCompleted ? "Pending" : "Completed",
+                                          status: isCompleted
+                                            ? "Pending"
+                                            : "Completed",
                                         });
                                       }
                                     }}
                                     disabled={!canToggle}
                                     className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
-                                      !canToggle ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                                      !canToggle
+                                        ? "cursor-not-allowed opacity-50"
+                                        : "cursor-pointer"
                                     } ${
                                       isCompleted
                                         ? "bg-emerald-500 border-emerald-500 text-white"
@@ -580,7 +677,9 @@ const ProjectTaskBoard = ({
                                     <TaskTitleInput
                                       task={task}
                                       canToggle={canToggle}
-                                      handleTaskFieldChange={handleTaskFieldChange}
+                                      handleTaskFieldChange={
+                                        handleTaskFieldChange
+                                      }
                                       isCompleted={isCompleted}
                                     />
                                   </div>
@@ -593,15 +692,24 @@ const ProjectTaskBoard = ({
                                     }}
                                     className="text-slate-450 hover:text-blue-600 flex items-center gap-0.5 ml-2 text-[10px] font-extrabold shrink-0 uppercase tracking-wider"
                                   >
-                                    {isExpanded ? <FiChevronDown size={14} /> : <FiChevronRight size={14} />}
-                                    <span>Subtasks ({task.subtasks?.length || 0})</span>
+                                    {isExpanded ? (
+                                      <FiChevronDown size={14} />
+                                    ) : (
+                                      <FiChevronRight size={14} />
+                                    )}
+                                    <span>
+                                      Subtasks ({task.subtasks?.length || 0})
+                                    </span>
                                   </button>
                                 </div>
                               </td>
 
                               {/* Assignee Selection */}
                               <td className="px-6 py-3.5">
-                                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                <div
+                                  className="flex items-center gap-2"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
                                   {task.assignedTo?.profileImage?.url ? (
                                     <img
                                       src={task.assignedTo.profileImage.url}
@@ -611,7 +719,7 @@ const ProjectTaskBoard = ({
                                   ) : (
                                     <div
                                       className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-[9px] bg-gradient-to-br ${getAvatarColor(
-                                        task.assignedTo?.name || "Unknown"
+                                        task.assignedTo?.name || "Unknown",
                                       )}`}
                                     >
                                       {task.assignedTo?.name
@@ -622,9 +730,15 @@ const ProjectTaskBoard = ({
                                   )}
                                   {isAdminOrManager ? (
                                     <select
-                                      value={task.assignedTo?._id || task.assignedTo || ""}
+                                      value={
+                                        task.assignedTo?._id ||
+                                        task.assignedTo ||
+                                        ""
+                                      }
                                       onChange={(e) =>
-                                        handleTaskFieldChange(task._id, { assignedTo: e.target.value })
+                                        handleTaskFieldChange(task._id, {
+                                          assignedTo: e.target.value,
+                                        })
                                       }
                                       className="bg-transparent border-0 font-semibold text-slate-700 dark:text-slate-350 hover:bg-slate-105 px-1 py-0.5 rounded cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500"
                                     >
@@ -649,19 +763,34 @@ const ProjectTaskBoard = ({
                                   className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium"
                                   onClick={(e) => e.stopPropagation()}
                                 >
-                                  <FiCalendar size={13} className="text-slate-400" />
+                                  <FiCalendar
+                                    size={13}
+                                    className="text-slate-400"
+                                  />
                                   {isAdminOrManager ? (
                                     <input
                                       type="date"
-                                      value={task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : ""}
+                                      value={
+                                        task.dueDate
+                                          ? new Date(task.dueDate)
+                                              .toISOString()
+                                              .split("T")[0]
+                                          : ""
+                                      }
                                       onChange={(e) =>
-                                        handleTaskFieldChange(task._id, { dueDate: e.target.value })
+                                        handleTaskFieldChange(task._id, {
+                                          dueDate: e.target.value,
+                                        })
                                       }
                                       className="bg-transparent border-0 hover:bg-slate-105 px-1 py-0.5 rounded cursor-pointer focus:outline-none text-xs text-slate-655 dark:text-slate-300"
                                     />
                                   ) : (
                                     <span className="text-xs text-slate-600 dark:text-slate-400">
-                                      {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "N/A"}
+                                      {task.dueDate
+                                        ? new Date(
+                                            task.dueDate,
+                                          ).toLocaleDateString()
+                                        : "N/A"}
                                     </span>
                                   )}
                                 </div>
@@ -674,14 +803,16 @@ const ProjectTaskBoard = ({
                                     <select
                                       value={task.priority || "Medium"}
                                       onChange={(e) =>
-                                        handleTaskFieldChange(task._id, { priority: e.target.value })
+                                        handleTaskFieldChange(task._id, {
+                                          priority: e.target.value,
+                                        })
                                       }
                                       className={`px-2 py-1 rounded-xl text-[10px] font-extrabold border focus:outline-none cursor-pointer ${
                                         task.priority === "High"
                                           ? "bg-rose-50 text-rose-700 border-rose-200/50 dark:bg-rose-955/20 dark:text-rose-400 dark:border-rose-800/40"
                                           : task.priority === "Medium"
-                                          ? "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-955/20 dark:text-amber-400 dark:border-amber-800/40"
-                                          : "bg-slate-50 text-slate-650 border-slate-200 dark:bg-slate-850 dark:text-slate-350 dark:border-slate-750"
+                                            ? "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-955/20 dark:text-amber-400 dark:border-amber-800/40"
+                                            : "bg-slate-50 text-slate-650 border-slate-200 dark:bg-slate-850 dark:text-slate-350 dark:border-slate-750"
                                       }`}
                                     >
                                       <option value="Low">Low</option>
@@ -694,8 +825,8 @@ const ProjectTaskBoard = ({
                                         task.priority === "High"
                                           ? "bg-rose-50 text-rose-700 border-rose-200/50"
                                           : task.priority === "Medium"
-                                          ? "bg-amber-50 text-amber-700 border-amber-200/50"
-                                          : "bg-slate-50 text-slate-600 border-slate-200"
+                                            ? "bg-amber-50 text-amber-700 border-amber-200/50"
+                                            : "bg-slate-50 text-slate-600 border-slate-200"
                                       }`}
                                     >
                                       {task.priority || "Medium"}
@@ -710,18 +841,26 @@ const ProjectTaskBoard = ({
                                   {isAdminOrManager ? (
                                     <select
                                       value={task.status || "Pending"}
-                                      onChange={(e) => handleTaskFieldChange(task._id, { status: e.target.value })}
+                                      onChange={(e) =>
+                                        handleTaskFieldChange(task._id, {
+                                          status: e.target.value,
+                                        })
+                                      }
                                       className={`px-2.5 py-1 rounded-xl text-[10px] font-extrabold border focus:outline-none cursor-pointer ${
                                         task.status === "Completed"
                                           ? "bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800/40"
                                           : task.status === "In Progress"
-                                          ? "bg-blue-50 text-blue-700 border-blue-200/50 dark:bg-blue-955/20 dark:text-blue-400 dark:border-blue-800/40"
-                                          : "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-955/20 dark:text-amber-400 dark:border-amber-800/40"
+                                            ? "bg-blue-50 text-blue-700 border-blue-200/50 dark:bg-blue-955/20 dark:text-blue-400 dark:border-blue-800/40"
+                                            : "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-955/20 dark:text-amber-400 dark:border-amber-800/40"
                                       }`}
                                     >
                                       <option value="Pending">Pending</option>
-                                      <option value="In Progress">In Progress</option>
-                                      <option value="Completed">Completed</option>
+                                      <option value="In Progress">
+                                        In Progress
+                                      </option>
+                                      <option value="Completed">
+                                        Completed
+                                      </option>
                                       <option value="On Hold">On Hold</option>
                                     </select>
                                   ) : (
@@ -730,8 +869,8 @@ const ProjectTaskBoard = ({
                                         task.status === "Completed"
                                           ? "bg-emerald-55/10 text-emerald-600 border-emerald-200"
                                           : task.status === "In Progress"
-                                          ? "bg-blue-55/10 text-blue-600 border-blue-200"
-                                          : "bg-amber-55/10 text-amber-600 border-amber-200"
+                                            ? "bg-blue-55/10 text-blue-600 border-blue-200"
+                                            : "bg-amber-55/10 text-amber-600 border-amber-200"
                                       }`}
                                     >
                                       {task.status || "Pending"}
@@ -742,10 +881,15 @@ const ProjectTaskBoard = ({
 
                               {/* Action Controls */}
                               <td className="px-6 py-3.5 text-center">
-                                <div className="flex items-center justify-center gap-3" onClick={(e) => e.stopPropagation()}>
+                                <div
+                                  className="flex items-center justify-center gap-3"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
                                   {isAdminOrManager && (
                                     <button
-                                      onClick={() => toggleTaskExpanded(task._id)}
+                                      onClick={() =>
+                                        toggleTaskExpanded(task._id)
+                                      }
                                       className="text-slate-450 hover:text-indigo-600 font-extrabold text-[10px] uppercase tracking-wider"
                                       title="Manage Subtasks"
                                     >
@@ -754,7 +898,9 @@ const ProjectTaskBoard = ({
                                   )}
                                   {isAdminOrManager && (
                                     <button
-                                      onClick={() => handleParentTaskDelete(task._id)}
+                                      onClick={() =>
+                                        handleParentTaskDelete(task._id)
+                                      }
                                       className="text-slate-400 hover:text-red-500 transition-colors p-1"
                                       title="Delete Task"
                                     >
@@ -782,8 +928,12 @@ const ProjectTaskBoard = ({
                                         task={task}
                                         users={users}
                                         getAvatarColor={getAvatarColor}
-                                        handleSubtaskFieldChange={handleSubtaskFieldChange}
-                                        handleDeleteSubtask={handleDeleteSubtask}
+                                        handleSubtaskFieldChange={
+                                          handleSubtaskFieldChange
+                                        }
+                                        handleDeleteSubtask={
+                                          handleDeleteSubtask
+                                        }
                                         isAdminOrManager={isAdminOrManager}
                                         currentUser={currentUser}
                                       />
@@ -792,15 +942,22 @@ const ProjectTaskBoard = ({
                                     {/* Inline Add Subtask Form */}
                                     {isAdminOrManager && (
                                       <form
-                                        onSubmit={(e) => handleInlineAddSubtaskSubmit(e, task)}
+                                        onSubmit={(e) =>
+                                          handleInlineAddSubtaskSubmit(e, task)
+                                        }
                                         className="flex items-center gap-2 pt-1.5"
                                         onClick={(e) => e.stopPropagation()}
                                       >
-                                        <FiCornerDownRight className="text-slate-350" size={13} />
+                                        <FiCornerDownRight
+                                          className="text-slate-350"
+                                          size={13}
+                                        />
                                         <input
                                           type="text"
                                           placeholder="Add subtask and press enter..."
-                                          value={inlineSubtaskTitle[task._id] || ""}
+                                          value={
+                                            inlineSubtaskTitle[task._id] || ""
+                                          }
                                           onChange={(e) =>
                                             setInlineSubtaskTitle((prev) => ({
                                               ...prev,
@@ -833,158 +990,244 @@ const ProjectTaskBoard = ({
         )}
 
         {activeTab === "Board" && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-white">Board</h3>
-            </div>
-            
-            {/* Board Columns Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
-              {["Pending", "In Progress", "On Hold", "Completed"].map((status) => {
-                const columnTasks = activeProjectTasks.filter((t) => t.status === status);
-                
-                return (
-                  <div
-                    key={status}
-                    className="bg-slate-55/60 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm flex flex-col min-h-[380px] max-h-[600px]"
-                  >
-                    {/* Column Header */}
-                    <div className="flex items-center justify-between mb-4 px-1">
-                      <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${
-                          status === "Completed" ? "bg-emerald-500" :
-                          status === "In Progress" ? "bg-blue-500" :
-                          status === "On Hold" ? "bg-amber-500" : "bg-slate-400"
-                        }`} />
-                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">{status}</h4>
-                      </div>
-                      <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-slate-200/50 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                        {columnTasks.length}
-                      </span>
-                    </div>
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-white">
+                  Board
+                </h3>
+              </div>
 
-                    {/* Cards Container */}
-                    <div className="flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin">
-                      {columnTasks.map((task) => {
-                        const isCompleted = task.status === "Completed";
-                        return (
-                          <div
-                            key={task._id}
-                            onClick={() => setSelectedTaskId(task._id)}
-                            className="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-150 dark:border-slate-700/50 hover:shadow-md hover:border-slate-200 dark:hover:border-slate-600 transition-all cursor-pointer space-y-3 relative group"
-                          >
-                            <div className="flex items-start gap-2.5">
-                              {/* Status Checkbox */}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleTaskFieldChange(task._id, {
-                                    status: isCompleted ? "Pending" : "Completed"
-                                  });
-                                }}
-                                className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-all ${
-                                  isCompleted
-                                    ? "bg-emerald-500 border-emerald-500 text-white"
-                                    : "border-slate-350 dark:border-slate-700 hover:border-blue-500 text-transparent"
-                                }`}
-                              >
-                                <FiCheck size={10} />
-                              </button>
-                              
-                              {/* Title */}
-                              <span className={`text-xs font-bold text-slate-850 dark:text-white ${
-                                isCompleted ? "line-through text-slate-400 dark:text-slate-500" : ""
-                              }`}>
-                                {task.title}
-                              </span>
-                            </div>
+              {/* Board Columns Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+                {["Pending", "In Progress", "On Hold", "Completed"].map(
+                  (status) => {
+                    const columnTasks = activeProjectTasks.filter(
+                      (t) => t.status === status,
+                    );
 
-                            {/* Card Footer: Assignee & Priority */}
-                            <div className="flex items-center justify-between pt-1">
-                              <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                                {/* Assignee Avatar */}
-                                {task.assignedTo ? (
-                                  task.assignedTo.profileImage?.url ? (
-                                    <img
-                                      src={task.assignedTo.profileImage.url}
-                                      alt={task.assignedTo.name}
-                                      className="w-5 h-5 rounded-full object-cover"
-                                      title={task.assignedTo.name}
-                                    />
-                                  ) : (
-                                    <div
-                                      className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] font-black bg-gradient-to-br ${getAvatarColor(
-                                        task.assignedTo.name
-                                      )}`}
-                                      title={task.assignedTo.name}
-                                    >
-                                      {task.assignedTo.name?.split(" ").map((n) => n[0]).join("") || "U"}
-                                    </div>
-                                  )
-                                ) : (
-                                  <div className="w-5 h-5 rounded-full border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400" title="Unassigned">
-                                    <FiUser size={10} />
-                                  </div>
-                                )}
-                                
-                                {isAdminOrManager && (
-                                  <select
-                                    value={task.assignedTo?._id || task.assignedTo || ""}
-                                    onChange={(e) =>
-                                      handleTaskFieldChange(task._id, { assignedTo: e.target.value })
-                                    }
-                                    className="bg-transparent border-0 text-[10px] font-semibold text-slate-500 hover:text-slate-750 px-1 py-0.5 rounded cursor-pointer focus:outline-none"
-                                  >
-                                    <option value="">Unassigned</option>
-                                    {users.map((u) => (
-                                      <option key={u._id} value={u._id}>
-                                        {u.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                )}
-                              </div>
-
-                              {/* Priority Badge */}
-                              <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                                task.priority === "High"
-                                  ? "bg-rose-50 text-rose-700 border border-rose-100 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/40"
-                                  : task.priority === "Medium"
-                                  ? "bg-amber-50 text-amber-700 border border-amber-100 dark:bg-amber-955/20 dark:text-amber-400 dark:border-amber-900/40"
-                                  : "bg-slate-50 text-slate-600 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800"
-                              }`}>
-                                {task.priority || "Medium"}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Column Add Task Button */}
-                    {isAdminOrManager && (
-                      <button
-                        onClick={() => handleAddTaskWithStatus(status)}
-                        className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-slate-950 transition-colors font-bold text-xs"
+                    return (
+                      <div
+                        key={status}
+                        className="bg-slate-55/60 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm flex flex-col min-h-[380px] max-h-[600px]"
                       >
-                        <FiPlus size={14} />
-                        Add task
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+                        {/* Column Header */}
+                        <div className="flex items-center justify-between mb-4 px-1">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`w-2 h-2 rounded-full ${
+                                status === "Completed"
+                                  ? "bg-emerald-500"
+                                  : status === "In Progress"
+                                    ? "bg-blue-500"
+                                    : status === "On Hold"
+                                      ? "bg-amber-500"
+                                      : "bg-slate-400"
+                              }`}
+                            />
+                            <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">
+                              {status}
+                            </h4>
+                          </div>
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-slate-200/50 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                            {columnTasks.length}
+                          </span>
+                        </div>
+
+                        {/* Cards Container */}
+                        <StrictModeDroppable droppableId={status}>
+                          {(provided, snapshot) => (
+                            <div
+                              ref={provided.innerRef}
+                              {...provided.droppableProps}
+                              className={`flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin rounded-xl p-1 transition-colors ${
+                                snapshot.isDraggingOver
+                                  ? "bg-slate-100/50 dark:bg-slate-800/30 ring-1 ring-blue-400/30"
+                                  : ""
+                              }`}
+                            >
+                              {columnTasks.map((task, index) => {
+                                const isCompleted = task.status === "Completed";
+                                return (
+                                  <Draggable
+                                    key={task._id}
+                                    draggableId={task._id}
+                                    index={index}
+                                  >
+                                    {(provided, snapshot) => (
+                                      <div
+                                        ref={provided.innerRef}
+                                        {...provided.draggableProps}
+                                        {...provided.dragHandleProps}
+                                        style={provided.draggableProps.style}
+                                        onClick={() =>
+                                          setSelectedTaskId(task._id)
+                                        }
+                                        className={`bg-white dark:bg-slate-800 p-3.5 rounded-xl border cursor-pointer space-y-3 relative group select-none ${
+                                          snapshot.isDragging
+                                            ? "shadow-2xl ring-2 ring-blue-500 scale-[1.03] z-50 border-blue-300 dark:border-blue-700"
+                                            : "border-slate-150 dark:border-slate-700/50 hover:shadow-md hover:border-slate-200 dark:hover:border-slate-600 transition-shadow transition-colors"
+                                        }`}
+                                      >
+                                        <div className="flex items-start gap-2.5">
+                                          {/* Status Checkbox */}
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleTaskFieldChange(task._id, {
+                                                status: isCompleted
+                                                  ? "Pending"
+                                                  : "Completed",
+                                              });
+                                            }}
+                                            className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                                              isCompleted
+                                                ? "bg-emerald-500 border-emerald-500 text-white"
+                                                : "border-slate-350 dark:border-slate-700 hover:border-blue-500 text-transparent"
+                                            }`}
+                                          >
+                                            <FiCheck size={10} />
+                                          </button>
+
+                                          {/* Title */}
+                                          <span
+                                            className={`text-xs font-bold leading-relaxed text-slate-850 dark:text-white ${
+                                              isCompleted
+                                                ? "line-through text-slate-400 dark:text-slate-500"
+                                                : ""
+                                            }`}
+                                          >
+                                            {task.title}
+                                          </span>
+                                        </div>
+
+                                        {/* Card Footer: Assignee & Priority */}
+                                        <div className="flex items-center justify-between pt-1">
+                                          <div
+                                            className="flex items-center gap-1.5"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {/* Assignee Avatar */}
+                                            {task.assignedTo ? (
+                                              task.assignedTo.profileImage
+                                                ?.url ? (
+                                                <img
+                                                  src={
+                                                    task.assignedTo.profileImage
+                                                      .url
+                                                  }
+                                                  alt={task.assignedTo.name}
+                                                  className="w-5 h-5 rounded-full object-cover"
+                                                  title={task.assignedTo.name}
+                                                />
+                                              ) : (
+                                                <div
+                                                  className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] font-black bg-gradient-to-br ${getAvatarColor(
+                                                    task.assignedTo.name,
+                                                  )}`}
+                                                  title={task.assignedTo.name}
+                                                >
+                                                  {task.assignedTo.name
+                                                    ?.split(" ")
+                                                    .map((n) => n[0])
+                                                    .join("") || "U"}
+                                                </div>
+                                              )
+                                            ) : (
+                                              <div
+                                                className="w-5 h-5 rounded-full border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400"
+                                                title="Unassigned"
+                                              >
+                                                <FiUser size={10} />
+                                              </div>
+                                            )}
+
+                                            {isAdminOrManager && (
+                                              <select
+                                                value={
+                                                  task.assignedTo?._id ||
+                                                  task.assignedTo ||
+                                                  ""
+                                                }
+                                                onChange={(e) =>
+                                                  handleTaskFieldChange(
+                                                    task._id,
+                                                    {
+                                                      assignedTo:
+                                                        e.target.value,
+                                                    },
+                                                  )
+                                                }
+                                                className="bg-transparent border-0 text-[10px] font-semibold text-slate-500 hover:text-slate-750 px-1 py-0.5 rounded cursor-pointer focus:outline-none"
+                                              >
+                                                <option value="">
+                                                  Unassigned
+                                                </option>
+                                                {users.map((u) => (
+                                                  <option
+                                                    key={u._id}
+                                                    value={u._id}
+                                                  >
+                                                    {u.name}
+                                                  </option>
+                                                ))}
+                                              </select>
+                                            )}
+                                          </div>
+
+                                          {/* Priority Badge */}
+                                          <span
+                                            className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                                              task.priority === "High"
+                                                ? "bg-rose-50 text-rose-700 border border-rose-100 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/40"
+                                                : task.priority === "Medium"
+                                                  ? "bg-amber-50 text-amber-700 border border-amber-100 dark:bg-amber-955/20 dark:text-amber-400 dark:border-amber-900/40"
+                                                  : "bg-slate-50 text-slate-600 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800"
+                                            }`}
+                                          >
+                                            {task.priority || "Medium"}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </Draggable>
+                                );
+                              })}
+                              {provided.placeholder}
+                            </div>
+                          )}
+                        </StrictModeDroppable>
+
+                        {/* Column Add Task Button */}
+                        {isAdminOrManager && (
+                          <button
+                            onClick={() => handleAddTaskWithStatus(status)}
+                            className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-slate-950 transition-colors font-bold text-xs"
+                          >
+                            <FiPlus size={14} />
+                            Add task
+                          </button>
+                        )}
+                      </div>
+                    );
+                  },
+                )}
+              </div>
             </div>
-          </div>
+          </DragDropContext>
         )}
 
         {activeTab === "Timeline" && (
           <div className="space-y-4">
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">Timeline View</h3>
-            
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Timeline View
+            </h3>
+
             {activeProjectTasks.length === 0 ? (
               <div className="text-center py-20 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850 rounded-3xl">
-                <p className="text-slate-400 italic text-xs font-bold">No tasks to show in timeline. Add some tasks first.</p>
+                <p className="text-slate-400 italic text-xs font-bold">
+                  No tasks to show in timeline. Add some tasks first.
+                </p>
               </div>
             ) : (
               <div className="relative pl-6 sm:pl-8 border-l-2 border-dashed border-slate-200 dark:border-slate-800 space-y-8 py-4 max-w-2xl">
@@ -1006,11 +1249,15 @@ const ProjectTaskBoard = ({
                         className="relative group cursor-pointer"
                       >
                         {/* Timeline Bullet Node */}
-                        <div className={`absolute -left-[31px] sm:-left-[39px] top-1.5 w-4.5 h-4.5 rounded-full border-4 border-white dark:border-slate-900 flex items-center justify-center shadow-sm ${
-                          isCompleted ? "bg-emerald-500" :
-                          task.status === "In Progress" ? "bg-blue-500" :
-                          "bg-amber-500"
-                        }`}>
+                        <div
+                          className={`absolute -left-[31px] sm:-left-[39px] top-1.5 w-4.5 h-4.5 rounded-full border-4 border-white dark:border-slate-900 flex items-center justify-center shadow-sm ${
+                            isCompleted
+                              ? "bg-emerald-500"
+                              : task.status === "In Progress"
+                                ? "bg-blue-500"
+                                : "bg-amber-500"
+                          }`}
+                        >
                           <div className="w-1.5 h-1.5 rounded-full bg-white" />
                         </div>
 
@@ -1019,25 +1266,38 @@ const ProjectTaskBoard = ({
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                             <span className="text-[10px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-wider flex items-center gap-1">
                               <FiCalendar size={11} />
-                              {task.dueDate ? new Date(task.dueDate).toLocaleDateString(undefined, {
-                                month: "short",
-                                day: "numeric",
-                                year: "numeric"
-                              }) : "No due date set"}
+                              {task.dueDate
+                                ? new Date(task.dueDate).toLocaleDateString(
+                                    undefined,
+                                    {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    },
+                                  )
+                                : "No due date set"}
                             </span>
 
-                            <span className={`px-2 py-0.5 rounded text-[8px] font-extrabold border uppercase tracking-wider w-fit ${
-                              task.priority === "High" ? "bg-rose-50 text-rose-700 border-rose-100" :
-                              task.priority === "Medium" ? "bg-amber-50 text-amber-700 border-amber-100" :
-                              "bg-slate-50 text-slate-600 border-slate-200"
-                            }`}>
+                            <span
+                              className={`px-2 py-0.5 rounded text-[8px] font-extrabold border uppercase tracking-wider w-fit ${
+                                task.priority === "High"
+                                  ? "bg-rose-50 text-rose-700 border-rose-100"
+                                  : task.priority === "Medium"
+                                    ? "bg-amber-50 text-amber-700 border-amber-100"
+                                    : "bg-slate-50 text-slate-600 border-slate-200"
+                              }`}
+                            >
                               {task.priority || "Medium"}
                             </span>
                           </div>
 
-                          <h4 className={`text-xs font-bold mt-2 text-slate-800 dark:text-white ${
-                            isCompleted ? "line-through text-slate-400 dark:text-slate-500" : ""
-                          }`}>
+                          <h4
+                            className={`text-xs font-bold mt-2 text-slate-800 dark:text-white ${
+                              isCompleted
+                                ? "line-through text-slate-400 dark:text-slate-500"
+                                : ""
+                            }`}
+                          >
                             {task.title}
                           </h4>
 
@@ -1049,8 +1309,13 @@ const ProjectTaskBoard = ({
                             {/* Assignee Badge */}
                             {task.assignedTo && (
                               <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-605">
-                                <div className={`w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-black bg-gradient-to-br ${getAvatarColor(task.assignedTo.name)}`}>
-                                  {task.assignedTo.name?.split(" ").map((n) => n[0]).join("") || "U"}
+                                <div
+                                  className={`w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-black bg-gradient-to-br ${getAvatarColor(task.assignedTo.name)}`}
+                                >
+                                  {task.assignedTo.name
+                                    ?.split(" ")
+                                    .map((n) => n[0])
+                                    .join("") || "U"}
                                 </div>
                                 <span>{task.assignedTo.name}</span>
                               </div>
@@ -1067,54 +1332,72 @@ const ProjectTaskBoard = ({
 
         {activeTab === "Dashboard" && (
           <div className="space-y-6">
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-white">Dashboard Metrics</h3>
-            
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-white">
+              Dashboard Metrics
+            </h3>
+
             {/* Stats Cards Grid - Premium Gradients */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {/* Card 1: Total Completed */}
-              <div className="relative overflow-hidden p-5 rounded-2xl shadow-lg bg-gradient-to-br from-emerald-400 to-teal-600 border border-emerald-300/50 flex flex-col justify-between text-white group transition-all duration-300 hover:-translate-y-1">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+              <div className="relative overflow-hidden p-5 rounded-2xl shadow-sm border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-20"></div>
                 <div className="relative z-10">
-                  <h4 className="text-[10px] font-black text-emerald-50 uppercase tracking-wider opacity-90 drop-shadow-sm">Total completed tasks</h4>
-                  <div className="text-4xl font-black mt-4 drop-shadow-md">{completedTasks}</div>
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Total completed tasks
+                  </h4>
+                  <div className="text-4xl font-black mt-4 drop-shadow-sm text-emerald-500 dark:text-emerald-400">
+                    {completedTasks}
+                  </div>
                 </div>
-                <div className="relative z-10 text-[10px] font-bold text-emerald-50 uppercase tracking-wider mt-4 border-t border-white/20 pt-2 flex items-center gap-1.5 opacity-90">
+                <div className="relative z-10 text-[10px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-slate-800 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
                   <FiClock size={11} /> 1 Filter
                 </div>
               </div>
 
               {/* Card 2: Total Incomplete */}
-              <div className="relative overflow-hidden p-5 rounded-2xl shadow-lg bg-gradient-to-br from-blue-500 to-indigo-600 border border-blue-400/50 flex flex-col justify-between text-white group transition-all duration-300 hover:-translate-y-1">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+              <div className="relative overflow-hidden p-5 rounded-2xl shadow-sm border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-20"></div>
                 <div className="relative z-10">
-                  <h4 className="text-[10px] font-black text-blue-50 uppercase tracking-wider opacity-90 drop-shadow-sm">Total incomplete tasks</h4>
-                  <div className="text-4xl font-black mt-4 drop-shadow-md">{incompleteTasks}</div>
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Total incomplete tasks
+                  </h4>
+                  <div className="text-4xl font-black mt-4 drop-shadow-sm text-blue-500 dark:text-blue-400">
+                    {incompleteTasks}
+                  </div>
                 </div>
-                <div className="relative z-10 text-[10px] font-bold text-blue-50 uppercase tracking-wider mt-4 border-t border-white/20 pt-2 flex items-center gap-1.5 opacity-90">
+                <div className="relative z-10 text-[10px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-slate-800 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
                   <FiClock size={11} /> 1 Filter
                 </div>
               </div>
 
               {/* Card 3: Total Overdue */}
-              <div className="relative overflow-hidden p-5 rounded-2xl shadow-lg bg-gradient-to-br from-rose-500 to-red-600 border border-rose-400/50 flex flex-col justify-between text-white group transition-all duration-300 hover:-translate-y-1">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+              <div className="relative overflow-hidden p-5 rounded-2xl shadow-sm border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-20"></div>
                 <div className="relative z-10">
-                  <h4 className="text-[10px] font-black text-rose-50 uppercase tracking-wider opacity-90 drop-shadow-sm">Total overdue tasks</h4>
-                  <div className="text-4xl font-black mt-4 drop-shadow-md">{overdueTasks}</div>
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Total overdue tasks
+                  </h4>
+                  <div className="text-4xl font-black mt-4 drop-shadow-sm text-rose-500 dark:text-rose-400">
+                    {overdueTasks}
+                  </div>
                 </div>
-                <div className="relative z-10 text-[10px] font-bold text-rose-50 uppercase tracking-wider mt-4 border-t border-white/20 pt-2 flex items-center gap-1.5 opacity-90">
+                <div className="relative z-10 text-[10px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-slate-800 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
                   <FiClock size={11} /> 1 Filter
                 </div>
               </div>
 
               {/* Card 4: Total Tasks */}
-              <div className="relative overflow-hidden p-5 rounded-2xl shadow-lg bg-gradient-to-br from-slate-700 to-slate-900 border border-slate-600/50 flex flex-col justify-between text-white group transition-all duration-300 hover:-translate-y-1">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+              <div className="relative overflow-hidden p-5 rounded-2xl shadow-sm border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-slate-400 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-10"></div>
                 <div className="relative z-10">
-                  <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-wider opacity-90 drop-shadow-sm">Total tasks</h4>
-                  <div className="text-4xl font-black mt-4 drop-shadow-md text-yellow-400">{totalTasks}</div>
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Total tasks
+                  </h4>
+                  <div className="text-4xl font-black mt-4 drop-shadow-sm text-slate-700 dark:text-white">
+                    {totalTasks}
+                  </div>
                 </div>
-                <div className="relative z-10 text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-4 border-t border-white/20 pt-2 flex items-center gap-1.5 opacity-90">
+                <div className="relative z-10 text-[10px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-slate-800 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
                   <FiClock size={11} /> No Filters
                 </div>
               </div>
@@ -1127,7 +1410,7 @@ const ProjectTaskBoard = ({
                 <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider mb-8">
                   Total incomplete tasks by section
                 </h4>
-                
+
                 {/* Custom SVG Bar Chart */}
                 <div className="flex-1 min-h-[220px] flex items-end justify-around pb-6 border-b border-slate-100 dark:border-slate-800 relative">
                   {/* Grid Lines */}
@@ -1139,11 +1422,20 @@ const ProjectTaskBoard = ({
 
                   {/* Pending Bar */}
                   <div className="flex flex-col items-center gap-2 z-10 w-20 group cursor-default">
-                    <span className="text-xs font-black text-slate-600 dark:text-slate-400 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">{pendingCount}</span>
+                    <span className="text-xs font-black text-slate-600 dark:text-slate-400 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                      {pendingCount}
+                    </span>
                     <motion.div
                       initial={{ height: 0 }}
-                      animate={{ height: `${totalTasks > 0 ? Math.max((pendingCount / totalTasks) * 140, 10) : 10}px` }}
-                      transition={{ type: "spring", stiffness: 60, damping: 15, delay: 0.1 }}
+                      animate={{
+                        height: `${totalTasks > 0 ? Math.max((pendingCount / totalTasks) * 140, 10) : 10}px`,
+                      }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 60,
+                        damping: 15,
+                        delay: 0.1,
+                      }}
                       className="w-12 bg-gradient-to-t from-indigo-600 to-indigo-400 rounded-xl shadow-lg shadow-indigo-500/30 group-hover:brightness-110 transition-all duration-300"
                     />
                     <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider pt-1">
@@ -1153,11 +1445,20 @@ const ProjectTaskBoard = ({
 
                   {/* In Progress Bar */}
                   <div className="flex flex-col items-center gap-2 z-10 w-20 group cursor-default">
-                    <span className="text-xs font-black text-slate-600 dark:text-slate-400 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">{inProgressCount}</span>
+                    <span className="text-xs font-black text-slate-600 dark:text-slate-400 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                      {inProgressCount}
+                    </span>
                     <motion.div
                       initial={{ height: 0 }}
-                      animate={{ height: `${totalTasks > 0 ? Math.max((inProgressCount / totalTasks) * 140, 10) : 10}px` }}
-                      transition={{ type: "spring", stiffness: 60, damping: 15, delay: 0.2 }}
+                      animate={{
+                        height: `${totalTasks > 0 ? Math.max((inProgressCount / totalTasks) * 140, 10) : 10}px`,
+                      }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 60,
+                        damping: 15,
+                        delay: 0.2,
+                      }}
                       className="w-12 bg-gradient-to-t from-blue-500 to-cyan-400 rounded-xl shadow-lg shadow-blue-500/30 group-hover:brightness-110 transition-all duration-300"
                     />
                     <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider pt-1">
@@ -1167,11 +1468,20 @@ const ProjectTaskBoard = ({
 
                   {/* On Hold Bar */}
                   <div className="flex flex-col items-center gap-2 z-10 w-20 group cursor-default">
-                    <span className="text-xs font-black text-slate-600 dark:text-slate-400 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">{onHoldCount}</span>
+                    <span className="text-xs font-black text-slate-600 dark:text-slate-400 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                      {onHoldCount}
+                    </span>
                     <motion.div
                       initial={{ height: 0 }}
-                      animate={{ height: `${totalTasks > 0 ? Math.max((onHoldCount / totalTasks) * 140, 10) : 10}px` }}
-                      transition={{ type: "spring", stiffness: 60, damping: 15, delay: 0.3 }}
+                      animate={{
+                        height: `${totalTasks > 0 ? Math.max((onHoldCount / totalTasks) * 140, 10) : 10}px`,
+                      }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 60,
+                        damping: 15,
+                        delay: 0.3,
+                      }}
                       className="w-12 bg-gradient-to-t from-amber-500 to-yellow-400 rounded-xl shadow-lg shadow-amber-500/30 group-hover:brightness-110 transition-all duration-300"
                     />
                     <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider pt-1">
@@ -1197,7 +1507,10 @@ const ProjectTaskBoard = ({
                 <div className="flex-1 flex items-center justify-center gap-10 py-4 border-b border-slate-100 dark:border-slate-800">
                   {/* SVG Donut Chart */}
                   <div className="relative w-36 h-36 flex items-center justify-center filter drop-shadow-md">
-                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                    <svg
+                      className="w-full h-full transform -rotate-90"
+                      viewBox="0 0 36 36"
+                    >
                       {/* Background circle */}
                       <circle
                         cx="18"
@@ -1212,8 +1525,14 @@ const ProjectTaskBoard = ({
                       {totalTasks > 0 && (
                         <motion.circle
                           initial={{ strokeDasharray: `0 100` }}
-                          animate={{ strokeDasharray: `${(incompleteTasks / totalTasks) * 100} ${100 - (incompleteTasks / totalTasks) * 100}` }}
-                          transition={{ type: "tween", ease: "easeOut", duration: 1.5 }}
+                          animate={{
+                            strokeDasharray: `${(incompleteTasks / totalTasks) * 100} ${100 - (incompleteTasks / totalTasks) * 100}`,
+                          }}
+                          transition={{
+                            type: "tween",
+                            ease: "easeOut",
+                            duration: 1.5,
+                          }}
                           cx="18"
                           cy="18"
                           r="15.915"
@@ -1223,25 +1542,37 @@ const ProjectTaskBoard = ({
                           strokeLinecap="round"
                         />
                       )}
-                      
+
                       {/* Define Gradients */}
                       <defs>
-                        <linearGradient id="gradientDonut" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#8b5cf6" /> {/* Violet 500 */}
-                          <stop offset="100%" stopColor="#ec4899" /> {/* Pink 500 */}
+                        <linearGradient
+                          id="gradientDonut"
+                          x1="0%"
+                          y1="0%"
+                          x2="100%"
+                          y2="100%"
+                        >
+                          <stop offset="0%" stopColor="#8b5cf6" />{" "}
+                          {/* Violet 500 */}
+                          <stop offset="100%" stopColor="#ec4899" />{" "}
+                          {/* Pink 500 */}
                         </linearGradient>
                       </defs>
                     </svg>
 
                     {/* Middle Text */}
-                    <motion.div 
+                    <motion.div
                       initial={{ scale: 0, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       transition={{ delay: 0.5, type: "spring" }}
                       className="absolute inset-0 flex flex-col items-center justify-center"
                     >
-                      <span className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-br from-violet-600 to-pink-500 drop-shadow-sm">{incompleteTasks}</span>
-                      <span className="text-[8px] font-black uppercase text-slate-400 mt-1">Remaining</span>
+                      <span className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-br from-violet-600 to-pink-500 drop-shadow-sm">
+                        {incompleteTasks}
+                      </span>
+                      <span className="text-[8px] font-black uppercase text-slate-400 mt-1">
+                        Remaining
+                      </span>
                     </motion.div>
                   </div>
 
@@ -1253,7 +1584,9 @@ const ProjectTaskBoard = ({
                         <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                           Incomplete
                         </span>
-                        <span className="text-sm font-black text-slate-800 dark:text-slate-100">{incompleteTasks} Tasks</span>
+                        <span className="text-sm font-black text-slate-800 dark:text-slate-100">
+                          {incompleteTasks} Tasks
+                        </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -1262,7 +1595,9 @@ const ProjectTaskBoard = ({
                         <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                           Completed
                         </span>
-                        <span className="text-sm font-black text-slate-800 dark:text-slate-100">{completedTasks} Tasks</span>
+                        <span className="text-sm font-black text-slate-800 dark:text-slate-100">
+                          {completedTasks} Tasks
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -1356,19 +1691,41 @@ const ProjectTaskBoard = ({
                       <select
                         value={selectedTask.status || "Pending"}
                         onChange={(e) =>
-                          handleTaskFieldChange(selectedTask._id, { status: e.target.value })
+                          handleTaskFieldChange(selectedTask._id, {
+                            status: e.target.value,
+                          })
                         }
                         className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
-                        <option value="Pending" className="dark:bg-slate-950 dark:text-slate-200">Pending</option>
-                        <option value="In Progress" className="dark:bg-slate-950 dark:text-slate-200">In Progress</option>
-                        <option value="Completed" className="dark:bg-slate-950 dark:text-slate-200">Completed</option>
-                        <option value="On Hold" className="dark:bg-slate-950 dark:text-slate-200">On Hold</option>
+                        <option
+                          value="Pending"
+                          className="dark:bg-slate-950 dark:text-slate-200"
+                        >
+                          Pending
+                        </option>
+                        <option
+                          value="In Progress"
+                          className="dark:bg-slate-950 dark:text-slate-200"
+                        >
+                          In Progress
+                        </option>
+                        <option
+                          value="Completed"
+                          className="dark:bg-slate-950 dark:text-slate-200"
+                        >
+                          Completed
+                        </option>
+                        <option
+                          value="On Hold"
+                          className="dark:bg-slate-950 dark:text-slate-200"
+                        >
+                          On Hold
+                        </option>
                       </select>
                     ) : (
                       <div
                         className={`px-3 py-2 border rounded-xl text-xs font-semibold w-fit uppercase tracking-wider ${getStatusBadge(
-                          selectedTask.status
+                          selectedTask.status,
                         )}`}
                       >
                         {selectedTask.status || "Pending"}
@@ -1383,15 +1740,30 @@ const ProjectTaskBoard = ({
                     </label>
                     {isAdminOrManager ? (
                       <select
-                        value={selectedTask.assignedTo?._id || selectedTask.assignedTo || ""}
+                        value={
+                          selectedTask.assignedTo?._id ||
+                          selectedTask.assignedTo ||
+                          ""
+                        }
                         onChange={(e) =>
-                          handleTaskFieldChange(selectedTask._id, { assignedTo: e.target.value })
+                          handleTaskFieldChange(selectedTask._id, {
+                            assignedTo: e.target.value,
+                          })
                         }
                         className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
-                        <option value="" className="dark:bg-slate-950 dark:text-slate-200">Unassigned</option>
+                        <option
+                          value=""
+                          className="dark:bg-slate-950 dark:text-slate-200"
+                        >
+                          Unassigned
+                        </option>
                         {users.map((u) => (
-                          <option key={u._id} value={u._id} className="dark:bg-slate-950 dark:text-slate-200">
+                          <option
+                            key={u._id}
+                            value={u._id}
+                            className="dark:bg-slate-950 dark:text-slate-200"
+                          >
                             {u.name}
                           </option>
                         ))}
@@ -1407,7 +1779,7 @@ const ProjectTaskBoard = ({
                         ) : (
                           <div
                             className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] font-bold bg-gradient-to-br ${getAvatarColor(
-                              selectedTask.assignedTo?.name || "U"
+                              selectedTask.assignedTo?.name || "U",
                             )}`}
                           >
                             {selectedTask.assignedTo?.name
@@ -1433,11 +1805,15 @@ const ProjectTaskBoard = ({
                         type="date"
                         value={
                           selectedTask.dueDate
-                            ? new Date(selectedTask.dueDate).toISOString().split("T")[0]
+                            ? new Date(selectedTask.dueDate)
+                                .toISOString()
+                                .split("T")[0]
                             : ""
                         }
                         onChange={(e) =>
-                          handleTaskFieldChange(selectedTask._id, { dueDate: e.target.value })
+                          handleTaskFieldChange(selectedTask._id, {
+                            dueDate: e.target.value,
+                          })
                         }
                         className="w-full bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
@@ -1460,13 +1836,30 @@ const ProjectTaskBoard = ({
                       <select
                         value={selectedTask.priority || "Medium"}
                         onChange={(e) =>
-                          handleTaskFieldChange(selectedTask._id, { priority: e.target.value })
+                          handleTaskFieldChange(selectedTask._id, {
+                            priority: e.target.value,
+                          })
                         }
                         className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
-                        <option value="Low" className="dark:bg-slate-955 dark:text-slate-200">Low</option>
-                        <option value="Medium" className="dark:bg-slate-955 dark:text-slate-200">Medium</option>
-                        <option value="High" className="dark:bg-slate-955 dark:text-slate-200">High</option>
+                        <option
+                          value="Low"
+                          className="dark:bg-slate-955 dark:text-slate-200"
+                        >
+                          Low
+                        </option>
+                        <option
+                          value="Medium"
+                          className="dark:bg-slate-955 dark:text-slate-200"
+                        >
+                          Medium
+                        </option>
+                        <option
+                          value="High"
+                          className="dark:bg-slate-955 dark:text-slate-200"
+                        >
+                          High
+                        </option>
                       </select>
                     ) : (
                       <div
@@ -1474,8 +1867,8 @@ const ProjectTaskBoard = ({
                           selectedTask.priority === "High"
                             ? "bg-rose-550/10 text-rose-700 border-rose-200/50"
                             : selectedTask.priority === "Medium"
-                            ? "bg-amber-550/10 text-amber-700 border-amber-200/50"
-                            : "bg-slate-50 text-slate-605 border-slate-200"
+                              ? "bg-amber-550/10 text-amber-700 border-amber-200/50"
+                              : "bg-slate-50 text-slate-605 border-slate-200"
                         }`}
                       >
                         {selectedTask.priority || "Medium"}
@@ -1493,13 +1886,16 @@ const ProjectTaskBoard = ({
                   </div>
 
                   {/* Continuous subtask addition input */}
-                  {isAdminOrManager && <DrawerSubtaskForm task={selectedTask} />}
+                  {isAdminOrManager && (
+                    <DrawerSubtaskForm task={selectedTask} />
+                  )}
 
                   {/* Subtask list */}
                   <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
                     {selectedTask.subtasks?.length === 0 ? (
                       <div className="text-center py-6 text-slate-400 text-xs italic bg-slate-55/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-800/80">
-                        No subtasks created. Type above to add multiple subtasks continuously.
+                        No subtasks created. Type above to add multiple subtasks
+                        continuously.
                       </div>
                     ) : (
                       selectedTask.subtasks.map((sub) => (
