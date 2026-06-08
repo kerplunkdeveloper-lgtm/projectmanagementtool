@@ -54,6 +54,10 @@ const TaskSchema = new mongoose.Schema(
       enum: ["Low", "Medium", "High"],
       default: "Medium",
     },
+    section: {
+      type: String,
+      default: "Recently assigned",
+    },
     subtasks: [SubtaskSchema],
   },
   {

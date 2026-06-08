@@ -413,7 +413,7 @@ const Portfolio = () => {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50/50 dark:bg-slate-900/50  text-slate-405 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                      <th className="px-6 py-3.5">Name</th>
+                      <th className="px-6 py-3.5">ProjectName</th>
                       <th className="px-6 py-3.5">Status</th>
                       <th className="px-6 py-3.5">Task progress</th>
                       <th className="px-6 py-3.5">Due date</th>

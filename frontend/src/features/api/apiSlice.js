@@ -174,6 +174,18 @@ export const apiSlice = createApi({
       },
       invalidatesTags: ["Notification"],
     }),
+
+    // ==========================================
+    // USER ENDPOINTS
+    // ==========================================
+    updateUser: builder.mutation({
+      query: ({ id, data }) => ({
+        url: `/users/${id}`,
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: ["Task"],
+    }),
   }),
 });
 
@@ -196,4 +208,7 @@ export const {
   useMarkAsReadMutation,
   useMarkAllAsReadMutation,
   useDeleteNotificationMutation,
+
+  // User hooks
+  useUpdateUserMutation,
 } = apiSlice;

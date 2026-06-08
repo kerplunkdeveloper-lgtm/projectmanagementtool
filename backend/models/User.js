@@ -27,7 +27,10 @@ const userSchema = new mongoose.Schema({
     default: 'team',
   },
 
-
+  taskSections: {
+    type: [String],
+    default: ["Recently assigned", "Do today", "Do next week", "Do later"],
+  },
 
   department: {
     type: String,

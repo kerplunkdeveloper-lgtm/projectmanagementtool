@@ -38,6 +38,13 @@ router.post(
 );
 
 
+// UPDATE CURRENT USER PREFERENCES
+router.put(
+  '/me',
+  protect,
+  updateUser
+);
+
 // UPDATE - Admin only
 router.put(
   '/:id',
