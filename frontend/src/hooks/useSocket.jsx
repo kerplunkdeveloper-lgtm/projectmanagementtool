@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { useDispatch, useSelector } from 'react-redux';
 import { addNotification } from '../features/notifications/notificationSlice';
+import { apiSlice } from '../features/api/apiSlice';
 import toast from 'react-hot-toast';
 import { FiBell, FiX } from 'react-icons/fi';
 
@@ -44,10 +45,15 @@ const useSocket = () => {
     if (user && userId) {
       socket.current = io(import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001');
 
-      socket.current.emit('join', userId);
+      socket.current.on('connect', () => {
+        socket.current.emit('join', userId);
+      });
 
       socket.current.on('notification', (notification) => {
         dispatch(addNotification(notification));
+        
+        // Sync RTK Query cache so the Navbar instantly shows the new notification
+        dispatch(apiSlice.util.invalidateTags(['Notification']));
         
         // Play premium audio chime
         playNotificationSound();

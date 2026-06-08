@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import {
   FiCheck,
   FiClock,
@@ -21,6 +22,22 @@ import {
   useGetTasksQuery,
   useUpdateTaskMutation,
 } from "../../features/api/apiSlice";
+
+// Fix for React 18+ StrictMode dropping issues with react-beautiful-dnd/@hello-pangea/dnd
+const StrictModeDroppable = ({ children, ...props }) => {
+  const [enabled, setEnabled] = useState(false);
+
+  useEffect(() => {
+    const animation = requestAnimationFrame(() => setEnabled(true));
+    return () => {
+      cancelAnimationFrame(animation);
+      setEnabled(false);
+    };
+  }, []);
+
+  if (!enabled) return null;
+  return <Droppable {...props}>{children}</Droppable>;
+};
 
 // Task Title Input Component for real-time autosaving without cursor jumping
 const TaskTitleInput = ({ task, handleTaskFieldChange, isCompleted }) => {
@@ -80,6 +97,15 @@ const Task = () => {
     const taskUserId = task.assignedTo?._id || task.assignedTo;
     return taskUserId === currentUserId;
   });
+
+  const handleDragEnd = (result) => {
+    const { destination, source, draggableId } = result;
+    if (!destination) return;
+    if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+
+    // Send to backend (optimistic UI is handled instantly by apiSlice.js onQueryStarted)
+    updateTaskTrigger({ id: draggableId, taskData: { status: destination.droppableId } });
+  };
 
   const filteredTasks = myTasks.filter((task) => {
     if (statusFilter === "All") return true;
@@ -251,292 +277,92 @@ const Task = () => {
           <p className="text-slate-400 text-[11px] font-semibold mt-1">You have no tasks assigned matching this criteria.</p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            {/* Desktop Table View */}
-            <table className="w-full text-left border-collapse hidden md:table">
-              <thead>
-                <tr className="bg-slate-50/50 dark:bg-slate-900/50 text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
-                  <th className="px-6 py-3.5 w-12 text-center">Status</th>
-                  <th className="px-6 py-3.5">Task Name</th>
-                  <th className="px-6 py-3.5">Associated Project</th>
-                  <th className="px-6 py-3.5">Priority</th>
-                  <th className="px-6 py-3.5">Due Date</th>
-                  <th className="px-6 py-3.5 w-44">Status Mode</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                {filteredTasks.map((task) => {
-                  const isCompleted = task.status === "Completed";
-                  const statusStyle = getStatusStyle(task.status);
-                  const isExpanded = !!expandedTasks[task._id];
-
-                  return (
-                    <React.Fragment key={task._id}>
-                      <tr 
-                        onClick={() => setSelectedTaskId(task._id)}
-                        className={`hover:bg-slate-50/40 dark:hover:bg-slate-850/40 transition-colors cursor-pointer group ${
-                          isCompleted ? "bg-slate-50/20 text-slate-400 dark:text-slate-500" : "text-slate-800 dark:text-slate-200"
-                        } ${selectedTaskId === task._id ? "bg-blue-50/30 dark:bg-blue-950/20" : ""}`}
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <div className="flex flex-col md:flex-row gap-4 overflow-x-auto pb-4 items-stretch h-[calc(100vh-220px)] md:h-[calc(100vh-180px)]">
+            {[
+              { id: "Pending", title: "PENDING", dotColor: "bg-slate-400" },
+              { id: "In Progress", title: "IN PROGRESS", dotColor: "bg-blue-500" },
+              { id: "On Hold", title: "ON HOLD", dotColor: "bg-amber-500" },
+              { id: "Completed", title: "COMPLETED", dotColor: "bg-emerald-500" },
+            ].map(column => {
+              const columnTasks = filteredTasks.filter(t => t.status === column.id);
+              return (
+                <div key={column.id} className="bg-[#9ca3af] dark:bg-slate-800/80 rounded-2xl w-full md:min-w-[280px] md:w-1/4 p-3 flex flex-col flex-1 shrink-0">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-4 px-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2.5 h-2.5 rounded-full ${column.dotColor}`} />
+                      <span className="font-extrabold text-[12px] text-white uppercase tracking-widest">{column.title}</span>
+                    </div>
+                    <span className="bg-white text-slate-800 text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center shadow-sm">{columnTasks.length}</span>
+                  </div>
+                  
+                  {/* Droppable Area */}
+                  <StrictModeDroppable droppableId={column.id}>
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className={`flex-1 min-h-[150px] overflow-y-auto overflow-x-hidden flex flex-col gap-3 rounded-xl p-1 custom-scrollbar ${snapshot.isDraggingOver ? 'bg-slate-500/30 dark:bg-slate-900/30' : ''}`}
                       >
-                        {/* Checkbox Status Toggle */}
-                        <td className="px-6 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => handleToggleStatus(task)}
-                            className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
-                              isCompleted
-                                ? "bg-emerald-500 border-emerald-500 text-white"
-                                : "border-slate-300 dark:border-slate-700 hover:border-emerald-500 text-transparent hover:text-slate-400"
-                            }`}
-                          >
-                            <FiCheck size={11} />
-                          </button>
-                        </td>
-
-                        {/* Title & Subtasks Dropdown */}
-                        <td className="px-6 py-3.5 font-bold">
-                          <div className="flex items-center gap-3">
-                            <span className={`text-xs ${isCompleted ? "line-through" : ""}`}>
-                              {task.title}
-                            </span>
-                            {task.subtasks?.length > 0 && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleTaskExpanded(task._id);
-                                }}
-                                className="text-slate-400 hover:text-blue-600 flex items-center gap-0.5 text-[10px] font-extrabold shrink-0"
+                        {columnTasks.map((task, index) => (
+                          <Draggable key={task._id} draggableId={task._id} index={index}>
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                className={`bg-[#0f172a] text-white p-3.5 rounded-xl border border-slate-700/50 shadow-md cursor-pointer ${snapshot.isDragging ? 'shadow-2xl ring-2 ring-blue-500 scale-105 z-50' : ''}`}
+                                onClick={() => setSelectedTaskId(task._id)}
                               >
-                                {isExpanded ? <FiChevronDown size={14} /> : <FiChevronRight size={14} />}
-                                <span>Subtasks ({task.subtasks.length})</span>
-                              </button>
-                            )}
-                          </div>
-                        </td>
-
-                        {/* Project Badge */}
-                        <td className="px-6 py-3.5">
-                          <span className="inline-flex items-center gap-1.5 font-extrabold text-[10px] uppercase tracking-wider text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-800/40">
-                            <FiBriefcase size={11} />
-                            {task.project?.name || "Internal"}
-                          </span>
-                        </td>
-
-                        {/* Priority Badge */}
-                        <td className="px-6 py-3.5">
-                          <span className={`px-2 py-0.5 rounded-lg border text-[9px] font-extrabold uppercase tracking-wider ${getPriorityStyle(task.priority || "Medium")}`}>
-                            {task.priority || "Medium"}
-                          </span>
-                        </td>
-
-                        {/* Due Date */}
-                        <td className="px-6 py-3.5">
-                          <span className="inline-flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-semibold text-[11px]">
-                            <FiCalendar size={12} />
-                            {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No Date"}
-                          </span>
-                        </td>
-
-                        {/* Status Select */}
-                        <td className="px-6 py-3.5" onClick={(e) => e.stopPropagation()}>
-                          <select
-                            value={task.status}
-                            onChange={(e) => handleStatusChange(task._id, e.target.value)}
-                            className={`px-2.5 py-1 text-[10px] font-extrabold rounded-lg border uppercase tracking-wider cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 ${statusStyle.bg}`}
-                          >
-                            <option value="Pending">Pending</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Completed">Completed</option>
-                            <option value="On Hold">On Hold</option>
-                          </select>
-                        </td>
-                      </tr>
-
-                      {/* Expanded Subtasks List (Table Row) */}
-                      {isExpanded && task.subtasks?.length > 0 && (
-                        <tr className="bg-slate-50/20 dark:bg-slate-900/10">
-                          <td></td>
-                          <td colSpan={5} className="px-6 py-3">
-                            <div className="space-y-2 border-l-2 border-slate-100 dark:border-slate-800 pl-4 py-1">
-                              {task.subtasks.map((sub) => {
-                                const isSubCompleted = sub.status === "Completed";
-                                return (
-                                  <div
-                                    key={sub._id}
-                                    className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900/60 p-2.5 rounded-xl border border-slate-100/60 dark:border-slate-800/60 shadow-sm max-w-xl"
+                                {/* Checkbox and Title */}
+                                <div className="flex items-start gap-3 mb-4">
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); handleToggleStatus(task); }}
+                                    className={`w-4 h-4 mt-0.5 rounded-full border flex shrink-0 items-center justify-center transition-all ${
+                                      task.status === 'Completed' ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500 hover:border-blue-400'
+                                    }`}
                                   >
-                                    <div className="flex items-center gap-2.5">
-                                      <FiCornerDownRight className="text-slate-350" size={13} />
-                                      {/* Subtask Checkbox */}
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleToggleSubtask(task, sub);
-                                        }}
-                                        className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${
-                                          isSubCompleted
-                                            ? "bg-emerald-500 border-emerald-500 text-white"
-                                            : "border-slate-300 dark:border-slate-700 hover:border-emerald-500 text-transparent hover:text-slate-400"
-                                        }`}
-                                      >
-                                        <FiCheck size={10} />
-                                      </button>
-                                      <span className={`font-semibold text-xs text-slate-700 dark:text-slate-300 ${isSubCompleted ? "line-through text-slate-400 dark:text-slate-500 font-medium" : ""}`}>
-                                        {sub.title}
-                                      </span>
+                                    {task.status === 'Completed' && <FiCheck size={10} className="text-white" />}
+                                  </button>
+                                  <span className={`text-xs font-bold leading-relaxed ${task.status === 'Completed' ? 'line-through text-slate-400' : 'text-slate-100'}`}>
+                                    {task.title}
+                                  </span>
+                                </div>
+                                
+                                {/* Avatar, Assignee Dropdown and Priority */}
+                                <div className="flex items-center justify-between mt-auto pt-2">
+                                  <div className="flex items-center gap-2 bg-slate-800/80 rounded-lg pr-3 py-1 pl-1 border border-slate-700/80">
+                                    <div className="w-5 h-5 rounded-md bg-blue-500 flex items-center justify-center text-[8px] font-black uppercase text-white shadow-sm shrink-0">
+                                      {task.assignedTo?.name ? task.assignedTo.name.substring(0,2) : "UN"}
                                     </div>
-
-                                    {/* Subtask Priority Badge */}
-                                    <div className="flex items-center gap-2 pr-1">
-                                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold border uppercase tracking-wider ${
-                                        sub.priority === "High"
-                                          ? "bg-rose-50 text-rose-700 border-rose-200/50"
-                                          : sub.priority === "Medium"
-                                          ? "bg-amber-50 text-amber-700 border-amber-200/50"
-                                          : "bg-slate-50 text-slate-600 border-slate-200"
-                                      }`}>
-                                        {sub.priority || "Medium"}
-                                      </span>
-                                    </div>
+                                    <span className="text-[10px] font-bold text-slate-300 flex items-center gap-1.5">
+                                      {task.assignedTo?.name ? task.assignedTo.name.split(' ')[0] : "Unassigned"}
+                                      <FiChevronDown size={10} className="text-slate-500" />
+                                    </span>
                                   </div>
-                                );
-                              })}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-
-            {/* Mobile Cards List View */}
-            <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredTasks.map((task) => {
-                const isCompleted = task.status === "Completed";
-                const isExpanded = !!expandedTasks[task._id];
-                const statusStyle = getStatusStyle(task.status);
-
-                return (
-                  <div
-                    key={task._id}
-                    onClick={() => setSelectedTaskId(task._id)}
-                    className={`p-4 space-y-3 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 cursor-pointer ${
-                      isCompleted ? "bg-slate-50/20" : ""
-                    } ${selectedTaskId === task._id ? "bg-blue-50/30 dark:bg-blue-950/10" : ""}`}
-                  >
-                    {/* Header: Checkbox status and name */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-2.5">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleStatus(task);
-                          }}
-                          className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
-                            isCompleted
-                              ? "bg-emerald-500 border-emerald-500 text-white"
-                              : "border-slate-300 dark:border-slate-700 hover:border-emerald-500 text-transparent"
-                          }`}
-                        >
-                          <FiCheck size={11} />
-                        </button>
-                        <span className={`text-xs font-bold text-slate-800 dark:text-slate-200 ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : ""}`}>
-                          {task.title}
-                        </span>
-                      </div>
-
-                      {/* Dropdown status */}
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <select
-                          value={task.status}
-                          onChange={(e) => handleStatusChange(task._id, e.target.value)}
-                          className={`px-2 py-0.5 text-[9px] font-extrabold rounded-lg border uppercase tracking-wider cursor-pointer ${statusStyle.bg}`}
-                        >
-                          <option value="Pending">Pending</option>
-                          <option value="In Progress">In Progress</option>
-                          <option value="Completed">Completed</option>
-                          <option value="On Hold">On Hold</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Meta Section */}
-                    <div className="flex flex-wrap items-center gap-2">
-                      {/* Project */}
-                      <span className="inline-flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/20 px-2 py-0.5 rounded-md border border-blue-100 dark:border-blue-900/40">
-                        <FiBriefcase size={10} />
-                        {task.project?.name || "Internal"}
-                      </span>
-
-                      {/* Priority */}
-                      <span className={`px-1.5 py-0.5 rounded-md border text-[8px] font-black uppercase tracking-wider ${getPriorityStyle(task.priority || "Medium")}`}>
-                        {task.priority || "Medium"}
-                      </span>
-
-                      {/* Date */}
-                      {task.dueDate && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 px-2 py-0.5 rounded-md border border-slate-100 dark:border-slate-800">
-                          <FiCalendar size={10} />
-                          {new Date(task.dueDate).toLocaleDateString()}
-                        </span>
-                      )}
-
-                      {/* Subtask button toggle */}
-                      {task.subtasks?.length > 0 && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleTaskExpanded(task._id);
-                          }}
-                          className="ml-auto text-slate-400 hover:text-blue-600 flex items-center gap-0.5 text-[9px] font-extrabold shrink-0"
-                        >
-                          {isExpanded ? <FiChevronDown size={12} /> : <FiChevronRight size={12} />}
-                          <span>Subtasks ({task.subtasks.length})</span>
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Subtasks listing */}
-                    {isExpanded && task.subtasks?.length > 0 && (
-                      <div className="mt-2 space-y-1.5 border-l-2 border-slate-100 dark:border-slate-800 pl-3">
-                        {task.subtasks.map((sub) => {
-                          const isSubCompleted = sub.status === "Completed";
-                          return (
-                            <div
-                              key={sub._id}
-                              className="flex items-center justify-between gap-2 bg-slate-50/50 dark:bg-slate-900/50 p-2 rounded-lg border border-slate-100/60 dark:border-slate-800/60 text-[11px] font-medium"
-                            >
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleToggleSubtask(task, sub);
-                                  }}
-                                  className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all ${
-                                    isSubCompleted
-                                      ? "bg-emerald-500 border-emerald-500 text-white"
-                                      : "border-slate-300 dark:border-slate-700 hover:border-emerald-500 text-transparent"
-                                  }`}
-                                >
-                                  <FiCheck size={8} />
-                                </button>
-                                <span className={`text-[11px] text-slate-700 dark:text-slate-300 font-semibold ${isSubCompleted ? "line-through text-slate-400" : ""}`}>
-                                  {sub.title}
-                                </span>
+                                  <span className="bg-white text-slate-900 text-[9px] font-black px-2 py-1 rounded shadow-sm uppercase tracking-wider">
+                                    {task.priority || "LOW"}
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
                       </div>
                     )}
-                  </div>
-                );
-              })}
-            </div>
+                  </StrictModeDroppable>
+
+                  {/* Add Task Button */}
+                  <button className="mt-4 w-full py-2.5 rounded-xl border border-dashed border-slate-400/80 text-white text-xs font-bold hover:bg-slate-500/30 dark:hover:bg-slate-700/50 transition-colors flex items-center justify-center gap-2">
+                    <FiPlus size={14} /> Add task
+                  </button>
+                </div>
+              );
+            })}
           </div>
-        </div>
+        </DragDropContext>
       )}
 
       {/* OFF-CANVAS PREVIEW DRAWER */}

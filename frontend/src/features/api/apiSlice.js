@@ -36,6 +36,21 @@ export const apiSlice = createApi({
         method: "PUT",
         body: taskData,
       }),
+      async onQueryStarted({ id, taskData }, { dispatch, queryFulfilled }) {
+        const patchResult = dispatch(
+          apiSlice.util.updateQueryData("getTasks", undefined, (draft) => {
+            const task = draft.find((t) => t._id === id);
+            if (task) {
+              Object.assign(task, taskData);
+            }
+          })
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResult.undo();
+        }
+      },
       invalidatesTags: ["Task"],
     }),
     deleteTask: builder.mutation({
@@ -99,6 +114,21 @@ export const apiSlice = createApi({
         url: `/notifications/${id}/read`,
         method: "PUT",
       }),
+      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        const patchResult = dispatch(
+          apiSlice.util.updateQueryData('getNotifications', undefined, (draft) => {
+            const notification = draft.find(n => n._id === id);
+            if (notification) {
+              notification.isRead = true;
+            }
+          })
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResult.undo();
+        }
+      },
       invalidatesTags: ["Notification"],
     }),
     markAllAsRead: builder.mutation({
@@ -106,6 +136,20 @@ export const apiSlice = createApi({
         url: "/notifications/read-all",
         method: "PUT",
       }),
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        const patchResult = dispatch(
+          apiSlice.util.updateQueryData('getNotifications', undefined, (draft) => {
+            draft.forEach((n) => {
+              n.isRead = true;
+            });
+          })
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResult.undo();
+        }
+      },
       invalidatesTags: ["Notification"],
     }),
     deleteNotification: builder.mutation({
@@ -113,6 +157,21 @@ export const apiSlice = createApi({
         url: `/notifications/${id}`,
         method: "DELETE",
       }),
+      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        const patchResult = dispatch(
+          apiSlice.util.updateQueryData('getNotifications', undefined, (draft) => {
+            const index = draft.findIndex(n => n._id === id);
+            if (index !== -1) {
+              draft.splice(index, 1);
+            }
+          })
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResult.undo();
+        }
+      },
       invalidatesTags: ["Notification"],
     }),
   }),

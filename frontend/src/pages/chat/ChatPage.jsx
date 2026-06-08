@@ -372,11 +372,13 @@ const ChatPage = () => {
   // Socket Connection & Real-Time Listeners
   useEffect(() => {
     const apiBase =
-      import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+      import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
     socketRef.current = io(apiBase);
 
     if (currentUserId) {
-      socketRef.current.emit("join", currentUserId);
+      socketRef.current.on('connect', () => {
+        socketRef.current.emit("join", currentUserId);
+      });
     }
 
     socketRef.current.on("direct_message", (msg) => {
@@ -827,7 +829,7 @@ const ChatPage = () => {
                 activeChat === "group"
                   ? "bg-blue-300 text-black dark:bg-[#e5ff00] dark:text-black font-bold shadow-md"
                   : unreadCounts["group"] > 0
-                    ? " bg-indigo-50/50 dark:bg-indigo-900/20 font-extrabold shadow-sm"
+                    ? "bg-blue-50/80 dark:bg-blue-900/20 border-l-4 border-l-blue-500 dark:border-l-[#e5ff00] border-y border-r border-transparent theme-text-primary font-extrabold shadow-sm"
                     : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 theme-text-secondary hover:theme-text-primary border border-transparent"
               }`}
             >
@@ -886,7 +888,7 @@ const ChatPage = () => {
                     activeChat === r._id
                       ? "bg-blue-300 text-black dark:bg-[#e5ff00] dark:text-black font-bold shadow-md"
                       : unreadCounts[r._id] > 0
-                        ? "bg-indigo-50/50 dark:bg-indigo-900/20 font-extrabold shadow-sm"
+                        ? "bg-blue-50/80 dark:bg-blue-900/20 border-l-4 border-l-blue-500 dark:border-l-[#e5ff00] border-y border-r border-transparent theme-text-primary font-extrabold shadow-sm"
                         : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 theme-text-secondary hover:theme-theme-text-primary border border-transparent"
                   }`}
                 >
@@ -950,7 +952,7 @@ const ChatPage = () => {
                   activeChat === u._id
                     ? "bg-blue-300 text-black dark:bg-[#e5ff00] dark:text-black font-bold shadow-md"
                     : unreadCounts[u._id] > 0
-                      ? "bg-indigo-50/20 dark:bg-indigo-900/10 border border-indigo-100/40 dark:border-indigo-800/40 theme-text-primary font-extrabold shadow-sm ring-1 ring-indigo-500/10"
+                      ? "bg-blue-50/80 dark:bg-blue-900/20 border-l-4 border-l-blue-500 dark:border-l-[#e5ff00] border-y border-r border-transparent theme-text-primary font-extrabold shadow-sm"
                       : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 theme-text-secondary hover:theme-text-primary border border-transparent"
                 }`}
               >

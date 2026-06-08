@@ -52,7 +52,7 @@ const WelcomeUser = () => {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-base sm:text-lg md:text-xl font-bold theme-text-primary leading-tight truncate">
-              {greeting}, <span className="font-extrabold text-indigo-600 dark:text-indigo-400">{user?.name || "User"}</span>
+              {greeting}, <span className="font-extrabold text-blue-500 dark:text-[#e5ff00]">{user?.name || "User"}</span>
             </h1>
             <span className="px-2 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 text-indigo-600 dark:text-indigo-400 text-[9px] font-bold uppercase tracking-wider whitespace-nowrap shadow-sm">
               {user?.role || "Guest"}

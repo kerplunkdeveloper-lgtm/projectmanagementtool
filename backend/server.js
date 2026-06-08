@@ -58,6 +58,7 @@ const overheadRoutes = require("./routes/overheadRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const portfolioRoutes = require("./routes/portfolioRoutes");
 
 app.get("/", (req, res) => {
   res.send("hello");
@@ -100,10 +101,9 @@ app.use('/api/overheads', overheadRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/portfolios', portfolioRoutes);
 
-const PORT = process.env.PORT || 5000;
-
-
+const PORT = process.env.PORT || 5001;
 
 
 const server = require('http').createServer(app);
