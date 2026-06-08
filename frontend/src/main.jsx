@@ -16,25 +16,25 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Toaster 
           position="bottom-right"
           toastOptions={{
-            className: "!theme-bg-card !theme-text-primary !border !theme-border !shadow-2xl !rounded-2xl !text-sm !font-bold !tracking-wide !px-4 !py-3",
             duration: 4000,
             style: {
               background: 'transparent',
-              color: 'inherit',
               boxShadow: 'none',
-              border: 'none',
               padding: 0,
             },
+            className: "flex items-center gap-3 !bg-white/95 dark:!bg-[#0f172a]/95 backdrop-blur-xl !border !border-slate-200/60 dark:!border-slate-800/80 !shadow-2xl shadow-slate-200/20 dark:shadow-slate-900/50 !rounded-2xl !text-slate-800 dark:!text-slate-100 !text-[13px] !font-black tracking-wide !px-5 !py-4 transition-all",
             success: {
+              className: "flex items-center gap-3 !bg-emerald-50/95 dark:!bg-[#022c22]/95 backdrop-blur-xl !border !border-emerald-200/60 dark:!border-emerald-800/60 !shadow-2xl shadow-emerald-500/20 dark:shadow-emerald-900/50 !rounded-2xl !text-emerald-800 dark:!text-emerald-400 !text-[13px] !font-black tracking-wide !px-5 !py-4 transition-all",
               iconTheme: {
                 primary: '#10b981',
-                secondary: '#fff',
+                secondary: '#ffffff',
               },
             },
             error: {
+              className: "flex items-center gap-3 !bg-rose-50/95 dark:!bg-[#4c0519]/95 backdrop-blur-xl !border !border-rose-200/60 dark:!border-rose-800/60 !shadow-2xl shadow-rose-500/20 dark:shadow-rose-900/50 !rounded-2xl !text-rose-800 dark:!text-rose-400 !text-[13px] !font-black tracking-wide !px-5 !py-4 transition-all",
               iconTheme: {
                 primary: '#f43f5e',
-                secondary: '#fff',
+                secondary: '#ffffff',
               },
             },
           }}
