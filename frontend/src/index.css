@@ -17,7 +17,7 @@ html {
 
 @media (min-width: 1024px) {
   html {
-    font-size: 18px; /* Desktop/Laptop standard size */
+    font-size: 16px; /* Desktop/Laptop standard size */
   }
 }
 

@@ -123,7 +123,7 @@ const Templatelib = () => {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto py-4 sm:py-6">
+      <div className="py-4 sm:py-6">
 
         {/* ── HEADER ── */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">

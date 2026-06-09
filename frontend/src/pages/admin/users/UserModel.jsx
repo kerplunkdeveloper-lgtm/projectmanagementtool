@@ -38,7 +38,7 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-3">
-      <div className="bg-white w-full max-w-sm rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
+      <div className="bg-white w-full max-w-3xl rounded-2xl border border-gray-200 shadow-2xl overflow-hidden">
 
         {/* HEADER */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">

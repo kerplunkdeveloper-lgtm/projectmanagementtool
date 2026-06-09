@@ -308,7 +308,7 @@ const CalendarPage = () => {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-7xl mx-auto py-4 sm:py-6">
+      <div className="py-4 sm:py-6">
         {/* HEADER */}
         <div className="flex justify-between items-center gap-3 mb-5">
           <div>

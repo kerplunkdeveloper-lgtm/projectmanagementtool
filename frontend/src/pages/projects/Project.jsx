@@ -185,7 +185,7 @@ const Project = () => {
 
   // VIEW 2: DEFAULT PROJECT DIRECTORY TABLE
   return (
-    <div className=" space-y-6 max-w-7xl mx-auto">
+    <div className=" space-y-6 ">
       {/* HEADER SECTION */}
       <div className="flex justify-between items-center gap-4">
         <div>

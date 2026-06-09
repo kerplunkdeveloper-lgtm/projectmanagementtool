@@ -10,7 +10,10 @@ exports.getTasks = async (req, res) => {
     const tasks = await Task.find()
       .populate("project", "name client")
       .populate("assignedTo", "name email profileImage")
-      .populate("subtasks.assignedTo", "name email profileImage");
+      .populate("createdBy", "name email profileImage")
+      .populate("subtasks.assignedTo", "name email profileImage")
+      .populate("comments.user", "name email profileImage")
+      .populate("attachments.uploadedBy", "name email profileImage");
 
     res.status(200).json({
       success: true,
@@ -27,12 +30,16 @@ exports.getTasks = async (req, res) => {
 // @access  Private/Admin/OperationManager
 exports.createTask = async (req, res) => {
   try {
+    req.body.createdBy = req.user.id;
     const task = await Task.create(req.body);
 
     const populatedTask = await Task.findById(task._id)
       .populate("project", "name client")
       .populate("assignedTo", "name email profileImage")
-      .populate("subtasks.assignedTo", "name email profileImage");
+      .populate("createdBy", "name email profileImage")
+      .populate("subtasks.assignedTo", "name email profileImage")
+      .populate("comments.user", "name email profileImage")
+      .populate("attachments.uploadedBy", "name email profileImage");
 
     // Real-time Notification
     if (task.assignedTo) {
@@ -81,7 +88,10 @@ exports.updateTask = async (req, res) => {
     })
       .populate("project", "name client")
       .populate("assignedTo", "name email profileImage")
-      .populate("subtasks.assignedTo", "name email profileImage");
+      .populate("createdBy", "name email profileImage")
+      .populate("subtasks.assignedTo", "name email profileImage")
+      .populate("comments.user", "name email profileImage")
+      .populate("attachments.uploadedBy", "name email profileImage");
 
     // Check if task status has been updated (e.g. marked completed)
     if (req.body.status && req.body.status !== previousStatus) {

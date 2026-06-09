@@ -70,7 +70,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gray-50/50">
-      <div className="max-w-5xl mx-auto px-3 sm:px-5 py-4 sm:py-6">
+      <div className=" px-3 sm:px-5 py-4 sm:py-6">
 
         {/* PAGE TITLE */}
         <div className="mb-5">

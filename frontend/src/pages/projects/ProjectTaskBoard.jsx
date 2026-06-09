@@ -21,7 +21,12 @@ import {
   FiPieChart,
   FiMoreHorizontal,
   FiEdit2,
+  FiPaperclip,
+  FiSend,
+  FiFile,
 } from "react-icons/fi";
+import axiosInstance from "../../services/axiosInstance";
+import toast from "react-hot-toast";
 
 import {
   getTasks,
@@ -286,6 +291,8 @@ const ProjectTaskBoard = ({
   const [openSectionMenu, setOpenSectionMenu] = useState(null); // sectionName
   const [editingSection, setEditingSection] = useState(null); // sectionName
   const [editSectionValue, setEditSectionValue] = useState("");
+  const [newComment, setNewComment] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleRenameSectionSubmit = (e, oldName) => {
     e.preventDefault();
@@ -426,6 +433,82 @@ const ProjectTaskBoard = ({
     setTimeout(() => {
       dispatch(getTasks());
     }, 550);
+  };
+
+  // Add Comment Handler
+  const handleAddComment = () => {
+    if (!newComment.trim() || !selectedTask) return;
+    const commentData = {
+      user: currentUser?._id,
+      text: newComment.trim(),
+      createdAt: new Date(),
+    };
+    
+    // Dispatch to DB
+    dispatch(updateTask({
+      id: selectedTask._id,
+      taskData: {
+        comments: [...(selectedTask.comments || []).map(c => ({ user: c.user?._id || c.user, text: c.text, createdAt: c.createdAt })), commentData]
+      }
+    }));
+
+    setTimeout(() => {
+        dispatch(getTasks());
+    }, 300);
+    
+    setNewComment("");
+  };
+
+  // Upload Attachment Handler
+  const handleUploadAttachment = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !selectedTask) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      setIsUploading(true);
+      toast.loading("Uploading attachment...", { id: "upload" });
+      
+      const config = {
+        headers: {
+          Authorization: `Bearer ${currentUser?.token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      };
+
+      const { data } = await axiosInstance.post("/messages/upload", formData, config);
+      
+      if (data.success) {
+        const attachmentData = {
+          url: data.data.url,
+          filename: data.data.filename,
+          fileType: data.data.fileType,
+          uploadedBy: currentUser?._id,
+          uploadedAt: new Date(),
+        };
+
+        dispatch(updateTask({
+          id: selectedTask._id,
+          taskData: {
+            attachments: [...(selectedTask.attachments || []).map(a => ({ ...a, uploadedBy: a.uploadedBy?._id || a.uploadedBy })), attachmentData]
+          }
+        }));
+
+        setTimeout(() => {
+            dispatch(getTasks());
+        }, 300);
+
+        toast.success("Attachment uploaded successfully!", { id: "upload" });
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload attachment", { id: "upload" });
+    } finally {
+      setIsUploading(false);
+      e.target.value = null; // reset input
+    }
   };
 
   // Add subtask (continuous addition helper)
@@ -577,7 +660,7 @@ const ProjectTaskBoard = ({
   };
 
   return (
-    <div className="space-y-6 w-full max-w-[1600px] mx-auto px-2 sm:px-4 md:px-8 relative">
+    <div className="space-y-6 w-full max-w-[1600px] mx-auto px-2 md:px-0 relative">
       {/* WORKSPACE HEADER & PROGRESS */}
       <div>
         <div className="flex flex-col md:flex-row justify-between items-start gap-4 md:gap-6">
@@ -687,7 +770,7 @@ const ProjectTaskBoard = ({
                         {/* SECTION HEADER ROW */}
                         <tr className="bg-slate-50/80 dark:bg-[#1a1a1a]/40 border-y border-slate-200 dark:border-white/5 group">
                           <td colSpan={6} className="px-6 py-3">
-                            <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-6">
                               <div className="flex items-center gap-2">
                                 <button
                                   onClick={() => toggleSection(sectionName)}
@@ -715,7 +798,7 @@ const ProjectTaskBoard = ({
                                 )}
                               </div>
                               {isAdminOrManager && (
-                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+                                  <div className="flex items-center gap-3">
                                   <button
                                     onClick={() => handleAddTask(sectionName)}
                                     className="flex items-center gap-1 text-[10px] font-bold text-blue-600 dark:text-[#e5ff00] hover:text-blue-700 dark:hover:text-[#ccff00]"
@@ -732,7 +815,7 @@ const ProjectTaskBoard = ({
                                     </button>
                                     
                                     {openSectionMenu === sectionName && (
-                                      <div className="absolute right-0 mt-1 w-32 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-lg border border-slate-100 dark:border-white/10 z-50 overflow-hidden">
+                                      <div className="absolute left-0 mt-1 w-32 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-lg border border-slate-100 dark:border-white/10 z-50 overflow-hidden">
                                         <button 
                                           onClick={() => { setEditingSection(sectionName); setEditSectionValue(sectionName); setOpenSectionMenu(null); }}
                                           className="w-full text-left px-3 py-2 text-[11px] font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center gap-2"
@@ -1825,7 +1908,9 @@ const ProjectTaskBoard = ({
                       canToggle={
                         isAdminOrManager ||
                         selectedTask.assignedTo?._id === currentUser?._id ||
-                        selectedTask.assignedTo === currentUser?._id
+                        selectedTask.assignedTo === currentUser?._id ||
+                        selectedTask.createdBy?._id === currentUser?._id ||
+                        selectedTask.createdBy === currentUser?._id
                       }
                       handleTaskFieldChange={handleTaskFieldChange}
                       isCompleted={selectedTask.status === "Completed"}
@@ -1948,10 +2033,42 @@ const ProjectTaskBoard = ({
                     )}
                   </div>
 
-                  {/* Due Date Picker */}
+                  {/* Start Date Picker */}
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <FiCalendar size={12} /> Due Date
+                      <FiCalendar size={12} /> Start Date
+                    </label>
+                    {isAdminOrManager ? (
+                      <input
+                        type="date"
+                        value={
+                          selectedTask.startDate
+                            ? new Date(selectedTask.startDate)
+                                .toISOString()
+                                .split("T")[0]
+                            : ""
+                        }
+                        onChange={(e) =>
+                          handleTaskFieldChange(selectedTask._id, {
+                            startDate: e.target.value,
+                          })
+                        }
+                        className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00]"
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        <FiCalendar className="text-slate-400" size={13} />
+                        {selectedTask.startDate
+                          ? new Date(selectedTask.startDate).toLocaleDateString()
+                          : "N/A"}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* End Date (Due Date) Picker */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <FiCalendar size={12} /> End Date
                     </label>
                     {isAdminOrManager ? (
                       <input
@@ -2030,8 +2147,89 @@ const ProjectTaskBoard = ({
                   </div>
                 </div>
 
+                {/* Comments & Attachments */}
+                <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
+                  <h3 className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                    Discussion & Attachments
+                  </h3>
+                  
+                  {/* Attachments List */}
+                  {selectedTask.attachments?.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {selectedTask.attachments.map(att => (
+                        <a key={att._id || att.url} href={att.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-[10px] font-bold text-blue-600 dark:text-[#e5ff00] hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+                          <FiFile size={12} /> {att.filename}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Comments List */}
+                  <div className="space-y-3 max-h-40 overflow-y-auto pr-1">
+                    {selectedTask.comments?.map((comment, idx) => (
+                      <div key={idx} className="flex gap-2.5">
+                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-[#e5ff00]/20 flex items-center justify-center shrink-0 text-[10px] font-bold text-blue-700 dark:text-[#e5ff00]">
+                          {comment.user?.name?.charAt(0) || "U"}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">{comment.user?.name || "Unknown User"}</span>
+                            <span className="text-[9px] text-slate-400">{new Date(comment.createdAt).toLocaleDateString()}</span>
+                          </div>
+                          <div className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-[#111] p-2 rounded-lg rounded-tl-none border border-slate-100 dark:border-white/5">
+                            {comment.text}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {selectedTask.comments?.length === 0 && (
+                      <div className="text-[10px] text-slate-400 italic">No comments yet.</div>
+                    )}
+                  </div>
+
+                  {/* Add Comment / File Input */}
+                  {(() => {
+                    const isAssignee = selectedTask.assignedTo?._id === currentUser?._id || selectedTask.assignedTo === currentUser?._id;
+                    const isCreator = selectedTask.createdBy?._id === currentUser?._id || selectedTask.createdBy === currentUser?._id;
+                    const canInteract = isAdminOrManager || isAssignee || isCreator;
+
+                    return canInteract && (
+                      <div className="flex items-end gap-2 mt-2">
+                        <div className="flex-1 relative">
+                          <textarea
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            placeholder="Add a comment..."
+                            className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00] resize-none min-h-[40px]"
+                            rows={1}
+                          />
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <input 
+                            type="file" 
+                            id="task-attachment" 
+                            className="hidden" 
+                            onChange={handleUploadAttachment} 
+                            disabled={isUploading}
+                          />
+                          <label htmlFor="task-attachment" className={`p-2 text-slate-400 hover:text-blue-600 dark:hover:text-[#e5ff00] cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors ${isUploading ? "opacity-50 cursor-not-allowed" : ""}`}>
+                            <FiPaperclip size={14} />
+                          </label>
+                          <button 
+                            onClick={handleAddComment}
+                            disabled={!newComment.trim() || isUploading}
+                            className="p-2 bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black rounded-lg disabled:opacity-50 hover:bg-blue-700 dark:hover:bg-[#ccff00] transition-colors"
+                          >
+                            <FiSend size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
                 {/* Subtask workspace inside the preview drawer */}
-                <div className="space-y-4">
+                <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
                   <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2">
                     <h3 className="text-xs font-black text-slate-500 uppercase tracking-wider">
                       Subtasks Workspace ({selectedTask.subtasks?.length || 0})

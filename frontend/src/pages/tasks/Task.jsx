@@ -16,11 +16,16 @@ import {
   FiTrash2,
   FiTag,
   FiUser,
+  FiPaperclip,
+  FiSend,
+  FiFile,
 } from "react-icons/fi";
 import {
   useGetTasksQuery,
   useUpdateTaskMutation,
 } from "../../features/api/apiSlice";
+import axiosInstance from "../../services/axiosInstance";
+import toast from "react-hot-toast";
 
 // Task Title Input Component for real-time autosaving without cursor jumping
 const TaskTitleInput = ({ task, handleTaskFieldChange, isCompleted }) => {
@@ -73,6 +78,10 @@ const Task = () => {
   const [drawerSubtaskTitle, setDrawerSubtaskTitle] = useState("");
   const subtaskInputRef = useRef(null);
 
+  // Comments and Attachments
+  const [newComment, setNewComment] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+
   const currentUserId = user?._id || user?.id;
 
   // Filter tasks assigned to current user
@@ -92,8 +101,76 @@ const Task = () => {
   // General field change update
   const handleTaskFieldChange = (taskId, fields) => {
     const sanitizedFields = { ...fields };
+    if (sanitizedFields.startDate === "") sanitizedFields.startDate = null;
     if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
     updateTaskTrigger({ id: taskId, taskData: sanitizedFields });
+  };
+
+  // Add Comment Handler
+  const handleAddComment = () => {
+    if (!newComment.trim() || !selectedTask) return;
+    const commentData = {
+      user: currentUserId, // We just need the ID to save it
+      text: newComment.trim(),
+      createdAt: new Date(),
+    };
+    
+    updateTaskTrigger({
+      id: selectedTask._id,
+      taskData: {
+        comments: [...(selectedTask.comments || []).map(c => ({ user: c.user?._id || c.user, text: c.text, createdAt: c.createdAt })), commentData]
+      }
+    });
+    
+    setNewComment("");
+  };
+
+  // Upload Attachment Handler
+  const handleUploadAttachment = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !selectedTask) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      setIsUploading(true);
+      toast.loading("Uploading attachment...", { id: "upload" });
+      
+      const config = {
+        headers: {
+          Authorization: `Bearer ${user?.token || localStorage.getItem('token')}`,
+          "Content-Type": "multipart/form-data",
+        },
+      };
+
+      const { data } = await axiosInstance.post("/messages/upload", formData, config);
+      
+      if (data.success) {
+        const attachmentData = {
+          url: data.data.url,
+          filename: data.data.filename,
+          fileType: data.data.fileType,
+          uploadedBy: currentUserId,
+          uploadedAt: new Date(),
+        };
+
+        updateTaskTrigger({
+          id: selectedTask._id,
+          taskData: {
+            attachments: [...(selectedTask.attachments || []).map(a => ({ ...a, uploadedBy: a.uploadedBy?._id || a.uploadedBy })), attachmentData]
+          }
+        });
+
+        toast.success("Attachment uploaded successfully!", { id: "upload" });
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload attachment", { id: "upload" });
+    } finally {
+      setIsUploading(false);
+      e.target.value = null; 
+    }
   };
 
   // Handle task status toggle (checkbox click)
@@ -200,7 +277,7 @@ const Task = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto pb-16">
+    <div className="p-4 sm:p-6 space-y-6  pb-16">
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -639,10 +716,29 @@ const Task = () => {
                     </select>
                   </div>
 
-                  {/* Due Date Picker */}
+                  {/* Start Date Picker */}
                   <div className="space-y-1">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                      <FiCalendar size={12} /> Due Date
+                      <FiCalendar size={12} /> Start Date
+                    </label>
+                    <input
+                      type="date"
+                      value={
+                        selectedTask.startDate
+                          ? new Date(selectedTask.startDate).toISOString().split("T")[0]
+                          : ""
+                      }
+                      onChange={(e) =>
+                        handleTaskFieldChange(selectedTask._id, { startDate: e.target.value })
+                      }
+                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* End Date (Due Date) Picker */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <FiCalendar size={12} /> End Date
                     </label>
                     <input
                       type="date"
@@ -665,6 +761,79 @@ const Task = () => {
                     </label>
                     <div className="w-full bg-slate-100/60 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-750 rounded-xl px-3 py-2 text-xs font-extrabold text-slate-600 dark:text-slate-400 truncate">
                       {selectedTask.project?.name || "Internal task"}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comments & Attachments */}
+                <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    Discussion & Attachments
+                  </h3>
+                  
+                  {/* Attachments List */}
+                  {selectedTask.attachments?.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {selectedTask.attachments.map(att => (
+                        <a key={att._id || att.url} href={att.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                          <FiFile size={12} /> {att.filename}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Comments List */}
+                  <div className="space-y-3 max-h-40 overflow-y-auto pr-1">
+                    {selectedTask.comments?.map((comment, idx) => (
+                      <div key={idx} className="flex gap-2.5">
+                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0 text-[10px] font-bold text-blue-700 dark:text-blue-400">
+                          {comment.user?.name?.charAt(0) || "U"}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">{comment.user?.name || "Unknown User"}</span>
+                            <span className="text-[9px] text-slate-400">{new Date(comment.createdAt).toLocaleDateString()}</span>
+                          </div>
+                          <div className="text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 p-2 rounded-lg rounded-tl-none border border-slate-100 dark:border-slate-700">
+                            {comment.text}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {selectedTask.comments?.length === 0 && (
+                      <div className="text-[10px] text-slate-400 italic">No comments yet.</div>
+                    )}
+                  </div>
+
+                  {/* Add Comment / File Input */}
+                  <div className="flex items-end gap-2 mt-2">
+                    <div className="flex-1 relative">
+                      <textarea
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        placeholder="Add a comment..."
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none min-h-[40px]"
+                        rows={1}
+                      />
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <input 
+                        type="file" 
+                        id="my-task-attachment" 
+                        className="hidden" 
+                        onChange={handleUploadAttachment} 
+                        disabled={isUploading}
+                      />
+                      <label htmlFor="my-task-attachment" className={`p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors ${isUploading ? "opacity-50 cursor-not-allowed" : ""}`}>
+                        <FiPaperclip size={14} />
+                      </label>
+                      <button 
+                        onClick={handleAddComment}
+                        disabled={!newComment.trim() || isUploading}
+                        className="p-2 bg-blue-600 text-white rounded-lg disabled:opacity-50 hover:bg-blue-700 transition-colors"
+                      >
+                        <FiSend size={14} />
+                      </button>
                     </div>
                   </div>
                 </div>
