@@ -153,15 +153,15 @@ const Project = () => {
   const getStatusBadge = (status) => {
     switch (status) {
       case "Active":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200/50";
+        return "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200/50 dark:border-emerald-500/20";
       case "Completed":
-        return "bg-blue-50 text-blue-700 border-blue-200/50";
+        return "bg-blue-50 dark:bg-[#e5ff00]/10 text-blue-700 dark:text-[#e5ff00] border-blue-200/50 dark:border-[#e5ff00]/20";
       case "On Hold":
-        return "bg-amber-50 text-amber-700 border-amber-200/50";
+        return "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200/50 dark:border-amber-500/20";
       case "Inactive":
-        return "bg-slate-100 text-slate-600 border-slate-200";
+        return "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700";
       default:
-        return "bg-gray-100 text-gray-700";
+        return "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400";
     }
   };
 
@@ -189,15 +189,15 @@ const Project = () => {
       {/* HEADER SECTION */}
       <div className="flex justify-between items-center gap-4">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-800  dark:text-yellow-50 ">All Projects Management</h1>
-          <p className="text-slate-500 text-[10px] mt-1">Comprehensive directory of current projects and clients</p>
+          <h1 className="text-xl font-extrabold text-slate-800 dark:text-white">All Projects Management</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-[10px] mt-1">Comprehensive directory of current projects and clients</p>
         </div>
         {isAdmin && (
           <button
             onClick={handleOpenCreate}
-            className="flex items-center gap-2 px-3 py-2 text-[10px] rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/20 hover:shadow-indigo-500/30 active:scale-95 transition-all duration-200 shrink-0"
+            className="flex items-center gap-1.5 px-4 py-2.5 text-[10px] rounded-xl bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black shadow-lg shadow-blue-500/20 dark:shadow-[#e5ff00]/20 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 font-black uppercase tracking-wider shrink-0"
           >
-            <FiPlus size={18} />
+            <FiPlus size={14} />
             Create Project
           </button>
         )}
@@ -212,20 +212,20 @@ const Project = () => {
             placeholder="Search projects..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-11 pr-4  py-3 rounded-2xl bg-slate-50 border border-slate-100 focus:outline-none focus:border-blue-500 focus:bg-white text-sm text-slate-700 transition-all"
+            className="w-full pl-11 pr-4 py-3 rounded-2xl bg-slate-50 dark:bg-[#111111] border border-slate-100 dark:border-white/5 focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00] focus:bg-white dark:focus:bg-[#1a1a1a] text-sm text-slate-700 dark:text-white transition-all"
           />
         </div>
         <div className="relative shrink-0 w-full md:w-auto">
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full appearance-none px-5 py-3 pr-11 rounded-2xl bg-white border border-slate-200 text-xs font-bold text-slate-700 hover:border-slate-300 focus:outline-none focus:border-blue-500 cursor-pointer shadow-sm md:min-w-[140px] transition-all"
+            className="w-full appearance-none px-5 py-3 pr-11 rounded-2xl bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/5 text-xs font-bold text-slate-700 dark:text-white hover:border-slate-300 dark:hover:border-white/10 focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00] cursor-pointer shadow-sm md:min-w-[140px] transition-all"
           >
-            <option value="All">All Status</option>
-            <option value="Active">Active</option>
-            <option value="On Hold">On Hold</option>
-            <option value="Completed">Completed</option>
-            <option value="Inactive">Inactive</option>
+            <option value="All" className="dark:bg-[#111111]">All Status</option>
+            <option value="Active" className="dark:bg-[#111111]">Active</option>
+            <option value="On Hold" className="dark:bg-[#111111]">On Hold</option>
+            <option value="Completed" className="dark:bg-[#111111]">Completed</option>
+            <option value="Inactive" className="dark:bg-[#111111]">Inactive</option>
           </select>
           <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
             <FiChevronDown size={14} />
@@ -236,20 +236,20 @@ const Project = () => {
       {/* TABLE VIEW OF PROJECTS */}
       {projectsLoading ? (
         <div className="flex justify-center items-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-[#e5ff00]"></div>
         </div>
       ) : filteredProjects.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-3xl border border-slate-100 shadow-sm">
-          <FiInfo size={40} className="mx-auto text-slate-300" />
-          <h3 className="mt-4 text-lg font-bold text-slate-700">No Projects Found</h3>
+        <div className="text-center py-20 bg-white dark:bg-[#111111] rounded-3xl border border-slate-100 dark:border-white/5 shadow-sm">
+          <FiInfo size={40} className="mx-auto text-slate-300 dark:text-slate-600" />
+          <h3 className="mt-4 text-lg font-bold text-slate-700 dark:text-white">No Projects Found</h3>
           <p className="text-slate-400 text-sm mt-1">Try updating your filters or search options.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#111111] rounded-3xl border border-slate-100 dark:border-white/5 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
-              <thead className="bg-gradient-to-r from-cyan-500 to-blue-600">
-                <tr className="text-slate-505 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100">
+              <thead className="bg-gradient-to-r from-cyan-500 to-blue-600 dark:from-[#1a1a1a] dark:to-[#1a1a1a] dark:border-b dark:border-white/5">
+                <tr className="text-slate-505 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100 dark:border-white/5">
                   <th className="px-6 py-4">Project Name</th>
                   <th className="px-6 py-4">Client Name</th>
                   <th className="px-6 py-4">Status</th>
@@ -258,17 +258,17 @@ const Project = () => {
                   {isAdmin && <th className="px-6 py-4 text-center w-36">Actions</th>}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-xs">
+              <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-xs bg-white dark:bg-[#0a0a0a]">
                 {filteredProjects.map((project) => (
                   <tr
                     key={project._id}
-                    className="hover:bg-slate-50/70 transition-colors"
+                    className="hover:bg-slate-50/70 dark:hover:bg-white/5 even:bg-slate-50/30 dark:even:bg-[#111111]/60 transition-colors"
                   >
-                    <td className="px-6 py-4 font-extrabold text-slate-800  dark:text-yellow-50">
+                    <td className="px-6 py-4 font-extrabold text-slate-800 dark:text-white">
                       {project.name}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="font-bold text-blue-600 px-2 py-0.5 rounded-lg bg-blue-50 border border-blue-100">
+                      <span className="font-bold text-blue-600 dark:text-[#e5ff00] px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-[#e5ff00]/10 border border-blue-100 dark:border-[#e5ff00]/20">
                         {project.client?.companyName || "No Client"}
                       </span>
                     </td>
@@ -287,11 +287,11 @@ const Project = () => {
                           <div className="flex flex-col gap-1.5 max-w-[160px]">
                             <div className="flex justify-between items-center text-[10px] font-bold text-slate-500">
                               <span>{completed}/{total} Tasks</span>
-                              <span className="text-blue-600 font-extrabold">{percent}%</span>
+                              <span className="text-blue-600 dark:text-[#e5ff00] font-extrabold">{percent}%</span>
                             </div>
-                            <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                            <div className="w-full bg-slate-100 dark:bg-[#1a1a1a] border border-transparent dark:border-white/5 h-2 rounded-full overflow-hidden shadow-inner">
                               <div
-                                className="bg-gradient-to-r from-blue-500 to-indigo-650 h-full rounded-full transition-all duration-350"
+                                className="bg-gradient-to-r from-blue-500 to-indigo-600 dark:from-[#99cc00] dark:to-[#e5ff00] h-full rounded-full transition-all duration-350 dark:shadow-[0_0_8px_rgba(229,255,0,0.6)]"
                                 style={{ width: `${percent}%` }}
                               />
                             </div>
@@ -302,7 +302,7 @@ const Project = () => {
                     <td className="px-6 py-4 text-center">
                       <button
                         onClick={() => navigate(`/${currentUser?.role}/projects?id=${project._id}`)}
-                        className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-lg text-[11px] font-bold transition-colors border border-blue-100 hover:border-blue-600 whitespace-nowrap"
+                        className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white dark:bg-[#1a1a1a] dark:text-[#e5ff00] dark:hover:bg-[#e5ff00] dark:hover:text-black rounded-lg text-[11px] font-bold transition-colors border border-blue-100 hover:border-blue-600 dark:border-white/10 dark:hover:border-[#e5ff00] whitespace-nowrap"
                       >
                         View Tasks
                       </button>
@@ -312,7 +312,7 @@ const Project = () => {
                         <div className="flex justify-center items-center gap-3">
                           <button
                             onClick={(e) => handleOpenEdit(e, project)}
-                            className="text-slate-400 hover:text-blue-600 transition-colors p-1"
+                            className="text-slate-400 hover:text-blue-600 dark:hover:text-[#e5ff00] transition-colors p-1"
                             title="Edit Project"
                           >
                             <FiEdit2 size={13} />
@@ -345,7 +345,7 @@ const Project = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowCreateModal(false)}
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]"
+              className="absolute inset-0 bg-slate-900/40 dark:bg-[#111111]/70 backdrop-blur-[2px]"
             />
             {/* Side Sheet */}
             <motion.div
@@ -353,22 +353,22 @@ const Project = () => {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "tween", ease: "easeOut", duration: 0.3 }}
-              className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col z-10 border-l border-slate-100"
+              className="relative w-full max-w-md bg-white dark:bg-[#111111] h-full shadow-2xl flex flex-col z-10 border-l border-slate-100 dark:border-white/5"
             >
               {/* Header */}
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-[#1a1a1a]">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-[#e5ff00]/10 border border-blue-100 dark:border-[#e5ff00]/20 flex items-center justify-center text-blue-600 dark:text-[#e5ff00]">
                     <FiBriefcase size={20} />
                   </div>
                   <div>
-                    <h2 className="text-base font-black text-slate-800  dark:text-yellow-50">Add New Project</h2>
+                    <h2 className="text-base font-black text-slate-800 dark:text-white">Add New Project</h2>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Project Details</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="w-8 h-8 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
+                  className="w-8 h-8 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
                 >
                   <FiX size={18} />
                 </button>
@@ -379,28 +379,28 @@ const Project = () => {
                 <div className="flex-1 p-6 space-y-6 overflow-y-auto">
                   {/* Name field */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Project Name</label>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Project Name</label>
                     <input
                       type="text"
                       required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Enter project name..."
-                      className="w-full px-4 py-3 rounded-2xl bg-slate-50/60 border border-slate-155 focus:outline-none focus:border-blue-500 focus:bg-white text-sm text-slate-700 placeholder-slate-400 transition-all focus:shadow-sm"
+                      className="w-full px-4 py-3 rounded-2xl bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-155 dark:border-white/10 focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00] focus:bg-white dark:focus:bg-[#111111] text-sm text-slate-700 dark:text-white placeholder-slate-400 transition-all focus:shadow-sm"
                     />
                   </div>
 
                   {/* Client Select field */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Client Name</label>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Client Name</label>
                     <div className="relative">
                       <select
                         value={clientId}
                         onChange={(e) => setClientId(e.target.value)}
-                        className="w-full px-4 py-3 pr-10 rounded-2xl bg-slate-50/60 border border-slate-155 focus:outline-none focus:border-blue-500 focus:bg-white text-sm text-slate-700 cursor-pointer appearance-none transition-all focus:shadow-sm"
+                        className="w-full px-4 py-3 pr-10 rounded-2xl bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-155 dark:border-white/10 focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00] focus:bg-white dark:focus:bg-[#111111] text-sm text-slate-700 dark:text-white cursor-pointer appearance-none transition-all focus:shadow-sm"
                       >
                         {clients.map((c) => (
-                          <option key={c._id} value={c._id}>
+                          <option key={c._id} value={c._id} className="dark:bg-[#111111]">
                             {c.companyName}
                           </option>
                         ))}
@@ -413,17 +413,17 @@ const Project = () => {
 
                   {/* Status Select field */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Status</label>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Status</label>
                     <div className="relative">
                       <select
                         value={status}
                         onChange={(e) => setStatus(e.target.value)}
-                        className="w-full px-4 py-3 pr-10 rounded-2xl bg-slate-50/60 border border-slate-155 focus:outline-none focus:border-blue-500 focus:bg-white text-sm text-slate-700 cursor-pointer appearance-none transition-all focus:shadow-sm"
+                        className="w-full px-4 py-3 pr-10 rounded-2xl bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-155 dark:border-white/10 focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00] focus:bg-white dark:focus:bg-[#111111] text-sm text-slate-700 dark:text-white cursor-pointer appearance-none transition-all focus:shadow-sm"
                       >
-                        <option value="Active">Active</option>
-                        <option value="On Hold">On Hold</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Inactive">Inactive</option>
+                        <option value="Active" className="dark:bg-[#111111]">Active</option>
+                        <option value="On Hold" className="dark:bg-[#111111]">On Hold</option>
+                        <option value="Completed" className="dark:bg-[#111111]">Completed</option>
+                        <option value="Inactive" className="dark:bg-[#111111]">Inactive</option>
                       </select>
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                         <FiChevronDown size={16} />
@@ -433,17 +433,17 @@ const Project = () => {
                 </div>
 
                 {/* Sticky Footer */}
-                <div className="p-6 border-t border-slate-100 bg-slate-50/30 flex justify-end gap-3 shrink-0">
+                <div className="p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50/30 dark:bg-[#1a1a1a] flex justify-end gap-3 shrink-0">
                   <button
                     type="button"
                     onClick={() => setShowCreateModal(false)}
-                    className="px-5 py-3 rounded-2xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 active:scale-95 transition-all"
+                    className="px-5 py-3 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-white/5 active:scale-95 transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-md shadow-blue-500/10 active:scale-95 transition-all"
+                    className="px-5 py-3 rounded-2xl bg-blue-600 dark:bg-[#e5ff00] hover:bg-blue-500 dark:hover:bg-[#ccff00] text-white dark:text-black text-sm font-bold shadow-md shadow-blue-500/10 dark:shadow-[#e5ff00]/20 active:scale-95 transition-all"
                   >
                     Create Project
                   </button>
@@ -462,7 +462,7 @@ const Project = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowEditModal(false)}
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]"
+              className="absolute inset-0 bg-slate-900/40 dark:bg-[#111111]/70 backdrop-blur-[2px]"
             />
             {/* Side Sheet */}
             <motion.div
@@ -470,22 +470,22 @@ const Project = () => {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "tween", ease: "easeOut", duration: 0.3 }}
-              className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col z-10 border-l border-slate-100"
+              className="relative w-full max-w-md bg-white dark:bg-[#111111] h-full shadow-2xl flex flex-col z-10 border-l border-slate-100 dark:border-white/5"
             >
               {/* Header */}
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-[#1a1a1a]">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-[#e5ff00]/10 border border-amber-100 dark:border-[#e5ff00]/20 flex items-center justify-center text-amber-600 dark:text-[#e5ff00]">
                     <FiBriefcase size={20} />
                   </div>
                   <div>
-                    <h2 className="text-base font-black text-slate-800  dark:text-yellow-50">Edit Project</h2>
+                    <h2 className="text-base font-black text-slate-800 dark:text-white">Edit Project</h2>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Modify Settings</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowEditModal(false)}
-                  className="w-8 h-8 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
+                  className="w-8 h-8 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
                 >
                   <FiX size={18} />
                 </button>
@@ -496,28 +496,28 @@ const Project = () => {
                 <div className="flex-1 p-6 space-y-6 overflow-y-auto">
                   {/* Name field */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Project Name</label>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Project Name</label>
                     <input
                       type="text"
                       required
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
                       placeholder="Enter project name..."
-                      className="w-full px-4 py-3 rounded-2xl bg-slate-50/60 border border-slate-155 focus:outline-none focus:border-blue-500 focus:bg-white text-sm text-slate-700 placeholder-slate-400 transition-all focus:shadow-sm"
+                      className="w-full px-4 py-3 rounded-2xl bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-155 dark:border-white/10 focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00] focus:bg-white dark:focus:bg-[#111111] text-sm text-slate-700 dark:text-white placeholder-slate-400 transition-all focus:shadow-sm"
                     />
                   </div>
 
                   {/* Client Select field */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Client Name</label>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Client Name</label>
                     <div className="relative">
                       <select
                         value={editClientId}
                         onChange={(e) => setEditClientId(e.target.value)}
-                        className="w-full px-4 py-3 pr-10 rounded-2xl bg-slate-50/60 border border-slate-155 focus:outline-none focus:border-blue-500 focus:bg-white text-sm text-slate-700 cursor-pointer appearance-none transition-all focus:shadow-sm"
+                        className="w-full px-4 py-3 pr-10 rounded-2xl bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-155 dark:border-white/10 focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00] focus:bg-white dark:focus:bg-[#111111] text-sm text-slate-700 dark:text-white cursor-pointer appearance-none transition-all focus:shadow-sm"
                       >
                         {clients.map((c) => (
-                          <option key={c._id} value={c._id}>
+                          <option key={c._id} value={c._id} className="dark:bg-[#111111]">
                             {c.companyName}
                           </option>
                         ))}
@@ -530,17 +530,17 @@ const Project = () => {
 
                   {/* Status Select field */}
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-600 uppercase tracking-wide">Status</label>
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Status</label>
                     <div className="relative">
                       <select
                         value={editStatus}
                         onChange={(e) => setEditStatus(e.target.value)}
-                        className="w-full px-4 py-3 pr-10 rounded-2xl bg-slate-50/60 border border-slate-155 focus:outline-none focus:border-blue-500 focus:bg-white text-sm text-slate-700 cursor-pointer appearance-none transition-all focus:shadow-sm"
+                        className="w-full px-4 py-3 pr-10 rounded-2xl bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-155 dark:border-white/10 focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00] focus:bg-white dark:focus:bg-[#111111] text-sm text-slate-700 dark:text-white cursor-pointer appearance-none transition-all focus:shadow-sm"
                       >
-                        <option value="Active">Active</option>
-                        <option value="On Hold">On Hold</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Inactive">Inactive</option>
+                        <option value="Active" className="dark:bg-[#111111]">Active</option>
+                        <option value="On Hold" className="dark:bg-[#111111]">On Hold</option>
+                        <option value="Completed" className="dark:bg-[#111111]">Completed</option>
+                        <option value="Inactive" className="dark:bg-[#111111]">Inactive</option>
                       </select>
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                         <FiChevronDown size={16} />
@@ -550,17 +550,17 @@ const Project = () => {
                 </div>
 
                 {/* Sticky Footer */}
-                <div className="p-6 border-t border-slate-100 bg-slate-50/30 flex justify-end gap-3 shrink-0">
+                <div className="p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50/30 dark:bg-[#1a1a1a] flex justify-end gap-3 shrink-0">
                   <button
                     type="button"
                     onClick={() => setShowEditModal(false)}
-                    className="px-5 py-3 rounded-2xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 active:scale-95 transition-all"
+                    className="px-5 py-3 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-white/5 active:scale-95 transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold shadow-md shadow-blue-500/10 active:scale-95 transition-all"
+                    className="px-5 py-3 rounded-2xl bg-blue-600 dark:bg-[#e5ff00] hover:bg-blue-500 dark:hover:bg-[#ccff00] text-white dark:text-black text-sm font-bold shadow-md shadow-blue-500/10 dark:shadow-[#e5ff00]/20 active:scale-95 transition-all"
                   >
                     Save Changes
                   </button>
