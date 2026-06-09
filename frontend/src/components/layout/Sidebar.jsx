@@ -34,8 +34,6 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       window.matchMedia("(prefers-color-scheme: dark)").matches);
   const activeLogo = isDark ? logoDark : logo;
 
-  const menuItems = sidebarConfig[role] || [];
-
   const { notifications } = useSelector((state) => state.notifications);
   const unreadCount = notifications
     ? notifications.filter((n) => !n.isRead).length
@@ -46,6 +44,15 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   const { user: currentUser } = useSelector((state) => state.auth);
   const { unreadCounts = {} } = useSelector((state) => state.chat);
   const totalUnreadChatCount = Object.values(unreadCounts).reduce((sum, val) => sum + (val || 0), 0);
+
+  const menuItems = (sidebarConfig[role] || []).filter(item => {
+    if (role === "admin") return true;
+    if (!item.permissionKey) return true;
+    const perm = currentUser?.permissions?.[item.permissionKey];
+    if (perm === true) return true; // legacy
+    return perm?.read;
+  });
+
   const [isWorkOpen, setIsWorkOpen] = useState(true);
   const [isProjectsMenuOpen, setIsProjectsMenuOpen] = useState(location.pathname.includes("/projects"));
 

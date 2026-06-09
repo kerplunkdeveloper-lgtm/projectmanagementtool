@@ -58,42 +58,34 @@ const AppRoutes = () => {
           element={<Dashboardmain />}
         />
 
-          <Route
+        <Route
           path="clients"
-          element={<Clients />}
+          element={<ProtectedRoute requiredPermission="manage_clients"><Clients /></ProtectedRoute>}
         />
 
         <Route
           path="portfolio"
-          element={<Portfolio />}
+          element={<ProtectedRoute requiredPermission="manage_settings"><Portfolio /></ProtectedRoute>}
         />
 
         <Route
           path="projects"
-          element={<Project />} 
+          element={<ProtectedRoute requiredPermission="manage_projects"><Project /></ProtectedRoute>} 
         />
 
         <Route
           path="tasks"
-          element={<Task />} 
+          element={<ProtectedRoute requiredPermission="manage_tasks"><Task /></ProtectedRoute>} 
         />
-
-        
-       
-
-
-        
 
         <Route
           path="users"
-          element={<AdminUsers />}
+          element={<ProtectedRoute requiredPermission="manage_users"><AdminUsers /></ProtectedRoute>}
         />
-
-   
 
         <Route
           path="eod-reports"
-          element={<AdminEodReports />}
+          element={<ProtectedRoute requiredPermission="view_reports"><AdminEodReports /></ProtectedRoute>}
         />
 
         
@@ -105,7 +97,7 @@ const AppRoutes = () => {
    
         <Route
           path="template-library"
-          element={<Templatelib />}
+          element={<ProtectedRoute requiredPermission="manage_settings"><Templatelib /></ProtectedRoute>}
         />
         
         <Route
@@ -115,7 +107,7 @@ const AppRoutes = () => {
 
         <Route
           path="partnerhub"
-          element={<PartnerHub />}
+          element={<ProtectedRoute requiredPermission="manage_settings"><PartnerHub /></ProtectedRoute>}
         />
         
         <Route
@@ -150,22 +142,22 @@ const AppRoutes = () => {
 
          <Route
           path="clients"
-          element={<Clients />}
+          element={<ProtectedRoute requiredPermission="manage_clients"><Clients /></ProtectedRoute>}
         />
 
            <Route
           path="portfolio"
-          element={<Portfolio />}
+          element={<ProtectedRoute requiredPermission="manage_settings"><Portfolio /></ProtectedRoute>}
         />
 
         <Route
           path="projects"
-          element={<Project />} 
+          element={<ProtectedRoute requiredPermission="manage_projects"><Project /></ProtectedRoute>} 
         />
 
         <Route
           path="tasks"
-          element={<Task />}   
+          element={<ProtectedRoute requiredPermission="manage_tasks"><Task /></ProtectedRoute>}   
         />
 
         <Route
@@ -182,7 +174,7 @@ const AppRoutes = () => {
 
         <Route
           path="users"
-          element={<AdminUsers />}
+          element={<ProtectedRoute requiredPermission="manage_users"><AdminUsers /></ProtectedRoute>}
         />
 
         <Route
@@ -218,17 +210,36 @@ const AppRoutes = () => {
 
         <Route
           path="clients"
-          element={<Clients />}
+          element={<ProtectedRoute requiredPermission="manage_clients"><Clients /></ProtectedRoute>}
+        />
+
+
+
+             <Route
+          path="portfolio"
+          element={<ProtectedRoute requiredPermission="manage_settings"><Portfolio /></ProtectedRoute>}
         />
 
         <Route
+          path="projects"
+          element={<ProtectedRoute requiredPermission="manage_projects"><Project /></ProtectedRoute>} 
+        />
+
+        
+
+        <Route
           path="tasks"
-          element={<Task />}   
+          element={<ProtectedRoute requiredPermission="manage_tasks"><Task /></ProtectedRoute>}   
         />
 
         <Route
           path="eod-reports"
-          element={<EodReports />}
+          element={<ProtectedRoute requiredPermission="view_reports"><EodReports /></ProtectedRoute>}
+        />
+
+        <Route
+          path="users"
+          element={<ProtectedRoute requiredPermission="manage_users"><AdminUsers /></ProtectedRoute>}
         />
 
         <Route

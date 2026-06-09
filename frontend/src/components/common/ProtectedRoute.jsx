@@ -5,6 +5,7 @@ import { Navigate } from "react-router-dom";
 const ProtectedRoute = ({
   children,
   allowedRoles,
+  requiredPermission
 }) => {
 
   const { user, originalAdminUser, originalRole } = useSelector(
@@ -20,8 +21,16 @@ const ProtectedRoute = ({
     originalRole === "admin" ||
     originalAdminUser?.role === "admin";
 
-  if (!isPrimaryAdmin && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/" />;
+  if (!isPrimaryAdmin && allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to={`/${user.role}`} />;
+  }
+
+  // Strict permission check based only on current viewing user role
+  if (user.role !== "admin" && requiredPermission) {
+    const perm = user.permissions?.[requiredPermission];
+    if (perm !== true && !perm?.read) {
+      return <Navigate to={`/${user.role}`} />;
+    }
   }
 
   return children;

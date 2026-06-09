@@ -78,6 +78,11 @@ const userSchema = new mongoose.Schema({
     ref: 'Profile',
   },
 
+  permissions: {
+    type: Object,
+    default: {},
+  },
+
   createdAt: {
     type: Date,
     default: Date.now,

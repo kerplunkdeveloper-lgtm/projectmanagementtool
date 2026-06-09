@@ -205,6 +205,18 @@ const authSlice = createSlice({
       .addCase(impersonateUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      // Sync auth user when user is updated in userSlice
+      .addCase('users/updateUser/fulfilled', (state, action) => {
+        const updatedUser = action.payload.data;
+        if (state.user && (state.user._id === updatedUser._id || state.user.id === updatedUser._id)) {
+          // Update current user
+          state.user = {
+            ...state.user,
+            ...updatedUser
+          };
+          localStorage.setItem("user", JSON.stringify(state.user));
+        }
       });
   },
 });

@@ -32,27 +32,27 @@ const UserHeader = ({ setOpenModal, searchTerm, setSearchTerm, filterDept, setFi
     {/* FILTER ROW */}
     <div className="flex flex-row items-center gap-2">
       {/* SEARCH */}
-      <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 flex-1">
-        <FiSearch size={13} className="text-gray-400 shrink-0" />
+      <div className="flex items-center gap-2 bg-white dark:bg-[#0f172a] shadow-[0_2px_15px_rgb(0,0,0,0.04)] dark:shadow-[0_2px_15px_rgba(0,0,0,0.2)] rounded-xl px-4 py-3 flex-1 transition-all hover:shadow-[0_4px_20px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+        <FiSearch size={13} className="text-gray-400 dark:text-slate-500 shrink-0" />
         <input
           type="text"
           placeholder="Search by name or email..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="bg-transparent outline-none text-xs text-gray-700 placeholder:text-gray-400 w-full"
+          className="bg-transparent outline-none text-xs text-gray-700 dark:text-slate-200 placeholder:text-gray-400 dark:placeholder:text-slate-500 w-full"
         />
       </div>
 
       {/* DEPT FILTER */}
-      <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 w-[140px] sm:w-52 shrink-0">
-        <FiFilter size={12} className="text-gray-400 shrink-0" />
+      <div className="flex items-center gap-2 bg-white dark:bg-[#0f172a] shadow-[0_2px_15px_rgb(0,0,0,0.04)] dark:shadow-[0_2px_15px_rgba(0,0,0,0.2)] rounded-xl px-4 py-3 w-[150px] sm:w-60 shrink-0 transition-all hover:shadow-[0_4px_20px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+        <FiFilter size={12} className="text-gray-400 dark:text-slate-500 shrink-0" />
         <select
           value={filterDept}
           onChange={(e) => setFilterDept(e.target.value)}
-          className="bg-transparent outline-none text-xs text-gray-700 w-full cursor-pointer"
+          className="bg-transparent outline-none text-xs text-gray-700 dark:text-slate-200 w-full cursor-pointer appearance-none"
         >
-          <option value="">All Departments</option>
-          {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+          <option value="" className="bg-white dark:bg-slate-900">All Departments</option>
+          {DEPARTMENTS.map((d) => <option key={d} value={d} className="bg-white dark:bg-slate-900">{d}</option>)}
         </select>
       </div>
     </div>

@@ -26,6 +26,7 @@ import UserHeader from "./users/UserHeader";
 import UserTable from "./users/UserTable";
 import UserModal from "./users/UserModel";
 import DeleteUserModal from "./users/DeleteUserModal";
+import PermissionsModal from "./users/PermissionsModal";
 
 const USERS_PER_PAGE = 5;
 
@@ -46,7 +47,9 @@ const AdminUsers = () => {
     (state) => state.auth
   );
 
-  const isReadOnly = user?.role === "operationmanager";
+  const userPerms = user?.permissions?.['manage_users'];
+  const canWrite = user?.role === "admin" || userPerms === true || userPerms?.write;
+  const isReadOnly = !canWrite;
 
   const [openModal, setOpenModal] =
     useState(false);
@@ -68,6 +71,9 @@ const AdminUsers = () => {
 
   const [userToDelete, setUserToDelete] =
     useState(null);
+
+  const [openPermissionsModal, setOpenPermissionsModal] = useState(false);
+  const [permissionsUser, setPermissionsUser] = useState(null);
 
 
 
@@ -115,14 +121,16 @@ const AdminUsers = () => {
     }
   };
 
-  // UPDATE USER
   const handleUpdateUser = async (
     userData
   ) => {
     try {
+      const targetId = editUser?._id || permissionsUser?._id;
+      if (!targetId) return;
+
       await dispatch(
         updateUser({
-          id: editUser._id,
+          id: targetId,
           userData,
         })
       ).unwrap();
@@ -133,6 +141,8 @@ const AdminUsers = () => {
 
       setOpenModal(false);
       setEditUser(null);
+      setOpenPermissionsModal(false);
+      setPermissionsUser(null);
     } catch (err) {
       // Handled by global state error listener
     }
@@ -228,7 +238,6 @@ const AdminUsers = () => {
         isReadOnly={isReadOnly}
       />
 
-      {/* TABLE */}
       <UserTable
         users={currentUsers}
         loading={loading}
@@ -239,6 +248,8 @@ const AdminUsers = () => {
         setEditUser={setEditUser}
         handleImpersonate={handleImpersonate}
         isReadOnly={isReadOnly}
+        setOpenPermissionsModal={setOpenPermissionsModal}
+        setPermissionsUser={setPermissionsUser}
       />
 
       {/* PAGINATION & COUNT */}
@@ -257,7 +268,7 @@ const AdminUsers = () => {
               <button
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => prev - 1)}
-                className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               >
                 <FiChevronLeft size={14} />
               </button>
@@ -275,8 +286,8 @@ const AdminUsers = () => {
                     flex-shrink-0
                     ${
                       currentPage === index + 1
-                        ? "dashboard-btn-primary dark:dashboard-btn-primary shadow-sm"
-                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        ? "dashboard-btn-primary shadow-sm"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
                     }
                   `}
                 >
@@ -287,7 +298,7 @@ const AdminUsers = () => {
               <button
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage(prev => prev + 1)}
-                className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               >
                 <FiChevronRight size={14} />
               </button>
@@ -316,6 +327,14 @@ const AdminUsers = () => {
         setOpen={setOpenDeleteModal}
         onConfirm={handleDeleteUser}
         user={userToDelete}
+      />
+
+      {/* PERMISSIONS MODAL */}
+      <PermissionsModal 
+        open={openPermissionsModal}
+        setOpen={setOpenPermissionsModal}
+        user={permissionsUser}
+        handleUpdateUser={(permissions) => handleUpdateUser({ permissions })}
       />
 
     </div>
