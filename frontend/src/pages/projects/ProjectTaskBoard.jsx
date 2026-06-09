@@ -19,6 +19,8 @@ import {
   FiGrid,
   FiTrendingUp,
   FiPieChart,
+  FiMoreHorizontal,
+  FiEdit2,
 } from "react-icons/fi";
 
 import {
@@ -27,6 +29,7 @@ import {
   updateTask,
   deleteTask,
 } from "../../features/tasks/taskSlice";
+import { updateProject } from "../../features/projects/projectSlice";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 const StrictModeDroppable = ({ children, ...props }) => {
@@ -70,7 +73,6 @@ const TaskTitleInput = ({
           e.target.blur();
         }
       }}
-      onClick={(e) => e.stopPropagation()}
       className={`bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-blue-400/50 w-full p-0 font-semibold text-slate-800 dark:text-slate-105 rounded px-1.5 py-0.5 ${
         isCompleted ? "line-through text-slate-400" : ""
       }`}
@@ -278,6 +280,52 @@ const ProjectTaskBoard = ({
   const [expandedTasks, setExpandedTasks] = useState({}); // taskId -> boolean
   const [inlineSubtaskTitle, setInlineSubtaskTitle] = useState({}); // taskId -> string
   const [selectedTaskId, setSelectedTaskId] = useState(null); // Live task ID for Drawer preview
+  const [isAddingSection, setIsAddingSection] = useState(false);
+  const [newSectionName, setNewSectionName] = useState("");
+  const [collapsedSections, setCollapsedSections] = useState({}); // sectionName -> boolean
+  const [openSectionMenu, setOpenSectionMenu] = useState(null); // sectionName
+  const [editingSection, setEditingSection] = useState(null); // sectionName
+  const [editSectionValue, setEditSectionValue] = useState("");
+
+  const handleRenameSectionSubmit = (e, oldName) => {
+    e.preventDefault();
+    if (!editSectionValue.trim() || editSectionValue === oldName) {
+      setEditingSection(null);
+      return;
+    }
+    const newName = editSectionValue.trim();
+    const currentSections = activeProject.sections?.length > 0 ? activeProject.sections : ["Recently assigned"];
+    const updatedSections = currentSections.map(s => s === oldName ? newName : s);
+    
+    // Update project
+    dispatch(updateProject({ id: activeProjectId, data: { sections: updatedSections } }));
+    
+    // Update all tasks in this section
+    const tasksToUpdate = tasks.filter(t => t.section === oldName || (!t.section && oldName === "Recently assigned"));
+    tasksToUpdate.forEach(t => {
+      dispatch(updateTask({ id: t._id, taskData: { section: newName } }));
+    });
+    
+    setEditingSection(null);
+  };
+
+  const handleDeleteSection = (sectionName) => {
+    if (window.confirm(`Are you sure you want to delete the section "${sectionName}" and ALL its tasks?`)) {
+      const currentSections = activeProject.sections?.length > 0 ? activeProject.sections : ["Recently assigned"];
+      const updatedSections = currentSections.filter(s => s !== sectionName);
+      dispatch(updateProject({ id: activeProjectId, data: { sections: updatedSections } }));
+      
+      const tasksToDelete = tasks.filter(t => t.section === sectionName || (!t.section && sectionName === "Recently assigned"));
+      tasksToDelete.forEach(t => {
+        dispatch(deleteTask(t._id));
+      });
+    }
+    setOpenSectionMenu(null);
+  };
+
+  const toggleSection = (sectionName) => {
+    setCollapsedSections((prev) => ({ ...prev, [sectionName]: !prev[sectionName] }));
+  };
 
   // Add optimistic tasks state for dragging
   const [localTasks, setLocalTasks] = useState([]);
@@ -302,7 +350,7 @@ const ProjectTaskBoard = ({
 
     // Optimistically update local UI
     const updatedTasks = localTasks.map((t) =>
-      t._id === draggableId ? { ...t, status: destination.droppableId } : t,
+      t._id === draggableId ? { ...t, section: destination.droppableId } : t,
     );
     setLocalTasks(updatedTasks);
 
@@ -310,7 +358,7 @@ const ProjectTaskBoard = ({
     dispatch(
       updateTask({
         id: draggableId,
-        taskData: { status: destination.droppableId },
+        taskData: { section: destination.droppableId },
       }),
     );
   };
@@ -318,12 +366,28 @@ const ProjectTaskBoard = ({
   // Live selected task from Redux state
   const selectedTask = tasks.find((t) => t._id === selectedTaskId);
 
+  const handleAddSectionSubmit = (e) => {
+    e.preventDefault();
+    if (!newSectionName.trim()) return;
+    const currentSections = activeProject.sections?.length > 0 ? activeProject.sections : ["Recently assigned"];
+    const updatedSections = [...currentSections, newSectionName.trim()];
+    dispatch(
+      updateProject({
+        id: activeProjectId,
+        data: { sections: updatedSections },
+      })
+    );
+    setIsAddingSection(false);
+    setNewSectionName("");
+  };
+
   // Add Task directly to DB (autosave pattern)
-  const handleAddTask = () => {
+  const handleAddTask = (sectionName = "Recently assigned") => {
     dispatch(
       createTask({
-        title: "Add Task",
+        title: "",
         project: activeProjectId,
+        section: sectionName,
         assignedTo: null,
         dueDate: null,
         priority: "Medium",
@@ -500,11 +564,11 @@ const ProjectTaskBoard = ({
           placeholder="Type subtask name and press Enter..."
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-blue-500 rounded-xl focus:outline-none text-[11px] text-slate-700 dark:text-slate-300 transition-all font-semibold"
+          className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-[#111111] border border-slate-200 dark:border-white/10 focus:border-blue-500 dark:focus:border-[#e5ff00] rounded-xl focus:outline-none text-[11px] text-slate-700 dark:text-slate-300 transition-all font-semibold"
         />
         <button
           type="submit"
-          className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold rounded-xl text-[10px] transition-colors shadow-md shadow-blue-500/10 active:scale-95"
+          className="px-4 py-2.5 bg-blue-600 dark:bg-[#e5ff00] hover:bg-blue-700 dark:hover:bg-[#ccff00] text-white dark:text-black font-extrabold rounded-xl text-[10px] transition-colors shadow-md shadow-blue-500/10 dark:shadow-[#e5ff00]/20 active:scale-95"
         >
           Add
         </button>
@@ -516,10 +580,10 @@ const ProjectTaskBoard = ({
     <div className="space-y-6 max-w-7xl mx-auto relative">
       {/* WORKSPACE HEADER & PROGRESS */}
       <div>
-        <div className="flex justify-between items-start gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] font-black px-2.5 py-1 rounded-lg bg-blue-550/10 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/40 uppercase tracking-wide">
+        <div className="flex flex-col md:flex-row justify-between items-start gap-4 md:gap-6">
+          <div className="space-y-2 w-full">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[9px] font-black px-2.5 py-1 rounded-lg bg-blue-550/10 dark:bg-[#e5ff00]/10 text-blue-600 dark:text-[#e5ff00] border border-blue-100 dark:border-[#e5ff00]/20 uppercase tracking-wide">
                 Client : {activeProject.client?.companyName || "No Client"}
               </span>
               <span
@@ -530,15 +594,15 @@ const ProjectTaskBoard = ({
                 {activeProject.status}
               </span>
             </div>
-            <h1 className="text-xl font-black text-slate-800 dark:text-white">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white truncate">
               {activeProject.name}
             </h1>
           </div>
 
-          <div className="pt-1">
+          <div className="pt-1 w-full md:w-auto">
             <button
               onClick={() => navigate(`/${currentUser?.role}/projects`)}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 font-bold text-xs transition-all w-fit"
+              className="flex items-center justify-center w-full md:w-auto gap-2 px-4 py-2 font-bold text-xs rounded-xl border border-slate-200 dark:border-white/5 bg-white dark:bg-[#111111] text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-[#1a1a1a] shadow-sm transition-all"
             >
               <FiX size={16} />
               Exit Workspace
@@ -548,32 +612,32 @@ const ProjectTaskBoard = ({
       </div>
 
       {/* TAB SELECTOR - PREMIUM PILL DESIGN */}
-      <div className="flex justify-center sm:justify-start mt-6 mb-2">
-        <div className="bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-md p-1.5 rounded-2xl flex items-center gap-1 w-fit border border-slate-200/50 dark:border-slate-700/50 shadow-inner">
+      <div className="flex justify-center sm:justify-start mt-6 mb-2 overflow-hidden">
+        <div className="bg-slate-100/80 dark:bg-[#1a1a1a]/80 backdrop-blur-md p-1.5 rounded-2xl flex items-center gap-1 w-full overflow-x-auto hide-scrollbar sm:w-fit border border-slate-200/50 dark:border-white/5 shadow-inner">
           {["List", "Board", "Timeline", "Dashboard"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`relative px-6 py-2.5 text-xs font-black uppercase tracking-wider transition-all duration-300 rounded-xl ${
+              className={`relative px-4 sm:px-6 py-2.5 text-xs font-black uppercase tracking-wider transition-all duration-300 rounded-xl shrink-0 ${
                 activeTab === tab
                   ? "text-blue-600 dark:text-[#e5ff00] shadow-md"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50"
+                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/5"
               }`}
             >
               {activeTab === tab && (
                 <motion.div
                   layoutId="activeWorkspaceTabPill"
-                  className="absolute inset-0 bg-white dark:bg-slate-800 rounded-xl"
+                  className="absolute inset-0 bg-white dark:bg-[#111111] border border-transparent dark:border-[#e5ff00]/30 rounded-xl dark:shadow-[0_0_15px_rgba(229,255,0,0.15)]"
                   style={{ zIndex: 0 }}
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
                 />
               )}
-              <span className="relative z-10 flex items-center gap-2">
-                {tab === "List" && <FiList size={14} />}
-                {tab === "Board" && <FiGrid size={14} />}
-                {tab === "Timeline" && <FiTrendingUp size={14} />}
-                {tab === "Dashboard" && <FiPieChart size={14} />}
-                {tab}
+              <span className="relative z-10 flex items-center justify-center gap-1.5 sm:gap-2">
+                {tab === "List" && <FiList size={14} className="shrink-0" />}
+                {tab === "Board" && <FiGrid size={14} className="shrink-0" />}
+                {tab === "Timeline" && <FiTrendingUp size={14} className="shrink-0" />}
+                {tab === "Dashboard" && <FiPieChart size={14} className="shrink-0" />}
+                <span>{tab}</span>
               </span>
             </button>
           ))}
@@ -590,8 +654,8 @@ const ProjectTaskBoard = ({
               </h3>
               {isAdminOrManager && (
                 <button
-                  onClick={handleAddTask}
-                  className="flex items-center gap-1.5 px-3 py-2 text-[10px] rounded-lg bg-gradient-to-r from-blue-400 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-lg shadow-blue-500/20 hover:shadow-indigo-500/30 active:scale-95 transition-all duration-200 font-black uppercase tracking-wider"
+                  onClick={() => handleAddTask()}
+                  className="flex items-center gap-1.5 px-4 py-2.5 text-[10px] rounded-xl bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black shadow-lg shadow-blue-500/20 dark:shadow-[#e5ff00]/20 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 font-black uppercase tracking-wider"
                 >
                   <FiPlus size={14} />
                   Add Task
@@ -599,33 +663,108 @@ const ProjectTaskBoard = ({
               )}
             </div>
 
-            <div className="overflow-x-auto bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700/50 shadow-sm">
+            <div className="overflow-x-auto bg-white dark:bg-[#111111] rounded-2xl border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-50/50 dark:bg-slate-950/40 text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100 dark:border-slate-800">
-                    <th className="px-6 py-3.5">Name</th>
-                    <th className="px-6 py-3.5">Assignee</th>
-                    <th className="px-6 py-3.5">Due Date</th>
-                    <th className="px-6 py-3.5">Priority</th>
-                    <th className="px-6 py-3.5">Status</th>
-                    <th className="px-6 py-3.5 text-center w-28">Actions</th>
+                  <tr className="bg-slate-50/50 dark:bg-[#0a0a0a]/40 text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100 dark:border-white/5">
+                    <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap min-w-[240px]">Name</th>
+                    <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap min-w-[140px]">Assignee</th>
+                    <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap min-w-[120px]">Due Date</th>
+                    <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap min-w-[120px]">Priority</th>
+                    <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap min-w-[120px]">Status</th>
+                    <th className="px-4 sm:px-6 py-3.5 text-center whitespace-nowrap min-w-[80px]">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                  {activeProjectTasks.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="px-6 py-12 text-center text-slate-400 italic"
-                      >
-                        No tasks assigned to this project yet. Click "+ Add
-                        task" to get started.
-                      </td>
-                    </tr>
-                  ) : (
-                    <>
-                      {activeProjectTasks.map((task) => {
-                        const isExpanded = !!expandedTasks[task._id];
+                <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-xs">
+                  {Array.from(new Set(activeProject.sections?.length > 0 ? activeProject.sections : ["Recently assigned"])).map((sectionName, sectionIndex) => {
+                    const sectionTasks = activeProjectTasks.filter(
+                      (t) => t.section === sectionName || (!t.section && sectionName === "Recently assigned")
+                    );
+                    const isSectionCollapsed = !!collapsedSections[sectionName];
+
+                    return (
+                      <React.Fragment key={`${sectionName}-${sectionIndex}`}>
+                        {/* SECTION HEADER ROW */}
+                        <tr className="bg-slate-50/80 dark:bg-[#1a1a1a]/40 border-y border-slate-200 dark:border-white/5 group">
+                          <td colSpan={6} className="px-6 py-3">
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => toggleSection(sectionName)}
+                                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700"
+                                >
+                                  {isSectionCollapsed ? <FiChevronRight size={14} /> : <FiChevronDown size={14} />}
+                                </button>
+                                {editingSection === sectionName ? (
+                                  <form onSubmit={(e) => handleRenameSectionSubmit(e, sectionName)} className="ml-1">
+                                    <input 
+                                      autoFocus
+                                      value={editSectionValue}
+                                      onChange={e => setEditSectionValue(e.target.value)}
+                                      onBlur={(e) => handleRenameSectionSubmit(e, sectionName)}
+                                      className="text-[11px] font-black uppercase tracking-wider bg-white dark:bg-slate-800 border border-blue-400 rounded px-2 py-0.5 outline-none"
+                                    />
+                                  </form>
+                                ) : (
+                                  <h3 
+                                    className="font-black text-[11px] uppercase tracking-wider text-slate-700 dark:text-slate-300 cursor-pointer select-none"
+                                    onClick={() => toggleSection(sectionName)}
+                                  >
+                                    {sectionName} <span className="text-slate-400 font-medium ml-2">({sectionTasks.length})</span>
+                                  </h3>
+                                )}
+                              </div>
+                              {isAdminOrManager && (
+                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+                                  <button
+                                    onClick={() => handleAddTask(sectionName)}
+                                    className="flex items-center gap-1 text-[10px] font-bold text-blue-600 dark:text-[#e5ff00] hover:text-blue-700 dark:hover:text-[#ccff00]"
+                                  >
+                                    <FiPlus size={12} /> Add Task
+                                  </button>
+                                  
+                                  <div className="relative">
+                                    <button 
+                                      onClick={() => setOpenSectionMenu(openSectionMenu === sectionName ? null : sectionName)}
+                                      className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded hover:bg-slate-200 dark:hover:bg-white/10"
+                                    >
+                                      <FiMoreHorizontal size={14} />
+                                    </button>
+                                    
+                                    {openSectionMenu === sectionName && (
+                                      <div className="absolute right-0 mt-1 w-32 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-lg border border-slate-100 dark:border-white/10 z-50 overflow-hidden">
+                                        <button 
+                                          onClick={() => { setEditingSection(sectionName); setEditSectionValue(sectionName); setOpenSectionMenu(null); }}
+                                          className="w-full text-left px-3 py-2 text-[11px] font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center gap-2"
+                                        >
+                                          <FiEdit2 size={12} /> Rename
+                                        </button>
+                                        <button 
+                                          onClick={() => handleDeleteSection(sectionName)}
+                                          className="w-full text-left px-3 py-2 text-[11px] font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2"
+                                        >
+                                          <FiTrash2 size={12} /> Delete
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+
+                        {/* SECTION TASKS */}
+                        {!isSectionCollapsed && (
+                          sectionTasks.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="px-6 py-6 text-center text-slate-400 italic text-[10px]">
+                              No tasks in this section.
+                            </td>
+                          </tr>
+                        ) : (
+                          sectionTasks.map((task) => {
+                            const isExpanded = !!expandedTasks[task._id];
                         const isCompleted = task.status === "Completed";
                         const canToggle =
                           isAdminOrManager ||
@@ -637,11 +776,11 @@ const ProjectTaskBoard = ({
                             {/* Parent Task Row */}
                             <tr
                               onClick={() => setSelectedTaskId(task._id)}
-                              className={`hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors group cursor-pointer ${
+                              className={`hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group cursor-pointer ${
                                 isCompleted
                                   ? "bg-slate-50/30 text-slate-400 dark:text-slate-500"
                                   : "text-slate-800 dark:text-slate-100"
-                              } ${selectedTaskId === task._id ? "bg-blue-50/40 dark:bg-blue-950/20" : ""}`}
+                              } ${selectedTaskId === task._id ? "bg-blue-50/40 dark:bg-[#e5ff00]/10" : ""}`}
                             >
                               {/* Name Field with Circle Checkbox */}
                               <td className="px-6 py-3.5 font-semibold">
@@ -666,7 +805,7 @@ const ProjectTaskBoard = ({
                                     } ${
                                       isCompleted
                                         ? "bg-emerald-500 border-emerald-500 text-white"
-                                        : "border-slate-300 dark:border-slate-700 hover:border-blue-500 text-transparent hover:text-slate-400"
+                                        : "border-slate-300 dark:border-white/10 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
                                     }`}
                                   >
                                     <FiCheck size={12} />
@@ -690,7 +829,7 @@ const ProjectTaskBoard = ({
                                       e.stopPropagation();
                                       toggleTaskExpanded(task._id);
                                     }}
-                                    className="text-slate-450 hover:text-blue-600 flex items-center gap-0.5 ml-2 text-[10px] font-extrabold shrink-0 uppercase tracking-wider"
+                                    className="text-slate-450 hover:text-blue-600 dark:hover:text-[#e5ff00] flex items-center gap-0.5 ml-2 text-[10px] font-extrabold shrink-0 uppercase tracking-wider"
                                   >
                                     {isExpanded ? (
                                       <FiChevronDown size={14} />
@@ -740,7 +879,7 @@ const ProjectTaskBoard = ({
                                           assignedTo: e.target.value,
                                         })
                                       }
-                                      className="bg-transparent border-0 font-semibold text-slate-700 dark:text-slate-350 hover:bg-slate-105 px-1 py-0.5 rounded cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                      className="bg-transparent border-0 font-semibold text-slate-700 dark:text-slate-350 hover:bg-slate-105 px-1 py-0.5 rounded cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00]"
                                     >
                                       <option value="">Unassigned</option>
                                       {users.map((u) => (
@@ -850,7 +989,7 @@ const ProjectTaskBoard = ({
                                         task.status === "Completed"
                                           ? "bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800/40"
                                           : task.status === "In Progress"
-                                            ? "bg-blue-50 text-blue-700 border-blue-200/50 dark:bg-blue-955/20 dark:text-blue-400 dark:border-blue-800/40"
+                                            ? "bg-blue-50 text-blue-700 border-blue-200/50 dark:bg-[#e5ff00]/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30"
                                             : "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-955/20 dark:text-amber-400 dark:border-amber-800/40"
                                       }`}
                                     >
@@ -964,11 +1103,11 @@ const ProjectTaskBoard = ({
                                               [task._id]: e.target.value,
                                             }))
                                           }
-                                          className="w-full max-w-sm px-3.5 py-1.5 bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 focus:border-blue-500 rounded-xl focus:outline-none text-[11px] text-slate-655 dark:text-slate-300 font-semibold"
+                                          className="w-full max-w-sm px-3.5 py-1.5 bg-slate-50 dark:bg-[#1a1a1a] border border-slate-200 dark:border-white/10 focus:border-blue-500 dark:focus:border-[#e5ff00] rounded-xl focus:outline-none text-[11px] text-slate-655 dark:text-slate-300 font-semibold transition-colors"
                                         />
                                         <button
                                           type="submit"
-                                          className="px-3.5 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 rounded-xl text-[10px] font-bold"
+                                          className="px-3.5 py-1.5 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl text-[10px] font-bold transition-colors"
                                         >
                                           Add
                                         </button>
@@ -980,8 +1119,29 @@ const ProjectTaskBoard = ({
                             )}
                           </React.Fragment>
                         );
-                      })}
-                    </>
+                      })
+                      ))}
+                      </React.Fragment>
+                    );
+                  })}
+                  
+                  {/* ADD SECTION ROW */}
+                  {isAdminOrManager && (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-4 border-t-2 border-slate-100 dark:border-white/5">
+                        {isAddingSection ? (
+                          <form onSubmit={handleAddSectionSubmit} className="flex items-center gap-2">
+                             <input type="text" autoFocus value={newSectionName} onChange={e=>setNewSectionName(e.target.value)} placeholder="New section name..." className="px-3 py-1.5 text-xs font-bold border border-slate-200 dark:border-white/10 rounded-lg bg-transparent focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00] text-slate-700 dark:text-white" />
+                             <button type="submit" className="px-3 py-1.5 bg-blue-600 dark:bg-[#e5ff00] hover:bg-blue-700 dark:hover:bg-[#ccff00] text-white dark:text-black font-bold text-[10px] rounded-lg">Save</button>
+                             <button type="button" onClick={()=>{setIsAddingSection(false); setNewSectionName("");}} className="px-3 py-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 font-bold text-[10px] rounded-lg">Cancel</button>
+                          </form>
+                        ) : (
+                          <button onClick={()=>setIsAddingSection(true)} className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-[#e5ff00] font-bold text-[11px] transition-colors">
+                             <FiPlus size={14} /> Add Section
+                          </button>
+                        )}
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </table>
@@ -999,50 +1159,39 @@ const ProjectTaskBoard = ({
               </div>
 
               {/* Board Columns Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
-                {["Pending", "In Progress", "On Hold", "Completed"].map(
-                  (status) => {
+              <div className="flex gap-4 items-start overflow-x-auto pb-4 hide-scrollbar snap-x">
+                {Array.from(new Set(activeProject.sections?.length > 0 ? activeProject.sections : ["Recently assigned"])).map(
+                  (sectionName) => {
                     const columnTasks = activeProjectTasks.filter(
-                      (t) => t.status === status,
+                      (t) => t.section === sectionName || (!t.section && sectionName === "Recently assigned"),
                     );
 
                     return (
                       <div
-                        key={status}
-                        className="bg-slate-55/60 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm flex flex-col min-h-[380px] max-h-[600px]"
+                        key={sectionName}
+                        className="bg-slate-50/80 dark:bg-[#1a1a1a]/40 p-4 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm flex flex-col min-h-[380px] max-h-[700px] min-w-[280px] sm:min-w-[320px] snap-center shrink-0"
                       >
                         {/* Column Header */}
                         <div className="flex items-center justify-between mb-4 px-1">
                           <div className="flex items-center gap-2">
-                            <span
-                              className={`w-2 h-2 rounded-full ${
-                                status === "Completed"
-                                  ? "bg-emerald-500"
-                                  : status === "In Progress"
-                                    ? "bg-blue-500"
-                                    : status === "On Hold"
-                                      ? "bg-amber-500"
-                                      : "bg-slate-400"
-                              }`}
-                            />
-                            <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-white">
-                              {status}
+                            <h4 className="text-sm font-black text-slate-800 dark:text-white">
+                              {sectionName}
                             </h4>
                           </div>
-                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-slate-200/50 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-slate-200/50 dark:bg-white/10 text-slate-600 dark:text-slate-300">
                             {columnTasks.length}
                           </span>
                         </div>
 
                         {/* Cards Container */}
-                        <StrictModeDroppable droppableId={status}>
+                        <StrictModeDroppable droppableId={sectionName}>
                           {(provided, snapshot) => (
                             <div
                               ref={provided.innerRef}
                               {...provided.droppableProps}
                               className={`flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin rounded-xl p-1 transition-colors ${
                                 snapshot.isDraggingOver
-                                  ? "bg-slate-100/50 dark:bg-slate-800/30 ring-1 ring-blue-400/30"
+                                  ? "bg-slate-100/50 dark:bg-white/5 ring-1 ring-blue-400/30 dark:ring-[#e5ff00]/30"
                                   : ""
                               }`}
                             >
@@ -1063,10 +1212,10 @@ const ProjectTaskBoard = ({
                                         onClick={() =>
                                           setSelectedTaskId(task._id)
                                         }
-                                        className={`bg-white dark:bg-slate-800 p-3.5 rounded-xl border cursor-pointer space-y-3 relative group select-none ${
+                                        className={`bg-white dark:bg-[#111111] p-3.5 rounded-xl border cursor-pointer space-y-3 relative group select-none ${
                                           snapshot.isDragging
-                                            ? "shadow-2xl ring-2 ring-blue-500 scale-[1.03] z-50 border-blue-300 dark:border-blue-700"
-                                            : "border-slate-150 dark:border-slate-700/50 hover:shadow-md hover:border-slate-200 dark:hover:border-slate-600 transition-shadow transition-colors"
+                                            ? "shadow-2xl ring-2 ring-blue-500 dark:ring-[#e5ff00] scale-[1.03] z-50 border-blue-300 dark:border-[#e5ff00]"
+                                            : "border-slate-150 dark:border-white/5 hover:shadow-md hover:border-slate-200 dark:hover:border-[#e5ff00]/50 transition-shadow transition-colors"
                                         }`}
                                       >
                                         <div className="flex items-start gap-2.5">
@@ -1083,7 +1232,7 @@ const ProjectTaskBoard = ({
                                             className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
                                               isCompleted
                                                 ? "bg-emerald-500 border-emerald-500 text-white"
-                                                : "border-slate-350 dark:border-slate-700 hover:border-blue-500 text-transparent"
+                                                : "border-slate-350 dark:border-white/10 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
                                             }`}
                                           >
                                             <FiCheck size={10} />
@@ -1091,7 +1240,7 @@ const ProjectTaskBoard = ({
 
                                           {/* Title */}
                                           <span
-                                            className={`text-xs font-bold leading-relaxed text-slate-850 dark:text-white ${
+                                            className={`text-xs font-bold leading-relaxed text-slate-850 dark:text-white pr-6 ${
                                               isCompleted
                                                 ? "line-through text-slate-400 dark:text-slate-500"
                                                 : ""
@@ -1101,10 +1250,50 @@ const ProjectTaskBoard = ({
                                           </span>
                                         </div>
 
-                                        {/* Card Footer: Assignee & Priority */}
-                                        <div className="flex items-center justify-between pt-1">
+                                        {/* Board Card Extra Data: Tags / Status */}
+                                        <div className="flex flex-wrap items-center gap-1.5 mt-2 mb-3">
+                                          {/* Status Badge */}
+                                          <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${
+                                            task.status === "Completed" ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/40" :
+                                            task.status === "In Progress" ? "bg-blue-50 text-blue-600 border-blue-100 dark:bg-[#e5ff00]/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30" :
+                                            task.status === "On Hold" ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/30 dark:border-amber-900/40" :
+                                            "bg-slate-100 text-slate-500 border-slate-200 dark:bg-white/5 dark:text-slate-400 dark:border-white/10"
+                                          }`}>
+                                            {task.status || "Pending"}
+                                          </span>
+
+                                          {/* Priority Badge */}
+                                          <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${
+                                            task.priority === "High" ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/30 dark:border-rose-900/40" :
+                                            task.priority === "Medium" ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/30 dark:border-amber-900/40" :
+                                            "bg-slate-50 text-slate-500 border-slate-200 dark:bg-[#1a1a1a] dark:text-slate-400 dark:border-white/5"
+                                          }`}>
+                                            {task.priority || "Medium"}
+                                          </span>
+
+                                          {/* Due Date */}
+                                          {task.dueDate && (
+                                            <span className="flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-slate-50 border border-slate-100 text-slate-500 dark:bg-[#1a1a1a] dark:border-white/10 dark:text-slate-400">
+                                              <FiCalendar size={9} />
+                                              {new Date(task.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        {/* Delete Action (visible on hover) */}
+                                        {isAdminOrManager && (
+                                          <button 
+                                            onClick={(e) => { e.stopPropagation(); if(window.confirm('Are you sure you want to delete this task?')) dispatch(deleteTask(task._id)); }}
+                                            className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2 p-1.5 text-rose-500 bg-rose-50 dark:bg-rose-900/30 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/50"
+                                          >
+                                            <FiTrash2 size={12} />
+                                          </button>
+                                        )}
+
+                                        {/* Card Footer: Assignee */}
+                                        <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800">
                                           <div
-                                            className="flex items-center gap-1.5"
+                                            className="flex items-center gap-1.5 pt-1.5"
                                             onClick={(e) => e.stopPropagation()}
                                           >
                                             {/* Assignee Avatar */}
@@ -1174,19 +1363,6 @@ const ProjectTaskBoard = ({
                                               </select>
                                             )}
                                           </div>
-
-                                          {/* Priority Badge */}
-                                          <span
-                                            className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                                              task.priority === "High"
-                                                ? "bg-rose-50 text-rose-700 border border-rose-100 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/40"
-                                                : task.priority === "Medium"
-                                                  ? "bg-amber-50 text-amber-700 border border-amber-100 dark:bg-amber-955/20 dark:text-amber-400 dark:border-amber-900/40"
-                                                  : "bg-slate-50 text-slate-600 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800"
-                                            }`}
-                                          >
-                                            {task.priority || "Medium"}
-                                          </span>
                                         </div>
                                       </div>
                                     )}
@@ -1201,8 +1377,8 @@ const ProjectTaskBoard = ({
                         {/* Column Add Task Button */}
                         {isAdminOrManager && (
                           <button
-                            onClick={() => handleAddTaskWithStatus(status)}
-                            className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white dark:hover:bg-slate-950 transition-colors font-bold text-xs"
+                            onClick={() => handleAddTask(sectionName)}
+                            className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-[#e5ff00] hover:bg-white dark:hover:bg-white/5 transition-colors font-bold text-xs"
                           >
                             <FiPlus size={14} />
                             Add task
@@ -1212,6 +1388,25 @@ const ProjectTaskBoard = ({
                     );
                   },
                 )}
+
+                {/* Add Section Column */}
+                {isAdminOrManager && (
+                  <div className="min-w-[280px] sm:min-w-[320px] snap-center shrink-0">
+                    {isAddingSection ? (
+                      <form onSubmit={handleAddSectionSubmit} className="bg-slate-50/80 dark:bg-[#1a1a1a] p-4 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm flex flex-col gap-2">
+                         <input type="text" autoFocus value={newSectionName} onChange={e=>setNewSectionName(e.target.value)} placeholder="New section name..." className="w-full px-3 py-1.5 text-xs font-bold border border-slate-200 dark:border-white/10 rounded-lg bg-white dark:bg-[#111111] text-slate-700 dark:text-white focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00]" />
+                         <div className="flex gap-2">
+                           <button type="submit" className="w-full py-1.5 bg-blue-600 dark:bg-[#e5ff00] hover:bg-blue-700 dark:hover:bg-[#ccff00] text-white dark:text-black font-bold text-[10px] rounded-lg">Save</button>
+                           <button type="button" onClick={()=>{setIsAddingSection(false); setNewSectionName("");}} className="w-full py-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 font-bold text-[10px] rounded-lg border border-slate-200 dark:border-white/10">Cancel</button>
+                         </div>
+                      </form>
+                    ) : (
+                      <button onClick={()=>setIsAddingSection(true)} className="flex items-center justify-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-[#e5ff00] font-bold text-[13px] transition-colors w-full h-[60px] border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5">
+                         <FiPlus size={16} /> Add Section
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </DragDropContext>
@@ -1219,114 +1414,115 @@ const ProjectTaskBoard = ({
 
         {activeTab === "Timeline" && (
           <div className="space-y-4">
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              Timeline View
-            </h3>
+            <div className="flex items-center gap-4 mb-4">
+               <button className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-md text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1 shadow-sm">
+                 <FiPlus size={12}/> Add task <FiChevronDown size={12} className="ml-1"/>
+               </button>
+               <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+                  <FiChevronRight className="rotate-180 cursor-pointer hover:text-slate-900 dark:hover:text-white" size={14} />
+                  <span>Today</span>
+                  <FiChevronRight className="cursor-pointer hover:text-slate-900 dark:hover:text-white" size={14} />
+               </div>
+            </div>
 
-            {activeProjectTasks.length === 0 ? (
-              <div className="text-center py-20 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850 rounded-3xl">
-                <p className="text-slate-400 italic text-xs font-bold">
-                  No tasks to show in timeline. Add some tasks first.
-                </p>
+            <div className="flex border border-slate-200 dark:border-white/5 bg-white dark:bg-[#111111] min-h-[500px]">
+              {/* Timeline Left Sidebar (Sections) */}
+              <div className="w-[200px] sm:w-[240px] border-r border-slate-200 dark:border-white/5 shrink-0 flex flex-col bg-white dark:bg-[#1a1a1a] z-10 pt-[46px]">
+                {Array.from(new Set(activeProject.sections?.length > 0 ? activeProject.sections : ["Recently assigned"])).map((sectionName) => (
+                  <React.Fragment key={sectionName}>
+                    <div className="border-b border-slate-200 dark:border-white/5 h-10 flex items-center justify-between px-3 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer">
+                      <div className="flex items-center gap-2 text-[11px] font-black text-slate-700 dark:text-slate-300">
+                         <FiChevronDown size={14} className="text-slate-500" />
+                         <span className="truncate">{sectionName}</span>
+                      </div>
+                      {isAdminOrManager && (
+                        <button onClick={(e) => { e.stopPropagation(); handleAddTask(sectionName); }} className="p-1 hover:bg-slate-200 dark:hover:bg-white/10 dark:hover:text-[#e5ff00] rounded text-slate-400 transition-colors">
+                           <FiPlus size={12} />
+                        </button>
+                      )}
+                    </div>
+                    {/* Render tasks under section in sidebar */}
+                    {activeProjectTasks.filter(t => (t.section === sectionName || (!t.section && sectionName === "Recently assigned"))).map(task => (
+                      <div key={`sidebar-${task._id}`} onClick={() => setSelectedTaskId(task._id)} className="border-b border-slate-100 dark:border-white/5 h-8 flex items-center px-3 pl-8 hover:bg-blue-50 dark:hover:bg-white/5 cursor-pointer">
+                         <span className="truncate text-[10px] font-bold text-slate-600 dark:text-slate-400">{task.title}</span>
+                      </div>
+                    ))}
+                  </React.Fragment>
+                ))}
+                {isAdminOrManager && (
+                  <div className="py-3 px-3 h-10 flex items-center">
+                    <button onClick={()=>setIsAddingSection(true)} className="flex items-center gap-2 text-[11px] font-black text-slate-500 hover:text-slate-800 dark:hover:text-[#e5ff00] transition-colors">
+                      <FiPlus size={12} /> Add section
+                    </button>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="relative pl-6 sm:pl-8 border-l-2 border-dashed border-slate-200 dark:border-slate-800 space-y-8 py-4 max-w-2xl">
-                {[...activeProjectTasks]
-                  .sort((a, b) => {
-                    if (!a.dueDate) return 1;
-                    if (!b.dueDate) return -1;
-                    return new Date(a.dueDate) - new Date(b.dueDate);
-                  })
-                  .map((task, index) => {
-                    const isCompleted = task.status === "Completed";
-                    return (
-                      <motion.div
-                        key={task._id}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        onClick={() => setSelectedTaskId(task._id)}
-                        className="relative group cursor-pointer"
-                      >
-                        {/* Timeline Bullet Node */}
-                        <div
-                          className={`absolute -left-[31px] sm:-left-[39px] top-1.5 w-4.5 h-4.5 rounded-full border-4 border-white dark:border-slate-900 flex items-center justify-center shadow-sm ${
-                            isCompleted
-                              ? "bg-emerald-500"
-                              : task.status === "In Progress"
-                                ? "bg-blue-500"
-                                : "bg-amber-500"
-                          }`}
-                        >
-                          <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                        </div>
+              
+              {/* Timeline Right Grid Area */}
+              <div className="flex-1 overflow-x-auto relative hide-scrollbar">
+                 {/* Timeline Header (Months & Weeks) */}
+                 <div className="flex flex-col border-b border-slate-200 dark:border-white/5 min-w-[800px] bg-white dark:bg-[#1a1a1a] sticky top-0 z-20">
+                    <div className="flex h-5 items-center">
+                       <div className="w-1/2 px-2 text-[10px] font-bold text-slate-600 dark:text-slate-400">May <span className="ml-2">June</span></div>
+                    </div>
+                    <div className="flex border-t border-slate-200 dark:border-white/5 h-6">
+                       <div className="w-1/4 px-2 text-[10px] flex items-center font-medium text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-white/5 bg-[#f9f9f9] dark:bg-[#111111]">W23 <span className="ml-2">May 31 - 6</span></div>
+                       <div className="w-1/4 px-2 text-[10px] flex items-center font-medium text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-white/5 bg-[#f9f9f9] dark:bg-[#111111]">W24 <span className="ml-2">7 - 13</span></div>
+                       <div className="w-1/4 px-2 text-[10px] flex items-center font-medium text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-white/5 bg-[#f9f9f9] dark:bg-[#111111]">W25 <span className="ml-2">14 - 20</span></div>
+                       <div className="w-1/4 px-2 text-[10px] flex items-center font-medium text-slate-500 dark:text-slate-400 bg-[#f9f9f9] dark:bg-[#111111]">W26 <span className="ml-2">21 - 27</span></div>
+                    </div>
+                 </div>
+                 
+                 {/* Timeline Body (Grid) */}
+                 <div className="relative min-w-[800px] h-full w-full">
+                    {/* Background grid */}
+                    <div className="absolute inset-0 flex w-full pointer-events-none">
+                      {[...Array(28)].map((_, i) => (
+                        <div key={i} className={`flex-1 border-r border-slate-200 dark:border-white/5 h-full ${[5,6,12,13,19,20,26,27].includes(i) ? 'bg-slate-100/50 dark:bg-white/5' : ''}`} />
+                      ))}
+                    </div>
 
-                        {/* Timeline Card */}
-                        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-150 dark:border-slate-700/50 hover:shadow-md transition-all">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <span className="text-[10px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-wider flex items-center gap-1">
-                              <FiCalendar size={11} />
-                              {task.dueDate
-                                ? new Date(task.dueDate).toLocaleDateString(
-                                    undefined,
-                                    {
-                                      month: "short",
-                                      day: "numeric",
-                                      year: "numeric",
-                                    },
-                                  )
-                                : "No due date set"}
-                            </span>
-
-                            <span
-                              className={`px-2 py-0.5 rounded text-[8px] font-extrabold border uppercase tracking-wider w-fit ${
-                                task.priority === "High"
-                                  ? "bg-rose-50 text-rose-700 border-rose-100"
-                                  : task.priority === "Medium"
-                                    ? "bg-amber-50 text-amber-700 border-amber-100"
-                                    : "bg-slate-50 text-slate-600 border-slate-200"
-                              }`}
-                            >
-                              {task.priority || "Medium"}
-                            </span>
-                          </div>
-
-                          <h4
-                            className={`text-xs font-bold mt-2 text-slate-800 dark:text-white ${
-                              isCompleted
-                                ? "line-through text-slate-400 dark:text-slate-500"
-                                : ""
-                            }`}
-                          >
-                            {task.title}
-                          </h4>
-
-                          <div className="flex items-center justify-between mt-3.5 pt-2 border-t border-slate-100 dark:border-slate-800/60">
-                            <span className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                              Status: {task.status || "Pending"}
-                            </span>
-
-                            {/* Assignee Badge */}
-                            {task.assignedTo && (
-                              <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-605">
-                                <div
-                                  className={`w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-black bg-gradient-to-br ${getAvatarColor(task.assignedTo.name)}`}
+                    {/* Task Rows mapped parallel to sections */}
+                    <div className="relative z-10 w-full flex flex-col pb-20">
+                      {Array.from(new Set(activeProject.sections?.length > 0 ? activeProject.sections : ["Recently assigned"])).map((sectionName) => (
+                        <React.Fragment key={`grid-${sectionName}`}>
+                          <div className="h-10 border-b border-slate-200 dark:border-white/5 w-full" />
+                          {activeProjectTasks.filter(t => (t.section === sectionName || (!t.section && sectionName === "Recently assigned"))).map(task => {
+                             // Dynamic simulated positioning logic based on task ID for robust Gantt display without full D3/date engines
+                             const hash = task._id ? task._id.charCodeAt(task._id.length - 1) % 20 : 0; 
+                             const width = task._id ? 3 + (task._id.charCodeAt(task._id.length - 2) % 4) : 4;
+                             
+                             return (
+                              <div key={`grid-task-${task._id}`} className="h-8 border-b border-slate-100 dark:border-white/5 w-full relative group">
+                                <div 
+                                  onClick={() => setSelectedTaskId(task._id)}
+                                  style={{ left: `${(hash / 28) * 100}%`, width: `${(width / 28) * 100}%` }}
+                                  className={`absolute top-1.5 h-5 rounded shadow-sm text-[9px] font-bold text-white px-1.5 flex items-center truncate cursor-pointer transition-transform hover:scale-[1.02] hover:brightness-110 ${
+                                    task.status === 'Completed' ? 'bg-emerald-500' :
+                                    task.status === 'In Progress' ? 'bg-blue-500' :
+                                    task.status === 'On Hold' ? 'bg-amber-500' : 'bg-slate-400'
+                                  }`}
                                 >
-                                  {task.assignedTo.name
-                                    ?.split(" ")
-                                    .map((n) => n[0])
-                                    .join("") || "U"}
+                                  {task.title}
                                 </div>
-                                <span>{task.assignedTo.name}</span>
+                                {isAdminOrManager && (
+                                  <button onClick={(e) => { e.stopPropagation(); if(window.confirm('Delete this task?')) dispatch(deleteTask(task._id)); }} className="absolute right-4 top-1.5 opacity-0 group-hover:opacity-100 text-rose-500 p-1 bg-white dark:bg-[#111111] rounded z-20 hover:bg-rose-50 dark:hover:bg-white/5 border border-rose-100 dark:border-white/10 shadow-sm transition-opacity">
+                                    <FiTrash2 size={10} />
+                                  </button>
+                                )}
                               </div>
-                            )}
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
+                             )
+                          })}
+                        </React.Fragment>
+                      ))}
+                    </div>
+
+                    {/* Today Line */}
+                    <div className="absolute top-0 bottom-0 left-[35.7%] w-px bg-[#4f46e5] z-10 pointer-events-none" />
+                    <div className="absolute -top-1 left-[35.7%] -translate-x-1/2 w-2 h-2 rounded-full bg-[#4f46e5] z-10 pointer-events-none" />
+                 </div>
               </div>
-            )}
+            </div>
           </div>
         )}
 
@@ -1339,7 +1535,7 @@ const ProjectTaskBoard = ({
             {/* Stats Cards Grid - Premium Gradients */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {/* Card 1: Total Completed */}
-              <div className="relative overflow-hidden p-5 rounded-2xl shadow-sm border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 group">
+              <div className="relative overflow-hidden p-5 rounded-2xl shadow-sm border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-[#111111] border-slate-200 dark:border-white/5 group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-20"></div>
                 <div className="relative z-10">
                   <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -1349,29 +1545,29 @@ const ProjectTaskBoard = ({
                     {completedTasks}
                   </div>
                 </div>
-                <div className="relative z-10 text-[10px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-slate-800 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                <div className="relative z-10 text-[10px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
                   <FiClock size={11} /> 1 Filter
                 </div>
               </div>
 
               {/* Card 2: Total Incomplete */}
-              <div className="relative overflow-hidden p-5 rounded-2xl shadow-sm border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-20"></div>
+              <div className="relative overflow-hidden p-5 rounded-2xl shadow-sm border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-[#111111] border-slate-200 dark:border-white/5 group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 dark:bg-[#e5ff00] rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-20"></div>
                 <div className="relative z-10">
                   <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Total incomplete tasks
                   </h4>
-                  <div className="text-4xl font-black mt-4 drop-shadow-sm text-blue-500 dark:text-blue-400">
+                  <div className="text-4xl font-black mt-4 drop-shadow-sm text-blue-500 dark:text-[#e5ff00]">
                     {incompleteTasks}
                   </div>
                 </div>
-                <div className="relative z-10 text-[10px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-slate-800 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                <div className="relative z-10 text-[10px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
                   <FiClock size={11} /> 1 Filter
                 </div>
               </div>
 
               {/* Card 3: Total Overdue */}
-              <div className="relative overflow-hidden p-5 rounded-2xl shadow-sm border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 group">
+              <div className="relative overflow-hidden p-5 rounded-2xl shadow-sm border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-[#111111] border-slate-200 dark:border-white/5 group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-20"></div>
                 <div className="relative z-10">
                   <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -1381,13 +1577,13 @@ const ProjectTaskBoard = ({
                     {overdueTasks}
                   </div>
                 </div>
-                <div className="relative z-10 text-[10px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-slate-800 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                <div className="relative z-10 text-[10px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
                   <FiClock size={11} /> 1 Filter
                 </div>
               </div>
 
               {/* Card 4: Total Tasks */}
-              <div className="relative overflow-hidden p-5 rounded-2xl shadow-sm border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 group">
+              <div className="relative overflow-hidden p-5 rounded-2xl shadow-sm border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-[#111111] border-slate-200 dark:border-white/5 group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-slate-400 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-10"></div>
                 <div className="relative z-10">
                   <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -1397,7 +1593,7 @@ const ProjectTaskBoard = ({
                     {totalTasks}
                   </div>
                 </div>
-                <div className="relative z-10 text-[10px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-slate-800 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                <div className="relative z-10 text-[10px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
                   <FiClock size={11} /> No Filters
                 </div>
               </div>
@@ -1406,105 +1602,62 @@ const ProjectTaskBoard = ({
             {/* Reports Charts Area */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               {/* Chart 1: Total incomplete tasks by section (Status Breakdown) */}
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/40 dark:shadow-slate-900/40 flex flex-col transition-all duration-300 hover:shadow-2xl hover:border-slate-200 dark:hover:border-slate-700">
+              <div className="bg-white dark:bg-[#111111] p-6 rounded-2xl border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-[0_0_20px_rgba(229,255,0,0.05)] flex flex-col transition-all duration-300 hover:shadow-2xl hover:border-slate-200 dark:hover:border-[#e5ff00]/30">
                 <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider mb-8">
                   Total incomplete tasks by section
                 </h4>
 
                 {/* Custom SVG Bar Chart */}
-                <div className="flex-1 min-h-[220px] flex items-end justify-around pb-6 border-b border-slate-100 dark:border-slate-800 relative">
+                <div className="flex-1 min-h-[220px] flex items-end justify-around pb-6 border-b border-slate-100 dark:border-white/5 relative">
                   {/* Grid Lines */}
                   <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-6 opacity-30">
-                    <div className="border-b border-slate-200 dark:border-slate-700 w-full border-dashed" />
-                    <div className="border-b border-slate-200 dark:border-slate-700 w-full border-dashed" />
-                    <div className="border-b border-slate-200 dark:border-slate-700 w-full border-dashed" />
+                    <div className="border-b border-slate-200 dark:border-white/10 w-full border-dashed" />
+                    <div className="border-b border-slate-200 dark:border-white/10 w-full border-dashed" />
+                    <div className="border-b border-slate-200 dark:border-white/10 w-full border-dashed" />
                   </div>
 
-                  {/* Pending Bar */}
-                  <div className="flex flex-col items-center gap-2 z-10 w-20 group cursor-default">
-                    <span className="text-xs font-black text-slate-600 dark:text-slate-400 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                      {pendingCount}
-                    </span>
-                    <motion.div
-                      initial={{ height: 0 }}
-                      animate={{
-                        height: `${totalTasks > 0 ? Math.max((pendingCount / totalTasks) * 140, 10) : 10}px`,
-                      }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 60,
-                        damping: 15,
-                        delay: 0.1,
-                      }}
-                      className="w-12 bg-gradient-to-t from-indigo-600 to-indigo-400 rounded-xl shadow-lg shadow-indigo-500/30 group-hover:brightness-110 transition-all duration-300"
-                    />
-                    <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider pt-1">
-                      Pending
-                    </span>
-                  </div>
+                  {/* Dynamic Section Bars */}
+                  {Array.from(new Set(activeProject.sections?.length > 0 ? activeProject.sections : ["Recently assigned"])).map((sectionName, index) => {
+                    const sectionIncompleteCount = activeProjectTasks.filter(
+                      (t) => (t.section === sectionName || (!t.section && sectionName === "Recently assigned")) && t.status !== "Completed"
+                    ).length;
 
-                  {/* In Progress Bar */}
-                  <div className="flex flex-col items-center gap-2 z-10 w-20 group cursor-default">
-                    <span className="text-xs font-black text-slate-600 dark:text-slate-400 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                      {inProgressCount}
-                    </span>
-                    <motion.div
-                      initial={{ height: 0 }}
-                      animate={{
-                        height: `${totalTasks > 0 ? Math.max((inProgressCount / totalTasks) * 140, 10) : 10}px`,
-                      }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 60,
-                        damping: 15,
-                        delay: 0.2,
-                      }}
-                      className="w-12 bg-gradient-to-t from-blue-500 to-cyan-400 rounded-xl shadow-lg shadow-blue-500/30 group-hover:brightness-110 transition-all duration-300"
-                    />
-                    <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider pt-1">
-                      In Progress
-                    </span>
-                  </div>
-
-                  {/* On Hold Bar */}
-                  <div className="flex flex-col items-center gap-2 z-10 w-20 group cursor-default">
-                    <span className="text-xs font-black text-slate-600 dark:text-slate-400 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                      {onHoldCount}
-                    </span>
-                    <motion.div
-                      initial={{ height: 0 }}
-                      animate={{
-                        height: `${totalTasks > 0 ? Math.max((onHoldCount / totalTasks) * 140, 10) : 10}px`,
-                      }}
-                      transition={{
-                        type: "spring",
-                        stiffness: 60,
-                        damping: 15,
-                        delay: 0.3,
-                      }}
-                      className="w-12 bg-gradient-to-t from-amber-500 to-yellow-400 rounded-xl shadow-lg shadow-amber-500/30 group-hover:brightness-110 transition-all duration-300"
-                    />
-                    <span className="text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 tracking-wider pt-1">
-                      On Hold
-                    </span>
-                  </div>
+                    return (
+                      <div key={sectionName} className="flex flex-col items-center gap-2 z-10 w-16 group cursor-default shrink-0">
+                        <span className="text-xs font-black text-slate-600 dark:text-slate-400 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                          {sectionIncompleteCount}
+                        </span>
+                        <motion.div
+                          initial={{ height: 0 }}
+                          animate={{
+                            height: `${totalTasks > 0 ? Math.max((sectionIncompleteCount / totalTasks) * 140, 2) : 2}px`,
+                          }}
+                          transition={{ delay: index * 0.1 }}
+                          className="w-10 rounded-t-xl bg-gradient-to-t from-blue-600 to-cyan-400 dark:from-[#99cc00] dark:to-[#e5ff00] shadow-[0_0_15px_rgba(56,189,248,0.3)] dark:shadow-[0_0_15px_rgba(229,255,0,0.3)] transition-all duration-300 group-hover:brightness-125"
+                        />
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-wider pt-1 -rotate-45 origin-top-left mt-6 truncate w-16 text-right">
+                          {sectionName.length > 10 ? sectionName.substring(0,10)+'...' : sectionName}
+                        </span>
+                      </div>
+                    )
+                  })}
                 </div>
 
                 <div className="text-[10px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-wider pt-4 flex items-center justify-between">
                   <span>2 Filters Active</span>
-                  <button className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all shadow-sm">
+                  <button className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#1a1a1a] text-blue-600 dark:text-[#e5ff00] hover:bg-slate-200 dark:hover:bg-white/10 transition-all shadow-sm">
                     View Details
                   </button>
                 </div>
               </div>
 
               {/* Chart 2: Total tasks by completion status (Donut Chart) */}
-              <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/40 dark:shadow-slate-900/40 flex flex-col transition-all duration-300 hover:shadow-2xl hover:border-slate-200 dark:hover:border-slate-700">
+              <div className="bg-white dark:bg-[#111111] p-6 rounded-2xl border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-[0_0_20px_rgba(229,255,0,0.05)] flex flex-col transition-all duration-300 hover:shadow-2xl hover:border-slate-200 dark:hover:border-[#e5ff00]/30">
                 <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider mb-6">
                   Total tasks by completion status
                 </h4>
 
-                <div className="flex-1 flex items-center justify-center gap-10 py-4 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex-1 flex items-center justify-center gap-10 py-4 border-b border-slate-100 dark:border-white/5">
                   {/* SVG Donut Chart */}
                   <div className="relative w-36 h-36 flex items-center justify-center filter drop-shadow-md">
                     <svg
@@ -1518,7 +1671,7 @@ const ProjectTaskBoard = ({
                         r="15.915"
                         fill="transparent"
                         stroke="rgba(226, 232, 240, 0.4)" // Light slate for track
-                        className="dark:stroke-slate-800"
+                        className="dark:stroke-white/5"
                         strokeWidth="3.5"
                       />
                       {/* Foreground Circle (Incomplete) */}
@@ -1552,10 +1705,10 @@ const ProjectTaskBoard = ({
                           x2="100%"
                           y2="100%"
                         >
-                          <stop offset="0%" stopColor="#8b5cf6" />{" "}
-                          {/* Violet 500 */}
-                          <stop offset="100%" stopColor="#ec4899" />{" "}
-                          {/* Pink 500 */}
+                          <stop offset="0%" stopColor="#8b5cf6" className="dark:stop-color-[#99cc00]" />{" "}
+                          {/* Violet 500 / Lime */}
+                          <stop offset="100%" stopColor="#ec4899" className="dark:stop-color-[#e5ff00]" />{" "}
+                          {/* Pink 500 / Neon Lime */}
                         </linearGradient>
                       </defs>
                     </svg>
@@ -1567,7 +1720,7 @@ const ProjectTaskBoard = ({
                       transition={{ delay: 0.5, type: "spring" }}
                       className="absolute inset-0 flex flex-col items-center justify-center"
                     >
-                      <span className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-br from-violet-600 to-pink-500 drop-shadow-sm">
+                      <span className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-br from-violet-600 to-pink-500 dark:from-[#99cc00] dark:to-[#e5ff00] drop-shadow-sm">
                         {incompleteTasks}
                       </span>
                       <span className="text-[8px] font-black uppercase text-slate-400 mt-1">
@@ -1579,7 +1732,7 @@ const ProjectTaskBoard = ({
                   {/* Legend details */}
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 shadow-sm shadow-violet-500/40 shrink-0" />
+                      <div className="w-4 h-4 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 dark:from-[#99cc00] dark:to-[#e5ff00] shadow-sm shadow-violet-500/40 dark:shadow-[#e5ff00]/40 shrink-0" />
                       <div>
                         <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                           Incomplete
@@ -1590,7 +1743,7 @@ const ProjectTaskBoard = ({
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-slate-700 shadow-sm shrink-0 border border-slate-300 dark:border-slate-600" />
+                      <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-white/5 shadow-sm shrink-0 border border-slate-300 dark:border-white/10" />
                       <div>
                         <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                           Completed
@@ -1605,7 +1758,7 @@ const ProjectTaskBoard = ({
 
                 <div className="text-[10px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-wider pt-4 flex items-center justify-between">
                   <span>1 Filter Active</span>
-                  <button className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all shadow-sm">
+                  <button className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#1a1a1a] text-blue-600 dark:text-[#e5ff00] hover:bg-slate-200 dark:hover:bg-white/10 transition-all shadow-sm">
                     View Details
                   </button>
                 </div>
@@ -1625,7 +1778,7 @@ const ProjectTaskBoard = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedTaskId(null)}
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]"
+              className="absolute inset-0 bg-[#111111]/70 backdrop-blur-sm"
             />
 
             {/* Side Sheet Panel */}
@@ -1634,12 +1787,12 @@ const ProjectTaskBoard = ({
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "tween", ease: "easeOut", duration: 0.3 }}
-              className="relative w-full max-w-2xl bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col z-10 border-l border-slate-100 dark:border-slate-800"
+              className="relative w-full max-w-2xl bg-white dark:bg-[#111111] h-full shadow-2xl flex flex-col z-10 border-l border-slate-100 dark:border-white/5"
             >
               {/* Drawer Header */}
-              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
+              <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-[#1a1a1a]">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm shrink-0">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-[#e5ff00]/10 border border-blue-100 dark:border-[#e5ff00]/20 flex items-center justify-center text-blue-600 dark:text-[#e5ff00] shadow-sm shrink-0">
                     <FiBriefcase size={20} />
                   </div>
                   <div>
@@ -1653,7 +1806,7 @@ const ProjectTaskBoard = ({
                 </div>
                 <button
                   onClick={() => setSelectedTaskId(null)}
-                  className="w-8 h-8 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-655 transition-colors"
+                  className="w-8 h-8 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 flex items-center justify-center text-slate-400 hover:text-slate-655 transition-colors"
                 >
                   <FiX size={18} />
                 </button>
@@ -1666,7 +1819,7 @@ const ProjectTaskBoard = ({
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
                     Task Title
                   </label>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-950/50 border border-slate-150 dark:border-slate-800 rounded-xl focus-within:bg-white dark:focus-within:bg-slate-950 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
+                  <div className="p-3 bg-slate-50 dark:bg-[#0a0a0a]/50 border border-slate-150 dark:border-white/10 rounded-xl focus-within:bg-white dark:focus-within:bg-[#111111] focus-within:ring-1 focus-within:ring-blue-500 dark:focus-within:ring-[#e5ff00] transition-all">
                     <TaskTitleInput
                       task={selectedTask}
                       canToggle={
@@ -1681,7 +1834,7 @@ const ProjectTaskBoard = ({
                 </div>
 
                 {/* Metadata Fields Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50/50 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50/50 dark:bg-[#0a0a0a]/40 p-4 rounded-2xl border border-slate-100 dark:border-white/5">
                   {/* Status Selection */}
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -1695,7 +1848,7 @@ const ProjectTaskBoard = ({
                             status: e.target.value,
                           })
                         }
-                        className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00]"
                       >
                         <option
                           value="Pending"
@@ -1750,11 +1903,11 @@ const ProjectTaskBoard = ({
                             assignedTo: e.target.value,
                           })
                         }
-                        className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00]"
                       >
                         <option
                           value=""
-                          className="dark:bg-slate-950 dark:text-slate-200"
+                          className="dark:bg-[#111] dark:text-slate-200"
                         >
                           Unassigned
                         </option>
@@ -1762,14 +1915,14 @@ const ProjectTaskBoard = ({
                           <option
                             key={u._id}
                             value={u._id}
-                            className="dark:bg-slate-950 dark:text-slate-200"
+                            className="dark:bg-[#111] dark:text-slate-200"
                           >
                             {u.name}
                           </option>
                         ))}
                       </select>
                     ) : (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
+                      <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl">
                         {selectedTask.assignedTo?.profileImage?.url ? (
                           <img
                             src={selectedTask.assignedTo.profileImage.url}
@@ -1815,10 +1968,10 @@ const ProjectTaskBoard = ({
                             dueDate: e.target.value,
                           })
                         }
-                        className="w-full bg-white dark:bg-slate-955 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00]"
                       />
                     ) : (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300">
                         <FiClock className="text-slate-400" size={13} />
                         {selectedTask.dueDate
                           ? new Date(selectedTask.dueDate).toLocaleDateString()
@@ -1840,11 +1993,11 @@ const ProjectTaskBoard = ({
                             priority: e.target.value,
                           })
                         }
-                        className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00]"
                       >
                         <option
                           value="Low"
-                          className="dark:bg-slate-955 dark:text-slate-200"
+                          className="dark:bg-[#111] dark:text-slate-200"
                         >
                           Low
                         </option>
@@ -1879,7 +2032,7 @@ const ProjectTaskBoard = ({
 
                 {/* Subtask workspace inside the preview drawer */}
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2">
                     <h3 className="text-xs font-black text-slate-500 uppercase tracking-wider">
                       Subtasks Workspace ({selectedTask.subtasks?.length || 0})
                     </h3>
@@ -1893,7 +2046,7 @@ const ProjectTaskBoard = ({
                   {/* Subtask list */}
                   <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
                     {selectedTask.subtasks?.length === 0 ? (
-                      <div className="text-center py-6 text-slate-400 text-xs italic bg-slate-55/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-800/80">
+                      <div className="text-center py-6 text-slate-400 text-xs italic bg-slate-55/30 rounded-xl border border-dashed border-slate-200 dark:border-white/10">
                         No subtasks created. Type above to add multiple subtasks
                         continuously.
                       </div>

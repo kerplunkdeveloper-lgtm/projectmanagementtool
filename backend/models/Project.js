@@ -17,6 +17,10 @@ const ProjectSchema = new mongoose.Schema(
       enum: ["Active", "Completed", "On Hold", "Inactive"],
       default: "Active",
     },
+    sections: {
+      type: [String],
+      default: ["Recently assigned"],
+    },
   },
   {
     timestamps: true,

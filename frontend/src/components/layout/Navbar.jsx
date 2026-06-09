@@ -45,6 +45,9 @@ const Navbar = ({ setSidebarOpen }) => {
 
   const { data: notifications = [] } = useGetNotificationsQuery(undefined, {
     skip: !user,
+    pollingInterval: 3000,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
   });
 
   const [markAsReadTrigger] = useMarkAsReadMutation();
