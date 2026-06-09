@@ -93,7 +93,7 @@ const Navbar = ({ setSidebarOpen }) => {
 
   const getPageTitle = () => {
     const path = location.pathname.toLowerCase();
-    if (path.includes("dashboard")) return "Dashboard";
+    if (path.includes("dashboard")) return user?.department ? `${user.department} Dashboard` : "Dashboard";
     if (path.includes("clients")) return "Clients";
     if (path.includes("projects")) return "Projects";
     if (path.includes("tasks")) return "Tasks";
@@ -105,7 +105,7 @@ const Navbar = ({ setSidebarOpen }) => {
     if (path.includes("report") || path.includes("eod")) return "EOD";
     if (path.includes("calendar") || path.includes("calendor"))
       return "Calendar";
-    return "Dashboard";
+    return user?.department ? `${user.department} Dashboard` : "Dashboard";
   };
 
   const pageTitle = getPageTitle();
@@ -300,6 +300,8 @@ const Navbar = ({ setSidebarOpen }) => {
                               navigate(
                                 `/${user?.role}/chat?id=${n.chatRoomId}`,
                               );
+                            } else if (n.type?.includes("task")) {
+                              navigate(`/${user?.role}/tasks`);
                             } else if (n.project && user?.role !== "team") {
                               navigate(
                                 `/${user?.role}/projects?id=${n.project}`,

@@ -170,6 +170,8 @@ const Notifications = () => {
                     }
                     if (n.type === "message_received" || n.chatRoomId) {
                       navigate(`/${user?.role}/chat?id=${n.chatRoomId}`);
+                    } else if (n.type?.includes("task")) {
+                      navigate(`/${user?.role}/tasks`);
                     } else if (n.project && user?.role !== "team") {
                       navigate(`/${user?.role}/projects?id=${n.project}`);
                     } else {
