@@ -6,7 +6,7 @@
 
 /* Responsive base font sizes for proper scaling across devices */
 html {
-  font-size: 20px; /* Base size for mobile devices */
+  font-size: 15px; /* Base size for mobile devices */
 }
 
 @media (min-width: 768px) {
