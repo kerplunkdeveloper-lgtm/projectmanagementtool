@@ -153,6 +153,11 @@ const AppRoutes = () => {
           element={<Clients />}
         />
 
+           <Route
+          path="portfolio"
+          element={<Portfolio />}
+        />
+
         <Route
           path="projects"
           element={<Project />} 

@@ -88,6 +88,11 @@ export const sidebarConfig = {
       icon: LuBuilding2,
     },
     {
+      name: "Portfolio",
+      path: "/operationmanager/portfolio",
+      icon: LuFolderOpen,
+    },
+    {
       name: "Projects",
       path: "/operationmanager/projects",
       icon: LuFolderKanban,
