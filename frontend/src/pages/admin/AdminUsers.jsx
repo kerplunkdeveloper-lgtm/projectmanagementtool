@@ -209,6 +209,14 @@ const AdminUsers = () => {
     filteredUsers.length / USERS_PER_PAGE
   );
 
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    } else if (totalPages === 0 && currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+
   const startIndex =
     (currentPage - 1) *
     USERS_PER_PAGE;

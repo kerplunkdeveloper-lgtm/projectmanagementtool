@@ -96,8 +96,18 @@ const Clients = () => {
     e.preventDefault();
     const payload = {
       ...formData,
+      budget: formData.budget === "" ? 0 : Number(formData.budget),
+      gst: formData.gst === "" ? 18 : Number(formData.gst),
+      reels: formData.reels === "" ? 0 : Number(formData.reels),
+      posts: formData.posts === "" ? 0 : Number(formData.posts),
+      videos: formData.videos === "" ? 0 : Number(formData.videos),
+      pages: formData.pages === "" ? 0 : Number(formData.pages),
       totalBudget: calculateTotal(),
     };
+
+    if (!payload.assignedTo) {
+      delete payload.assignedTo;
+    }
 
     if (editId) {
       await dispatch(updateClient({ id: editId, data: payload }));
@@ -205,7 +215,7 @@ const Clients = () => {
               setActiveTab("profile");
               setShowModal(true);
             }}
-            className="dashboard-btn-primary dark:dashboard-btn-primary   px-5 py-3 rounded-xl flex items-center  justify-center gap-2.5 shadow-md hover:shadow-lg text-xs font-black active:scale-[0.98] transition-all cursor-pointer"
+            className="dashboard-btn-primary dark:dashboard-btn-primary   px-5 py-3 rounded-xl flex items-center  justify-center gap-2.5 shadow-md hover:shadow-lg text-xs font-medium active:scale-[0.98] transition-all cursor-pointer"
           >
             <FiPlus size={15} className="stroke-[3]" />
             Add New Client
@@ -214,7 +224,7 @@ const Clients = () => {
       </div>
 
       {/* SEARCH + FILTER CONTROLS */}
-      <div className="bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-slate-800/80 rounded-2xl p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
+      <div className="bg-white dark:bg-slate-800 border theme-border rounded-2xl shadow-xl  p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
         
         {/* SEARCH BOX */}
         <div className="relative w-full md:w-80">
@@ -263,7 +273,7 @@ const Clients = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse whitespace-nowrap min-w-[900px]">
               <thead>
-                <tr className="border-b theme-border text-[10px] uppercase tracking-wider theme-text-secondary font-black">
+                <tr className="border-b theme-border text-xs uppercase tracking-wider theme-text-secondary font-black">
                   <th className="px-5 py-4">Client Details</th>
                   <th className="px-5 py-4">Contact Info</th>
                   <th className="px-5 py-4">Service & Plan</th>
@@ -290,12 +300,14 @@ const Clients = () => {
                           {/* Client Info */}
                           <td className="px-5 py-4">
                             <div className="flex items-center gap-3">
-                             
+                              <div className={`w-10 h-10 rounded-xl flex shrink-0 items-center justify-center font-medium text-[16px] shadow-sm ${conf.bg} ${conf.text}`}>
+                                {client.companyName ? client.companyName.charAt(0).toUpperCase() : "?"}
+                              </div>
                               <div className="min-w-[120px]">
-                                <h2 className="text-[13px] text-blue-300 dark:text-[#e5ff00] font-extrabold transition-colors truncate">
+                                <h2 className="text-[15px] text-blue-500 dark:text-[#e5ff00] font-medium  transition-colors truncate">
                                   {client.companyName}
                                 </h2>
-                                <p className="text-[10px] theme-text-secondary font-bold flex items-center gap-1.5 mt-0.5 truncate">
+                                <p className="text-[11px] theme-text-secondary font-bold flex items-center gap-1.5 mt-0.5 truncate">
                                   <FiBriefcase size={10} />
                                   {client.industry}
                                 </p>
@@ -309,37 +321,37 @@ const Clients = () => {
                               {client.phoneNumber ? (
                                 <a
                                   href={`tel:${client.phoneNumber}`}
-                                  className="flex items-center gap-1.5 text-[10px] theme-text-secondary hover:text-blue-500 font-semibold"
+                                  className="flex items-center gap-1.5 text-[11px] theme-text-secondary hover:text-blue-500 font-semibold"
                                 >
                                   <FiPhone size={10} className="theme-icon" />
                                   {client.phoneNumber}
                                 </a>
-                              ) : <span className="text-[10px] theme-text-secondary italic">No Phone</span>}
+                              ) : <span className="text-[11px] theme-text-secondary italic">No Phone</span>}
                               
                               {client.email ? (
                                 <a
                                   href={`mailto:${client.email}`}
-                                  className="flex items-center gap-1.5 text-[10px] theme-text-secondary hover:text-blue-500 font-semibold truncate max-w-[150px]"
+                                  className="flex items-center gap-1.5 text-[11px] theme-text-secondary hover:text-blue-500 font-semibold truncate max-w-[150px]"
                                 >
                                   <FiMail size={10} className="theme-icon" />
                                   {client.email}
                                 </a>
-                              ) : <span className="text-[10px] theme-text-secondary italic">No Email</span>}
+                              ) : <span className="text-[11px] theme-text-secondary italic">No Email</span>}
                             </div>
                           </td>
 
                           {/* Service Info */}
                           <td className="px-5 py-4">
                             <div className="space-y-2">
-                              <span className={`inline-flex px-2 py-0.5 rounded-lg text-[9px] font-black tracking-wider uppercase ${conf.pill} items-center gap-1`}>
+                              <span className={`inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black tracking-wider uppercase ${conf.pill} items-center gap-1`}>
                                 <ServiceIcon size={9} />
                                 {client.service || "Contract"}
                               </span>
-                              <div className="text-[10px] font-semibold theme-text-secondary flex items-center gap-1">
+                              <div className="text-[11px] font-semibold theme-text-secondary flex items-center gap-1">
                                 {client.assignedTo ? (
                                   <>
                                     <FiUser size={10} className="theme-icon" />
-                                    Mgr: {client.assignedTo.name || client.assignedTo.email}
+                                    Manage: {client.assignedTo.name || client.assignedTo.email}
                                   </>
                                 ) : (
                                   <span className="italic">Unassigned</span>
@@ -351,13 +363,13 @@ const Clients = () => {
                           {/* Budget Info */}
                           <td className="px-5 py-4">
                             <div className="space-y-1">
-                              <p className="text-[10px] theme-text-secondary font-bold">
+                              <p className="text-[11px] theme-text-secondary font-bold">
                                 Base: <span className="">₹{Number(client.budget || 0).toLocaleString("en-IN")}</span>
                               </p>
-                              <p className="text-[10px] theme-text-secondary font-bold">
+                              <p className="text-[11px] theme-text-secondary font-bold">
                                 Total: <span className="text-emerald-600 dark:text-emerald-400 font-black">₹{Number(client.totalBudget || 0).toLocaleString("en-IN")}</span>
                               </p>
-                              <p className="text-[9px] text-amber-600 dark:text-amber-500 font-bold">
+                              <p className="text-[10px] text-amber-600 dark:text-amber-500 font-bold">
                                 GST: {client.gst}%
                               </p>
                             </div>
@@ -427,7 +439,7 @@ const Clients = () => {
               <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-black/25">
                 <div>
                   <h2 className="text-[15px] font-black text-slate-800 dark:text-yellow-50 mb-5  flex items-center gap-2">
-                    <FiUsers size={16} className="text-blue-550" />
+                    <FiUsers size={16} className="text-blue-550 dark:text-[#e5ff00]" />
                     {editId ? "Update Client details" : "Register New Client"}
                   </h2>
                   <p className="text-slate-400 dark:text-slate-500 text-[10px] font-semibold mt-0.5">
@@ -452,7 +464,7 @@ const Clients = () => {
                     onClick={() => setActiveTab(tab)}
                     className={`px-4 py-3.5 text-[11px] font-extrabold capitalize border-b-2 transition-all cursor-pointer ${
                       activeTab === tab
-                        ? "border-blue-500 text-blue-600 dark:text-blue-400 font-black"
+                        ? "border-blue-500 dark:border-[#e5ff00] text-blue-600 dark:text-[#e5ff00] font-black"
                         : "border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-650"
                     }`}
                   >
@@ -482,7 +494,7 @@ const Clients = () => {
                           value={formData.companyName}
                           onChange={handleChange}
                           placeholder="e.g. Acme Corporation"
-                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold"
+                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 focus:border-blue-500 dark:focus:border-[#e5ff00] transition-all font-semibold"
                           required
                         />
                       </div>
@@ -497,7 +509,7 @@ const Clients = () => {
                           value={formData.industry}
                           onChange={handleChange}
                           placeholder="e.g. Technology / Retail"
-                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold"
+                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 focus:border-blue-500 dark:focus:border-[#e5ff00] transition-all font-semibold"
                           required
                         />
                       </div>
@@ -512,7 +524,8 @@ const Clients = () => {
                           value={formData.phoneNumber}
                           onChange={handleChange}
                           placeholder="e.g. +91 98765 43210"
-                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold"
+                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 focus:border-blue-500 dark:focus:border-[#e5ff00] transition-all font-semibold"
+                          required
                         />
                       </div>
 
@@ -526,7 +539,8 @@ const Clients = () => {
                           value={formData.email}
                           onChange={handleChange}
                           placeholder="e.g. contact@acme.com"
-                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold"
+                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 focus:border-blue-500 dark:focus:border-[#e5ff00] transition-all font-semibold"
+                          required
                         />
                       </div>
                     </div>
@@ -549,7 +563,8 @@ const Clients = () => {
                           name="service"
                           value={formData.service}
                           onChange={handleChange}
-                          className="w-full h-10 rounded-xl border border-slate-205 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold cursor-pointer"
+                          className="w-full h-10 rounded-xl border border-slate-205 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 focus:border-blue-500 dark:focus:border-[#e5ff00] transition-all font-semibold cursor-pointer"
+                          required
                         >
                           <option value="">Select Service Area</option>
                           <option value="Digital Marketing">Digital Marketing</option>
@@ -566,7 +581,7 @@ const Clients = () => {
                           name="assignedTo"
                           value={formData.assignedTo}
                           onChange={handleChange}
-                          className="w-full h-10 rounded-xl border border-slate-205 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold cursor-pointer"
+                          className="w-full h-10 rounded-xl border border-slate-205 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 focus:border-blue-500 dark:focus:border-[#e5ff00] transition-all font-semibold cursor-pointer"
                         >
                           <option value="">Select member</option>
                           {allUsers.map((u) => (
@@ -600,7 +615,7 @@ const Clients = () => {
                                   value={formData.reels}
                                   onChange={handleChange}
                                   placeholder="Count"
-                                  className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 font-semibold"
+                                  className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 font-semibold"
                                 />
                               </div>
 
@@ -614,7 +629,7 @@ const Clients = () => {
                                   value={formData.posts}
                                   onChange={handleChange}
                                   placeholder="Count"
-                                  className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 font-semibold"
+                                  className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 font-semibold"
                                 />
                               </div>
 
@@ -628,7 +643,7 @@ const Clients = () => {
                                   value={formData.videos}
                                   onChange={handleChange}
                                   placeholder="Count"
-                                  className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 font-semibold"
+                                  className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 font-semibold"
                                 />
                               </div>
                             </div>
@@ -641,7 +656,7 @@ const Clients = () => {
                                 name="needDslr"
                                 value={formData.needDslr}
                                 onChange={handleChange}
-                                className="h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 font-semibold cursor-pointer w-full md:w-52"
+                                className="h-10 px-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 font-semibold cursor-pointer w-full md:w-52"
                               >
                                 <option value="">Select Option</option>
                                 <option value="Need DSLR">Need DSLR</option>
@@ -664,7 +679,7 @@ const Clients = () => {
                                 value={formData.pages}
                                 onChange={handleChange}
                                 placeholder="e.g. 5 Pages"
-                                className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/25 font-semibold"
+                                className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/25 dark:focus:ring-[#e5ff00]/25 font-semibold"
                               />
                             </div>
                           </div>
@@ -725,7 +740,8 @@ const Clients = () => {
                           value={formData.budget}
                           onChange={handleChange}
                           placeholder="e.g. 50000"
-                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold"
+                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 focus:border-blue-500 dark:focus:border-[#e5ff00] transition-all font-semibold"
+                          required
                         />
                       </div>
 
@@ -740,7 +756,7 @@ const Clients = () => {
                           value={formData.gst}
                           onChange={handleChange}
                           placeholder="e.g. 18"
-                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold"
+                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 focus:border-blue-500 dark:focus:border-[#e5ff00] transition-all font-semibold"
                         />
                       </div>
 
@@ -789,14 +805,14 @@ const Clients = () => {
                           if (activeTab === "profile") setActiveTab("service");
                           else if (activeTab === "service") setActiveTab("finance");
                         }}
-                        className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-750 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-bold text-xs cursor-pointer"
+                        className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-750 dark:bg-[#e5ff00] dark:hover:bg-[#d4e600] text-white dark:text-black font-bold text-xs cursor-pointer"
                       >
                         Next Step
                       </button>
                     ) : (
                       <button
                         type="submit"
-                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-bold shadow-md hover:shadow-lg transition-all text-xs cursor-pointer"
+                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-[#e5ff00] dark:to-[#d4e600] hover:from-blue-700 hover:to-cyan-600 dark:hover:from-[#d4e600] dark:hover:to-[#bacc00] text-white dark:text-black font-bold shadow-md hover:shadow-lg transition-all text-xs cursor-pointer"
                       >
                         {editId ? "Update Record" : "Register Client"}
                       </button>

@@ -72,7 +72,7 @@ const UserTable = ({ users, loading, handleDeleteUser, setOpenModal, setEditUser
                         <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 dark:bg-emerald-500 border-2 border-white dark:border-[#0f172a]" />
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-slate-700 dark:text-slate-200">{user.name}</p>
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-600">{user.name}</p>
                         <p className="text-[10px] text-gray-400 dark:text-slate-500">#{idx + 1}</p>
                       </div>
                     </div>

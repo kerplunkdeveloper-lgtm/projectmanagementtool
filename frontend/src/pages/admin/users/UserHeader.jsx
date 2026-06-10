@@ -15,7 +15,7 @@ const UserHeader = ({ setOpenModal, searchTerm, setSearchTerm, filterDept, setFi
           <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-[#e5ff00]/10 border border-blue-100 dark:border-[#e5ff00]/20 flex items-center justify-center">
             <FiUsers size={14} className="text-blue-600 dark:text-[#e5ff00]" />
           </div>
-          <h1 className="text-sm md:text-lg font-bold text-slate-800 dark:text-white">User Management</h1>
+          <h1 className="text-md md:text-2xl font-extrabold text-slate-800 dark:text-white">User Management</h1>
         </div>
       </div>
 
@@ -32,8 +32,8 @@ const UserHeader = ({ setOpenModal, searchTerm, setSearchTerm, filterDept, setFi
     {/* FILTER ROW */}
     <div className="flex flex-row items-center gap-2">
       {/* SEARCH */}
-      <div className="flex items-center gap-2 bg-white dark:bg-[#0f172a] shadow-[0_2px_15px_rgb(0,0,0,0.04)] dark:shadow-[0_2px_15px_rgba(0,0,0,0.2)] rounded-xl px-4 py-3 flex-1 transition-all hover:shadow-[0_4px_20px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
-        <FiSearch size={13} className="text-gray-400 dark:text-slate-500 shrink-0" />
+      <div className="flex items-center  gap-2 bg-white dark:bg-[#0f172a] shadow-[0_2px_15px_rgb(0,0,0,0.04)] dark:shadow-[0_2px_15px_rgba(0,0,0,0.2)] rounded-xl px-4 py-3 flex-1 transition-all hover:shadow-[0_4px_20px_rgb(0,0,0,0.08)] dark:hover:shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+
         <input
           type="text"
           placeholder="Search by name or email..."

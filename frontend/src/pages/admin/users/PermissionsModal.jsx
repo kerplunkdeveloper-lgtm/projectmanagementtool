@@ -60,13 +60,13 @@ const PermissionsModal = ({ open, setOpen, user, handleUpdateUser }) => {
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-3">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl border border-gray-200 dark:border-slate-700 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-2xl border border-gray-200 dark:border-slate-700 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         
         {/* HEADER */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 dark:bg-slate-800/30">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-800 bg-gray-50/50 ">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center">
-              <FiShield size={16} className="text-indigo-600" />
+            <div className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-[#e5ff00]/10 flex items-center justify-center">
+              <FiShield size={16} className="text-indigo-600 dark:text-[#e5ff00]" />
             </div>
             <div>
               <h2 className="text-sm font-bold text-slate-800 dark:text-white">
@@ -88,16 +88,16 @@ const PermissionsModal = ({ open, setOpen, user, handleUpdateUser }) => {
         {/* BODY */}
         <div className="px-6 py-5 overflow-y-auto custom-scrollbar flex-1">
           {/* User Role Badge */}
-          <div className="mb-6 p-4 rounded-xl border border-indigo-100 dark:border-indigo-500/20 bg-indigo-50/50 dark:bg-indigo-500/10 flex items-start justify-between">
+          <div className="mb-6 p-4 rounded-xl border border-indigo-100 dark:border-[#e5ff00]/20 bg-indigo-50/50 dark:bg-[#e5ff00]/10 flex items-start justify-between">
             <div>
-              <h3 className="text-xs font-bold text-indigo-900 dark:text-indigo-300 mb-1">Current Role: {user.role.toUpperCase()}</h3>
-              <p className="text-[11px] text-indigo-600/80 dark:text-indigo-400/80 leading-relaxed max-w-md">
+              <h3 className="text-xs font-bold text-indigo-900 dark:text-[#e5ff00] mb-1">Current Role: {user.role.toUpperCase()}</h3>
+              <p className="text-[11px] text-indigo-600/80 dark:text-[#e5ff00]/80 leading-relaxed max-w-md">
                 {isAdmin 
                   ? "Admin users have unrestricted access to all modules and settings. Individual permissions cannot be toggled." 
                   : "Customize specific module access for this user. Toggled on means they have full access to that module."}
               </p>
             </div>
-            <span className="px-2.5 py-1 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold uppercase tracking-wider">
+            <span className="px-2.5 py-1 rounded-full bg-indigo-100 dark:bg-[#e5ff00]/20 text-indigo-700 dark:text-[#e5ff00] text-[10px] font-bold uppercase tracking-wider">
               {user.role}
             </span>
           </div>
@@ -108,9 +108,9 @@ const PermissionsModal = ({ open, setOpen, user, handleUpdateUser }) => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-gray-50 dark:bg-slate-800/50 border-b border-gray-200 dark:border-slate-800">
-                    <th className="px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Module</th>
+                    <th className="px-4 py-3 text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wider">Module</th>
                     {PERMISSION_ACTIONS.map(action => (
-                      <th key={action.id} className="px-4 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider text-center">
+                      <th key={action.id} className="px-4 py-3 text-xs font-bold text-slate-700 dark:text-white uppercase tracking-wider text-center">
                         {action.label}
                       </th>
                     ))}
@@ -122,8 +122,8 @@ const PermissionsModal = ({ open, setOpen, user, handleUpdateUser }) => {
                     return (
                       <tr key={module.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                         <td className="px-4 py-3">
-                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{module.label}</p>
-                          <p className="text-[10px] text-gray-400 dark:text-slate-500 mt-0.5">{module.desc}</p>
+                          <p className="text-xs font-extrabold text-slate-800 dark:text-white">{module.label}</p>
+                          <p className="text-[10.5px] font-medium text-gray-500 dark:text-slate-300 mt-0.5">{module.desc}</p>
                         </td>
                         {PERMISSION_ACTIONS.map(action => {
                           // Handle legacy boolean true mapping to all permissions
@@ -142,9 +142,9 @@ const PermissionsModal = ({ open, setOpen, user, handleUpdateUser }) => {
                                 />
                                 <div className={`
                                   w-5 h-5 rounded flex items-center justify-center border-2 transition-all
-                                  ${isGranted ? 'bg-indigo-500 border-indigo-500' : 'bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-600 peer-hover:border-indigo-400 dark:peer-hover:border-indigo-500'}
+                                  ${isGranted ? 'bg-indigo-500 dark:bg-[#e5ff00] border-indigo-500 dark:border-[#e5ff00]' : 'bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-600 peer-hover:border-indigo-400 dark:peer-hover:border-[#e5ff00]'}
                                 `}>
-                                  {isGranted && <FiCheck size={12} className="text-white" strokeWidth={3} />}
+                                  {isGranted && <FiCheck size={14} className="text-white dark:text-slate-900" strokeWidth={4} />}
                                 </div>
                               </label>
                             </td>
@@ -164,14 +164,14 @@ const PermissionsModal = ({ open, setOpen, user, handleUpdateUser }) => {
           <button 
             type="button" 
             onClick={() => setOpen(false)} 
-            className="px-5 py-2.5 rounded-xl border border-gray-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-xs hover:bg-white dark:hover:bg-slate-800 hover:shadow-sm transition-all"
+            className="px-5 py-2.5 rounded-xl border bg-red-600  text-white border-gray-200  font-semibold text-xs  hover:shadow-sm transition-all"
           >
             Cancel
           </button>
           <button 
             onClick={handleSubmit} 
             disabled={isAdmin}
-            className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm shadow-indigo-200 dark:shadow-none transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-2.5 rounded-xl bg-indigo-600 dark:bg-[#e5ff00] hover:bg-indigo-700 dark:hover:bg-[#d4e600] text-white dark:text-black font-bold text-xs shadow-sm shadow-indigo-200 dark:shadow-none transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Save Permissions
           </button>

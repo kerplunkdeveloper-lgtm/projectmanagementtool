@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FiX, FiUsers } from "react-icons/fi";
+import { FiX, FiUsers, FiEye, FiEyeOff } from "react-icons/fi";
 
 const DEPARTMENTS = [
   "Social Media Team", "Website Team", "Designer Team",
@@ -8,6 +8,7 @@ const DEPARTMENTS = [
 
 const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser, editUser, setEditUser }) => {
   const [formData, setFormData] = useState({ name: "", email: "", password: "", role: "team", department: "" });
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     setFormData(editUser
@@ -29,6 +30,7 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
   const handleClose = () => {
     setOpenModal(false); setEditUser(null);
     setFormData({ name: "", email: "", password: "", role: "team", department: "" });
+    setShowPassword(false);
   };
 
   if (!openModal) return null;
@@ -72,7 +74,23 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
 
           <div>
             <label className={LABEL}>Password <span className="normal-case text-red-600">*</span> {editUser && <span className="normal-case text-gray-400">(leave blank to keep)</span>}</label>
-            <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="Enter user password" className={INPUT} />
+            <div className="relative">
+              <input 
+                type={showPassword ? "text" : "password"} 
+                name="password" 
+                value={formData.password} 
+                onChange={handleChange} 
+                placeholder="Enter user password" 
+                className={INPUT + " pr-10"} 
+              />
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                {showPassword ? <FiEyeOff size={15} /> : <FiEye size={15} />}
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

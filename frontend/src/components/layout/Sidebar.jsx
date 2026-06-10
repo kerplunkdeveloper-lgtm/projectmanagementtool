@@ -125,7 +125,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             <img
               src={activeLogo}
               alt="logo"
-              className="w-[110px] lg:w-[110px] xl:w-[120px] object-contain dark:brightness-100"
+              className="w-[110px] lg:w-[200px]  object-contain dark:brightness-100"
             />
           </div>
 
