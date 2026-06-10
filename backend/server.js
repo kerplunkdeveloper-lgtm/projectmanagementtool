@@ -25,8 +25,11 @@ app.use(cookieParser());
 
 const allowedOrigins = [
   "http://localhost:5174",
+  "http://localhost:5175",
+  "https://projectmanagementtool-azure.vercel.app",
   process.env.FRONTEND_URL
-];
+].filter(Boolean);
+
 
 app.use(cors({
   origin: allowedOrigins,
