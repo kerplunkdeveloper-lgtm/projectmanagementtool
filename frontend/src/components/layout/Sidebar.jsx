@@ -119,7 +119,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             <img
               src={activeLogo}
               alt="logo"
-              className="w-[110px] lg:w-[160px]  object-contain dark:brightness-100"
+              className="w-[110px] lg:w-[150px]  object-contain dark:brightness-100"
             />
           </div>
 
@@ -357,10 +357,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         </nav>
 
         {/* FOOTER */}
-        <div className="p-3 border-t theme-border space-y-2">
+        <div className="p-3 border-t theme-border space-y-1.5">
           {role === "admin" && users && users.length > 0 && (
-            <div className="p-2 text-left">
-              <label className="block text-[9px] font-black theme-text-secondary uppercase tracking-wider mb-1 px-0.5">
+            <div className="p-1.5 text-left">
+              <label className="block text-[8px] font-black theme-text-secondary uppercase tracking-wider mb-0.5 px-0.5">
                 Switch User
               </label>
               <div className="relative flex items-center">
@@ -374,7 +374,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       handleSwitchUser(e.target.value);
                     }
                   }}
-                  className="w-full theme-bg-card border theme-border rounded-lg pl-2 pr-7 py-1.5 text-[10px] font-bold theme-text-primary outline-none cursor-pointer focus:border-indigo-500 dark:focus:border-indigo-400 transition-all appearance-none"
+                  className="w-full theme-bg-card border theme-border rounded-lg pl-1.5 pr-6 py-1 text-[8px] font-black theme-text-primary outline-none cursor-pointer focus:border-indigo-500 dark:focus:border-indigo-400 transition-all appearance-none"
                 >
                   {users.map((u) => {
                     const isCurrent =

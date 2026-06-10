@@ -199,7 +199,7 @@ const Navbar = ({ setSidebarOpen }) => {
         </button>
 
         {/* PAGE TITLE */}
-        <h1 className="text-[13px] md:text-[20px] text-blue-600 dark:text-[#e5ff00] font-extrabold uppercase tracking-wider">
+        <h1 className="text-[13px] md:text-[19px] text-blue-600 dark:text-[#e5ff00] font-extrabold uppercase tracking-wider">
           {pageTitle}
         </h1>
       </div>
