@@ -37,17 +37,27 @@ const getRelativeTime = (dateString) => {
   if (!dateString) return "";
   const date = new Date(dateString);
   const now = new Date();
-  const diffTime = Math.abs(now - date);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  if (diffDays <= 1) {
-    const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
-    if (diffHours <= 1) {
-      return "just now";
-    }
-    return `${diffHours}h ago`;
+  const diffMs = now.getTime() - date.getTime();
+  if (isNaN(diffMs)) return "";
+
+  const seconds = Math.floor(diffMs / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (seconds < 60) {
+    return "just now";
   }
-  if (diffDays === 1) return "1 day ago";
-  return `${diffDays} days ago`;
+  if (minutes < 60) {
+    return `${minutes}m ago`;
+  }
+  if (hours < 24) {
+    return `${hours}h ago`;
+  }
+  if (days === 1) {
+    return "1 day ago";
+  }
+  return `${days} days ago`;
 };
 
 const getInitials = (name) => {
@@ -168,6 +178,15 @@ const Portfolio = () => {
   const [showAddProjectDropdown, setShowAddProjectDropdown] = useState(false);
   const [projectSearchQuery, setProjectSearchQuery] = useState("");
   const [selectedAddProjects, setSelectedAddProjects] = useState([]);
+  
+  // Real-time ticking state for relative time updates
+  const [timeTick, setTimeTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeTick((t) => t + 1);
+    }, 15000); // Ticks every 15 seconds
+    return () => clearInterval(interval);
+  }, []);
   const [showCreateProjectForm, setShowCreateProjectForm] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectClientId, setNewProjectClientId] = useState("");
@@ -467,18 +486,19 @@ const Portfolio = () => {
             exit={{ opacity: 0, y: -15 }}
             className="space-y-6"
           >
-            {/* Breadcrumb Back Button */}
-            <button
-              onClick={() => setSelectedPortfolioId(null)}
-              className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-250 transition-colors"
-            >
-              <FiChevronLeft size={16} />
-              Back to Portfolios
-            </button>
-
             {/* Premium Header Block */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-800 p-2">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-800 ">
               <div className="flex items-center gap-3">
+                <div>
+                  {/* Breadcrumb Back Button */}
+                  <button
+                    onClick={() => setSelectedPortfolioId(null)}
+                    className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-250 transition-colors"
+                  >
+                    <FiChevronLeft size={16} />
+                  </button>
+                </div>
+                
                 <div
                   className="w-11 h-11 rounded-2xl text-white flex items-center justify-center shadow-sm shrink-0"
                   style={{
@@ -493,59 +513,107 @@ const Portfolio = () => {
                       {activePortfolio.name}
                     </h1>
                   </div>
-
                 </div>
               </div>
-            </div>
 
-            <div className="min-h-[350px] space-y-4">
-              {/* Toolbar */}
-              <div className="flex flex-wrap items-center justify-between gap-3 ">
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <button
-                      onClick={() => {
-                        setSelectedAddProjects([]);
-                        setProjectSearchQuery("");
-                        setShowAddProjectDropdown(!showAddProjectDropdown);
-                      }}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm active:scale-95 cursor-pointer"
-                    >
-                      <LuPlus
-                        size={14}
-                        className="text-slate-500 dark:text-slate-400"
-                      />
-                      Add Existing Projects
-                    </button>
+              {/* Action Buttons Right Side */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      setSelectedAddProjects([]);
+                      setProjectSearchQuery("");
+                      setShowAddProjectDropdown(!showAddProjectDropdown);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-slate-50/60 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-755 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-850 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-sm active:scale-95 cursor-pointer"
+                  >
+                    <LuPlus
+                      size={14}
+                      className="text-slate-500 dark:text-slate-400"
+                    />
+                    Add Existing Projects
+                  </button>
 
-                    <AnimatePresence>
-                      {showAddProjectDropdown && (
-                        <>
-                          {/* Backdrop to close click outside */}
-                          <div 
-                            className="fixed inset-0 z-10" 
-                            onClick={() => setShowAddProjectDropdown(false)} 
-                          />
-                          {/* Dropdown Card */}
-                          <motion.div
-                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                            className="absolute left-0 mt-2 w-[340px] max-w-[90vw] md:w-[400px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] shadow-2xl z-20 p-5 flex flex-col gap-3"
+                  <AnimatePresence>
+                    {showAddProjectDropdown && (
+                      <>
+                        {/* Backdrop to close click outside */}
+                        <div 
+                          className="fixed inset-0 z-10" 
+                          onClick={() => setShowAddProjectDropdown(false)} 
+                        />
+                        {/* Dropdown Card */}
+                        <motion.div
+                          initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                          className="absolute right-0 mt-2 w-[340px] max-w-[90vw] md:w-[400px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] shadow-2xl z-20 p-5 flex flex-col gap-3"
+                        >
+                          {/* Search */}
+                          <div className="relative">
+                            <input
+                              type="text"
+                              autoFocus
+                              placeholder="Search projects..."
+                              value={projectSearchQuery}
+                              onChange={(e) => setProjectSearchQuery(e.target.value)}
+                              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl pl-4 pr-4 py-2.5 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 dark:focus:border-[#e5ff00]/50 transition-all placeholder:text-slate-455"
+                            />
+                          </div>
+
+                          {/* Select All toggle */}
+                          {(() => {
+                            const projectsInPortfolios = new Set(
+                              portfolios.flatMap((p) => p.projectIdsList || []),
+                            );
+                            const available = projects
+                              .filter((p) => !projectsInPortfolios.has(p._id))
+                              .filter((p) =>
+                                p.name
+                                  ?.toLowerCase()
+                                  .includes(projectSearchQuery.toLowerCase()),
+                              );
+                            if (available.length === 0) return null;
+                            const allSelected = available.every((p) =>
+                              selectedAddProjects.includes(p._id),
+                            );
+                            return (
+                              <div className="flex items-center justify-between pb-2 mb-1 border-b border-slate-100 dark:border-slate-800/80 px-0.5">
+                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-505">
+                                  {available.length} available
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (allSelected) {
+                                      setSelectedAddProjects((prev) =>
+                                        prev.filter(
+                                          (id) => !available.some((a) => a._id === id),
+                                        ),
+                                      );
+                                    } else {
+                                      setSelectedAddProjects((prev) =>
+                                        Array.from(
+                                          new Set([
+                                            ...prev,
+                                            ...available.map((a) => a._id),
+                                          ]),
+                                        ),
+                                      );
+                                    }
+                                  }}
+                                  className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-[#e5ff00] hover:underline cursor-pointer transition-colors"
+                                >
+                                  {allSelected ? "Deselect All" : "Select All"}
+                                </button>
+                              </div>
+                            );
+                          })()}
+
+                          {/* Project list */}
+                          <div
+                            className="overflow-y-auto space-y-1.5 pr-1 max-h-[240px]"
                           >
-                            {/* Search */}
-                            <div className="relative">
-                              <input
-                                type="text"
-                                autoFocus
-                                placeholder="Search projects..."
-                                value={projectSearchQuery}
-                                onChange={(e) => setProjectSearchQuery(e.target.value)}
-                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl pl-4 pr-4 py-2.5 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 dark:focus:border-[#e5ff00]/50 transition-all placeholder:text-slate-400"
-                              />
-                            </div>
-
-                            {/* Select All toggle */}
                             {(() => {
                               const projectsInPortfolios = new Set(
                                 portfolios.flatMap((p) => p.projectIdsList || []),
@@ -557,185 +625,135 @@ const Portfolio = () => {
                                     ?.toLowerCase()
                                     .includes(projectSearchQuery.toLowerCase()),
                                 );
-                              if (available.length === 0) return null;
-                              const allSelected = available.every((p) =>
-                                selectedAddProjects.includes(p._id),
-                              );
-                              return (
-                                <div className="flex items-center justify-between pb-2 mb-1 border-b border-slate-100 dark:border-slate-800/80 px-0.5">
-                                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-505">
-                                    {available.length} available
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      if (allSelected) {
-                                        setSelectedAddProjects((prev) =>
-                                          prev.filter(
-                                            (id) => !available.some((a) => a._id === id),
-                                          ),
-                                        );
-                                      } else {
-                                        setSelectedAddProjects((prev) =>
-                                          Array.from(
-                                            new Set([
-                                              ...prev,
-                                              ...available.map((a) => a._id),
-                                            ]),
-                                          ),
-                                        );
-                                      }
-                                    }}
-                                    className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-[#e5ff00] hover:underline cursor-pointer transition-colors"
-                                  >
-                                    {allSelected ? "Deselect All" : "Select All"}
-                                  </button>
-                                </div>
-                              );
-                            })()}
 
-                            {/* Project list */}
-                            <div
-                              className="overflow-y-auto space-y-1.5 pr-1 max-h-[240px]"
-                            >
-                              {(() => {
-                                const projectsInPortfolios = new Set(
-                                  portfolios.flatMap((p) => p.projectIdsList || []),
+                              if (
+                                projects.filter(
+                                  (p) => !projectsInPortfolios.has(p._id),
+                                ).length === 0
+                              ) {
+                                return (
+                                  <div className="text-center py-6 text-xs font-bold text-slate-400 dark:text-slate-500 italic">
+                                    All projects are in a portfolio.
+                                  </div>
                                 );
-                                const available = projects
-                                  .filter((p) => !projectsInPortfolios.has(p._id))
-                                  .filter((p) =>
-                                    p.name
-                                      ?.toLowerCase()
-                                      .includes(projectSearchQuery.toLowerCase()),
-                                  );
+                              }
 
-                                if (
-                                  projects.filter(
-                                    (p) => !projectsInPortfolios.has(p._id),
-                                  ).length === 0
-                                ) {
-                                  return (
-                                    <div className="text-center py-6 text-xs font-bold text-slate-400 dark:text-slate-500 italic">
-                                      All projects are in a portfolio.
-                                    </div>
-                                  );
-                                }
+                              if (available.length === 0) {
+                                return (
+                                  <div className="text-center py-6 text-xs font-bold text-slate-400 dark:text-slate-500 italic">
+                                    No projects match.
+                                  </div>
+                                );
+                              }
 
-                                if (available.length === 0) {
-                                  return (
-                                    <div className="text-center py-6 text-xs font-bold text-slate-400 dark:text-slate-500 italic">
-                                      No projects match.
-                                    </div>
-                                  );
-                                }
-
-                                return available.map((proj) => {
-                                  const isChecked = selectedAddProjects.includes(proj._id);
-                                  return (
-                                    <div
-                                      key={proj._id}
-                                      onClick={() => {
-                                        setSelectedAddProjects((prev) =>
-                                          isChecked
-                                            ? prev.filter((id) => id !== proj._id)
-                                            : [...prev, proj._id],
-                                        );
-                                      }}
-                                      className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer select-none ${
+                              return available.map((proj) => {
+                                const isChecked = selectedAddProjects.includes(proj._id);
+                                return (
+                                  <div
+                                    key={proj._id}
+                                    onClick={() => {
+                                      setSelectedAddProjects((prev) =>
                                         isChecked
-                                          ? "bg-blue-50/60 border-blue-200 dark:bg-[#e5ff00]/10 dark:border-[#e5ff00]/40"
-                                          : "bg-slate-50/40 border-slate-100 dark:bg-slate-950/40 dark:border-slate-850 hover:bg-slate-100/60 dark:hover:bg-slate-800/40"
+                                          ? prev.filter((id) => id !== proj._id)
+                                          : [...prev, proj._id],
+                                      );
+                                    }}
+                                    className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer select-none ${
+                                      isChecked
+                                        ? "bg-blue-50/60 border-blue-200 dark:bg-[#e5ff00]/10 dark:border-[#e5ff00]/40"
+                                        : "bg-slate-50/40 border-slate-100 dark:bg-slate-950/40 dark:border-slate-855 hover:bg-slate-100/60 dark:hover:bg-slate-800/40"
+                                    }`}
+                                  >
+                                    {/* Checkbox */}
+                                    <div
+                                      className={`w-4 h-4 rounded flex items-center justify-center shrink-0 border transition-all ${
+                                        isChecked
+                                          ? "bg-blue-600 border-blue-600 dark:bg-[#e5ff00] dark:border-[#e5ff00]"
+                                          : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
                                       }`}
                                     >
-                                      {/* Checkbox */}
-                                      <div
-                                        className={`w-4 h-4 rounded flex items-center justify-center shrink-0 border transition-all ${
-                                          isChecked
-                                            ? "bg-blue-600 border-blue-600 dark:bg-[#e5ff00] dark:border-[#e5ff00]"
-                                            : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
-                                        }`}
-                                      >
-                                        {isChecked && (
-                                          <FiCheck
-                                            size={10}
-                                            className="text-white dark:text-black font-black"
-                                          />
-                                        )}
-                                      </div>
-
-                                      {/* Info */}
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-wider truncate">
-                                          {proj.name}
-                                        </p>
-                                      </div>
-
-                                      {/* Status badge */}
-                                      <span
-                                        className={`text-[8px] font-black px-1.5 py-0.5 rounded border uppercase tracking-wider shrink-0 ${getStatusBadge(proj.status)}`}
-                                      >
-                                        {proj.status || "Active"}
-                                      </span>
+                                      {isChecked && (
+                                        <FiCheck
+                                          size={10}
+                                          className="text-white dark:text-black font-black"
+                                        />
+                                      )}
                                     </div>
-                                  );
-                                });
-                              })()}
-                            </div>
 
-                            {/* Footer */}
-                            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800/80">
-                              <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                                {selectedAddProjects.length > 0
-                                  ? `${selectedAddProjects.length} selected`
-                                  : "None selected"}
-                              </span>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setShowAddProjectDropdown(false)}
-                                  className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider text-slate-505 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-850 transition-all active:scale-95 cursor-pointer"
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    handleBatchAddProjects();
-                                    setShowAddProjectDropdown(false);
-                                  }}
-                                  disabled={selectedAddProjects.length === 0}
-                                  className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-md active:scale-95 ${
-                                    selectedAddProjects.length > 0
-                                      ? "bg-gradient-to-b from-[#92d1ef] via-[#69afe2] to-[#408ed8] text-white dark:bg-none dark:bg-[#e5ff00] dark:text-black cursor-pointer hover:opacity-95"
-                                      : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-50 shadow-none"
-                                  }`}
-                                >
-                                  Add
-                                </button>
-                              </div>
-                            </div>
-                          </motion.div>
-                        </>
-                      )}
-                    </AnimatePresence>
-                  </div>
+                                    {/* Info */}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-wider truncate">
+                                        {proj.name}
+                                      </p>
+                                    </div>
 
-                  <button
-                    onClick={() => {
-                      setNewProjectName("");
-                      setShowCreateProjectForm(true);
-                    }}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm active:scale-95 cursor-pointer"
-                  >
-                    <LuPlus
-                      size={14}
-                      className="text-slate-500 dark:text-slate-400"
-                    />
-                    Create New Project
-                  </button>
+                                    {/* Status badge */}
+                                    <span
+                                      className={`text-[8px] font-black px-1.5 py-0.5 rounded border uppercase tracking-wider shrink-0 ${getStatusBadge(proj.status)}`}
+                                    >
+                                      {proj.status || "Active"}
+                                    </span>
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
+
+                          {/* Footer */}
+                          <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                            <span className="text-[10px] font-black text-slate-400 dark:text-slate-505 uppercase tracking-wider">
+                              {selectedAddProjects.length > 0
+                                ? `${selectedAddProjects.length} selected`
+                                : "None selected"}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setShowAddProjectDropdown(false)}
+                                className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider text-slate-505 dark:text-slate-400 hover:bg-slate-105 dark:hover:bg-slate-855 transition-all active:scale-95 cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleBatchAddProjects();
+                                  setShowAddProjectDropdown(false);
+                                }}
+                                disabled={selectedAddProjects.length === 0}
+                                className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-md active:scale-95 ${
+                                  selectedAddProjects.length > 0
+                                    ? "bg-gradient-to-b from-[#92d1ef] via-[#69afe2] to-[#408ed8] text-white dark:bg-none dark:bg-[#e5ff00] dark:text-black cursor-pointer hover:opacity-95"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-650 cursor-not-allowed opacity-50 shadow-none"
+                                }`}
+                              >
+                                Add
+                              </button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
                 </div>
-              </div>              {/* Grouped Projects Table (Image 2) */}
+
+                <button
+                  onClick={() => {
+                    setNewProjectName("");
+                    setShowCreateProjectForm(true);
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 bg-slate-50/60 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-755 dark:text-slate-200 hover:bg-slate-105 dark:hover:bg-slate-850 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-sm active:scale-95 cursor-pointer"
+                >
+                  <LuPlus
+                    size={14}
+                    className="text-slate-500 dark:text-slate-400"
+                  />
+                  Create New Project
+                </button>
+              </div>
+            </div>            
+            <div className="min-h-[350px] space-y-4">
+              {/* Grouped Projects Table (Image 2) */}
               {(() => {
                 const validProjects = (activePortfolio.projectIdsList || [])
                   .map((projId) => projects.find((p) => p._id === projId))
