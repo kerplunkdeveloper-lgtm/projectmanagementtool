@@ -82,7 +82,7 @@ const getAvatarColor = (name) => {
   return colors[hash % colors.length];
 };
 
-const getStatusPill = (project) => {
+const getStatusPill = (project, timeTick) => {
   const relativeTime = getRelativeTime(project.updatedAt);
   
   switch (project.status) {
@@ -761,7 +761,7 @@ const Portfolio = () => {
 
                 if (validProjects.length === 0) {
                   return (
-                    <div className="px-6 py-12 text-center text-slate-400 dark:text-slate-505 italic bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-850 rounded-[2rem] shadow-sm">
+                    <div className="px-6 py-12 text-center text-slate-400 dark:text-slate-505 italic bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-850  shadow-sm">
                       No projects added. Choose "+ Add work" or search below
                       to group projects inside this portfolio.
                     </div>
@@ -769,19 +769,19 @@ const Portfolio = () => {
                 }
 
                 return (
-                  <div className="overflow-x-auto bg-white dark:bg-slate-800 shadow-sm ">
-                    <table className="w-full text-left border-collapse">
+                  <div className="overflow-x-auto bg-white dark:bg-slate-900/30">
+                    <table className="w-full text-left border-collapse text-xs">
                       <thead>
-                        <tr className="bg-slate-50/50 dark:bg-slate-900/50 text-slate-455 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider ">
-                          <th className="px-6 py-4">Name</th>
-                          <th className="px-6 py-4">Status</th>
-                          <th className="px-6 py-4">Task progress</th>
-                          <th className="px-6 py-4">Due date</th>
-                          <th className="px-6 py-4 text-center w-20">Actions</th>
+                        <tr className="bg-slate-50/50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider text-[10px]">
+                          <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Project Name</th>
+                          <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Status</th>
+                          <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Task progress</th>
+                          <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Due date</th>
+                          <th className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-center w-20">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-150 dark:divide-slate-700/60 text-xs">
-                        {validProjects.map((project) => {
+                      <tbody>
+                        {validProjects.map((project, index) => {
                           const projId = project._id;
                           
                           // Calculate progress percentage
@@ -820,34 +820,38 @@ const Portfolio = () => {
                           return (
                             <tr
                               key={projId}
-                              className="group hover:bg-slate-50/50 dark:hover:bg-slate-750/30 transition-colors"
+                              className={`group transition-colors ${
+                                index % 2 === 0
+                                  ? "bg-white dark:bg-slate-800/40"
+                                  : "bg-slate-50/40 dark:bg-slate-900/10"
+                              } hover:bg-blue-50/20 dark:hover:bg-[#e5ff00]/5`}
                             >
                               {/* Name */}
-                              <td className="px-6 py-4 border-r border-slate-150 dark:border-slate-800/50 cursor-pointer" onClick={() => navigate(`/${user?.role || "admin"}/projects?id=${project._id}`)}>
+                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800 cursor-pointer" onClick={() => navigate(`/${user?.role || "admin"}/projects?id=${project._id}`)}>
                                 <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${projectIcon.bg} shrink-0`}>
-                                      <IconComponent size={16} />
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-5 h-5 rounded bg-blue-50/50 dark:bg-[#e5ff00]/10 text-blue-600 dark:text-[#e5ff00] border border-blue-100/80 dark:border-[#e5ff00]/20 flex items-center justify-center font-black text-[9.5px] shrink-0">
+                                      {project.name ? project.name.trim().charAt(0).toUpperCase() : "?"}
                                     </div>
-                                    <span className="font-medium text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-[#e5ff00] transition-colors">
+                                    <span className="font-semibold text-slate-800 dark:text-slate-600 hover:text-blue-600 dark:hover:text-[#e5ff00] transition-colors">
                                       {project.name}
                                     </span>
                                   </div>
-                                  <FiChevronRight size={14} className="text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-all duration-200" />
+                                  <FiChevronRight size={12} className="text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-all duration-200" />
                                 </div>
                               </td>
 
                               {/* Status */}
-                              <td className="px-6 py-4 border-r border-slate-150 dark:border-slate-800/50">
-                                {getStatusPill(project)}
+                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                                {getStatusPill(project, timeTick)}
                               </td>
 
                               {/* Task Progress */}
-                              <td className="px-6 py-4 border-r border-slate-150 dark:border-slate-800/50">
+                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
                                 <div className="flex items-center gap-2 max-w-[120px]">
-                                  <div className="w-16 bg-slate-100 dark:bg-slate-700 h-1 rounded-full overflow-hidden shrink-0">
+                                  <div className="w-16 bg-slate-100 dark:bg-slate-700 h-1.5 rounded overflow-hidden shrink-0">
                                     <div
-                                      className="bg-slate-300 dark:bg-slate-500 h-full rounded-full transition-all duration-350"
+                                      className="bg-blue-600 dark:bg-[#e5ff00] h-full rounded transition-all duration-350"
                                       style={{ width: `${progressPercent}%` }}
                                     />
                                   </div>
@@ -858,12 +862,12 @@ const Portfolio = () => {
                               </td>
 
                               {/* Due Date */}
-                              <td className="px-6 py-4 border-r border-slate-150 dark:border-slate-800/50 font-semibold text-slate-655 dark:text-slate-450">
+                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-655 dark:text-slate-400">
                                 {formattedDueDateRange}
                               </td>
 
                               {/* Remove Project Option */}
-                              <td className="px-6 py-4 text-center">
+                              <td className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-center">
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -872,7 +876,7 @@ const Portfolio = () => {
                                   className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-red-500 rounded transition-colors"
                                   title="Remove from group"
                                 >
-                                  <FiTrash2 size={13} />
+                                  <FiTrash2 size={12} />
                                 </button>
                               </td>
                             </tr>

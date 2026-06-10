@@ -192,8 +192,8 @@ const Project = () => {
       {/* HEADER SECTION */}
       <div className="flex justify-between items-center gap-4">
         <div>
-          <h1 className="text-xl font-extrabold text-slate-800 dark:text-white">All Projects Management</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-[10px] mt-1">Comprehensive directory of current projects and clients</p>
+          <h1 className="text-xl font-extrabold text-slate-800 dark:text-white">All Projects</h1>
+        
         </div>
         {isAdmin && (
           <button
@@ -248,22 +248,21 @@ const Project = () => {
           <p className="text-slate-400 text-sm mt-1">Try updating your filters or search options.</p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-[#111111] rounded-3xl border border-slate-100 dark:border-white/5 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead className="bg-gradient-to-r from-cyan-500 to-blue-600 dark:from-[#1a1a1a] dark:to-[#1a1a1a] dark:border-b dark:border-white/5">
-                <tr className="text-slate-505 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100 dark:border-white/5">
-                  <th className="px-6 py-4">Project Name</th>
-                  <th className="px-6 py-4">Client Name</th>
-                  <th className="px-6 py-4">Portfolio</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Progress</th>
-                  <th className="px-6 py-4 text-center">View</th>
-                  {isAdmin && <th className="px-6 py-4 text-center w-36">Actions</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-xs bg-white dark:bg-[#0a0a0a]">
-                {filteredProjects.map((project) => {
+        <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/30 shadow-sm">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-slate-50/50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider text-[10px]">
+                <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Project Name</th>
+                <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Client Name</th>
+                <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Portfolio</th>
+                <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Status</th>
+                <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Progress</th>
+                <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800 text-center">View</th>
+                {isAdmin && <th className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-center w-36">Actions</th>}
+              </tr>
+            </thead>
+            <tbody className="text-xs bg-white dark:bg-slate-950/20">
+                {filteredProjects.map((project, index) => {
                   const projectPortfolio = portfolios.find(port => 
                     (port.projectIds || []).some(id => 
                       (typeof id === 'object' && id !== null ? id._id === project._id : id === project._id)
@@ -273,17 +272,28 @@ const Project = () => {
                   return (
                     <tr
                       key={project._id}
-                      className="hover:bg-slate-50/70 dark:hover:bg-white/5 even:bg-slate-50/30 dark:even:bg-[#111111]/60 transition-colors"
+                      className={`group transition-colors ${
+                        index % 2 === 0
+                          ? "bg-white dark:bg-slate-800/40"
+                          : "bg-slate-50/40 dark:bg-slate-900/10"
+                      } hover:bg-blue-50/20 dark:hover:bg-[#e5ff00]/5`}
                     >
-                      <td className="px-6 py-4 font-extrabold text-slate-800 dark:text-white">
-                        {project.name}
+                      <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-800 dark:text-slate-100 cursor-pointer" onClick={() => navigate(`/${currentUser?.role}/projects?id=${project._id}`)}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded bg-blue-50/50 dark:bg-[#e5ff00]/10 text-blue-600 dark:text-[#e5ff00] border border-blue-100/80 dark:border-[#e5ff00]/20 flex items-center justify-center font-black text-[9.5px] shrink-0">
+                            {project.name ? project.name.trim().charAt(0).toUpperCase() : "?"}
+                          </div>
+                          <span className="hover:text-blue-600 dark:hover:text-[#e5ff00] transition-colors">
+                            {project.name}
+                          </span>
+                        </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
                         <span className="font-bold text-blue-600 dark:text-[#e5ff00] px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-[#e5ff00]/10 border border-blue-100 dark:border-[#e5ff00]/20">
                           {project.client?.companyName || "No Client"}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
                         {projectPortfolio ? (
                           <span 
                             className="font-bold text-[10px] px-2 py-0.5 rounded-lg border uppercase tracking-wider"
@@ -301,57 +311,56 @@ const Project = () => {
                           </span>
                         )}
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-lg border uppercase tracking-wider ${getStatusBadge(project.status)}`}>
+                      <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                        <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-lg border uppercase tracking-wider ${getStatusBadge(project.status)}`}>
                           {project.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
                         {(() => {
                           const projectTasks = tasks.filter((t) => t.project?._id === project._id || t.project === project._id);
                           const total = projectTasks.length;
                           const completed = projectTasks.filter((t) => t.status === "Completed").length;
                           const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
                           return (
-                            <div className="flex flex-col gap-1.5 max-w-[160px]">
-                              <div className="flex justify-between items-center text-[10px] font-bold text-slate-505 bg-transparent">
-                                <span>{completed}/{total} Tasks</span>
-                                <span className="text-blue-600 dark:text-[#e5ff00] font-extrabold">{percent}%</span>
-                              </div>
-                              <div className="w-full bg-slate-100 dark:bg-[#1a1a1a] border border-transparent dark:border-white/5 h-2 rounded-full overflow-hidden shadow-inner">
+                            <div className="flex items-center gap-2 max-w-[180px]">
+                              <div className="w-16 bg-slate-100 dark:bg-slate-700 h-1.5 rounded overflow-hidden shrink-0">
                                 <div
-                                  className="bg-gradient-to-r from-blue-500 to-indigo-600 dark:from-[#99cc00] dark:to-[#e5ff00] h-full rounded-full transition-all duration-350 dark:shadow-[0_0_8px_rgba(229,255,0,0.6)]"
+                                  className="bg-blue-600 dark:bg-[#e5ff00] h-full rounded transition-all duration-350"
                                   style={{ width: `${percent}%` }}
                                 />
                               </div>
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold whitespace-nowrap shrink-0">
+                                {percent}% ({completed}/{total})
+                              </span>
                             </div>
                           );
                         })()}
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800 text-center">
                         <button
                           onClick={() => navigate(`/${currentUser?.role}/projects?id=${project._id}`)}
-                          className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white dark:bg-[#1a1a1a] dark:text-[#e5ff00] dark:hover:bg-[#e5ff00] dark:hover:text-black rounded-lg text-[11px] font-bold transition-colors border border-blue-100 hover:border-blue-600 dark:border-white/10 dark:hover:border-[#e5ff00] whitespace-nowrap"
+                          className="px-2.5 py-1 bg-blue-50/50 hover:bg-blue-600 hover:text-white dark:bg-slate-850 dark:text-[#e5ff00] dark:hover:bg-[#e5ff00] dark:hover:text-black rounded text-[10px] font-extrabold transition-colors border border-blue-100/50 dark:border-slate-700 dark:hover:border-[#e5ff00] whitespace-nowrap active:scale-95 shadow-sm"
                         >
                           View Tasks
                         </button>
                       </td>
                       {isAdmin && (
-                        <td className="px-6 py-4 text-center">
+                        <td className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-center">
                           <div className="flex justify-center items-center gap-3">
                             <button
                               onClick={(e) => handleOpenEdit(e, project)}
                               className="text-slate-400 hover:text-blue-600 dark:hover:text-[#e5ff00] transition-colors p-1"
                               title="Edit Project"
                             >
-                              <FiEdit2 size={13} />
+                              <FiEdit2 size={12} />
                             </button>
                             <button
                               onClick={(e) => handleProjectDelete(e, project._id)}
                               className="text-slate-400 hover:text-red-500 transition-colors p-1"
                               title="Delete Project"
                             >
-                              <FiTrash2 size={13} />
+                              <FiTrash2 size={12} />
                             </button>
                           </div>
                         </td>
@@ -362,7 +371,6 @@ const Project = () => {
               </tbody>
             </table>
           </div>
-        </div>
       )}
 
       {/* CREATE PROJECT OFFCANVAS DRAWER */}

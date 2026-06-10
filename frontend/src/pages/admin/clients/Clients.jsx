@@ -21,6 +21,8 @@ import {
   FiAlertTriangle,
   FiBookOpen,
   FiSearch,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
 
 import {
@@ -465,13 +467,13 @@ const Clients = () => {
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                     disabled={currentPage === 1}
-                    className={`h-8 px-2.5 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1 transition-all ${
+                    className={`h-8 w-8 rounded-xl border text-[10px] font-bold flex items-center justify-center transition-all ${
                       currentPage === 1
-                        ? "border-slate-100 dark:border-slate-800/40 text-slate-300 dark:text-slate-600 cursor-not-allowed"
-                        : "border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-305 dark:hover:border-slate-700 active:scale-95 cursor-pointer"
+                        ? "border-slate-200 dark:border-slate-800/80 text-slate-300 dark:text-slate-700 cursor-not-allowed"
+                        : "border-slate-200 dark:border-slate-805 hover:bg-blue-50/50 dark:hover:bg-[#e5ff00]/5 text-slate-700 dark:text-slate-350 hover:border-blue-400 dark:hover:border-[#e5ff00] active:scale-90 cursor-pointer shadow-sm"
                     }`}
                   >
-                    Prev
+                    <FiChevronLeft size={14} className="stroke-[2.5]" />
                   </button>
 
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
@@ -480,10 +482,10 @@ const Clients = () => {
                       <button
                         key={page}
                         onClick={() => setCurrentPage(page)}
-                        className={`h-8 w-8 rounded-lg border text-[10px] font-extrabold flex items-center justify-center transition-all ${
+                        className={`h-8 w-8 rounded-xl border text-[10px] font-extrabold flex items-center justify-center transition-all ${
                           isSelected
-                            ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-sm"
-                            : "border-slate-200 dark:border-slate-800 bg-white dark:bg-black text-slate-700 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 active:scale-95 cursor-pointer"
+                            ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-md"
+                            : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-400 hover:bg-blue-50/50 dark:hover:bg-[#e5ff00]/5 hover:border-blue-400 dark:hover:border-[#e5ff00] active:scale-90 cursor-pointer shadow-sm"
                         }`}
                       >
                         {page}
@@ -494,13 +496,13 @@ const Clients = () => {
                   <button
                     onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                     disabled={currentPage === totalPages}
-                    className={`h-8 px-2.5 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1 transition-all ${
+                    className={`h-8 w-8 rounded-xl border text-[10px] font-bold flex items-center justify-center transition-all ${
                       currentPage === totalPages
-                        ? "border-slate-100 dark:border-slate-800/40 text-slate-300 dark:text-slate-600 cursor-not-allowed"
-                        : "border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-305 dark:hover:border-slate-700 active:scale-95 cursor-pointer"
+                        ? "border-slate-200 dark:border-slate-800/80 text-slate-300 dark:text-slate-700 cursor-not-allowed"
+                        : "border-slate-200 dark:border-slate-805 hover:bg-blue-50/50 dark:hover:bg-[#e5ff00]/5 text-slate-700 dark:text-slate-350 hover:border-blue-400 dark:hover:border-[#e5ff00] active:scale-90 cursor-pointer shadow-sm"
                     }`}
                   >
-                    Next
+                    <FiChevronRight size={14} className="stroke-[2.5]" />
                   </button>
                 </div>
               </div>
