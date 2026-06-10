@@ -21,6 +21,7 @@ import {
 import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
 import { getTasks } from "../../features/tasks/taskSlice";
+import { getPortfolios } from "../../features/portfolio/portfolioSlice";
 import ProjectTaskBoard from "./ProjectTaskBoard";
 
 const Project = () => {
@@ -34,6 +35,7 @@ const Project = () => {
   const { clients } = useSelector((state) => state.clients);
   const { users } = useSelector((state) => state.users);
   const { tasks } = useSelector((state) => state.tasks);
+  const { portfolios = [] } = useSelector((state) => state.portfolios);
   const { user: currentUser } = useSelector((state) => state.auth);
 
   // Local State
@@ -59,6 +61,7 @@ const Project = () => {
     dispatch(getClients());
     dispatch(getUsers());
     dispatch(getTasks());
+    dispatch(getPortfolios());
   }, [dispatch]);
 
   // Set default client selection once clients are loaded
@@ -252,6 +255,7 @@ const Project = () => {
                 <tr className="text-slate-505 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100 dark:border-white/5">
                   <th className="px-6 py-4">Project Name</th>
                   <th className="px-6 py-4">Client Name</th>
+                  <th className="px-6 py-4">Portfolio</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Progress</th>
                   <th className="px-6 py-4 text-center">View</th>
@@ -259,76 +263,102 @@ const Project = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-xs bg-white dark:bg-[#0a0a0a]">
-                {filteredProjects.map((project) => (
-                  <tr
-                    key={project._id}
-                    className="hover:bg-slate-50/70 dark:hover:bg-white/5 even:bg-slate-50/30 dark:even:bg-[#111111]/60 transition-colors"
-                  >
-                    <td className="px-6 py-4 font-extrabold text-slate-800 dark:text-white">
-                      {project.name}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="font-bold text-blue-600 dark:text-[#e5ff00] px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-[#e5ff00]/10 border border-blue-100 dark:border-[#e5ff00]/20">
-                        {project.client?.companyName || "No Client"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-lg border uppercase tracking-wider ${getStatusBadge(project.status)}`}>
-                        {project.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {(() => {
-                        const projectTasks = tasks.filter((t) => t.project?._id === project._id || t.project === project._id);
-                        const total = projectTasks.length;
-                        const completed = projectTasks.filter((t) => t.status === "Completed").length;
-                        const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-                        return (
-                          <div className="flex flex-col gap-1.5 max-w-[160px]">
-                            <div className="flex justify-between items-center text-[10px] font-bold text-slate-500">
-                              <span>{completed}/{total} Tasks</span>
-                              <span className="text-blue-600 dark:text-[#e5ff00] font-extrabold">{percent}%</span>
-                            </div>
-                            <div className="w-full bg-slate-100 dark:bg-[#1a1a1a] border border-transparent dark:border-white/5 h-2 rounded-full overflow-hidden shadow-inner">
-                              <div
-                                className="bg-gradient-to-r from-blue-500 to-indigo-600 dark:from-[#99cc00] dark:to-[#e5ff00] h-full rounded-full transition-all duration-350 dark:shadow-[0_0_8px_rgba(229,255,0,0.6)]"
-                                style={{ width: `${percent}%` }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <button
-                        onClick={() => navigate(`/${currentUser?.role}/projects?id=${project._id}`)}
-                        className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white dark:bg-[#1a1a1a] dark:text-[#e5ff00] dark:hover:bg-[#e5ff00] dark:hover:text-black rounded-lg text-[11px] font-bold transition-colors border border-blue-100 hover:border-blue-600 dark:border-white/10 dark:hover:border-[#e5ff00] whitespace-nowrap"
-                      >
-                        View Tasks
-                      </button>
-                    </td>
-                    {isAdmin && (
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex justify-center items-center gap-3">
-                          <button
-                            onClick={(e) => handleOpenEdit(e, project)}
-                            className="text-slate-400 hover:text-blue-600 dark:hover:text-[#e5ff00] transition-colors p-1"
-                            title="Edit Project"
-                          >
-                            <FiEdit2 size={13} />
-                          </button>
-                          <button
-                            onClick={(e) => handleProjectDelete(e, project._id)}
-                            className="text-slate-400 hover:text-red-500 transition-colors p-1"
-                            title="Delete Project"
-                          >
-                            <FiTrash2 size={13} />
-                          </button>
-                        </div>
+                {filteredProjects.map((project) => {
+                  const projectPortfolio = portfolios.find(port => 
+                    (port.projectIds || []).some(id => 
+                      (typeof id === 'object' && id !== null ? id._id === project._id : id === project._id)
+                    )
+                  );
+
+                  return (
+                    <tr
+                      key={project._id}
+                      className="hover:bg-slate-50/70 dark:hover:bg-white/5 even:bg-slate-50/30 dark:even:bg-[#111111]/60 transition-colors"
+                    >
+                      <td className="px-6 py-4 font-extrabold text-slate-800 dark:text-white">
+                        {project.name}
                       </td>
-                    )}
-                  </tr>
-                ))}
+                      <td className="px-6 py-4">
+                        <span className="font-bold text-blue-600 dark:text-[#e5ff00] px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-[#e5ff00]/10 border border-blue-100 dark:border-[#e5ff00]/20">
+                          {project.client?.companyName || "No Client"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {projectPortfolio ? (
+                          <span 
+                            className="font-bold text-[10px] px-2 py-0.5 rounded-lg border uppercase tracking-wider"
+                            style={{
+                              backgroundColor: `${projectPortfolio.color}15`,
+                              borderColor: `${projectPortfolio.color}40`,
+                              color: projectPortfolio.color
+                            }}
+                          >
+                            {projectPortfolio.name}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 dark:text-slate-600 text-[10px] italic uppercase tracking-wider font-bold">
+                            None
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-lg border uppercase tracking-wider ${getStatusBadge(project.status)}`}>
+                          {project.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        {(() => {
+                          const projectTasks = tasks.filter((t) => t.project?._id === project._id || t.project === project._id);
+                          const total = projectTasks.length;
+                          const completed = projectTasks.filter((t) => t.status === "Completed").length;
+                          const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+                          return (
+                            <div className="flex flex-col gap-1.5 max-w-[160px]">
+                              <div className="flex justify-between items-center text-[10px] font-bold text-slate-505 bg-transparent">
+                                <span>{completed}/{total} Tasks</span>
+                                <span className="text-blue-600 dark:text-[#e5ff00] font-extrabold">{percent}%</span>
+                              </div>
+                              <div className="w-full bg-slate-100 dark:bg-[#1a1a1a] border border-transparent dark:border-white/5 h-2 rounded-full overflow-hidden shadow-inner">
+                                <div
+                                  className="bg-gradient-to-r from-blue-500 to-indigo-600 dark:from-[#99cc00] dark:to-[#e5ff00] h-full rounded-full transition-all duration-350 dark:shadow-[0_0_8px_rgba(229,255,0,0.6)]"
+                                  style={{ width: `${percent}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <button
+                          onClick={() => navigate(`/${currentUser?.role}/projects?id=${project._id}`)}
+                          className="px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white dark:bg-[#1a1a1a] dark:text-[#e5ff00] dark:hover:bg-[#e5ff00] dark:hover:text-black rounded-lg text-[11px] font-bold transition-colors border border-blue-100 hover:border-blue-600 dark:border-white/10 dark:hover:border-[#e5ff00] whitespace-nowrap"
+                        >
+                          View Tasks
+                        </button>
+                      </td>
+                      {isAdmin && (
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex justify-center items-center gap-3">
+                            <button
+                              onClick={(e) => handleOpenEdit(e, project)}
+                              className="text-slate-400 hover:text-blue-600 dark:hover:text-[#e5ff00] transition-colors p-1"
+                              title="Edit Project"
+                            >
+                              <FiEdit2 size={13} />
+                            </button>
+                            <button
+                              onClick={(e) => handleProjectDelete(e, project._id)}
+                              className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                              title="Delete Project"
+                            >
+                              <FiTrash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

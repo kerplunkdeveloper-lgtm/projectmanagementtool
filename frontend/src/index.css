@@ -204,14 +204,7 @@ aside {
     border-color: #1e293b !important;
   }
 
-  /* Global input text & placeholder visibility overrides in dark mode */
-  input, select, textarea {
-    color: #f8fafc !important;
-  }
-  input::placeholder, textarea::placeholder {
-    color: #64748b !important;
-    opacity: 1 !important;
-  }
+  
 }
 
 /* Custom Scrollbar */

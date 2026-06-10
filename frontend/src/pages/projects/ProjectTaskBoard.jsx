@@ -294,7 +294,7 @@ const ProjectTaskBoard = ({
   const [newComment, setNewComment] = useState("");
   const [isUploading, setIsUploading] = useState(false);
 
-  const handleRenameSectionSubmit = (e, oldName) => {
+  const handleRenameSectionSubmit = async (e, oldName) => {
     e.preventDefault();
     if (!editSectionValue.trim() || editSectionValue === oldName) {
       setEditingSection(null);
@@ -304,28 +304,39 @@ const ProjectTaskBoard = ({
     const currentSections = activeProject.sections?.length > 0 ? activeProject.sections : ["Recently assigned"];
     const updatedSections = currentSections.map(s => s === oldName ? newName : s);
     
-    // Update project
-    dispatch(updateProject({ id: activeProjectId, data: { sections: updatedSections } }));
-    
-    // Update all tasks in this section
-    const tasksToUpdate = tasks.filter(t => t.section === oldName || (!t.section && oldName === "Recently assigned"));
-    tasksToUpdate.forEach(t => {
-      dispatch(updateTask({ id: t._id, taskData: { section: newName } }));
-    });
+    try {
+      // Update project
+      await dispatch(updateProject({ id: activeProjectId, data: { sections: updatedSections } })).unwrap();
+      
+      // Update all tasks in this section
+      const tasksToUpdate = tasks.filter(t => t.section === oldName || (!t.section && oldName === "Recently assigned"));
+      await Promise.all(
+        tasksToUpdate.map(t => dispatch(updateTask({ id: t._id, taskData: { section: newName } })).unwrap())
+      );
+      dispatch(getTasks());
+    } catch (err) {
+      console.error("Failed to rename section:", err);
+    }
     
     setEditingSection(null);
   };
 
-  const handleDeleteSection = (sectionName) => {
+  const handleDeleteSection = async (sectionName) => {
     if (window.confirm(`Are you sure you want to delete the section "${sectionName}" and ALL its tasks?`)) {
       const currentSections = activeProject.sections?.length > 0 ? activeProject.sections : ["Recently assigned"];
       const updatedSections = currentSections.filter(s => s !== sectionName);
-      dispatch(updateProject({ id: activeProjectId, data: { sections: updatedSections } }));
       
-      const tasksToDelete = tasks.filter(t => t.section === sectionName || (!t.section && sectionName === "Recently assigned"));
-      tasksToDelete.forEach(t => {
-        dispatch(deleteTask(t._id));
-      });
+      try {
+        await dispatch(updateProject({ id: activeProjectId, data: { sections: updatedSections } })).unwrap();
+        
+        const tasksToDelete = tasks.filter(t => t.section === sectionName || (!t.section && sectionName === "Recently assigned"));
+        await Promise.all(
+          tasksToDelete.map(t => dispatch(deleteTask(t._id)).unwrap())
+        );
+        dispatch(getTasks());
+      } catch (err) {
+        console.error("Failed to delete section:", err);
+      }
     }
     setOpenSectionMenu(null);
   };
@@ -346,7 +357,7 @@ const ProjectTaskBoard = ({
     (t) => t.project?._id === activeProjectId || t.project === activeProjectId,
   );
 
-  const handleDragEnd = (result) => {
+  const handleDragEnd = async (result) => {
     const { destination, source, draggableId } = result;
     if (!destination) return;
     if (
@@ -362,12 +373,17 @@ const ProjectTaskBoard = ({
     setLocalTasks(updatedTasks);
 
     // Send to backend
-    dispatch(
-      updateTask({
-        id: draggableId,
-        taskData: { section: destination.droppableId },
-      }),
-    );
+    try {
+      await dispatch(
+        updateTask({
+          id: draggableId,
+          taskData: { section: destination.droppableId },
+        })
+      ).unwrap();
+      dispatch(getTasks());
+    } catch (err) {
+      console.error("Failed to drag and drop task:", err);
+    }
   };
 
   // Live selected task from Redux state
@@ -389,54 +405,60 @@ const ProjectTaskBoard = ({
   };
 
   // Add Task directly to DB (autosave pattern)
-  const handleAddTask = (sectionName = "Recently assigned") => {
-    dispatch(
-      createTask({
-        title: "",
-        project: activeProjectId,
-        section: sectionName,
-        assignedTo: null,
-        dueDate: null,
-        priority: "Medium",
-        status: "Pending",
-      }),
-    );
-    setTimeout(() => {
+  const handleAddTask = async (sectionName = "Recently assigned") => {
+    try {
+      await dispatch(
+        createTask({
+          title: "",
+          project: activeProjectId,
+          section: sectionName,
+          assignedTo: null,
+          dueDate: null,
+          priority: "Medium",
+          status: "Pending",
+        })
+      ).unwrap();
       dispatch(getTasks());
-    }, 550);
+    } catch (err) {
+      console.error("Failed to add task:", err);
+    }
   };
 
   // Add Task directly to DB with preselected status (Board view helper)
-  const handleAddTaskWithStatus = (status) => {
-    dispatch(
-      createTask({
-        title: "Add Task",
-        project: activeProjectId,
-        assignedTo: null,
-        dueDate: null,
-        priority: "Medium",
-        status: status,
-      }),
-    );
-    setTimeout(() => {
+  const handleAddTaskWithStatus = async (status) => {
+    try {
+      await dispatch(
+        createTask({
+          title: "Add Task",
+          project: activeProjectId,
+          assignedTo: null,
+          dueDate: null,
+          priority: "Medium",
+          status: status,
+        })
+      ).unwrap();
       dispatch(getTasks());
-    }, 550);
+    } catch (err) {
+      console.error("Failed to add task:", err);
+    }
   };
 
   // Update Task fields inline / autosave
-  const handleTaskFieldChange = (taskId, fields) => {
+  const handleTaskFieldChange = async (taskId, fields) => {
     const sanitizedFields = { ...fields };
     if (sanitizedFields.assignedTo === "") sanitizedFields.assignedTo = null;
     if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
 
-    dispatch(updateTask({ id: taskId, taskData: sanitizedFields }));
-    setTimeout(() => {
+    try {
+      await dispatch(updateTask({ id: taskId, taskData: sanitizedFields })).unwrap();
       dispatch(getTasks());
-    }, 550);
+    } catch (err) {
+      console.error("Failed to update task:", err);
+    }
   };
 
   // Add Comment Handler
-  const handleAddComment = () => {
+  const handleAddComment = async () => {
     if (!newComment.trim() || !selectedTask) return;
     const commentData = {
       user: currentUser?._id,
@@ -445,16 +467,17 @@ const ProjectTaskBoard = ({
     };
     
     // Dispatch to DB
-    dispatch(updateTask({
-      id: selectedTask._id,
-      taskData: {
-        comments: [...(selectedTask.comments || []).map(c => ({ user: c.user?._id || c.user, text: c.text, createdAt: c.createdAt })), commentData]
-      }
-    }));
-
-    setTimeout(() => {
-        dispatch(getTasks());
-    }, 300);
+    try {
+      await dispatch(updateTask({
+        id: selectedTask._id,
+        taskData: {
+          comments: [...(selectedTask.comments || []).map(c => ({ user: c.user?._id || c.user, text: c.text, createdAt: c.createdAt })), commentData]
+        }
+      })).unwrap();
+      dispatch(getTasks());
+    } catch (err) {
+      console.error("Failed to add comment:", err);
+    }
     
     setNewComment("");
   };
@@ -489,16 +512,13 @@ const ProjectTaskBoard = ({
           uploadedAt: new Date(),
         };
 
-        dispatch(updateTask({
+        await dispatch(updateTask({
           id: selectedTask._id,
           taskData: {
             attachments: [...(selectedTask.attachments || []).map(a => ({ ...a, uploadedBy: a.uploadedBy?._id || a.uploadedBy })), attachmentData]
           }
-        }));
-
-        setTimeout(() => {
-            dispatch(getTasks());
-        }, 300);
+        })).unwrap();
+        dispatch(getTasks());
 
         toast.success("Attachment uploaded successfully!", { id: "upload" });
       }
@@ -512,7 +532,7 @@ const ProjectTaskBoard = ({
   };
 
   // Add subtask (continuous addition helper)
-  const handleAddSubtask = (task, subtaskTitle) => {
+  const handleAddSubtask = async (task, subtaskTitle) => {
     if (!subtaskTitle || !subtaskTitle.trim()) return;
 
     const newSubtask = {
@@ -524,12 +544,14 @@ const ProjectTaskBoard = ({
     };
 
     const updatedSubtasks = [...(task.subtasks || []), newSubtask];
-    dispatch(
-      updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } }),
-    );
-    setTimeout(() => {
+    try {
+      await dispatch(
+        updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } })
+      ).unwrap();
       dispatch(getTasks());
-    }, 550);
+    } catch (err) {
+      console.error("Failed to add subtask:", err);
+    }
   };
 
   // Add subtask from inline form in table
@@ -543,7 +565,7 @@ const ProjectTaskBoard = ({
   };
 
   // Update specific subtask fields
-  const handleSubtaskFieldChange = (task, subtaskId, updatedFields) => {
+  const handleSubtaskFieldChange = async (task, subtaskId, updatedFields) => {
     const sanitizedFields = { ...updatedFields };
     if (sanitizedFields.assignedTo === "") sanitizedFields.assignedTo = null;
     if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
@@ -551,37 +573,43 @@ const ProjectTaskBoard = ({
     const updatedSubtasks = task.subtasks.map((sub) =>
       sub._id === subtaskId ? { ...sub, ...sanitizedFields } : sub,
     );
-    dispatch(
-      updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } }),
-    );
-    setTimeout(() => {
+    try {
+      await dispatch(
+        updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } })
+      ).unwrap();
       dispatch(getTasks());
-    }, 550);
+    } catch (err) {
+      console.error("Failed to update subtask:", err);
+    }
   };
 
   // Delete Subtask
-  const handleDeleteSubtask = (task, subtaskId) => {
+  const handleDeleteSubtask = async (task, subtaskId) => {
     const updatedSubtasks = task.subtasks.filter(
       (sub) => sub._id !== subtaskId,
     );
-    dispatch(
-      updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } }),
-    );
-    setTimeout(() => {
+    try {
+      await dispatch(
+        updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } })
+      ).unwrap();
       dispatch(getTasks());
-    }, 550);
+    } catch (err) {
+      console.error("Failed to delete subtask:", err);
+    }
   };
 
   // Delete parent Task
-  const handleParentTaskDelete = (taskId) => {
+  const handleParentTaskDelete = async (taskId) => {
     if (window.confirm("Are you sure you want to delete this task?")) {
       if (selectedTaskId === taskId) {
         setSelectedTaskId(null);
       }
-      dispatch(deleteTask(taskId));
-      setTimeout(() => {
+      try {
+        await dispatch(deleteTask(taskId)).unwrap();
         dispatch(getTasks());
-      }, 550);
+      } catch (err) {
+        console.error("Failed to delete task:", err);
+      }
     }
   };
 
@@ -1366,7 +1394,7 @@ const ProjectTaskBoard = ({
                                         {/* Delete Action (visible on hover) */}
                                         {isAdminOrManager && (
                                           <button 
-                                            onClick={(e) => { e.stopPropagation(); if(window.confirm('Are you sure you want to delete this task?')) dispatch(deleteTask(task._id)); }}
+                                            onClick={(e) => { e.stopPropagation(); handleParentTaskDelete(task._id); }}
                                             className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2 p-1.5 text-rose-500 bg-rose-50 dark:bg-rose-900/30 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/50"
                                           >
                                             <FiTrash2 size={12} />
@@ -1589,7 +1617,7 @@ const ProjectTaskBoard = ({
                                   {task.title}
                                 </div>
                                 {isAdminOrManager && (
-                                  <button onClick={(e) => { e.stopPropagation(); if(window.confirm('Delete this task?')) dispatch(deleteTask(task._id)); }} className="absolute right-4 top-1.5 opacity-0 group-hover:opacity-100 text-rose-500 p-1 bg-white dark:bg-[#111111] rounded z-20 hover:bg-rose-50 dark:hover:bg-white/5 border border-rose-100 dark:border-white/10 shadow-sm transition-opacity">
+                                  <button onClick={(e) => { e.stopPropagation(); handleParentTaskDelete(task._id); }} className="absolute right-4 top-1.5 opacity-0 group-hover:opacity-100 text-rose-500 p-1 bg-white dark:bg-[#111111] rounded z-20 hover:bg-rose-50 dark:hover:bg-white/5 border border-rose-100 dark:border-white/10 shadow-sm transition-opacity">
                                     <FiTrash2 size={10} />
                                   </button>
                                 )}

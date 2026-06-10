@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiPlus,
@@ -7,6 +8,7 @@ import {
   FiEdit3,
   FiCheck,
   FiChevronLeft,
+  FiChevronRight,
   FiMoreHorizontal,
   FiCalendar,
   FiStar,
@@ -15,7 +17,115 @@ import {
   FiArrowRight,
   FiFolder,
 } from "react-icons/fi";
-import { LuPlus, LuFolderOpen } from "react-icons/lu";
+import { LuPlus, LuFolderOpen, LuRocket, LuListTodo, LuBriefcase, LuFolder, LuLaptop, LuCalendarDays } from "react-icons/lu";
+
+const getProjectIcon = (projectName, projectId) => {
+  const hash = (projectId || projectName || "").split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const icons = [
+    { icon: LuRocket, bg: "bg-blue-500/10 dark:bg-blue-500/20 text-blue-500 dark:text-blue-400" },
+    { icon: LuListTodo, bg: "bg-pink-500/10 dark:bg-pink-500/20 text-pink-500 dark:text-pink-400" },
+    { icon: LuBriefcase, bg: "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-500 dark:text-emerald-400" },
+    { icon: LuFolder, bg: "bg-amber-500/10 dark:bg-amber-500/20 text-amber-500 dark:text-amber-400" },
+    { icon: LuLaptop, bg: "bg-purple-500/10 dark:bg-purple-500/20 text-purple-500 dark:text-purple-400" },
+    { icon: LuCalendarDays, bg: "bg-cyan-500/10 dark:bg-cyan-500/20 text-cyan-500 dark:text-cyan-400" },
+    { icon: LuFolderOpen, bg: "bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-500 dark:text-indigo-400" },
+  ];
+  return icons[hash % icons.length];
+};
+
+const getRelativeTime = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffTime = Math.abs(now - date);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  if (diffDays <= 1) {
+    const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+    if (diffHours <= 1) {
+      return "just now";
+    }
+    return `${diffHours}h ago`;
+  }
+  if (diffDays === 1) return "1 day ago";
+  return `${diffDays} days ago`;
+};
+
+const getInitials = (name) => {
+  if (!name) return "U";
+  const parts = name.split(" ");
+  if (parts.length > 1) {
+    return (parts[0][0] + parts[1][parts.length - 1][0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+};
+
+const getAvatarColor = (name) => {
+  const colors = [
+    "bg-amber-500",
+    "bg-orange-500",
+    "bg-red-500",
+    "bg-blue-500",
+    "bg-emerald-500",
+    "bg-purple-500",
+  ];
+  const hash = (name || "").split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return colors[hash % colors.length];
+};
+
+const getStatusPill = (project) => {
+  const relativeTime = getRelativeTime(project.updatedAt);
+  
+  switch (project.status) {
+    case "Active":
+      return (
+        <div className="flex items-center gap-2 text-[11px]">
+          <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-emerald-100 dark:border-emerald-900/40 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            On track
+          </span>
+          {relativeTime && (
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{relativeTime}</span>
+          )}
+        </div>
+      );
+    case "On Hold":
+      return (
+        <div className="flex items-center gap-2 text-[11px]">
+          <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-amber-100 dark:border-amber-900/40 bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            At risk
+          </span>
+          {relativeTime && (
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{relativeTime}</span>
+          )}
+        </div>
+      );
+    case "Completed":
+      return (
+        <div className="flex items-center gap-2 text-[11px]">
+          <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-blue-100 dark:border-blue-900/40 bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+            Completed
+          </span>
+          {relativeTime && (
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{relativeTime}</span>
+          )}
+        </div>
+      );
+    default:
+      return (
+        <div className="flex items-center gap-2 text-[11px]">
+          <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-slate-200 dark:border-white/5 bg-slate-50 text-slate-650 dark:bg-[#1a1a1a] dark:text-slate-400 font-medium">
+            <span className="w-1.5 h-1.5 rounded-full border border-slate-400 dark:border-slate-500" />
+            No recent updates
+          </span>
+          {relativeTime && (
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{relativeTime}</span>
+          )}
+        </div>
+      );
+  }
+};
 
 import {
   getProjects,
@@ -23,6 +133,7 @@ import {
 } from "../../../features/projects/projectSlice";
 import { getTasks } from "../../../features/tasks/taskSlice";
 import { getUsers } from "../../../features/users/userSlice";
+import { getClients } from "../../../features/clients/clientslice";
 import {
   getPortfolios,
   createPortfolio,
@@ -34,12 +145,15 @@ import {
 
 const Portfolio = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   // Redux state
   const { projects } = useSelector((state) => state.projects);
   const { tasks } = useSelector((state) => state.tasks);
   const { users } = useSelector((state) => state.users);
+  const { clients } = useSelector((state) => state.clients);
   const { portfolios: rawPortfolios, loading: portfolioLoading } = useSelector((state) => state.portfolios);
+  const { user } = useSelector((state) => state.auth);
 
   // Normalize projectIds into a list of strings to handle backend populate
   const portfolios = useMemo(() => {
@@ -56,6 +170,8 @@ const Portfolio = () => {
   const [selectedAddProjects, setSelectedAddProjects] = useState([]);
   const [showCreateProjectForm, setShowCreateProjectForm] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectClientId, setNewProjectClientId] = useState("");
+  const [newProjectStatus, setNewProjectStatus] = useState("Active");
   const [creatingProject, setCreatingProject] = useState(false);
 
   // Modal & form states for create/edit
@@ -78,8 +194,16 @@ const Portfolio = () => {
     dispatch(getProjects());
     dispatch(getTasks());
     dispatch(getUsers());
+    dispatch(getClients());
     dispatch(getPortfolios());
   }, [dispatch]);
+
+  // Set default client selection once clients are loaded
+  useEffect(() => {
+    if (clients && clients.length > 0 && !newProjectClientId) {
+      setNewProjectClientId(clients[0]._id);
+    }
+  }, [clients, newProjectClientId]);
 
   // Open create modal
   const handleOpenCreateModal = () => {
@@ -142,11 +266,15 @@ const Portfolio = () => {
 
   // Create a brand-new project and immediately add it to this portfolio
   const handleCreateAndAddProject = async () => {
-    if (!newProjectName.trim()) return;
+    if (!newProjectName.trim() || !newProjectClientId) return;
     setCreatingProject(true);
     try {
       const result = await dispatch(
-        createProject({ name: newProjectName.trim(), status: "Active" }),
+        createProject({ 
+          name: newProjectName.trim(), 
+          client: newProjectClientId, 
+          status: newProjectStatus 
+        }),
       );
       const newProj = result?.payload?.data;
       if (newProj?._id && activePortfolio) {
@@ -155,6 +283,8 @@ const Portfolio = () => {
     } finally {
       setCreatingProject(false);
       setNewProjectName("");
+      setNewProjectClientId(clients[0]?._id || "");
+      setNewProjectStatus("Active");
       setShowCreateProjectForm(false);
       setShowAddProjectDropdown(false);
     }
@@ -363,11 +493,7 @@ const Portfolio = () => {
                       {activePortfolio.name}
                     </h1>
                   </div>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase mt-0.5 tracking-wider">
-                    Portfolio Group Workspace •{" "}
-                    {(activePortfolio.projectIdsList || []).filter(id => projects.some(p => p._id === id)).length} Project
-                    {(activePortfolio.projectIdsList || []).filter(id => projects.some(p => p._id === id)).length !== 1 ? "s" : ""}
-                  </p>
+
                 </div>
               </div>
             </div>
@@ -375,12 +501,230 @@ const Portfolio = () => {
             <div className="min-h-[350px] space-y-4">
               {/* Toolbar */}
               <div className="flex flex-wrap items-center justify-between gap-3 ">
-                <div>
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <button
+                      onClick={() => {
+                        setSelectedAddProjects([]);
+                        setProjectSearchQuery("");
+                        setShowAddProjectDropdown(!showAddProjectDropdown);
+                      }}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm active:scale-95 cursor-pointer"
+                    >
+                      <LuPlus
+                        size={14}
+                        className="text-slate-500 dark:text-slate-400"
+                      />
+                      Add Existing Projects
+                    </button>
+
+                    <AnimatePresence>
+                      {showAddProjectDropdown && (
+                        <>
+                          {/* Backdrop to close click outside */}
+                          <div 
+                            className="fixed inset-0 z-10" 
+                            onClick={() => setShowAddProjectDropdown(false)} 
+                          />
+                          {/* Dropdown Card */}
+                          <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            className="absolute left-0 mt-2 w-[340px] max-w-[90vw] md:w-[400px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2rem] shadow-2xl z-20 p-5 flex flex-col gap-3"
+                          >
+                            {/* Search */}
+                            <div className="relative">
+                              <input
+                                type="text"
+                                autoFocus
+                                placeholder="Search projects..."
+                                value={projectSearchQuery}
+                                onChange={(e) => setProjectSearchQuery(e.target.value)}
+                                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl pl-4 pr-4 py-2.5 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 dark:focus:border-[#e5ff00]/50 transition-all placeholder:text-slate-400"
+                              />
+                            </div>
+
+                            {/* Select All toggle */}
+                            {(() => {
+                              const projectsInPortfolios = new Set(
+                                portfolios.flatMap((p) => p.projectIdsList || []),
+                              );
+                              const available = projects
+                                .filter((p) => !projectsInPortfolios.has(p._id))
+                                .filter((p) =>
+                                  p.name
+                                    ?.toLowerCase()
+                                    .includes(projectSearchQuery.toLowerCase()),
+                                );
+                              if (available.length === 0) return null;
+                              const allSelected = available.every((p) =>
+                                selectedAddProjects.includes(p._id),
+                              );
+                              return (
+                                <div className="flex items-center justify-between pb-2 mb-1 border-b border-slate-100 dark:border-slate-800/80 px-0.5">
+                                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-505">
+                                    {available.length} available
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (allSelected) {
+                                        setSelectedAddProjects((prev) =>
+                                          prev.filter(
+                                            (id) => !available.some((a) => a._id === id),
+                                          ),
+                                        );
+                                      } else {
+                                        setSelectedAddProjects((prev) =>
+                                          Array.from(
+                                            new Set([
+                                              ...prev,
+                                              ...available.map((a) => a._id),
+                                            ]),
+                                          ),
+                                        );
+                                      }
+                                    }}
+                                    className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-[#e5ff00] hover:underline cursor-pointer transition-colors"
+                                  >
+                                    {allSelected ? "Deselect All" : "Select All"}
+                                  </button>
+                                </div>
+                              );
+                            })()}
+
+                            {/* Project list */}
+                            <div
+                              className="overflow-y-auto space-y-1.5 pr-1 max-h-[240px]"
+                            >
+                              {(() => {
+                                const projectsInPortfolios = new Set(
+                                  portfolios.flatMap((p) => p.projectIdsList || []),
+                                );
+                                const available = projects
+                                  .filter((p) => !projectsInPortfolios.has(p._id))
+                                  .filter((p) =>
+                                    p.name
+                                      ?.toLowerCase()
+                                      .includes(projectSearchQuery.toLowerCase()),
+                                  );
+
+                                if (
+                                  projects.filter(
+                                    (p) => !projectsInPortfolios.has(p._id),
+                                  ).length === 0
+                                ) {
+                                  return (
+                                    <div className="text-center py-6 text-xs font-bold text-slate-400 dark:text-slate-500 italic">
+                                      All projects are in a portfolio.
+                                    </div>
+                                  );
+                                }
+
+                                if (available.length === 0) {
+                                  return (
+                                    <div className="text-center py-6 text-xs font-bold text-slate-400 dark:text-slate-500 italic">
+                                      No projects match.
+                                    </div>
+                                  );
+                                }
+
+                                return available.map((proj) => {
+                                  const isChecked = selectedAddProjects.includes(proj._id);
+                                  return (
+                                    <div
+                                      key={proj._id}
+                                      onClick={() => {
+                                        setSelectedAddProjects((prev) =>
+                                          isChecked
+                                            ? prev.filter((id) => id !== proj._id)
+                                            : [...prev, proj._id],
+                                        );
+                                      }}
+                                      className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer select-none ${
+                                        isChecked
+                                          ? "bg-blue-50/60 border-blue-200 dark:bg-[#e5ff00]/10 dark:border-[#e5ff00]/40"
+                                          : "bg-slate-50/40 border-slate-100 dark:bg-slate-950/40 dark:border-slate-850 hover:bg-slate-100/60 dark:hover:bg-slate-800/40"
+                                      }`}
+                                    >
+                                      {/* Checkbox */}
+                                      <div
+                                        className={`w-4 h-4 rounded flex items-center justify-center shrink-0 border transition-all ${
+                                          isChecked
+                                            ? "bg-blue-600 border-blue-600 dark:bg-[#e5ff00] dark:border-[#e5ff00]"
+                                            : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
+                                        }`}
+                                      >
+                                        {isChecked && (
+                                          <FiCheck
+                                            size={10}
+                                            className="text-white dark:text-black font-black"
+                                          />
+                                        )}
+                                      </div>
+
+                                      {/* Info */}
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-wider truncate">
+                                          {proj.name}
+                                        </p>
+                                      </div>
+
+                                      {/* Status badge */}
+                                      <span
+                                        className={`text-[8px] font-black px-1.5 py-0.5 rounded border uppercase tracking-wider shrink-0 ${getStatusBadge(proj.status)}`}
+                                      >
+                                        {proj.status || "Active"}
+                                      </span>
+                                    </div>
+                                  );
+                                });
+                              })()}
+                            </div>
+
+                            {/* Footer */}
+                            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                              <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                                {selectedAddProjects.length > 0
+                                  ? `${selectedAddProjects.length} selected`
+                                  : "None selected"}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setShowAddProjectDropdown(false)}
+                                  className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider text-slate-505 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-850 transition-all active:scale-95 cursor-pointer"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    handleBatchAddProjects();
+                                    setShowAddProjectDropdown(false);
+                                  }}
+                                  disabled={selectedAddProjects.length === 0}
+                                  className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-md active:scale-95 ${
+                                    selectedAddProjects.length > 0
+                                      ? "bg-gradient-to-b from-[#92d1ef] via-[#69afe2] to-[#408ed8] text-white dark:bg-none dark:bg-[#e5ff00] dark:text-black cursor-pointer hover:opacity-95"
+                                      : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-50 shadow-none"
+                                  }`}
+                                >
+                                  Add
+                                </button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
                   <button
                     onClick={() => {
-                      setSelectedAddProjects([]);
-                      setProjectSearchQuery("");
-                      setShowAddProjectDropdown(true);
+                      setNewProjectName("");
+                      setShowCreateProjectForm(true);
                     }}
                     className="flex items-center gap-1.5 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm active:scale-95 cursor-pointer"
                   >
@@ -388,403 +732,141 @@ const Portfolio = () => {
                       size={14}
                       className="text-slate-500 dark:text-slate-400"
                     />
-                    Add work
+                    Create New Project
                   </button>
                 </div>
+              </div>              {/* Grouped Projects Table (Image 2) */}
+              {(() => {
+                const validProjects = (activePortfolio.projectIdsList || [])
+                  .map((projId) => projects.find((p) => p._id === projId))
+                  .filter(Boolean);
 
-                <div className="flex items-center gap-2 text-xs font-bold text-slate-500 dark:text-slate-400">
-                  <button className="px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                    Filter
-                  </button>
-                  <button className="px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                    Sort
-                  </button>
-                  <button className="px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                    Group
-                  </button>
-                  <button className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                    <FiMoreHorizontal size={14} />
-                  </button>
-                </div>
-              </div>
+                if (validProjects.length === 0) {
+                  return (
+                    <div className="px-6 py-12 text-center text-slate-400 dark:text-slate-505 italic bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-850 rounded-[2rem] shadow-sm">
+                      No projects added. Choose "+ Add work" or search below
+                      to group projects inside this portfolio.
+                    </div>
+                  );
+                }
 
-              {/* Grouped Projects Table (Image 2) */}
-              <div className="overflow-x-auto bg-white dark:bg-slate-800">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-slate-50/50 dark:bg-slate-900/50  text-slate-405 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                      <th className="px-6 py-3.5">ProjectName</th>
-                      <th className="px-6 py-3.5">Status</th>
-                      <th className="px-6 py-3.5">Task progress</th>
-                      <th className="px-6 py-3.5">Due date</th>
-                      <th className="px-6 py-3.5">Priority</th>
-                      <th className="px-6 py-3.5 text-center w-20">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60 text-xs">
-                    {activePortfolio.projectIdsList?.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="px-6 py-12 text-center text-slate-400 dark:text-slate-500 italic"
-                        >
-                          No projects added. Choose "+ Add work" or search below
-                          to group projects inside this portfolio.
-                        </td>
-                      </tr>
-                    ) : (
-                      activePortfolio.projectIdsList.map((projId) => {
-                        const project = projects.find((p) => p._id === projId);
-                        if (!project) return null;
+                return (
+                  <div className="overflow-x-auto bg-white dark:bg-slate-800 shadow-sm ">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50/50 dark:bg-slate-900/50 text-slate-455 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider ">
+                          <th className="px-6 py-4">Name</th>
+                          <th className="px-6 py-4">Status</th>
+                          <th className="px-6 py-4">Task progress</th>
+                          <th className="px-6 py-4">Due date</th>
+                          <th className="px-6 py-4 text-center w-20">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-150 dark:divide-slate-700/60 text-xs">
+                        {validProjects.map((project) => {
+                          const projId = project._id;
+                          
+                          // Calculate progress percentage
+                          const projectTasks = tasks.filter(
+                            (t) =>
+                              t.project?._id === projId || t.project === projId,
+                          );
+                          const totalTasks = projectTasks.length;
+                          const completedTasks = projectTasks.filter(
+                            (t) => t.status === "Completed",
+                          ).length;
+                          const progressPercent =
+                            totalTasks > 0
+                              ? Math.round((completedTasks / totalTasks) * 100)
+                              : 0;
 
-                        // Calculate progress percentage
-                        const projectTasks = tasks.filter(
-                          (t) =>
-                            t.project?._id === projId || t.project === projId,
-                        );
-                        const totalTasks = projectTasks.length;
-                        const completedTasks = projectTasks.filter(
-                          (t) => t.status === "Completed",
-                        ).length;
-                        const progressPercent =
-                          totalTasks > 0
-                            ? Math.round((completedTasks / totalTasks) * 100)
-                            : 0;
+                          // Calculate due date range
+                          const dueDates = projectTasks
+                            .map((t) => t.dueDate)
+                            .filter(Boolean)
+                            .map((d) => new Date(d).getTime());
+                          const minDueDate = dueDates.length > 0 ? new Date(Math.min(...dueDates)) : null;
+                          const maxDueDate = dueDates.length > 0 ? new Date(Math.max(...dueDates)) : null;
 
-                        // Calculate due date (maximum task due date)
-                        const dueDates = projectTasks
-                          .map((t) => t.dueDate)
-                          .filter(Boolean)
-                          .map((d) => new Date(d).getTime());
-                        const latestDueDate =
-                          dueDates.length > 0
-                            ? new Date(Math.max(...dueDates))
-                            : null;
+                          let formattedDueDateRange = "";
+                          if (minDueDate && maxDueDate) {
+                            const opt = { month: "short", day: "numeric" };
+                            const startStr = minDueDate.toLocaleDateString("en-US", opt);
+                            const endStr = maxDueDate.toLocaleDateString("en-US", opt);
+                            formattedDueDateRange = startStr === endStr ? startStr : `${startStr} – ${endStr}`;
+                          }
 
-                        // Calculate highest priority task
-                        const priorities = projectTasks
-                          .map((t) => t.priority)
-                          .filter(Boolean);
-                        const highestPriority = priorities.includes("High")
-                          ? "High"
-                          : priorities.includes("Medium")
-                            ? "Medium"
-                            : priorities.includes("Low")
-                              ? "Low"
-                              : "Medium";
+                          const projectIcon = getProjectIcon(project.name, project._id);
+                          const IconComponent = projectIcon.icon;
 
-                        return (
-                          <tr
-                            key={projId}
-                            className="hover:bg-slate-50/50 dark:hover:bg-slate-750/30 transition-colors"
-                          >
-                            {/* Name */}
-                            <td className="px-6 py-4 font-black text-slate-800 dark:text-white uppercase tracking-wider">
-                              {project.name}
-                            </td>
+                          return (
+                            <tr
+                              key={projId}
+                              className="group hover:bg-slate-50/50 dark:hover:bg-slate-750/30 transition-colors"
+                            >
+                              {/* Name */}
+                              <td className="px-6 py-4 border-r border-slate-150 dark:border-slate-800/50 cursor-pointer" onClick={() => navigate(`/${user?.role || "admin"}/projects?id=${project._id}`)}>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${projectIcon.bg} shrink-0`}>
+                                      <IconComponent size={16} />
+                                    </div>
+                                    <span className="font-medium text-slate-800 dark:text-slate-100 hover:text-blue-600 dark:hover:text-[#e5ff00] transition-colors">
+                                      {project.name}
+                                    </span>
+                                  </div>
+                                  <FiChevronRight size={14} className="text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-all duration-200" />
+                                </div>
+                              </td>
 
-                            {/* Status */}
-                            <td className="px-6 py-4">
-                              <span
-                                className={`text-[9px] font-black px-2.5 py-1 rounded-lg border uppercase tracking-wider ${getStatusBadge(project.status)}`}
-                              >
-                                {project.status || "Active"}
-                              </span>
-                            </td>
+                              {/* Status */}
+                              <td className="px-6 py-4 border-r border-slate-150 dark:border-slate-800/50">
+                                {getStatusPill(project)}
+                              </td>
 
-                            {/* Task Progress */}
-                            <td className="px-6 py-4">
-                              <div className="flex flex-col gap-1.5 max-w-[140px]">
-                                <div className="flex justify-between items-center text-[9px] font-bold text-slate-450 dark:text-slate-500">
-                                  <span>
-                                    {completedTasks}/{totalTasks} Tasks
-                                  </span>
-                                  <span className="text-blue-600 dark:text-blue-400 font-extrabold">
+                              {/* Task Progress */}
+                              <td className="px-6 py-4 border-r border-slate-150 dark:border-slate-800/50">
+                                <div className="flex items-center gap-2 max-w-[120px]">
+                                  <div className="w-16 bg-slate-100 dark:bg-slate-700 h-1 rounded-full overflow-hidden shrink-0">
+                                    <div
+                                      className="bg-slate-300 dark:bg-slate-500 h-full rounded-full transition-all duration-350"
+                                      style={{ width: `${progressPercent}%` }}
+                                    />
+                                  </div>
+                                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                                     {progressPercent}%
                                   </span>
                                 </div>
-                                <div className="w-full bg-slate-100 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
-                                  <div
-                                    className="bg-gradient-to-r from-blue-500 to-indigo-600 h-full rounded-full transition-all duration-350"
-                                    style={{ width: `${progressPercent}%` }}
-                                  />
-                                </div>
-                              </div>
-                            </td>
+                              </td>
 
-                            {/* Due Date */}
-                            <td className="px-6 py-4 font-semibold text-slate-655 dark:text-slate-400">
-                              {latestDueDate ? (
-                                <span className="flex items-center gap-1">
-                                  <FiCalendar
-                                    size={11}
-                                    className="text-slate-400"
-                                  />
-                                  {latestDueDate.toLocaleDateString(undefined, {
-                                    month: "short",
-                                    day: "numeric",
-                                    year: "numeric",
-                                  })}
-                                </span>
-                              ) : (
-                                <span className="text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider text-[9px]">
-                                  No due date
-                                </span>
-                              )}
-                            </td>
+                              {/* Due Date */}
+                              <td className="px-6 py-4 border-r border-slate-150 dark:border-slate-800/50 font-semibold text-slate-655 dark:text-slate-450">
+                                {formattedDueDateRange}
+                              </td>
 
-                            {/* Priority */}
-                            <td className="px-6 py-4">
-                              <span
-                                className={`px-2 py-0.5 rounded text-[8px] font-extrabold border uppercase tracking-wider ${
-                                  highestPriority === "High"
-                                    ? "bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/50"
-                                    : highestPriority === "Medium"
-                                      ? "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/50"
-                                      : "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800"
-                                }`}
-                              >
-                                {highestPriority}
-                              </span>
-                            </td>
-
-                            {/* Remove Project Option */}
-                            <td className="px-6 py-4 text-center">
-                              <button
-                                onClick={() => handleRemoveProject(projId)}
-                                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-red-500 rounded transition-colors"
-                                title="Remove from group"
-                              >
-                                <FiTrash2 size={13} />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ====================================================
-           BATCH ADD WORK MODAL
-          ==================================================== */}
-      <AnimatePresence>
-        {showAddProjectDropdown && activePortfolio && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowAddProjectDropdown(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-
-            {/* Modal Body */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-150 dark:border-slate-800 shadow-2xl z-10 flex flex-col"
-              style={{ maxHeight: "85vh" }}
-            >
-              {/* Header */}
-              <div className="mb-5">
-                <h2 className="text-base font-black text-slate-800 dark:text-white uppercase tracking-wider">
-                  Add work to portfolio
-                </h2>
-                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-0.5 tracking-wider">
-                  {activePortfolio.name} • select projects to add
-                </p>
-              </div>
-
-              {/* Search */}
-              <div className="relative mb-4">
-                <input
-                  type="text"
-                  autoFocus
-                  placeholder="Search projects..."
-                  value={projectSearchQuery}
-                  onChange={(e) => setProjectSearchQuery(e.target.value)}
-                  className="w-full bg-slate-50  dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl pl-9 pr-4 py-3 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 dark:focus:border-[#e5ff00]/50 transition-all placeholder:text-slate-400"
-                />
-              </div>
-
-              {/* Select All toggle */}
-              {(() => {
-                const available = projects
-                  .filter((p) => !activePortfolio.projectIdsList.includes(p._id))
-                  .filter((p) =>
-                    p.name
-                      ?.toLowerCase()
-                      .includes(projectSearchQuery.toLowerCase()),
-                  );
-                if (available.length === 0) return null;
-                const allSelected = available.every((p) =>
-                  selectedAddProjects.includes(p._id),
-                );
-                return (
-                  <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-slate-100 dark:border-slate-800/80 px-0.5">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                      {available.length} available
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (allSelected) {
-                          setSelectedAddProjects((prev) =>
-                            prev.filter(
-                              (id) => !available.some((a) => a._id === id),
-                            ),
+                              {/* Remove Project Option */}
+                              <td className="px-6 py-4 text-center">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveProject(projId);
+                                  }}
+                                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-red-500 rounded transition-colors"
+                                  title="Remove from group"
+                                >
+                                  <FiTrash2 size={13} />
+                                </button>
+                              </td>
+                            </tr>
                           );
-                        } else {
-                          setSelectedAddProjects((prev) =>
-                            Array.from(
-                              new Set([
-                                ...prev,
-                                ...available.map((a) => a._id),
-                              ]),
-                            ),
-                          );
-                        }
-                      }}
-                      className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-[#e5ff00] hover:underline cursor-pointer transition-colors"
-                    >
-                      {allSelected ? "Deselect All" : "Select All"}
-                    </button>
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 );
               })()}
-
-              {/* Project list */}
-              <div
-                className="flex-1 overflow-y-auto space-y-1.5 pr-1"
-                style={{ minHeight: "120px", maxHeight: "340px" }}
-              >
-                {(() => {
-                  const available = projects
-                    .filter((p) => !activePortfolio.projectIdsList.includes(p._id))
-                    .filter((p) =>
-                      p.name
-                        ?.toLowerCase()
-                        .includes(projectSearchQuery.toLowerCase()),
-                    );
-
-                  if (
-                    projects.filter(
-                      (p) => !activePortfolio.projectIdsList.includes(p._id),
-                    ).length === 0
-                  ) {
-                    return (
-                      <div className="text-center py-10 text-xs font-bold text-slate-400 dark:text-slate-500 italic">
-                        All projects are already in this portfolio.
-                      </div>
-                    );
-                  }
-
-                  if (available.length === 0) {
-                    return (
-                      <div className="text-center py-10 text-xs font-bold text-slate-400 dark:text-slate-500 italic">
-                        No projects match your search.
-                      </div>
-                    );
-                  }
-
-                  return available.map((proj) => {
-                    const isChecked = selectedAddProjects.includes(proj._id);
-                    return (
-                      <div
-                        key={proj._id}
-                        onClick={() => {
-                          setSelectedAddProjects((prev) =>
-                            isChecked
-                              ? prev.filter((id) => id !== proj._id)
-                              : [...prev, proj._id],
-                          );
-                        }}
-                        className={`flex items-center gap-3 p-3.5 rounded-2xl border transition-all cursor-pointer select-none ${
-                          isChecked
-                            ? "bg-blue-50/60 border-blue-200 dark:bg-[#e5ff00]/10 dark:border-[#e5ff00]/40"
-                            : "bg-slate-50/40 border-slate-100 dark:bg-slate-950/40 dark:border-slate-850 hover:bg-slate-100/60 dark:hover:bg-slate-800/40"
-                        }`}
-                      >
-                        {/* Checkbox */}
-                        <div
-                          className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
-                            isChecked
-                              ? "bg-blue-600 border-blue-600 dark:bg-[#e5ff00] dark:border-[#e5ff00]"
-                              : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
-                          }`}
-                        >
-                          {isChecked && (
-                            <FiCheck
-                              size={11}
-                              className="text-white dark:text-black font-black"
-                            />
-                          )}
-                        </div>
-
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider truncate">
-                            {proj.name}
-                          </p>
-                          <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">
-                            {proj.status || "Active"}
-                          </p>
-                        </div>
-
-                        {/* Status badge */}
-                        <span
-                          className={`text-[8px] font-black px-2 py-0.5 rounded-lg border uppercase tracking-wider shrink-0 ${getStatusBadge(proj.status)}`}
-                        >
-                          {proj.status || "Active"}
-                        </span>
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-
-              {/* Footer */}
-              <div className="flex items-center justify-between pt-5 mt-4 border-t border-slate-100 dark:border-slate-800/80">
-                <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                  {selectedAddProjects.length > 0
-                    ? `${selectedAddProjects.length} selected`
-                    : "None selected"}
-                </span>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddProjectDropdown(false)}
-                    className="px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all active:scale-95 cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleBatchAddProjects}
-                    disabled={selectedAddProjects.length === 0}
-                    className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all shadow-md active:scale-95 ${
-                      selectedAddProjects.length > 0
-                        ? "bg-gradient-to-b from-[#92d1ef] via-[#69afe2] to-[#408ed8] text-white dark:bg-none dark:bg-[#e5ff00] dark:text-black cursor-pointer hover:opacity-95"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-50 shadow-none"
-                    }`}
-                  >
-                    Add{" "}
-                    {selectedAddProjects.length > 0
-                      ? `(${selectedAddProjects.length})`
-                      : ""}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
@@ -901,6 +983,144 @@ const Portfolio = () => {
                     className="px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-wider text-white dark:text-black transition-all shadow-md bg-gradient-to-b from-[#92d1ef] via-[#69afe2] to-[#408ed8] dark:bg-[#e5ff00] dark:bg-none hover:opacity-95 active:scale-95"
                   >
                     {isEditMode ? "Save Changes" : "Create Portfolio"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* CREATE NEW PROJECT OFFCANVAS DRAWER */}
+      <AnimatePresence>
+        {showCreateProjectForm && activePortfolio && (
+          <div className="fixed inset-0 z-50 flex justify-end">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowCreateProjectForm(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+
+            {/* Side Sheet Drawer */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "tween", ease: "easeOut", duration: 0.3 }}
+              className="relative w-full max-w-md bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col z-10 border-l border-slate-100 dark:border-slate-800"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-[#e5ff00]/10 border border-blue-100 dark:border-[#e5ff00]/20 flex items-center justify-center text-blue-600 dark:text-[#e5ff00]">
+                    <LuBriefcase size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-slate-800 dark:text-white">Add New Project</h2>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Project Details</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCreateProjectForm(false)}
+                  className="w-8 h-8 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 flex items-center justify-center text-slate-400 hover:text-slate-650 dark:hover:text-white transition-colors cursor-pointer"
+                >
+                  <FiX size={18} />
+                </button>
+              </div>
+
+              {/* Form Content */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleCreateAndAddProject();
+                }}
+                className="flex-1 flex flex-col overflow-hidden"
+              >
+                <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+                  {/* Name Field */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-650 dark:text-slate-400 uppercase tracking-wide">
+                      Project Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      autoFocus
+                      value={newProjectName}
+                      onChange={(e) => setNewProjectName(e.target.value)}
+                      placeholder="Enter project name..."
+                      className="w-full bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500 transition-all placeholder:text-slate-450 focus:shadow-sm"
+                    />
+                  </div>
+
+                  {/* Client Select Field */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-650 dark:text-slate-400 uppercase tracking-wide block">
+                      Client Name
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={newProjectClientId}
+                        onChange={(e) => setNewProjectClientId(e.target.value)}
+                        className="w-full bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 pr-10 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500 transition-all appearance-none cursor-pointer focus:shadow-sm"
+                      >
+                        {clients.map((c) => (
+                          <option key={c._id} value={c._id} className="dark:bg-slate-900">
+                            {c.companyName}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <FiChevronRight size={14} className="rotate-90" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status Select Field */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-650 dark:text-slate-400 uppercase tracking-wide block">
+                      Status
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={newProjectStatus}
+                        onChange={(e) => setNewProjectStatus(e.target.value)}
+                        className="w-full bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 pr-10 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500 transition-all appearance-none cursor-pointer focus:shadow-sm"
+                      >
+                        <option value="Active" className="dark:bg-slate-900">Active</option>
+                        <option value="On Hold" className="dark:bg-slate-900">On Hold</option>
+                        <option value="Completed" className="dark:bg-slate-900">Completed</option>
+                        <option value="Inactive" className="dark:bg-slate-900">Inactive</option>
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <FiChevronRight size={14} className="rotate-90" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sticky Footer */}
+                <div className="p-6 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/50 flex justify-end gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateProjectForm(false)}
+                    className="px-5 py-3 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-605 dark:text-slate-300 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-white/5 active:scale-95 transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creatingProject || !newProjectName.trim() || !newProjectClientId}
+                    className={`px-5 py-3 rounded-2xl text-sm font-bold shadow-md transition-all active:scale-95 bg-blue-600 dark:bg-[#e5ff00] hover:bg-blue-500 dark:hover:bg-[#ccff00] text-white dark:text-black shadow-blue-500/10 dark:shadow-[#e5ff00]/20 ${
+                      creatingProject || !newProjectName.trim() || !newProjectClientId
+                        ? "opacity-50 cursor-not-allowed shadow-none"
+                        : "cursor-pointer"
+                    }`}
+                  >
+                    {creatingProject ? "Creating..." : "Create Project"}
                   </button>
                 </div>
               </form>
