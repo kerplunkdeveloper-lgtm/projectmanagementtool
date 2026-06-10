@@ -9,7 +9,7 @@ import {
   LuClipboardCheck,
   LuFolderOpen,
 } from "react-icons/lu";
-import { FiBarChart2, FiUser, FiHome } from "react-icons/fi";
+import { FiBarChart2, FiUser, FiHome, FiBell } from "react-icons/fi";
 
 export const sidebarConfig = {
   admin: [
@@ -25,6 +25,7 @@ export const sidebarConfig = {
     { name: "PartnerHub", path: "/admin/partnerhub", icon: LuHandshake, permissionKey: "manage_settings" },
     { name: "Profile", path: "/admin/profile", icon: FiUser },
     { name: "Chat", path: "/admin/chat", icon: LuMessagesSquare },
+    { name: "Notifications", path: "/admin/notifications", icon: FiBell },
   ],
 
   operationmanager: [
@@ -37,6 +38,7 @@ export const sidebarConfig = {
     { name: "Users", path: "/operationmanager/users", icon: LuUsers, permissionKey: "manage_users" },
     { name: "Profile", path: "/operationmanager/profile", icon: FiUser },
     { name: "Chat", path: "/operationmanager/chat", icon: LuMessagesSquare },
+    { name: "Notifications", path: "/operationmanager/notifications", icon: FiBell },
   ],
 
   team: [
@@ -49,6 +51,7 @@ export const sidebarConfig = {
     { name: "Users", path: "/team/users", icon: LuUsers, permissionKey: "manage_users" },
     { name: "Profile", path: "/team/profile", icon: FiUser },
     { name: "Chat", path: "/team/chat", icon: LuMessagesSquare },
+    { name: "Notifications", path: "/team/notifications", icon: FiBell },
   ],
 };
 

@@ -93,8 +93,22 @@ const Navbar = ({ setSidebarOpen }) => {
 
   const getPageTitle = () => {
     const path = location.pathname.toLowerCase();
-    if (path.includes("dashboard")) return user?.department ? `${user.department} Dashboard` : "Dashboard";
+
+    const renderDashboardTitle = () => {
+      return user?.department ? (
+        <>
+          <span className="text-blue-600 dark:text-[#e5ff00]">{user.department}</span>{" "}
+          <span className="text-black dark:text-white">Dashboard</span>
+        </>
+      ) : (
+        <span className="text-black dark:text-white">Dashboard</span>
+      );
+    };
+
+    if (path.includes("dashboard")) return renderDashboardTitle();
     if (path.includes("clients")) return "Clients";
+    if (path.includes("portfolio")) return "Portfolio";
+
     if (path.includes("projects")) return "Projects";
     if (path.includes("tasks")) return "Tasks";
     if (path.includes("partnerhub")) return "PartnerHub";
@@ -102,10 +116,14 @@ const Navbar = ({ setSidebarOpen }) => {
     if (path.includes("team")) return "Team";
     if (path.includes("users")) return "Users";
     if (path.includes("template")) return "Template";
+    if (path.includes("chat")) return "Chat";
+    if (path.includes("notifications")) return "Notifications";
+
+
     if (path.includes("report") || path.includes("eod")) return "EOD";
     if (path.includes("calendar") || path.includes("calendor"))
       return "Calendar";
-    return user?.department ? `${user.department} Dashboard` : "Dashboard";
+    return renderDashboardTitle();
   };
 
   console.log(user.department)
@@ -146,8 +164,8 @@ const Navbar = ({ setSidebarOpen }) => {
 
   const getThemeIcon = () => {
     if (theme === "dark")
-      return <FiMoon size={14} className="text-indigo-400" />;
-    return <FiSun size={14} className="text-amber-500" />;
+      return <FiMoon size={14} className="text-[#e5ff00]" />;
+    return <FiSun size={14} className="text-blue-500" />;
   };
 
   return (
@@ -181,7 +199,7 @@ const Navbar = ({ setSidebarOpen }) => {
         </button>
 
         {/* PAGE TITLE */}
-        <h1 className="text-[15px] sm:text-[17px] lg:text-[18px] font-extrabold uppercase tracking-wider">
+        <h1 className="text-[13px] md:text-[20px] text-blue-600 dark:text-[#e5ff00] font-extrabold uppercase tracking-wider">
           {pageTitle}
         </h1>
       </div>
@@ -192,7 +210,7 @@ const Navbar = ({ setSidebarOpen }) => {
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           className="
-            w-8 h-8 rounded-lg border flex items-center justify-center transition-all duration-200 cursor-pointer
+            w-8 h-8 rounded-lg  border flex items-center justify-center transition-all duration-200 cursor-pointer
             theme-border theme-bg-card hover:theme-bg-main
           "
           title="Toggle Theme"
@@ -205,7 +223,7 @@ const Navbar = ({ setSidebarOpen }) => {
           <button
             onClick={() => setOpenNotifications(!openNotifications)}
             className={`
-              relative w-8 h-8 rounded-lg border flex items-center justify-center transition-all duration-200 cursor-pointer
+              relative w-8 h-8 rounded-lg  border flex items-center justify-center transition-all duration-200 cursor-pointer
               ${
                 openNotifications
                   ? "theme-bg-main border-indigo-500 dark:border-indigo-400 theme-text-primary ring-2 ring-indigo-500/10"
@@ -237,7 +255,7 @@ const Navbar = ({ setSidebarOpen }) => {
           <AnimatePresence>
             {openNotifications && (
               <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                initial={{ opacity: 0, y: 10, scale: 0.95 }} 
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 transition={{ duration: 0.15 }}
@@ -250,13 +268,13 @@ const Navbar = ({ setSidebarOpen }) => {
                 "
               >
                 {/* Header */}
-                <div className="px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 border-b theme-border flex items-center justify-between">
+                <div className="px-4 py-3 bg-blue-500 dark:bg-[#e5ff00] text-black border-b theme-border flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-[11px] text-white uppercase tracking-wider">
+                    <span className="font-extrabold text-[11px] text-black uppercase tracking-wider">
                       Notifications
                     </span>
                     {unreadCount > 0 && (
-                      <span className="bg-white/20 text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                      <span className="bg-black/10 text-black text-[10px] font-extrabold px-2 py-0.5 rounded-full">
                         {unreadCount} new
                       </span>
                     )}
@@ -266,7 +284,7 @@ const Navbar = ({ setSidebarOpen }) => {
                       onClick={() => {
                         markAllAsReadTrigger();
                       }}
-                      className="text-[10px] text-white/90 hover:text-white font-bold transition-colors cursor-pointer hover:underline"
+                      className="text-[10px] text-black/80 hover:text-black font-bold transition-colors cursor-pointer hover:underline"
                     >
                       Mark all as read
                     </button>
@@ -393,6 +411,7 @@ const Navbar = ({ setSidebarOpen }) => {
             className="
               flex items-center gap-1.5
               px-1.5 py-1
+  
               rounded-lg border theme-border theme-bg-card
               transition-all cursor-pointer
             "
@@ -434,7 +453,7 @@ const Navbar = ({ setSidebarOpen }) => {
                   absolute right-0 top-10
                   w-52 rounded-xl
                   theme-bg-card border theme-border
-                  shadow-lg p-1.5 z-50
+                  p-1.5 z-50
                 "
               >
                 <button
