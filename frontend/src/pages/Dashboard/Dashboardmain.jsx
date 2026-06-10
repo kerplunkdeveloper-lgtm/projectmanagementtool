@@ -25,6 +25,7 @@ import {
 } from 'react-icons/fi'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import ProjectIcon from '../../components/common/ProjectIcon'
 
 const TYPE_CONFIG = {
   Post: { color: "text-blue-500 bg-blue-500/10 border-blue-500/20", icon: FiInstagram },
@@ -163,9 +164,7 @@ const Dashboardmain = () => {
                  onClick={() => navigate(`/${user?.role}/projects?id=${project._id}`)}
                  className="flex items-center gap-2 group text-left"
               >
-                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${projectColors[index % projectColors.length]} transition-transform group-hover:scale-[1.03] shrink-0`}>
-                   <FiList size={18} className="opacity-90" />
-                 </div>
+                 <ProjectIcon name={project.name} size="xl" className="transition-transform group-hover:scale-[1.03]" />
                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 line-clamp-2">{project.name}</span>
               </button>
             ))}

@@ -23,6 +23,7 @@ import { getUsers } from "../../features/users/userSlice";
 import { getTasks } from "../../features/tasks/taskSlice";
 import { getPortfolios } from "../../features/portfolio/portfolioSlice";
 import ProjectTaskBoard from "./ProjectTaskBoard";
+import ProjectIcon from "../../components/common/ProjectIcon";
 
 const Project = () => {
   const dispatch = useDispatch();
@@ -280,9 +281,7 @@ const Project = () => {
                     >
                       <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-800 dark:text-slate-100 cursor-pointer" onClick={() => navigate(`/${currentUser?.role}/projects?id=${project._id}`)}>
                         <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 rounded bg-blue-50/50 dark:bg-[#e5ff00]/10 text-blue-600 dark:text-[#e5ff00] border border-blue-100/80 dark:border-[#e5ff00]/20 flex items-center justify-center font-black text-[9.5px] shrink-0">
-                            {project.name ? project.name.trim().charAt(0).toUpperCase() : "?"}
-                          </div>
+                          <ProjectIcon name={project.name} size="sm" />
                           <span className="hover:text-blue-600 dark:hover:text-[#e5ff00] transition-colors">
                             {project.name}
                           </span>

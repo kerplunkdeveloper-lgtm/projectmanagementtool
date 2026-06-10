@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import ProjectIcon from "../../../components/common/ProjectIcon";
 import {
   FiPlus,
   FiTrash2,
@@ -174,10 +175,18 @@ const Portfolio = () => {
   }, [rawPortfolios]);
 
   // Local UI state
+  const location = useLocation();
+  const queryId = new URLSearchParams(location.search).get("id");
   const [selectedPortfolioId, setSelectedPortfolioId] = useState(null);
   const [showAddProjectDropdown, setShowAddProjectDropdown] = useState(false);
   const [projectSearchQuery, setProjectSearchQuery] = useState("");
   const [selectedAddProjects, setSelectedAddProjects] = useState([]);
+
+  useEffect(() => {
+    if (queryId) {
+      setSelectedPortfolioId(queryId);
+    }
+  }, [queryId]);
   
   // Real-time ticking state for relative time updates
   const [timeTick, setTimeTick] = useState(0);
@@ -443,7 +452,7 @@ const Portfolio = () => {
                               className="w-full text-left px-3 py-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 flex items-center gap-2"
                             >
                               <FiEdit3 size={12} className="text-slate-400" />{" "}
-                              Edit Details
+                              Edit
                             </button>
                             <button
                               onClick={(e) => {
@@ -830,9 +839,7 @@ const Portfolio = () => {
                               <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800 cursor-pointer" onClick={() => navigate(`/${user?.role || "admin"}/projects?id=${project._id}`)}>
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
-                                    <div className="w-5 h-5 rounded bg-blue-50/50 dark:bg-[#e5ff00]/10 text-blue-600 dark:text-[#e5ff00] border border-blue-100/80 dark:border-[#e5ff00]/20 flex items-center justify-center font-black text-[9.5px] shrink-0">
-                                      {project.name ? project.name.trim().charAt(0).toUpperCase() : "?"}
-                                    </div>
+                                    <ProjectIcon name={project.name} size="sm" />
                                     <span className="font-semibold text-slate-800 dark:text-slate-600 hover:text-blue-600 dark:hover:text-[#e5ff00] transition-colors">
                                       {project.name}
                                     </span>

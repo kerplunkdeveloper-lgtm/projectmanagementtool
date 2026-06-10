@@ -172,37 +172,37 @@ const Clients = () => {
     switch (service) {
       case "Digital Marketing":
         return {
-          bg: "bg-blue-50/40 dark:bg-blue-950/10",
+          bg: "bg-blue-50/50 dark:bg-blue-950/10",
           text: "text-blue-600 dark:text-blue-400",
           border: "border-blue-100 dark:border-blue-900/30",
-          pill: "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/20",
+          pill: "bg-blue-50 text-blue-705 border-blue-200/50 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-800/50",
           gradient: "from-blue-550 to-cyan-500",
           icon: FiLayers,
         };
       case "Website":
         return {
-          bg: "bg-emerald-50/40 dark:bg-emerald-950/10",
+          bg: "bg-emerald-50/50 dark:bg-emerald-950/10",
           text: "text-emerald-600 dark:text-emerald-400",
           border: "border-emerald-100 dark:border-emerald-900/30",
-          pill: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/20",
+          pill: "bg-emerald-50 text-emerald-707 border-emerald-200/50 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800/50",
           gradient: "from-emerald-550 to-teal-500",
           icon: FiGlobe,
         };
       case "SEO":
         return {
-          bg: "bg-purple-50/40 dark:bg-purple-950/10",
+          bg: "bg-purple-50/50 dark:bg-purple-950/10",
           text: "text-purple-600 dark:text-purple-400",
           border: "border-purple-100 dark:border-purple-900/30",
-          pill: "bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900/20",
+          pill: "bg-purple-50 text-purple-705 border-purple-200/50 dark:bg-purple-950/20 dark:text-purple-400 dark:border-purple-800/50",
           gradient: "from-purple-550 to-pink-500",
           icon: FiSearch,
         };
       default:
         return {
-          bg: "bg-slate-50/40 dark:bg-slate-800/20",
-          text: "text-slate-600 dark:text-slate-400",
+          bg: "bg-slate-50/50 dark:bg-slate-800/20",
+          text: "text-slate-605 dark:text-slate-400",
           border: "border-slate-100 dark:border-slate-800",
-          pill: "bg-slate-50 dark:bg-slate-800/30 text-slate-650 dark:text-slate-350 border border-slate-200/50 dark:border-slate-800",
+          pill: "bg-slate-50 text-slate-650 border border-slate-200/50 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800",
           gradient: "from-slate-500 to-slate-755",
           icon: FiBriefcase,
         };
@@ -243,7 +243,7 @@ const Clients = () => {
       </div>
 
       {/* SEARCH + FILTER CONTROLS */}
-      <div className="bg-white dark:bg-slate-800 border theme-border rounded-2xl shadow-xl  p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-800 p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
         
         {/* SEARCH BOX */}
         <div className="relative w-full md:w-80">
@@ -260,7 +260,7 @@ const Clients = () => {
         {/* SERVICE FILTER */}
         <div className="flex items-center gap-2 w-full md:w-auto">
           <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider hidden sm:inline">
-            Service Filter:
+          
           </span>
           <select
             value={serviceFilter}
@@ -287,23 +287,23 @@ const Clients = () => {
       {!loading && (
         <motion.div 
           layout
-          className=" border theme-border rounded-2xl shadow-sm overflow-hidden"
+          className=" overflow-hidden bg-white dark:bg-slate-900/30 shadow-sm"
         >
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse whitespace-nowrap min-w-[900px]">
+            <table className="w-full text-left border-collapse whitespace-nowrap min-w-[900px] text-xs">
               <thead>
-                <tr className="border-b theme-border text-xs uppercase tracking-wider theme-text-secondary font-black">
-                  <th className="px-5 py-4">Client Details</th>
-                  <th className="px-5 py-4">Contact Info</th>
-                  <th className="px-5 py-4">Service & Plan</th>
-                  <th className="px-5 py-4">Budget (INR)</th>
-                  {user?.role === "admin" && <th className="px-5 py-4 text-center">Actions</th>}
+                <tr className="bg-slate-50/50 dark:bg-slate-900/60 text-slate-705 dark:text-slate-300 font-bold uppercase tracking-wider text-[10px]">
+                  <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">Client Details</th>
+                  <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">Contact Info</th>
+                  <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">Service & Plan</th>
+                  <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">Budget (INR)</th>
+                  {user?.role === "admin" && <th className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 text-center w-28">Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 <AnimatePresence>
                   {filteredClients.length > 0 ? (
-                    paginatedClients.map((client) => {
+                    paginatedClients.map((client, index) => {
                       const conf = getServiceStyles(client.service);
                       const ServiceIcon = conf.icon;
                       return (
@@ -314,20 +314,22 @@ const Clients = () => {
                           exit={{ opacity: 0, scale: 0.95 }}
                           transition={{ duration: 0.2 }}
                           key={client._id}
-                          className="border-b theme-border hover:bg-blue-300/10 dark:hover:bg-[#e5ff00]/10 hover:border-blue-300 dark:hover:border-[#e5ff00] transition-colors group"
+                          className={`group transition-colors ${
+                            index % 2 === 0
+                              ? "bg-white dark:bg-slate-800/40"
+                              : "bg-slate-50/40 dark:bg-slate-900/10"
+                          } hover:bg-blue-50/20 dark:hover:bg-[#e5ff00]/5`}
                         >
                           {/* Client Info */}
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-xl flex shrink-0 items-center justify-center font-medium text-[16px] shadow-sm ${conf.bg} ${conf.text}`}>
-                                {client.companyName ? client.companyName.charAt(0).toUpperCase() : "?"}
-                              </div>
+                          <td className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
+                            <div className="flex items-center gap-2.5">
+                             
                               <div className="min-w-[120px]">
-                                <h2 className="text-[15px] text-blue-500 dark:text-[#e5ff00] font-medium  transition-colors truncate">
+                                <h2 className="font-semibold text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-[#e5ff00] transition-colors text-xs truncate">
                                   {client.companyName}
                                 </h2>
-                                <p className="text-[11px] theme-text-secondary font-bold flex items-center gap-1.5 mt-0.5 truncate">
-                                  <FiBriefcase size={10} />
+                                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium flex items-center gap-1 mt-0.5 truncate">
+                                  <FiBriefcase size={9} />
                                   {client.industry}
                                 </p>
                               </div>
@@ -335,60 +337,60 @@ const Clients = () => {
                           </td>
 
                           {/* Contact Info */}
-                          <td className="px-5 py-4">
-                            <div className="space-y-1.5">
+                          <td className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
+                            <div className="space-y-1">
                               {client.phoneNumber ? (
                                 <a
                                   href={`tel:${client.phoneNumber}`}
-                                  className="flex items-center gap-1.5 text-[11px] theme-text-secondary hover:text-blue-500 font-semibold"
+                                  className="flex items-center gap-1 text-[11px] text-slate-650 dark:text-slate-400 hover:text-blue-600 dark:hover:text-[#e5ff00] font-medium"
                                 >
-                                  <FiPhone size={10} className="theme-icon" />
+                                  <FiPhone size={10} className="text-slate-400 dark:text-slate-500" />
                                   {client.phoneNumber}
                                 </a>
-                              ) : <span className="text-[11px] theme-text-secondary italic">No Phone</span>}
+                              ) : <span className="text-[10px] text-slate-405 dark:text-slate-505 italic">No Phone</span>}
                               
                               {client.email ? (
                                 <a
                                   href={`mailto:${client.email}`}
-                                  className="flex items-center gap-1.5 text-[11px] theme-text-secondary hover:text-blue-500 font-semibold truncate max-w-[150px]"
+                                  className="flex items-center gap-1 text-[11px] text-slate-655 dark:text-slate-400 hover:text-blue-600 dark:hover:text-[#e5ff00] font-medium truncate max-w-[150px]"
                                 >
-                                  <FiMail size={10} className="theme-icon" />
+                                  <FiMail size={10} className="text-slate-400 dark:text-slate-500" />
                                   {client.email}
                                 </a>
-                              ) : <span className="text-[11px] theme-text-secondary italic">No Email</span>}
+                              ) : <span className="text-[10px] text-slate-405 dark:text-slate-550 italic">No Email</span>}
                             </div>
                           </td>
 
                           {/* Service Info */}
-                          <td className="px-5 py-4">
-                            <div className="space-y-2">
-                              <span className={`inline-flex px-2 py-0.5 rounded-lg text-[10px] font-black tracking-wider uppercase ${conf.pill} items-center gap-1`}>
+                          <td className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
+                            <div className="space-y-1">
+                              <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase border ${conf.pill} items-center gap-1`}>
                                 <ServiceIcon size={9} />
                                 {client.service || "Contract"}
                               </span>
-                              <div className="text-[11px] font-semibold theme-text-secondary flex items-center gap-1">
+                              <div className="text-[10px] font-medium text-slate-505 dark:text-slate-450 flex items-center gap-1">
                                 {client.assignedTo ? (
                                   <>
-                                    <FiUser size={10} className="theme-icon" />
-                                    Manage: {client.assignedTo.name || client.assignedTo.email}
+                                    <FiUser size={10} className="text-slate-400 dark:text-slate-550" />
+                                    <span>Assigned: {client.assignedTo.name || client.assignedTo.email}</span>
                                   </>
                                 ) : (
-                                  <span className="italic">Unassigned</span>
+                                  <span className="italic text-slate-400">Unassigned</span>
                                 )}
                               </div>
                             </div>
                           </td>
 
                           {/* Budget Info */}
-                          <td className="px-5 py-4">
-                            <div className="space-y-1">
-                              <p className="text-[11px] theme-text-secondary font-bold">
-                                Base: <span className="">₹{Number(client.budget || 0).toLocaleString("en-IN")}</span>
+                          <td className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
+                            <div className="space-y-0.5">
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                                Base: <span className="font-semibold text-slate-700 dark:text-slate-300">₹{Number(client.budget || 0).toLocaleString("en-IN")}</span>
                               </p>
-                              <p className="text-[11px] theme-text-secondary font-bold">
-                                Total: <span className="text-emerald-600 dark:text-emerald-400 font-black">₹{Number(client.totalBudget || 0).toLocaleString("en-IN")}</span>
+                              <p className="text-[11px] text-slate-605 dark:text-slate-400 font-medium">
+                                Total: <span className="text-emerald-600 dark:text-emerald-400 font-bold">₹{Number(client.totalBudget || 0).toLocaleString("en-IN")}</span>
                               </p>
-                              <p className="text-[10px] text-amber-600 dark:text-amber-500 font-bold">
+                              <p className="text-[9.5px] text-amber-600 dark:text-amber-500 font-semibold uppercase tracking-wider">
                                 GST: {client.gst}%
                               </p>
                             </div>
@@ -396,21 +398,21 @@ const Clients = () => {
 
                           {/* Actions */}
                           {user?.role === "admin" && (
-                            <td className="px-5 py-4 text-center">
-                              <div className="flex items-center justify-center gap-2">
+                            <td className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 text-center">
+                              <div className="flex items-center justify-center gap-1.5">
                                 <button
                                   onClick={() => handleEdit(client)}
-                                  className="w-8 h-8 rounded-lg bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/20 dark:hover:bg-amber-950/40 text-amber-600 flex items-center justify-center transition-all"
+                                  className="p-1 bg-amber-50 hover:bg-amber-100 border border-amber-200/40 dark:bg-amber-950/20 dark:hover:bg-amber-950/40 dark:border-amber-900/30 text-amber-600 dark:text-amber-450 rounded transition-all"
                                   title="Edit Record"
                                 >
-                                  <FiEdit size={12} className="stroke-[3]" />
+                                  <FiEdit size={12} className="stroke-[2.5]" />
                                 </button>
                                 <button
                                   onClick={() => setClientToDelete(client)}
-                                  className="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-rose-600 flex items-center justify-center transition-all"
+                                  className="p-1 bg-rose-50 hover:bg-rose-100 border border-rose-200/40 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 dark:border-rose-900/30 text-rose-600 dark:text-rose-455 rounded transition-all"
                                   title="Delete Record"
                                 >
-                                  <FiTrash2 size={12} className="stroke-[3]" />
+                                  <FiTrash2 size={12} className="stroke-[2.5]" />
                                 </button>
                               </div>
                             </td>
@@ -420,7 +422,7 @@ const Clients = () => {
                     })
                   ) : (
                     <tr>
-                      <td colSpan={user?.role === "admin" ? 5 : 4} className="px-5 py-16">
+                      <td colSpan={user?.role === "admin" ? 5 : 4} className="px-5 py-16 border-b border-slate-200 dark:border-slate-800">
                         <div className="flex flex-col items-center justify-center text-center">
                           <div className="w-14 h-14 rounded-full theme-bg-main flex items-center justify-center mb-3">
                             <FiUsers className="text-blue-500 animate-pulse" size={22} />
@@ -441,8 +443,8 @@ const Clients = () => {
           </div>
 
           {/* Premium Pagination Controls */}
-          {totalItems > 0 && (
-            <div className="px-5 py-4 bg-slate-50/50 dark:bg-[#111111]/30 border-t theme-border flex flex-col sm:flex-row items-center justify-between gap-4">
+          {totalItems > itemsPerPage && (
+            <div className="px-5 py-4 bg-slate-50/50 dark:bg-[#111111]/30  flex flex-col sm:flex-row items-center justify-between gap-4">
               {/* Left Side: Info */}
               <div className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
                 Showing{" "}
@@ -470,7 +472,7 @@ const Clients = () => {
                     className={`h-8 w-8 rounded-xl border text-[10px] font-bold flex items-center justify-center transition-all ${
                       currentPage === 1
                         ? "border-slate-200 dark:border-slate-800/80 text-slate-300 dark:text-slate-700 cursor-not-allowed"
-                        : "border-slate-200 dark:border-slate-805 hover:bg-blue-50/50 dark:hover:bg-[#e5ff00]/5 text-slate-700 dark:text-slate-350 hover:border-blue-400 dark:hover:border-[#e5ff00] active:scale-90 cursor-pointer shadow-sm"
+                        : "border-slate-200 dark:border-slate-800 hover:bg-blue-50/50 dark:hover:bg-[#e5ff00]/5 text-slate-705 dark:text-slate-400 hover:border-blue-400 dark:hover:border-[#e5ff00] hover:text-blue-600 dark:hover:text-[#e5ff00] active:scale-90 cursor-pointer shadow-sm"
                     }`}
                   >
                     <FiChevronLeft size={14} className="stroke-[2.5]" />
@@ -485,7 +487,7 @@ const Clients = () => {
                         className={`h-8 w-8 rounded-xl border text-[10px] font-extrabold flex items-center justify-center transition-all ${
                           isSelected
                             ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-md"
-                            : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-400 hover:bg-blue-50/50 dark:hover:bg-[#e5ff00]/5 hover:border-blue-400 dark:hover:border-[#e5ff00] active:scale-90 cursor-pointer shadow-sm"
+                            : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-705 dark:text-slate-400 hover:bg-blue-50/50 dark:hover:bg-[#e5ff00]/5 hover:border-blue-400 dark:hover:border-[#e5ff00] hover:text-blue-600 dark:hover:text-[#e5ff00] active:scale-90 cursor-pointer shadow-sm"
                         }`}
                       >
                         {page}
@@ -499,7 +501,7 @@ const Clients = () => {
                     className={`h-8 w-8 rounded-xl border text-[10px] font-bold flex items-center justify-center transition-all ${
                       currentPage === totalPages
                         ? "border-slate-200 dark:border-slate-800/80 text-slate-300 dark:text-slate-700 cursor-not-allowed"
-                        : "border-slate-200 dark:border-slate-805 hover:bg-blue-50/50 dark:hover:bg-[#e5ff00]/5 text-slate-700 dark:text-slate-350 hover:border-blue-400 dark:hover:border-[#e5ff00] active:scale-90 cursor-pointer shadow-sm"
+                        : "border-slate-200 dark:border-slate-805 hover:bg-blue-50/50 dark:hover:bg-[#e5ff00]/5 text-slate-705 dark:text-slate-400 hover:border-blue-400 dark:hover:border-[#e5ff00] hover:text-blue-600 dark:hover:text-[#e5ff00] active:scale-90 cursor-pointer shadow-sm"
                     }`}
                   >
                     <FiChevronRight size={14} className="stroke-[2.5]" />

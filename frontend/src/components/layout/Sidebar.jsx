@@ -3,7 +3,7 @@ import logo from "../../assets/logo.avif";
 import logoDark from "../../assets/logodark.png";
 import { useTheme } from "../../context/ThemeContext";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
-import { FiX, FiLogOut, FiFolder } from "react-icons/fi";
+import { FiX, FiLogOut, FiFolder, FiList, FiLayers } from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
@@ -11,6 +11,8 @@ import { sidebarConfig } from "../../config/sidebarConfig";
 import { logoutUser, impersonateUser } from "../../features/auth/authSlice";
 import { getProjects } from "../../features/projects/projectSlice";
 import { getUsers } from "../../features/users/userSlice";
+import { getPortfolios } from "../../features/portfolio/portfolioSlice";
+import ProjectIcon from "../common/ProjectIcon";
 
 const projectColors = [
   "bg-fuchsia-300 text-fuchsia-900 dark:bg-fuchsia-400 dark:text-fuchsia-950",
@@ -18,12 +20,13 @@ const projectColors = [
   "bg-lime-300 text-lime-900 dark:bg-lime-400 dark:text-lime-950",
   "bg-indigo-300 text-indigo-900 dark:bg-indigo-400 dark:text-indigo-950",
   "bg-rose-300 text-rose-900 dark:bg-rose-400 dark:text-rose-950",
-  "bg-cyan-300 text-cyan-900 dark:bg-cyan-400 dark:text-cyan-950"
+  "bg-cyan-300 text-cyan-900 dark:bg-cyan-400 dark:text-cyan-950",
 ];
 
 const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   const location = useLocation();
-  const activeProjectId = new URLSearchParams(location.search).get("id");
+  const activeProjectId = location.pathname.includes("/projects") ? new URLSearchParams(location.search).get("id") : null;
+  const activePortfolioId = location.pathname.includes("/portfolio") ? new URLSearchParams(location.search).get("id") : null;
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -40,12 +43,16 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     : 0;
 
   const { projects } = useSelector((state) => state.projects);
+  const { portfolios = [] } = useSelector((state) => state.portfolios || {});
   const { users } = useSelector((state) => state.users);
   const { user: currentUser } = useSelector((state) => state.auth);
   const { unreadCounts = {} } = useSelector((state) => state.chat);
-  const totalUnreadChatCount = Object.values(unreadCounts).reduce((sum, val) => sum + (val || 0), 0);
+  const totalUnreadChatCount = Object.values(unreadCounts).reduce(
+    (sum, val) => sum + (val || 0),
+    0,
+  );
 
-  const menuItems = (sidebarConfig[role] || []).filter(item => {
+  const menuItems = (sidebarConfig[role] || []).filter((item) => {
     if (role === "admin") return true;
     if (!item.permissionKey) return true;
     const perm = currentUser?.permissions?.[item.permissionKey];
@@ -54,10 +61,12 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   });
 
   const [isWorkOpen, setIsWorkOpen] = useState(false);
-  const [isProjectsMenuOpen, setIsProjectsMenuOpen] = useState(false);
+  const [isProjectsListOpen, setIsProjectsListOpen] = useState(true);
+  const [isPortfoliosListOpen, setIsPortfoliosListOpen] = useState(true);
 
   useEffect(() => {
     dispatch(getProjects());
+    dispatch(getPortfolios());
     if (role === "admin") {
       dispatch(getUsers());
     }
@@ -133,227 +142,239 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
         {/* MENU */}
         <nav className="flex-1 overflow-y-auto px-3.5 py-3 space-y-1.5 scrollbar-thin">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
+          {(() => {
+            let hasRenderedProjectsList = false;
+            let hasRenderedPortfoliosList = false;
+
+            const renderProjectsList = () => (
+              <div className="space-y-1 pt-1.5 pb-1 px-1.5 ml-2 border-l border-slate-100 dark:border-white/5">
+                {/* Dropdown Header Toggle */}
+                <button
+                  onClick={() => setIsProjectsListOpen(!isProjectsListOpen)}
+                  className="w-full flex items-center justify-between py-2 px-1 text-left text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <FiList size={13} className="shrink-0 text-slate-500 dark:text-slate-400" />
+                    <span className="text-[10px] font-black uppercase tracking-wider">
+                      List of Projects
+                    </span>
+                  </div>
+                  <svg
+                    className={`w-2.5 h-2.5 transform transition-transform duration-200 ${
+                      isProjectsListOpen ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+
+                {/* Submenu List */}
+                {isProjectsListOpen && (
+                  <div className="pl-1 space-y-0.5 overflow-y-auto max-h-[160px] scrollbar-thin transition-all">
+                    {projects.map((project, index) => {
+                      const isActive = activeProjectId === project._id;
+                      return (
+                        <button
+                          key={project._id}
+                          onClick={() => {
+                            setSidebarOpen(false);
+                            navigate(`/${role}/projects?id=${project._id}`);
+                          }}
+                          className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1.5 rounded-lg px-1.5 transition-colors group ${
+                            isActive
+                              ? "bg-blue-50 dark:bg-[#e5ff00]/20 text-blue-600 dark:text-[#e5ff00]"
+                              : "theme-text-secondary hover:theme-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                          }`}
+                          title={project.name}
+                        >
+                          <ProjectIcon
+                            name={project.name}
+                            size="xs"
+                            className="group-hover:scale-110 transition-transform"
+                          />
+                          <span className="truncate">{project.name}</span>
+                          {isActive && (
+                            <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#e5ff00] shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+
+            const renderPortfoliosList = () => (
+              <div className="space-y-1 pt-1.5 pb-1 px-1.5 ml-2 border-l border-slate-100 dark:border-white/5">
+                {/* Dropdown Header Toggle */}
+                <button
+                  onClick={() => setIsPortfoliosListOpen(!isPortfoliosListOpen)}
+                  className="w-full flex items-center justify-between py-2 px-1 text-left text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <FiLayers size={13} className="shrink-0 text-slate-500 dark:text-slate-400" />
+                    <span className="text-[10px] font-black uppercase tracking-wider">
+                      List of Portfolio
+                    </span>
+                  </div>
+                  <svg
+                    className={`w-2.5 h-2.5 transform transition-transform duration-200 ${
+                      isPortfoliosListOpen ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2.5}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+
+                {/* Submenu List */}
+                {isPortfoliosListOpen && (
+                  <div className="pl-1 space-y-0.5 overflow-y-auto max-h-[160px] scrollbar-thin transition-all">
+                    {portfolios.map((portfolio, index) => {
+                      const isActive = activePortfolioId === portfolio._id;
+                      return (
+                        <button
+                          key={portfolio._id}
+                          onClick={() => {
+                            setSidebarOpen(false);
+                            navigate(`/${role}/portfolio?id=${portfolio._id}`);
+                          }}
+                          className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1.5 rounded-lg px-1.5 transition-colors group ${
+                            isActive
+                              ? "bg-blue-50 dark:bg-[#e5ff00]/20 text-blue-600 dark:text-[#e5ff00]"
+                              : "theme-text-secondary hover:theme-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                          }`}
+                          title={portfolio.name}
+                        >
+                          <svg
+                            viewBox="0 0 240 180"
+                            className="w-3.5 h-3.5 shrink-0 transition-transform duration-350 group-hover:scale-110"
+                            style={{ fill: portfolio.color || "#ff80bf" }}
+                          >
+                            <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
+                          </svg>
+                          <span className="truncate">{portfolio.name}</span>
+                          {isActive && (
+                            <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#e5ff00] shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
 
             return (
-              <React.Fragment key={item.path}>
-                {item.name === "Projects" ? (
-                  <div className="space-y-1">
-                    {/* Main Projects Toggle Button */}
-                    <button
-                      onClick={() => setIsProjectsMenuOpen(!isProjectsMenuOpen)}
-                      className={`w-full flex items-center justify-between rounded-xl border transition-all duration-200 px-3 py-2.5 ${
-                        location.pathname.includes("/projects")
-                          ? "dashboard-btn-primary shadow-sm"
-                          : "theme-text-primary border-transparent hover:theme-bg-main hover:theme-text-primary"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="shrink-0">
-                          <Icon size={16} />
-                        </span>
-                        <span className="text-xs lg:text-[11px] xl:text-xs font-semibold">
-                          Projects
-                        </span>
-                      </div>
-                      <svg
-                        className={`w-3 h-3 transform transition-transform duration-200 ${
-                          isProjectsMenuOpen ? "rotate-180" : ""
-                        }`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+              <>
+                {menuItems.map((item) => {
+                  const Icon = item.icon;
+                  const isProjectsItem = item.name === "Projects" || item.name === "Projects management" || item.name === "Projects Overview";
+                  const isPortfoliosItem = item.name === "Portfolio";
+
+                  return (
+                    <React.Fragment key={item.path}>
+                      <NavLink
+                        to={item.path}
+                        onClick={() => setSidebarOpen(false)}
+                        end={
+                          item.path === "/admin" ||
+                          item.path === "/operationmanager" ||
+                          item.path === "/team"
+                        }
+                        className={({ isActive }) => {
+                          const activeClass = isActive
+                            ? ` dashboard-btn-primary shadow-md`
+                            : `theme-text-primary border-transparent hover:theme-bg-main hover:theme-text-primary`;
+
+                          return `block rounded-xl border transition-all duration-200 ${activeClass}`;
+                        }}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2.5}
-                          d="M19 9l-7 7-7-7"
-                        />
-                      </svg>
-                    </button>
+                        {({ isActive }) => (
+                          <motion.div
+                            className="flex items-center gap-3 px-3 py-2.5 w-full"
+                            initial="initial"
+                            whileHover="hover"
+                            whileTap="tap"
+                            variants={{
+                              hover: { x: 4 },
+                              tap: { scale: 0.98 },
+                            }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 400,
+                              damping: 18,
+                            }}
+                          >
+                            <motion.div
+                              variants={{
+                                hover: {
+                                  rotate: 10,
+                                  scale: 1.25,
+                                },
+                                initial: {
+                                  rotate: 0,
+                                  scale: 1,
+                                },
+                              }}
+                              className="shrink-0"
+                            >
+                              <Icon size={16} />
+                            </motion.div>
 
-                    {/* Submenu Accordion Panel */}
-                    {isProjectsMenuOpen && (
-                      <div className="pl-3.5 pr-2 py-2 space-y-2.5 theme-bg-main rounded-2xl border theme-border mt-1 transition-all">
-                        {/* Nested Item 1: Projects Management Link */}
-                        <NavLink
-                          to={item.path}
-                          onClick={() => setSidebarOpen(false)}
-                          className={({ isActive }) =>
-                            `flex items-center gap-2 text-[10px] font-bold py-1.5 rounded-lg px-2 transition-colors ${
-                              isActive && !activeProjectId
-                                ? "bg-blue-50 dark:bg-[#e5ff00]/20 text-blue-600 dark:text-[#e5ff00]"
-                                : "theme-text-secondary hover:theme-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/40"
-                            }`
-                          }
-                        >
-                          <FiFolder size={12} className="shrink-0 text-slate-400 dark:text-slate-500" />
-                          <span>Project Overview</span>
-                        </NavLink>
+                            <span className="text-xs lg:text-[11px] xl:text-xs font-semibold truncate">
+                              {item.name}
+                            </span>
 
-                        {/* Nested Item 2: My Projects List */}
-                        {projects && projects.length > 0 && (
-                          <div className="space-y-1">
-                            <div className="py-1 px-2">
-                              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                                List of Projects
+                            {item.name === "Notifications" && unreadCount > 0 && (
+                              <span className="ml-auto min-w-[16px] h-[16px] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse">
+                                {unreadCount}
                               </span>
-                            </div>
+                            )}
 
-                            <div className="pl-2 space-y-0.5 overflow-y-auto max-h-[160px] scrollbar-thin">
-                              {projects.map((project, index) => {
-                                const isActive = activeProjectId === project._id;
-                                return (
-                                  <button
-                                    key={project._id}
-                                    onClick={() => {
-                                      setSidebarOpen(false);
-                                      navigate(`/${role}/projects?id=${project._id}`);
-                                    }}
-                                    className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1.5 rounded-lg px-1.5 transition-colors group ${
-                                      isActive
-                                        ? "bg-blue-50 dark:bg-[#e5ff00]/20 text-blue-600 dark:text-[#e5ff00] font-bold"
-                                        : "theme-text-secondary hover:theme-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/40"
-                                    }`}
-                                    title={project.name}
-                                  >
-                                    <div
-                                      className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${
-                                        projectColors[index % projectColors.length]
-                                      } group-hover:scale-110 transition-transform`}
-                                    >
-                                      <span className="text-[8px] font-black uppercase opacity-90">
-                                        {project.name.charAt(0)}
-                                      </span>
-                                    </div>
-                                    <span className="truncate">{project.name}</span>
-                                    {isActive && (
-                                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#e5ff00] shrink-0" />
-                                    )}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
+                            {item.name === "Chat" && totalUnreadChatCount > 0 && (
+                              <span className="ml-auto min-w-[16px] h-[16px] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse">
+                                {totalUnreadChatCount}
+                              </span>
+                            )}
+                          </motion.div>
                         )}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <NavLink
-                    to={item.path}
-                    onClick={() => setSidebarOpen(false)}
-                    end={
-                      item.path === "/admin" ||
-                      item.path === "/operationmanager" ||
-                      item.path === "/team"
-                    }
-                    className={({ isActive }) => {
-                      const activeClass = isActive
-                        ? ` dashboard-btn-primary shadow-md`
-                        : `theme-text-primary border-transparent hover:theme-bg-main hover:theme-text-primary`;
+                      </NavLink>
 
-                      return `block rounded-xl border transition-all duration-200 ${activeClass}`;
-                    }}
-                  >
-                    {({ isActive }) => (
-                      <motion.div
-                        className="flex items-center gap-3 px-3 py-2.5 w-full"
-                        initial="initial"
-                        whileHover="hover"
-                        whileTap="tap"
-                        variants={{
-                          hover: { x: 4 },
-                          tap: { scale: 0.98 },
-                        }}
-                        transition={{
-                          type: "spring",
-                          stiffness: 400,
-                          damping: 18,
-                        }}
-                      >
-                        <motion.div
-                          variants={{
-                            hover: {
-                              rotate: 10,
-                              scale: 1.25,
-                            },
-                            initial: {
-                              rotate: 0,
-                              scale: 1,
-                            },
-                          }}
-                          className="shrink-0"
-                        >
-                          <Icon size={16} />
-                        </motion.div>
+                      {isPortfoliosItem && portfolios && portfolios.length > 0 && (() => {
+                        hasRenderedPortfoliosList = true;
+                        return renderPortfoliosList();
+                      })()}
 
-                        <span className="text-xs lg:text-[11px] xl:text-xs font-semibold truncate">
-                          {item.name}
-                        </span>
+                      {isProjectsItem && projects && projects.length > 0 && (() => {
+                        hasRenderedProjectsList = true;
+                        return renderProjectsList();
+                      })()}
+                    </React.Fragment>
+                  );
+                })}
 
-                        {item.name === "Notifications" && unreadCount > 0 && (
-                          <span className="ml-auto min-w-[16px] h-[16px] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse">
-                            {unreadCount}
-                          </span>
-                        )}
-
-                        {item.name === "Chat" && totalUnreadChatCount > 0 && (
-                          <span className="ml-auto min-w-[16px] h-[16px] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse">
-                            {totalUnreadChatCount}
-                          </span>
-                        )}
-                      </motion.div>
-                    )}
-                  </NavLink>
-                )}
-              </React.Fragment>
+                {/* Fallback at the bottom if items were not in the menu list */}
+                {!hasRenderedPortfoliosList && portfolios && portfolios.length > 0 && renderPortfoliosList()}
+                {!hasRenderedProjectsList && projects && projects.length > 0 && renderProjectsList()}
+              </>
             );
-          })}
-
-          {/* FALLBACK FOR ROLES WITHOUT PROJECTS LISTED */}
-          {role !== "team" &&
-            !menuItems.some((item) => item.name === "Projects" || item.name === "Projects management") &&
-            projects &&
-            projects.length > 0 && (
-              <div className="space-y-1 pt-2 px-2.5">
-                <div className="flex items-center gap-2 py-2">
-                  <FiFolder size={12} className="text-gray-500" />
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                    My Projects
-                  </span>
-                </div>
-
-                <div className="pl-3.5 space-y-1 overflow-y-auto max-h-[160px] scrollbar-thin">
-                  {projects.map((project, index) => {
-                    const isActive = activeProjectId === project._id;
-                    return (
-                      <button
-                        key={project._id}
-                        onClick={() => {
-                          setSidebarOpen(false);
-                          navigate(`/${role}/projects?id=${project._id}`);
-                        }}
-                        className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1.5 rounded-lg px-1.5 transition-colors group ${
-                          isActive
-                            ? "bg-blue-50 dark:bg-[#e5ff00]/20 text-blue-600 dark:text-[#e5ff00]"
-                            : "theme-text-secondary hover:theme-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                        }`}
-                        title={project.name}
-                      >
-                        <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${projectColors[index % projectColors.length]} group-hover:scale-110 transition-transform`}>
-                          <span className="text-[8px] font-black uppercase opacity-90">{project.name.charAt(0)}</span>
-                        </div>
-                        <span className="truncate">{project.name}</span>
-                        {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#e5ff00] shrink-0" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+          })()}
         </nav>
 
         {/* FOOTER */}
@@ -399,8 +420,18 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                             : "bg-white dark:bg-[#0f172a] text-gray-800 dark:text-white"
                         }
                         style={{
-                          backgroundColor: isDark ? (isCurrent ? "#1e293b" : "#0f172a") : (isCurrent ? "#e0e7ff" : "#ffffff"),
-                          color: isDark ? "#ffffff" : (isCurrent ? "#4f46e5" : "#1f2937")
+                          backgroundColor: isDark
+                            ? isCurrent
+                              ? "#1e293b"
+                              : "#0f172a"
+                            : isCurrent
+                              ? "#e0e7ff"
+                              : "#ffffff",
+                          color: isDark
+                            ? "#ffffff"
+                            : isCurrent
+                              ? "#4f46e5"
+                              : "#1f2937",
                         }}
                       >
                         {isCurrent ? "● " : ""}
