@@ -1,10 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { FiX, FiUsers, FiEye, FiEyeOff } from "react-icons/fi";
 
-const DEPARTMENTS = [
-  "Social Media Team", "Website Team", "Designer Team",
-  "Editor Team", "Scriptwriter Team", "Cameraman Team", "SEO Team",
-];
 
 const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser, editUser, setEditUser }) => {
   const [formData, setFormData] = useState({ name: "", email: "", password: "", role: "team", department: "" });
@@ -19,7 +15,7 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((p) => ({ ...p, [name]: value, ...(name === "role" && value !== "team" ? { department: "" } : {}) }));
+    setFormData((p) => ({ ...p, [name]: value }));
   };
 
   const handleSubmit = (e) => {
@@ -103,15 +99,10 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
               </select>
             </div>
 
-            {formData.role === "team" && (
-              <div>
-                <label className={LABEL}>Department <span className="normal-case text-red-600">*</span></label>
-                <select name="department" value={formData.department} onChange={handleChange} required className={INPUT + " cursor-pointer"}>
-                  <option value="">Select...</option>
-                  {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-                </select>
-              </div>
-            )}
+            <div>
+              <label className={LABEL}>Department <span className="normal-case text-red-600">*</span></label>
+              <input type="text" name="department" value={formData.department} onChange={handleChange} required placeholder="Enter department" className={INPUT} />
+            </div>
           </div>
 
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">

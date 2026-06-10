@@ -96,7 +96,7 @@ const UserTable = ({ users, loading, handleDeleteUser, setOpenModal, setEditUser
 
                   {/* DEPT */}
                   <td className="px-4 py-3">
-                    {user.role === "team" ? (
+                    {user.department ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-violet-50 text-violet-600 border border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/20">
                         <FiUsers size={9} /> {user.department}
                       </span>

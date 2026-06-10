@@ -108,6 +108,8 @@ const Navbar = ({ setSidebarOpen }) => {
     return user?.department ? `${user.department} Dashboard` : "Dashboard";
   };
 
+  console.log(user.department)
+
   const pageTitle = getPageTitle();
 
   useEffect(() => {
