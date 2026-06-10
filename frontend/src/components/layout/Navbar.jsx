@@ -164,8 +164,8 @@ const Navbar = ({ setSidebarOpen }) => {
 
   const getThemeIcon = () => {
     if (theme === "dark")
-      return <FiMoon size={14} className="text-[#e5ff00]" />;
-    return <FiSun size={14} className="text-blue-500" />;
+      return <FiMoon size={12} className="text-[#e5ff00]" />;
+    return <FiSun size={12} className="text-blue-500" />;
   };
 
   return (
@@ -174,7 +174,7 @@ const Navbar = ({ setSidebarOpen }) => {
       animate={{ y: 0, opacity: 1 }}
       className="
         sticky top-0 z-50
-        h-14
+        h-11
         px-3 md:px-5
         flex items-center justify-between
         theme-bg-card
@@ -188,18 +188,18 @@ const Navbar = ({ setSidebarOpen }) => {
         <button
           onClick={() => setSidebarOpen(true)}
           className="
-            lg:hidden w-8 h-8
+            lg:hidden w-7 h-7
             rounded-lg border theme-border theme-bg-main
             theme-text-secondary
             flex items-center justify-center
             hover:opacity-90 transition-all cursor-pointer
           "
         >
-          <HiOutlineMenuAlt3 className="text-lg" />
+          <HiOutlineMenuAlt3 className="text-sm" />
         </button>
 
         {/* PAGE TITLE */}
-        <h1 className="text-[13px] md:text-[19px] text-blue-600 dark:text-[#e5ff00] font-extrabold uppercase tracking-wider">
+        <h1 className="text-[11px] md:text-[14px] text-blue-600 dark:text-[#e5ff00] font-extrabold uppercase tracking-wider">
           {pageTitle}
         </h1>
       </div>
@@ -210,7 +210,7 @@ const Navbar = ({ setSidebarOpen }) => {
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           className="
-            w-8 h-8 rounded-lg  border flex items-center justify-center transition-all duration-200 cursor-pointer
+            w-7 h-7 rounded-lg  border flex items-center justify-center transition-all duration-200 cursor-pointer
             theme-border theme-bg-card hover:theme-bg-main
           "
           title="Toggle Theme"
@@ -223,7 +223,7 @@ const Navbar = ({ setSidebarOpen }) => {
           <button
             onClick={() => setOpenNotifications(!openNotifications)}
             className={`
-              relative w-8 h-8 rounded-lg  border flex items-center justify-center transition-all duration-200 cursor-pointer
+              relative w-7 h-7 rounded-lg  border flex items-center justify-center transition-all duration-200 cursor-pointer
               ${
                 openNotifications
                   ? "theme-bg-main border-indigo-500 dark:border-indigo-400 theme-text-primary ring-2 ring-indigo-500/10"
@@ -231,22 +231,22 @@ const Navbar = ({ setSidebarOpen }) => {
               }
             `}
           >
-            <FiBell className="text-[15px]" />
+            <FiBell className="text-[13px]" />
             {unreadCount > 0 && (
               <>
                 <span
                   className="
-                  absolute -top-1.5 -right-1.5
-                  min-w-[17px] h-[17px] px-1
+                  absolute -top-1 -right-1
+                  min-w-[14px] h-[14px] px-0.5
                   rounded-full bg-rose-500
-                  text-white text-[8px] font-black
+                  text-white text-[7px] font-black
                   flex items-center justify-center
-                  border-2 border-white  shadow-sm z-10
+                  border border-white  shadow-sm z-10
                 "
                 >
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
-                <span className="absolute -top-1.5 -right-1.5 w-[17px] h-[17px] rounded-full bg-rose-500 animate-ping opacity-60 border-2 border-white dark:border-slate-900" />
+                <span className="absolute -top-1 -right-1 w-[14px] h-[14px] rounded-full bg-rose-500 animate-ping opacity-60 border border-white dark:border-slate-900" />
               </>
             )}
           </button>
@@ -260,7 +260,7 @@ const Navbar = ({ setSidebarOpen }) => {
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 transition={{ duration: 0.15 }}
                 className="
-                  fixed top-[62px] left-4 right-4
+                  fixed top-[50px] left-4 right-4
                   md:absolute md:top-auto md:left-auto md:right-0 md:mt-2
                   md:w-[340px] md:max-w-none
                   bg-white dark:bg-slate-900 rounded-2xl border theme-border
@@ -410,7 +410,7 @@ const Navbar = ({ setSidebarOpen }) => {
             onClick={() => setOpenDropdown(!openDropdown)}
             className="
               flex items-center gap-1.5
-              px-1.5 py-1
+              px-1 py-0.5
   
               rounded-lg border theme-border theme-bg-card
               transition-all cursor-pointer
@@ -420,25 +420,25 @@ const Navbar = ({ setSidebarOpen }) => {
               <img
                 src={profile.profileImage.url}
                 alt="profile"
-                className="w-7 h-7 rounded-full object-cover"
+                className="w-6 h-6 rounded-full object-cover"
               />
             ) : (
-              <div className="w-7 h-7 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500  flex items-center justify-center">
-                <FiUser size={13} />
+              <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500  flex items-center justify-center">
+                <FiUser size={11} />
               </div>
             )}
 
             <div className="text-left ">
-              <h3 className="text-[12px] font-black theme-text-primary leading-tight">
+              <h3 className="text-[10px] font-black theme-text-primary leading-tight">
                 {user?.name}
               </h3>
-              <p className="text-[10px] theme-text-secondary capitalize leading-tight">
+              <p className="text-[8px] theme-text-secondary capitalize leading-tight">
                 {user?.role}
               </p>
             </div>
 
             <FiChevronDown
-              className={`text-gray-550 dark:text-slate-400 text-xs transition-transform ${openDropdown ? "rotate-180" : ""}`}
+              className={`text-gray-550 dark:text-slate-400 text-[10px] transition-transform ${openDropdown ? "rotate-180" : ""}`}
             />
           </button>
 
@@ -450,7 +450,7 @@ const Navbar = ({ setSidebarOpen }) => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 8 }}
                 className="
-                  absolute right-0 top-10
+                  absolute right-0 top-[34px]
                   w-52 rounded-xl
                   theme-bg-card border theme-border
                   p-1.5 z-50

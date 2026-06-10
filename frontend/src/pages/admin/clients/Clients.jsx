@@ -51,6 +51,10 @@ const Clients = () => {
   const [serviceFilter, setServiceFilter] = useState("All");
   const [clientToDelete, setClientToDelete] = useState(null);
   const [activeTab, setActiveTab] = useState("profile"); // 'profile', 'service', 'finance'
+  
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(4);
 
   const initialForm = {
     companyName: "",
@@ -147,6 +151,19 @@ const Clients = () => {
       return matchesSearch && matchesService;
     });
   }, [clients, searchTerm, serviceFilter]);
+
+  // Reset pagination to page 1 when search or filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, serviceFilter]);
+
+  const totalItems = filteredClients.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  const paginatedClients = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredClients.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredClients, currentPage, itemsPerPage]);
 
   // Dynamic Service-Based styling helpers
   const getServiceStyles = (service) => {
@@ -284,7 +301,7 @@ const Clients = () => {
               <tbody>
                 <AnimatePresence>
                   {filteredClients.length > 0 ? (
-                    filteredClients.map((client) => {
+                    paginatedClients.map((client) => {
                       const conf = getServiceStyles(client.service);
                       const ServiceIcon = conf.icon;
                       return (
@@ -420,6 +437,75 @@ const Clients = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Premium Pagination Controls */}
+          {totalItems > 0 && (
+            <div className="px-5 py-4 bg-slate-50/50 dark:bg-[#111111]/30 border-t theme-border flex flex-col sm:flex-row items-center justify-between gap-4">
+              {/* Left Side: Info */}
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
+                Showing{" "}
+                <span className="font-extrabold text-slate-800 dark:text-white">
+                  {Math.min((currentPage - 1) * itemsPerPage + 1, totalItems)}
+                </span>{" "}
+                to{" "}
+                <span className="font-extrabold text-slate-800 dark:text-white">
+                  {Math.min(currentPage * itemsPerPage, totalItems)}
+                </span>{" "}
+                of{" "}
+                <span className="font-extrabold text-slate-800 dark:text-white">
+                  {totalItems}
+                </span>{" "}
+                clients
+              </div>
+
+              {/* Right Side: Page buttons */}
+              <div className="flex flex-wrap items-center gap-4">
+                {/* Page numbers */}
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                    disabled={currentPage === 1}
+                    className={`h-8 px-2.5 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1 transition-all ${
+                      currentPage === 1
+                        ? "border-slate-100 dark:border-slate-800/40 text-slate-300 dark:text-slate-600 cursor-not-allowed"
+                        : "border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-305 dark:hover:border-slate-700 active:scale-95 cursor-pointer"
+                    }`}
+                  >
+                    Prev
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    const isSelected = page === currentPage;
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`h-8 w-8 rounded-lg border text-[10px] font-extrabold flex items-center justify-center transition-all ${
+                          isSelected
+                            ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-sm"
+                            : "border-slate-200 dark:border-slate-800 bg-white dark:bg-black text-slate-700 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 hover:border-slate-300 dark:hover:border-slate-700 active:scale-95 cursor-pointer"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    );
+                  })}
+
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className={`h-8 px-2.5 rounded-lg border text-[10px] font-bold flex items-center justify-center gap-1 transition-all ${
+                      currentPage === totalPages
+                        ? "border-slate-100 dark:border-slate-800/40 text-slate-300 dark:text-slate-600 cursor-not-allowed"
+                        : "border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-305 dark:hover:border-slate-700 active:scale-95 cursor-pointer"
+                    }`}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </motion.div>
       )}
 

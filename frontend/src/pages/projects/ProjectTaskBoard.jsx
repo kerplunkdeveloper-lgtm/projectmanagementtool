@@ -693,61 +693,39 @@ const ProjectTaskBoard = ({
       <div>
         <div className="flex flex-col md:flex-row justify-between items-start gap-4 md:gap-6">
           <div className="space-y-2 w-full">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[9px] font-black px-2.5 py-1 rounded-lg bg-blue-550/10 dark:bg-[#e5ff00]/10 text-blue-600 dark:text-[#e5ff00] border border-blue-100 dark:border-[#e5ff00]/20 uppercase tracking-wide">
-                Client : {activeProject.client?.companyName || "No Client"}
-              </span>
-              <span
-                className={`text-[8px] font-extrabold px-2.5 py-1 rounded-lg border uppercase tracking-wider ${getStatusBadge(
-                  activeProject.status,
-                )}`}
-              >
-                {activeProject.status}
-              </span>
-            </div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white truncate">
               {activeProject.name}
             </h1>
-          </div>
-
-          <div className="pt-1 w-full md:w-auto">
-            <button
-              onClick={() => navigate(`/${currentUser?.role}/projects`)}
-              className="flex items-center justify-center w-full md:w-auto gap-2 px-4 py-2 font-bold text-xs rounded-xl border border-slate-200 dark:border-white/5 bg-white dark:bg-[#111111] text-slate-700 dark:text-white hover:bg-slate-50 dark:hover:bg-[#1a1a1a] shadow-sm transition-all"
-            >
-              <FiX size={16} />
-              Exit Workspace
-            </button>
           </div>
         </div>
       </div>
 
       {/* TAB SELECTOR - PREMIUM PILL DESIGN */}
       <div className="flex justify-center sm:justify-start mt-6 mb-2 overflow-hidden">
-        <div className="bg-slate-100/80 dark:bg-[#1a1a1a]/80 backdrop-blur-md p-1.5 rounded-2xl flex items-center gap-1 w-full overflow-x-auto hide-scrollbar sm:w-fit border border-slate-200/50 dark:border-white/5 shadow-inner">
+        <div className="bg-slate-100/80 dark:bg-[#1a1a1a]/80 backdrop-blur-md p-1 rounded-xl flex items-center gap-1 w-full overflow-x-auto hide-scrollbar sm:w-fit border border-slate-200/50 dark:border-white/5 shadow-inner">
           {["List", "Board", "Timeline", "Dashboard"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`relative px-4 sm:px-6 py-2.5 text-xs font-black uppercase tracking-wider transition-all duration-300 rounded-xl shrink-0 ${
+              className={`relative px-3 sm:px-4.5 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all duration-300 rounded-lg shrink-0 ${
                 activeTab === tab
-                  ? "text-blue-600 dark:text-[#e5ff00] shadow-md"
+                  ? "text-blue-600 dark:text-[#e5ff00] shadow-sm"
                   : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/5"
               }`}
             >
               {activeTab === tab && (
                 <motion.div
                   layoutId="activeWorkspaceTabPill"
-                  className="absolute inset-0 bg-white dark:bg-[#111111] border border-transparent dark:border-[#e5ff00]/30 rounded-xl dark:shadow-[0_0_15px_rgba(229,255,0,0.15)]"
+                  className="absolute inset-0 bg-white dark:bg-[#111111] border border-transparent dark:border-[#e5ff00]/30 rounded-lg dark:shadow-[0_0_12px_rgba(229,255,0,0.1)]"
                   style={{ zIndex: 0 }}
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
                 />
               )}
               <span className="relative z-10 flex items-center justify-center gap-1.5 sm:gap-2">
-                {tab === "List" && <FiList size={14} className="shrink-0" />}
-                {tab === "Board" && <FiGrid size={14} className="shrink-0" />}
-                {tab === "Timeline" && <FiTrendingUp size={14} className="shrink-0" />}
-                {tab === "Dashboard" && <FiPieChart size={14} className="shrink-0" />}
+                {tab === "List" && <FiList size={12} className="shrink-0" />}
+                {tab === "Board" && <FiGrid size={12} className="shrink-0" />}
+                {tab === "Timeline" && <FiTrendingUp size={12} className="shrink-0" />}
+                {tab === "Dashboard" && <FiPieChart size={12} className="shrink-0" />}
                 <span>{tab}</span>
               </span>
             </button>
@@ -760,9 +738,6 @@ const ProjectTaskBoard = ({
         {activeTab === "List" && (
           <div className="overflow-hidden">
             <div className="flex justify-between items-center mb-5">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-white">
-                Tasks List
-              </h3>
               {isAdminOrManager && (
                 <button
                   onClick={() => handleAddTask()}
