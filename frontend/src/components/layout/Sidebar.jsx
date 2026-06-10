@@ -128,7 +128,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             <img
               src={activeLogo}
               alt="logo"
-              className="w-[110px] lg:w-[150px]  object-contain dark:brightness-100"
+              className="w-[110px] lg:w-[130px]  object-contain dark:brightness-100"
             />
           </div>
 
@@ -141,7 +141,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         </div>
 
         {/* MENU */}
-        <nav className="flex-1 overflow-y-auto px-3.5 py-3 space-y-1.5 scrollbar-thin">
+        <nav className="flex-1 overflow-y-auto px-3.5 py-3 space-y-1.5 sidebar-scrollbar">
           {(() => {
             let hasRenderedProjectsList = false;
             let hasRenderedPortfoliosList = false;
@@ -151,16 +151,16 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                 {/* Dropdown Header Toggle */}
                 <button
                   onClick={() => setIsProjectsListOpen(!isProjectsListOpen)}
-                  className="w-full flex items-center justify-between py-2 px-1 text-left text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-colors"
+                  className="w-full flex items-center justify-between py-2 px-1 text-left text-blue-900 dark:text-[#e5ff00] hover:opacity-85 transition-opacity"
                 >
                   <div className="flex items-center gap-2">
-                    <FiList size={13} className="shrink-0 text-slate-500 dark:text-slate-400" />
-                    <span className="text-[10px] font-black uppercase tracking-wider">
+                    <FiList size={15} className="shrink-0 text-blue-900 dark:text-[#e5ff00]" />
+                    <span className="text-[11px] font-black uppercase tracking-wider">
                       List of Projects
                     </span>
                   </div>
                   <svg
-                    className={`w-2.5 h-2.5 transform transition-transform duration-200 ${
+                    className={`w-3 h-3 transform transition-transform duration-200 text-blue-900 dark:text-[#e5ff00] ${
                       isProjectsListOpen ? "rotate-180" : ""
                     }`}
                     fill="none"
@@ -178,7 +178,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
                 {/* Submenu List */}
                 {isProjectsListOpen && (
-                  <div className="pl-1 space-y-0.5 overflow-y-auto max-h-[160px] scrollbar-thin transition-all">
+                  <div className="pl-1 space-y-1 overflow-y-auto max-h-[160px] sidebar-scrollbar transition-all">
                     {projects.map((project, index) => {
                       const isActive = activeProjectId === project._id;
                       return (
@@ -188,7 +188,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                             setSidebarOpen(false);
                             navigate(`/${role}/projects?id=${project._id}`);
                           }}
-                          className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1.5 rounded-lg px-1.5 transition-colors group ${
+                          className={`w-full flex items-center gap-2 text-left text-[11.5px] font-bold py-2 rounded-lg px-2 transition-colors group ${
                             isActive
                               ? "bg-blue-50 dark:bg-[#e5ff00]/20 text-blue-600 dark:text-[#e5ff00]"
                               : "theme-text-secondary hover:theme-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/50"
@@ -197,7 +197,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         >
                           <ProjectIcon
                             name={project.name}
-                            size="xs"
+                            size="sm"
                             className="group-hover:scale-110 transition-transform"
                           />
                           <span className="truncate">{project.name}</span>
@@ -217,16 +217,16 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                 {/* Dropdown Header Toggle */}
                 <button
                   onClick={() => setIsPortfoliosListOpen(!isPortfoliosListOpen)}
-                  className="w-full flex items-center justify-between py-2 px-1 text-left text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-colors"
+                  className="w-full flex items-center justify-between py-2 px-1 text-left text-blue-900 dark:text-[#e5ff00] hover:opacity-85 transition-opacity"
                 >
                   <div className="flex items-center gap-2">
-                    <FiLayers size={13} className="shrink-0 text-slate-500 dark:text-slate-400" />
-                    <span className="text-[10px] font-black uppercase tracking-wider">
+                    <FiLayers size={15} className="shrink-0 text-blue-900 dark:text-[#e5ff00]" />
+                    <span className="text-[11px] font-black uppercase tracking-wider">
                       List of Portfolio
                     </span>
                   </div>
                   <svg
-                    className={`w-2.5 h-2.5 transform transition-transform duration-200 ${
+                    className={`w-3 h-3 transform transition-transform duration-200 text-blue-900 dark:text-[#e5ff00] ${
                       isPortfoliosListOpen ? "rotate-180" : ""
                     }`}
                     fill="none"
@@ -244,7 +244,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
                 {/* Submenu List */}
                 {isPortfoliosListOpen && (
-                  <div className="pl-1 space-y-0.5 overflow-y-auto max-h-[160px] scrollbar-thin transition-all">
+                  <div className="pl-1 space-y-1 overflow-y-auto max-h-[160px] sidebar-scrollbar transition-all">
                     {portfolios.map((portfolio, index) => {
                       const isActive = activePortfolioId === portfolio._id;
                       return (
@@ -254,7 +254,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                             setSidebarOpen(false);
                             navigate(`/${role}/portfolio?id=${portfolio._id}`);
                           }}
-                          className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1.5 rounded-lg px-1.5 transition-colors group ${
+                          className={`w-full flex items-center gap-2 text-left text-[11.5px] font-bold py-2 rounded-lg px-2 transition-colors group ${
                             isActive
                               ? "bg-blue-50 dark:bg-[#e5ff00]/20 text-blue-600 dark:text-[#e5ff00]"
                               : "theme-text-secondary hover:theme-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/50"
@@ -263,7 +263,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         >
                           <svg
                             viewBox="0 0 240 180"
-                            className="w-3.5 h-3.5 shrink-0 transition-transform duration-350 group-hover:scale-110"
+                            className="w-[20px] h-[16px] shrink-0 transition-transform duration-350 group-hover:scale-110"
                             style={{ fill: portfolio.color || "#ff80bf" }}
                           >
                             <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
