@@ -355,7 +355,7 @@ const Dashboardmain = () => {
                       <FiUser size={12} />
                     </span>
                     <span className="text-[11px] font-bold theme-text-primary truncate">
-                      Manage Portfolios
+                      Manage clients profiles
                     </span>
                   </div>
                   <FiChevronRight size={12} className="theme-icon group-hover:translate-x-0.5 transition-transform" />

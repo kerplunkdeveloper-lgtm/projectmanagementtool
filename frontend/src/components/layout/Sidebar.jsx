@@ -53,14 +53,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     return perm?.read;
   });
 
-  const [isWorkOpen, setIsWorkOpen] = useState(true);
-  const [isProjectsMenuOpen, setIsProjectsMenuOpen] = useState(location.pathname.includes("/projects"));
-
-  useEffect(() => {
-    if (location.pathname.includes("/projects")) {
-      setIsProjectsMenuOpen(true);
-    }
-  }, [location.pathname]);
+  const [isWorkOpen, setIsWorkOpen] = useState(false);
+  const [isProjectsMenuOpen, setIsProjectsMenuOpen] = useState(false);
 
   useEffect(() => {
     dispatch(getProjects());
@@ -190,78 +184,58 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           className={({ isActive }) =>
                             `flex items-center gap-2 text-[10px] font-bold py-1.5 rounded-lg px-2 transition-colors ${
                               isActive && !activeProjectId
-                                ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400"
+                                ? "bg-blue-50 dark:bg-[#e5ff00]/20 text-blue-600 dark:text-[#e5ff00]"
                                 : "theme-text-secondary hover:theme-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/40"
                             }`
                           }
                         >
                           <FiFolder size={12} className="shrink-0 text-slate-400 dark:text-slate-500" />
-                          <span>Projects Management</span>
+                          <span>Project Overview</span>
                         </NavLink>
 
-                        {/* Nested Item 2: My Projects Accordion */}
+                        {/* Nested Item 2: My Projects List */}
                         {projects && projects.length > 0 && (
                           <div className="space-y-1">
-                            <button
-                              onClick={() => setIsWorkOpen(!isWorkOpen)}
-                              className="w-full flex items-center justify-between gap-2 py-1 px-2 theme-text-primary hover:theme-text-secondary transition-all font-bold"
-                            >
+                            <div className="py-1 px-2">
                               <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                                My Projects
+                                List of Projects
                               </span>
-                              <svg
-                                className={`w-2.5 h-2.5 transform transition-transform duration-200 ${
-                                  isWorkOpen ? "rotate-180" : ""
-                                }`}
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2.5}
-                                  d="M19 9l-7 7-7-7"
-                                />
-                              </svg>
-                            </button>
+                            </div>
 
-                            {isWorkOpen && (
-                              <div className="pl-2 space-y-0.5 overflow-y-auto max-h-[160px] scrollbar-thin">
-                                {projects.map((project, index) => {
-                                  const isActive = activeProjectId === project._id;
-                                  return (
-                                    <button
-                                      key={project._id}
-                                      onClick={() => {
-                                        setSidebarOpen(false);
-                                        navigate(`/${role}/projects?id=${project._id}`);
-                                      }}
-                                      className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1.5 rounded-lg px-1.5 transition-colors group ${
-                                        isActive
-                                          ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-bold"
-                                          : "theme-text-secondary hover:theme-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/40"
-                                      }`}
-                                      title={project.name}
+                            <div className="pl-2 space-y-0.5 overflow-y-auto max-h-[160px] scrollbar-thin">
+                              {projects.map((project, index) => {
+                                const isActive = activeProjectId === project._id;
+                                return (
+                                  <button
+                                    key={project._id}
+                                    onClick={() => {
+                                      setSidebarOpen(false);
+                                      navigate(`/${role}/projects?id=${project._id}`);
+                                    }}
+                                    className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1.5 rounded-lg px-1.5 transition-colors group ${
+                                      isActive
+                                        ? "bg-blue-50 dark:bg-[#e5ff00]/20 text-blue-600 dark:text-[#e5ff00] font-bold"
+                                        : "theme-text-secondary hover:theme-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/40"
+                                    }`}
+                                    title={project.name}
+                                  >
+                                    <div
+                                      className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${
+                                        projectColors[index % projectColors.length]
+                                      } group-hover:scale-110 transition-transform`}
                                     >
-                                      <div
-                                        className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${
-                                          projectColors[index % projectColors.length]
-                                        } group-hover:scale-110 transition-transform`}
-                                      >
-                                        <span className="text-[8px] font-black uppercase opacity-90">
-                                          {project.name.charAt(0)}
-                                        </span>
-                                      </div>
-                                      <span className="truncate">{project.name}</span>
-                                      {isActive && (
-                                        <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
-                                      )}
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            )}
+                                      <span className="text-[8px] font-black uppercase opacity-90">
+                                        {project.name.charAt(0)}
+                                      </span>
+                                    </div>
+                                    <span className="truncate">{project.name}</span>
+                                    {isActive && (
+                                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#e5ff00] shrink-0" />
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -345,59 +319,39 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             projects &&
             projects.length > 0 && (
               <div className="space-y-1 pt-2 px-2.5">
-                <button
-                  onClick={() => setIsWorkOpen(!isWorkOpen)}
-                  className="w-full flex items-center justify-between gap-2 py-2 theme-text-primary hover:theme-text-secondary transition-all font-bold"
-                >
-                  <div className="flex items-center gap-2">
-                    <FiFolder size={12} className="text-gray-500" />
-                    <span className="text-[10px] font-semibold uppercase tracking-wider">
-                      My Projects
-                    </span>
-                  </div>
-                  <svg
-                    className={`w-3 h-3 transform transition-transform duration-200 ${isWorkOpen ? "rotate-180" : ""}`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2.5}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
+                <div className="flex items-center gap-2 py-2">
+                  <FiFolder size={12} className="text-gray-500" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    My Projects
+                  </span>
+                </div>
 
-                {isWorkOpen && (
-                  <div className="pl-3.5 space-y-1 overflow-y-auto max-h-[160px] scrollbar-thin">
-                    {projects.map((project, index) => {
-                      const isActive = activeProjectId === project._id;
-                      return (
-                        <button
-                          key={project._id}
-                          onClick={() => {
-                            setSidebarOpen(false);
-                            navigate(`/${role}/projects?id=${project._id}`);
-                          }}
-                          className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1.5 rounded-lg px-1.5 transition-colors group ${
-                            isActive
-                              ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400"
-                              : "theme-text-secondary hover:theme-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/50"
-                          }`}
-                          title={project.name}
-                        >
-                          <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${projectColors[index % projectColors.length]} group-hover:scale-110 transition-transform`}>
-                            <span className="text-[8px] font-black uppercase opacity-90">{project.name.charAt(0)}</span>
-                          </div>
-                          <span className="truncate">{project.name}</span>
-                          {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+                <div className="pl-3.5 space-y-1 overflow-y-auto max-h-[160px] scrollbar-thin">
+                  {projects.map((project, index) => {
+                    const isActive = activeProjectId === project._id;
+                    return (
+                      <button
+                        key={project._id}
+                        onClick={() => {
+                          setSidebarOpen(false);
+                          navigate(`/${role}/projects?id=${project._id}`);
+                        }}
+                        className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1.5 rounded-lg px-1.5 transition-colors group ${
+                          isActive
+                            ? "bg-blue-50 dark:bg-[#e5ff00]/20 text-blue-600 dark:text-[#e5ff00]"
+                            : "theme-text-secondary hover:theme-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                        }`}
+                        title={project.name}
+                      >
+                        <div className={`w-4 h-4 rounded flex items-center justify-center shrink-0 ${projectColors[index % projectColors.length]} group-hover:scale-110 transition-transform`}>
+                          <span className="text-[8px] font-black uppercase opacity-90">{project.name.charAt(0)}</span>
+                        </div>
+                        <span className="truncate">{project.name}</span>
+                        {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#e5ff00] shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
         </nav>
