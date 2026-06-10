@@ -176,17 +176,11 @@ const Portfolio = () => {
 
   // Local UI state
   const location = useLocation();
-  const queryId = new URLSearchParams(location.search).get("id");
-  const [selectedPortfolioId, setSelectedPortfolioId] = useState(null);
+  const role = user?.role || "admin";
+  const selectedPortfolioId = new URLSearchParams(location.search).get("id");
   const [showAddProjectDropdown, setShowAddProjectDropdown] = useState(false);
   const [projectSearchQuery, setProjectSearchQuery] = useState("");
   const [selectedAddProjects, setSelectedAddProjects] = useState([]);
-
-  useEffect(() => {
-    if (queryId) {
-      setSelectedPortfolioId(queryId);
-    }
-  }, [queryId]);
   
   // Real-time ticking state for relative time updates
   const [timeTick, setTimeTick] = useState(0);
@@ -267,7 +261,7 @@ const Portfolio = () => {
     e.stopPropagation();
     if (window.confirm("Are you sure you want to delete this portfolio folder?")) {
       dispatch(deletePortfolio(id));
-      if (selectedPortfolioId === id) setSelectedPortfolioId(null);
+      if (selectedPortfolioId === id) navigate(`/${role}/portfolio`);
     }
   };
 
@@ -329,7 +323,7 @@ const Portfolio = () => {
           Resolving portfolio group...
         </p>
         <button
-          onClick={() => setSelectedPortfolioId(null)}
+          onClick={() => navigate(`/${role}/portfolio`)}
           className="text-xs font-bold text-blue-600 dark:text-blue-400 mt-3 hover:underline uppercase tracking-wider block mx-auto"
         >
           Go Back to Directory
@@ -398,7 +392,7 @@ const Portfolio = () => {
                   <div
                     key={portfolio._id}
                     onDoubleClick={() => {
-                      setSelectedPortfolioId(portfolio._id);
+                      navigate(`/${role}/portfolio?id=${portfolio._id}`);
                     }}
                     className="group flex flex-col items-center justify-center p-2 transition-all duration-300 cursor-pointer relative text-center"
                   >
@@ -501,7 +495,7 @@ const Portfolio = () => {
                 <div>
                   {/* Breadcrumb Back Button */}
                   <button
-                    onClick={() => setSelectedPortfolioId(null)}
+                    onClick={() => navigate(`/${role}/portfolio`)}
                     className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-250 transition-colors"
                   >
                     <FiChevronLeft size={16} />
