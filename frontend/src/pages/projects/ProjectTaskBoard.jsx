@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  FiArrowLeft,
   FiX,
   FiPlus,
   FiCheck,
@@ -36,6 +37,7 @@ import {
 } from "../../features/tasks/taskSlice";
 import { updateProject } from "../../features/projects/projectSlice";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import ProjectIcon from "../../components/common/ProjectIcon";
 
 const StrictModeDroppable = ({ children, ...props }) => {
   const [enabled, setEnabled] = useState(false);
@@ -56,6 +58,7 @@ const TaskTitleInput = ({
   canToggle,
   handleTaskFieldChange,
   isCompleted,
+  onEnter,
 }) => {
   const [title, setTitle] = useState(task.title);
 
@@ -68,6 +71,7 @@ const TaskTitleInput = ({
       type="text"
       value={title}
       onChange={(e) => setTitle(e.target.value)}
+      onClick={(e) => e.stopPropagation()}
       onBlur={() => {
         if (title.trim() && title !== task.title) {
           handleTaskFieldChange(task._id, { title: title.trim() });
@@ -75,11 +79,18 @@ const TaskTitleInput = ({
       }}
       onKeyDown={(e) => {
         if (e.key === "Enter") {
+          e.preventDefault();
+          if (title.trim() && title !== task.title) {
+            handleTaskFieldChange(task._id, { title: title.trim() });
+          }
+          if (onEnter) {
+            onEnter();
+          }
           e.target.blur();
         }
       }}
-      className={`bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-blue-400/50 w-full p-0 font-semibold text-slate-800 dark:text-slate-105 rounded px-1.5 py-0.5 ${
-        isCompleted ? "line-through text-slate-400" : ""
+      className={`bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-blue-400/50 w-full p-0 font-semibold text-slate-800 dark:text-slate-100 rounded px-1 py-0 text-[11px] ${
+        isCompleted ? "line-through text-slate-450 dark:text-slate-500" : ""
       }`}
       disabled={!canToggle}
     />
@@ -109,9 +120,9 @@ const SubtaskRow = ({
   }, [sub.title]);
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50 hover:bg-slate-50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/60 dark:bg-slate-900/50 transition-colors">
-      <div className="flex items-center gap-2 flex-1 min-w-0">
-        <FiCornerDownRight className="text-slate-350 shrink-0" size={13} />
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50/50 hover:bg-slate-55 p-1.5 px-2.5 rounded-lg border border-slate-100 dark:border-slate-800/60 dark:bg-slate-900/50 transition-colors">
+      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+        <FiCornerDownRight className="text-slate-350 shrink-0" size={11} />
         {/* Subtask Checkbox */}
         <button
           onClick={(e) => {
@@ -123,7 +134,7 @@ const SubtaskRow = ({
             }
           }}
           disabled={!canToggleSub}
-          className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all shrink-0 ${
+          className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all shrink-0 ${
             !canToggleSub ? "cursor-not-allowed opacity-50" : "cursor-pointer"
           } ${
             isSubCompleted
@@ -131,7 +142,7 @@ const SubtaskRow = ({
               : "border-slate-300 dark:border-slate-700 hover:border-blue-500 text-transparent hover:text-slate-400"
           }`}
         >
-          <FiCheck size={10} />
+          <FiCheck size={8} />
         </button>
 
         {/* Subtask Title Input */}
@@ -152,7 +163,7 @@ const SubtaskRow = ({
             }
           }}
           onClick={(e) => e.stopPropagation()}
-          className={`bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-blue-400/50 w-full p-0 font-medium text-slate-700 dark:text-slate-200 rounded px-1.5 py-0.5 text-xs ${
+          className={`bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-blue-400/50 w-full p-0 font-medium text-slate-700 dark:text-slate-200 rounded px-1 py-0 text-[10px] ${
             isSubCompleted ? "line-through text-slate-400" : ""
           }`}
           disabled={!canToggleSub}
@@ -160,7 +171,7 @@ const SubtaskRow = ({
       </div>
 
       <div
-        className="flex items-center gap-3 shrink-0 text-[10px]"
+        className="flex items-center gap-2 shrink-0 text-[9px]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Subtask Assignee */}
@@ -173,7 +184,7 @@ const SubtaskRow = ({
                   assignedTo: e.target.value || null,
                 })
               }
-              className="bg-transparent border-0 font-medium text-slate-650 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-850 p-0.5 rounded cursor-pointer focus:outline-none"
+              className="bg-transparent border-0 font-medium text-slate-650 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-850 p-0.5 rounded cursor-pointer focus:outline-none text-[9px]"
             >
               <option value="">Unassigned</option>
               {users.map((u) => (
@@ -204,10 +215,10 @@ const SubtaskRow = ({
                   dueDate: e.target.value || null,
                 })
               }
-              className="bg-transparent border-0 hover:bg-slate-100 dark:hover:bg-slate-850 p-0.5 rounded cursor-pointer focus:outline-none text-[10px] text-slate-500 w-24"
+              className="bg-transparent border-0 hover:bg-slate-100 dark:hover:bg-slate-850 p-0.5 rounded cursor-pointer focus:outline-none text-[9px] text-slate-500 w-22"
             />
           ) : (
-            <span className="text-[10px] text-slate-550 dark:text-slate-400">
+            <span className="text-[9px] text-slate-550 dark:text-slate-400">
               {sub.dueDate ? new Date(sub.dueDate).toLocaleDateString() : "N/A"}
             </span>
           )}
@@ -257,7 +268,7 @@ const SubtaskRow = ({
             className="text-slate-400 hover:text-red-500 p-0.5 transition-colors"
             title="Delete Subtask"
           >
-            <FiTrash2 size={12} />
+            <FiTrash2 size={11} />
           </button>
         )}
       </div>
@@ -278,11 +289,76 @@ const ProjectTaskBoard = ({
   const navigate = useNavigate();
 
   // Redux State
-  const { tasks } = useSelector((state) => state.tasks);
+  const { tasks, loading: tasksLoading } = useSelector((state) => state.tasks);
 
   // Local State
   const [activeTab, setActiveTab] = useState("List"); // "List" | "Board" | "Timeline" | "Dashboard"
+  const [checkedProjects, setCheckedProjects] = useState({});
   const [expandedTasks, setExpandedTasks] = useState({}); // taskId -> boolean
+  const [editingDateTaskId, setEditingDateTaskId] = useState(null);
+  const [tempStartDate, setTempStartDate] = useState("");
+  const [tempEndDate, setTempEndDate] = useState("");
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
+  const [activeDateSelectionField, setActiveDateSelectionField] =
+    useState("start"); // "start" | "due"
+
+  // Helper to format date range beautifully (e.g. Jun 2 - 4)
+  const formatDateRange = (startStr, endStr) => {
+    if (!startStr && !endStr) return "";
+
+    const options = { month: "short", day: "numeric" };
+
+    if (startStr && !endStr) {
+      const start = new Date(startStr);
+      return start.toLocaleDateString(undefined, options);
+    }
+
+    if (!startStr && endStr) {
+      const end = new Date(endStr);
+      return end.toLocaleDateString(undefined, options);
+    }
+
+    const start = new Date(startStr);
+    const end = new Date(endStr);
+
+    const startMonth = start.toLocaleDateString(undefined, { month: "short" });
+    const endMonth = end.toLocaleDateString(undefined, { month: "short" });
+
+    const startDay = start.getDate();
+    const endDay = end.getDate();
+
+    const startYear = start.getFullYear();
+    const endYear = end.getFullYear();
+
+    if (startYear !== endYear) {
+      return `${startMonth} ${startDay}, ${startYear} - ${endMonth} ${endDay}, ${endYear}`;
+    }
+
+    if (startMonth !== endMonth) {
+      return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
+    }
+
+    return `${startMonth} ${startDay} - ${endDay}`;
+  };
+
+  const getCalendarDays = (year, month) => {
+    const firstDayOfMonth = new Date(year, month, 1);
+    const startDayOfWeek = firstDayOfMonth.getDay(); // 0 (Sunday) to 6 (Saturday)
+
+    // Start of the calendar grid (might be in the previous month)
+    const startDate = new Date(year, month, 1);
+    startDate.setDate(startDate.getDate() - startDayOfWeek);
+
+    const days = [];
+    const temp = new Date(startDate);
+    for (let i = 0; i < 42; i++) {
+      days.push(new Date(temp));
+      temp.setDate(temp.getDate() + 1);
+    }
+    return days;
+  };
+
   const [inlineSubtaskTitle, setInlineSubtaskTitle] = useState({}); // taskId -> string
   const [selectedTaskId, setSelectedTaskId] = useState(null); // Live task ID for Drawer preview
   const [isAddingSection, setIsAddingSection] = useState(false);
@@ -301,37 +377,71 @@ const ProjectTaskBoard = ({
       return;
     }
     const newName = editSectionValue.trim();
-    const currentSections = activeProject.sections?.length > 0 ? activeProject.sections : ["Recently assigned"];
-    const updatedSections = currentSections.map(s => s === oldName ? newName : s);
-    
+    const currentSections =
+      activeProject.sections?.length > 0
+        ? activeProject.sections
+        : ["Recently assigned"];
+    const updatedSections = currentSections.map((s) =>
+      s === oldName ? newName : s,
+    );
+
     try {
       // Update project
-      await dispatch(updateProject({ id: activeProjectId, data: { sections: updatedSections } })).unwrap();
-      
+      await dispatch(
+        updateProject({
+          id: activeProjectId,
+          data: { sections: updatedSections },
+        }),
+      ).unwrap();
+
       // Update all tasks in this section
-      const tasksToUpdate = tasks.filter(t => t.section === oldName || (!t.section && oldName === "Recently assigned"));
+      const tasksToUpdate = tasks.filter(
+        (t) =>
+          t.section === oldName ||
+          (!t.section && oldName === "Recently assigned"),
+      );
       await Promise.all(
-        tasksToUpdate.map(t => dispatch(updateTask({ id: t._id, taskData: { section: newName } })).unwrap())
+        tasksToUpdate.map((t) =>
+          dispatch(
+            updateTask({ id: t._id, taskData: { section: newName } }),
+          ).unwrap(),
+        ),
       );
       dispatch(getTasks());
     } catch (err) {
       console.error("Failed to rename section:", err);
     }
-    
+
     setEditingSection(null);
   };
 
   const handleDeleteSection = async (sectionName) => {
-    if (window.confirm(`Are you sure you want to delete the section "${sectionName}" and ALL its tasks?`)) {
-      const currentSections = activeProject.sections?.length > 0 ? activeProject.sections : ["Recently assigned"];
-      const updatedSections = currentSections.filter(s => s !== sectionName);
-      
+    if (
+      window.confirm(
+        `Are you sure you want to delete the section "${sectionName}" and ALL its tasks?`,
+      )
+    ) {
+      const currentSections =
+        activeProject.sections?.length > 0
+          ? activeProject.sections
+          : ["Recently assigned"];
+      const updatedSections = currentSections.filter((s) => s !== sectionName);
+
       try {
-        await dispatch(updateProject({ id: activeProjectId, data: { sections: updatedSections } })).unwrap();
-        
-        const tasksToDelete = tasks.filter(t => t.section === sectionName || (!t.section && sectionName === "Recently assigned"));
+        await dispatch(
+          updateProject({
+            id: activeProjectId,
+            data: { sections: updatedSections },
+          }),
+        ).unwrap();
+
+        const tasksToDelete = tasks.filter(
+          (t) =>
+            t.section === sectionName ||
+            (!t.section && sectionName === "Recently assigned"),
+        );
         await Promise.all(
-          tasksToDelete.map(t => dispatch(deleteTask(t._id)).unwrap())
+          tasksToDelete.map((t) => dispatch(deleteTask(t._id)).unwrap()),
         );
         dispatch(getTasks());
       } catch (err) {
@@ -342,7 +452,10 @@ const ProjectTaskBoard = ({
   };
 
   const toggleSection = (sectionName) => {
-    setCollapsedSections((prev) => ({ ...prev, [sectionName]: !prev[sectionName] }));
+    setCollapsedSections((prev) => ({
+      ...prev,
+      [sectionName]: !prev[sectionName],
+    }));
   };
 
   // Add optimistic tasks state for dragging
@@ -378,7 +491,7 @@ const ProjectTaskBoard = ({
         updateTask({
           id: draggableId,
           taskData: { section: destination.droppableId },
-        })
+        }),
       ).unwrap();
       dispatch(getTasks());
     } catch (err) {
@@ -392,13 +505,16 @@ const ProjectTaskBoard = ({
   const handleAddSectionSubmit = (e) => {
     e.preventDefault();
     if (!newSectionName.trim()) return;
-    const currentSections = activeProject.sections?.length > 0 ? activeProject.sections : ["Recently assigned"];
+    const currentSections =
+      activeProject.sections?.length > 0
+        ? activeProject.sections
+        : ["Recently assigned"];
     const updatedSections = [...currentSections, newSectionName.trim()];
     dispatch(
       updateProject({
         id: activeProjectId,
         data: { sections: updatedSections },
-      })
+      }),
     );
     setIsAddingSection(false);
     setNewSectionName("");
@@ -416,13 +532,42 @@ const ProjectTaskBoard = ({
           dueDate: null,
           priority: "Medium",
           status: "Pending",
-        })
+        }),
       ).unwrap();
       dispatch(getTasks());
     } catch (err) {
       console.error("Failed to add task:", err);
     }
   };
+
+  // Auto-create a default task if the project has 0 tasks
+  useEffect(() => {
+    if (!activeProjectId || !isAdminOrManager || tasksLoading) return;
+
+    if (checkedProjects[activeProjectId]) return;
+
+    const projectTasksCount = tasks.filter(
+      (t) =>
+        t.project?._id === activeProjectId || t.project === activeProjectId,
+    ).length;
+
+    if (projectTasksCount === 0) {
+      const defaultSection =
+        activeProject?.sections?.length > 0
+          ? activeProject.sections[0]
+          : "Recently assigned";
+      handleAddTask(defaultSection);
+    }
+
+    setCheckedProjects((prev) => ({ ...prev, [activeProjectId]: true }));
+  }, [
+    activeProjectId,
+    tasks,
+    tasksLoading,
+    activeProject,
+    isAdminOrManager,
+    checkedProjects,
+  ]);
 
   // Add Task directly to DB with preselected status (Board view helper)
   const handleAddTaskWithStatus = async (status) => {
@@ -435,7 +580,7 @@ const ProjectTaskBoard = ({
           dueDate: null,
           priority: "Medium",
           status: status,
-        })
+        }),
       ).unwrap();
       dispatch(getTasks());
     } catch (err) {
@@ -450,7 +595,9 @@ const ProjectTaskBoard = ({
     if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
 
     try {
-      await dispatch(updateTask({ id: taskId, taskData: sanitizedFields })).unwrap();
+      await dispatch(
+        updateTask({ id: taskId, taskData: sanitizedFields }),
+      ).unwrap();
       dispatch(getTasks());
     } catch (err) {
       console.error("Failed to update task:", err);
@@ -465,20 +612,29 @@ const ProjectTaskBoard = ({
       text: newComment.trim(),
       createdAt: new Date(),
     };
-    
+
     // Dispatch to DB
     try {
-      await dispatch(updateTask({
-        id: selectedTask._id,
-        taskData: {
-          comments: [...(selectedTask.comments || []).map(c => ({ user: c.user?._id || c.user, text: c.text, createdAt: c.createdAt })), commentData]
-        }
-      })).unwrap();
+      await dispatch(
+        updateTask({
+          id: selectedTask._id,
+          taskData: {
+            comments: [
+              ...(selectedTask.comments || []).map((c) => ({
+                user: c.user?._id || c.user,
+                text: c.text,
+                createdAt: c.createdAt,
+              })),
+              commentData,
+            ],
+          },
+        }),
+      ).unwrap();
       dispatch(getTasks());
     } catch (err) {
       console.error("Failed to add comment:", err);
     }
-    
+
     setNewComment("");
   };
 
@@ -493,7 +649,7 @@ const ProjectTaskBoard = ({
     try {
       setIsUploading(true);
       toast.loading("Uploading attachment...", { id: "upload" });
-      
+
       const config = {
         headers: {
           Authorization: `Bearer ${currentUser?.token}`,
@@ -501,8 +657,12 @@ const ProjectTaskBoard = ({
         },
       };
 
-      const { data } = await axiosInstance.post("/messages/upload", formData, config);
-      
+      const { data } = await axiosInstance.post(
+        "/messages/upload",
+        formData,
+        config,
+      );
+
       if (data.success) {
         const attachmentData = {
           url: data.data.url,
@@ -512,12 +672,20 @@ const ProjectTaskBoard = ({
           uploadedAt: new Date(),
         };
 
-        await dispatch(updateTask({
-          id: selectedTask._id,
-          taskData: {
-            attachments: [...(selectedTask.attachments || []).map(a => ({ ...a, uploadedBy: a.uploadedBy?._id || a.uploadedBy })), attachmentData]
-          }
-        })).unwrap();
+        await dispatch(
+          updateTask({
+            id: selectedTask._id,
+            taskData: {
+              attachments: [
+                ...(selectedTask.attachments || []).map((a) => ({
+                  ...a,
+                  uploadedBy: a.uploadedBy?._id || a.uploadedBy,
+                })),
+                attachmentData,
+              ],
+            },
+          }),
+        ).unwrap();
         dispatch(getTasks());
 
         toast.success("Attachment uploaded successfully!", { id: "upload" });
@@ -546,7 +714,7 @@ const ProjectTaskBoard = ({
     const updatedSubtasks = [...(task.subtasks || []), newSubtask];
     try {
       await dispatch(
-        updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } })
+        updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } }),
       ).unwrap();
       dispatch(getTasks());
     } catch (err) {
@@ -575,7 +743,7 @@ const ProjectTaskBoard = ({
     );
     try {
       await dispatch(
-        updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } })
+        updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } }),
       ).unwrap();
       dispatch(getTasks());
     } catch (err) {
@@ -590,7 +758,7 @@ const ProjectTaskBoard = ({
     );
     try {
       await dispatch(
-        updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } })
+        updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } }),
       ).unwrap();
       dispatch(getTasks());
     } catch (err) {
@@ -693,537 +861,1246 @@ const ProjectTaskBoard = ({
       <div>
         <div className="flex flex-col md:flex-row justify-between items-start gap-4 md:gap-6">
           <div className="space-y-2 w-full">
-            <h1 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white truncate">
-              {activeProject.name}
-            </h1>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate(-1)}
+                className="group p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-[#e5ff00] transition-all cursor-pointer flex items-center justify-center hover:scale-105 active:scale-95 mr-1"
+                title="Go Back"
+              >
+                <FiArrowLeft
+                  size={18}
+                  className="group-hover:-translate-x-0.5 transition-transform"
+                />
+              </button>
+              <ProjectIcon
+                name={activeProject.name}
+                size="lg"
+                className="shadow-md"
+              />
+              <h1 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white truncate">
+                {activeProject.name}
+              </h1>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* TAB SELECTOR - PREMIUM PILL DESIGN */}
-      <div className="flex justify-center sm:justify-start mt-6 mb-2 overflow-hidden">
-        <div className="bg-slate-100/80 dark:bg-[#1a1a1a]/80 backdrop-blur-md p-1 rounded-xl flex items-center gap-1 w-full overflow-x-auto hide-scrollbar sm:w-fit border border-slate-200/50 dark:border-white/5 shadow-inner">
-          {["List", "Board", "Timeline", "Dashboard"].map((tab) => (
+      {/* ACTION HEADER: ADD TASK & TABS SELECTOR */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-6 mb-2">
+        {/* Left Side: Add Task Button */}
+        <div className="flex-shrink-0">
+          {isAdminOrManager ? (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`relative px-3 sm:px-4.5 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all duration-300 rounded-lg shrink-0 ${
-                activeTab === tab
-                  ? "text-blue-600 dark:text-[#e5ff00] shadow-sm"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/5"
-              }`}
+              onClick={() => handleAddTask()}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] sm:text-[10px] rounded-xl bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black shadow-lg  shadow-blue-500/20 dark:shadow-[#e5ff00]/20 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 font-medium uppercase tracking-wider"
             >
-              {activeTab === tab && (
-                <motion.div
-                  layoutId="activeWorkspaceTabPill"
-                  className="absolute inset-0 bg-white dark:bg-[#111111] border border-transparent dark:border-[#e5ff00]/30 rounded-lg dark:shadow-[0_0_12px_rgba(229,255,0,0.1)]"
-                  style={{ zIndex: 0 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                />
-              )}
-              <span className="relative z-10 flex items-center justify-center gap-1.5 sm:gap-2">
-                {tab === "List" && <FiList size={12} className="shrink-0" />}
-                {tab === "Board" && <FiGrid size={12} className="shrink-0" />}
-                {tab === "Timeline" && <FiTrendingUp size={12} className="shrink-0" />}
-                {tab === "Dashboard" && <FiPieChart size={12} className="shrink-0" />}
-                <span>{tab}</span>
-              </span>
+              <FiPlus size={12} className="shrink-0" />
+              Add Task
             </button>
-          ))}
+          ) : (
+            <div className="w-1" />
+          )}
+        </div>
+
+        {/* Right Side: Tab Selector - High-end, Premium Design */}
+        <div className="bg-slate-100/60 dark:bg-[#0b0d14] p-1 rounded-xl flex items-center gap-1 w-full overflow-x-auto hide-scrollbar sm:w-fit border border-slate-200/60 dark:border-slate-800/80 shadow-sm">
+          {["List", "Board", "Timeline", "Dashboard"].map((tab) => {
+            const isActive = activeTab === tab;
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`relative px-3.5 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all duration-300 rounded-lg shrink-0 cursor-pointer ${
+                  isActive
+                    ? "text-slate-900 dark:text-[#e5ff00]"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-[#e5ff00]"
+                }`}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="activeWorkspaceTabPill"
+                    className="absolute inset-0 bg-white dark:bg-[#161925] border border-slate-200 dark:border-[#e5ff00]/40 rounded-lg shadow-sm dark:shadow-[0_0_12px_rgba(229,255,0,0.15)]"
+                    style={{ zIndex: 0 }}
+                    transition={{ type: "spring", stiffness: 350, damping: 26 }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center justify-center gap-1.5">
+                  {tab === "List" && (
+                    <FiList
+                      size={12}
+                      className={`shrink-0 transition-colors duration-300 ${
+                        isActive
+                          ? "text-blue-500 dark:text-[#e5ff00]"
+                          : "text-slate-400 dark:text-slate-500"
+                      }`}
+                    />
+                  )}
+                  {tab === "Board" && (
+                    <FiGrid
+                      size={12}
+                      className={`shrink-0 transition-colors duration-300 ${
+                        isActive
+                          ? "text-indigo-500 dark:text-[#e5ff00]"
+                          : "text-slate-400 dark:text-slate-500"
+                      }`}
+                    />
+                  )}
+                  {tab === "Timeline" && (
+                    <FiTrendingUp
+                      size={12}
+                      className={`shrink-0 transition-colors duration-300 ${
+                        isActive
+                          ? "text-rose-500 dark:text-[#e5ff00]"
+                          : "text-slate-400 dark:text-slate-500"
+                      }`}
+                    />
+                  )}
+                  {tab === "Dashboard" && (
+                    <FiPieChart
+                      size={12}
+                      className={`shrink-0 transition-colors duration-300 ${
+                        isActive
+                          ? "text-emerald-500 dark:text-[#e5ff00]"
+                          : "text-slate-400 dark:text-slate-500"
+                      }`}
+                    />
+                  )}
+                  <span>{tab}</span>
+                  {isActive && (
+                    <span className="w-1 h-1 rounded-full bg-blue-500 dark:bg-[#e5ff00] animate-pulse" />
+                  )}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* TAB CONTENT */}
       <div className="min-h-[400px]">
         {activeTab === "List" && (
-          <div className="overflow-hidden">
-            <div className="flex justify-between items-center mb-5">
-              {isAdminOrManager && (
-                <button
-                  onClick={() => handleAddTask()}
-                  className="flex items-center gap-1.5 px-4 py-2.5 text-[10px] rounded-xl bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black shadow-lg shadow-blue-500/20 dark:shadow-[#e5ff00]/20 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 font-black uppercase tracking-wider"
-                >
-                  <FiPlus size={14} />
-                  Add Task
-                </button>
-              )}
-            </div>
-
-            <div className="overflow-x-auto bg-white dark:bg-[#111111] rounded-2xl border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/50 dark:shadow-none">
-              <table className="w-full text-left border-collapse">
+          <div className="overflow-hidden pt-3">
+            <div className="overflow-x-auto pb-48 bg-white dark:bg-slate-900/30 shadow-xl shadow-slate-200/50 dark:shadow-none">
+              <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="bg-slate-50/50 dark:bg-[#0a0a0a]/40 text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-slate-100 dark:border-white/5">
-                    <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap min-w-[240px]">Name</th>
-                    <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap min-w-[140px]">Assignee</th>
-                    <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap min-w-[120px]">Due Date</th>
-                    <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap min-w-[120px]">Priority</th>
-                    <th className="px-4 sm:px-6 py-3.5 whitespace-nowrap min-w-[120px]">Status</th>
-                    <th className="px-4 sm:px-6 py-3.5 text-center whitespace-nowrap min-w-[80px]">Actions</th>
+                  <tr className="bg-slate-50/50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider text-[10px]">
+                    <th className="px-3 py-1.5 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[240px]">
+                      Name
+                    </th>
+                    <th className="px-3 py-1.5 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[140px]">
+                      Assignee
+                    </th>
+                    <th className="px-3 py-1.5 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                      Due Date
+                    </th>
+                    <th className="px-3 py-1.5 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                      Priority
+                    </th>
+                    <th className="px-3 py-1.5 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                      Status
+                    </th>
+                    <th className="px-3 py-1.5 border-b border-slate-200 dark:border-slate-800 text-center whitespace-nowrap min-w-[80px]">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-xs">
-                  {Array.from(new Set(activeProject.sections?.length > 0 ? activeProject.sections : ["Recently assigned"])).map((sectionName, sectionIndex) => {
+                <tbody className="text-xs">
+                  {Array.from(
+                    new Set(
+                      activeProject.sections?.length > 0
+                        ? activeProject.sections
+                        : ["Recently assigned"],
+                    ),
+                  ).map((sectionName, sectionIndex) => {
                     const sectionTasks = activeProjectTasks.filter(
-                      (t) => t.section === sectionName || (!t.section && sectionName === "Recently assigned")
+                      (t) =>
+                        t.section === sectionName ||
+                        (!t.section && sectionName === "Recently assigned"),
                     );
                     const isSectionCollapsed = !!collapsedSections[sectionName];
 
                     return (
                       <React.Fragment key={`${sectionName}-${sectionIndex}`}>
                         {/* SECTION HEADER ROW */}
-                        <tr className="bg-slate-50/80 dark:bg-[#1a1a1a]/40 border-y border-slate-200 dark:border-white/5 group">
-                          <td colSpan={6} className="px-6 py-3">
-                            <div className="flex items-center gap-6">
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => toggleSection(sectionName)}
-                                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-0.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700"
-                                >
-                                  {isSectionCollapsed ? <FiChevronRight size={14} /> : <FiChevronDown size={14} />}
-                                </button>
-                                {editingSection === sectionName ? (
-                                  <form onSubmit={(e) => handleRenameSectionSubmit(e, sectionName)} className="ml-1">
-                                    <input 
-                                      autoFocus
-                                      value={editSectionValue}
-                                      onChange={e => setEditSectionValue(e.target.value)}
-                                      onBlur={(e) => handleRenameSectionSubmit(e, sectionName)}
-                                      className="text-[11px] font-black uppercase tracking-wider bg-white dark:bg-slate-800 border border-blue-400 rounded px-2 py-0.5 outline-none"
-                                    />
-                                  </form>
-                                ) : (
-                                  <h3 
-                                    className="font-black text-[11px] uppercase tracking-wider text-slate-700 dark:text-slate-300 cursor-pointer select-none"
+                        {sectionName !== "Recently assigned" && (
+                          <tr className="bg-slate-50/20 dark:bg-slate-900/10 border-y border-slate-100 dark:border-slate-800/60 group">
+                            <td
+                              colSpan={6}
+                              className="px-4 py-2 border-b border-slate-100 dark:border-slate-800/60"
+                            >
+                              <div className="flex items-center gap-3 py-1">
+                                <div className="flex items-center gap-2">
+                                  {/* Play/triangle icon that rotates */}
+                                  <button
                                     onClick={() => toggleSection(sectionName)}
+                                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-0.5 rounded"
                                   >
-                                    {sectionName} <span className="text-slate-400 font-medium ml-2">({sectionTasks.length})</span>
-                                  </h3>
+                                    <svg
+                                      viewBox="0 0 24 24"
+                                      className={`w-3.5 h-3.5 text-slate-550 transition-transform duration-200 ${isSectionCollapsed ? "" : "rotate-90"}`}
+                                      fill="currentColor"
+                                    >
+                                      <path d="M8 5v14l11-7z" />
+                                    </svg>
+                                  </button>
+                                  {editingSection === sectionName ? (
+                                    <form
+                                      onSubmit={(e) =>
+                                        handleRenameSectionSubmit(
+                                          e,
+                                          sectionName,
+                                        )
+                                      }
+                                      className="ml-1"
+                                    >
+                                      <input
+                                        autoFocus
+                                        value={editSectionValue}
+                                        onChange={(e) =>
+                                          setEditSectionValue(e.target.value)
+                                        }
+                                        onBlur={(e) =>
+                                          handleRenameSectionSubmit(
+                                            e,
+                                            sectionName,
+                                          )
+                                        }
+                                        className="text-xs font-semibold bg-white dark:bg-slate-800 border border-blue-400 rounded px-2 py-0.5 outline-none text-slate-800 dark:text-white"
+                                      />
+                                    </form>
+                                  ) : (
+                                    <h3
+                                      className="font-semibold text-xs text-slate-800 dark:text-slate-250 cursor-pointer select-none"
+                                      onClick={() => toggleSection(sectionName)}
+                                    >
+                                      {sectionName}{" "}
+                                      <span className="text-slate-400 font-medium ml-1.5 text-[10px]">
+                                        ({sectionTasks.length})
+                                      </span>
+                                    </h3>
+                                  )}
+                                </div>
+                                {isAdminOrManager && (
+                                  <div className="flex items-center gap-2">
+                                    {/* Compact + button */}
+                                    <button
+                                      onClick={() => handleAddTask(sectionName)}
+                                      className="p-0.5 text-slate-555 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-white/5 rounded transition-colors"
+                                      title="Add Task"
+                                    >
+                                      <FiPlus size={15} />
+                                    </button>
+
+                                    {/* Action button */}
+                                    <div className="relative">
+                                      <button
+                                        onClick={() =>
+                                          setOpenSectionMenu(
+                                            openSectionMenu === sectionName
+                                              ? null
+                                              : sectionName,
+                                          )
+                                        }
+                                        className="p-0.5 px-1 bg-slate-100/60 dark:bg-white/5 text-slate-550 hover:text-slate-800 dark:hover:text-slate-100 rounded hover:bg-slate-200/60 dark:hover:bg-white/10 transition-colors"
+                                      >
+                                        <FiMoreHorizontal size={13} />
+                                      </button>
+
+                                      {openSectionMenu === sectionName && (
+                                        <div className="absolute left-0 mt-1 w-32 bg-white dark:bg-[#151518] rounded-lg shadow-lg border border-slate-100 dark:border-white/10 z-50 overflow-hidden">
+                                          <button
+                                            onClick={() => {
+                                              setEditingSection(sectionName);
+                                              setEditSectionValue(sectionName);
+                                              setOpenSectionMenu(null);
+                                            }}
+                                            className="w-full text-left px-3 py-2 text-[11px] font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center gap-2"
+                                          >
+                                            <FiEdit2 size={12} /> Rename
+                                          </button>
+                                          <button
+                                            onClick={() =>
+                                              handleDeleteSection(sectionName)
+                                            }
+                                            className="w-full text-left px-3 py-2 text-[11px] font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-955/30 flex items-center gap-2"
+                                          >
+                                            <FiTrash2 size={12} /> Delete
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
                                 )}
                               </div>
-                              {isAdminOrManager && (
-                                  <div className="flex items-center gap-3">
-                                  <button
-                                    onClick={() => handleAddTask(sectionName)}
-                                    className="flex items-center gap-1 text-[10px] font-bold text-blue-600 dark:text-[#e5ff00] hover:text-blue-700 dark:hover:text-[#ccff00]"
-                                  >
-                                    <FiPlus size={12} /> Add Task
-                                  </button>
-                                  
-                                  <div className="relative">
-                                    <button 
-                                      onClick={() => setOpenSectionMenu(openSectionMenu === sectionName ? null : sectionName)}
-                                      className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded hover:bg-slate-200 dark:hover:bg-white/10"
-                                    >
-                                      <FiMoreHorizontal size={14} />
-                                    </button>
-                                    
-                                    {openSectionMenu === sectionName && (
-                                      <div className="absolute left-0 mt-1 w-32 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-lg border border-slate-100 dark:border-white/10 z-50 overflow-hidden">
-                                        <button 
-                                          onClick={() => { setEditingSection(sectionName); setEditSectionValue(sectionName); setOpenSectionMenu(null); }}
-                                          className="w-full text-left px-3 py-2 text-[11px] font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center gap-2"
-                                        >
-                                          <FiEdit2 size={12} /> Rename
-                                        </button>
-                                        <button 
-                                          onClick={() => handleDeleteSection(sectionName)}
-                                          className="w-full text-left px-3 py-2 text-[11px] font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2"
-                                        >
-                                          <FiTrash2 size={12} /> Delete
-                                        </button>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-
-                        {/* SECTION TASKS */}
-                        {!isSectionCollapsed && (
-                          sectionTasks.length === 0 ? (
-                          <tr>
-                            <td colSpan={6} className="px-6 py-6 text-center text-slate-400 italic text-[10px]">
-                              No tasks in this section.
                             </td>
                           </tr>
-                        ) : (
-                          sectionTasks.map((task) => {
-                            const isExpanded = !!expandedTasks[task._id];
-                        const isCompleted = task.status === "Completed";
-                        const canToggle =
-                          isAdminOrManager ||
-                          task.assignedTo?._id === currentUser?._id ||
-                          task.assignedTo === currentUser?._id;
+                        )}
 
-                        return (
-                          <React.Fragment key={task._id}>
-                            {/* Parent Task Row */}
-                            <tr
-                              onClick={() => setSelectedTaskId(task._id)}
-                              className={`hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors group cursor-pointer ${
-                                isCompleted
-                                  ? "bg-slate-50/30 text-slate-400 dark:text-slate-500"
-                                  : "text-slate-800 dark:text-slate-100"
-                              } ${selectedTaskId === task._id ? "bg-blue-50/40 dark:bg-[#e5ff00]/10" : ""}`}
-                            >
-                              {/* Name Field with Circle Checkbox */}
-                              <td className="px-6 py-3.5 font-semibold">
-                                <div className="flex items-center gap-3">
-                                  {/* Circle Checkbox */}
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (canToggle) {
-                                        handleTaskFieldChange(task._id, {
-                                          status: isCompleted
-                                            ? "Pending"
-                                            : "Completed",
-                                        });
-                                      }
-                                    }}
-                                    disabled={!canToggle}
-                                    className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
-                                      !canToggle
-                                        ? "cursor-not-allowed opacity-50"
-                                        : "cursor-pointer"
-                                    } ${
-                                      isCompleted
-                                        ? "bg-emerald-500 border-emerald-500 text-white"
-                                        : "border-slate-300 dark:border-white/10 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
-                                    }`}
-                                  >
-                                    <FiCheck size={12} />
-                                  </button>
-
-                                  {/* Task Title Input */}
-                                  <div className="flex-1">
-                                    <TaskTitleInput
-                                      task={task}
-                                      canToggle={canToggle}
-                                      handleTaskFieldChange={
-                                        handleTaskFieldChange
-                                      }
-                                      isCompleted={isCompleted}
-                                    />
-                                  </div>
-
-                                  {/* Subtask Expander Toggle */}
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleTaskExpanded(task._id);
-                                    }}
-                                    className="text-slate-450 hover:text-blue-600 dark:hover:text-[#e5ff00] flex items-center gap-0.5 ml-2 text-[10px] font-extrabold shrink-0 uppercase tracking-wider"
-                                  >
-                                    {isExpanded ? (
-                                      <FiChevronDown size={14} />
-                                    ) : (
-                                      <FiChevronRight size={14} />
-                                    )}
-                                    <span>
-                                      Subtasks ({task.subtasks?.length || 0})
-                                    </span>
-                                  </button>
-                                </div>
-                              </td>
-
-                              {/* Assignee Selection */}
-                              <td className="px-6 py-3.5">
-                                <div
-                                  className="flex items-center gap-2"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {task.assignedTo?.profileImage?.url ? (
-                                    <img
-                                      src={task.assignedTo.profileImage.url}
-                                      alt={task.assignedTo.name}
-                                      className="w-6 h-6 rounded-full object-cover border border-slate-100 dark:border-slate-800"
-                                    />
-                                  ) : (
-                                    <div
-                                      className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-[9px] bg-gradient-to-br ${getAvatarColor(
-                                        task.assignedTo?.name || "Unknown",
-                                      )}`}
-                                    >
-                                      {task.assignedTo?.name
-                                        ?.split(" ")
-                                        .map((n) => n[0])
-                                        .join("") || "U"}
-                                    </div>
-                                  )}
-                                  {isAdminOrManager ? (
-                                    <select
-                                      value={
-                                        task.assignedTo?._id ||
-                                        task.assignedTo ||
-                                        ""
-                                      }
-                                      onChange={(e) =>
-                                        handleTaskFieldChange(task._id, {
-                                          assignedTo: e.target.value,
-                                        })
-                                      }
-                                      className="bg-transparent border-0 font-semibold text-slate-700 dark:text-slate-350 hover:bg-slate-105 px-1 py-0.5 rounded cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00]"
-                                    >
-                                      <option value="">Unassigned</option>
-                                      {users.map((u) => (
-                                        <option key={u._id} value={u._id}>
-                                          {u.name}
-                                        </option>
-                                      ))}
-                                    </select>
-                                  ) : (
-                                    <span className="font-semibold text-slate-750 dark:text-slate-350 px-1 py-0.5">
-                                      {task.assignedTo?.name || "Unassigned"}
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-
-                              {/* Due Date */}
-                              <td className="px-6 py-3.5">
-                                <div
-                                  className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-medium"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <FiCalendar
-                                    size={13}
-                                    className="text-slate-400"
-                                  />
-                                  {isAdminOrManager ? (
-                                    <input
-                                      type="date"
-                                      value={
-                                        task.dueDate
-                                          ? new Date(task.dueDate)
-                                              .toISOString()
-                                              .split("T")[0]
-                                          : ""
-                                      }
-                                      onChange={(e) =>
-                                        handleTaskFieldChange(task._id, {
-                                          dueDate: e.target.value,
-                                        })
-                                      }
-                                      className="bg-transparent border-0 hover:bg-slate-105 px-1 py-0.5 rounded cursor-pointer focus:outline-none text-xs text-slate-655 dark:text-slate-300"
-                                    />
-                                  ) : (
-                                    <span className="text-xs text-slate-600 dark:text-slate-400">
-                                      {task.dueDate
-                                        ? new Date(
-                                            task.dueDate,
-                                          ).toLocaleDateString()
-                                        : "N/A"}
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-
-                              {/* Priority */}
-                              <td className="px-6 py-3.5">
-                                <div onClick={(e) => e.stopPropagation()}>
-                                  {isAdminOrManager ? (
-                                    <select
-                                      value={task.priority || "Medium"}
-                                      onChange={(e) =>
-                                        handleTaskFieldChange(task._id, {
-                                          priority: e.target.value,
-                                        })
-                                      }
-                                      className={`px-2 py-1 rounded-xl text-[10px] font-extrabold border focus:outline-none cursor-pointer ${
-                                        task.priority === "High"
-                                          ? "bg-rose-50 text-rose-700 border-rose-200/50 dark:bg-rose-955/20 dark:text-rose-400 dark:border-rose-800/40"
-                                          : task.priority === "Medium"
-                                            ? "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-955/20 dark:text-amber-400 dark:border-amber-800/40"
-                                            : "bg-slate-50 text-slate-650 border-slate-200 dark:bg-slate-850 dark:text-slate-350 dark:border-slate-750"
-                                      }`}
-                                    >
-                                      <option value="Low">Low</option>
-                                      <option value="Medium">Medium</option>
-                                      <option value="High">High</option>
-                                    </select>
-                                  ) : (
-                                    <span
-                                      className={`px-2.5 py-1 rounded-xl text-[10px] font-extrabold border ${
-                                        task.priority === "High"
-                                          ? "bg-rose-50 text-rose-700 border-rose-200/50"
-                                          : task.priority === "Medium"
-                                            ? "bg-amber-50 text-amber-700 border-amber-200/50"
-                                            : "bg-slate-50 text-slate-600 border-slate-200"
-                                      }`}
-                                    >
-                                      {task.priority || "Medium"}
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-
-                              {/* Status */}
-                              <td className="px-6 py-3.5">
-                                <div onClick={(e) => e.stopPropagation()}>
-                                  {isAdminOrManager ? (
-                                    <select
-                                      value={task.status || "Pending"}
-                                      onChange={(e) =>
-                                        handleTaskFieldChange(task._id, {
-                                          status: e.target.value,
-                                        })
-                                      }
-                                      className={`px-2.5 py-1 rounded-xl text-[10px] font-extrabold border focus:outline-none cursor-pointer ${
-                                        task.status === "Completed"
-                                          ? "bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800/40"
-                                          : task.status === "In Progress"
-                                            ? "bg-blue-50 text-blue-700 border-blue-200/50 dark:bg-[#e5ff00]/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30"
-                                            : "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-955/20 dark:text-amber-400 dark:border-amber-800/40"
-                                      }`}
-                                    >
-                                      <option value="Pending">Pending</option>
-                                      <option value="In Progress">
-                                        In Progress
-                                      </option>
-                                      <option value="Completed">
-                                        Completed
-                                      </option>
-                                      <option value="On Hold">On Hold</option>
-                                    </select>
-                                  ) : (
-                                    <span
-                                      className={`px-2.5 py-1 rounded-xl text-[10px] font-extrabold border ${
-                                        task.status === "Completed"
-                                          ? "bg-emerald-55/10 text-emerald-600 border-emerald-200"
-                                          : task.status === "In Progress"
-                                            ? "bg-blue-55/10 text-blue-600 border-blue-200"
-                                            : "bg-amber-55/10 text-amber-600 border-amber-200"
-                                      }`}
-                                    >
-                                      {task.status || "Pending"}
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-
-                              {/* Action Controls */}
-                              <td className="px-6 py-3.5 text-center">
-                                <div
-                                  className="flex items-center justify-center gap-3"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {isAdminOrManager && (
-                                    <button
-                                      onClick={() =>
-                                        toggleTaskExpanded(task._id)
-                                      }
-                                      className="text-slate-450 hover:text-indigo-600 font-extrabold text-[10px] uppercase tracking-wider"
-                                      title="Manage Subtasks"
-                                    >
-                                      + Subtask
-                                    </button>
-                                  )}
-                                  {isAdminOrManager && (
-                                    <button
-                                      onClick={() =>
-                                        handleParentTaskDelete(task._id)
-                                      }
-                                      className="text-slate-400 hover:text-red-500 transition-colors p-1"
-                                      title="Delete Task"
-                                    >
-                                      <FiTrash2 size={13} />
-                                    </button>
-                                  )}
-                                </div>
+                        {/* SECTION TASKS */}
+                        {!isSectionCollapsed &&
+                          (sectionTasks.length === 0 ? (
+                            <tr>
+                              <td
+                                colSpan={6}
+                                className="px-4 py-4 text-center text-slate-400 italic text-[10px] border-b border-slate-200 dark:border-slate-800"
+                              >
+                                No tasks in this section.
                               </td>
                             </tr>
+                          ) : (
+                            sectionTasks.map((task, taskIndex) => {
+                              const isExpanded = !!expandedTasks[task._id];
+                              const isCompleted = task.status === "Completed";
+                              const canToggle =
+                                isAdminOrManager ||
+                                task.assignedTo?._id === currentUser?._id ||
+                                task.assignedTo === currentUser?._id;
 
-                            {/* Inline Subtasks Workspace (Chevron Expanded) */}
-                            {isExpanded && (
-                              <tr className="bg-slate-50/20 dark:bg-slate-900/10">
-                                <td colSpan={6} className="pl-12 pr-6 py-3">
-                                  <div className="space-y-2.5 border-l-2 border-slate-100 dark:border-slate-800 pl-4 py-1">
-                                    <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
-                                      Subtasks List
-                                    </h4>
+                              const isSelected = selectedTaskId === task._id;
+                              const rowBg = isSelected
+                                ? "bg-blue-50/40 dark:bg-[#e5ff00]/10"
+                                : isCompleted
+                                  ? "bg-slate-50/30 text-slate-400 dark:text-slate-500"
+                                  : taskIndex % 2 === 0
+                                    ? "bg-white dark:bg-slate-800/40 text-slate-800 dark:text-slate-100"
+                                    : "bg-slate-50/40 dark:bg-slate-900/10 text-slate-800 dark:text-slate-100";
 
-                                    {/* List existing subtasks */}
-                                    {(task.subtasks || []).map((sub) => (
-                                      <SubtaskRow
-                                        key={sub._id}
-                                        sub={sub}
-                                        task={task}
-                                        users={users}
-                                        getAvatarColor={getAvatarColor}
-                                        handleSubtaskFieldChange={
-                                          handleSubtaskFieldChange
-                                        }
-                                        handleDeleteSubtask={
-                                          handleDeleteSubtask
-                                        }
-                                        isAdminOrManager={isAdminOrManager}
-                                        currentUser={currentUser}
-                                      />
-                                    ))}
+                              return (
+                                <React.Fragment key={task._id}>
+                                  {/* Parent Task Row */}
+                                  <tr
+                                    onClick={() => setSelectedTaskId(task._id)}
+                                    className={`group cursor-pointer transition-colors ${rowBg} hover:bg-blue-55/20 dark:hover:bg-[#e5ff00]/5`}
+                                  >
+                                    {/* Name Field with Circle Checkbox */}
+                                    <td className="px-3 py-1.5 border-b border-slate-200 dark:border-slate-800 font-semibold">
+                                      <div className="flex items-center gap-2.5 w-full">
+                                        {/* Subtask Expander Toggle (Chevron on Left) */}
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleTaskExpanded(task._id);
+                                          }}
+                                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded transition-colors shrink-0"
+                                        >
+                                          {isExpanded ? (
+                                            <FiChevronDown size={11} />
+                                          ) : (
+                                            <FiChevronRight size={11} />
+                                          )}
+                                        </button>
 
-                                    {/* Inline Add Subtask Form */}
-                                    {isAdminOrManager && (
-                                      <form
-                                        onSubmit={(e) =>
-                                          handleInlineAddSubtaskSubmit(e, task)
-                                        }
-                                        className="flex items-center gap-2 pt-1.5"
+                                        {/* Circle Checkbox */}
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (canToggle) {
+                                              handleTaskFieldChange(task._id, {
+                                                status: isCompleted
+                                                  ? "Pending"
+                                                  : "Completed",
+                                              });
+                                            }
+                                          }}
+                                          disabled={!canToggle}
+                                          className={`w-[18px] h-[18px] rounded-full border flex items-center justify-center transition-all shrink-0 ${
+                                            !canToggle
+                                              ? "cursor-not-allowed opacity-50"
+                                              : "cursor-pointer"
+                                          } ${
+                                            isCompleted
+                                              ? "bg-emerald-500 border-emerald-500 text-white"
+                                              : "border-slate-300 dark:border-white/10 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
+                                          }`}
+                                        >
+                                          <FiCheck size={9} />
+                                        </button>
+
+                                        {/* Task Title Input */}
+                                        <div className="flex-grow min-w-0">
+                                          <TaskTitleInput
+                                            task={task}
+                                            canToggle={canToggle}
+                                            handleTaskFieldChange={
+                                              handleTaskFieldChange
+                                            }
+                                            isCompleted={isCompleted}
+                                            onEnter={() =>
+                                              handleAddTask(
+                                                task.section ||
+                                                  "Recently assigned",
+                                              )
+                                            }
+                                          />
+                                        </div>
+
+                                        {/* Subtask Count Pill (Only show if there are subtasks) */}
+                                        {task.subtasks?.length > 0 && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              toggleTaskExpanded(task._id);
+                                            }}
+                                            title="View subtasks"
+                                            className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/5 transition-colors cursor-pointer text-[9px] font-bold shrink-0"
+                                          >
+                                            <span>{task.subtasks.length}</span>
+                                            <svg
+                                              viewBox="0 0 24 24"
+                                              className="w-2.5 h-2.5 text-slate-455 dark:text-slate-500"
+                                              fill="none"
+                                              stroke="currentColor"
+                                              strokeWidth="2.5"
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                            >
+                                              <line
+                                                x1="6"
+                                                y1="3"
+                                                x2="6"
+                                                y2="15"
+                                              ></line>
+                                              <circle
+                                                cx="18"
+                                                cy="6"
+                                                r="3"
+                                              ></circle>
+                                              <circle
+                                                cx="6"
+                                                cy="18"
+                                                r="3"
+                                              ></circle>
+                                              <path d="M18 9a9 9 0 0 1-9 9"></path>
+                                            </svg>
+                                          </button>
+                                        )}
+
+                                        {/* Detail Drawer Trigger Chevron (Right end of cell) */}
+                                        <div className="flex items-center gap-1 shrink-0 ml-auto pl-1">
+                                          {/* Double arrows symbol/icon */}
+                                          <span className="text-slate-350 dark:text-slate-600">
+                                            <svg
+                                              viewBox="0 0 24 24"
+                                              className="w-2.5 h-2.5"
+                                              fill="none"
+                                              stroke="currentColor"
+                                              strokeWidth="2.5"
+                                              strokeLinecap="round"
+                                              strokeLinejoin="round"
+                                            >
+                                              <line
+                                                x1="12"
+                                                y1="5"
+                                                x2="12"
+                                                y2="19"
+                                              ></line>
+                                              <polyline points="19 12 12 19 5 12"></polyline>
+                                              <polyline points="5 12 12 5 19 12"></polyline>
+                                            </svg>
+                                          </span>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setSelectedTaskId(task._id);
+                                            }}
+                                            className="text-slate-400 hover:text-blue-600 dark:hover:text-[#e5ff00] p-0.5 rounded hover:bg-slate-100/50 dark:hover:bg-white/5 transition-colors"
+                                            title="Open Details"
+                                          >
+                                            <FiChevronRight size={13} />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </td>
+
+                                    {/* Assignee Selection */}
+                                    <td className="px-3 py-1.5 border-b border-slate-200 dark:border-slate-800">
+                                      <div
+                                        className="flex items-center gap-1.5"
                                         onClick={(e) => e.stopPropagation()}
                                       >
-                                        <FiCornerDownRight
-                                          className="text-slate-350"
-                                          size={13}
-                                        />
-                                        <input
-                                          type="text"
-                                          placeholder="Add subtask and press enter..."
-                                          value={
-                                            inlineSubtaskTitle[task._id] || ""
-                                          }
-                                          onChange={(e) =>
-                                            setInlineSubtaskTitle((prev) => ({
-                                              ...prev,
-                                              [task._id]: e.target.value,
-                                            }))
-                                          }
-                                          className="w-full max-w-sm px-3.5 py-1.5 bg-slate-50 dark:bg-[#1a1a1a] border border-slate-200 dark:border-white/10 focus:border-blue-500 dark:focus:border-[#e5ff00] rounded-xl focus:outline-none text-[11px] text-slate-655 dark:text-slate-300 font-semibold transition-colors"
-                                        />
-                                        <button
-                                          type="submit"
-                                          className="px-3.5 py-1.5 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl text-[10px] font-bold transition-colors"
-                                        >
-                                          Add
-                                        </button>
-                                      </form>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            )}
-                          </React.Fragment>
-                        );
-                      })
-                      ))}
+                                        {task.assignedTo ? (
+                                          <div className="group/assigned relative flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/80 px-1.5 py-0.5 rounded-lg border border-slate-100 dark:border-slate-800 transition-colors">
+                                            {task.assignedTo?.profileImage
+                                              ?.url ? (
+                                              <img
+                                                src={
+                                                  task.assignedTo.profileImage
+                                                    .url
+                                                }
+                                                alt={task.assignedTo.name}
+                                                className="w-4.5 h-4.5 rounded-full object-cover border border-slate-100 dark:border-slate-800 shrink-0"
+                                              />
+                                            ) : (
+                                              <div
+                                                className={`w-4.5 h-4.5 rounded-full flex items-center justify-center text-white font-bold text-[8px] bg-gradient-to-br shrink-0 ${getAvatarColor(
+                                                  task.assignedTo?.name ||
+                                                    "Unknown",
+                                                )}`}
+                                              >
+                                                {task.assignedTo?.name
+                                                  ?.split(" ")
+                                                  .map((n) => n[0])
+                                                  .join("") || "U"}
+                                              </div>
+                                            )}
+                                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-350 max-w-[80px] truncate">
+                                              {task.assignedTo?.name}
+                                            </span>
+                                            {isAdminOrManager && (
+                                              <select
+                                                value={
+                                                  task.assignedTo?._id ||
+                                                  task.assignedTo ||
+                                                  ""
+                                                }
+                                                onChange={(e) =>
+                                                  handleTaskFieldChange(
+                                                    task._id,
+                                                    {
+                                                      assignedTo:
+                                                        e.target.value,
+                                                    },
+                                                  )
+                                                }
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                              >
+                                                <option value="">
+                                                  Unassigned
+                                                </option>
+                                                {users.map((u) => (
+                                                  <option
+                                                    key={u._id}
+                                                    value={u._id}
+                                                  >
+                                                    {u.name}
+                                                  </option>
+                                                ))}
+                                              </select>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          /* Unassigned State: Dotted Circle with Person Icon (Hover to Plus) */
+                                          <div className="group/assign relative w-5 h-5 flex items-center justify-center cursor-pointer">
+                                            <div className="w-5 h-5 rounded-full border border-dashed border-slate-350 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-600 hover:border-slate-400 dark:hover:border-slate-500 transition-colors bg-white dark:bg-slate-900">
+                                              <FiUser
+                                                size={10}
+                                                className="group-hover/assign:hidden"
+                                              />
+                                              <FiPlus
+                                                size={10}
+                                                className="hidden group-hover/assign:block text-blue-500 dark:text-[#e5ff00]"
+                                              />
+                                            </div>
+                                            {isAdminOrManager && (
+                                              <select
+                                                value=""
+                                                onChange={(e) =>
+                                                  handleTaskFieldChange(
+                                                    task._id,
+                                                    {
+                                                      assignedTo:
+                                                        e.target.value,
+                                                    },
+                                                  )
+                                                }
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                              >
+                                                <option value="">
+                                                  Assignee
+                                                </option>
+                                                {users.map((u) => (
+                                                  <option
+                                                    key={u._id}
+                                                    value={u._id}
+                                                  >
+                                                    {u.name}
+                                                  </option>
+                                                ))}
+                                              </select>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </td>
+
+                                    {/* Due Date (with Custom Start & End Date picker) */}
+                                    <td className="px-3 py-1.5 border-b border-slate-200 dark:border-slate-800 relative z-10">
+                                      <div
+                                        className="flex items-center gap-1.5"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {task.startDate || task.dueDate ? (
+                                          <div
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              const startVal = task.startDate
+                                                ? new Date(task.startDate)
+                                                    .toISOString()
+                                                    .split("T")[0]
+                                                : "";
+                                              const endVal = task.dueDate
+                                                ? new Date(task.dueDate)
+                                                    .toISOString()
+                                                    .split("T")[0]
+                                                : "";
+                                              setTempStartDate(startVal);
+                                              setTempEndDate(endVal);
+                                              const initialDate =
+                                                task.startDate ||
+                                                task.dueDate ||
+                                                new Date();
+                                              const parsedDate = new Date(
+                                                initialDate,
+                                              );
+                                              setCalendarMonth(
+                                                parsedDate.getMonth(),
+                                              );
+                                              setCalendarYear(
+                                                parsedDate.getFullYear(),
+                                              );
+                                              setActiveDateSelectionField(
+                                                task.startDate
+                                                  ? "due"
+                                                  : "start",
+                                              );
+                                              setEditingDateTaskId(task._id);
+                                            }}
+                                            className="px-1.5 py-0.5 text-[10px] font-bold rounded-lg bg-rose-50/50 dark:bg-rose-955/20 text-rose-600 dark:text-rose-450 border border-rose-100 dark:border-rose-900/30 flex items-center gap-1 hover:bg-rose-100/30 dark:hover:bg-rose-955/40 transition-colors cursor-pointer"
+                                          >
+                                            <FiCalendar
+                                              size={10}
+                                              className="shrink-0 text-rose-500"
+                                            />
+                                            <span>
+                                              {formatDateRange(
+                                                task.startDate,
+                                                task.dueDate,
+                                              )}
+                                            </span>
+                                          </div>
+                                        ) : (
+                                          /* Empty Date State: Dotted Circle with Calendar Icon (Hover to Plus) */
+                                          <div className="group/date relative w-5 h-5 flex items-center justify-center cursor-pointer">
+                                            <div
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setTempStartDate("");
+                                                setTempEndDate("");
+                                                setCalendarMonth(
+                                                  new Date().getMonth(),
+                                                );
+                                                setCalendarYear(
+                                                  new Date().getFullYear(),
+                                                );
+                                                setActiveDateSelectionField(
+                                                  "start",
+                                                );
+                                                setEditingDateTaskId(task._id);
+                                              }}
+                                              className="w-5 h-5 rounded-full border border-dashed border-slate-350 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-600 hover:border-slate-400 dark:hover:border-slate-500 transition-colors bg-white dark:bg-slate-900"
+                                            >
+                                              <FiCalendar
+                                                size={10}
+                                                className="group-hover/date:hidden"
+                                              />
+                                              <FiPlus
+                                                size={10}
+                                                className="hidden group-hover/date:block text-blue-500 dark:text-[#e5ff00]"
+                                              />
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        {/* Custom Start/End Date Range Picker Popover (Matches Reference UI) */}
+                                        {editingDateTaskId === task._id && (
+                                          <>
+                                            <div
+                                              className="fixed inset-0 z-40"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditingDateTaskId(null);
+                                              }}
+                                            />
+                                            <div
+                                              className="absolute right-0 top-10 bg-white dark:bg-[#151518] border border-slate-200 dark:border-slate-800/80 rounded-2xl shadow-2xl p-3 z-50 w-[240px] space-y-3 text-slate-800 dark:text-slate-200"
+                                              onClick={(e) =>
+                                                e.stopPropagation()
+                                              }
+                                            >
+                                              {/* Top Fields Selector */}
+                                              <div className="grid grid-cols-2 gap-1.5">
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    setActiveDateSelectionField(
+                                                      "start",
+                                                    )
+                                                  }
+                                                  className={`px-2 py-1 text-[10px] font-semibold rounded-lg border text-center transition-all ${
+                                                    activeDateSelectionField ===
+                                                    "start"
+                                                      ? "border-blue-500 bg-blue-50/50 text-blue-600 dark:border-[#e5ff00] dark:bg-[#e5ff00]/10 dark:text-[#e5ff00]"
+                                                      : "border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400"
+                                                  }`}
+                                                >
+                                                  {tempStartDate ? (
+                                                    <span className="flex flex-col items-center justify-center">
+                                                      <span className="text-[8px] uppercase tracking-wider text-slate-450 dark:text-slate-500">
+                                                        Start Date
+                                                      </span>
+                                                      <span className="font-bold text-[10px]">
+                                                        {new Date(
+                                                          tempStartDate,
+                                                        ).toLocaleDateString(
+                                                          undefined,
+                                                          {
+                                                            month: "short",
+                                                            day: "numeric",
+                                                          },
+                                                        )}
+                                                      </span>
+                                                    </span>
+                                                  ) : (
+                                                    "+ Start date"
+                                                  )}
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    setActiveDateSelectionField(
+                                                      "due",
+                                                    )
+                                                  }
+                                                  className={`px-2 py-1 text-[10px] font-semibold rounded-lg border text-center transition-all ${
+                                                    activeDateSelectionField ===
+                                                    "due"
+                                                      ? "border-blue-500 bg-blue-50/50 text-blue-600 dark:border-[#e5ff00] dark:bg-[#e5ff00]/10 dark:text-[#e5ff00]"
+                                                      : "border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400"
+                                                  }`}
+                                                >
+                                                  {tempEndDate ? (
+                                                    <span className="flex flex-col items-center justify-center">
+                                                      <span className="text-[8px] uppercase tracking-wider text-slate-450 dark:text-slate-500">
+                                                        Due Date
+                                                      </span>
+                                                      <span className="font-bold text-[10px]">
+                                                        {new Date(
+                                                          tempEndDate,
+                                                        ).toLocaleDateString(
+                                                          undefined,
+                                                          {
+                                                            month: "short",
+                                                            day: "numeric",
+                                                          },
+                                                        )}
+                                                      </span>
+                                                    </span>
+                                                  ) : (
+                                                    "Due date"
+                                                  )}
+                                                </button>
+                                              </div>
+
+                                              {/* Month Navigator */}
+                                              <div className="flex items-center justify-between text-[11px] font-bold px-1">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    if (calendarMonth === 0) {
+                                                      setCalendarMonth(11);
+                                                      setCalendarYear(
+                                                        calendarYear - 1,
+                                                      );
+                                                    } else {
+                                                      setCalendarMonth(
+                                                        calendarMonth - 1,
+                                                      );
+                                                    }
+                                                  }}
+                                                  className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400"
+                                                >
+                                                  &lt;
+                                                </button>
+                                                <span className="capitalize text-slate-700 dark:text-slate-250">
+                                                  {new Date(
+                                                    calendarYear,
+                                                    calendarMonth,
+                                                  ).toLocaleDateString(
+                                                    undefined,
+                                                    {
+                                                      month: "long",
+                                                      year: "numeric",
+                                                    },
+                                                  )}
+                                                </span>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    if (calendarMonth === 11) {
+                                                      setCalendarMonth(0);
+                                                      setCalendarYear(
+                                                        calendarYear + 1,
+                                                      );
+                                                    } else {
+                                                      setCalendarMonth(
+                                                        calendarMonth + 1,
+                                                      );
+                                                    }
+                                                  }}
+                                                  className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400"
+                                                >
+                                                  &gt;
+                                                </button>
+                                              </div>
+
+                                              {/* Weekday headers */}
+                                              <div className="grid grid-cols-7 gap-0.5 text-center text-[9px] font-black text-slate-400 dark:text-slate-555 uppercase tracking-wider">
+                                                {[
+                                                  "S",
+                                                  "M",
+                                                  "T",
+                                                  "W",
+                                                  "T",
+                                                  "F",
+                                                  "S",
+                                                ].map((day, idx) => (
+                                                  <div
+                                                    key={idx}
+                                                    className="h-5 flex items-center justify-center"
+                                                  >
+                                                    {day}
+                                                  </div>
+                                                ))}
+                                              </div>
+
+                                              {/* Days Grid */}
+                                              <div className="grid grid-cols-7 gap-0.5 text-center text-[10px]">
+                                                {getCalendarDays(
+                                                  calendarYear,
+                                                  calendarMonth,
+                                                ).map((day, idx) => {
+                                                  const isCurrentMonth =
+                                                    day.getMonth() ===
+                                                    calendarMonth;
+                                                  const dateStr = day
+                                                    .toISOString()
+                                                    .split("T")[0];
+
+                                                  const isStart =
+                                                    tempStartDate === dateStr;
+                                                  const isDue =
+                                                    tempEndDate === dateStr;
+                                                  const isToday =
+                                                    new Date()
+                                                      .toISOString()
+                                                      .split("T")[0] ===
+                                                    dateStr;
+
+                                                  const inRange =
+                                                    tempStartDate &&
+                                                    tempEndDate &&
+                                                    dateStr > tempStartDate &&
+                                                    dateStr < tempEndDate;
+
+                                                  let dayClass =
+                                                    "text-slate-700 dark:text-slate-350 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full";
+                                                  if (!isCurrentMonth) {
+                                                    dayClass =
+                                                      "text-slate-300 dark:text-slate-600 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full";
+                                                  }
+
+                                                  if (isStart || isDue) {
+                                                    dayClass =
+                                                      "bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black font-bold rounded-full scale-90 shadow-md shadow-blue-500/20 dark:shadow-[#e5ff00]/25";
+                                                  } else if (inRange) {
+                                                    dayClass =
+                                                      "bg-blue-50/60 dark:bg-[#e5ff00]/10 text-blue-650 dark:text-[#e5ff00] font-semibold rounded-none";
+                                                  } else if (isToday) {
+                                                    dayClass =
+                                                      "border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white rounded-full font-bold";
+                                                  }
+
+                                                  return (
+                                                    <button
+                                                      key={idx}
+                                                      type="button"
+                                                      onClick={() => {
+                                                        const updatedDateStr =
+                                                          day
+                                                            .toISOString()
+                                                            .split("T")[0];
+                                                        if (
+                                                          activeDateSelectionField ===
+                                                          "start"
+                                                        ) {
+                                                          setTempStartDate(
+                                                            updatedDateStr,
+                                                          );
+                                                          setActiveDateSelectionField(
+                                                            "due",
+                                                          );
+                                                        } else {
+                                                          setTempEndDate(
+                                                            updatedDateStr,
+                                                          );
+                                                        }
+                                                      }}
+                                                      className={`h-6.5 w-6.5 mx-auto flex items-center justify-center transition-all ${dayClass}`}
+                                                    >
+                                                      {day.getDate()}
+                                                    </button>
+                                                  );
+                                                })}
+                                              </div>
+
+                                              {/* Bottom Actions Row */}
+                                              <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                                                <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-555">
+                                                  <button
+                                                    type="button"
+                                                    className="hover:text-slate-655 dark:hover:text-slate-300"
+                                                  >
+                                                    <svg
+                                                      viewBox="0 0 24 24"
+                                                      className="w-3.5 h-3.5"
+                                                      fill="none"
+                                                      stroke="currentColor"
+                                                      strokeWidth="2"
+                                                      strokeLinecap="round"
+                                                      strokeLinejoin="round"
+                                                    >
+                                                      <circle
+                                                        cx="12"
+                                                        cy="12"
+                                                        r="10"
+                                                      ></circle>
+                                                      <polyline points="12 6 12 12 16 14"></polyline>
+                                                    </svg>
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    className="hover:text-slate-655 dark:hover:text-slate-300"
+                                                  >
+                                                    <svg
+                                                      viewBox="0 0 24 24"
+                                                      className="w-3.5 h-3.5"
+                                                      fill="none"
+                                                      stroke="currentColor"
+                                                      strokeWidth="2"
+                                                      strokeLinecap="round"
+                                                      strokeLinejoin="round"
+                                                    >
+                                                      <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+                                                    </svg>
+                                                  </button>
+                                                </div>
+
+                                                <div className="flex items-center gap-1.5">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      setTempStartDate("");
+                                                      setTempEndDate("");
+                                                      handleTaskFieldChange(
+                                                        task._id,
+                                                        {
+                                                          startDate: null,
+                                                          dueDate: null,
+                                                        },
+                                                      );
+                                                      setEditingDateTaskId(
+                                                        null,
+                                                      );
+                                                    }}
+                                                    className="px-2 py-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                                                  >
+                                                    Clear
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      handleTaskFieldChange(
+                                                        task._id,
+                                                        {
+                                                          startDate:
+                                                            tempStartDate ||
+                                                            null,
+                                                          dueDate:
+                                                            tempEndDate || null,
+                                                        },
+                                                      );
+                                                      setEditingDateTaskId(
+                                                        null,
+                                                      );
+                                                    }}
+                                                    className="px-2.5 py-1 bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                                                  >
+                                                    Save
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </>
+                                        )}
+                                      </div>
+                                    </td>
+
+                                    {/* Priority */}
+                                    <td className="px-3 py-1.5 border-b border-slate-200 dark:border-slate-800">
+                                      <div onClick={(e) => e.stopPropagation()}>
+                                        {isAdminOrManager ? (
+                                          <select
+                                            value={task.priority || "Medium"}
+                                            onChange={(e) =>
+                                              handleTaskFieldChange(task._id, {
+                                                priority: e.target.value,
+                                              })
+                                            }
+                                            className={`px-1.5 py-0.5 rounded-xl text-[9px] font-extrabold border focus:outline-none cursor-pointer ${
+                                              task.priority === "High"
+                                                ? "bg-rose-50 text-rose-700 border-rose-200/50 dark:bg-rose-955/20 dark:text-rose-400 dark:border-rose-800/40"
+                                                : task.priority === "Medium"
+                                                  ? "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-955/20 dark:text-amber-400 dark:border-amber-800/40"
+                                                  : "bg-slate-50 text-slate-650 border-slate-200 dark:bg-slate-850 dark:text-slate-350 dark:border-slate-750"
+                                            }`}
+                                          >
+                                            <option value="Low">Low</option>
+                                            <option value="Medium">
+                                              Medium
+                                            </option>
+                                            <option value="High">High</option>
+                                          </select>
+                                        ) : (
+                                          <span
+                                            className={`px-1.5 py-0.5 rounded-xl text-[9px] font-extrabold border ${
+                                              task.priority === "High"
+                                                ? "bg-rose-50 text-rose-700 border-rose-200/50"
+                                                : task.priority === "Medium"
+                                                  ? "bg-amber-50 text-amber-700 border-amber-200/50"
+                                                  : "bg-slate-50 text-slate-600 border-slate-200"
+                                            }`}
+                                          >
+                                            {task.priority || "Medium"}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+
+                                    {/* Status */}
+                                    <td className="px-3 py-1.5 border-b border-slate-200 dark:border-slate-800">
+                                      <div onClick={(e) => e.stopPropagation()}>
+                                        {isAdminOrManager ? (
+                                          <select
+                                            value={task.status || "Pending"}
+                                            onChange={(e) =>
+                                              handleTaskFieldChange(task._id, {
+                                                status: e.target.value,
+                                              })
+                                            }
+                                            className={`px-1.5 py-0.5 rounded-xl text-[9px] font-extrabold border focus:outline-none cursor-pointer ${
+                                              task.status === "Completed"
+                                                ? "bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800/40"
+                                                : task.status === "In Progress"
+                                                  ? "bg-blue-50 text-blue-700 border-blue-200/50 dark:bg-[#e5ff00]/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30"
+                                                  : "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-955/20 dark:text-amber-400 dark:border-amber-800/40"
+                                            }`}
+                                          >
+                                            <option value="Pending">
+                                              Pending
+                                            </option>
+                                            <option value="In Progress">
+                                              In Progress
+                                            </option>
+                                            <option value="Completed">
+                                              Completed
+                                            </option>
+                                            <option value="On Hold">
+                                              On Hold
+                                            </option>
+                                          </select>
+                                        ) : (
+                                          <span
+                                            className={`px-1.5 py-0.5 rounded-xl text-[9px] font-extrabold border ${
+                                              task.status === "Completed"
+                                                ? "bg-emerald-55/10 text-emerald-600 border-emerald-200"
+                                                : task.status === "In Progress"
+                                                  ? "bg-blue-55/10 text-blue-600 border-blue-200"
+                                                  : "bg-amber-55/10 text-amber-600 border-amber-200"
+                                            }`}
+                                          >
+                                            {task.status || "Pending"}
+                                          </span>
+                                        )}
+                                      </div>
+                                    </td>
+
+                                    {/* Action Controls */}
+                                    <td className="px-3 py-1.5 border-b border-slate-200 dark:border-slate-800 text-center">
+                                      <div
+                                        className="flex items-center justify-center gap-2.5"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {isAdminOrManager && (
+                                          <button
+                                            onClick={() =>
+                                              toggleTaskExpanded(task._id)
+                                            }
+                                            className="text-slate-455 hover:text-indigo-650 font-extrabold text-[9px] uppercase tracking-wider"
+                                            title="Manage Subtasks"
+                                          >
+                                            + Subtask
+                                          </button>
+                                        )}
+                                        {isAdminOrManager && (
+                                          <button
+                                            onClick={() =>
+                                              handleParentTaskDelete(task._id)
+                                            }
+                                            className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                                            title="Delete Task"
+                                          >
+                                            <FiTrash2 size={12} />
+                                          </button>
+                                        )}
+                                      </div>
+                                    </td>
+                                  </tr>
+
+                                  {/* Inline Subtasks Workspace (Chevron Expanded) */}
+                                  {isExpanded && (
+                                    <tr className="bg-slate-50/20 dark:bg-slate-900/10 border-b border-slate-200 dark:border-slate-800">
+                                      <td
+                                        colSpan={6}
+                                        className="pl-12 pr-6 py-3"
+                                      >
+                                        <div className="space-y-2.5 border-l-2 border-slate-100 dark:border-slate-800 pl-4 py-1">
+                                          <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
+                                            Subtasks List
+                                          </h4>
+
+                                          {/* List existing subtasks */}
+                                          {(task.subtasks || []).map((sub) => (
+                                            <SubtaskRow
+                                              key={sub._id}
+                                              sub={sub}
+                                              task={task}
+                                              users={users}
+                                              getAvatarColor={getAvatarColor}
+                                              handleSubtaskFieldChange={
+                                                handleSubtaskFieldChange
+                                              }
+                                              handleDeleteSubtask={
+                                                handleDeleteSubtask
+                                              }
+                                              isAdminOrManager={
+                                                isAdminOrManager
+                                              }
+                                              currentUser={currentUser}
+                                            />
+                                          ))}
+
+                                          {/* Inline Add Subtask Form */}
+                                          {isAdminOrManager && (
+                                            <form
+                                              onSubmit={(e) =>
+                                                handleInlineAddSubtaskSubmit(
+                                                  e,
+                                                  task,
+                                                )
+                                              }
+                                              className="flex items-center gap-2 pt-1.5"
+                                              onClick={(e) =>
+                                                e.stopPropagation()
+                                              }
+                                            >
+                                              <FiCornerDownRight
+                                                className="text-slate-350"
+                                                size={13}
+                                              />
+                                              <input
+                                                type="text"
+                                                placeholder="Add subtask and press enter..."
+                                                value={
+                                                  inlineSubtaskTitle[
+                                                    task._id
+                                                  ] || ""
+                                                }
+                                                onChange={(e) =>
+                                                  setInlineSubtaskTitle(
+                                                    (prev) => ({
+                                                      ...prev,
+                                                      [task._id]:
+                                                        e.target.value,
+                                                    }),
+                                                  )
+                                                }
+                                                className="w-full max-w-sm px-3.5 py-1.5 bg-slate-50 dark:bg-[#1a1a1a] border border-slate-200 dark:border-white/10 focus:border-blue-500 dark:focus:border-[#e5ff00] rounded-xl focus:outline-none text-[11px] text-slate-655 dark:text-slate-300 font-semibold transition-colors"
+                                              />
+                                              <button
+                                                type="submit"
+                                                className="px-3.5 py-1.5 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl text-[10px] font-bold transition-colors"
+                                              >
+                                                Add
+                                              </button>
+                                            </form>
+                                          )}
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  )}
+                                </React.Fragment>
+                              );
+                            })
+                          ))}
                       </React.Fragment>
                     );
                   })}
-                  
+
                   {/* ADD SECTION ROW */}
                   {isAdminOrManager && (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-4 border-t-2 border-slate-100 dark:border-white/5">
+                    <tr className="bg-slate-50/10 dark:bg-slate-900/5">
+                      <td
+                        colSpan={6}
+                        className="px-4 py-4 border-b border-slate-200 dark:border-slate-800"
+                      >
                         {isAddingSection ? (
-                          <form onSubmit={handleAddSectionSubmit} className="flex items-center gap-2">
-                             <input type="text" autoFocus value={newSectionName} onChange={e=>setNewSectionName(e.target.value)} placeholder="New section name..." className="px-3 py-1.5 text-xs font-bold border border-slate-200 dark:border-white/10 rounded-lg bg-transparent focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00] text-slate-700 dark:text-white" />
-                             <button type="submit" className="px-3 py-1.5 bg-blue-600 dark:bg-[#e5ff00] hover:bg-blue-700 dark:hover:bg-[#ccff00] text-white dark:text-black font-bold text-[10px] rounded-lg">Save</button>
-                             <button type="button" onClick={()=>{setIsAddingSection(false); setNewSectionName("");}} className="px-3 py-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 font-bold text-[10px] rounded-lg">Cancel</button>
+                          <form
+                            onSubmit={handleAddSectionSubmit}
+                            className="flex items-center gap-2"
+                          >
+                            <input
+                              type="text"
+                              autoFocus
+                              value={newSectionName}
+                              onChange={(e) =>
+                                setNewSectionName(e.target.value)
+                              }
+                              placeholder="New section name..."
+                              className="px-3 py-1.5 text-xs font-bold border border-slate-200 dark:border-white/10 rounded-lg bg-transparent focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00] text-slate-700 dark:text-white"
+                            />
+                            <button
+                              type="submit"
+                              className="px-3 py-1.5 bg-blue-600 dark:bg-[#e5ff00] hover:bg-blue-700 dark:hover:bg-[#ccff00] text-white dark:text-black font-bold text-[10px] rounded-lg"
+                            >
+                              Save
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsAddingSection(false);
+                                setNewSectionName("");
+                              }}
+                              className="px-3 py-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 font-bold text-[10px] rounded-lg"
+                            >
+                              Cancel
+                            </button>
                           </form>
                         ) : (
-                          <button onClick={()=>setIsAddingSection(true)} className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-[#e5ff00] font-bold text-[11px] transition-colors">
-                             <FiPlus size={14} /> Add Section
+                          <button
+                            onClick={() => setIsAddingSection(true)}
+                            className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-[#e5ff00] font-bold text-[11px] transition-colors"
+                          >
+                            <FiPlus size={14} /> Add Section
                           </button>
                         )}
                       </td>
@@ -1246,249 +2123,299 @@ const ProjectTaskBoard = ({
 
               {/* Board Columns Grid */}
               <div className="flex gap-4 items-start overflow-x-auto pb-4 hide-scrollbar snap-x">
-                {Array.from(new Set(activeProject.sections?.length > 0 ? activeProject.sections : ["Recently assigned"])).map(
-                  (sectionName) => {
-                    const columnTasks = activeProjectTasks.filter(
-                      (t) => t.section === sectionName || (!t.section && sectionName === "Recently assigned"),
-                    );
+                {Array.from(
+                  new Set(
+                    activeProject.sections?.length > 0
+                      ? activeProject.sections
+                      : ["Recently assigned"],
+                  ),
+                ).map((sectionName) => {
+                  const columnTasks = activeProjectTasks.filter(
+                    (t) =>
+                      t.section === sectionName ||
+                      (!t.section && sectionName === "Recently assigned"),
+                  );
 
-                    return (
-                      <div
-                        key={sectionName}
-                        className="bg-slate-50/80 dark:bg-[#1a1a1a]/40 p-4 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm flex flex-col min-h-[380px] max-h-[700px] min-w-[280px] sm:min-w-[320px] snap-center shrink-0"
-                      >
-                        {/* Column Header */}
-                        <div className="flex items-center justify-between mb-4 px-1">
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-black text-slate-800 dark:text-white">
-                              {sectionName}
-                            </h4>
-                          </div>
-                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-slate-200/50 dark:bg-white/10 text-slate-600 dark:text-slate-300">
-                            {columnTasks.length}
-                          </span>
+                  return (
+                    <div
+                      key={sectionName}
+                      className="bg-slate-50/80 dark:bg-[#1a1a1a]/40 p-4 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm flex flex-col min-h-[380px] max-h-[700px] min-w-[280px] sm:min-w-[320px] snap-center shrink-0"
+                    >
+                      {/* Column Header */}
+                      <div className="flex items-center justify-between mb-4 px-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-black text-slate-800 dark:text-white">
+                            {sectionName}
+                          </h4>
                         </div>
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-slate-200/50 dark:bg-white/10 text-slate-600 dark:text-slate-300">
+                          {columnTasks.length}
+                        </span>
+                      </div>
 
-                        {/* Cards Container */}
-                        <StrictModeDroppable droppableId={sectionName}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.droppableProps}
-                              className={`flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin rounded-xl p-1 transition-colors ${
-                                snapshot.isDraggingOver
-                                  ? "bg-slate-100/50 dark:bg-white/5 ring-1 ring-blue-400/30 dark:ring-[#e5ff00]/30"
-                                  : ""
-                              }`}
-                            >
-                              {columnTasks.map((task, index) => {
-                                const isCompleted = task.status === "Completed";
-                                return (
-                                  <Draggable
-                                    key={task._id}
-                                    draggableId={task._id}
-                                    index={index}
-                                  >
-                                    {(provided, snapshot) => (
-                                      <div
-                                        ref={provided.innerRef}
-                                        {...provided.draggableProps}
-                                        {...provided.dragHandleProps}
-                                        style={provided.draggableProps.style}
-                                        onClick={() =>
-                                          setSelectedTaskId(task._id)
-                                        }
-                                        className={`bg-white dark:bg-[#111111] p-3.5 rounded-xl border cursor-pointer space-y-3 relative group select-none ${
-                                          snapshot.isDragging
-                                            ? "shadow-2xl ring-2 ring-blue-500 dark:ring-[#e5ff00] scale-[1.03] z-50 border-blue-300 dark:border-[#e5ff00]"
-                                            : "border-slate-150 dark:border-white/5 hover:shadow-md hover:border-slate-200 dark:hover:border-[#e5ff00]/50 transition-shadow transition-colors"
-                                        }`}
-                                      >
-                                        <div className="flex items-start gap-2.5">
-                                          {/* Status Checkbox */}
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleTaskFieldChange(task._id, {
-                                                status: isCompleted
-                                                  ? "Pending"
-                                                  : "Completed",
-                                              });
-                                            }}
-                                            className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
-                                              isCompleted
-                                                ? "bg-emerald-500 border-emerald-500 text-white"
-                                                : "border-slate-350 dark:border-white/10 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
-                                            }`}
-                                          >
-                                            <FiCheck size={10} />
-                                          </button>
+                      {/* Cards Container */}
+                      <StrictModeDroppable droppableId={sectionName}>
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.droppableProps}
+                            className={`flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin rounded-xl p-1 transition-colors ${
+                              snapshot.isDraggingOver
+                                ? "bg-slate-100/50 dark:bg-white/5 ring-1 ring-blue-400/30 dark:ring-[#e5ff00]/30"
+                                : ""
+                            }`}
+                          >
+                            {columnTasks.map((task, index) => {
+                              const isCompleted = task.status === "Completed";
+                              return (
+                                <Draggable
+                                  key={task._id}
+                                  draggableId={task._id}
+                                  index={index}
+                                >
+                                  {(provided, snapshot) => (
+                                    <div
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                      {...provided.dragHandleProps}
+                                      style={provided.draggableProps.style}
+                                      onClick={() =>
+                                        setSelectedTaskId(task._id)
+                                      }
+                                      className={`bg-white dark:bg-[#111111] p-3.5 rounded-xl border cursor-pointer space-y-3 relative group select-none ${
+                                        snapshot.isDragging
+                                          ? "shadow-2xl ring-2 ring-blue-500 dark:ring-[#e5ff00] scale-[1.03] z-50 border-blue-300 dark:border-[#e5ff00]"
+                                          : "border-slate-150 dark:border-white/5 hover:shadow-md hover:border-slate-200 dark:hover:border-[#e5ff00]/50 transition-shadow transition-colors"
+                                      }`}
+                                    >
+                                      <div className="flex items-start gap-2.5">
+                                        {/* Status Checkbox */}
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleTaskFieldChange(task._id, {
+                                              status: isCompleted
+                                                ? "Pending"
+                                                : "Completed",
+                                            });
+                                          }}
+                                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                                            isCompleted
+                                              ? "bg-emerald-500 border-emerald-500 text-white"
+                                              : "border-slate-350 dark:border-white/10 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
+                                          }`}
+                                        >
+                                          <FiCheck size={10} />
+                                        </button>
 
-                                          {/* Title */}
-                                          <span
-                                            className={`text-xs font-bold leading-relaxed text-slate-850 dark:text-white pr-6 ${
-                                              isCompleted
-                                                ? "line-through text-slate-400 dark:text-slate-500"
-                                                : ""
-                                            }`}
-                                          >
-                                            {task.title}
+                                        {/* Title */}
+                                        <span
+                                          className={`text-xs font-bold leading-relaxed text-slate-850 dark:text-white pr-6 ${
+                                            isCompleted
+                                              ? "line-through text-slate-400 dark:text-slate-500"
+                                              : ""
+                                          }`}
+                                        >
+                                          {task.title}
+                                        </span>
+                                      </div>
+
+                                      {/* Board Card Extra Data: Tags / Status */}
+                                      <div className="flex flex-wrap items-center gap-1.5 mt-2 mb-3">
+                                        {/* Status Badge */}
+                                        <span
+                                          className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${
+                                            task.status === "Completed"
+                                              ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/40"
+                                              : task.status === "In Progress"
+                                                ? "bg-blue-50 text-blue-600 border-blue-100 dark:bg-[#e5ff00]/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30"
+                                                : task.status === "On Hold"
+                                                  ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/30 dark:border-amber-900/40"
+                                                  : "bg-slate-100 text-slate-500 border-slate-200 dark:bg-white/5 dark:text-slate-400 dark:border-white/10"
+                                          }`}
+                                        >
+                                          {task.status || "Pending"}
+                                        </span>
+
+                                        {/* Priority Badge */}
+                                        <span
+                                          className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${
+                                            task.priority === "High"
+                                              ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/30 dark:border-rose-900/40"
+                                              : task.priority === "Medium"
+                                                ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/30 dark:border-amber-900/40"
+                                                : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-[#1a1a1a] dark:text-slate-400 dark:border-white/5"
+                                          }`}
+                                        >
+                                          {task.priority || "Medium"}
+                                        </span>
+
+                                        {/* Due Date */}
+                                        {task.dueDate && (
+                                          <span className="flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-slate-50 border border-slate-100 text-slate-500 dark:bg-[#1a1a1a] dark:border-white/10 dark:text-slate-400">
+                                            <FiCalendar size={9} />
+                                            {new Date(
+                                              task.dueDate,
+                                            ).toLocaleDateString("en-GB", {
+                                              day: "2-digit",
+                                              month: "short",
+                                              year: "numeric",
+                                            })}
                                           </span>
-                                        </div>
-
-                                        {/* Board Card Extra Data: Tags / Status */}
-                                        <div className="flex flex-wrap items-center gap-1.5 mt-2 mb-3">
-                                          {/* Status Badge */}
-                                          <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${
-                                            task.status === "Completed" ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/40" :
-                                            task.status === "In Progress" ? "bg-blue-50 text-blue-600 border-blue-100 dark:bg-[#e5ff00]/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30" :
-                                            task.status === "On Hold" ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/30 dark:border-amber-900/40" :
-                                            "bg-slate-100 text-slate-500 border-slate-200 dark:bg-white/5 dark:text-slate-400 dark:border-white/10"
-                                          }`}>
-                                            {task.status || "Pending"}
-                                          </span>
-
-                                          {/* Priority Badge */}
-                                          <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${
-                                            task.priority === "High" ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/30 dark:border-rose-900/40" :
-                                            task.priority === "Medium" ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/30 dark:border-amber-900/40" :
-                                            "bg-slate-50 text-slate-500 border-slate-200 dark:bg-[#1a1a1a] dark:text-slate-400 dark:border-white/5"
-                                          }`}>
-                                            {task.priority || "Medium"}
-                                          </span>
-
-                                          {/* Due Date */}
-                                          {task.dueDate && (
-                                            <span className="flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-slate-50 border border-slate-100 text-slate-500 dark:bg-[#1a1a1a] dark:border-white/10 dark:text-slate-400">
-                                              <FiCalendar size={9} />
-                                              {new Date(task.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                            </span>
-                                          )}
-                                        </div>
-
-                                        {/* Delete Action (visible on hover) */}
-                                        {isAdminOrManager && (
-                                          <button 
-                                            onClick={(e) => { e.stopPropagation(); handleParentTaskDelete(task._id); }}
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2 p-1.5 text-rose-500 bg-rose-50 dark:bg-rose-900/30 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/50"
-                                          >
-                                            <FiTrash2 size={12} />
-                                          </button>
                                         )}
+                                      </div>
 
-                                        {/* Card Footer: Assignee */}
-                                        <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800">
-                                          <div
-                                            className="flex items-center gap-1.5 pt-1.5"
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
-                                            {/* Assignee Avatar */}
-                                            {task.assignedTo ? (
-                                              task.assignedTo.profileImage
-                                                ?.url ? (
-                                                <img
-                                                  src={
-                                                    task.assignedTo.profileImage
-                                                      .url
-                                                  }
-                                                  alt={task.assignedTo.name}
-                                                  className="w-5 h-5 rounded-full object-cover"
-                                                  title={task.assignedTo.name}
-                                                />
-                                              ) : (
-                                                <div
-                                                  className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] font-black bg-gradient-to-br ${getAvatarColor(
-                                                    task.assignedTo.name,
-                                                  )}`}
-                                                  title={task.assignedTo.name}
-                                                >
-                                                  {task.assignedTo.name
-                                                    ?.split(" ")
-                                                    .map((n) => n[0])
-                                                    .join("") || "U"}
-                                                </div>
-                                              )
+                                      {/* Delete Action (visible on hover) */}
+                                      {isAdminOrManager && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleParentTaskDelete(task._id);
+                                          }}
+                                          className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2 p-1.5 text-rose-500 bg-rose-50 dark:bg-rose-900/30 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/50"
+                                        >
+                                          <FiTrash2 size={12} />
+                                        </button>
+                                      )}
+
+                                      {/* Card Footer: Assignee */}
+                                      <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800">
+                                        <div
+                                          className="flex items-center gap-1.5 pt-1.5"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          {/* Assignee Avatar */}
+                                          {task.assignedTo ? (
+                                            task.assignedTo.profileImage
+                                              ?.url ? (
+                                              <img
+                                                src={
+                                                  task.assignedTo.profileImage
+                                                    .url
+                                                }
+                                                alt={task.assignedTo.name}
+                                                className="w-5 h-5 rounded-full object-cover"
+                                                title={task.assignedTo.name}
+                                              />
                                             ) : (
                                               <div
-                                                className="w-5 h-5 rounded-full border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400"
-                                                title="Unassigned"
+                                                className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] font-black bg-gradient-to-br ${getAvatarColor(
+                                                  task.assignedTo.name,
+                                                )}`}
+                                                title={task.assignedTo.name}
                                               >
-                                                <FiUser size={10} />
+                                                {task.assignedTo.name
+                                                  ?.split(" ")
+                                                  .map((n) => n[0])
+                                                  .join("") || "U"}
                                               </div>
-                                            )}
+                                            )
+                                          ) : (
+                                            <div
+                                              className="w-5 h-5 rounded-full border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400"
+                                              title="Unassigned"
+                                            >
+                                              <FiUser size={10} />
+                                            </div>
+                                          )}
 
-                                            {isAdminOrManager && (
-                                              <select
-                                                value={
-                                                  task.assignedTo?._id ||
-                                                  task.assignedTo ||
-                                                  ""
-                                                }
-                                                onChange={(e) =>
-                                                  handleTaskFieldChange(
-                                                    task._id,
-                                                    {
-                                                      assignedTo:
-                                                        e.target.value,
-                                                    },
-                                                  )
-                                                }
-                                                className="bg-transparent border-0 text-[10px] font-semibold text-slate-500 hover:text-slate-750 px-1 py-0.5 rounded cursor-pointer focus:outline-none"
-                                              >
-                                                <option value="">
-                                                  Unassigned
+                                          {isAdminOrManager && (
+                                            <select
+                                              value={
+                                                task.assignedTo?._id ||
+                                                task.assignedTo ||
+                                                ""
+                                              }
+                                              onChange={(e) =>
+                                                handleTaskFieldChange(
+                                                  task._id,
+                                                  {
+                                                    assignedTo: e.target.value,
+                                                  },
+                                                )
+                                              }
+                                              className="bg-transparent border-0 text-[10px] font-semibold text-slate-500 hover:text-slate-750 px-1 py-0.5 rounded cursor-pointer focus:outline-none"
+                                            >
+                                              <option value="">
+                                                Unassigned
+                                              </option>
+                                              {users.map((u) => (
+                                                <option
+                                                  key={u._id}
+                                                  value={u._id}
+                                                >
+                                                  {u.name}
                                                 </option>
-                                                {users.map((u) => (
-                                                  <option
-                                                    key={u._id}
-                                                    value={u._id}
-                                                  >
-                                                    {u.name}
-                                                  </option>
-                                                ))}
-                                              </select>
-                                            )}
-                                          </div>
+                                              ))}
+                                            </select>
+                                          )}
                                         </div>
                                       </div>
-                                    )}
-                                  </Draggable>
-                                );
-                              })}
-                              {provided.placeholder}
-                            </div>
-                          )}
-                        </StrictModeDroppable>
-
-                        {/* Column Add Task Button */}
-                        {isAdminOrManager && (
-                          <button
-                            onClick={() => handleAddTask(sectionName)}
-                            className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-[#e5ff00] hover:bg-white dark:hover:bg-white/5 transition-colors font-bold text-xs"
-                          >
-                            <FiPlus size={14} />
-                            Add task
-                          </button>
+                                    </div>
+                                  )}
+                                </Draggable>
+                              );
+                            })}
+                            {provided.placeholder}
+                          </div>
                         )}
-                      </div>
-                    );
-                  },
-                )}
+                      </StrictModeDroppable>
+
+                      {/* Column Add Task Button */}
+                      {isAdminOrManager && (
+                        <button
+                          onClick={() => handleAddTask(sectionName)}
+                          className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-[#e5ff00] hover:bg-white dark:hover:bg-white/5 transition-colors font-bold text-xs"
+                        >
+                          <FiPlus size={14} />
+                          Add task
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
 
                 {/* Add Section Column */}
                 {isAdminOrManager && (
                   <div className="min-w-[280px] sm:min-w-[320px] snap-center shrink-0">
                     {isAddingSection ? (
-                      <form onSubmit={handleAddSectionSubmit} className="bg-slate-50/80 dark:bg-[#1a1a1a] p-4 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm flex flex-col gap-2">
-                         <input type="text" autoFocus value={newSectionName} onChange={e=>setNewSectionName(e.target.value)} placeholder="New section name..." className="w-full px-3 py-1.5 text-xs font-bold border border-slate-200 dark:border-white/10 rounded-lg bg-white dark:bg-[#111111] text-slate-700 dark:text-white focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00]" />
-                         <div className="flex gap-2">
-                           <button type="submit" className="w-full py-1.5 bg-blue-600 dark:bg-[#e5ff00] hover:bg-blue-700 dark:hover:bg-[#ccff00] text-white dark:text-black font-bold text-[10px] rounded-lg">Save</button>
-                           <button type="button" onClick={()=>{setIsAddingSection(false); setNewSectionName("");}} className="w-full py-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 font-bold text-[10px] rounded-lg border border-slate-200 dark:border-white/10">Cancel</button>
-                         </div>
+                      <form
+                        onSubmit={handleAddSectionSubmit}
+                        className="bg-slate-50/80 dark:bg-[#1a1a1a] p-4 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm flex flex-col gap-2"
+                      >
+                        <input
+                          type="text"
+                          autoFocus
+                          value={newSectionName}
+                          onChange={(e) => setNewSectionName(e.target.value)}
+                          placeholder="New section name..."
+                          className="w-full px-3 py-1.5 text-xs font-bold border border-slate-200 dark:border-white/10 rounded-lg bg-white dark:bg-[#111111] text-slate-700 dark:text-white focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00]"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            type="submit"
+                            className="w-full py-1.5 bg-blue-600 dark:bg-[#e5ff00] hover:bg-blue-700 dark:hover:bg-[#ccff00] text-white dark:text-black font-bold text-[10px] rounded-lg"
+                          >
+                            Save
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsAddingSection(false);
+                              setNewSectionName("");
+                            }}
+                            className="w-full py-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 font-bold text-[10px] rounded-lg border border-slate-200 dark:border-white/10"
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </form>
                     ) : (
-                      <button onClick={()=>setIsAddingSection(true)} className="flex items-center justify-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-[#e5ff00] font-bold text-[13px] transition-colors w-full h-[60px] border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5">
-                         <FiPlus size={16} /> Add Section
+                      <button
+                        onClick={() => setIsAddingSection(true)}
+                        className="flex items-center justify-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-[#e5ff00] font-bold text-[13px] transition-colors w-full h-[60px] border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5"
+                      >
+                        <FiPlus size={16} /> Add Section
                       </button>
                     )}
                   </div>
@@ -1501,112 +2428,193 @@ const ProjectTaskBoard = ({
         {activeTab === "Timeline" && (
           <div className="space-y-4">
             <div className="flex items-center gap-4 mb-4">
-               <button className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-md text-xs font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1 shadow-sm">
-                 <FiPlus size={12}/> Add task <FiChevronDown size={12} className="ml-1"/>
-               </button>
-               <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
-                  <FiChevronRight className="rotate-180 cursor-pointer hover:text-slate-900 dark:hover:text-white" size={14} />
-                  <span>Today</span>
-                  <FiChevronRight className="cursor-pointer hover:text-slate-900 dark:hover:text-white" size={14} />
-               </div>
+              <button className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-md text-xs  text-slate-600 dark:text-slate-300 flex items-center gap-1 shadow-sm">
+                <FiPlus size={12} /> Add task{" "}
+                <FiChevronDown size={12} className="ml-1" />
+              </button>
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
+                <FiChevronRight
+                  className="rotate-180 cursor-pointer hover:text-slate-900 dark:hover:text-white"
+                  size={14}
+                />
+                <span>Today</span>
+                <FiChevronRight
+                  className="cursor-pointer hover:text-slate-900 dark:hover:text-white"
+                  size={14}
+                />
+              </div>
             </div>
 
             <div className="flex border border-slate-200 dark:border-white/5 bg-white dark:bg-[#111111] min-h-[500px]">
               {/* Timeline Left Sidebar (Sections) */}
               <div className="w-[200px] sm:w-[240px] border-r border-slate-200 dark:border-white/5 shrink-0 flex flex-col bg-white dark:bg-[#1a1a1a] z-10 pt-[46px]">
-                {Array.from(new Set(activeProject.sections?.length > 0 ? activeProject.sections : ["Recently assigned"])).map((sectionName) => (
+                {Array.from(
+                  new Set(
+                    activeProject.sections?.length > 0
+                      ? activeProject.sections
+                      : ["Recently assigned"],
+                  ),
+                ).map((sectionName) => (
                   <React.Fragment key={sectionName}>
                     <div className="border-b border-slate-200 dark:border-white/5 h-10 flex items-center justify-between px-3 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer">
                       <div className="flex items-center gap-2 text-[11px] font-black text-slate-700 dark:text-slate-300">
-                         <FiChevronDown size={14} className="text-slate-500" />
-                         <span className="truncate">{sectionName}</span>
+                        <FiChevronDown size={14} className="text-slate-500" />
+                        <span className="truncate">{sectionName}</span>
                       </div>
                       {isAdminOrManager && (
-                        <button onClick={(e) => { e.stopPropagation(); handleAddTask(sectionName); }} className="p-1 hover:bg-slate-200 dark:hover:bg-white/10 dark:hover:text-[#e5ff00] rounded text-slate-400 transition-colors">
-                           <FiPlus size={12} />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddTask(sectionName);
+                          }}
+                          className="p-1 hover:bg-slate-200 dark:hover:bg-white/10 dark:hover:text-[#e5ff00] rounded text-slate-400 transition-colors"
+                        >
+                          <FiPlus size={12} />
                         </button>
                       )}
                     </div>
                     {/* Render tasks under section in sidebar */}
-                    {activeProjectTasks.filter(t => (t.section === sectionName || (!t.section && sectionName === "Recently assigned"))).map(task => (
-                      <div key={`sidebar-${task._id}`} onClick={() => setSelectedTaskId(task._id)} className="border-b border-slate-100 dark:border-white/5 h-8 flex items-center px-3 pl-8 hover:bg-blue-50 dark:hover:bg-white/5 cursor-pointer">
-                         <span className="truncate text-[10px] font-bold text-slate-600 dark:text-slate-400">{task.title}</span>
-                      </div>
-                    ))}
+                    {activeProjectTasks
+                      .filter(
+                        (t) =>
+                          t.section === sectionName ||
+                          (!t.section && sectionName === "Recently assigned"),
+                      )
+                      .map((task) => (
+                        <div
+                          key={`sidebar-${task._id}`}
+                          onClick={() => setSelectedTaskId(task._id)}
+                          className="border-b border-slate-100 dark:border-white/5 h-8 flex items-center px-3 pl-8 hover:bg-blue-50 dark:hover:bg-white/5 cursor-pointer"
+                        >
+                          <span className="truncate text-[10px] font-bold text-slate-600 dark:text-slate-400">
+                            {task.title}
+                          </span>
+                        </div>
+                      ))}
                   </React.Fragment>
                 ))}
                 {isAdminOrManager && (
                   <div className="py-3 px-3 h-10 flex items-center">
-                    <button onClick={()=>setIsAddingSection(true)} className="flex items-center gap-2 text-[11px] font-black text-slate-500 hover:text-slate-800 dark:hover:text-[#e5ff00] transition-colors">
+                    <button
+                      onClick={() => setIsAddingSection(true)}
+                      className="flex items-center gap-2 text-[11px] font-black text-slate-500 hover:text-slate-800 dark:hover:text-[#e5ff00] transition-colors"
+                    >
                       <FiPlus size={12} /> Add section
                     </button>
                   </div>
                 )}
               </div>
-              
+
               {/* Timeline Right Grid Area */}
               <div className="flex-1 overflow-x-auto relative hide-scrollbar">
-                 {/* Timeline Header (Months & Weeks) */}
-                 <div className="flex flex-col border-b border-slate-200 dark:border-white/5 min-w-[800px] bg-white dark:bg-[#1a1a1a] sticky top-0 z-20">
-                    <div className="flex h-5 items-center">
-                       <div className="w-1/2 px-2 text-[10px] font-bold text-slate-600 dark:text-slate-400">May <span className="ml-2">June</span></div>
+                {/* Timeline Header (Months & Weeks) */}
+                <div className="flex flex-col border-b border-slate-200 dark:border-white/5 min-w-[800px] bg-white dark:bg-[#1a1a1a] sticky top-0 z-20">
+                  <div className="flex h-5 items-center">
+                    <div className="w-1/2 px-2 text-[10px] font-bold text-slate-600 dark:text-slate-400">
+                      May <span className="ml-2">June</span>
                     </div>
-                    <div className="flex border-t border-slate-200 dark:border-white/5 h-6">
-                       <div className="w-1/4 px-2 text-[10px] flex items-center font-medium text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-white/5 bg-[#f9f9f9] dark:bg-[#111111]">W23 <span className="ml-2">May 31 - 6</span></div>
-                       <div className="w-1/4 px-2 text-[10px] flex items-center font-medium text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-white/5 bg-[#f9f9f9] dark:bg-[#111111]">W24 <span className="ml-2">7 - 13</span></div>
-                       <div className="w-1/4 px-2 text-[10px] flex items-center font-medium text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-white/5 bg-[#f9f9f9] dark:bg-[#111111]">W25 <span className="ml-2">14 - 20</span></div>
-                       <div className="w-1/4 px-2 text-[10px] flex items-center font-medium text-slate-500 dark:text-slate-400 bg-[#f9f9f9] dark:bg-[#111111]">W26 <span className="ml-2">21 - 27</span></div>
+                  </div>
+                  <div className="flex border-t border-slate-200 dark:border-white/5 h-6">
+                    <div className="w-1/4 px-2 text-[10px] flex items-center font-medium text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-white/5 bg-[#f9f9f9] dark:bg-[#111111]">
+                      W23 <span className="ml-2">May 31 - 6</span>
                     </div>
-                 </div>
-                 
-                 {/* Timeline Body (Grid) */}
-                 <div className="relative min-w-[800px] h-full w-full">
-                    {/* Background grid */}
-                    <div className="absolute inset-0 flex w-full pointer-events-none">
-                      {[...Array(28)].map((_, i) => (
-                        <div key={i} className={`flex-1 border-r border-slate-200 dark:border-white/5 h-full ${[5,6,12,13,19,20,26,27].includes(i) ? 'bg-slate-100/50 dark:bg-white/5' : ''}`} />
-                      ))}
+                    <div className="w-1/4 px-2 text-[10px] flex items-center font-medium text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-white/5 bg-[#f9f9f9] dark:bg-[#111111]">
+                      W24 <span className="ml-2">7 - 13</span>
                     </div>
+                    <div className="w-1/4 px-2 text-[10px] flex items-center font-medium text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-white/5 bg-[#f9f9f9] dark:bg-[#111111]">
+                      W25 <span className="ml-2">14 - 20</span>
+                    </div>
+                    <div className="w-1/4 px-2 text-[10px] flex items-center font-medium text-slate-500 dark:text-slate-400 bg-[#f9f9f9] dark:bg-[#111111]">
+                      W26 <span className="ml-2">21 - 27</span>
+                    </div>
+                  </div>
+                </div>
 
-                    {/* Task Rows mapped parallel to sections */}
-                    <div className="relative z-10 w-full flex flex-col pb-20">
-                      {Array.from(new Set(activeProject.sections?.length > 0 ? activeProject.sections : ["Recently assigned"])).map((sectionName) => (
-                        <React.Fragment key={`grid-${sectionName}`}>
-                          <div className="h-10 border-b border-slate-200 dark:border-white/5 w-full" />
-                          {activeProjectTasks.filter(t => (t.section === sectionName || (!t.section && sectionName === "Recently assigned"))).map(task => {
-                             // Dynamic simulated positioning logic based on task ID for robust Gantt display without full D3/date engines
-                             const hash = task._id ? task._id.charCodeAt(task._id.length - 1) % 20 : 0; 
-                             const width = task._id ? 3 + (task._id.charCodeAt(task._id.length - 2) % 4) : 4;
-                             
-                             return (
-                              <div key={`grid-task-${task._id}`} className="h-8 border-b border-slate-100 dark:border-white/5 w-full relative group">
-                                <div 
+                {/* Timeline Body (Grid) */}
+                <div className="relative min-w-[800px] h-full w-full">
+                  {/* Background grid */}
+                  <div className="absolute inset-0 flex w-full pointer-events-none">
+                    {[...Array(28)].map((_, i) => (
+                      <div
+                        key={i}
+                        className={`flex-1 border-r border-slate-200 dark:border-white/5 h-full ${[5, 6, 12, 13, 19, 20, 26, 27].includes(i) ? "bg-slate-100/50 dark:bg-white/5" : ""}`}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Task Rows mapped parallel to sections */}
+                  <div className="relative z-10 w-full flex flex-col pb-20">
+                    {Array.from(
+                      new Set(
+                        activeProject.sections?.length > 0
+                          ? activeProject.sections
+                          : ["Recently assigned"],
+                      ),
+                    ).map((sectionName) => (
+                      <React.Fragment key={`grid-${sectionName}`}>
+                        <div className="h-10 border-b border-slate-200 dark:border-white/5 w-full" />
+                        {activeProjectTasks
+                          .filter(
+                            (t) =>
+                              t.section === sectionName ||
+                              (!t.section &&
+                                sectionName === "Recently assigned"),
+                          )
+                          .map((task) => {
+                            // Dynamic simulated positioning logic based on task ID for robust Gantt display without full D3/date engines
+                            const hash = task._id
+                              ? task._id.charCodeAt(task._id.length - 1) % 20
+                              : 0;
+                            const width = task._id
+                              ? 3 +
+                                (task._id.charCodeAt(task._id.length - 2) % 4)
+                              : 4;
+
+                            return (
+                              <div
+                                key={`grid-task-${task._id}`}
+                                className="h-8 border-b border-slate-100 dark:border-white/5 w-full relative group"
+                              >
+                                <div
                                   onClick={() => setSelectedTaskId(task._id)}
-                                  style={{ left: `${(hash / 28) * 100}%`, width: `${(width / 28) * 100}%` }}
+                                  style={{
+                                    left: `${(hash / 28) * 100}%`,
+                                    width: `${(width / 28) * 100}%`,
+                                  }}
                                   className={`absolute top-1.5 h-5 rounded shadow-sm text-[9px] font-bold text-white px-1.5 flex items-center truncate cursor-pointer transition-transform hover:scale-[1.02] hover:brightness-110 ${
-                                    task.status === 'Completed' ? 'bg-emerald-500' :
-                                    task.status === 'In Progress' ? 'bg-blue-500' :
-                                    task.status === 'On Hold' ? 'bg-amber-500' : 'bg-slate-400'
+                                    task.status === "Completed"
+                                      ? "bg-emerald-500"
+                                      : task.status === "In Progress"
+                                        ? "bg-blue-500"
+                                        : task.status === "On Hold"
+                                          ? "bg-amber-500"
+                                          : "bg-slate-400"
                                   }`}
                                 >
                                   {task.title}
                                 </div>
                                 {isAdminOrManager && (
-                                  <button onClick={(e) => { e.stopPropagation(); handleParentTaskDelete(task._id); }} className="absolute right-4 top-1.5 opacity-0 group-hover:opacity-100 text-rose-500 p-1 bg-white dark:bg-[#111111] rounded z-20 hover:bg-rose-50 dark:hover:bg-white/5 border border-rose-100 dark:border-white/10 shadow-sm transition-opacity">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleParentTaskDelete(task._id);
+                                    }}
+                                    className="absolute right-4 top-1.5 opacity-0 group-hover:opacity-100 text-rose-500 p-1 bg-white dark:bg-[#111111] rounded z-20 hover:bg-rose-50 dark:hover:bg-white/5 border border-rose-100 dark:border-white/10 shadow-sm transition-opacity"
+                                  >
                                     <FiTrash2 size={10} />
                                   </button>
                                 )}
                               </div>
-                             )
+                            );
                           })}
-                        </React.Fragment>
-                      ))}
-                    </div>
+                      </React.Fragment>
+                    ))}
+                  </div>
 
-                    {/* Today Line */}
-                    <div className="absolute top-0 bottom-0 left-[35.7%] w-px bg-[#4f46e5] z-10 pointer-events-none" />
-                    <div className="absolute -top-1 left-[35.7%] -translate-x-1/2 w-2 h-2 rounded-full bg-[#4f46e5] z-10 pointer-events-none" />
-                 </div>
+                  {/* Today Line */}
+                  <div className="absolute top-0 bottom-0 left-[35.7%] w-px bg-[#4f46e5] z-10 pointer-events-none" />
+                  <div className="absolute -top-1 left-[35.7%] -translate-x-1/2 w-2 h-2 rounded-full bg-[#4f46e5] z-10 pointer-events-none" />
+                </div>
               </div>
             </div>
           </div>
@@ -1703,13 +2711,26 @@ const ProjectTaskBoard = ({
                   </div>
 
                   {/* Dynamic Section Bars */}
-                  {Array.from(new Set(activeProject.sections?.length > 0 ? activeProject.sections : ["Recently assigned"])).map((sectionName, index) => {
+                  {Array.from(
+                    new Set(
+                      activeProject.sections?.length > 0
+                        ? activeProject.sections
+                        : ["Recently assigned"],
+                    ),
+                  ).map((sectionName, index) => {
                     const sectionIncompleteCount = activeProjectTasks.filter(
-                      (t) => (t.section === sectionName || (!t.section && sectionName === "Recently assigned")) && t.status !== "Completed"
+                      (t) =>
+                        (t.section === sectionName ||
+                          (!t.section &&
+                            sectionName === "Recently assigned")) &&
+                        t.status !== "Completed",
                     ).length;
 
                     return (
-                      <div key={sectionName} className="flex flex-col items-center gap-2 z-10 w-16 group cursor-default shrink-0">
+                      <div
+                        key={sectionName}
+                        className="flex flex-col items-center gap-2 z-10 w-16 group cursor-default shrink-0"
+                      >
                         <span className="text-xs font-black text-slate-600 dark:text-slate-400 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
                           {sectionIncompleteCount}
                         </span>
@@ -1722,10 +2743,12 @@ const ProjectTaskBoard = ({
                           className="w-10 rounded-t-xl bg-gradient-to-t from-blue-600 to-cyan-400 dark:from-[#99cc00] dark:to-[#e5ff00] shadow-[0_0_15px_rgba(56,189,248,0.3)] dark:shadow-[0_0_15px_rgba(229,255,0,0.3)] transition-all duration-300 group-hover:brightness-125"
                         />
                         <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-wider pt-1 -rotate-45 origin-top-left mt-6 truncate w-16 text-right">
-                          {sectionName.length > 10 ? sectionName.substring(0,10)+'...' : sectionName}
+                          {sectionName.length > 10
+                            ? sectionName.substring(0, 10) + "..."
+                            : sectionName}
                         </span>
                       </div>
-                    )
+                    );
                   })}
                 </div>
 
@@ -1791,9 +2814,17 @@ const ProjectTaskBoard = ({
                           x2="100%"
                           y2="100%"
                         >
-                          <stop offset="0%" stopColor="#8b5cf6" className="dark:stop-color-[#99cc00]" />{" "}
+                          <stop
+                            offset="0%"
+                            stopColor="#8b5cf6"
+                            className="dark:stop-color-[#99cc00]"
+                          />{" "}
                           {/* Violet 500 / Lime */}
-                          <stop offset="100%" stopColor="#ec4899" className="dark:stop-color-[#e5ff00]" />{" "}
+                          <stop
+                            offset="100%"
+                            stopColor="#ec4899"
+                            className="dark:stop-color-[#e5ff00]"
+                          />{" "}
                           {/* Pink 500 / Neon Lime */}
                         </linearGradient>
                       </defs>
@@ -2062,7 +3093,9 @@ const ProjectTaskBoard = ({
                       <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300">
                         <FiCalendar className="text-slate-400" size={13} />
                         {selectedTask.startDate
-                          ? new Date(selectedTask.startDate).toLocaleDateString()
+                          ? new Date(
+                              selectedTask.startDate,
+                            ).toLocaleDateString()
                           : "N/A"}
                       </div>
                     )}
@@ -2155,12 +3188,18 @@ const ProjectTaskBoard = ({
                   <h3 className="text-xs font-black text-slate-500 uppercase tracking-wider">
                     Discussion & Attachments
                   </h3>
-                  
+
                   {/* Attachments List */}
                   {selectedTask.attachments?.length > 0 && (
                     <div className="flex flex-wrap gap-2 mb-3">
-                      {selectedTask.attachments.map(att => (
-                        <a key={att._id || att.url} href={att.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-[10px] font-bold text-blue-600 dark:text-[#e5ff00] hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+                      {selectedTask.attachments.map((att) => (
+                        <a
+                          key={att._id || att.url}
+                          href={att.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-[10px] font-bold text-blue-600 dark:text-[#e5ff00] hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                        >
                           <FiFile size={12} /> {att.filename}
                         </a>
                       ))}
@@ -2176,8 +3215,12 @@ const ProjectTaskBoard = ({
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">{comment.user?.name || "Unknown User"}</span>
-                            <span className="text-[9px] text-slate-400">{new Date(comment.createdAt).toLocaleDateString()}</span>
+                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                              {comment.user?.name || "Unknown User"}
+                            </span>
+                            <span className="text-[9px] text-slate-400">
+                              {new Date(comment.createdAt).toLocaleDateString()}
+                            </span>
                           </div>
                           <div className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-[#111] p-2 rounded-lg rounded-tl-none border border-slate-100 dark:border-white/5">
                             {comment.text}
@@ -2186,47 +3229,59 @@ const ProjectTaskBoard = ({
                       </div>
                     ))}
                     {selectedTask.comments?.length === 0 && (
-                      <div className="text-[10px] text-slate-400 italic">No comments yet.</div>
+                      <div className="text-[10px] text-slate-400 italic">
+                        No comments yet.
+                      </div>
                     )}
                   </div>
 
                   {/* Add Comment / File Input */}
                   {(() => {
-                    const isAssignee = selectedTask.assignedTo?._id === currentUser?._id || selectedTask.assignedTo === currentUser?._id;
-                    const isCreator = selectedTask.createdBy?._id === currentUser?._id || selectedTask.createdBy === currentUser?._id;
-                    const canInteract = isAdminOrManager || isAssignee || isCreator;
+                    const isAssignee =
+                      selectedTask.assignedTo?._id === currentUser?._id ||
+                      selectedTask.assignedTo === currentUser?._id;
+                    const isCreator =
+                      selectedTask.createdBy?._id === currentUser?._id ||
+                      selectedTask.createdBy === currentUser?._id;
+                    const canInteract =
+                      isAdminOrManager || isAssignee || isCreator;
 
-                    return canInteract && (
-                      <div className="flex items-end gap-2 mt-2">
-                        <div className="flex-1 relative">
-                          <textarea
-                            value={newComment}
-                            onChange={(e) => setNewComment(e.target.value)}
-                            placeholder="Add a comment..."
-                            className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00] resize-none min-h-[40px]"
-                            rows={1}
-                          />
+                    return (
+                      canInteract && (
+                        <div className="flex items-end gap-2 mt-2">
+                          <div className="flex-1 relative">
+                            <textarea
+                              value={newComment}
+                              onChange={(e) => setNewComment(e.target.value)}
+                              placeholder="Add a comment..."
+                              className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00] resize-none min-h-[40px]"
+                              rows={1}
+                            />
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <input
+                              type="file"
+                              id="task-attachment"
+                              className="hidden"
+                              onChange={handleUploadAttachment}
+                              disabled={isUploading}
+                            />
+                            <label
+                              htmlFor="task-attachment"
+                              className={`p-2 text-slate-400 hover:text-blue-600 dark:hover:text-[#e5ff00] cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors ${isUploading ? "opacity-50 cursor-not-allowed" : ""}`}
+                            >
+                              <FiPaperclip size={14} />
+                            </label>
+                            <button
+                              onClick={handleAddComment}
+                              disabled={!newComment.trim() || isUploading}
+                              className="p-2 bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black rounded-lg disabled:opacity-50 hover:bg-blue-700 dark:hover:bg-[#ccff00] transition-colors"
+                            >
+                              <FiSend size={14} />
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <input 
-                            type="file" 
-                            id="task-attachment" 
-                            className="hidden" 
-                            onChange={handleUploadAttachment} 
-                            disabled={isUploading}
-                          />
-                          <label htmlFor="task-attachment" className={`p-2 text-slate-400 hover:text-blue-600 dark:hover:text-[#e5ff00] cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors ${isUploading ? "opacity-50 cursor-not-allowed" : ""}`}>
-                            <FiPaperclip size={14} />
-                          </label>
-                          <button 
-                            onClick={handleAddComment}
-                            disabled={!newComment.trim() || isUploading}
-                            className="p-2 bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black rounded-lg disabled:opacity-50 hover:bg-blue-700 dark:hover:bg-[#ccff00] transition-colors"
-                          >
-                            <FiSend size={14} />
-                          </button>
-                        </div>
-                      </div>
+                      )
                     );
                   })()}
                 </div>
