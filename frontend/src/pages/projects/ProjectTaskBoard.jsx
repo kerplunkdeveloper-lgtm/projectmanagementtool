@@ -202,7 +202,10 @@ const SubtaskRow = ({
         <div className="relative h-6 flex items-center justify-center transition-all cursor-pointer">
           {sub.dueDate ? (
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-slate-200 dark:border-white/10 hover:border-slate-350 dark:hover:border-[#e5ff00]/40 text-slate-605 dark:text-slate-300 text-[10px] font-semibold bg-slate-50 dark:bg-[#111111] transition-all">
-              <FiCalendar size={10} className="text-slate-400 dark:text-slate-500" />
+              <FiCalendar
+                size={10}
+                className="text-slate-400 dark:text-slate-500"
+              />
               <span>
                 {new Date(sub.dueDate).toLocaleDateString(undefined, {
                   month: "short",
@@ -395,7 +398,8 @@ const ProjectTaskBoard = ({
   const [newComment, setNewComment] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [autoFocusSubtaskIdx, setAutoFocusSubtaskIdx] = useState(null);
-  const [autoFocusDrawerSubtaskIdx, setAutoFocusDrawerSubtaskIdx] = useState(null);
+  const [autoFocusDrawerSubtaskIdx, setAutoFocusDrawerSubtaskIdx] =
+    useState(null);
 
   const handleRenameSectionSubmit = async (e, oldName) => {
     e.preventDefault();
@@ -764,10 +768,15 @@ const ProjectTaskBoard = ({
   };
 
   // Insert new subtask on Enter key press
-  const handleSubtaskEnterKey = async (task, subIdx, currentVal, isDrawer = false) => {
+  const handleSubtaskEnterKey = async (
+    task,
+    subIdx,
+    currentVal,
+    isDrawer = false,
+  ) => {
     // 1. Prepare subtasks array and update current subtask title if it changed
     const updatedSubtasks = (task.subtasks || []).map((s, idx) =>
-      idx === subIdx ? { ...s, title: currentVal } : s
+      idx === subIdx ? { ...s, title: currentVal } : s,
     );
 
     // 2. Insert new subtask right after subIdx
@@ -891,8 +900,6 @@ const ProjectTaskBoard = ({
   const onHoldCount = activeProjectTasks.filter(
     (t) => t.status === "On Hold",
   ).length;
-
-
 
   return (
     <div className="space-y-6 w-full max-w-[1600px] mx-auto px-2 md:px-0 relative">
@@ -1095,7 +1102,6 @@ const ProjectTaskBoard = ({
                                       <input
                                         autoFocus
                                         value={editSectionValue}
-                                
                                         onChange={(e) =>
                                           setEditSectionValue(e.target.value)
                                         }
@@ -1268,30 +1274,43 @@ const ProjectTaskBoard = ({
                                           <FiCheck size={9} />
                                         </button>
 
-                                         {/* Task Title contentEditable Span */}
-                                         <div className="flex-grow min-w-0">
-                                           <span
-                                             contentEditable={canToggle}
-                                             suppressContentEditableWarning={true}
-                                             placeholder="Write a task here..."
-                                             onBlur={(e) => {
-                                               const val = e.target.innerText.trim();
-                                               if (val !== task.title) {
-                                                 handleTaskFieldChange(task._id, { title: val });
-                                               }
-                                             }}
-                                             onKeyDown={(e) => {
-                                               if (e.key === "Enter") {
-                                                 e.preventDefault();
-                                                 e.target.blur();
-                                                 handleAddTask(task.section || "Recently assigned");
-                                               }
-                                             }}
-                                             className={`font-semibold text-slate-800 dark:text-slate-100 text-[11px] cursor-text outline-none block min-h-[16px] w-full ${
-                                               isCompleted ? "line-through text-slate-450 dark:text-slate-500 font-medium" : ""
-                                             }`}
-                                            >{task.title}</span>
-                                         </div>
+                                        {/* Task Title contentEditable Span */}
+                                        <div className="flex-grow min-w-0">
+                                          <span
+                                            contentEditable={canToggle}
+                                            suppressContentEditableWarning={
+                                              true
+                                            }
+                                            placeholder="Write a task here..."
+                                            onBlur={(e) => {
+                                              const val =
+                                                e.target.innerText.trim();
+                                              if (val !== task.title) {
+                                                handleTaskFieldChange(
+                                                  task._id,
+                                                  { title: val },
+                                                );
+                                              }
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                e.target.blur();
+                                                handleAddTask(
+                                                  task.section ||
+                                                    "Recently assigned",
+                                                );
+                                              }
+                                            }}
+                                            className={`font-semibold text-slate-800 dark:text-slate-100 text-[11px] cursor-text outline-none block min-h-[16px] w-full ${
+                                              isCompleted
+                                                ? "line-through text-slate-450 dark:text-slate-500 font-medium"
+                                                : ""
+                                            }`}
+                                          >
+                                            {task.title}
+                                          </span>
+                                        </div>
 
                                         {/* Subtask Count Badge (static, click opens drawer) */}
                                         {task.subtasks?.length > 0 && (
@@ -1362,7 +1381,10 @@ const ProjectTaskBoard = ({
                                                 onClick={(e) => {
                                                   e.stopPropagation();
                                                   e.preventDefault();
-                                                  handleTaskFieldChange(task._id, { assignedTo: null });
+                                                  handleTaskFieldChange(
+                                                    task._id,
+                                                    { assignedTo: null },
+                                                  );
                                                 }}
                                                 className="relative z-20 p-0.5 text-slate-400 hover:text-rose-500 rounded transition-colors hover:bg-slate-200 dark:hover:bg-white/10 shrink-0"
                                                 title="Clear Assignee"
@@ -1448,7 +1470,7 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* Due Date (with Custom Start & End Date picker) */}
-                                    <td className="px-3 py-0.5 border-r border-b border-slate-200 dark:border-slate-800 relative z-10">
+                                    <td className={`px-3 py-0.5 border-r border-b border-slate-200 dark:border-slate-800 relative ${editingDateTaskId === task._id ? "z-[200]" : "z-10"}`}>
                                       <div
                                         className="flex items-center gap-1"
                                         onClick={(e) => e.stopPropagation()}
@@ -1508,10 +1530,13 @@ const ProjectTaskBoard = ({
                                                 type="button"
                                                 onClick={(e) => {
                                                   e.stopPropagation();
-                                                  handleTaskFieldChange(task._id, {
-                                                    startDate: null,
-                                                    dueDate: null,
-                                                  });
+                                                  handleTaskFieldChange(
+                                                    task._id,
+                                                    {
+                                                      startDate: null,
+                                                      dueDate: null,
+                                                    },
+                                                  );
                                                 }}
                                                 className="p-0.5 text-slate-400 hover:text-rose-500 rounded transition-colors hover:bg-slate-200 dark:hover:bg-white/10 shrink-0"
                                                 title="Clear Date"
@@ -1557,14 +1582,14 @@ const ProjectTaskBoard = ({
                                         {editingDateTaskId === task._id && (
                                           <>
                                             <div
-                                              className="fixed inset-0 z-40"
+                                              className="fixed inset-0 z-[210]"
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 setEditingDateTaskId(null);
                                               }}
                                             />
                                             <div
-                                              className="absolute right-0 top-10 bg-white dark:bg-[#111622] border border-slate-200 dark:border-slate-800/80 rounded-xl shadow-2xl p-2.5 z-50 w-[205px] space-y-2.5 text-slate-800 dark:text-slate-200"
+                                              className="absolute right-0 top-10 bg-white dark:bg-[#111622] border border-slate-200 dark:border-slate-800/80 rounded-xl shadow-2xl p-2.5 z-[220] w-[205px] space-y-2.5 text-slate-800 dark:text-slate-200"
                                               onClick={(e) =>
                                                 e.stopPropagation()
                                               }
@@ -1889,7 +1914,7 @@ const ProjectTaskBoard = ({
 
                                     {/* Priority */}
                                     <td className="px-3 py-0.5 border-r border-b border-slate-200 dark:border-slate-800">
-                                       <div onClick={(e) => e.stopPropagation()}>
+                                      <div onClick={(e) => e.stopPropagation()}>
                                         {isAdminOrManager ? (
                                           <select
                                             value={task.priority || "Medium"}
@@ -2081,60 +2106,71 @@ const ProjectTaskBoard = ({
                                                   </button>
 
                                                   {/* Subtask Title Input */}
-                                                   {/* Subtask Title contentEditable Span */}
-                                                   <span
-                                                     ref={(el) => {
-                                                       if (
-                                                         autoFocusSubtaskIdx ===
-                                                           subIdx &&
-                                                         el
-                                                       ) {
-                                                         el.focus();
-                                                         const range = document.createRange();
-                                                         range.selectNodeContents(el);
-                                                         const sel = window.getSelection();
-                                                         sel.removeAllRanges();
-                                                         sel.addRange(range);
-                                                         setAutoFocusSubtaskIdx(
-                                                           null,
-                                                         );
-                                                       }
-                                                     }}
-                                                     contentEditable={canToggleSub}
-                                                     suppressContentEditableWarning={true}
-                                                     placeholder="Write a subtask..."
-                                                     onBlur={(e) => {
-                                                       const val = e.target.innerText.trim();
-                                                       if (val !== sub.title) {
-                                                         handleSubtaskFieldChange(
-                                                           task,
-                                                           sub._id,
-                                                           {
-                                                             title: val,
-                                                           },
-                                                         );
-                                                       }
-                                                     }}
-                                                     onKeyDown={(e) => {
-                                                       if (e.key === "Enter") {
-                                                         e.preventDefault();
-                                                         handleSubtaskEnterKey(
-                                                           task,
-                                                           subIdx,
-                                                           e.target.innerText,
-                                                           false,
-                                                         );
-                                                       }
-                                                     }}
-                                                     className={`outline-none w-full font-medium text-slate-700 dark:text-slate-200 text-[11px] block min-h-[16px] cursor-text ${
-                                                       isSubCompleted
-                                                         ? "line-through text-slate-400 dark:text-slate-500"
-                                                         : ""
-                                                     }`}
-                                                    >{sub.title}</span>
+                                                  {/* Subtask Title contentEditable Span */}
+                                                  <span
+                                                    ref={(el) => {
+                                                      if (
+                                                        autoFocusSubtaskIdx ===
+                                                          subIdx &&
+                                                        el
+                                                      ) {
+                                                        el.focus();
+                                                        const range =
+                                                          document.createRange();
+                                                        range.selectNodeContents(
+                                                          el,
+                                                        );
+                                                        const sel =
+                                                          window.getSelection();
+                                                        sel.removeAllRanges();
+                                                        sel.addRange(range);
+                                                        setAutoFocusSubtaskIdx(
+                                                          null,
+                                                        );
+                                                      }
+                                                    }}
+                                                    contentEditable={
+                                                      canToggleSub
+                                                    }
+                                                    suppressContentEditableWarning={
+                                                      true
+                                                    }
+                                                    placeholder="Write a subtask..."
+                                                    onBlur={(e) => {
+                                                      const val =
+                                                        e.target.innerText.trim();
+                                                      if (val !== sub.title) {
+                                                        handleSubtaskFieldChange(
+                                                          task,
+                                                          sub._id,
+                                                          {
+                                                            title: val,
+                                                          },
+                                                        );
+                                                      }
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                      if (e.key === "Enter") {
+                                                        e.preventDefault();
+                                                        handleSubtaskEnterKey(
+                                                          task,
+                                                          subIdx,
+                                                          e.target.innerText,
+                                                          false,
+                                                        );
+                                                      }
+                                                    }}
+                                                    className={`outline-none w-full font-medium text-slate-700 dark:text-slate-200 text-[11px] block min-h-[16px] cursor-text ${
+                                                      isSubCompleted
+                                                        ? "line-through text-slate-400 dark:text-slate-500"
+                                                        : ""
+                                                    }`}
+                                                  >
+                                                    {sub.title}
+                                                  </span>
                                                 </div>
                                               </td>
- 
+
                                               {/* 2. Assignee Column */}
                                               <td className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800">
                                                 <div
@@ -2256,7 +2292,7 @@ const ProjectTaskBoard = ({
                                                   )}
                                                 </div>
                                               </td>
- 
+
                                               {/* 3. Due Date Column */}
                                               <td className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800">
                                                 <div
@@ -2345,7 +2381,7 @@ const ProjectTaskBoard = ({
                                                   )}
                                                 </div>
                                               </td>
- 
+
                                               {/* 4. Priority Column */}
                                               <td className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800">
                                                 <div
@@ -2371,7 +2407,8 @@ const ProjectTaskBoard = ({
                                                       className={`badge-select ${
                                                         sub.priority === "High"
                                                           ? "badge-priority-high"
-                                                          : sub.priority === "Medium"
+                                                          : sub.priority ===
+                                                              "Medium"
                                                             ? "badge-priority-medium"
                                                             : "badge-priority-low"
                                                       }`}
@@ -2391,7 +2428,8 @@ const ProjectTaskBoard = ({
                                                       className={`badge-span ${
                                                         sub.priority === "High"
                                                           ? "badge-priority-high"
-                                                          : sub.priority === "Medium"
+                                                          : sub.priority ===
+                                                              "Medium"
                                                             ? "badge-priority-medium"
                                                             : "badge-priority-low"
                                                       }`}
@@ -2401,7 +2439,7 @@ const ProjectTaskBoard = ({
                                                   )}
                                                 </div>
                                               </td>
- 
+
                                               {/* 5. Status Column */}
                                               <td className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800">
                                                 <div
@@ -2425,11 +2463,14 @@ const ProjectTaskBoard = ({
                                                         )
                                                       }
                                                       className={`badge-select ${
-                                                        sub.status === "Completed"
+                                                        sub.status ===
+                                                        "Completed"
                                                           ? "badge-status-completed"
-                                                          : sub.status === "In Progress"
+                                                          : sub.status ===
+                                                              "In Progress"
                                                             ? "badge-status-in-progress"
-                                                            : sub.status === "On Hold"
+                                                            : sub.status ===
+                                                                "On Hold"
                                                               ? "badge-status-on-hold"
                                                               : "badge-status-pending"
                                                       }`}
@@ -2450,11 +2491,14 @@ const ProjectTaskBoard = ({
                                                   ) : (
                                                     <span
                                                       className={`badge-span ${
-                                                        sub.status === "Completed"
+                                                        sub.status ===
+                                                        "Completed"
                                                           ? "badge-status-completed"
-                                                          : sub.status === "In Progress"
+                                                          : sub.status ===
+                                                              "In Progress"
                                                             ? "badge-status-in-progress"
-                                                            : sub.status === "On Hold"
+                                                            : sub.status ===
+                                                                "On Hold"
                                                               ? "badge-status-on-hold"
                                                               : "badge-status-pending"
                                                       }`}
@@ -2464,7 +2508,7 @@ const ProjectTaskBoard = ({
                                                   )}
                                                 </div>
                                               </td>
- 
+
                                               {/* 6. Actions Column */}
                                               <td className="px-3 py-1 border-b border-slate-200 dark:border-slate-800 text-center">
                                                 <div
@@ -3832,7 +3876,9 @@ const ProjectTaskBoard = ({
                       {isAdminOrManager && (
                         <button
                           onClick={async () => {
-                            const updatedSubtasks = [...(selectedTask.subtasks || [])];
+                            const updatedSubtasks = [
+                              ...(selectedTask.subtasks || []),
+                            ];
                             const newSubtask = {
                               title: "",
                               status: "Pending",
@@ -3841,7 +3887,9 @@ const ProjectTaskBoard = ({
                               priority: "Medium",
                             };
                             updatedSubtasks.push(newSubtask);
-                            setAutoFocusDrawerSubtaskIdx(updatedSubtasks.length - 1);
+                            setAutoFocusDrawerSubtaskIdx(
+                              updatedSubtasks.length - 1,
+                            );
                             try {
                               await updateTaskMutation({
                                 id: selectedTask._id,
@@ -3900,7 +3948,9 @@ const ProjectTaskBoard = ({
                           subIdx={subIdx}
                           handleSubtaskEnterKey={handleSubtaskEnterKey}
                           shouldAutoFocus={autoFocusDrawerSubtaskIdx === subIdx}
-                          onAutoFocused={() => setAutoFocusDrawerSubtaskIdx(null)}
+                          onAutoFocused={() =>
+                            setAutoFocusDrawerSubtaskIdx(null)
+                          }
                         />
                       );
                     })}
@@ -3909,7 +3959,9 @@ const ProjectTaskBoard = ({
                     {isAdminOrManager && (
                       <button
                         onClick={async () => {
-                          const updatedSubtasks = [...(selectedTask.subtasks || [])];
+                          const updatedSubtasks = [
+                            ...(selectedTask.subtasks || []),
+                          ];
                           const newSubtask = {
                             title: "",
                             status: "Pending",
@@ -3918,7 +3970,9 @@ const ProjectTaskBoard = ({
                             priority: "Medium",
                           };
                           updatedSubtasks.push(newSubtask);
-                          setAutoFocusDrawerSubtaskIdx(updatedSubtasks.length - 1);
+                          setAutoFocusDrawerSubtaskIdx(
+                            updatedSubtasks.length - 1,
+                          );
                           try {
                             await updateTaskMutation({
                               id: selectedTask._id,
