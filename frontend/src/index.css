@@ -515,3 +515,120 @@ input:focus, select:focus, textarea:focus {
   background: #e5ff00 !important;
 }
 
+/* Placeholder for contentEditable elements */
+[contenteditable][placeholder]:empty:before {
+  content: attr(placeholder);
+  color: var(--color-slate-400);
+  opacity: 0.6;
+  cursor: text;
+}
+[contenteditable][placeholder]:empty:focus:before {
+  content: attr(placeholder);
+  opacity: 0.3;
+}
+
+/* Premium Status and Priority Badge Styles */
+select.badge-select, span.badge-span {
+  padding: 3px 8px !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  border-radius: 9999px !important;
+  transition: all 0.2s ease-in-out !important;
+  height: auto !important;
+  cursor: pointer !important;
+  width: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid transparent !important;
+  outline: none !important;
+}
+
+/* Priority: High */
+.badge-priority-high {
+  background-color: #fee2e2 !important;
+  color: #ef4444 !important;
+  border-color: #fca5a5 !important;
+}
+.dark .badge-priority-high {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+  color: #fca5a5 !important;
+  border-color: rgba(239, 68, 68, 0.25) !important;
+}
+
+/* Priority: Medium */
+.badge-priority-medium {
+  background-color: #fef3c7 !important;
+  color: #d97706 !important;
+  border-color: #fcd34d !important;
+}
+.dark .badge-priority-medium {
+  background-color: rgba(217, 119, 6, 0.15) !important;
+  color: #fcd34d !important;
+  border-color: rgba(217, 119, 6, 0.25) !important;
+}
+
+/* Priority: Low */
+.badge-priority-low {
+  background-color: #f1f5f9 !important;
+  color: #64748b !important;
+  border-color: #cbd5e1 !important;
+}
+.dark .badge-priority-low {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  color: #94a3b8 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Status: Completed */
+.badge-status-completed {
+  background-color: #d1fae5 !important;
+  color: #10b981 !important;
+  border-color: #a7f3d0 !important;
+}
+.dark .badge-status-completed {
+  background-color: rgba(16, 185, 129, 0.15) !important;
+  color: #34d399 !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+/* Status: In Progress */
+.badge-status-in-progress {
+  background-color: #dbeafe !important;
+  color: #2563eb !important;
+  border-color: #bfdbfe !important;
+}
+.dark .badge-status-in-progress {
+  background-color: rgba(229, 255, 0, 0.1) !important;
+  color: #e5ff00 !important;
+  border-color: rgba(229, 255, 0, 0.2) !important;
+}
+
+/* Status: Pending */
+.badge-status-pending {
+  background-color: #fef3c7 !important;
+  color: #d97706 !important;
+  border-color: #fcd34d !important;
+}
+.dark .badge-status-pending {
+  background-color: rgba(217, 119, 6, 0.15) !important;
+  color: #fcd34d !important;
+  border-color: rgba(217, 119, 6, 0.25) !important;
+}
+
+/* Status: On Hold */
+.badge-status-on-hold {
+  background-color: #f3e8ff !important;
+  color: #7c3aed !important;
+  border-color: #e9d5ff !important;
+}
+.dark .badge-status-on-hold {
+  background-color: rgba(124, 58, 237, 0.15) !important;
+  color: #a78bfa !important;
+  border-color: rgba(124, 58, 237, 0.25) !important;
+}
+
+
+

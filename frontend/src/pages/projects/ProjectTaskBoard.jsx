@@ -94,7 +94,8 @@ const TaskTitleInput = ({
           e.target.blur();
         }
       }}
-      className={`bg-transparent border-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:border-transparent outline-none w-full p-0 font-semibold text-slate-800 dark:text-slate-100 px-0 py-0 text-[11px] ${
+      placeholder="Write a task here..."
+      className={`bg-transparent  outline-none w-full p-0 font-semibold text-slate-800 dark:text-slate-100 px-0 py-0 text-[11px] ${
         isCompleted ? "line-through text-slate-450 dark:text-slate-500" : ""
       }`}
       disabled={!canToggle}
@@ -1021,7 +1022,7 @@ const ProjectTaskBoard = ({
             <div className="overflow-x-auto pb-48 bg-white dark:bg-slate-900/30 shadow-xl shadow-slate-200/50 dark:shadow-none">
               <table className="w-full text-left border-collapse text-[11px] border border-slate-200 dark:border-slate-800/80">
                 <thead>
-                  <tr className="bg-slate-50/50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider text-[10px]">
+                  <tr className="bg-slate-50/50   dark:bg-slate-900/60 text-slate-700 dark:text-slate-300  tracking-wider text-[12px]">
                     <th className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[240px]">
                       Name
                     </th>
@@ -1094,6 +1095,7 @@ const ProjectTaskBoard = ({
                                       <input
                                         autoFocus
                                         value={editSectionValue}
+                                
                                         onChange={(e) =>
                                           setEditSectionValue(e.target.value)
                                         }
@@ -1271,7 +1273,7 @@ const ProjectTaskBoard = ({
                                            <span
                                              contentEditable={canToggle}
                                              suppressContentEditableWarning={true}
-                                             placeholder="Write a task name..."
+                                             placeholder="Write a task here..."
                                              onBlur={(e) => {
                                                const val = e.target.innerText.trim();
                                                if (val !== task.title) {
@@ -1355,6 +1357,20 @@ const ProjectTaskBoard = ({
                                               {task.assignedTo?.name}
                                             </span>
                                             {isAdminOrManager && (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  e.preventDefault();
+                                                  handleTaskFieldChange(task._id, { assignedTo: null });
+                                                }}
+                                                className="relative z-20 p-0.5 text-slate-400 hover:text-rose-500 rounded transition-colors hover:bg-slate-200 dark:hover:bg-white/10 shrink-0"
+                                                title="Clear Assignee"
+                                              >
+                                                <FiX size={10} />
+                                              </button>
+                                            )}
+                                            {isAdminOrManager && (
                                               <select
                                                 value={
                                                   task.assignedTo?._id ||
@@ -1370,7 +1386,7 @@ const ProjectTaskBoard = ({
                                                     },
                                                   )
                                                 }
-                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                               >
                                                 <option value="">
                                                   Unassigned
@@ -1434,57 +1450,75 @@ const ProjectTaskBoard = ({
                                     {/* Due Date (with Custom Start & End Date picker) */}
                                     <td className="px-3 py-0.5 border-r border-b border-slate-200 dark:border-slate-800 relative z-10">
                                       <div
-                                        className="flex items-center gap-1.5"
+                                        className="flex items-center gap-1"
                                         onClick={(e) => e.stopPropagation()}
                                       >
                                         {task.startDate || task.dueDate ? (
-                                          <div
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              const startVal = task.startDate
-                                                ? new Date(task.startDate)
-                                                    .toISOString()
-                                                    .split("T")[0]
-                                                : "";
-                                              const endVal = task.dueDate
-                                                ? new Date(task.dueDate)
-                                                    .toISOString()
-                                                    .split("T")[0]
-                                                : "";
-                                              setTempStartDate(startVal);
-                                              setTempEndDate(endVal);
-                                              const initialDate =
-                                                task.startDate ||
-                                                task.dueDate ||
-                                                new Date();
-                                              const parsedDate = new Date(
-                                                initialDate,
-                                              );
-                                              setCalendarMonth(
-                                                parsedDate.getMonth(),
-                                              );
-                                              setCalendarYear(
-                                                parsedDate.getFullYear(),
-                                              );
-                                              setActiveDateSelectionField(
-                                                task.startDate
-                                                  ? "due"
-                                                  : "start",
-                                              );
-                                              setEditingDateTaskId(task._id);
-                                            }}
-                                            className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-rose-50/50 dark:bg-rose-955/20 text-rose-600 dark:text-rose-450 border border-rose-100 dark:border-rose-900/30 flex items-center gap-1 hover:bg-rose-100/30 dark:hover:bg-rose-955/40 transition-colors cursor-pointer"
-                                          >
-                                            <FiCalendar
-                                              size={10}
-                                              className="shrink-0 text-rose-500"
-                                            />
-                                            <span>
-                                              {formatDateRange(
-                                                task.startDate,
-                                                task.dueDate,
-                                              )}
-                                            </span>
+                                          <div className="flex items-center gap-1">
+                                            <div
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                const startVal = task.startDate
+                                                  ? new Date(task.startDate)
+                                                      .toISOString()
+                                                      .split("T")[0]
+                                                  : "";
+                                                const endVal = task.dueDate
+                                                  ? new Date(task.dueDate)
+                                                      .toISOString()
+                                                      .split("T")[0]
+                                                  : "";
+                                                setTempStartDate(startVal);
+                                                setTempEndDate(endVal);
+                                                const initialDate =
+                                                  task.startDate ||
+                                                  task.dueDate ||
+                                                  new Date();
+                                                const parsedDate = new Date(
+                                                  initialDate,
+                                                );
+                                                setCalendarMonth(
+                                                  parsedDate.getMonth(),
+                                                );
+                                                setCalendarYear(
+                                                  parsedDate.getFullYear(),
+                                                );
+                                                setActiveDateSelectionField(
+                                                  task.startDate
+                                                    ? "due"
+                                                    : "start",
+                                                );
+                                                setEditingDateTaskId(task._id);
+                                              }}
+                                              className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-rose-50/50 dark:bg-rose-955/20 text-rose-600 dark:text-rose-450 border border-rose-100 dark:border-rose-900/30 flex items-center gap-1 hover:bg-rose-100/30 dark:hover:bg-rose-955/40 transition-colors cursor-pointer shadow-sm"
+                                            >
+                                              <FiCalendar
+                                                size={10}
+                                                className="shrink-0 text-rose-500"
+                                              />
+                                              <span>
+                                                {formatDateRange(
+                                                  task.startDate,
+                                                  task.dueDate,
+                                                )}
+                                              </span>
+                                            </div>
+                                            {isAdminOrManager && (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleTaskFieldChange(task._id, {
+                                                    startDate: null,
+                                                    dueDate: null,
+                                                  });
+                                                }}
+                                                className="p-0.5 text-slate-400 hover:text-rose-500 rounded transition-colors hover:bg-slate-200 dark:hover:bg-white/10 shrink-0"
+                                                title="Clear Date"
+                                              >
+                                                <FiX size={10} />
+                                              </button>
+                                            )}
                                           </div>
                                         ) : (
                                           /* Empty Date State: Dotted Circle with Calendar Icon (Hover to Plus) */
@@ -1855,7 +1889,7 @@ const ProjectTaskBoard = ({
 
                                     {/* Priority */}
                                     <td className="px-3 py-0.5 border-r border-b border-slate-200 dark:border-slate-800">
-                                      <div onClick={(e) => e.stopPropagation()}>
+                                       <div onClick={(e) => e.stopPropagation()}>
                                         {isAdminOrManager ? (
                                           <select
                                             value={task.priority || "Medium"}
@@ -1864,12 +1898,12 @@ const ProjectTaskBoard = ({
                                                 priority: e.target.value,
                                               })
                                             }
-                                            className={`px-1.5 py-0.5 rounded-xl text-[9px] font-extrabold border focus:outline-none cursor-pointer ${
+                                            className={`badge-select ${
                                               task.priority === "High"
-                                                ? "bg-rose-50 text-rose-700 border-rose-200/50 dark:bg-rose-955/20 dark:text-rose-400 dark:border-rose-800/40"
+                                                ? "badge-priority-high"
                                                 : task.priority === "Medium"
-                                                  ? "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-955/20 dark:text-amber-400 dark:border-amber-800/40"
-                                                  : "bg-slate-50 text-slate-650 border-slate-200 dark:bg-slate-850 dark:text-slate-350 dark:border-slate-750"
+                                                  ? "badge-priority-medium"
+                                                  : "badge-priority-low"
                                             }`}
                                           >
                                             <option value="Low">Low</option>
@@ -1880,12 +1914,12 @@ const ProjectTaskBoard = ({
                                           </select>
                                         ) : (
                                           <span
-                                            className={`px-1.5 py-0.5 rounded-xl text-[9px] font-extrabold border ${
+                                            className={`badge-span ${
                                               task.priority === "High"
-                                                ? "bg-rose-50 text-rose-700 border-rose-200/50"
+                                                ? "badge-priority-high"
                                                 : task.priority === "Medium"
-                                                  ? "bg-amber-50 text-amber-700 border-amber-200/50"
-                                                  : "bg-slate-50 text-slate-600 border-slate-200"
+                                                  ? "badge-priority-medium"
+                                                  : "badge-priority-low"
                                             }`}
                                           >
                                             {task.priority || "Medium"}
@@ -1905,12 +1939,14 @@ const ProjectTaskBoard = ({
                                                 status: e.target.value,
                                               })
                                             }
-                                            className={`px-1.5 py-0.5 rounded-xl text-[9px] font-extrabold border focus:outline-none cursor-pointer ${
+                                            className={`badge-select ${
                                               task.status === "Completed"
-                                                ? "bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800/40"
+                                                ? "badge-status-completed"
                                                 : task.status === "In Progress"
-                                                  ? "bg-blue-50 text-blue-700 border-blue-200/50 dark:bg-[#e5ff00]/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30"
-                                                  : "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-955/20 dark:text-amber-400 dark:border-amber-800/40"
+                                                  ? "badge-status-in-progress"
+                                                  : task.status === "On Hold"
+                                                    ? "badge-status-on-hold"
+                                                    : "badge-status-pending"
                                             }`}
                                           >
                                             <option value="Pending">
@@ -1928,12 +1964,14 @@ const ProjectTaskBoard = ({
                                           </select>
                                         ) : (
                                           <span
-                                            className={`px-1.5 py-0.5 rounded-xl text-[9px] font-extrabold border ${
+                                            className={`badge-span ${
                                               task.status === "Completed"
-                                                ? "bg-emerald-55/10 text-emerald-600 border-emerald-200"
+                                                ? "badge-status-completed"
                                                 : task.status === "In Progress"
-                                                  ? "bg-blue-55/10 text-blue-600 border-blue-200"
-                                                  : "bg-amber-55/10 text-amber-600 border-amber-200"
+                                                  ? "badge-status-in-progress"
+                                                  : task.status === "On Hold"
+                                                    ? "badge-status-on-hold"
+                                                    : "badge-status-pending"
                                             }`}
                                           >
                                             {task.status || "Pending"}
@@ -2330,13 +2368,12 @@ const ProjectTaskBoard = ({
                                                           },
                                                         )
                                                       }
-                                                      className={`px-1.5 py-0.5 rounded-xl text-[9px] font-extrabold border focus:outline-none cursor-pointer ${
+                                                      className={`badge-select ${
                                                         sub.priority === "High"
-                                                          ? "bg-rose-55/10 text-rose-700 border-rose-200/50 dark:bg-rose-955/20 dark:text-rose-400 dark:border-rose-800/40"
-                                                          : sub.priority ===
-                                                              "Medium"
-                                                            ? "bg-amber-55/10 text-amber-700 border-amber-200/50 dark:bg-amber-955/20 dark:text-amber-400 dark:border-amber-800/40"
-                                                            : "bg-slate-50 text-slate-655 border-slate-200 dark:bg-slate-850 dark:text-slate-355 dark:border-slate-750"
+                                                          ? "badge-priority-high"
+                                                          : sub.priority === "Medium"
+                                                            ? "badge-priority-medium"
+                                                            : "badge-priority-low"
                                                       }`}
                                                     >
                                                       <option value="Low">
@@ -2351,13 +2388,12 @@ const ProjectTaskBoard = ({
                                                     </select>
                                                   ) : (
                                                     <span
-                                                      className={`px-1.5 py-0.5 rounded-xl text-[9px] font-extrabold border ${
+                                                      className={`badge-span ${
                                                         sub.priority === "High"
-                                                          ? "bg-rose-50 text-rose-700 border-rose-200/50"
-                                                          : sub.priority ===
-                                                              "Medium"
-                                                            ? "bg-amber-50 text-amber-700 border-amber-200/50"
-                                                            : "bg-slate-50 text-slate-600 border-slate-200"
+                                                          ? "badge-priority-high"
+                                                          : sub.priority === "Medium"
+                                                            ? "badge-priority-medium"
+                                                            : "badge-priority-low"
                                                       }`}
                                                     >
                                                       {sub.priority || "Medium"}
@@ -2388,14 +2424,14 @@ const ProjectTaskBoard = ({
                                                           },
                                                         )
                                                       }
-                                                      className={`px-1.5 py-0.5 rounded-xl text-[9px] font-extrabold border focus:outline-none cursor-pointer ${
-                                                        sub.status ===
-                                                        "Completed"
-                                                          ? "bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800/40"
-                                                          : sub.status ===
-                                                              "In Progress"
-                                                            ? "bg-blue-55 text-blue-755 border-blue-200/55 dark:bg-[#e5ff00]/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30"
-                                                            : "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-955/20 dark:text-amber-400 dark:border-amber-800/40"
+                                                      className={`badge-select ${
+                                                        sub.status === "Completed"
+                                                          ? "badge-status-completed"
+                                                          : sub.status === "In Progress"
+                                                            ? "badge-status-in-progress"
+                                                            : sub.status === "On Hold"
+                                                              ? "badge-status-on-hold"
+                                                              : "badge-status-pending"
                                                       }`}
                                                     >
                                                       <option value="Pending">
@@ -2413,14 +2449,14 @@ const ProjectTaskBoard = ({
                                                     </select>
                                                   ) : (
                                                     <span
-                                                      className={`px-1.5 py-0.5 rounded-xl text-[9px] font-extrabold border ${
-                                                        sub.status ===
-                                                        "Completed"
-                                                          ? "bg-emerald-55/10 text-emerald-600 border-emerald-200"
-                                                          : sub.status ===
-                                                              "In Progress"
-                                                            ? "bg-blue-55/10 text-blue-600 border-blue-200"
-                                                            : "bg-amber-55/10 text-amber-600 border-amber-200"
+                                                      className={`badge-span ${
+                                                        sub.status === "Completed"
+                                                          ? "badge-status-completed"
+                                                          : sub.status === "In Progress"
+                                                            ? "badge-status-in-progress"
+                                                            : sub.status === "On Hold"
+                                                              ? "badge-status-on-hold"
+                                                              : "badge-status-pending"
                                                       }`}
                                                     >
                                                       {sub.status || "Pending"}
