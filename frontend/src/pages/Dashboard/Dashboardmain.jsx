@@ -1,11 +1,14 @@
-import React, { useEffect, useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
-import WelcomeUser from '../admin/partnerhub/components/WelcomeUser'
-import DashboardCards from './cards/DashboardCards'
-import { getEvents } from '../../features/events/eventSlice'
-import { getProjects, createProject } from '../../features/projects/projectSlice'
-import { getClients } from '../../features/clients/clientslice'
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import WelcomeUser from "../admin/partnerhub/components/WelcomeUser";
+import DashboardCards from "./cards/DashboardCards";
+import { getEvents } from "../../features/events/eventSlice";
+import {
+  getProjects,
+  createProject,
+} from "../../features/projects/projectSlice";
+import { getClients } from "../../features/clients/clientslice";
 import {
   FiCalendar,
   FiClock,
@@ -21,19 +24,37 @@ import {
   FiList,
   FiBriefcase,
   FiX,
-  FiChevronDown
-} from 'react-icons/fi'
-import { Link } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
-import ProjectIcon from '../../components/common/ProjectIcon'
+  FiChevronDown,
+} from "react-icons/fi";
+import { Link } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import ProjectIcon from "../../components/common/ProjectIcon";
 
 const TYPE_CONFIG = {
-  Post: { color: "text-blue-500 bg-blue-500/10 border-blue-500/20", icon: FiInstagram },
-  Reel: { color: "text-rose-500 bg-rose-500/10 border-rose-500/20", icon: FiVideo },
-  Story: { color: "text-purple-500 bg-purple-500/10 border-purple-500/20", icon: FiLayers },
-  Ad: { color: "text-amber-500 bg-amber-500/10 border-amber-500/20", icon: FiTarget },
-  Report: { color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20", icon: FiFileText },
-  "Birthday Celebration": { color: "text-pink-500 bg-pink-500/10 border-pink-500/20", icon: FiCalendar },
+  Post: {
+    color: "text-blue-500 bg-blue-500/10 border-blue-500/20",
+    icon: FiInstagram,
+  },
+  Reel: {
+    color: "text-rose-500 bg-rose-500/10 border-rose-500/20",
+    icon: FiVideo,
+  },
+  Story: {
+    color: "text-purple-500 bg-purple-500/10 border-purple-500/20",
+    icon: FiLayers,
+  },
+  Ad: {
+    color: "text-amber-500 bg-amber-500/10 border-amber-500/20",
+    icon: FiTarget,
+  },
+  Report: {
+    color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
+    icon: FiFileText,
+  },
+  "Birthday Celebration": {
+    color: "text-pink-500 bg-pink-500/10 border-pink-500/20",
+    icon: FiCalendar,
+  },
 };
 
 const Dashboardmain = () => {
@@ -71,7 +92,7 @@ const Dashboardmain = () => {
         name,
         client: clientId,
         status,
-      })
+      }),
     );
     setShowCreateModal(false);
     setName("");
@@ -85,7 +106,7 @@ const Dashboardmain = () => {
     "bg-lime-300 text-lime-900 dark:bg-lime-400 dark:text-lime-950",
     "bg-indigo-300 text-indigo-900 dark:bg-indigo-400 dark:text-indigo-950",
     "bg-rose-300 text-rose-900 dark:bg-rose-400 dark:text-rose-950",
-    "bg-cyan-300 text-cyan-900 dark:bg-cyan-400 dark:text-cyan-950"
+    "bg-cyan-300 text-cyan-900 dark:bg-cyan-400 dark:text-cyan-950",
   ];
 
   // Filter and sort upcoming events (today and future)
@@ -111,14 +132,17 @@ const Dashboardmain = () => {
     const eventDay = new Date(eventDate);
     eventDay.setHours(0, 0, 0, 0);
 
-    const timeString = eventDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const timeString = eventDate.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
     if (eventDay.getTime() === today.getTime()) {
       return `Today at ${timeString}`;
     } else if (eventDay.getTime() === tomorrow.getTime()) {
       return `Tomorrow at ${timeString}`;
     } else {
-      return `${eventDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${timeString}`;
+      return `${eventDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })} at ${timeString}`;
     }
   };
 
@@ -133,57 +157,62 @@ const Dashboardmain = () => {
       {/* GREETING */}
       <WelcomeUser />
 
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 mb-4 ">
-
-        <div className='col-span-1'>
+        <div className="col-span-1">
           <DashboardCards />
         </div>
 
-        <div className='col-span-1 theme-bg-card border theme-border rounded-xl p-4 shadow-sm'>
-          <h1 className="text-[13px] font-black theme-text-primary uppercase tracking-wider mb-4">Projects</h1>
-          
+        <div className="col-span-1 theme-bg-card border theme-border rounded-xl p-4 shadow-sm">
+          <h1 className="text-[13px] font-black theme-text-primary uppercase tracking-wider mb-4">
+            Projects
+          </h1>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* CREATE PROJECT BUTTON */}
             {user?.role === "admin" && (
-              <button 
-                onClick={() => setShowCreateModal(true)} 
+              <button
+                onClick={() => setShowCreateModal(true)}
                 className="flex items-center gap-2 group text-left"
               >
                 <div className="w-10 h-10 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover:border-slate-400 dark:group-hover:border-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-400 transition-colors shrink-0">
                   <FiPlus size={18} />
                 </div>
-                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-300 transition-colors">Create project</span>
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-300 transition-colors">
+                  Create project
+                </span>
               </button>
             )}
 
             {/* PROJECTS LIST */}
-            {projects && projects.map((project, index) => (
-              <button 
-                 key={project._id}
-                 onClick={() => navigate(`/${user?.role}/projects?id=${project._id}`)}
-                 className="flex items-center gap-2 group text-left"
-              >
-                 <ProjectIcon name={project.name} size="xl" className="transition-transform group-hover:scale-[1.03]" />
-                 <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 line-clamp-2">{project.name}</span>
-              </button>
-            ))}
+            {projects &&
+              projects.map((project, index) => (
+                <button
+                  key={project._id}
+                  onClick={() =>
+                    navigate(`/${user?.role}/projects?id=${project._id}`)
+                  }
+                  className="flex items-center gap-2 group text-left"
+                >
+                  <ProjectIcon
+                    name={project.name}
+                    size="xl"
+                    className="transition-transform group-hover:scale-[1.03]"
+                  />
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 line-clamp-2">
+                    {project.name}
+                  </span>
+                </button>
+              ))}
           </div>
         </div>
 
-
-
-      {/* {user?.role === 'admin' && (
+        {/* {user?.role === 'admin' && (
             <DashboardCards />
       )} */}
-
       </div>
-
-    
 
       {/* TWO-COLUMN LOWER DASHBOARD SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 max-w-7xl">
-        
         {/* UPCOMING EVENTS SECTION */}
         <div className="lg:col-span-2 theme-bg-card border theme-border rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between mb-4 border-b theme-border pb-3">
@@ -214,12 +243,17 @@ const Dashboardmain = () => {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-10 gap-2">
               <div className="w-7 h-7 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              <span className="text-[10px] theme-text-secondary font-bold">Refreshing schedule...</span>
+              <span className="text-[10px] theme-text-secondary font-bold">
+                Refreshing schedule...
+              </span>
             </div>
           ) : upcomingEvents.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {upcomingEvents.map((event) => {
-                const conf = TYPE_CONFIG[event.type] || { color: "text-slate-500 bg-slate-500/10 border-slate-500/20", icon: FiCalendar };
+                const conf = TYPE_CONFIG[event.type] || {
+                  color: "text-slate-500 bg-slate-500/10 border-slate-500/20",
+                  icon: FiCalendar,
+                };
                 const EventIcon = conf.icon;
                 const eventIsToday = isToday(event.date);
 
@@ -229,8 +263,8 @@ const Dashboardmain = () => {
                     key={event._id}
                     className={`relative overflow-hidden p-3.5 rounded-xl border flex flex-col justify-between transition-all theme-bg-main ${
                       eventIsToday
-                        ? 'border-indigo-500/40 dark:border-indigo-900/40 ring-1 ring-indigo-500/10 shadow-[0_0_15px_rgba(99,102,241,0.05)]'
-                        : 'theme-border hover:border-slate-300 dark:hover:border-slate-750'
+                        ? "border-indigo-500/40 dark:border-indigo-900/40 ring-1 ring-indigo-500/10 shadow-[0_0_15px_rgba(99,102,241,0.05)]"
+                        : "theme-border hover:border-slate-300 dark:hover:border-slate-750"
                     }`}
                   >
                     {/* Live Pulse Badge for Today's events */}
@@ -244,7 +278,9 @@ const Dashboardmain = () => {
                     <div>
                       {/* Meta header */}
                       <div className="flex items-center justify-between mb-2.5">
-                        <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${conf.color} flex items-center gap-1`}>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${conf.color} flex items-center gap-1`}
+                        >
                           <EventIcon size={9} />
                           {event.type}
                         </span>
@@ -290,7 +326,8 @@ const Dashboardmain = () => {
                 No Upcoming Scheduled Initiatives
               </h4>
               <p className="text-[10px] theme-text-secondary mt-1 max-w-xs">
-                There are no scheduled events, reports, or content deliverables listed for today or the coming week.
+                There are no scheduled events, reports, or content deliverables
+                listed for today or the coming week.
               </p>
             </div>
           )}
@@ -326,7 +363,10 @@ const Dashboardmain = () => {
                     Active Projects & Tasks
                   </span>
                 </div>
-                <FiChevronRight size={12} className="theme-icon group-hover:translate-x-0.5 transition-transform" />
+                <FiChevronRight
+                  size={12}
+                  className="theme-icon group-hover:translate-x-0.5 transition-transform"
+                />
               </Link>
 
               <Link
@@ -341,10 +381,13 @@ const Dashboardmain = () => {
                     Team Chats & Rooms
                   </span>
                 </div>
-                <FiChevronRight size={12} className="theme-icon group-hover:translate-x-0.5 transition-transform" />
+                <FiChevronRight
+                  size={12}
+                  className="theme-icon group-hover:translate-x-0.5 transition-transform"
+                />
               </Link>
 
-              {user?.role === 'admin' && (
+              {user?.role === "admin" && (
                 <Link
                   to={`/admin/clients`}
                   className="flex items-center justify-between p-3 rounded-xl theme-bg-main hover:bg-slate-100/70 border theme-border transition-all group cursor-pointer"
@@ -357,15 +400,15 @@ const Dashboardmain = () => {
                       Manage clients profiles
                     </span>
                   </div>
-                  <FiChevronRight size={12} className="theme-icon group-hover:translate-x-0.5 transition-transform" />
+                  <FiChevronRight
+                    size={12}
+                    className="theme-icon group-hover:translate-x-0.5 transition-transform"
+                  />
                 </Link>
               )}
             </div>
           </div>
-
-         
         </div>
-
       </div>
 
       {/* CREATE PROJECT OFFCANVAS DRAWER */}
@@ -393,8 +436,12 @@ const Dashboardmain = () => {
                     <FiBriefcase size={20} />
                   </div>
                   <div>
-                    <h2 className="text-base font-black theme-text-primary">Add New Project</h2>
-                    <p className="text-[10px] theme-text-secondary font-bold uppercase tracking-wider mt-0.5">Project Details</p>
+                    <h2 className="text-base font-black theme-text-primary">
+                      Add New Project
+                    </h2>
+                    <p className="text-[10px] theme-text-secondary font-bold uppercase tracking-wider mt-0.5">
+                      Project Details
+                    </p>
                   </div>
                 </div>
                 <button
@@ -406,10 +453,15 @@ const Dashboardmain = () => {
               </div>
 
               {/* Form Content */}
-              <form onSubmit={handleCreateSubmit} className="flex-1 flex flex-col overflow-hidden">
+              <form
+                onSubmit={handleCreateSubmit}
+                className="flex-1 flex flex-col overflow-hidden"
+              >
                 <div className="flex-1 p-6 space-y-6 overflow-y-auto">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold theme-text-secondary uppercase tracking-wide">Project Name</label>
+                    <label className="text-xs font-bold theme-text-secondary uppercase tracking-wide">
+                      Project Name
+                    </label>
                     <input
                       type="text"
                       required
@@ -421,18 +473,21 @@ const Dashboardmain = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold theme-text-secondary uppercase tracking-wide">Client Name</label>
+                    <label className="text-xs font-bold theme-text-secondary uppercase tracking-wide">
+                      Client Name
+                    </label>
                     <div className="relative">
                       <select
                         value={clientId}
                         onChange={(e) => setClientId(e.target.value)}
                         className="w-full px-4 py-3 pr-10 rounded-2xl theme-bg-main border theme-border focus:outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 text-sm theme-text-primary cursor-pointer appearance-none transition-all focus:shadow-sm"
                       >
-                        {clients && clients.map((c) => (
-                          <option key={c._id} value={c._id}>
-                            {c.companyName}
-                          </option>
-                        ))}
+                        {clients &&
+                          clients.map((c) => (
+                            <option key={c._id} value={c._id}>
+                              {c.companyName}
+                            </option>
+                          ))}
                       </select>
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none theme-text-secondary">
                         <FiChevronDown size={16} />
@@ -441,7 +496,9 @@ const Dashboardmain = () => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold theme-text-secondary uppercase tracking-wide">Status</label>
+                    <label className="text-xs font-bold theme-text-secondary uppercase tracking-wide">
+                      Status
+                    </label>
                     <div className="relative">
                       <select
                         value={status}
@@ -481,7 +538,7 @@ const Dashboardmain = () => {
         )}
       </AnimatePresence>
     </div>
-  )
-}
+  );
+};
 
-export default Dashboardmain
+export default Dashboardmain;
