@@ -8,6 +8,7 @@ import {
   FiPlus,
   FiCheck,
   FiChevronDown,
+  FiChevronLeft,
   FiChevronRight,
   FiUser,
   FiCalendar,
@@ -25,16 +26,19 @@ import {
   FiPaperclip,
   FiSend,
   FiFile,
+  FiCheckCircle,
+  FiAlertTriangle,
+  FiLayers,
 } from "react-icons/fi";
 import axiosInstance from "../../services/axiosInstance";
 import toast from "react-hot-toast";
 
 import {
-  getTasks,
-  createTask,
-  updateTask,
-  deleteTask,
-} from "../../features/tasks/taskSlice";
+  useGetTasksQuery,
+  useCreateTaskMutation,
+  useUpdateTaskMutation,
+  useDeleteTaskMutation,
+} from "../../features/api/apiSlice";
 import { updateProject } from "../../features/projects/projectSlice";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import ProjectIcon from "../../components/common/ProjectIcon";
@@ -288,13 +292,17 @@ const ProjectTaskBoard = ({
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // Redux State
-  const { tasks, loading: tasksLoading } = useSelector((state) => state.tasks);
+  // RTK Query hooks
+  const { data: tasks = [], isLoading: tasksLoading } = useGetTasksQuery();
+  const [createTaskMutation] = useCreateTaskMutation();
+  const [updateTaskMutation] = useUpdateTaskMutation();
+  const [deleteTaskMutation] = useDeleteTaskMutation();
 
   // Local State
   const [activeTab, setActiveTab] = useState("List"); // "List" | "Board" | "Timeline" | "Dashboard"
   const [checkedProjects, setCheckedProjects] = useState({});
   const [expandedTasks, setExpandedTasks] = useState({}); // taskId -> boolean
+  const [timelineOffsetWeeks, setTimelineOffsetWeeks] = useState(0);
   const [editingDateTaskId, setEditingDateTaskId] = useState(null);
   const [tempStartDate, setTempStartDate] = useState("");
   const [tempEndDate, setTempEndDate] = useState("");
@@ -487,13 +495,10 @@ const ProjectTaskBoard = ({
 
     // Send to backend
     try {
-      await dispatch(
-        updateTask({
-          id: draggableId,
-          taskData: { section: destination.droppableId },
-        }),
-      ).unwrap();
-      dispatch(getTasks());
+      await updateTaskMutation({
+        id: draggableId,
+        taskData: { section: destination.droppableId },
+      }).unwrap();
     } catch (err) {
       console.error("Failed to drag and drop task:", err);
     }
@@ -523,18 +528,15 @@ const ProjectTaskBoard = ({
   // Add Task directly to DB (autosave pattern)
   const handleAddTask = async (sectionName = "Recently assigned") => {
     try {
-      await dispatch(
-        createTask({
-          title: "",
-          project: activeProjectId,
-          section: sectionName,
-          assignedTo: null,
-          dueDate: null,
-          priority: "Medium",
-          status: "Pending",
-        }),
-      ).unwrap();
-      dispatch(getTasks());
+      await createTaskMutation({
+        title: "",
+        project: activeProjectId,
+        section: sectionName,
+        assignedTo: null,
+        dueDate: null,
+        priority: "Medium",
+        status: "Pending",
+      }).unwrap();
     } catch (err) {
       console.error("Failed to add task:", err);
     }
@@ -572,17 +574,14 @@ const ProjectTaskBoard = ({
   // Add Task directly to DB with preselected status (Board view helper)
   const handleAddTaskWithStatus = async (status) => {
     try {
-      await dispatch(
-        createTask({
-          title: "Add Task",
-          project: activeProjectId,
-          assignedTo: null,
-          dueDate: null,
-          priority: "Medium",
-          status: status,
-        }),
-      ).unwrap();
-      dispatch(getTasks());
+      await createTaskMutation({
+        title: "Add Task",
+        project: activeProjectId,
+        assignedTo: null,
+        dueDate: null,
+        priority: "Medium",
+        status: status,
+      }).unwrap();
     } catch (err) {
       console.error("Failed to add task:", err);
     }
@@ -595,10 +594,7 @@ const ProjectTaskBoard = ({
     if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
 
     try {
-      await dispatch(
-        updateTask({ id: taskId, taskData: sanitizedFields }),
-      ).unwrap();
-      dispatch(getTasks());
+      await updateTaskMutation({ id: taskId, taskData: sanitizedFields }).unwrap();
     } catch (err) {
       console.error("Failed to update task:", err);
     }
@@ -615,22 +611,19 @@ const ProjectTaskBoard = ({
 
     // Dispatch to DB
     try {
-      await dispatch(
-        updateTask({
-          id: selectedTask._id,
-          taskData: {
-            comments: [
-              ...(selectedTask.comments || []).map((c) => ({
-                user: c.user?._id || c.user,
-                text: c.text,
-                createdAt: c.createdAt,
-              })),
-              commentData,
-            ],
-          },
-        }),
-      ).unwrap();
-      dispatch(getTasks());
+      await updateTaskMutation({
+        id: selectedTask._id,
+        taskData: {
+          comments: [
+            ...(selectedTask.comments || []).map((c) => ({
+              user: c.user?._id || c.user,
+              text: c.text,
+              createdAt: c.createdAt,
+            })),
+            commentData,
+          ],
+        },
+      }).unwrap();
     } catch (err) {
       console.error("Failed to add comment:", err);
     }
@@ -672,21 +665,18 @@ const ProjectTaskBoard = ({
           uploadedAt: new Date(),
         };
 
-        await dispatch(
-          updateTask({
-            id: selectedTask._id,
-            taskData: {
-              attachments: [
-                ...(selectedTask.attachments || []).map((a) => ({
-                  ...a,
-                  uploadedBy: a.uploadedBy?._id || a.uploadedBy,
-                })),
-                attachmentData,
-              ],
-            },
-          }),
-        ).unwrap();
-        dispatch(getTasks());
+        await updateTaskMutation({
+          id: selectedTask._id,
+          taskData: {
+            attachments: [
+              ...(selectedTask.attachments || []).map((a) => ({
+                ...a,
+                uploadedBy: a.uploadedBy?._id || a.uploadedBy,
+              })),
+              attachmentData,
+            ],
+          },
+        }).unwrap();
 
         toast.success("Attachment uploaded successfully!", { id: "upload" });
       }
@@ -713,10 +703,7 @@ const ProjectTaskBoard = ({
 
     const updatedSubtasks = [...(task.subtasks || []), newSubtask];
     try {
-      await dispatch(
-        updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } }),
-      ).unwrap();
-      dispatch(getTasks());
+      await updateTaskMutation({ id: task._id, taskData: { subtasks: updatedSubtasks } }).unwrap();
     } catch (err) {
       console.error("Failed to add subtask:", err);
     }
@@ -742,10 +729,7 @@ const ProjectTaskBoard = ({
       sub._id === subtaskId ? { ...sub, ...sanitizedFields } : sub,
     );
     try {
-      await dispatch(
-        updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } }),
-      ).unwrap();
-      dispatch(getTasks());
+      await updateTaskMutation({ id: task._id, taskData: { subtasks: updatedSubtasks } }).unwrap();
     } catch (err) {
       console.error("Failed to update subtask:", err);
     }
@@ -757,10 +741,7 @@ const ProjectTaskBoard = ({
       (sub) => sub._id !== subtaskId,
     );
     try {
-      await dispatch(
-        updateTask({ id: task._id, taskData: { subtasks: updatedSubtasks } }),
-      ).unwrap();
-      dispatch(getTasks());
+      await updateTaskMutation({ id: task._id, taskData: { subtasks: updatedSubtasks } }).unwrap();
     } catch (err) {
       console.error("Failed to delete subtask:", err);
     }
@@ -773,8 +754,7 @@ const ProjectTaskBoard = ({
         setSelectedTaskId(null);
       }
       try {
-        await dispatch(deleteTask(taskId)).unwrap();
-        dispatch(getTasks());
+        await deleteTaskMutation(taskId).unwrap();
       } catch (err) {
         console.error("Failed to delete task:", err);
       }
@@ -864,12 +844,12 @@ const ProjectTaskBoard = ({
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate(-1)}
-                className="group p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-[#e5ff00] transition-all cursor-pointer flex items-center justify-center hover:scale-105 active:scale-95 mr-1"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 hover:border-slate-350 dark:hover:border-white/20 bg-white/50 dark:bg-[#0f172a]/40 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-[#e5ff00] transition-all text-[10px] font-black uppercase tracking-wider cursor-pointer shadow-sm mr-1 active:scale-95 group shrink-0"
                 title="Go Back"
               >
                 <FiArrowLeft
-                  size={18}
-                  className="group-hover:-translate-x-0.5 transition-transform"
+                  size={13}
+                  className="group-hover:-translate-x-0.5 transition-transform shrink-0"
                 />
               </button>
               <ProjectIcon
@@ -903,71 +883,71 @@ const ProjectTaskBoard = ({
         </div>
 
         {/* Right Side: Tab Selector - High-end, Premium Design */}
-        <div className="bg-slate-100/60 dark:bg-[#0b0d14] p-1 rounded-xl flex items-center gap-1 w-full overflow-x-auto hide-scrollbar sm:w-fit border border-slate-200/60 dark:border-slate-800/80 shadow-sm">
+        <div className="bg-slate-100/80 dark:bg-[#121212] p-1 rounded-full flex items-center gap-1 w-full overflow-x-auto hide-scrollbar sm:w-fit border border-slate-200/60 dark:border-white/5 shadow-inner backdrop-blur-md">
           {["List", "Board", "Timeline", "Dashboard"].map((tab) => {
             const isActive = activeTab === tab;
             return (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`relative px-3.5 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all duration-300 rounded-lg shrink-0 cursor-pointer ${
+                className={`relative px-4 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all duration-300 rounded-full shrink-0 cursor-pointer ${
                   isActive
-                    ? "text-slate-900 dark:text-[#e5ff00]"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-[#e5ff00]"
+                    ? "text-[var(--color-active-tab-text)]"
+                    : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-[#e5ff00]"
                 }`}
               >
                 {isActive && (
                   <motion.div
                     layoutId="activeWorkspaceTabPill"
-                    className="absolute inset-0 bg-white dark:bg-[#161925] border border-slate-200 dark:border-[#e5ff00]/40 rounded-lg shadow-sm dark:shadow-[0_0_12px_rgba(229,255,0,0.15)]"
+                    className="absolute inset-0 bg-blue-600 dark:bg-[#e5ff00] rounded-full shadow-lg"
                     style={{ zIndex: 0 }}
                     transition={{ type: "spring", stiffness: 350, damping: 26 }}
                   />
                 )}
-                <span className="relative z-10 flex items-center justify-center gap-1.5">
+                <span className="relative z-10 flex items-center justify-center gap-2">
                   {tab === "List" && (
                     <FiList
-                      size={12}
+                      size={12.5}
                       className={`shrink-0 transition-colors duration-300 ${
                         isActive
-                          ? "text-blue-500 dark:text-[#e5ff00]"
+                          ? "text-[var(--color-active-tab-text)]"
                           : "text-slate-400 dark:text-slate-500"
                       }`}
                     />
                   )}
                   {tab === "Board" && (
                     <FiGrid
-                      size={12}
+                      size={12.5}
                       className={`shrink-0 transition-colors duration-300 ${
                         isActive
-                          ? "text-indigo-500 dark:text-[#e5ff00]"
+                          ? "text-[var(--color-active-tab-text)]"
                           : "text-slate-400 dark:text-slate-500"
                       }`}
                     />
                   )}
                   {tab === "Timeline" && (
                     <FiTrendingUp
-                      size={12}
+                      size={12.5}
                       className={`shrink-0 transition-colors duration-300 ${
                         isActive
-                          ? "text-rose-500 dark:text-[#e5ff00]"
+                          ? "text-[var(--color-active-tab-text)]"
                           : "text-slate-400 dark:text-slate-500"
                       }`}
                     />
                   )}
                   {tab === "Dashboard" && (
                     <FiPieChart
-                      size={12}
+                      size={12.5}
                       className={`shrink-0 transition-colors duration-300 ${
                         isActive
-                          ? "text-emerald-500 dark:text-[#e5ff00]"
+                          ? "text-[var(--color-active-tab-text)]"
                           : "text-slate-400 dark:text-slate-500"
                       }`}
                     />
                   )}
                   <span>{tab}</span>
                   {isActive && (
-                    <span className="w-1 h-1 rounded-full bg-blue-500 dark:bg-[#e5ff00] animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-active-tab-text)]" />
                   )}
                 </span>
               </button>
@@ -1173,7 +1153,10 @@ const ProjectTaskBoard = ({
                                     className={`group cursor-pointer transition-colors ${rowBg} hover:bg-blue-55/20 dark:hover:bg-[#e5ff00]/5`}
                                   >
                                     {/* Name Field with Circle Checkbox */}
-                                    <td className="px-3 py-1.5 border-b border-slate-200 dark:border-slate-800 font-semibold">
+                                    <td
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="px-3 py-1 border-b border-slate-200 dark:border-slate-800 font-semibold"
+                                    >
                                       <div className="flex items-center gap-2.5 w-full">
                                         {/* Subtask Expander Toggle (Chevron on Left) */}
                                         <button
@@ -1313,7 +1296,7 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* Assignee Selection */}
-                                    <td className="px-3 py-1.5 border-b border-slate-200 dark:border-slate-800">
+                                    <td className="px-3 py-1 border-b border-slate-200 dark:border-slate-800">
                                       <div
                                         className="flex items-center gap-1.5"
                                         onClick={(e) => e.stopPropagation()}
@@ -1424,7 +1407,7 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* Due Date (with Custom Start & End Date picker) */}
-                                    <td className="px-3 py-1.5 border-b border-slate-200 dark:border-slate-800 relative z-10">
+                                    <td className="px-3 py-1 border-b border-slate-200 dark:border-slate-800 relative z-10">
                                       <div
                                         className="flex items-center gap-1.5"
                                         onClick={(e) => e.stopPropagation()}
@@ -1522,13 +1505,13 @@ const ProjectTaskBoard = ({
                                               }}
                                             />
                                             <div
-                                              className="absolute right-0 top-10 bg-white dark:bg-[#151518] border border-slate-200 dark:border-slate-800/80 rounded-2xl shadow-2xl p-3 z-50 w-[240px] space-y-3 text-slate-800 dark:text-slate-200"
+                                              className="absolute right-0 top-10 bg-white dark:bg-[#111622] border border-slate-200 dark:border-slate-800/80 rounded-xl shadow-2xl p-2.5 z-50 w-[205px] space-y-2.5 text-slate-800 dark:text-slate-200"
                                               onClick={(e) =>
                                                 e.stopPropagation()
                                               }
                                             >
                                               {/* Top Fields Selector */}
-                                              <div className="grid grid-cols-2 gap-1.5">
+                                              <div className="grid grid-cols-2 gap-1">
                                                 <button
                                                   type="button"
                                                   onClick={() =>
@@ -1536,7 +1519,7 @@ const ProjectTaskBoard = ({
                                                       "start",
                                                     )
                                                   }
-                                                  className={`px-2 py-1 text-[10px] font-semibold rounded-lg border text-center transition-all ${
+                                                  className={`px-1 py-0.5 text-[9px] font-semibold rounded-md border text-center transition-all ${
                                                     activeDateSelectionField ===
                                                     "start"
                                                       ? "border-blue-500 bg-blue-50/50 text-blue-600 dark:border-[#e5ff00] dark:bg-[#e5ff00]/10 dark:text-[#e5ff00]"
@@ -1545,10 +1528,10 @@ const ProjectTaskBoard = ({
                                                 >
                                                   {tempStartDate ? (
                                                     <span className="flex flex-col items-center justify-center">
-                                                      <span className="text-[8px] uppercase tracking-wider text-slate-450 dark:text-slate-500">
+                                                      <span className="text-[7px] uppercase tracking-wider text-slate-450 dark:text-slate-500">
                                                         Start Date
                                                       </span>
-                                                      <span className="font-bold text-[10px]">
+                                                      <span className="font-bold text-[9px]">
                                                         {new Date(
                                                           tempStartDate,
                                                         ).toLocaleDateString(
@@ -1561,7 +1544,7 @@ const ProjectTaskBoard = ({
                                                       </span>
                                                     </span>
                                                   ) : (
-                                                    "+ Start date"
+                                                    "+ Start"
                                                   )}
                                                 </button>
                                                 <button
@@ -1571,7 +1554,7 @@ const ProjectTaskBoard = ({
                                                       "due",
                                                     )
                                                   }
-                                                  className={`px-2 py-1 text-[10px] font-semibold rounded-lg border text-center transition-all ${
+                                                  className={`px-1 py-0.5 text-[9px] font-semibold rounded-md border text-center transition-all ${
                                                     activeDateSelectionField ===
                                                     "due"
                                                       ? "border-blue-500 bg-blue-50/50 text-blue-600 dark:border-[#e5ff00] dark:bg-[#e5ff00]/10 dark:text-[#e5ff00]"
@@ -1580,10 +1563,10 @@ const ProjectTaskBoard = ({
                                                 >
                                                   {tempEndDate ? (
                                                     <span className="flex flex-col items-center justify-center">
-                                                      <span className="text-[8px] uppercase tracking-wider text-slate-450 dark:text-slate-500">
+                                                      <span className="text-[7px] uppercase tracking-wider text-slate-450 dark:text-slate-500">
                                                         Due Date
                                                       </span>
-                                                      <span className="font-bold text-[10px]">
+                                                      <span className="font-bold text-[9px]">
                                                         {new Date(
                                                           tempEndDate,
                                                         ).toLocaleDateString(
@@ -1596,13 +1579,13 @@ const ProjectTaskBoard = ({
                                                       </span>
                                                     </span>
                                                   ) : (
-                                                    "Due date"
+                                                    "+ Due"
                                                   )}
                                                 </button>
                                               </div>
 
                                               {/* Month Navigator */}
-                                              <div className="flex items-center justify-between text-[11px] font-bold px-1">
+                                              <div className="flex items-center justify-between text-[10px] font-black px-0.5">
                                                 <button
                                                   type="button"
                                                   onClick={() => {
@@ -1617,18 +1600,18 @@ const ProjectTaskBoard = ({
                                                       );
                                                     }
                                                   }}
-                                                  className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400"
+                                                  className="p-0.5 rounded-md hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400"
                                                 >
                                                   &lt;
                                                 </button>
-                                                <span className="capitalize text-slate-700 dark:text-slate-250">
+                                                <span className="capitalize text-slate-700 dark:text-slate-200">
                                                   {new Date(
                                                     calendarYear,
                                                     calendarMonth,
                                                   ).toLocaleDateString(
                                                     undefined,
                                                     {
-                                                      month: "long",
+                                                      month: "short",
                                                       year: "numeric",
                                                     },
                                                   )}
@@ -1647,14 +1630,14 @@ const ProjectTaskBoard = ({
                                                       );
                                                     }
                                                   }}
-                                                  className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400"
+                                                  className="p-0.5 rounded-md hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400"
                                                 >
                                                   &gt;
                                                 </button>
                                               </div>
 
                                               {/* Weekday headers */}
-                                              <div className="grid grid-cols-7 gap-0.5 text-center text-[9px] font-black text-slate-400 dark:text-slate-555 uppercase tracking-wider">
+                                              <div className="grid grid-cols-7 gap-0.5 text-center text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                                                 {[
                                                   "S",
                                                   "M",
@@ -1666,7 +1649,7 @@ const ProjectTaskBoard = ({
                                                 ].map((day, idx) => (
                                                   <div
                                                     key={idx}
-                                                    className="h-5 flex items-center justify-center"
+                                                    className="h-4 flex items-center justify-center"
                                                   >
                                                     {day}
                                                   </div>
@@ -1674,7 +1657,7 @@ const ProjectTaskBoard = ({
                                               </div>
 
                                               {/* Days Grid */}
-                                              <div className="grid grid-cols-7 gap-0.5 text-center text-[10px]">
+                                              <div className="grid grid-cols-7 gap-0.5 text-center text-[9px]">
                                                 {getCalendarDays(
                                                   calendarYear,
                                                   calendarMonth,
@@ -1703,21 +1686,21 @@ const ProjectTaskBoard = ({
                                                     dateStr < tempEndDate;
 
                                                   let dayClass =
-                                                    "text-slate-700 dark:text-slate-350 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full";
+                                                    "text-slate-700 dark:text-slate-300 hover:bg-slate-105 dark:hover:bg-white/5 rounded-full";
                                                   if (!isCurrentMonth) {
                                                     dayClass =
-                                                      "text-slate-300 dark:text-slate-600 hover:bg-slate-100 dark:hover:bg-white/5 rounded-full";
+                                                      "text-slate-300 dark:text-slate-600 hover:bg-slate-105 dark:hover:bg-white/5 rounded-full";
                                                   }
 
                                                   if (isStart || isDue) {
                                                     dayClass =
-                                                      "bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black font-bold rounded-full scale-90 shadow-md shadow-blue-500/20 dark:shadow-[#e5ff00]/25";
+                                                      "bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black font-extrabold rounded-full scale-90 shadow-md shadow-blue-500/10 dark:shadow-[#e5ff00]/10";
                                                   } else if (inRange) {
                                                     dayClass =
-                                                      "bg-blue-50/60 dark:bg-[#e5ff00]/10 text-blue-650 dark:text-[#e5ff00] font-semibold rounded-none";
+                                                      "bg-blue-50/40 dark:bg-[#e5ff00]/5 text-blue-600 dark:text-[#e5ff00] font-bold rounded-none";
                                                   } else if (isToday) {
                                                     dayClass =
-                                                      "border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-white rounded-full font-bold";
+                                                      "border border-slate-350 dark:border-slate-700 text-slate-800 dark:text-white rounded-full font-bold";
                                                   }
 
                                                   return (
@@ -1745,7 +1728,7 @@ const ProjectTaskBoard = ({
                                                           );
                                                         }
                                                       }}
-                                                      className={`h-6.5 w-6.5 mx-auto flex items-center justify-center transition-all ${dayClass}`}
+                                                      className={`h-5.5 w-5.5 mx-auto flex items-center justify-center transition-all ${dayClass}`}
                                                     >
                                                       {day.getDate()}
                                                     </button>
@@ -1754,18 +1737,18 @@ const ProjectTaskBoard = ({
                                               </div>
 
                                               {/* Bottom Actions Row */}
-                                              <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800/80">
-                                                <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-555">
+                                              <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-850">
+                                                <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500">
                                                   <button
                                                     type="button"
-                                                    className="hover:text-slate-655 dark:hover:text-slate-300"
+                                                    className="hover:text-slate-600 dark:hover:text-slate-300"
                                                   >
                                                     <svg
                                                       viewBox="0 0 24 24"
-                                                      className="w-3.5 h-3.5"
+                                                      className="w-3 h-3"
                                                       fill="none"
                                                       stroke="currentColor"
-                                                      strokeWidth="2"
+                                                      strokeWidth="2.5"
                                                       strokeLinecap="round"
                                                       strokeLinejoin="round"
                                                     >
@@ -1779,14 +1762,14 @@ const ProjectTaskBoard = ({
                                                   </button>
                                                   <button
                                                     type="button"
-                                                    className="hover:text-slate-655 dark:hover:text-slate-300"
+                                                    className="hover:text-slate-600 dark:hover:text-slate-300"
                                                   >
                                                     <svg
                                                       viewBox="0 0 24 24"
-                                                      className="w-3.5 h-3.5"
+                                                      className="w-3 h-3"
                                                       fill="none"
                                                       stroke="currentColor"
-                                                      strokeWidth="2"
+                                                      strokeWidth="2.5"
                                                       strokeLinecap="round"
                                                       strokeLinejoin="round"
                                                     >
@@ -1795,7 +1778,7 @@ const ProjectTaskBoard = ({
                                                   </button>
                                                 </div>
 
-                                                <div className="flex items-center gap-1.5">
+                                                <div className="flex items-center gap-1">
                                                   <button
                                                     type="button"
                                                     onClick={() => {
@@ -1812,7 +1795,7 @@ const ProjectTaskBoard = ({
                                                         null,
                                                       );
                                                     }}
-                                                    className="px-2 py-1 text-[10px] font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                                                    className="px-1.5 py-0.5 text-[9px] font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
                                                   >
                                                     Clear
                                                   </button>
@@ -1833,7 +1816,7 @@ const ProjectTaskBoard = ({
                                                         null,
                                                       );
                                                     }}
-                                                    className="px-2.5 py-1 bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                                                    className="px-2 py-0.5 bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black rounded text-[9px] font-black uppercase tracking-wider transition-all"
                                                   >
                                                     Save
                                                   </button>
@@ -1846,7 +1829,7 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* Priority */}
-                                    <td className="px-3 py-1.5 border-b border-slate-200 dark:border-slate-800">
+                                    <td className="px-3 py-1 border-b border-slate-200 dark:border-slate-800">
                                       <div onClick={(e) => e.stopPropagation()}>
                                         {isAdminOrManager ? (
                                           <select
@@ -1887,7 +1870,7 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* Status */}
-                                    <td className="px-3 py-1.5 border-b border-slate-200 dark:border-slate-800">
+                                    <td className="px-3 py-1 border-b border-slate-200 dark:border-slate-800">
                                       <div onClick={(e) => e.stopPropagation()}>
                                         {isAdminOrManager ? (
                                           <select
@@ -1935,7 +1918,7 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* Action Controls */}
-                                    <td className="px-3 py-1.5 border-b border-slate-200 dark:border-slate-800 text-center">
+                                    <td className="px-3 py-1 border-b border-slate-200 dark:border-slate-800 text-center">
                                       <div
                                         className="flex items-center justify-center gap-2.5"
                                         onClick={(e) => e.stopPropagation()}
@@ -2114,12 +2097,7 @@ const ProjectTaskBoard = ({
 
         {activeTab === "Board" && (
           <DragDropContext onDragEnd={handleDragEnd}>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-white">
-                  Board
-                </h3>
-              </div>
+            <div className="space-y-4 ">
 
               {/* Board Columns Grid */}
               <div className="flex gap-4 items-start overflow-x-auto pb-4 hide-scrollbar snap-x">
@@ -2182,13 +2160,13 @@ const ProjectTaskBoard = ({
                                       onClick={() =>
                                         setSelectedTaskId(task._id)
                                       }
-                                      className={`bg-white dark:bg-[#111111] p-3.5 rounded-xl border cursor-pointer space-y-3 relative group select-none ${
+                                      className={`bg-white dark:bg-[#111111] p-2.5 rounded-xl border cursor-pointer space-y-2 relative group select-none ${
                                         snapshot.isDragging
                                           ? "shadow-2xl ring-2 ring-blue-500 dark:ring-[#e5ff00] scale-[1.03] z-50 border-blue-300 dark:border-[#e5ff00]"
                                           : "border-slate-150 dark:border-white/5 hover:shadow-md hover:border-slate-200 dark:hover:border-[#e5ff00]/50 transition-shadow transition-colors"
                                       }`}
                                     >
-                                      <div className="flex items-start gap-2.5">
+                                      <div className="flex items-start gap-2">
                                         {/* Status Checkbox */}
                                         <button
                                           onClick={(e) => {
@@ -2199,18 +2177,18 @@ const ProjectTaskBoard = ({
                                                 : "Completed",
                                             });
                                           }}
-                                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                                          className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
                                             isCompleted
                                               ? "bg-emerald-500 border-emerald-500 text-white"
                                               : "border-slate-350 dark:border-white/10 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
                                           }`}
                                         >
-                                          <FiCheck size={10} />
+                                          <FiCheck size={9} />
                                         </button>
 
                                         {/* Title */}
                                         <span
-                                          className={`text-xs font-bold leading-relaxed text-slate-850 dark:text-white pr-6 ${
+                                          className={`text-[11px] font-bold leading-normal text-slate-855 dark:text-white pr-6 ${
                                             isCompleted
                                               ? "line-through text-slate-400 dark:text-slate-500"
                                               : ""
@@ -2221,12 +2199,12 @@ const ProjectTaskBoard = ({
                                       </div>
 
                                       {/* Board Card Extra Data: Tags / Status */}
-                                      <div className="flex flex-wrap items-center gap-1.5 mt-2 mb-3">
+                                      <div className="flex flex-wrap items-center gap-1 mt-1.5 mb-2">
                                         {/* Status Badge */}
                                         <span
-                                          className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${
+                                          className={`text-[8px] font-black uppercase tracking-wider px-1 py-0.5 rounded-md border ${
                                             task.status === "Completed"
-                                              ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/40"
+                                              ? "bg-emerald-55/10 text-emerald-600 border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/40"
                                               : task.status === "In Progress"
                                                 ? "bg-blue-50 text-blue-600 border-blue-100 dark:bg-[#e5ff00]/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30"
                                                 : task.status === "On Hold"
@@ -2239,11 +2217,11 @@ const ProjectTaskBoard = ({
 
                                         {/* Priority Badge */}
                                         <span
-                                          className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${
+                                          className={`text-[8px] font-black uppercase tracking-wider px-1 py-0.5 rounded-md border ${
                                             task.priority === "High"
-                                              ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/30 dark:border-rose-900/40"
+                                              ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-955/20 dark:border-rose-900/40"
                                               : task.priority === "Medium"
-                                                ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/30 dark:border-amber-900/40"
+                                                ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-955/20 dark:border-amber-900/40"
                                                 : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-[#1a1a1a] dark:text-slate-400 dark:border-white/5"
                                           }`}
                                         >
@@ -2252,8 +2230,8 @@ const ProjectTaskBoard = ({
 
                                         {/* Due Date */}
                                         {task.dueDate && (
-                                          <span className="flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-slate-50 border border-slate-100 text-slate-500 dark:bg-[#1a1a1a] dark:border-white/10 dark:text-slate-400">
-                                            <FiCalendar size={9} />
+                                          <span className="flex items-center gap-1 text-[8px] font-bold px-1.5 py-0.5 rounded-md bg-slate-50 border border-slate-100 text-slate-500 dark:bg-[#1a1a1a] dark:border-white/10 dark:text-slate-400">
+                                            <FiCalendar size={8} />
                                             {new Date(
                                               task.dueDate,
                                             ).toLocaleDateString("en-GB", {
@@ -2272,16 +2250,16 @@ const ProjectTaskBoard = ({
                                             e.stopPropagation();
                                             handleParentTaskDelete(task._id);
                                           }}
-                                          className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-2 right-2 p-1.5 text-rose-500 bg-rose-50 dark:bg-rose-900/30 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/50"
+                                          className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-1.5 right-1.5 p-1 text-rose-500 bg-rose-50 dark:bg-rose-905/30 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/50"
                                         >
-                                          <FiTrash2 size={12} />
+                                          <FiTrash2 size={11} />
                                         </button>
                                       )}
 
                                       {/* Card Footer: Assignee */}
-                                      <div className="flex items-center justify-between pt-1 border-t border-slate-100 dark:border-slate-800">
+                                      <div className="flex items-center justify-between pt-0.5 border-t border-slate-100 dark:border-slate-800/60">
                                         <div
-                                          className="flex items-center gap-1.5 pt-1.5"
+                                          className="flex items-center gap-1 pt-1"
                                           onClick={(e) => e.stopPropagation()}
                                         >
                                           {/* Assignee Avatar */}
@@ -2294,12 +2272,12 @@ const ProjectTaskBoard = ({
                                                     .url
                                                 }
                                                 alt={task.assignedTo.name}
-                                                className="w-5 h-5 rounded-full object-cover"
+                                                className="w-4.5 h-4.5 rounded-full object-cover"
                                                 title={task.assignedTo.name}
                                               />
                                             ) : (
                                               <div
-                                                className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[8px] font-black bg-gradient-to-br ${getAvatarColor(
+                                                className={`w-4.5 h-4.5 rounded-full flex items-center justify-center text-white text-[7.5px] font-black bg-gradient-to-br ${getAvatarColor(
                                                   task.assignedTo.name,
                                                 )}`}
                                                 title={task.assignedTo.name}
@@ -2312,10 +2290,10 @@ const ProjectTaskBoard = ({
                                             )
                                           ) : (
                                             <div
-                                              className="w-5 h-5 rounded-full border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400"
+                                              className="w-4.5 h-4.5 rounded-full border border-dashed border-slate-350 dark:border-slate-700 flex items-center justify-center text-slate-400"
                                               title="Unassigned"
                                             >
-                                              <FiUser size={10} />
+                                              <FiUser size={9} />
                                             </div>
                                           )}
 
@@ -2425,200 +2403,273 @@ const ProjectTaskBoard = ({
           </DragDropContext>
         )}
 
-        {activeTab === "Timeline" && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-4 mb-4">
-              <button className="px-3 py-1.5 border border-slate-200 dark:border-slate-700 rounded-md text-xs  text-slate-600 dark:text-slate-300 flex items-center gap-1 shadow-sm">
-                <FiPlus size={12} /> Add task{" "}
-                <FiChevronDown size={12} className="ml-1" />
-              </button>
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300">
-                <FiChevronRight
-                  className="rotate-180 cursor-pointer hover:text-slate-900 dark:hover:text-white"
-                  size={14}
-                />
-                <span>Today</span>
-                <FiChevronRight
-                  className="cursor-pointer hover:text-slate-900 dark:hover:text-white"
-                  size={14}
-                />
-              </div>
-            </div>
+        {activeTab === "Timeline" && (() => {
+          // Date helpers self-contained
+          const todayDate = new Date();
+          const baseDate = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate());
+          // Shift timeline by the timelineOffsetWeeks state
+          const timelineStart = new Date(baseDate.getTime() + timelineOffsetWeeks * 7 * 24 * 60 * 60 * 1000 - 7 * 24 * 60 * 60 * 1000);
+          
+          const getWeekRange = (weekIndex) => {
+            const start = new Date(timelineStart.getTime() + weekIndex * 7 * 24 * 60 * 60 * 1000);
+            const end = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
+            // Calculate simple ISO week number or close approximation
+            const d = new Date(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+            
+            return {
+              label: `Week ${weekNo}`,
+              dates: `${start.toLocaleDateString("en-US", { day: "numeric", month: "short" })} - ${end.toLocaleDateString("en-US", { day: "numeric", month: "short" })}`
+            };
+          };
 
-            <div className="flex border border-slate-200 dark:border-white/5 bg-white dark:bg-[#111111] min-h-[500px]">
-              {/* Timeline Left Sidebar (Sections) */}
-              <div className="w-[200px] sm:w-[240px] border-r border-slate-200 dark:border-white/5 shrink-0 flex flex-col bg-white dark:bg-[#1a1a1a] z-10 pt-[46px]">
-                {Array.from(
-                  new Set(
-                    activeProject.sections?.length > 0
-                      ? activeProject.sections
-                      : ["Recently assigned"],
-                  ),
-                ).map((sectionName) => (
-                  <React.Fragment key={sectionName}>
-                    <div className="border-b border-slate-200 dark:border-white/5 h-10 flex items-center justify-between px-3 hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer">
-                      <div className="flex items-center gap-2 text-[11px] font-black text-slate-700 dark:text-slate-300">
-                        <FiChevronDown size={14} className="text-slate-500" />
-                        <span className="truncate">{sectionName}</span>
-                      </div>
-                      {isAdminOrManager && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAddTask(sectionName);
-                          }}
-                          className="p-1 hover:bg-slate-200 dark:hover:bg-white/10 dark:hover:text-[#e5ff00] rounded text-slate-400 transition-colors"
-                        >
-                          <FiPlus size={12} />
-                        </button>
-                      )}
-                    </div>
-                    {/* Render tasks under section in sidebar */}
-                    {activeProjectTasks
-                      .filter(
-                        (t) =>
-                          t.section === sectionName ||
-                          (!t.section && sectionName === "Recently assigned"),
-                      )
-                      .map((task) => (
-                        <div
-                          key={`sidebar-${task._id}`}
-                          onClick={() => setSelectedTaskId(task._id)}
-                          className="border-b border-slate-100 dark:border-white/5 h-8 flex items-center px-3 pl-8 hover:bg-blue-50 dark:hover:bg-white/5 cursor-pointer"
-                        >
-                          <span className="truncate text-[10px] font-bold text-slate-600 dark:text-slate-400">
-                            {task.title}
-                          </span>
+          const activeSections = Array.from(
+            new Set(
+              activeProject.sections?.length > 0
+                ? activeProject.sections
+                : ["Recently assigned"],
+            ),
+          );
+
+          return (
+            <div className="space-y-4">
+              {/* Timeline Action Header */}
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setTimelineOffsetWeeks((prev) => prev - 1)}
+                    className="p-1 rounded-lg border border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-650 dark:text-slate-355 cursor-pointer"
+                    title="Previous Week"
+                  >
+                    <FiChevronLeft size={16} />
+                  </button>
+                  <button
+                    onClick={() => setTimelineOffsetWeeks(0)}
+                    className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-650 dark:text-slate-355 cursor-pointer"
+                  >
+                    Today
+                  </button>
+                  <button
+                    onClick={() => setTimelineOffsetWeeks((prev) => prev + 1)}
+                    className="p-1 rounded-lg border border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-650 dark:text-slate-355 cursor-pointer"
+                    title="Next Week"
+                  >
+                    <FiChevronRight size={16} />
+                  </button>
+                </div>
+                
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-550 dark:text-slate-400 bg-slate-50 dark:bg-[#141414] px-2.5 py-1 rounded-lg border border-slate-100 dark:border-white/5">
+                  {timelineStart.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                </span>
+              </div>
+
+              {/* Main Timeline Card Container */}
+              <div className="flex border border-slate-200/60 dark:border-white/5 bg-white dark:bg-[#070b13] rounded-2xl overflow-hidden min-h-[500px] shadow-sm">
+                {/* Timeline Left Sidebar (Sections & Tasks list) */}
+                <div className="w-[180px] sm:w-[220px] border-r border-slate-200 dark:border-white/5 shrink-0 flex flex-col bg-slate-50/50 dark:bg-[#0b101c]/40 z-10 pt-[52px]">
+                  {activeSections.map((sectionName) => (
+                    <React.Fragment key={sectionName}>
+                      <div className="border-b border-slate-200 dark:border-white/5 h-10 flex items-center justify-between px-3 bg-slate-100/40 dark:bg-[#161616]/30">
+                        <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-700 dark:text-slate-350">
+                          <FiChevronDown size={12} className="text-slate-400" />
+                          <span className="truncate">{sectionName}</span>
                         </div>
-                      ))}
-                  </React.Fragment>
-                ))}
-                {isAdminOrManager && (
-                  <div className="py-3 px-3 h-10 flex items-center">
-                    <button
-                      onClick={() => setIsAddingSection(true)}
-                      className="flex items-center gap-2 text-[11px] font-black text-slate-500 hover:text-slate-800 dark:hover:text-[#e5ff00] transition-colors"
-                    >
-                      <FiPlus size={12} /> Add section
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Timeline Right Grid Area */}
-              <div className="flex-1 overflow-x-auto relative hide-scrollbar">
-                {/* Timeline Header (Months & Weeks) */}
-                <div className="flex flex-col border-b border-slate-200 dark:border-white/5 min-w-[800px] bg-white dark:bg-[#1a1a1a] sticky top-0 z-20">
-                  <div className="flex h-5 items-center">
-                    <div className="w-1/2 px-2 text-[10px] font-bold text-slate-600 dark:text-slate-400">
-                      May <span className="ml-2">June</span>
+                        {isAdminOrManager && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddTask(sectionName);
+                            }}
+                            className="p-1 hover:bg-slate-200 dark:hover:bg-white/10 dark:hover:text-[#e5ff00] rounded text-slate-400 transition-colors cursor-pointer"
+                          >
+                            <FiPlus size={11} />
+                          </button>
+                        )}
+                      </div>
+                      {/* Render tasks under section in sidebar */}
+                      {activeProjectTasks
+                        .filter(
+                          (t) =>
+                            t.section === sectionName ||
+                            (!t.section && sectionName === "Recently assigned"),
+                        )
+                        .map((task) => (
+                          <div
+                            key={`sidebar-${task._id}`}
+                            onClick={() => setSelectedTaskId(task._id)}
+                            className="border-b border-slate-100 dark:border-white/5 h-8 flex items-center px-3 pl-6 hover:bg-blue-50/50 dark:hover:bg-white/5 cursor-pointer transition-colors"
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 mr-1.5 ${
+                              task.status === "Completed" ? "bg-emerald-500" :
+                              task.status === "In Progress" ? "bg-blue-500 dark:bg-[#e5ff00]" :
+                              task.status === "On Hold" ? "bg-amber-500" : "bg-slate-400"
+                            }`} />
+                            <span className="truncate text-[9.5px] font-bold text-slate-655 dark:text-slate-350">
+                              {task.title || "Untitled Task"}
+                            </span>
+                          </div>
+                        ))}
+                    </React.Fragment>
+                  ))}
+                  {isAdminOrManager && (
+                    <div className="py-3 px-3 h-10 flex items-center">
+                      <button
+                        onClick={() => setIsAddingSection(true)}
+                        className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 hover:text-slate-800 dark:hover:text-[#e5ff00] transition-colors cursor-pointer"
+                      >
+                        <FiPlus size={11} /> Add section
+                      </button>
                     </div>
-                  </div>
-                  <div className="flex border-t border-slate-200 dark:border-white/5 h-6">
-                    <div className="w-1/4 px-2 text-[10px] flex items-center font-medium text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-white/5 bg-[#f9f9f9] dark:bg-[#111111]">
-                      W23 <span className="ml-2">May 31 - 6</span>
-                    </div>
-                    <div className="w-1/4 px-2 text-[10px] flex items-center font-medium text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-white/5 bg-[#f9f9f9] dark:bg-[#111111]">
-                      W24 <span className="ml-2">7 - 13</span>
-                    </div>
-                    <div className="w-1/4 px-2 text-[10px] flex items-center font-medium text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-white/5 bg-[#f9f9f9] dark:bg-[#111111]">
-                      W25 <span className="ml-2">14 - 20</span>
-                    </div>
-                    <div className="w-1/4 px-2 text-[10px] flex items-center font-medium text-slate-500 dark:text-slate-400 bg-[#f9f9f9] dark:bg-[#111111]">
-                      W26 <span className="ml-2">21 - 27</span>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
-                {/* Timeline Body (Grid) */}
-                <div className="relative min-w-[800px] h-full w-full">
-                  {/* Background grid */}
-                  <div className="absolute inset-0 flex w-full pointer-events-none">
-                    {[...Array(28)].map((_, i) => (
-                      <div
-                        key={i}
-                        className={`flex-1 border-r border-slate-200 dark:border-white/5 h-full ${[5, 6, 12, 13, 19, 20, 26, 27].includes(i) ? "bg-slate-100/50 dark:bg-white/5" : ""}`}
-                      />
-                    ))}
+                {/* Timeline Right Grid Area */}
+                <div className="flex-1 overflow-x-auto relative hide-scrollbar">
+                  {/* Timeline Header (Months & Weeks) */}
+                  <div className="flex flex-col border-b border-slate-200 dark:border-white/5 min-w-[800px] bg-slate-50 dark:bg-[#090d16] sticky top-0 z-20">
+                    <div className="flex h-13">
+                      {[0, 1, 2, 3].map((weekIdx) => {
+                        const weekData = getWeekRange(weekIdx);
+                        return (
+                          <div
+                            key={weekIdx}
+                            className="w-1/4 px-3 flex flex-col justify-center border-r border-slate-200 dark:border-white/5"
+                          >
+                            <span className="text-[9px] font-black text-slate-700 dark:text-slate-350">
+                              {weekData.label}
+                            </span>
+                            <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500">
+                              {weekData.dates}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
 
-                  {/* Task Rows mapped parallel to sections */}
-                  <div className="relative z-10 w-full flex flex-col pb-20">
-                    {Array.from(
-                      new Set(
-                        activeProject.sections?.length > 0
-                          ? activeProject.sections
-                          : ["Recently assigned"],
-                      ),
-                    ).map((sectionName) => (
-                      <React.Fragment key={`grid-${sectionName}`}>
-                        <div className="h-10 border-b border-slate-200 dark:border-white/5 w-full" />
-                        {activeProjectTasks
-                          .filter(
-                            (t) =>
-                              t.section === sectionName ||
-                              (!t.section &&
-                                sectionName === "Recently assigned"),
-                          )
-                          .map((task) => {
-                            // Dynamic simulated positioning logic based on task ID for robust Gantt display without full D3/date engines
-                            const hash = task._id
-                              ? task._id.charCodeAt(task._id.length - 1) % 20
-                              : 0;
-                            const width = task._id
-                              ? 3 +
-                                (task._id.charCodeAt(task._id.length - 2) % 4)
-                              : 4;
+                  {/* Timeline Body (Grid) */}
+                  <div className="relative min-w-[800px] h-full w-full">
+                    {/* Background grid */}
+                    <div className="absolute inset-0 flex w-full pointer-events-none">
+                      {[...Array(28)].map((_, i) => {
+                        const cellDate = new Date(timelineStart.getTime() + i * 24 * 60 * 60 * 1000);
+                        const isWeekend = cellDate.getDay() === 0 || cellDate.getDay() === 6;
+                        const isTodayCell = cellDate.toDateString() === baseDate.toDateString();
+                        return (
+                          <div
+                            key={i}
+                            className={`flex-1 border-r border-slate-200/50 dark:border-white/5 h-full ${
+                              isWeekend ? "bg-slate-50/[0.15] dark:bg-white/[0.02]" : ""
+                            } ${isTodayCell ? "bg-blue-50/10 dark:bg-[#e5ff00]/5" : ""}`}
+                          />
+                        );
+                      })}
+                    </div>
 
-                            return (
-                              <div
-                                key={`grid-task-${task._id}`}
-                                className="h-8 border-b border-slate-100 dark:border-white/5 w-full relative group"
-                              >
+                    {/* Task Rows mapped parallel to sections */}
+                    <div className="relative z-10 w-full flex flex-col pb-20">
+                      {activeSections.map((sectionName) => (
+                        <React.Fragment key={`grid-${sectionName}`}>
+                          <div className="h-10 border-b border-slate-200 dark:border-white/5 w-full" />
+                          {activeProjectTasks
+                            .filter(
+                              (t) =>
+                                t.section === sectionName ||
+                                (!t.section &&
+                                  sectionName === "Recently assigned"),
+                            )
+                            .map((task) => {
+                              // Calculate real date-based positioning
+                              const taskStart = task.startDate ? new Date(task.startDate) : new Date(baseDate);
+                              const taskEnd = task.dueDate ? new Date(task.dueDate) : new Date(taskStart.getTime() + 24 * 60 * 60 * 1000);
+                              
+                              const startOffsetMs = taskStart.getTime() - timelineStart.getTime();
+                              let startOffsetDays = startOffsetMs / (1000 * 60 * 60 * 24);
+                              
+                              const durationMs = taskEnd.getTime() - taskStart.getTime();
+                              let durationDays = Math.ceil(durationMs / (1000 * 60 * 60 * 24));
+                              if (durationDays <= 0) durationDays = 1;
+
+                              // Bounds constraint for 28-day window
+                              let showOnTimeline = true;
+                              if (startOffsetDays + durationDays < 0 || startOffsetDays > 28) {
+                                showOnTimeline = false;
+                              }
+
+                              // Constrain bar within the visible 28 columns
+                              if (showOnTimeline) {
+                                if (startOffsetDays < 0) {
+                                  durationDays = Math.max(1, durationDays + startOffsetDays);
+                                  startOffsetDays = 0;
+                                }
+                                if (startOffsetDays + durationDays > 28) {
+                                  durationDays = 28 - startOffsetDays;
+                                }
+                              }
+
+                              const leftPercent = (startOffsetDays / 28) * 100;
+                              const widthPercent = (durationDays / 28) * 100;
+
+                              return (
                                 <div
-                                  onClick={() => setSelectedTaskId(task._id)}
-                                  style={{
-                                    left: `${(hash / 28) * 100}%`,
-                                    width: `${(width / 28) * 100}%`,
-                                  }}
-                                  className={`absolute top-1.5 h-5 rounded shadow-sm text-[9px] font-bold text-white px-1.5 flex items-center truncate cursor-pointer transition-transform hover:scale-[1.02] hover:brightness-110 ${
-                                    task.status === "Completed"
-                                      ? "bg-emerald-500"
-                                      : task.status === "In Progress"
-                                        ? "bg-blue-500"
-                                        : task.status === "On Hold"
-                                          ? "bg-amber-500"
-                                          : "bg-slate-400"
-                                  }`}
+                                  key={`grid-task-${task._id}`}
+                                  className="h-8 border-b border-slate-100 dark:border-white/5 w-full relative group"
                                 >
-                                  {task.title}
+                                  {showOnTimeline && (
+                                    <div
+                                      onClick={() => setSelectedTaskId(task._id)}
+                                      style={{
+                                        left: `${leftPercent}%`,
+                                        width: `${widthPercent}%`,
+                                      }}
+                                      className={`absolute top-1 h-6 rounded-lg shadow-sm text-[9.5px] font-black px-2 flex items-center justify-between truncate cursor-pointer transition-all hover:scale-[1.01] hover:brightness-105 ${
+                                        task.status === "Completed"
+                                          ? "bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-100 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+                                          : task.status === "In Progress"
+                                            ? "bg-blue-50 dark:bg-[#e5ff00]/10 border border-blue-100 dark:border-[#e5ff00]/20 text-blue-700 dark:text-[#e5ff00]"
+                                            : task.status === "On Hold"
+                                              ? "bg-amber-55 dark:bg-amber-550/15 border border-amber-100 dark:border-amber-500/20 text-amber-700 dark:text-amber-400"
+                                              : "bg-slate-50 dark:bg-slate-500/15 border border-slate-200 dark:border-slate-500/20 text-slate-600 dark:text-slate-400"
+                                      }`}
+                                      title={`${task.title || "Untitled Task"} (${task.startDate ? new Date(task.startDate).toLocaleDateString() : "No Start"} - ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No Due Date"})`}
+                                    >
+                                      <span className="truncate pr-1">{task.title || "Untitled Task"}</span>
+                                    </div>
+                                  )}
+                                  {isAdminOrManager && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleParentTaskDelete(task._id);
+                                      }}
+                                      className="absolute right-4 top-1 opacity-0 group-hover:opacity-100 text-rose-500 p-1 bg-white dark:bg-[#161616] rounded z-20 hover:bg-rose-50 dark:hover:bg-white/5 border border-rose-100 dark:border-white/10 shadow-sm transition-opacity cursor-pointer"
+                                    >
+                                      <FiTrash2 size={10} />
+                                    </button>
+                                  )}
                                 </div>
-                                {isAdminOrManager && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleParentTaskDelete(task._id);
-                                    }}
-                                    className="absolute right-4 top-1.5 opacity-0 group-hover:opacity-100 text-rose-500 p-1 bg-white dark:bg-[#111111] rounded z-20 hover:bg-rose-50 dark:hover:bg-white/5 border border-rose-100 dark:border-white/10 shadow-sm transition-opacity"
-                                  >
-                                    <FiTrash2 size={10} />
-                                  </button>
-                                )}
-                              </div>
-                            );
-                          })}
-                      </React.Fragment>
-                    ))}
-                  </div>
+                              );
+                            })}
+                        </React.Fragment>
+                      ))}
+                    </div>
 
-                  {/* Today Line */}
-                  <div className="absolute top-0 bottom-0 left-[35.7%] w-px bg-[#4f46e5] z-10 pointer-events-none" />
-                  <div className="absolute -top-1 left-[35.7%] -translate-x-1/2 w-2 h-2 rounded-full bg-[#4f46e5] z-10 pointer-events-none" />
+                    {/* Today Line */}
+                    {timelineOffsetWeeks === 0 && (
+                      <>
+                        <div className="absolute top-0 bottom-0 left-[25%] w-px bg-blue-500 dark:bg-[#e5ff00]/60 z-10 pointer-events-none" />
+                        <div className="absolute -top-1 left-[25%] -translate-x-1/2 w-2 h-2 rounded-full bg-blue-500 dark:bg-[#e5ff00] z-10 pointer-events-none" />
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {activeTab === "Dashboard" && (
           <div className="space-y-6">
@@ -2626,59 +2677,63 @@ const ProjectTaskBoard = ({
               Dashboard Metrics
             </h3>
 
-            {/* Stats Cards Grid - Premium Gradients */}
+            {/* Stats Cards Grid - Premium Gradients & Glows */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {/* Card 1: Total Completed */}
-              <div className="relative overflow-hidden p-5 rounded-2xl shadow-sm border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-[#111111] border-slate-200 dark:border-white/5 group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-20"></div>
+              <div className="relative overflow-hidden p-5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-[#070b13] border-slate-200/60 dark:border-white/5 shadow-lg shadow-slate-100/40 dark:shadow-none hover:shadow-xl group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-20 pointer-events-none" />
+                <FiCheckCircle size={24} className="text-emerald-500/40 dark:text-emerald-400/25 absolute top-5 right-5 pointer-events-none" />
                 <div className="relative z-10">
                   <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    Total completed tasks
+                    Completed tasks
                   </h4>
                   <div className="text-4xl font-black mt-4 drop-shadow-sm text-emerald-500 dark:text-emerald-400">
                     {completedTasks}
                   </div>
                 </div>
-                <div className="relative z-10 text-[10px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                <div className="relative z-10 text-[9px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
                   <FiClock size={11} /> 1 Filter
                 </div>
               </div>
 
               {/* Card 2: Total Incomplete */}
-              <div className="relative overflow-hidden p-5 rounded-2xl shadow-sm border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-[#111111] border-slate-200 dark:border-white/5 group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 dark:bg-[#e5ff00] rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-20"></div>
+              <div className="relative overflow-hidden p-5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-[#070b13] border-slate-200/60 dark:border-white/5 shadow-lg shadow-slate-100/40 dark:shadow-none hover:shadow-xl group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 dark:bg-[#e5ff00] rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-20 pointer-events-none" />
+                <FiClock size={24} className="text-blue-550/40 dark:text-[#e5ff00]/25 absolute top-5 right-5 pointer-events-none" />
                 <div className="relative z-10">
                   <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    Total incomplete tasks
+                    Incomplete tasks
                   </h4>
                   <div className="text-4xl font-black mt-4 drop-shadow-sm text-blue-500 dark:text-[#e5ff00]">
                     {incompleteTasks}
                   </div>
                 </div>
-                <div className="relative z-10 text-[10px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                <div className="relative z-10 text-[9px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
                   <FiClock size={11} /> 1 Filter
                 </div>
               </div>
 
               {/* Card 3: Total Overdue */}
-              <div className="relative overflow-hidden p-5 rounded-2xl shadow-sm border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-[#111111] border-slate-200 dark:border-white/5 group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-20"></div>
+              <div className="relative overflow-hidden p-5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-[#070b13] border-slate-200/60 dark:border-white/5 shadow-lg shadow-slate-100/40 dark:shadow-none hover:shadow-xl group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-20 pointer-events-none" />
+                <FiAlertTriangle size={24} className="text-rose-500/40 dark:text-rose-450/25 absolute top-5 right-5 pointer-events-none" />
                 <div className="relative z-10">
                   <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    Total overdue tasks
+                    Overdue tasks
                   </h4>
-                  <div className="text-4xl font-black mt-4 drop-shadow-sm text-rose-500 dark:text-rose-400">
+                  <div className="text-4xl font-black mt-4 drop-shadow-sm text-rose-500 dark:text-rose-455">
                     {overdueTasks}
                   </div>
                 </div>
-                <div className="relative z-10 text-[10px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                <div className="relative z-10 text-[9px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
                   <FiClock size={11} /> 1 Filter
                 </div>
               </div>
 
               {/* Card 4: Total Tasks */}
-              <div className="relative overflow-hidden p-5 rounded-2xl shadow-sm border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-[#111111] border-slate-200 dark:border-white/5 group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-slate-400 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-10"></div>
+              <div className="relative overflow-hidden p-5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-[#070b13] border-slate-200/60 dark:border-white/5 shadow-lg shadow-slate-100/40 dark:shadow-none hover:shadow-xl group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-slate-400 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-10 pointer-events-none" />
+                <FiLayers size={24} className="text-slate-500/40 dark:text-white/20 absolute top-5 right-5 pointer-events-none" />
                 <div className="relative z-10">
                   <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Total tasks
@@ -2687,7 +2742,7 @@ const ProjectTaskBoard = ({
                     {totalTasks}
                   </div>
                 </div>
-                <div className="relative z-10 text-[10px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                <div className="relative z-10 text-[9px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
                   <FiClock size={11} /> No Filters
                 </div>
               </div>
@@ -2696,13 +2751,13 @@ const ProjectTaskBoard = ({
             {/* Reports Charts Area */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               {/* Chart 1: Total incomplete tasks by section (Status Breakdown) */}
-              <div className="bg-white dark:bg-[#111111] p-6 rounded-2xl border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-[0_0_20px_rgba(229,255,0,0.05)] flex flex-col transition-all duration-300 hover:shadow-2xl hover:border-slate-200 dark:hover:border-[#e5ff00]/30">
+              <div className="bg-white dark:bg-[#070b13] p-6 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none flex flex-col transition-all duration-300 hover:shadow-2xl hover:border-slate-300 dark:hover:border-[#e5ff00]/30">
                 <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider mb-8">
                   Total incomplete tasks by section
                 </h4>
 
                 {/* Custom SVG Bar Chart */}
-                <div className="flex-1 min-h-[220px] flex items-end justify-around pb-6 border-b border-slate-100 dark:border-white/5 relative">
+                <div className="flex-1 min-h-[220px] flex items-end justify-around pb-6 border-b border-slate-200/50 dark:border-white/5 relative overflow-x-auto hide-scrollbar gap-4">
                   {/* Grid Lines */}
                   <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-6 opacity-30">
                     <div className="border-b border-slate-200 dark:border-white/10 w-full border-dashed" />
@@ -2729,9 +2784,9 @@ const ProjectTaskBoard = ({
                     return (
                       <div
                         key={sectionName}
-                        className="flex flex-col items-center gap-2 z-10 w-16 group cursor-default shrink-0"
+                        className="flex flex-col items-center gap-2 z-10 w-20 group cursor-default shrink-0"
                       >
-                        <span className="text-xs font-black text-slate-600 dark:text-slate-400 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                        <span className="text-xs font-black text-slate-600 dark:text-slate-405 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
                           {sectionIncompleteCount}
                         </span>
                         <motion.div
@@ -2742,17 +2797,15 @@ const ProjectTaskBoard = ({
                           transition={{ delay: index * 0.1 }}
                           className="w-10 rounded-t-xl bg-gradient-to-t from-blue-600 to-cyan-400 dark:from-[#99cc00] dark:to-[#e5ff00] shadow-[0_0_15px_rgba(56,189,248,0.3)] dark:shadow-[0_0_15px_rgba(229,255,0,0.3)] transition-all duration-300 group-hover:brightness-125"
                         />
-                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-wider pt-1 -rotate-45 origin-top-left mt-6 truncate w-16 text-right">
-                          {sectionName.length > 10
-                            ? sectionName.substring(0, 10) + "..."
-                            : sectionName}
+                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-2 text-center w-full truncate" title={sectionName}>
+                          {sectionName}
                         </span>
                       </div>
                     );
                   })}
                 </div>
 
-                <div className="text-[10px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-wider pt-4 flex items-center justify-between">
+                <div className="text-[9px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-wider pt-4 flex items-center justify-between">
                   <span>2 Filters Active</span>
                   <button className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#1a1a1a] text-blue-600 dark:text-[#e5ff00] hover:bg-slate-200 dark:hover:bg-white/10 transition-all shadow-sm">
                     View Details
@@ -2761,12 +2814,12 @@ const ProjectTaskBoard = ({
               </div>
 
               {/* Chart 2: Total tasks by completion status (Donut Chart) */}
-              <div className="bg-white dark:bg-[#111111] p-6 rounded-2xl border border-slate-100 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-[0_0_20px_rgba(229,255,0,0.05)] flex flex-col transition-all duration-300 hover:shadow-2xl hover:border-slate-200 dark:hover:border-[#e5ff00]/30">
+              <div className="bg-white dark:bg-[#070b13] p-6 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none flex flex-col transition-all duration-300 hover:shadow-2xl hover:border-slate-300 dark:hover:border-[#e5ff00]/30">
                 <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider mb-6">
                   Total tasks by completion status
                 </h4>
 
-                <div className="flex-1 flex items-center justify-center gap-10 py-4 border-b border-slate-100 dark:border-white/5">
+                <div className="flex-1 flex flex-col sm:flex-row items-center justify-center gap-10 py-4 border-b border-slate-200/50 dark:border-white/5">
                   {/* SVG Donut Chart */}
                   <div className="relative w-36 h-36 flex items-center justify-center filter drop-shadow-md">
                     <svg
@@ -2783,12 +2836,13 @@ const ProjectTaskBoard = ({
                         className="dark:stroke-white/5"
                         strokeWidth="3.5"
                       />
-                      {/* Foreground Circle (Incomplete) */}
-                      {totalTasks > 0 && (
+
+                      {/* Completed Segment */}
+                      {totalTasks > 0 && completedTasks > 0 && (
                         <motion.circle
                           initial={{ strokeDasharray: `0 100` }}
                           animate={{
-                            strokeDasharray: `${(incompleteTasks / totalTasks) * 100} ${100 - (incompleteTasks / totalTasks) * 100}`,
+                            strokeDasharray: `${(completedTasks / totalTasks) * 100} ${100 - (completedTasks / totalTasks) * 100}`,
                           }}
                           transition={{
                             type: "tween",
@@ -2799,7 +2853,30 @@ const ProjectTaskBoard = ({
                           cy="18"
                           r="15.915"
                           fill="transparent"
-                          stroke="url(#gradientDonut)" // Premium gradient
+                          stroke="url(#gradientCompleted)"
+                          strokeWidth="3.5"
+                          strokeLinecap="round"
+                        />
+                      )}
+
+                      {/* Foreground Circle (Incomplete Segment) */}
+                      {totalTasks > 0 && incompleteTasks > 0 && (
+                        <motion.circle
+                          initial={{ strokeDasharray: `0 100`, strokeDashoffset: 0 }}
+                          animate={{
+                            strokeDasharray: `${(incompleteTasks / totalTasks) * 100} ${100 - (incompleteTasks / totalTasks) * 100}`,
+                            strokeDashoffset: -((completedTasks / totalTasks) * 100),
+                          }}
+                          transition={{
+                            type: "tween",
+                            ease: "easeOut",
+                            duration: 1.5,
+                          }}
+                          cx="18"
+                          cy="18"
+                          r="15.915"
+                          fill="transparent"
+                          stroke="url(#gradientIncomplete)"
                           strokeWidth="3.5"
                           strokeLinecap="round"
                         />
@@ -2808,24 +2885,24 @@ const ProjectTaskBoard = ({
                       {/* Define Gradients */}
                       <defs>
                         <linearGradient
-                          id="gradientDonut"
+                          id="gradientIncomplete"
                           x1="0%"
                           y1="0%"
                           x2="100%"
                           y2="100%"
                         >
-                          <stop
-                            offset="0%"
-                            stopColor="#8b5cf6"
-                            className="dark:stop-color-[#99cc00]"
-                          />{" "}
-                          {/* Violet 500 / Lime */}
-                          <stop
-                            offset="100%"
-                            stopColor="#ec4899"
-                            className="dark:stop-color-[#e5ff00]"
-                          />{" "}
-                          {/* Pink 500 / Neon Lime */}
+                          <stop offset="0%" stopColor="var(--color-incomplete-start)" />
+                          <stop offset="100%" stopColor="var(--color-incomplete-end)" />
+                        </linearGradient>
+                        <linearGradient
+                          id="gradientCompleted"
+                          x1="0%"
+                          y1="0%"
+                          x2="100%"
+                          y2="100%"
+                        >
+                          <stop offset="0%" stopColor="var(--color-completed-start)" />
+                          <stop offset="100%" stopColor="var(--color-completed-end)" />
                         </linearGradient>
                       </defs>
                     </svg>
@@ -2835,7 +2912,7 @@ const ProjectTaskBoard = ({
                       initial={{ scale: 0, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       transition={{ delay: 0.5, type: "spring" }}
-                      className="absolute inset-0 flex flex-col items-center justify-center"
+                      className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
                     >
                       <span className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-br from-violet-600 to-pink-500 dark:from-[#99cc00] dark:to-[#e5ff00] drop-shadow-sm">
                         {incompleteTasks}
@@ -2849,7 +2926,7 @@ const ProjectTaskBoard = ({
                   {/* Legend details */}
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full bg-gradient-to-br from-violet-500 to-pink-500 dark:from-[#99cc00] dark:to-[#e5ff00] shadow-sm shadow-violet-500/40 dark:shadow-[#e5ff00]/40 shrink-0" />
+                      <div className="w-4 h-4 rounded-full bg-gradient-to-br from-violet-550 to-pink-500 dark:from-[#99cc00] dark:to-[#e5ff00] shadow-sm shadow-violet-500/40 dark:shadow-[#e5ff00]/40 shrink-0" />
                       <div>
                         <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                           Incomplete
@@ -2860,7 +2937,7 @@ const ProjectTaskBoard = ({
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full bg-slate-200 dark:bg-white/5 shadow-sm shrink-0 border border-slate-300 dark:border-white/10" />
+                      <div className="w-4 h-4 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 dark:from-emerald-500/80 dark:to-emerald-500 shadow-sm shrink-0 border border-emerald-100 dark:border-white/10" />
                       <div>
                         <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
                           Completed
@@ -2873,7 +2950,7 @@ const ProjectTaskBoard = ({
                   </div>
                 </div>
 
-                <div className="text-[10px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-wider pt-4 flex items-center justify-between">
+                <div className="text-[9px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-wider pt-4 flex items-center justify-between">
                   <span>1 Filter Active</span>
                   <button className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#1a1a1a] text-blue-600 dark:text-[#e5ff00] hover:bg-slate-200 dark:hover:bg-white/10 transition-all shadow-sm">
                     View Details

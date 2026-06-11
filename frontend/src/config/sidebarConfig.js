@@ -18,7 +18,7 @@ export const sidebarConfig = {
     { name: "Portfolio", path: "/admin/portfolio", icon: LuFolderOpen, permissionKey: "manage_settings" },
     { name: "Projects Overview", path: "/admin/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
     { name: "Tasks", path: "/admin/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
-    { name: "Template Library", path: "/admin/template-library", icon: LuLayoutTemplate, permissionKey: "manage_settings" },
+    // { name: "Template Library", path: "/admin/template-library", icon: LuLayoutTemplate, permissionKey: "manage_settings" },
     { name: "Users", path: "/admin/users", icon: LuUsers, permissionKey: "manage_users" },
     { name: "EOD Reports", path: "/admin/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
     { name: "Calendar", path: "/admin/calendar", icon: LuCalendarDays },

@@ -46,19 +46,40 @@ export const apiSlice = createApi({
           })
         );
         try {
-          await queryFulfilled;
+          const { data: updatedTaskResponse } = await queryFulfilled;
+          dispatch(
+            apiSlice.util.updateQueryData("getTasks", undefined, (draft) => {
+              const index = draft.findIndex((t) => t._id === id);
+              if (index !== -1 && updatedTaskResponse?.data) {
+                draft[index] = updatedTaskResponse.data;
+              }
+            })
+          );
         } catch {
           patchResult.undo();
         }
       },
-      invalidatesTags: ["Task"],
     }),
     deleteTask: builder.mutation({
       query: (id) => ({
         url: `/tasks/${id}`,
         method: "DELETE",
       }),
-      invalidatesTags: ["Task"],
+      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        const patchResult = dispatch(
+          apiSlice.util.updateQueryData("getTasks", undefined, (draft) => {
+            const index = draft.findIndex((t) => t._id === id);
+            if (index !== -1) {
+              draft.splice(index, 1);
+            }
+          })
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResult.undo();
+        }
+      },
     }),
 
     // ==========================================
