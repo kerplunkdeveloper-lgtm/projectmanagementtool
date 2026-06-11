@@ -797,6 +797,33 @@ const ProjectTaskBoard = ({
     }
   };
 
+  // Add subtask via plus button in the table row
+  const handleAddSubtaskViaButton = async (task) => {
+    // Expand the parent task
+    setExpandedTasks((prev) => ({ ...prev, [task._id]: true }));
+
+    const newSubtask = {
+      title: "",
+      status: "Pending",
+      assignedTo: null,
+      dueDate: null,
+      priority: "Medium",
+    };
+    const updatedSubtasks = [...(task.subtasks || []), newSubtask];
+
+    // Auto focus the new subtask (at the end of the array)
+    setAutoFocusSubtaskIdx((task.subtasks || []).length);
+
+    try {
+      await updateTaskMutation({
+        id: task._id,
+        taskData: { subtasks: updatedSubtasks },
+      }).unwrap();
+    } catch (err) {
+      console.error("Failed to add subtask via button:", err);
+    }
+  };
+
   // Delete Subtask
   const handleDeleteSubtask = async (task, subtaskId) => {
     const updatedSubtasks = task.subtasks.filter(
@@ -898,22 +925,7 @@ const ProjectTaskBoard = ({
 
       {/* ACTION HEADER: ADD TASK & TABS SELECTOR */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-6 mb-2">
-        {/* Left Side: Add Task Button */}
-        <div className="flex-shrink-0">
-          {isAdminOrManager ? (
-            <button
-              onClick={() => handleAddTask()}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] sm:text-[10px] rounded-xl bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black shadow-lg  shadow-blue-500/20 dark:shadow-[#e5ff00]/20 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 font-medium uppercase tracking-wider"
-            >
-              <FiPlus size={12} className="shrink-0" />
-              Add Task
-            </button>
-          ) : (
-            <div className="w-1" />
-          )}
-        </div>
-
-        {/* Right Side: Tab Selector - High-end, Premium Design */}
+        {/* Left Side: Tab Selector - High-end, Premium Design */}
         <div className="bg-slate-100/80 dark:bg-[#121212] p-1 rounded-full flex items-center gap-1 w-full overflow-x-auto hide-scrollbar sm:w-fit border border-slate-200/60 dark:border-white/5 shadow-inner backdrop-blur-md">
           {["List", "Board", "Timeline", "Dashboard"].map((tab) => {
             const isActive = activeTab === tab;
@@ -984,6 +996,21 @@ const ProjectTaskBoard = ({
               </button>
             );
           })}
+        </div>
+
+        {/* Right Side: Add Task Button */}
+        <div className="flex-shrink-0">
+          {isAdminOrManager ? (
+            <button
+              onClick={() => handleAddTask()}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] sm:text-[10px] rounded-xl bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black shadow-lg  shadow-blue-500/20 dark:shadow-[#e5ff00]/20 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 font-medium uppercase tracking-wider"
+            >
+              <FiPlus size={12} className="shrink-0" />
+              Add Task
+            </button>
+          ) : (
+            <div className="w-1" />
+          )}
         </div>
       </div>
 
@@ -1239,23 +1266,30 @@ const ProjectTaskBoard = ({
                                           <FiCheck size={9} />
                                         </button>
 
-                                        {/* Task Title Input */}
-                                        <div className="flex-grow min-w-0">
-                                          <TaskTitleInput
-                                            task={task}
-                                            canToggle={canToggle}
-                                            handleTaskFieldChange={
-                                              handleTaskFieldChange
-                                            }
-                                            isCompleted={isCompleted}
-                                            onEnter={() =>
-                                              handleAddTask(
-                                                task.section ||
-                                                  "Recently assigned",
-                                              )
-                                            }
-                                          />
-                                        </div>
+                                         {/* Task Title contentEditable Span */}
+                                         <div className="flex-grow min-w-0">
+                                           <span
+                                             contentEditable={canToggle}
+                                             suppressContentEditableWarning={true}
+                                             placeholder="Write a task name..."
+                                             onBlur={(e) => {
+                                               const val = e.target.innerText.trim();
+                                               if (val !== task.title) {
+                                                 handleTaskFieldChange(task._id, { title: val });
+                                               }
+                                             }}
+                                             onKeyDown={(e) => {
+                                               if (e.key === "Enter") {
+                                                 e.preventDefault();
+                                                 e.target.blur();
+                                                 handleAddTask(task.section || "Recently assigned");
+                                               }
+                                             }}
+                                             className={`font-semibold text-slate-800 dark:text-slate-100 text-[11px] cursor-text outline-none block min-h-[16px] w-full ${
+                                               isCompleted ? "line-through text-slate-450 dark:text-slate-500 font-medium" : ""
+                                             }`}
+                                            >{task.title}</span>
+                                         </div>
 
                                         {/* Subtask Count Badge (static, click opens drawer) */}
                                         {task.subtasks?.length > 0 && (
@@ -1915,15 +1949,28 @@ const ProjectTaskBoard = ({
                                         onClick={(e) => e.stopPropagation()}
                                       >
                                         {isAdminOrManager && (
-                                          <button
-                                            onClick={() =>
-                                              handleParentTaskDelete(task._id)
-                                            }
-                                            className="text-slate-400 hover:text-red-500 transition-colors p-1"
-                                            title="Delete Task"
-                                          >
-                                            <FiTrash2 size={12} />
-                                          </button>
+                                          <>
+                                            <button
+                                              onClick={() =>
+                                                handleAddSubtaskViaButton(task)
+                                              }
+                                              className="text-slate-450 hover:text-blue-500 dark:hover:text-[#e5ff00] transition-colors p-1 flex items-center gap-0.5 text-[9px] font-bold"
+                                              title="Add Subtask"
+                                            >
+                                              <FiPlus size={11} />
+                                              <span>Subtask</span>
+                                            </button>
+
+                                            <button
+                                              onClick={() =>
+                                                handleParentTaskDelete(task._id)
+                                              }
+                                              className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                                              title="Delete Task"
+                                            >
+                                              <FiTrash2 size={12} />
+                                            </button>
+                                          </>
                                         )}
                                       </div>
                                     </td>
@@ -1996,55 +2043,57 @@ const ProjectTaskBoard = ({
                                                   </button>
 
                                                   {/* Subtask Title Input */}
-                                                  <input
-                                                    ref={(el) => {
-                                                      if (
-                                                        autoFocusSubtaskIdx ===
-                                                          subIdx &&
-                                                        el
-                                                      ) {
-                                                        el.focus();
-                                                        el.select();
-                                                        setAutoFocusSubtaskIdx(
-                                                          null,
-                                                        );
-                                                      }
-                                                    }}
-                                                    type="text"
-                                                    defaultValue={sub.title}
-                                                    onBlur={(e) => {
-                                                      const val =
-                                                        e.target.value.trim();
-                                                      if (
-                                                        val !== sub.title
-                                                      ) {
-                                                        handleSubtaskFieldChange(
-                                                          task,
-                                                          sub._id,
-                                                          {
-                                                            title: val,
-                                                          },
-                                                        );
-                                                      }
-                                                    }}
-                                                    onKeyDown={(e) => {
-                                                      if (e.key === "Enter") {
-                                                        e.preventDefault();
-                                                        handleSubtaskEnterKey(
-                                                          task,
-                                                          subIdx,
-                                                          e.target.value,
-                                                          false,
-                                                        );
-                                                      }
-                                                    }}
-                                                    className={`bg-transparent border-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:border-transparent outline-none w-full p-0 font-medium text-slate-700 dark:text-slate-200 px-0 py-0 text-[11px] ${
-                                                      isSubCompleted
-                                                        ? "line-through text-slate-400 dark:text-slate-500"
-                                                        : ""
-                                                    }`}
-                                                    disabled={!canToggleSub}
-                                                  />
+                                                   {/* Subtask Title contentEditable Span */}
+                                                   <span
+                                                     ref={(el) => {
+                                                       if (
+                                                         autoFocusSubtaskIdx ===
+                                                           subIdx &&
+                                                         el
+                                                       ) {
+                                                         el.focus();
+                                                         const range = document.createRange();
+                                                         range.selectNodeContents(el);
+                                                         const sel = window.getSelection();
+                                                         sel.removeAllRanges();
+                                                         sel.addRange(range);
+                                                         setAutoFocusSubtaskIdx(
+                                                           null,
+                                                         );
+                                                       }
+                                                     }}
+                                                     contentEditable={canToggleSub}
+                                                     suppressContentEditableWarning={true}
+                                                     placeholder="Write a subtask..."
+                                                     onBlur={(e) => {
+                                                       const val = e.target.innerText.trim();
+                                                       if (val !== sub.title) {
+                                                         handleSubtaskFieldChange(
+                                                           task,
+                                                           sub._id,
+                                                           {
+                                                             title: val,
+                                                           },
+                                                         );
+                                                       }
+                                                     }}
+                                                     onKeyDown={(e) => {
+                                                       if (e.key === "Enter") {
+                                                         e.preventDefault();
+                                                         handleSubtaskEnterKey(
+                                                           task,
+                                                           subIdx,
+                                                           e.target.innerText,
+                                                           false,
+                                                         );
+                                                       }
+                                                     }}
+                                                     className={`outline-none w-full font-medium text-slate-700 dark:text-slate-200 text-[11px] block min-h-[16px] cursor-text ${
+                                                       isSubCompleted
+                                                         ? "line-through text-slate-400 dark:text-slate-500"
+                                                         : ""
+                                                     }`}
+                                                    >{sub.title}</span>
                                                 </div>
                                               </td>
  
