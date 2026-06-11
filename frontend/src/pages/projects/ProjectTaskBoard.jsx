@@ -29,6 +29,7 @@ import {
   FiCheckCircle,
   FiAlertTriangle,
   FiLayers,
+  FiSliders,
 } from "react-icons/fi";
 import axiosInstance from "../../services/axiosInstance";
 import toast from "react-hot-toast";
@@ -93,7 +94,7 @@ const TaskTitleInput = ({
           e.target.blur();
         }
       }}
-      className={`bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-blue-400/50 w-full p-0 font-semibold text-slate-800 dark:text-slate-100 rounded px-1 py-0 text-[11px] ${
+      className={`bg-transparent border-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:border-transparent outline-none w-full p-0 font-semibold text-slate-800 dark:text-slate-100 px-0 py-0 text-[11px] ${
         isCompleted ? "line-through text-slate-450 dark:text-slate-500" : ""
       }`}
       disabled={!canToggle}
@@ -111,6 +112,10 @@ const SubtaskRow = ({
   handleDeleteSubtask,
   isAdminOrManager,
   currentUser,
+  subIdx,
+  handleSubtaskEnterKey,
+  shouldAutoFocus,
+  onAutoFocused,
 }) => {
   const isSubCompleted = sub.status === "Completed";
   const canToggleSub =
@@ -124,10 +129,9 @@ const SubtaskRow = ({
   }, [sub.title]);
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50/50 hover:bg-slate-55 p-1.5 px-2.5 rounded-lg border border-slate-100 dark:border-slate-800/60 dark:bg-slate-900/50 transition-colors">
-      <div className="flex items-center gap-1.5 flex-1 min-w-0">
-        <FiCornerDownRight className="text-slate-350 shrink-0" size={11} />
-        {/* Subtask Checkbox */}
+    <div className="flex items-center justify-between gap-3 px-3 py-2 bg-white hover:bg-slate-50/80 dark:bg-transparent dark:hover:bg-white/[0.02] border-b border-slate-100 dark:border-white/5 transition-all group relative">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        {/* Circular Checkbox */}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -138,75 +142,79 @@ const SubtaskRow = ({
             }
           }}
           disabled={!canToggleSub}
-          className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center transition-all shrink-0 ${
+          className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center transition-all shrink-0 ${
             !canToggleSub ? "cursor-not-allowed opacity-50" : "cursor-pointer"
           } ${
             isSubCompleted
               ? "bg-emerald-500 border-emerald-500 text-white"
-              : "border-slate-300 dark:border-slate-700 hover:border-blue-500 text-transparent hover:text-slate-400"
+              : "border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
           }`}
         >
-          <FiCheck size={8} />
+          <FiCheck size={9} />
         </button>
 
         {/* Subtask Title Input */}
         <input
+          ref={(el) => {
+            if (shouldAutoFocus && el) {
+              el.focus();
+              el.select();
+              onAutoFocused();
+            }
+          }}
           type="text"
           value={subTitle}
           onChange={(e) => setSubTitle(e.target.value)}
           onBlur={() => {
-            if (subTitle.trim() && subTitle !== sub.title) {
+            const trimmed = subTitle.trim();
+            if (trimmed !== sub.title) {
               handleSubtaskFieldChange(task, sub._id, {
-                title: subTitle.trim(),
+                title: trimmed,
               });
             }
           }}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
-              e.target.blur();
+              e.preventDefault();
+              if (handleSubtaskEnterKey) {
+                handleSubtaskEnterKey(task, subIdx, subTitle, true);
+              } else {
+                e.target.blur();
+              }
             }
           }}
-          onClick={(e) => e.stopPropagation()}
-          className={`bg-transparent border-0 focus:outline-none focus:ring-1 focus:ring-blue-400/50 w-full p-0 font-medium text-slate-700 dark:text-slate-200 rounded px-1 py-0 text-[10px] ${
-            isSubCompleted ? "line-through text-slate-400" : ""
+          placeholder="Write a subtask..."
+          className={`bg-transparent border-0 focus:outline-none focus:ring-0 w-full p-0 font-medium rounded text-[12px] placeholder-slate-400 dark:placeholder-slate-600 transition-all ${
+            isSubCompleted
+              ? "line-through text-slate-400 dark:text-slate-500 font-normal"
+              : "text-slate-800 dark:text-slate-200"
           }`}
           disabled={!canToggleSub}
         />
       </div>
 
       <div
-        className="flex items-center gap-2 shrink-0 text-[9px]"
+        className="flex items-center gap-2 shrink-0"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Subtask Assignee */}
-        <div className="flex items-center gap-1">
-          {isAdminOrManager ? (
-            <select
-              value={sub.assignedTo?._id || sub.assignedTo || ""}
-              onChange={(e) =>
-                handleSubtaskFieldChange(task, sub._id, {
-                  assignedTo: e.target.value || null,
-                })
-              }
-              className="bg-transparent border-0 font-medium text-slate-650 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-850 p-0.5 rounded cursor-pointer focus:outline-none text-[9px]"
-            >
-              <option value="">Unassigned</option>
-              {users.map((u) => (
-                <option key={u._id} value={u._id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
+        {/* Calendar / Date Picker (Always Visible) */}
+        <div className="relative h-6 flex items-center justify-center transition-all cursor-pointer">
+          {sub.dueDate ? (
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-slate-200 dark:border-white/10 hover:border-slate-350 dark:hover:border-[#e5ff00]/40 text-slate-605 dark:text-slate-300 text-[10px] font-semibold bg-slate-50 dark:bg-[#111111] transition-all">
+              <FiCalendar size={10} className="text-slate-400 dark:text-slate-500" />
+              <span>
+                {new Date(sub.dueDate).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                })}
+              </span>
+            </div>
           ) : (
-            <span className="font-medium text-slate-600 dark:text-slate-400">
-              {sub.assignedTo?.name || "Unassigned"}
-            </span>
+            <div className="w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:border-slate-400 hover:text-slate-700 dark:hover:text-[#e5ff00] dark:hover:border-[#e5ff00]/40 bg-white dark:bg-[#111111] transition-all">
+              <FiCalendar size={11} />
+            </div>
           )}
-        </div>
-
-        {/* Subtask Due Date */}
-        <div className="flex items-center gap-1">
-          {isAdminOrManager ? (
+          {isAdminOrManager && (
             <input
               type="date"
               value={
@@ -219,62 +227,70 @@ const SubtaskRow = ({
                   dueDate: e.target.value || null,
                 })
               }
-              className="bg-transparent border-0 hover:bg-slate-100 dark:hover:bg-slate-850 p-0.5 rounded cursor-pointer focus:outline-none text-[9px] text-slate-500 w-22"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
-          ) : (
-            <span className="text-[9px] text-slate-550 dark:text-slate-400">
-              {sub.dueDate ? new Date(sub.dueDate).toLocaleDateString() : "N/A"}
-            </span>
           )}
         </div>
 
-        {/* Subtask Priority */}
-        <div className="flex items-center">
-          {isAdminOrManager ? (
+        {/* Assignee Picker (Always Visible) */}
+        <div className="relative w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:border-slate-400 hover:text-slate-700 dark:hover:text-[#e5ff00] dark:hover:border-[#e5ff00]/40 bg-white dark:bg-[#111111] transition-all cursor-pointer overflow-hidden">
+          {sub.assignedTo ? (
+            sub.assignedTo?.profileImage?.url ? (
+              <img
+                src={sub.assignedTo.profileImage.url}
+                alt={sub.assignedTo.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div
+                className={`w-full h-full flex items-center justify-center text-white text-[8px] font-bold bg-gradient-to-br ${getAvatarColor(
+                  sub.assignedTo?.name || "U",
+                )}`}
+              >
+                {sub.assignedTo?.name
+                  ?.split(" ")
+                  .map((n) => n[0])
+                  .join("") || "U"}
+              </div>
+            )
+          ) : (
+            <FiUser size={11} />
+          )}
+          {isAdminOrManager && (
             <select
-              value={sub.priority || "Medium"}
+              value={sub.assignedTo?._id || sub.assignedTo || ""}
               onChange={(e) =>
                 handleSubtaskFieldChange(task, sub._id, {
-                  priority: e.target.value,
+                  assignedTo: e.target.value || null,
                 })
               }
-              className={`px-1.5 py-0.5 rounded-lg text-[9px] font-extrabold border focus:outline-none cursor-pointer ${
-                sub.priority === "High"
-                  ? "bg-rose-50 text-rose-700 border-rose-200/50"
-                  : sub.priority === "Medium"
-                    ? "bg-amber-50 text-amber-700 border-amber-200/50"
-                    : "bg-slate-50 text-slate-600 border-slate-200"
-              }`}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             >
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
+              <option value="">Unassigned</option>
+              {users.map((u) => (
+                <option key={u._id} value={u._id}>
+                  {u.name}
+                </option>
+              ))}
             </select>
-          ) : (
-            <span
-              className={`px-1.5 py-0.5 rounded-lg text-[9px] font-extrabold border ${
-                sub.priority === "High"
-                  ? "bg-rose-50 text-rose-700 border-rose-200/50"
-                  : sub.priority === "Medium"
-                    ? "bg-amber-50 text-amber-700 border-amber-200/50"
-                    : "bg-slate-50 text-slate-600 border-slate-200"
-              }`}
-            >
-              {sub.priority || "Medium"}
-            </span>
           )}
         </div>
 
-        {/* Delete Subtask */}
+        {/* Delete Button (Always Visible) */}
         {isAdminOrManager && (
           <button
             onClick={() => handleDeleteSubtask(task, sub._id)}
-            className="text-slate-400 hover:text-red-500 p-0.5 transition-colors"
+            className="w-6 h-6 rounded-full border border-slate-200 dark:border-white/5 flex items-center justify-center text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:border-rose-200 dark:hover:border-rose-900/50 bg-white dark:bg-[#111111] transition-all cursor-pointer"
             title="Delete Subtask"
           >
             <FiTrash2 size={11} />
           </button>
         )}
+
+        {/* Right Chevron (Always Visible) */}
+        <div className="text-slate-300 dark:text-slate-600 pl-0.5">
+          <FiChevronRight size={14} />
+        </div>
       </div>
     </div>
   );
@@ -377,6 +393,8 @@ const ProjectTaskBoard = ({
   const [editSectionValue, setEditSectionValue] = useState("");
   const [newComment, setNewComment] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [autoFocusSubtaskIdx, setAutoFocusSubtaskIdx] = useState(null);
+  const [autoFocusDrawerSubtaskIdx, setAutoFocusDrawerSubtaskIdx] = useState(null);
 
   const handleRenameSectionSubmit = async (e, oldName) => {
     e.preventDefault();
@@ -594,7 +612,10 @@ const ProjectTaskBoard = ({
     if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
 
     try {
-      await updateTaskMutation({ id: taskId, taskData: sanitizedFields }).unwrap();
+      await updateTaskMutation({
+        id: taskId,
+        taskData: sanitizedFields,
+      }).unwrap();
     } catch (err) {
       console.error("Failed to update task:", err);
     }
@@ -703,7 +724,10 @@ const ProjectTaskBoard = ({
 
     const updatedSubtasks = [...(task.subtasks || []), newSubtask];
     try {
-      await updateTaskMutation({ id: task._id, taskData: { subtasks: updatedSubtasks } }).unwrap();
+      await updateTaskMutation({
+        id: task._id,
+        taskData: { subtasks: updatedSubtasks },
+      }).unwrap();
     } catch (err) {
       console.error("Failed to add subtask:", err);
     }
@@ -729,9 +753,47 @@ const ProjectTaskBoard = ({
       sub._id === subtaskId ? { ...sub, ...sanitizedFields } : sub,
     );
     try {
-      await updateTaskMutation({ id: task._id, taskData: { subtasks: updatedSubtasks } }).unwrap();
+      await updateTaskMutation({
+        id: task._id,
+        taskData: { subtasks: updatedSubtasks },
+      }).unwrap();
     } catch (err) {
       console.error("Failed to update subtask:", err);
+    }
+  };
+
+  // Insert new subtask on Enter key press
+  const handleSubtaskEnterKey = async (task, subIdx, currentVal, isDrawer = false) => {
+    // 1. Prepare subtasks array and update current subtask title if it changed
+    const updatedSubtasks = (task.subtasks || []).map((s, idx) =>
+      idx === subIdx ? { ...s, title: currentVal } : s
+    );
+
+    // 2. Insert new subtask right after subIdx
+    const newSubtask = {
+      title: "",
+      status: "Pending",
+      assignedTo: null,
+      dueDate: null,
+      priority: "Medium",
+    };
+    updatedSubtasks.splice(subIdx + 1, 0, newSubtask);
+
+    // 3. Set auto-focus index state
+    if (isDrawer) {
+      setAutoFocusDrawerSubtaskIdx(subIdx + 1);
+    } else {
+      setAutoFocusSubtaskIdx(subIdx + 1);
+    }
+
+    // 4. Save to backend
+    try {
+      await updateTaskMutation({
+        id: task._id,
+        taskData: { subtasks: updatedSubtasks },
+      }).unwrap();
+    } catch (err) {
+      console.error("Failed to insert subtask on Enter:", err);
     }
   };
 
@@ -741,7 +803,10 @@ const ProjectTaskBoard = ({
       (sub) => sub._id !== subtaskId,
     );
     try {
-      await updateTaskMutation({ id: task._id, taskData: { subtasks: updatedSubtasks } }).unwrap();
+      await updateTaskMutation({
+        id: task._id,
+        taskData: { subtasks: updatedSubtasks },
+      }).unwrap();
     } catch (err) {
       console.error("Failed to delete subtask:", err);
     }
@@ -799,41 +864,7 @@ const ProjectTaskBoard = ({
     (t) => t.status === "On Hold",
   ).length;
 
-  // Drawer Subtask continuous form
-  const DrawerSubtaskForm = ({ task }) => {
-    const [title, setTitle] = useState("");
-    const inputRef = useRef(null);
 
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      if (!title.trim()) return;
-      handleAddSubtask(task, title);
-      setTitle("");
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
-    };
-
-    return (
-      <form onSubmit={handleSubmit} className="flex items-center gap-2 pt-2">
-        <FiCornerDownRight className="text-slate-350 shrink-0" size={14} />
-        <input
-          ref={inputRef}
-          type="text"
-          placeholder="Type subtask name and press Enter..."
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-[#111111] border border-slate-200 dark:border-white/10 focus:border-blue-500 dark:focus:border-[#e5ff00] rounded-xl focus:outline-none text-[11px] text-slate-700 dark:text-slate-300 transition-all font-semibold"
-        />
-        <button
-          type="submit"
-          className="px-4 py-2.5 bg-blue-600 dark:bg-[#e5ff00] hover:bg-blue-700 dark:hover:bg-[#ccff00] text-white dark:text-black font-extrabold rounded-xl text-[10px] transition-colors shadow-md shadow-blue-500/10 dark:shadow-[#e5ff00]/20 active:scale-95"
-        >
-          Add
-        </button>
-      </form>
-    );
-  };
 
   return (
     <div className="space-y-6 w-full max-w-[1600px] mx-auto px-2 md:px-0 relative">
@@ -961,30 +992,30 @@ const ProjectTaskBoard = ({
         {activeTab === "List" && (
           <div className="overflow-hidden pt-3">
             <div className="overflow-x-auto pb-48 bg-white dark:bg-slate-900/30 shadow-xl shadow-slate-200/50 dark:shadow-none">
-              <table className="w-full text-left border-collapse text-xs">
+              <table className="w-full text-left border-collapse text-[11px] border border-slate-200 dark:border-slate-800/80">
                 <thead>
                   <tr className="bg-slate-50/50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider text-[10px]">
-                    <th className="px-3 py-1.5 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[240px]">
+                    <th className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[240px]">
                       Name
                     </th>
-                    <th className="px-3 py-1.5 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[140px]">
+                    <th className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[140px]">
                       Assignee
                     </th>
-                    <th className="px-3 py-1.5 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                    <th className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
                       Due Date
                     </th>
-                    <th className="px-3 py-1.5 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                    <th className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
                       Priority
                     </th>
-                    <th className="px-3 py-1.5 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                    <th className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
                       Status
                     </th>
-                    <th className="px-3 py-1.5 border-b border-slate-200 dark:border-slate-800 text-center whitespace-nowrap min-w-[80px]">
+                    <th className="px-3 py-1 border-b border-slate-200 dark:border-slate-800 text-center whitespace-nowrap min-w-[80px]">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="text-xs">
+                <tbody className="text-[11px]">
                   {Array.from(
                     new Set(
                       activeProject.sections?.length > 0
@@ -1155,23 +1186,32 @@ const ProjectTaskBoard = ({
                                     {/* Name Field with Circle Checkbox */}
                                     <td
                                       onClick={(e) => e.stopPropagation()}
-                                      className="px-3 py-1 border-b border-slate-200 dark:border-slate-800 font-semibold"
+                                      className="px-3 py-0.5 border-r border-b border-slate-200 dark:border-slate-800 font-semibold"
                                     >
                                       <div className="flex items-center gap-2.5 w-full">
-                                        {/* Subtask Expander Toggle (Chevron on Left) */}
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            toggleTaskExpanded(task._id);
-                                          }}
-                                          className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded transition-colors shrink-0"
-                                        >
-                                          {isExpanded ? (
-                                            <FiChevronDown size={11} />
-                                          ) : (
-                                            <FiChevronRight size={11} />
-                                          )}
-                                        </button>
+                                        {/* Expand/Collapse Chevron (only if subtasks exist) */}
+                                        {task.subtasks?.length > 0 ? (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              toggleTaskExpanded(task._id);
+                                            }}
+                                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded transition-colors shrink-0"
+                                            title={
+                                              isExpanded
+                                                ? "Collapse Subtasks"
+                                                : "Expand Subtasks"
+                                            }
+                                          >
+                                            {isExpanded ? (
+                                              <FiChevronDown size={12} />
+                                            ) : (
+                                              <FiChevronRight size={12} />
+                                            )}
+                                          </button>
+                                        ) : (
+                                          <div className="w-5 shrink-0" />
+                                        )}
 
                                         {/* Circle Checkbox */}
                                         <button
@@ -1217,86 +1257,37 @@ const ProjectTaskBoard = ({
                                           />
                                         </div>
 
-                                        {/* Subtask Count Pill (Only show if there are subtasks) */}
+                                        {/* Subtask Count Badge (static, click opens drawer) */}
                                         {task.subtasks?.length > 0 && (
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              toggleTaskExpanded(task._id);
-                                            }}
-                                            title="View subtasks"
-                                            className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/5 transition-colors cursor-pointer text-[9px] font-bold shrink-0"
-                                          >
-                                            <span>{task.subtasks.length}</span>
-                                            <svg
-                                              viewBox="0 0 24 24"
-                                              className="w-2.5 h-2.5 text-slate-455 dark:text-slate-500"
-                                              fill="none"
-                                              stroke="currentColor"
-                                              strokeWidth="2.5"
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                            >
-                                              <line
-                                                x1="6"
-                                                y1="3"
-                                                x2="6"
-                                                y2="15"
-                                              ></line>
-                                              <circle
-                                                cx="18"
-                                                cy="6"
-                                                r="3"
-                                              ></circle>
-                                              <circle
-                                                cx="6"
-                                                cy="18"
-                                                r="3"
-                                              ></circle>
-                                              <path d="M18 9a9 9 0 0 1-9 9"></path>
-                                            </svg>
-                                          </button>
-                                        )}
-
-                                        {/* Detail Drawer Trigger Chevron (Right end of cell) */}
-                                        <div className="flex items-center gap-1 shrink-0 ml-auto pl-1">
-                                          {/* Double arrows symbol/icon */}
-                                          <span className="text-slate-350 dark:text-slate-600">
-                                            <svg
-                                              viewBox="0 0 24 24"
-                                              className="w-2.5 h-2.5"
-                                              fill="none"
-                                              stroke="currentColor"
-                                              strokeWidth="2.5"
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                            >
-                                              <line
-                                                x1="12"
-                                                y1="5"
-                                                x2="12"
-                                                y2="19"
-                                              ></line>
-                                              <polyline points="19 12 12 19 5 12"></polyline>
-                                              <polyline points="5 12 12 5 19 12"></polyline>
-                                            </svg>
-                                          </span>
                                           <button
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               setSelectedTaskId(task._id);
                                             }}
-                                            className="text-slate-400 hover:text-blue-600 dark:hover:text-[#e5ff00] p-0.5 rounded hover:bg-slate-100/50 dark:hover:bg-white/5 transition-colors"
-                                            title="Open Details"
+                                            title={`${task.subtasks.length} subtask${task.subtasks.length !== 1 ? "s" : ""} — open details`}
+                                            className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/5 text-[8.5px] font-bold shrink-0 hover:bg-blue-50 dark:hover:bg-[#e5ff00]/10 hover:text-blue-600 dark:hover:text-[#e5ff00] hover:border-blue-200 dark:hover:border-[#e5ff00]/20 transition-all"
                                           >
-                                            <FiChevronRight size={13} />
+                                            <FiCornerDownRight size={8} />
+                                            {task.subtasks.length}
                                           </button>
-                                        </div>
+                                        )}
+
+                                        {/* Detail Drawer Open Arrow */}
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedTaskId(task._id);
+                                          }}
+                                          className="ml-auto shrink-0 text-slate-300 dark:text-slate-600 hover:text-blue-500 dark:hover:text-[#e5ff00] p-0.5 rounded hover:bg-slate-100/50 dark:hover:bg-white/5 transition-all opacity-0 group-hover:opacity-100"
+                                          title="Open Task Details"
+                                        >
+                                          <FiChevronRight size={14} />
+                                        </button>
                                       </div>
                                     </td>
 
                                     {/* Assignee Selection */}
-                                    <td className="px-3 py-1 border-b border-slate-200 dark:border-slate-800">
+                                    <td className="px-3 py-0.5 border-r border-b border-slate-200 dark:border-slate-800">
                                       <div
                                         className="flex items-center gap-1.5"
                                         onClick={(e) => e.stopPropagation()}
@@ -1326,7 +1317,7 @@ const ProjectTaskBoard = ({
                                                   .join("") || "U"}
                                               </div>
                                             )}
-                                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-350 max-w-[80px] truncate">
+                                            <span className="text-[9px] font-semibold text-slate-700 dark:text-slate-350 max-w-[80px] truncate">
                                               {task.assignedTo?.name}
                                             </span>
                                             {isAdminOrManager && (
@@ -1407,7 +1398,7 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* Due Date (with Custom Start & End Date picker) */}
-                                    <td className="px-3 py-1 border-b border-slate-200 dark:border-slate-800 relative z-10">
+                                    <td className="px-3 py-0.5 border-r border-b border-slate-200 dark:border-slate-800 relative z-10">
                                       <div
                                         className="flex items-center gap-1.5"
                                         onClick={(e) => e.stopPropagation()}
@@ -1448,7 +1439,7 @@ const ProjectTaskBoard = ({
                                               );
                                               setEditingDateTaskId(task._id);
                                             }}
-                                            className="px-1.5 py-0.5 text-[10px] font-bold rounded-lg bg-rose-50/50 dark:bg-rose-955/20 text-rose-600 dark:text-rose-450 border border-rose-100 dark:border-rose-900/30 flex items-center gap-1 hover:bg-rose-100/30 dark:hover:bg-rose-955/40 transition-colors cursor-pointer"
+                                            className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-rose-50/50 dark:bg-rose-955/20 text-rose-600 dark:text-rose-450 border border-rose-100 dark:border-rose-900/30 flex items-center gap-1 hover:bg-rose-100/30 dark:hover:bg-rose-955/40 transition-colors cursor-pointer"
                                           >
                                             <FiCalendar
                                               size={10}
@@ -1829,7 +1820,7 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* Priority */}
-                                    <td className="px-3 py-1 border-b border-slate-200 dark:border-slate-800">
+                                    <td className="px-3 py-0.5 border-r border-b border-slate-200 dark:border-slate-800">
                                       <div onClick={(e) => e.stopPropagation()}>
                                         {isAdminOrManager ? (
                                           <select
@@ -1870,7 +1861,7 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* Status */}
-                                    <td className="px-3 py-1 border-b border-slate-200 dark:border-slate-800">
+                                    <td className="px-3 py-0.5 border-r border-b border-slate-200 dark:border-slate-800">
                                       <div onClick={(e) => e.stopPropagation()}>
                                         {isAdminOrManager ? (
                                           <select
@@ -1918,22 +1909,11 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* Action Controls */}
-                                    <td className="px-3 py-1 border-b border-slate-200 dark:border-slate-800 text-center">
+                                    <td className="px-3 py-0.5 border-b border-slate-200 dark:border-slate-800 text-center">
                                       <div
                                         className="flex items-center justify-center gap-2.5"
                                         onClick={(e) => e.stopPropagation()}
                                       >
-                                        {isAdminOrManager && (
-                                          <button
-                                            onClick={() =>
-                                              toggleTaskExpanded(task._id)
-                                            }
-                                            className="text-slate-455 hover:text-indigo-650 font-extrabold text-[9px] uppercase tracking-wider"
-                                            title="Manage Subtasks"
-                                          >
-                                            + Subtask
-                                          </button>
-                                        )}
                                         {isAdminOrManager && (
                                           <button
                                             onClick={() =>
@@ -1949,87 +1929,486 @@ const ProjectTaskBoard = ({
                                     </td>
                                   </tr>
 
-                                  {/* Inline Subtasks Workspace (Chevron Expanded) */}
                                   {isExpanded && (
-                                    <tr className="bg-slate-50/20 dark:bg-slate-900/10 border-b border-slate-200 dark:border-slate-800">
-                                      <td
-                                        colSpan={6}
-                                        className="pl-12 pr-6 py-3"
-                                      >
-                                        <div className="space-y-2.5 border-l-2 border-slate-100 dark:border-slate-800 pl-4 py-1">
-                                          <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
-                                            Subtasks List
-                                          </h4>
+                                    <>
+                                      {(task.subtasks || []).map(
+                                        (sub, subIdx) => {
+                                          const isSubCompleted =
+                                            sub.status === "Completed";
+                                          const canToggleSub =
+                                            isAdminOrManager ||
+                                            sub.assignedTo?._id ===
+                                              currentUser?._id ||
+                                            sub.assignedTo === currentUser?._id;
+                                          const rowBgSub = isSubCompleted
+                                            ? "bg-slate-55/20 text-slate-400 dark:text-slate-500"
+                                            : subIdx % 2 === 0
+                                              ? "bg-white dark:bg-slate-800/20 text-slate-800 dark:text-slate-100"
+                                              : "bg-slate-50/20 dark:bg-slate-900/5 text-slate-800 dark:text-slate-100";
 
-                                          {/* List existing subtasks */}
-                                          {(task.subtasks || []).map((sub) => (
-                                            <SubtaskRow
-                                              key={sub._id}
-                                              sub={sub}
-                                              task={task}
-                                              users={users}
-                                              getAvatarColor={getAvatarColor}
-                                              handleSubtaskFieldChange={
-                                                handleSubtaskFieldChange
-                                              }
-                                              handleDeleteSubtask={
-                                                handleDeleteSubtask
-                                              }
-                                              isAdminOrManager={
-                                                isAdminOrManager
-                                              }
-                                              currentUser={currentUser}
-                                            />
-                                          ))}
-
-                                          {/* Inline Add Subtask Form */}
-                                          {isAdminOrManager && (
-                                            <form
-                                              onSubmit={(e) =>
-                                                handleInlineAddSubtaskSubmit(
-                                                  e,
-                                                  task,
-                                                )
-                                              }
-                                              className="flex items-center gap-2 pt-1.5"
-                                              onClick={(e) =>
-                                                e.stopPropagation()
-                                              }
+                                          return (
+                                            <tr
+                                              key={sub._id || subIdx}
+                                              className={`group/subrow transition-colors ${rowBgSub} hover:bg-blue-55/10 dark:hover:bg-[#e5ff00]/5`}
                                             >
-                                              <FiCornerDownRight
-                                                className="text-slate-350"
-                                                size={13}
-                                              />
-                                              <input
-                                                type="text"
-                                                placeholder="Add subtask and press enter..."
-                                                value={
-                                                  inlineSubtaskTitle[
-                                                    task._id
-                                                  ] || ""
+                                              {/* 1. Name Column */}
+                                              <td
+                                                className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800 font-semibold pl-10"
+                                                onClick={(e) =>
+                                                  e.stopPropagation()
                                                 }
-                                                onChange={(e) =>
-                                                  setInlineSubtaskTitle(
-                                                    (prev) => ({
-                                                      ...prev,
-                                                      [task._id]:
-                                                        e.target.value,
-                                                    }),
-                                                  )
-                                                }
-                                                className="w-full max-w-sm px-3.5 py-1.5 bg-slate-50 dark:bg-[#1a1a1a] border border-slate-200 dark:border-white/10 focus:border-blue-500 dark:focus:border-[#e5ff00] rounded-xl focus:outline-none text-[11px] text-slate-655 dark:text-slate-300 font-semibold transition-colors"
-                                              />
-                                              <button
-                                                type="submit"
-                                                className="px-3.5 py-1.5 bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-white hover:bg-slate-200 dark:hover:bg-white/10 rounded-xl text-[10px] font-bold transition-colors"
                                               >
-                                                Add
-                                              </button>
-                                            </form>
-                                          )}
-                                        </div>
-                                      </td>
-                                    </tr>
+                                                <div className="flex items-center gap-2 w-full pl-4 border-l border-slate-150 dark:border-slate-850">
+                                                  <FiCornerDownRight
+                                                    className="text-slate-400 shrink-0"
+                                                    size={11}
+                                                  />
+
+                                                  {/* Subtask Checkbox */}
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      if (canToggleSub) {
+                                                        handleSubtaskFieldChange(
+                                                          task,
+                                                          sub._id,
+                                                          {
+                                                            status:
+                                                              isSubCompleted
+                                                                ? "Pending"
+                                                                : "Completed",
+                                                          },
+                                                        );
+                                                      }
+                                                    }}
+                                                    disabled={!canToggleSub}
+                                                    className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center transition-all shrink-0 ${
+                                                      !canToggleSub
+                                                        ? "cursor-not-allowed opacity-50"
+                                                        : "cursor-pointer"
+                                                    } ${
+                                                      isSubCompleted
+                                                        ? "bg-emerald-500 border-emerald-500 text-white"
+                                                        : "border-slate-300 dark:border-white/10 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
+                                                    }`}
+                                                  >
+                                                    <FiCheck size={8} />
+                                                  </button>
+
+                                                  {/* Subtask Title Input */}
+                                                  <input
+                                                    ref={(el) => {
+                                                      if (
+                                                        autoFocusSubtaskIdx ===
+                                                          subIdx &&
+                                                        el
+                                                      ) {
+                                                        el.focus();
+                                                        el.select();
+                                                        setAutoFocusSubtaskIdx(
+                                                          null,
+                                                        );
+                                                      }
+                                                    }}
+                                                    type="text"
+                                                    defaultValue={sub.title}
+                                                    onBlur={(e) => {
+                                                      const val =
+                                                        e.target.value.trim();
+                                                      if (
+                                                        val !== sub.title
+                                                      ) {
+                                                        handleSubtaskFieldChange(
+                                                          task,
+                                                          sub._id,
+                                                          {
+                                                            title: val,
+                                                          },
+                                                        );
+                                                      }
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                      if (e.key === "Enter") {
+                                                        e.preventDefault();
+                                                        handleSubtaskEnterKey(
+                                                          task,
+                                                          subIdx,
+                                                          e.target.value,
+                                                          false,
+                                                        );
+                                                      }
+                                                    }}
+                                                    className={`bg-transparent border-0 focus:outline-none focus:ring-0 focus:ring-transparent focus:border-transparent outline-none w-full p-0 font-medium text-slate-700 dark:text-slate-200 px-0 py-0 text-[11px] ${
+                                                      isSubCompleted
+                                                        ? "line-through text-slate-400 dark:text-slate-500"
+                                                        : ""
+                                                    }`}
+                                                    disabled={!canToggleSub}
+                                                  />
+                                                </div>
+                                              </td>
+ 
+                                              {/* 2. Assignee Column */}
+                                              <td className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800">
+                                                <div
+                                                  className="flex items-center gap-1.5"
+                                                  onClick={(e) =>
+                                                    e.stopPropagation()
+                                                  }
+                                                >
+                                                  {sub.assignedTo ? (
+                                                    <div className="group/subassigned relative flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/80 px-1.5 py-0.5 rounded-lg border border-slate-100 dark:border-slate-800 transition-colors">
+                                                      {sub.assignedTo
+                                                        ?.profileImage?.url ? (
+                                                        <img
+                                                          src={
+                                                            sub.assignedTo
+                                                              .profileImage.url
+                                                          }
+                                                          alt={
+                                                            sub.assignedTo.name
+                                                          }
+                                                          className="w-4.5 h-4.5 rounded-full object-cover border border-slate-100 dark:border-slate-800 shrink-0"
+                                                        />
+                                                      ) : (
+                                                        <div
+                                                          className={`w-4.5 h-4.5 rounded-full flex items-center justify-center text-white font-bold text-[8px] bg-gradient-to-br shrink-0 ${getAvatarColor(
+                                                            sub.assignedTo
+                                                              ?.name ||
+                                                              "Unknown",
+                                                          )}`}
+                                                        >
+                                                          {sub.assignedTo?.name
+                                                            ?.split(" ")
+                                                            .map((n) => n[0])
+                                                            .join("") || "U"}
+                                                        </div>
+                                                      )}
+                                                      <span className="text-[9px] font-semibold text-slate-700 dark:text-slate-350 max-w-[80px] truncate">
+                                                        {sub.assignedTo?.name}
+                                                      </span>
+                                                      {isAdminOrManager && (
+                                                        <select
+                                                          value={
+                                                            sub.assignedTo
+                                                              ?._id ||
+                                                            sub.assignedTo ||
+                                                            ""
+                                                          }
+                                                          onChange={(e) =>
+                                                            handleSubtaskFieldChange(
+                                                              task,
+                                                              sub._id,
+                                                              {
+                                                                assignedTo:
+                                                                  e.target
+                                                                    .value ||
+                                                                  null,
+                                                              },
+                                                            )
+                                                          }
+                                                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                        >
+                                                          <option value="">
+                                                            Unassigned
+                                                          </option>
+                                                          {users.map((u) => (
+                                                            <option
+                                                              key={u._id}
+                                                              value={u._id}
+                                                            >
+                                                              {u.name}
+                                                            </option>
+                                                          ))}
+                                                        </select>
+                                                      )}
+                                                    </div>
+                                                  ) : (
+                                                    <div className="group/subassign relative w-5 h-5 flex items-center justify-center cursor-pointer">
+                                                      <div className="w-5 h-5 rounded-full border border-dashed border-slate-350 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-600 hover:border-slate-400 dark:hover:border-slate-500 transition-colors bg-white dark:bg-slate-900">
+                                                        <FiUser
+                                                          size={10}
+                                                          className="group-hover/subassign:hidden"
+                                                        />
+                                                        <FiPlus
+                                                          size={10}
+                                                          className="hidden group-hover/subassign:block text-blue-500 dark:text-[#e5ff00]"
+                                                        />
+                                                      </div>
+                                                      {isAdminOrManager && (
+                                                        <select
+                                                          value=""
+                                                          onChange={(e) =>
+                                                            handleSubtaskFieldChange(
+                                                              task,
+                                                              sub._id,
+                                                              {
+                                                                assignedTo:
+                                                                  e.target
+                                                                    .value ||
+                                                                  null,
+                                                              },
+                                                            )
+                                                          }
+                                                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                        >
+                                                          <option value="">
+                                                            Assignee
+                                                          </option>
+                                                          {users.map((u) => (
+                                                            <option
+                                                              key={u._id}
+                                                              value={u._id}
+                                                            >
+                                                              {u.name}
+                                                            </option>
+                                                          ))}
+                                                        </select>
+                                                      )}
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </td>
+ 
+                                              {/* 3. Due Date Column */}
+                                              <td className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800">
+                                                <div
+                                                  className="flex items-center gap-1.5"
+                                                  onClick={(e) =>
+                                                    e.stopPropagation()
+                                                  }
+                                                >
+                                                  {sub.dueDate ? (
+                                                    <div className="relative group/subdate">
+                                                      <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-rose-50/50 dark:bg-rose-955/20 text-rose-600 dark:text-rose-450 border border-rose-100 dark:border-rose-900/30 flex items-center gap-1 hover:bg-rose-100/30 dark:hover:bg-rose-955/40 transition-colors cursor-pointer">
+                                                        <FiCalendar
+                                                          size={10}
+                                                          className="shrink-0 text-rose-500"
+                                                        />
+                                                        <span>
+                                                          {new Date(
+                                                            sub.dueDate,
+                                                          ).toLocaleDateString(
+                                                            undefined,
+                                                            {
+                                                              month: "short",
+                                                              day: "numeric",
+                                                            },
+                                                          )}
+                                                        </span>
+                                                      </span>
+                                                      {isAdminOrManager && (
+                                                        <input
+                                                          type="date"
+                                                          value={
+                                                            new Date(
+                                                              sub.dueDate,
+                                                            )
+                                                              .toISOString()
+                                                              .split("T")[0]
+                                                          }
+                                                          onChange={(e) =>
+                                                            handleSubtaskFieldChange(
+                                                              task,
+                                                              sub._id,
+                                                              {
+                                                                dueDate:
+                                                                  e.target
+                                                                    .value ||
+                                                                  null,
+                                                              },
+                                                            )
+                                                          }
+                                                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                        />
+                                                      )}
+                                                    </div>
+                                                  ) : (
+                                                    <div className="group/subdate relative w-5 h-5 flex items-center justify-center cursor-pointer">
+                                                      <div className="w-5 h-5 rounded-full border border-dashed border-slate-350 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-600 hover:border-slate-400 dark:hover:border-slate-500 transition-colors bg-white dark:bg-slate-900">
+                                                        <FiCalendar
+                                                          size={10}
+                                                          className="group-hover/subdate:hidden"
+                                                        />
+                                                        <FiPlus
+                                                          size={10}
+                                                          className="hidden group-hover/subdate:block text-blue-500 dark:text-[#e5ff00]"
+                                                        />
+                                                      </div>
+                                                      {isAdminOrManager && (
+                                                        <input
+                                                          type="date"
+                                                          value=""
+                                                          onChange={(e) =>
+                                                            handleSubtaskFieldChange(
+                                                              task,
+                                                              sub._id,
+                                                              {
+                                                                dueDate:
+                                                                  e.target
+                                                                    .value ||
+                                                                  null,
+                                                              },
+                                                            )
+                                                          }
+                                                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                        />
+                                                      )}
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </td>
+ 
+                                              {/* 4. Priority Column */}
+                                              <td className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800">
+                                                <div
+                                                  onClick={(e) =>
+                                                    e.stopPropagation()
+                                                  }
+                                                >
+                                                  {isAdminOrManager ? (
+                                                    <select
+                                                      value={
+                                                        sub.priority || "Medium"
+                                                      }
+                                                      onChange={(e) =>
+                                                        handleSubtaskFieldChange(
+                                                          task,
+                                                          sub._id,
+                                                          {
+                                                            priority:
+                                                              e.target.value,
+                                                          },
+                                                        )
+                                                      }
+                                                      className={`px-1.5 py-0.5 rounded-xl text-[9px] font-extrabold border focus:outline-none cursor-pointer ${
+                                                        sub.priority === "High"
+                                                          ? "bg-rose-55/10 text-rose-700 border-rose-200/50 dark:bg-rose-955/20 dark:text-rose-400 dark:border-rose-800/40"
+                                                          : sub.priority ===
+                                                              "Medium"
+                                                            ? "bg-amber-55/10 text-amber-700 border-amber-200/50 dark:bg-amber-955/20 dark:text-amber-400 dark:border-amber-800/40"
+                                                            : "bg-slate-50 text-slate-655 border-slate-200 dark:bg-slate-850 dark:text-slate-355 dark:border-slate-750"
+                                                      }`}
+                                                    >
+                                                      <option value="Low">
+                                                        Low
+                                                      </option>
+                                                      <option value="Medium">
+                                                        Medium
+                                                      </option>
+                                                      <option value="High">
+                                                        High
+                                                      </option>
+                                                    </select>
+                                                  ) : (
+                                                    <span
+                                                      className={`px-1.5 py-0.5 rounded-xl text-[9px] font-extrabold border ${
+                                                        sub.priority === "High"
+                                                          ? "bg-rose-50 text-rose-700 border-rose-200/50"
+                                                          : sub.priority ===
+                                                              "Medium"
+                                                            ? "bg-amber-50 text-amber-700 border-amber-200/50"
+                                                            : "bg-slate-50 text-slate-600 border-slate-200"
+                                                      }`}
+                                                    >
+                                                      {sub.priority || "Medium"}
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              </td>
+ 
+                                              {/* 5. Status Column */}
+                                              <td className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800">
+                                                <div
+                                                  onClick={(e) =>
+                                                    e.stopPropagation()
+                                                  }
+                                                >
+                                                  {isAdminOrManager ? (
+                                                    <select
+                                                      value={
+                                                        sub.status || "Pending"
+                                                      }
+                                                      onChange={(e) =>
+                                                        handleSubtaskFieldChange(
+                                                          task,
+                                                          sub._id,
+                                                          {
+                                                            status:
+                                                              e.target.value,
+                                                          },
+                                                        )
+                                                      }
+                                                      className={`px-1.5 py-0.5 rounded-xl text-[9px] font-extrabold border focus:outline-none cursor-pointer ${
+                                                        sub.status ===
+                                                        "Completed"
+                                                          ? "bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-800/40"
+                                                          : sub.status ===
+                                                              "In Progress"
+                                                            ? "bg-blue-55 text-blue-755 border-blue-200/55 dark:bg-[#e5ff00]/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30"
+                                                            : "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-955/20 dark:text-amber-400 dark:border-amber-800/40"
+                                                      }`}
+                                                    >
+                                                      <option value="Pending">
+                                                        Pending
+                                                      </option>
+                                                      <option value="In Progress">
+                                                        In Progress
+                                                      </option>
+                                                      <option value="Completed">
+                                                        Completed
+                                                      </option>
+                                                      <option value="On Hold">
+                                                        On Hold
+                                                      </option>
+                                                    </select>
+                                                  ) : (
+                                                    <span
+                                                      className={`px-1.5 py-0.5 rounded-xl text-[9px] font-extrabold border ${
+                                                        sub.status ===
+                                                        "Completed"
+                                                          ? "bg-emerald-55/10 text-emerald-600 border-emerald-200"
+                                                          : sub.status ===
+                                                              "In Progress"
+                                                            ? "bg-blue-55/10 text-blue-600 border-blue-200"
+                                                            : "bg-amber-55/10 text-amber-600 border-amber-200"
+                                                      }`}
+                                                    >
+                                                      {sub.status || "Pending"}
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              </td>
+ 
+                                              {/* 6. Actions Column */}
+                                              <td className="px-3 py-1 border-b border-slate-200 dark:border-slate-800 text-center">
+                                                <div
+                                                  className="flex items-center justify-center gap-2.5 opacity-0 group-hover/subrow:opacity-100 transition-opacity"
+                                                  onClick={(e) =>
+                                                    e.stopPropagation()
+                                                  }
+                                                >
+                                                  {isAdminOrManager && (
+                                                    <button
+                                                      onClick={() =>
+                                                        handleDeleteSubtask(
+                                                          task,
+                                                          sub._id,
+                                                        )
+                                                      }
+                                                      className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                                                      title="Delete Subtask"
+                                                    >
+                                                      <FiTrash2 size={12} />
+                                                    </button>
+                                                  )}
+                                                </div>
+                                              </td>
+                                            </tr>
+                                          );
+                                        },
+                                      )}
+                                    </>
                                   )}
                                 </React.Fragment>
                               );
@@ -2098,7 +2477,6 @@ const ProjectTaskBoard = ({
         {activeTab === "Board" && (
           <DragDropContext onDragEnd={handleDragEnd}>
             <div className="space-y-4 ">
-
               {/* Board Columns Grid */}
               <div className="flex gap-4 items-start overflow-x-auto pb-4 hide-scrollbar snap-x">
                 {Array.from(
@@ -2403,273 +2781,331 @@ const ProjectTaskBoard = ({
           </DragDropContext>
         )}
 
-        {activeTab === "Timeline" && (() => {
-          // Date helpers self-contained
-          const todayDate = new Date();
-          const baseDate = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate());
-          // Shift timeline by the timelineOffsetWeeks state
-          const timelineStart = new Date(baseDate.getTime() + timelineOffsetWeeks * 7 * 24 * 60 * 60 * 1000 - 7 * 24 * 60 * 60 * 1000);
-          
-          const getWeekRange = (weekIndex) => {
-            const start = new Date(timelineStart.getTime() + weekIndex * 7 * 24 * 60 * 60 * 1000);
-            const end = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
-            // Calculate simple ISO week number or close approximation
-            const d = new Date(Date.UTC(start.getFullYear(), start.getMonth(), start.getDate()));
-            const dayNum = d.getUTCDay() || 7;
-            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-            const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-            
-            return {
-              label: `Week ${weekNo}`,
-              dates: `${start.toLocaleDateString("en-US", { day: "numeric", month: "short" })} - ${end.toLocaleDateString("en-US", { day: "numeric", month: "short" })}`
+        {activeTab === "Timeline" &&
+          (() => {
+            // Date helpers self-contained
+            const todayDate = new Date();
+            const baseDate = new Date(
+              todayDate.getFullYear(),
+              todayDate.getMonth(),
+              todayDate.getDate(),
+            );
+            // Shift timeline by the timelineOffsetWeeks state
+            const timelineStart = new Date(
+              baseDate.getTime() +
+                timelineOffsetWeeks * 7 * 24 * 60 * 60 * 1000 -
+                7 * 24 * 60 * 60 * 1000,
+            );
+
+            const getWeekRange = (weekIndex) => {
+              const start = new Date(
+                timelineStart.getTime() + weekIndex * 7 * 24 * 60 * 60 * 1000,
+              );
+              const end = new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
+              // Calculate simple ISO week number or close approximation
+              const d = new Date(
+                Date.UTC(
+                  start.getFullYear(),
+                  start.getMonth(),
+                  start.getDate(),
+                ),
+              );
+              const dayNum = d.getUTCDay() || 7;
+              d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+              const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+              const weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+
+              return {
+                label: `Week ${weekNo}`,
+                dates: `${start.toLocaleDateString("en-US", { day: "numeric", month: "short" })} - ${end.toLocaleDateString("en-US", { day: "numeric", month: "short" })}`,
+              };
             };
-          };
 
-          const activeSections = Array.from(
-            new Set(
-              activeProject.sections?.length > 0
-                ? activeProject.sections
-                : ["Recently assigned"],
-            ),
-          );
+            const activeSections = Array.from(
+              new Set(
+                activeProject.sections?.length > 0
+                  ? activeProject.sections
+                  : ["Recently assigned"],
+              ),
+            );
 
-          return (
-            <div className="space-y-4">
-              {/* Timeline Action Header */}
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setTimelineOffsetWeeks((prev) => prev - 1)}
-                    className="p-1 rounded-lg border border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-650 dark:text-slate-355 cursor-pointer"
-                    title="Previous Week"
-                  >
-                    <FiChevronLeft size={16} />
-                  </button>
-                  <button
-                    onClick={() => setTimelineOffsetWeeks(0)}
-                    className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-650 dark:text-slate-355 cursor-pointer"
-                  >
-                    Today
-                  </button>
-                  <button
-                    onClick={() => setTimelineOffsetWeeks((prev) => prev + 1)}
-                    className="p-1 rounded-lg border border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-650 dark:text-slate-355 cursor-pointer"
-                    title="Next Week"
-                  >
-                    <FiChevronRight size={16} />
-                  </button>
-                </div>
-                
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-550 dark:text-slate-400 bg-slate-50 dark:bg-[#141414] px-2.5 py-1 rounded-lg border border-slate-100 dark:border-white/5">
-                  {timelineStart.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-                </span>
-              </div>
-
-              {/* Main Timeline Card Container */}
-              <div className="flex border border-slate-200/60 dark:border-white/5 bg-white dark:bg-[#070b13] rounded-2xl overflow-hidden min-h-[500px] shadow-sm">
-                {/* Timeline Left Sidebar (Sections & Tasks list) */}
-                <div className="w-[180px] sm:w-[220px] border-r border-slate-200 dark:border-white/5 shrink-0 flex flex-col bg-slate-50/50 dark:bg-[#0b101c]/40 z-10 pt-[52px]">
-                  {activeSections.map((sectionName) => (
-                    <React.Fragment key={sectionName}>
-                      <div className="border-b border-slate-200 dark:border-white/5 h-10 flex items-center justify-between px-3 bg-slate-100/40 dark:bg-[#161616]/30">
-                        <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-700 dark:text-slate-350">
-                          <FiChevronDown size={12} className="text-slate-400" />
-                          <span className="truncate">{sectionName}</span>
-                        </div>
-                        {isAdminOrManager && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAddTask(sectionName);
-                            }}
-                            className="p-1 hover:bg-slate-200 dark:hover:bg-white/10 dark:hover:text-[#e5ff00] rounded text-slate-400 transition-colors cursor-pointer"
-                          >
-                            <FiPlus size={11} />
-                          </button>
-                        )}
-                      </div>
-                      {/* Render tasks under section in sidebar */}
-                      {activeProjectTasks
-                        .filter(
-                          (t) =>
-                            t.section === sectionName ||
-                            (!t.section && sectionName === "Recently assigned"),
-                        )
-                        .map((task) => (
-                          <div
-                            key={`sidebar-${task._id}`}
-                            onClick={() => setSelectedTaskId(task._id)}
-                            className="border-b border-slate-100 dark:border-white/5 h-8 flex items-center px-3 pl-6 hover:bg-blue-50/50 dark:hover:bg-white/5 cursor-pointer transition-colors"
-                          >
-                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 mr-1.5 ${
-                              task.status === "Completed" ? "bg-emerald-500" :
-                              task.status === "In Progress" ? "bg-blue-500 dark:bg-[#e5ff00]" :
-                              task.status === "On Hold" ? "bg-amber-500" : "bg-slate-400"
-                            }`} />
-                            <span className="truncate text-[9.5px] font-bold text-slate-655 dark:text-slate-350">
-                              {task.title || "Untitled Task"}
-                            </span>
-                          </div>
-                        ))}
-                    </React.Fragment>
-                  ))}
-                  {isAdminOrManager && (
-                    <div className="py-3 px-3 h-10 flex items-center">
-                      <button
-                        onClick={() => setIsAddingSection(true)}
-                        className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 hover:text-slate-800 dark:hover:text-[#e5ff00] transition-colors cursor-pointer"
-                      >
-                        <FiPlus size={11} /> Add section
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Timeline Right Grid Area */}
-                <div className="flex-1 overflow-x-auto relative hide-scrollbar">
-                  {/* Timeline Header (Months & Weeks) */}
-                  <div className="flex flex-col border-b border-slate-200 dark:border-white/5 min-w-[800px] bg-slate-50 dark:bg-[#090d16] sticky top-0 z-20">
-                    <div className="flex h-13">
-                      {[0, 1, 2, 3].map((weekIdx) => {
-                        const weekData = getWeekRange(weekIdx);
-                        return (
-                          <div
-                            key={weekIdx}
-                            className="w-1/4 px-3 flex flex-col justify-center border-r border-slate-200 dark:border-white/5"
-                          >
-                            <span className="text-[9px] font-black text-slate-700 dark:text-slate-350">
-                              {weekData.label}
-                            </span>
-                            <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500">
-                              {weekData.dates}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
+            return (
+              <div className="space-y-4">
+                {/* Timeline Action Header */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setTimelineOffsetWeeks((prev) => prev - 1)}
+                      className="p-1 rounded-lg border border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-650 dark:text-slate-355 cursor-pointer"
+                      title="Previous Week"
+                    >
+                      <FiChevronLeft size={16} />
+                    </button>
+                    <button
+                      onClick={() => setTimelineOffsetWeeks(0)}
+                      className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-650 dark:text-slate-355 cursor-pointer"
+                    >
+                      Today
+                    </button>
+                    <button
+                      onClick={() => setTimelineOffsetWeeks((prev) => prev + 1)}
+                      className="p-1 rounded-lg border border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-650 dark:text-slate-355 cursor-pointer"
+                      title="Next Week"
+                    >
+                      <FiChevronRight size={16} />
+                    </button>
                   </div>
 
-                  {/* Timeline Body (Grid) */}
-                  <div className="relative min-w-[800px] h-full w-full">
-                    {/* Background grid */}
-                    <div className="absolute inset-0 flex w-full pointer-events-none">
-                      {[...Array(28)].map((_, i) => {
-                        const cellDate = new Date(timelineStart.getTime() + i * 24 * 60 * 60 * 1000);
-                        const isWeekend = cellDate.getDay() === 0 || cellDate.getDay() === 6;
-                        const isTodayCell = cellDate.toDateString() === baseDate.toDateString();
-                        return (
-                          <div
-                            key={i}
-                            className={`flex-1 border-r border-slate-200/50 dark:border-white/5 h-full ${
-                              isWeekend ? "bg-slate-50/[0.15] dark:bg-white/[0.02]" : ""
-                            } ${isTodayCell ? "bg-blue-50/10 dark:bg-[#e5ff00]/5" : ""}`}
-                          />
-                        );
-                      })}
-                    </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-550 dark:text-slate-400 bg-slate-50 dark:bg-[#141414] px-2.5 py-1 rounded-lg border border-slate-100 dark:border-white/5">
+                    {timelineStart.toLocaleDateString("en-US", {
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
 
-                    {/* Task Rows mapped parallel to sections */}
-                    <div className="relative z-10 w-full flex flex-col pb-20">
-                      {activeSections.map((sectionName) => (
-                        <React.Fragment key={`grid-${sectionName}`}>
-                          <div className="h-10 border-b border-slate-200 dark:border-white/5 w-full" />
-                          {activeProjectTasks
-                            .filter(
-                              (t) =>
-                                t.section === sectionName ||
-                                (!t.section &&
-                                  sectionName === "Recently assigned"),
-                            )
-                            .map((task) => {
-                              // Calculate real date-based positioning
-                              const taskStart = task.startDate ? new Date(task.startDate) : new Date(baseDate);
-                              const taskEnd = task.dueDate ? new Date(task.dueDate) : new Date(taskStart.getTime() + 24 * 60 * 60 * 1000);
-                              
-                              const startOffsetMs = taskStart.getTime() - timelineStart.getTime();
-                              let startOffsetDays = startOffsetMs / (1000 * 60 * 60 * 24);
-                              
-                              const durationMs = taskEnd.getTime() - taskStart.getTime();
-                              let durationDays = Math.ceil(durationMs / (1000 * 60 * 60 * 24));
-                              if (durationDays <= 0) durationDays = 1;
-
-                              // Bounds constraint for 28-day window
-                              let showOnTimeline = true;
-                              if (startOffsetDays + durationDays < 0 || startOffsetDays > 28) {
-                                showOnTimeline = false;
-                              }
-
-                              // Constrain bar within the visible 28 columns
-                              if (showOnTimeline) {
-                                if (startOffsetDays < 0) {
-                                  durationDays = Math.max(1, durationDays + startOffsetDays);
-                                  startOffsetDays = 0;
-                                }
-                                if (startOffsetDays + durationDays > 28) {
-                                  durationDays = 28 - startOffsetDays;
-                                }
-                              }
-
-                              const leftPercent = (startOffsetDays / 28) * 100;
-                              const widthPercent = (durationDays / 28) * 100;
-
-                              return (
-                                <div
-                                  key={`grid-task-${task._id}`}
-                                  className="h-8 border-b border-slate-100 dark:border-white/5 w-full relative group"
-                                >
-                                  {showOnTimeline && (
-                                    <div
-                                      onClick={() => setSelectedTaskId(task._id)}
-                                      style={{
-                                        left: `${leftPercent}%`,
-                                        width: `${widthPercent}%`,
-                                      }}
-                                      className={`absolute top-1 h-6 rounded-lg shadow-sm text-[9.5px] font-black px-2 flex items-center justify-between truncate cursor-pointer transition-all hover:scale-[1.01] hover:brightness-105 ${
-                                        task.status === "Completed"
-                                          ? "bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-100 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400"
-                                          : task.status === "In Progress"
-                                            ? "bg-blue-50 dark:bg-[#e5ff00]/10 border border-blue-100 dark:border-[#e5ff00]/20 text-blue-700 dark:text-[#e5ff00]"
-                                            : task.status === "On Hold"
-                                              ? "bg-amber-55 dark:bg-amber-550/15 border border-amber-100 dark:border-amber-500/20 text-amber-700 dark:text-amber-400"
-                                              : "bg-slate-50 dark:bg-slate-500/15 border border-slate-200 dark:border-slate-500/20 text-slate-600 dark:text-slate-400"
-                                      }`}
-                                      title={`${task.title || "Untitled Task"} (${task.startDate ? new Date(task.startDate).toLocaleDateString() : "No Start"} - ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No Due Date"})`}
-                                    >
-                                      <span className="truncate pr-1">{task.title || "Untitled Task"}</span>
-                                    </div>
-                                  )}
-                                  {isAdminOrManager && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleParentTaskDelete(task._id);
-                                      }}
-                                      className="absolute right-4 top-1 opacity-0 group-hover:opacity-100 text-rose-500 p-1 bg-white dark:bg-[#161616] rounded z-20 hover:bg-rose-50 dark:hover:bg-white/5 border border-rose-100 dark:border-white/10 shadow-sm transition-opacity cursor-pointer"
-                                    >
-                                      <FiTrash2 size={10} />
-                                    </button>
-                                  )}
-                                </div>
-                              );
-                            })}
-                        </React.Fragment>
-                      ))}
-                    </div>
-
-                    {/* Today Line */}
-                    {timelineOffsetWeeks === 0 && (
-                      <>
-                        <div className="absolute top-0 bottom-0 left-[25%] w-px bg-blue-500 dark:bg-[#e5ff00]/60 z-10 pointer-events-none" />
-                        <div className="absolute -top-1 left-[25%] -translate-x-1/2 w-2 h-2 rounded-full bg-blue-500 dark:bg-[#e5ff00] z-10 pointer-events-none" />
-                      </>
+                {/* Main Timeline Card Container */}
+                <div className="flex border border-slate-200/60 dark:border-white/5 bg-white dark:bg-[#070b13] rounded-2xl overflow-hidden min-h-[500px] shadow-sm">
+                  {/* Timeline Left Sidebar (Sections & Tasks list) */}
+                  <div className="w-[180px] sm:w-[220px] border-r border-slate-200 dark:border-white/5 shrink-0 flex flex-col bg-slate-50/50 dark:bg-[#0b101c]/40 z-10 pt-[52px]">
+                    {activeSections.map((sectionName) => (
+                      <React.Fragment key={sectionName}>
+                        <div className="border-b border-slate-200 dark:border-white/5 h-10 flex items-center justify-between px-3 bg-slate-100/40 dark:bg-[#161616]/30">
+                          <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-700 dark:text-slate-350">
+                            <FiChevronDown
+                              size={12}
+                              className="text-slate-400"
+                            />
+                            <span className="truncate">{sectionName}</span>
+                          </div>
+                          {isAdminOrManager && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddTask(sectionName);
+                              }}
+                              className="p-1 hover:bg-slate-200 dark:hover:bg-white/10 dark:hover:text-[#e5ff00] rounded text-slate-400 transition-colors cursor-pointer"
+                            >
+                              <FiPlus size={11} />
+                            </button>
+                          )}
+                        </div>
+                        {/* Render tasks under section in sidebar */}
+                        {activeProjectTasks
+                          .filter(
+                            (t) =>
+                              t.section === sectionName ||
+                              (!t.section &&
+                                sectionName === "Recently assigned"),
+                          )
+                          .map((task) => (
+                            <div
+                              key={`sidebar-${task._id}`}
+                              onClick={() => setSelectedTaskId(task._id)}
+                              className="border-b border-slate-100 dark:border-white/5 h-8 flex items-center px-3 pl-6 hover:bg-blue-50/50 dark:hover:bg-white/5 cursor-pointer transition-colors"
+                            >
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full shrink-0 mr-1.5 ${
+                                  task.status === "Completed"
+                                    ? "bg-emerald-500"
+                                    : task.status === "In Progress"
+                                      ? "bg-blue-500 dark:bg-[#e5ff00]"
+                                      : task.status === "On Hold"
+                                        ? "bg-amber-500"
+                                        : "bg-slate-400"
+                                }`}
+                              />
+                              <span className="truncate text-[9.5px] font-bold text-slate-655 dark:text-slate-350">
+                                {task.title || "Untitled Task"}
+                              </span>
+                            </div>
+                          ))}
+                      </React.Fragment>
+                    ))}
+                    {isAdminOrManager && (
+                      <div className="py-3 px-3 h-10 flex items-center">
+                        <button
+                          onClick={() => setIsAddingSection(true)}
+                          className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 hover:text-slate-800 dark:hover:text-[#e5ff00] transition-colors cursor-pointer"
+                        >
+                          <FiPlus size={11} /> Add section
+                        </button>
+                      </div>
                     )}
                   </div>
+
+                  {/* Timeline Right Grid Area */}
+                  <div className="flex-1 overflow-x-auto relative hide-scrollbar">
+                    {/* Timeline Header (Months & Weeks) */}
+                    <div className="flex flex-col border-b border-slate-200 dark:border-white/5 min-w-[800px] bg-slate-50 dark:bg-[#090d16] sticky top-0 z-20">
+                      <div className="flex h-13">
+                        {[0, 1, 2, 3].map((weekIdx) => {
+                          const weekData = getWeekRange(weekIdx);
+                          return (
+                            <div
+                              key={weekIdx}
+                              className="w-1/4 px-3 flex flex-col justify-center border-r border-slate-200 dark:border-white/5"
+                            >
+                              <span className="text-[9px] font-black text-slate-700 dark:text-slate-350">
+                                {weekData.label}
+                              </span>
+                              <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500">
+                                {weekData.dates}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Timeline Body (Grid) */}
+                    <div className="relative min-w-[800px] h-full w-full">
+                      {/* Background grid */}
+                      <div className="absolute inset-0 flex w-full pointer-events-none">
+                        {[...Array(28)].map((_, i) => {
+                          const cellDate = new Date(
+                            timelineStart.getTime() + i * 24 * 60 * 60 * 1000,
+                          );
+                          const isWeekend =
+                            cellDate.getDay() === 0 || cellDate.getDay() === 6;
+                          const isTodayCell =
+                            cellDate.toDateString() === baseDate.toDateString();
+                          return (
+                            <div
+                              key={i}
+                              className={`flex-1 border-r border-slate-200/50 dark:border-white/5 h-full ${
+                                isWeekend
+                                  ? "bg-slate-50/[0.15] dark:bg-white/[0.02]"
+                                  : ""
+                              } ${isTodayCell ? "bg-blue-50/10 dark:bg-[#e5ff00]/5" : ""}`}
+                            />
+                          );
+                        })}
+                      </div>
+
+                      {/* Task Rows mapped parallel to sections */}
+                      <div className="relative z-10 w-full flex flex-col pb-20">
+                        {activeSections.map((sectionName) => (
+                          <React.Fragment key={`grid-${sectionName}`}>
+                            <div className="h-10 border-b border-slate-200 dark:border-white/5 w-full" />
+                            {activeProjectTasks
+                              .filter(
+                                (t) =>
+                                  t.section === sectionName ||
+                                  (!t.section &&
+                                    sectionName === "Recently assigned"),
+                              )
+                              .map((task) => {
+                                // Calculate real date-based positioning
+                                const taskStart = task.startDate
+                                  ? new Date(task.startDate)
+                                  : new Date(baseDate);
+                                const taskEnd = task.dueDate
+                                  ? new Date(task.dueDate)
+                                  : new Date(
+                                      taskStart.getTime() + 24 * 60 * 60 * 1000,
+                                    );
+
+                                const startOffsetMs =
+                                  taskStart.getTime() - timelineStart.getTime();
+                                let startOffsetDays =
+                                  startOffsetMs / (1000 * 60 * 60 * 24);
+
+                                const durationMs =
+                                  taskEnd.getTime() - taskStart.getTime();
+                                let durationDays = Math.ceil(
+                                  durationMs / (1000 * 60 * 60 * 24),
+                                );
+                                if (durationDays <= 0) durationDays = 1;
+
+                                // Bounds constraint for 28-day window
+                                let showOnTimeline = true;
+                                if (
+                                  startOffsetDays + durationDays < 0 ||
+                                  startOffsetDays > 28
+                                ) {
+                                  showOnTimeline = false;
+                                }
+
+                                // Constrain bar within the visible 28 columns
+                                if (showOnTimeline) {
+                                  if (startOffsetDays < 0) {
+                                    durationDays = Math.max(
+                                      1,
+                                      durationDays + startOffsetDays,
+                                    );
+                                    startOffsetDays = 0;
+                                  }
+                                  if (startOffsetDays + durationDays > 28) {
+                                    durationDays = 28 - startOffsetDays;
+                                  }
+                                }
+
+                                const leftPercent =
+                                  (startOffsetDays / 28) * 100;
+                                const widthPercent = (durationDays / 28) * 100;
+
+                                return (
+                                  <div
+                                    key={`grid-task-${task._id}`}
+                                    className="h-8 border-b border-slate-100 dark:border-white/5 w-full relative group"
+                                  >
+                                    {showOnTimeline && (
+                                      <div
+                                        onClick={() =>
+                                          setSelectedTaskId(task._id)
+                                        }
+                                        style={{
+                                          left: `${leftPercent}%`,
+                                          width: `${widthPercent}%`,
+                                        }}
+                                        className={`absolute top-1 h-6 rounded-lg shadow-sm text-[9.5px] font-black px-2 flex items-center justify-between truncate cursor-pointer transition-all hover:scale-[1.01] hover:brightness-105 ${
+                                          task.status === "Completed"
+                                            ? "bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-100 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+                                            : task.status === "In Progress"
+                                              ? "bg-blue-50 dark:bg-[#e5ff00]/10 border border-blue-100 dark:border-[#e5ff00]/20 text-blue-700 dark:text-[#e5ff00]"
+                                              : task.status === "On Hold"
+                                                ? "bg-amber-55 dark:bg-amber-550/15 border border-amber-100 dark:border-amber-500/20 text-amber-700 dark:text-amber-400"
+                                                : "bg-slate-50 dark:bg-slate-500/15 border border-slate-200 dark:border-slate-500/20 text-slate-600 dark:text-slate-400"
+                                        }`}
+                                        title={`${task.title || "Untitled Task"} (${task.startDate ? new Date(task.startDate).toLocaleDateString() : "No Start"} - ${task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No Due Date"})`}
+                                      >
+                                        <span className="truncate pr-1">
+                                          {task.title || "Untitled Task"}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {isAdminOrManager && (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleParentTaskDelete(task._id);
+                                        }}
+                                        className="absolute right-4 top-1 opacity-0 group-hover:opacity-100 text-rose-500 p-1 bg-white dark:bg-[#161616] rounded z-20 hover:bg-rose-50 dark:hover:bg-white/5 border border-rose-100 dark:border-white/10 shadow-sm transition-opacity cursor-pointer"
+                                      >
+                                        <FiTrash2 size={10} />
+                                      </button>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                          </React.Fragment>
+                        ))}
+                      </div>
+
+                      {/* Today Line */}
+                      {timelineOffsetWeeks === 0 && (
+                        <>
+                          <div className="absolute top-0 bottom-0 left-[25%] w-px bg-blue-500 dark:bg-[#e5ff00]/60 z-10 pointer-events-none" />
+                          <div className="absolute -top-1 left-[25%] -translate-x-1/2 w-2 h-2 rounded-full bg-blue-500 dark:bg-[#e5ff00] z-10 pointer-events-none" />
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })()}
+            );
+          })()}
 
         {activeTab === "Dashboard" && (
           <div className="space-y-6">
@@ -2682,7 +3118,10 @@ const ProjectTaskBoard = ({
               {/* Card 1: Total Completed */}
               <div className="relative overflow-hidden p-5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-[#070b13] border-slate-200/60 dark:border-white/5 shadow-lg shadow-slate-100/40 dark:shadow-none hover:shadow-xl group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-20 pointer-events-none" />
-                <FiCheckCircle size={24} className="text-emerald-500/40 dark:text-emerald-400/25 absolute top-5 right-5 pointer-events-none" />
+                <FiCheckCircle
+                  size={24}
+                  className="text-emerald-500/40 dark:text-emerald-400/25 absolute top-5 right-5 pointer-events-none"
+                />
                 <div className="relative z-10">
                   <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Completed tasks
@@ -2699,7 +3138,10 @@ const ProjectTaskBoard = ({
               {/* Card 2: Total Incomplete */}
               <div className="relative overflow-hidden p-5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-[#070b13] border-slate-200/60 dark:border-white/5 shadow-lg shadow-slate-100/40 dark:shadow-none hover:shadow-xl group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 dark:bg-[#e5ff00] rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-20 pointer-events-none" />
-                <FiClock size={24} className="text-blue-550/40 dark:text-[#e5ff00]/25 absolute top-5 right-5 pointer-events-none" />
+                <FiClock
+                  size={24}
+                  className="text-blue-550/40 dark:text-[#e5ff00]/25 absolute top-5 right-5 pointer-events-none"
+                />
                 <div className="relative z-10">
                   <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Incomplete tasks
@@ -2716,7 +3158,10 @@ const ProjectTaskBoard = ({
               {/* Card 3: Total Overdue */}
               <div className="relative overflow-hidden p-5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-[#070b13] border-slate-200/60 dark:border-white/5 shadow-lg shadow-slate-100/40 dark:shadow-none hover:shadow-xl group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-20 pointer-events-none" />
-                <FiAlertTriangle size={24} className="text-rose-500/40 dark:text-rose-450/25 absolute top-5 right-5 pointer-events-none" />
+                <FiAlertTriangle
+                  size={24}
+                  className="text-rose-500/40 dark:text-rose-450/25 absolute top-5 right-5 pointer-events-none"
+                />
                 <div className="relative z-10">
                   <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Overdue tasks
@@ -2733,7 +3178,10 @@ const ProjectTaskBoard = ({
               {/* Card 4: Total Tasks */}
               <div className="relative overflow-hidden p-5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-[#070b13] border-slate-200/60 dark:border-white/5 shadow-lg shadow-slate-100/40 dark:shadow-none hover:shadow-xl group">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-slate-400 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-10 pointer-events-none" />
-                <FiLayers size={24} className="text-slate-500/40 dark:text-white/20 absolute top-5 right-5 pointer-events-none" />
+                <FiLayers
+                  size={24}
+                  className="text-slate-500/40 dark:text-white/20 absolute top-5 right-5 pointer-events-none"
+                />
                 <div className="relative z-10">
                   <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Total tasks
@@ -2797,7 +3245,10 @@ const ProjectTaskBoard = ({
                           transition={{ delay: index * 0.1 }}
                           className="w-10 rounded-t-xl bg-gradient-to-t from-blue-600 to-cyan-400 dark:from-[#99cc00] dark:to-[#e5ff00] shadow-[0_0_15px_rgba(56,189,248,0.3)] dark:shadow-[0_0_15px_rgba(229,255,0,0.3)] transition-all duration-300 group-hover:brightness-125"
                         />
-                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-2 text-center w-full truncate" title={sectionName}>
+                        <span
+                          className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-2 text-center w-full truncate"
+                          title={sectionName}
+                        >
                           {sectionName}
                         </span>
                       </div>
@@ -2862,10 +3313,16 @@ const ProjectTaskBoard = ({
                       {/* Foreground Circle (Incomplete Segment) */}
                       {totalTasks > 0 && incompleteTasks > 0 && (
                         <motion.circle
-                          initial={{ strokeDasharray: `0 100`, strokeDashoffset: 0 }}
+                          initial={{
+                            strokeDasharray: `0 100`,
+                            strokeDashoffset: 0,
+                          }}
                           animate={{
                             strokeDasharray: `${(incompleteTasks / totalTasks) * 100} ${100 - (incompleteTasks / totalTasks) * 100}`,
-                            strokeDashoffset: -((completedTasks / totalTasks) * 100),
+                            strokeDashoffset: -(
+                              (completedTasks / totalTasks) *
+                              100
+                            ),
                           }}
                           transition={{
                             type: "tween",
@@ -2891,8 +3348,14 @@ const ProjectTaskBoard = ({
                           x2="100%"
                           y2="100%"
                         >
-                          <stop offset="0%" stopColor="var(--color-incomplete-start)" />
-                          <stop offset="100%" stopColor="var(--color-incomplete-end)" />
+                          <stop
+                            offset="0%"
+                            stopColor="var(--color-incomplete-start)"
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="var(--color-incomplete-end)"
+                          />
                         </linearGradient>
                         <linearGradient
                           id="gradientCompleted"
@@ -2901,8 +3364,14 @@ const ProjectTaskBoard = ({
                           x2="100%"
                           y2="100%"
                         >
-                          <stop offset="0%" stopColor="var(--color-completed-start)" />
-                          <stop offset="100%" stopColor="var(--color-completed-end)" />
+                          <stop
+                            offset="0%"
+                            stopColor="var(--color-completed-start)"
+                          />
+                          <stop
+                            offset="100%"
+                            stopColor="var(--color-completed-end)"
+                          />
                         </linearGradient>
                       </defs>
                     </svg>
@@ -3259,6 +3728,129 @@ const ProjectTaskBoard = ({
                     )}
                   </div>
                 </div>
+                {/* ── Asana-style Subtask Workspace ── */}
+                <div className="pt-4 border-t border-slate-100 dark:border-white/5">
+                  {/* Header */}
+                  <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-100 dark:border-white/5">
+                    <div className="flex items-center gap-2.5">
+                      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                        Subtasks
+                      </h3>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400">
+                        {
+                          (selectedTask.subtasks || []).filter(
+                            (s) => s.status === "Completed",
+                          ).length
+                        }
+                        /{selectedTask.subtasks?.length || 0}
+                      </span>
+                      {isAdminOrManager && (
+                        <button
+                          onClick={async () => {
+                            const updatedSubtasks = [...(selectedTask.subtasks || [])];
+                            const newSubtask = {
+                              title: "",
+                              status: "Pending",
+                              assignedTo: null,
+                              dueDate: null,
+                              priority: "Medium",
+                            };
+                            updatedSubtasks.push(newSubtask);
+                            setAutoFocusDrawerSubtaskIdx(updatedSubtasks.length - 1);
+                            try {
+                              await updateTaskMutation({
+                                id: selectedTask._id,
+                                taskData: { subtasks: updatedSubtasks },
+                              }).unwrap();
+                            } catch (err) {
+                              console.error("Failed to add subtask:", err);
+                            }
+                          }}
+                          className="p-1 hover:bg-slate-150 dark:hover:bg-white/5 rounded text-slate-500 hover:text-slate-850 dark:text-slate-400 dark:hover:text-[#e5ff00] transition-colors cursor-pointer"
+                          title="Add subtask"
+                        >
+                          <FiPlus size={16} />
+                        </button>
+                      )}
+                    </div>
+                    <button className="p-1 hover:bg-slate-100 dark:hover:bg-white/5 rounded text-slate-400 hover:text-slate-655 dark:text-slate-500 dark:hover:text-slate-350 transition-colors">
+                      <FiSliders size={14} />
+                    </button>
+                  </div>
+
+                  {/* Subtask rows — Asana style */}
+                  <div className="rounded-xl border border-slate-150 dark:border-white/10 overflow-hidden bg-white dark:bg-[#0b0b0b] divide-y divide-slate-100/80 dark:divide-white/5">
+                    {/* Empty state */}
+                    {(!selectedTask.subtasks ||
+                      selectedTask.subtasks.length === 0) && (
+                      <div className="flex flex-col items-center gap-2 py-8 text-slate-450 dark:text-slate-550">
+                        <FiCornerDownRight size={22} strokeWidth={1.5} />
+                        <span className="text-[11px] font-semibold">
+                          No subtasks yet
+                        </span>
+                        <span className="text-[10px] opacity-70">
+                          Add a subtask below to break this task down
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Subtask rows */}
+                    {(selectedTask.subtasks || []).map((sub, subIdx) => {
+                      const isSubDone = sub.status === "Completed";
+                      const canEdit =
+                        isAdminOrManager ||
+                        sub.assignedTo?._id === currentUser?._id ||
+                        sub.assignedTo === currentUser?._id;
+                      return (
+                        <SubtaskRow
+                          key={sub._id || subIdx}
+                          sub={sub}
+                          task={selectedTask}
+                          users={users}
+                          getAvatarColor={getAvatarColor}
+                          handleSubtaskFieldChange={handleSubtaskFieldChange}
+                          handleDeleteSubtask={handleDeleteSubtask}
+                          isAdminOrManager={isAdminOrManager}
+                          currentUser={currentUser}
+                          subIdx={subIdx}
+                          handleSubtaskEnterKey={handleSubtaskEnterKey}
+                          shouldAutoFocus={autoFocusDrawerSubtaskIdx === subIdx}
+                          onAutoFocused={() => setAutoFocusDrawerSubtaskIdx(null)}
+                        />
+                      );
+                    })}
+
+                    {/* Add Subtask trigger button at bottom */}
+                    {isAdminOrManager && (
+                      <button
+                        onClick={async () => {
+                          const updatedSubtasks = [...(selectedTask.subtasks || [])];
+                          const newSubtask = {
+                            title: "",
+                            status: "Pending",
+                            assignedTo: null,
+                            dueDate: null,
+                            priority: "Medium",
+                          };
+                          updatedSubtasks.push(newSubtask);
+                          setAutoFocusDrawerSubtaskIdx(updatedSubtasks.length - 1);
+                          try {
+                            await updateTaskMutation({
+                              id: selectedTask._id,
+                              taskData: { subtasks: updatedSubtasks },
+                            }).unwrap();
+                          } catch (err) {
+                            console.error("Failed to add subtask:", err);
+                          }
+                        }}
+                        className="w-full text-left px-3.5 py-2 text-[11px] font-medium text-slate-500 hover:text-slate-850 dark:text-slate-400 dark:hover:text-[#e5ff00] hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-all flex items-center gap-1.5 cursor-pointer border-t border-slate-100 dark:border-white/5"
+                      >
+                        <FiPlus size={12} />
+                        Add subtask
+                      </button>
+                    )}
+                  </div>
+                </div>
 
                 {/* Comments & Attachments */}
                 <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
@@ -3275,7 +3867,7 @@ const ProjectTaskBoard = ({
                           href={att.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-[10px] font-bold text-blue-600 dark:text-[#e5ff00] hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                          className="flex items-center gap-2 px-3 py-1.5 bg-slate-55 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-[10px] font-bold text-blue-600 dark:text-[#e5ff00] hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
                         >
                           <FiFile size={12} /> {att.filename}
                         </a>
@@ -3299,7 +3891,7 @@ const ProjectTaskBoard = ({
                               {new Date(comment.createdAt).toLocaleDateString()}
                             </span>
                           </div>
-                          <div className="text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-[#111] p-2 rounded-lg rounded-tl-none border border-slate-100 dark:border-white/5">
+                          <div className="text-xs text-slate-655 dark:text-slate-400 bg-slate-50 dark:bg-[#111] p-2 rounded-lg rounded-tl-none border border-slate-100 dark:border-white/5">
                             {comment.text}
                           </div>
                         </div>
@@ -3345,7 +3937,7 @@ const ProjectTaskBoard = ({
                             />
                             <label
                               htmlFor="task-attachment"
-                              className={`p-2 text-slate-400 hover:text-blue-600 dark:hover:text-[#e5ff00] cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors ${isUploading ? "opacity-50 cursor-not-allowed" : ""}`}
+                              className={`p-2 text-slate-400 hover:text-blue-600 dark:hover:text-[#e5ff00] cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors ${isUploading ? "opacity-55 cursor-not-allowed" : ""}`}
                             >
                               <FiPaperclip size={14} />
                             </label>
@@ -3361,44 +3953,6 @@ const ProjectTaskBoard = ({
                       )
                     );
                   })()}
-                </div>
-
-                {/* Subtask workspace inside the preview drawer */}
-                <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
-                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2">
-                    <h3 className="text-xs font-black text-slate-500 uppercase tracking-wider">
-                      Subtasks Workspace ({selectedTask.subtasks?.length || 0})
-                    </h3>
-                  </div>
-
-                  {/* Continuous subtask addition input */}
-                  {isAdminOrManager && (
-                    <DrawerSubtaskForm task={selectedTask} />
-                  )}
-
-                  {/* Subtask list */}
-                  <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
-                    {selectedTask.subtasks?.length === 0 ? (
-                      <div className="text-center py-6 text-slate-400 text-xs italic bg-slate-55/30 rounded-xl border border-dashed border-slate-200 dark:border-white/10">
-                        No subtasks created. Type above to add multiple subtasks
-                        continuously.
-                      </div>
-                    ) : (
-                      selectedTask.subtasks.map((sub) => (
-                        <SubtaskRow
-                          key={sub._id}
-                          sub={sub}
-                          task={selectedTask}
-                          users={users}
-                          getAvatarColor={getAvatarColor}
-                          handleSubtaskFieldChange={handleSubtaskFieldChange}
-                          handleDeleteSubtask={handleDeleteSubtask}
-                          isAdminOrManager={isAdminOrManager}
-                          currentUser={currentUser}
-                        />
-                      ))
-                    )}
-                  </div>
                 </div>
               </div>
             </motion.div>
