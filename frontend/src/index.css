@@ -6,7 +6,7 @@
 
 /* Responsive base font sizes for proper scaling across devices */
 html {
-  font-size: 15px; /* Base size for mobile devices */
+  font-size: 17px; /* Base size for mobile devices */
 }
 
 @media (min-width: 768px) {
@@ -17,7 +17,7 @@ html {
 
 @media (min-width: 1024px) {
   html {
-    font-size: 14px; /* Desktop/Laptop standard size */
+    font-size: 16px; /* Desktop/Laptop standard size */
   }
 }
 

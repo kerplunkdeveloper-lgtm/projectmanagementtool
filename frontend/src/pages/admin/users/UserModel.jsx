@@ -32,6 +32,7 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
   if (!openModal) return null;
 
   const INPUT = "w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 transition-all text-sm text-slate-700";
+  const SELECT_INPUT = "w-full h-9 bg-gray-50 border border-gray-200 rounded-xl px-3 py-0 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 transition-all text-sm text-slate-700 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em] pr-8";
   const LABEL = "block text-[10px] font-semibold text-slate-500 uppercase tracking-wide mb-1";
 
   return (
@@ -92,7 +93,7 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={LABEL}>Role <span className="normal-case text-red-600">*</span></label>
-              <select name="role" value={formData.role} onChange={handleChange} className={INPUT + " cursor-pointer"}>
+              <select name="role" value={formData.role} onChange={handleChange} className={SELECT_INPUT}>
                 <option value="team">Team</option>
                 <option value="admin">Admin</option>
                 <option value="operationmanager">Op. Manager</option>
