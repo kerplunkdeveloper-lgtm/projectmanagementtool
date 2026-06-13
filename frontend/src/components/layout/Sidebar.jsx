@@ -61,8 +61,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   });
 
   const [isWorkOpen, setIsWorkOpen] = useState(false);
-  const [isProjectsListOpen, setIsProjectsListOpen] = useState(false);
-  const [isPortfoliosListOpen, setIsPortfoliosListOpen] = useState(false);
+  const [isProjectsListOpen, setIsProjectsListOpen] = useState(true);
+  const [isPortfoliosListOpen, setIsPortfoliosListOpen] = useState(true);
 
   useEffect(() => {
     dispatch(getProjects());

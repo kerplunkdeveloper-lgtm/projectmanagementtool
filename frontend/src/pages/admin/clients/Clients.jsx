@@ -40,6 +40,59 @@ import {
 
 import { getUsers } from "../../../features/users/userSlice";
 
+const getUserColor = (userId) => {
+  if (!userId) return { bg: "bg-slate-50/80 dark:bg-slate-900/10", text: "text-slate-400 dark:text-slate-500", border: "border-slate-200 dark:border-slate-800" };
+  let hash = 0;
+  const str = String(userId);
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const colors = [
+    {
+      bg: "bg-indigo-50/80 dark:bg-indigo-950/30",
+      text: "text-indigo-600 dark:text-indigo-300",
+      border: "border-indigo-100/80 dark:border-indigo-900/40"
+    },
+    {
+      bg: "bg-fuchsia-50/80 dark:bg-fuchsia-950/30",
+      text: "text-fuchsia-600 dark:text-fuchsia-300",
+      border: "border-fuchsia-100/80 dark:border-fuchsia-900/40"
+    },
+    {
+      bg: "bg-emerald-50/80 dark:bg-emerald-950/30",
+      text: "text-emerald-600 dark:text-emerald-300",
+      border: "border-emerald-100/80 dark:border-emerald-900/40"
+    },
+    {
+      bg: "bg-rose-50/80 dark:bg-rose-950/30",
+      text: "text-rose-600 dark:text-rose-300",
+      border: "border-rose-100/80 dark:border-rose-900/40"
+    },
+    {
+      bg: "bg-cyan-50/80 dark:bg-cyan-950/30",
+      text: "text-cyan-600 dark:text-cyan-300",
+      border: "border-cyan-100/80 dark:border-cyan-900/40"
+    },
+    {
+      bg: "bg-amber-50/80 dark:bg-amber-950/30",
+      text: "text-amber-600 dark:text-amber-300",
+      border: "border-amber-100/80 dark:border-amber-900/40"
+    },
+    {
+      bg: "bg-teal-50/80 dark:bg-teal-950/30",
+      text: "text-teal-600 dark:text-teal-300",
+      border: "border-teal-100/80 dark:border-teal-900/40"
+    },
+    {
+      bg: "bg-violet-50/80 dark:bg-violet-950/30",
+      text: "text-violet-600 dark:text-violet-300",
+      border: "border-violet-100/80 dark:border-violet-900/40"
+    }
+  ];
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+};
+
 const Clients = () => {
   const dispatch = useDispatch();
 
@@ -325,7 +378,7 @@ const Clients = () => {
                             <div className="flex items-center gap-2.5">
                              
                               <div className="min-w-[120px]">
-                                <h2 className="font-semibold text-slate-800 dark:text-slate-200 hover:text-blue-600 dark:hover:text-[#e5ff00] transition-colors text-xs truncate">
+                                <h2 className="font-bold text-blue-600 dark:text-[#e5ff00] transition-colors text-xs truncate">
                                   {client.companyName}
                                 </h2>
                                 <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium flex items-center gap-1 mt-0.5 truncate">
@@ -342,7 +395,7 @@ const Clients = () => {
                               {client.phoneNumber ? (
                                 <a
                                   href={`tel:${client.phoneNumber}`}
-                                  className="flex items-center gap-1 text-[11px] text-slate-650 dark:text-slate-400 hover:text-blue-600 dark:hover:text-[#e5ff00] font-medium"
+                                  className="flex items-center gap-1 text-[11px] text-slate-650 dark:text-white hover:text-blue-600 dark:hover:text-[#e5ff00] font-medium"
                                 >
                                   <FiPhone size={10} className="text-slate-400 dark:text-slate-500" />
                                   {client.phoneNumber}
@@ -352,7 +405,7 @@ const Clients = () => {
                               {client.email ? (
                                 <a
                                   href={`mailto:${client.email}`}
-                                  className="flex items-center gap-1 text-[11px] text-slate-655 dark:text-slate-400 hover:text-blue-600 dark:hover:text-[#e5ff00] font-medium truncate max-w-[150px]"
+                                  className="flex items-center gap-1 text-[11px] text-slate-655 dark:text-white hover:text-blue-600 dark:hover:text-[#e5ff00] font-medium"
                                 >
                                   <FiMail size={10} className="text-slate-400 dark:text-slate-500" />
                                   {client.email}
@@ -368,14 +421,22 @@ const Clients = () => {
                                 <ServiceIcon size={9} />
                                 {client.service || "Contract"}
                               </span>
-                              <div className="text-[10px] font-medium text-slate-505 dark:text-slate-450 flex items-center gap-1">
+                              <div className="pt-0.5">
                                 {client.assignedTo ? (
-                                  <>
-                                    <FiUser size={10} className="text-slate-400 dark:text-slate-550" />
-                                    <span>Assigned: {client.assignedTo.name || client.assignedTo.email}</span>
-                                  </>
+                                  (() => {
+                                    const uCol = getUserColor(client.assignedTo._id || client.assignedTo);
+                                    return (
+                                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded ${uCol.bg} ${uCol.text} border ${uCol.border} font-semibold text-[9.5px]`}>
+                                        <FiUser size={10} />
+                                        <span>Assigned: {client.assignedTo.name || client.assignedTo.email}</span>
+                                      </span>
+                                    );
+                                  })()
                                 ) : (
-                                  <span className="italic text-slate-400">Unassigned</span>
+                                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10 text-slate-400 dark:text-slate-500 italic text-[9.5px]">
+                                    <FiUser size={10} />
+                                    <span>Unassigned</span>
+                                  </span>
                                 )}
                               </div>
                             </div>
