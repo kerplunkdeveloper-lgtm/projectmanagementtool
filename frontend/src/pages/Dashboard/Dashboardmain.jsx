@@ -162,12 +162,12 @@ const Dashboardmain = () => {
           <DashboardCards />
         </div>
 
-        <div className="col-span-1 theme-bg-card border theme-border rounded-xl p-4 shadow-sm">
-          <h1 className="text-[13px] font-black theme-text-primary uppercase tracking-wider mb-4">
-            Projects
+        <div className="col-span-1 theme-bg-card border theme-border rounded-xl p-4 shadow-xl">
+          <h1 className="text-[20px] text-blue-500 dark:text-[#e5ff00] font-medium italic tracking-wider mb-8">
+            Projects OverView
           </h1>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
             {/* CREATE PROJECT BUTTON */}
             {user?.role === "admin" && (
               <button
