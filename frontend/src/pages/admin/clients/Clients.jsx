@@ -221,7 +221,7 @@ const Clients = () => {
             </div>
             <div>
               <span>Client Portfolio</span>
-              <p className="text-[10px] theme-text-secondary font-bold tracking-normal mt-0.5">Manage accounts, budgets, and deliverable agreements</p>
+             
             </div>
           </h1>
         </div>
@@ -528,13 +528,10 @@ const Clients = () => {
               {/* MODAL HEADER */}
               <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-black/25">
                 <div>
-                  <h2 className="text-[15px] font-black text-slate-800 dark:text-yellow-50 mb-5  flex items-center gap-2">
+                  <h2 className="text-[15px] font-black text-slate-800 dark:text-yellow-50  flex items-center gap-2">
                     <FiUsers size={16} className="text-blue-550 dark:text-[#e5ff00]" />
                     {editId ? "Update Client details" : "Register New Client"}
                   </h2>
-                  <p className="text-slate-400 dark:text-slate-500 text-[10px] font-semibold mt-0.5">
-                    Configure corporate parameters, assignees, and contract services.
-                  </p>
                 </div>
 
                 <button
@@ -895,7 +892,7 @@ const Clients = () => {
                           if (activeTab === "profile") setActiveTab("service");
                           else if (activeTab === "service") setActiveTab("finance");
                         }}
-                        className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-750 dark:bg-[#e5ff00] dark:hover:bg-[#d4e600] text-white dark:text-black font-bold text-xs cursor-pointer"
+                        className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-750 dark:bg-[#e5ff00] dark:hover:bg-[#d4e600] dark:text-black font-bold text-xs cursor-pointer"
                       >
                         Next Step
                       </button>

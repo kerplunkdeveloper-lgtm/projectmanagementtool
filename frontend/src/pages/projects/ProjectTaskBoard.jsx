@@ -1691,7 +1691,7 @@ const ProjectTaskBoard = ({
                                     {/* Name Field with Circle Checkbox */}
                                     <td
                                       onClick={(e) => e.stopPropagation()}
-                                      className="px-3 py-0.5 border-r border-b border-slate-200 dark:border-slate-800 font-semibold"
+                                      className="px-3 py-3 border-r border-b border-slate-200 dark:border-slate-800 font-semibold"
                                     >
                                       <div className="flex items-center gap-2.5 w-full">
                                         {/* Expand/Collapse Chevron (only if subtasks exist) */}
