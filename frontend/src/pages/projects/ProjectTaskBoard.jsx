@@ -98,7 +98,7 @@ const TaskTitleInput = ({
         }
       }}
       placeholder="Write a task here..."
-      className={`bg-transparent  outline-none w-full p-0 font-semibold text-slate-800 dark:text-slate-100 px-0 py-0 text-[11px] ${
+      className={`bg-transparent  outline-none w-full p-0 font-semibold text-slate-800 dark:text-white px-0 py-0 text-[11px] ${
         isCompleted ? "line-through text-slate-450 dark:text-slate-500" : ""
       }`}
       disabled={!canToggle}
@@ -213,10 +213,10 @@ const SubtaskRow = ({
           }}
         >
           {sub.startDate ? (
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-slate-200 dark:border-white/10 hover:border-slate-355 dark:hover:border-[#e5ff00]/40 text-slate-605 dark:text-slate-300 text-[9px] font-semibold bg-slate-50 dark:bg-[#111111] transition-all">
+            <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-amber-200 dark:border-amber-900/60 hover:border-amber-350 dark:hover:border-amber-500/40 text-amber-700 dark:text-amber-305 text-[9px] font-semibold bg-amber-50 dark:bg-amber-950/30 transition-all">
               <FiCalendar
                 size={8}
-                className="text-slate-400 dark:text-slate-500 mr-1"
+                className="text-amber-500 dark:text-amber-400 mr-1"
               />
               <span>
                 S: {new Date(sub.startDate).toLocaleDateString(undefined, {
@@ -231,14 +231,14 @@ const SubtaskRow = ({
                     e.stopPropagation();
                     handleSubtaskFieldChange(task, sub._id, { startDate: null });
                   }}
-                  className="ml-1 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer relative z-10"
+                  className="ml-1 text-amber-400 hover:text-rose-500 transition-colors cursor-pointer relative z-10"
                 >
                   <FiX size={10} />
                 </button>
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:border-slate-400 hover:text-slate-700 dark:hover:text-[#e5ff00] dark:hover:border-[#e5ff00]/40 bg-white dark:bg-[#111111] transition-all text-[9px] font-medium">
+            <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-amber-200 dark:border-amber-900/40 text-amber-500/70 dark:text-amber-500/50 hover:border-amber-400 hover:text-amber-700 dark:hover:text-amber-400 dark:hover:border-amber-500/40 bg-amber-50/20 dark:bg-amber-950/10 transition-all text-[9px] font-medium">
               <FiCalendar size={9} />
               <span>+ Start</span>
             </div>
@@ -273,10 +273,10 @@ const SubtaskRow = ({
           }}
         >
           {sub.dueDate ? (
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-slate-200 dark:border-white/10 hover:border-slate-355 dark:hover:border-[#e5ff00]/40 text-slate-605 dark:text-slate-300 text-[9px] font-semibold bg-slate-50 dark:bg-[#111111] transition-all">
+            <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-rose-200 dark:border-rose-900/60 hover:border-rose-350 dark:hover:border-rose-500/40 text-rose-700 dark:text-rose-305 text-[9px] font-semibold bg-rose-50 dark:bg-rose-950/30 transition-all">
               <FiCalendar
                 size={8}
-                className="text-slate-400 dark:text-slate-500 mr-1"
+                className="text-rose-555 dark:text-rose-400 mr-1"
               />
               <span>
                 E: {new Date(sub.dueDate).toLocaleDateString(undefined, {
@@ -291,14 +291,14 @@ const SubtaskRow = ({
                     e.stopPropagation();
                     handleSubtaskFieldChange(task, sub._id, { dueDate: null });
                   }}
-                  className="ml-1 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer relative z-10"
+                  className="ml-1 text-rose-400 hover:text-rose-550 transition-colors cursor-pointer relative z-10"
                 >
                   <FiX size={10} />
                 </button>
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-555 hover:border-slate-400 hover:text-slate-700 dark:hover:text-[#e5ff00] dark:hover:border-[#e5ff00]/40 bg-white dark:bg-[#111111] transition-all text-[9px] font-medium">
+            <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-rose-200 dark:border-rose-900/40 text-rose-500/70 dark:text-rose-500/50 hover:border-rose-400 hover:text-rose-700 dark:hover:text-rose-400 dark:hover:border-rose-500/40 bg-rose-50/20 dark:bg-rose-955/10 transition-all text-[9px] font-medium">
               <FiCalendar size={9} />
               <span>+ End</span>
             </div>
@@ -322,7 +322,7 @@ const SubtaskRow = ({
         </div>
 
         {/* Assignee Picker (Always Visible) */}
-        <div className="relative w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:border-slate-400 hover:text-slate-700 dark:hover:text-[#e5ff00] dark:hover:border-[#e5ff00]/40 bg-white dark:bg-[#111111] transition-all cursor-pointer overflow-hidden">
+        <div className="relative w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-indigo-900 flex items-center justify-center text-slate-400 dark:text-indigo-400/75 hover:border-indigo-400 hover:text-indigo-700 dark:hover:text-[#e5ff00] dark:hover:border-[#e5ff00]/40 bg-white dark:bg-[#111111] transition-all cursor-pointer overflow-hidden">
           {sub.assignedTo ? (
             sub.assignedTo?.profileImage?.url ? (
               <img
@@ -1581,7 +1581,7 @@ const ProjectTaskBoard = ({
                                             sectionName,
                                           )
                                         }
-                                        className="text-xs font-semibold bg-white dark:bg-slate-800 border border-blue-400 rounded px-2 py-0.5 outline-none text-slate-800 dark:text-white"
+                                        className="text-xs font-semibold bg-white dark:bg-slate-800 border border-blue-400 rounded px-2 py-2 outline-none text-slate-800 dark:text-white"
                                       />
                                     </form>
                                   ) : (
@@ -1691,7 +1691,7 @@ const ProjectTaskBoard = ({
                                     {/* Name Field with Circle Checkbox */}
                                     <td
                                       onClick={(e) => e.stopPropagation()}
-                                      className="px-3 py-3 border-r border-b border-slate-200 dark:border-slate-800 font-semibold"
+                                      className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 font-semibold"
                                     >
                                       <div className="flex items-center gap-2.5 w-full">
                                         {/* Expand/Collapse Chevron (only if subtasks exist) */}
@@ -1738,7 +1738,7 @@ const ProjectTaskBoard = ({
                                           } ${
                                             isCompleted
                                               ? "bg-emerald-500 border-emerald-500 text-white"
-                                              : "border-slate-300 dark:border-white/10 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
+                                              : "border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
                                           }`}
                                         >
                                           <FiCheck size={9} />
@@ -1772,9 +1772,9 @@ const ProjectTaskBoard = ({
                                                 );
                                               }
                                             }}
-                                            className={`font-semibold text-slate-800 dark:text-slate-100 text-[11px] cursor-text outline-none block min-h-[16px] w-full ${
+                                            className={`font-semibold text-slate-800 dark:text-white text-[11px] cursor-text outline-none block min-h-[16px] w-full ${
                                               isCompleted
-                                                ? "line-through text-slate-450 dark:text-slate-500 font-medium"
+                                                ? "line-through text-slate-450 dark:text-slate-550 font-medium"
                                                 : ""
                                             }`}
                                           >
@@ -1790,7 +1790,7 @@ const ProjectTaskBoard = ({
                                               setSelectedTaskId(task._id);
                                             }}
                                             title={`${task.subtasks.length} subtask${task.subtasks.length !== 1 ? "s" : ""} — open details`}
-                                            className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/5 text-[8.5px] font-bold shrink-0 hover:bg-blue-50 dark:hover:bg-[#e5ff00]/10 hover:text-blue-600 dark:hover:text-[#e5ff00] hover:border-blue-200 dark:hover:border-[#e5ff00]/20 transition-all"
+                                            className="flex items-center gap-1 px-1.5 py-2 rounded-full bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/5 text-[8.5px] font-bold shrink-0 hover:bg-blue-50 dark:hover:bg-[#e5ff00]/10 hover:text-blue-600 dark:hover:text-[#e5ff00] hover:border-blue-200 dark:hover:border-[#e5ff00]/20 transition-all"
                                           >
                                             <FiCornerDownRight size={8} />
                                             {task.subtasks.length}
@@ -1812,13 +1812,13 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* Assignee Selection */}
-                                    <td className="px-3 py-0.5 border-r border-b border-slate-200 dark:border-slate-800">
+                                    <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800">
                                       <div
                                         className="flex items-center gap-1.5"
                                         onClick={(e) => e.stopPropagation()}
                                       >
                                         {task.assignedTo ? (
-                                          <div className="group/assigned relative flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/80 px-1.5 py-0.5 rounded-lg border border-slate-100 dark:border-slate-800 transition-colors">
+                                          <div className="group/assigned relative flex items-center gap-1.5 bg-indigo-50/50 dark:bg-indigo-950/30 hover:bg-indigo-100/50 dark:hover:bg-indigo-900/30 px-1.5 py-2 rounded-lg border border-indigo-100/80 dark:border-indigo-900/50 transition-colors">
                                             {task.assignedTo?.profileImage
                                               ?.url ? (
                                               <img
@@ -1827,7 +1827,7 @@ const ProjectTaskBoard = ({
                                                     .url
                                                 }
                                                 alt={task.assignedTo.name}
-                                                className="w-4.5 h-4.5 rounded-full object-cover border border-slate-100 dark:border-slate-800 shrink-0"
+                                                className="w-4.5 h-4.5 rounded-full object-cover border border-indigo-100 dark:border-indigo-900 shrink-0"
                                               />
                                             ) : (
                                               <div
@@ -1842,7 +1842,7 @@ const ProjectTaskBoard = ({
                                                   .join("") || "U"}
                                               </div>
                                             )}
-                                            <span className="text-[9px] font-semibold text-slate-700 dark:text-slate-350 max-w-[80px] truncate">
+                                            <span className="text-[9px] font-semibold text-indigo-700 dark:text-indigo-300 max-w-[80px] truncate">
                                               {task.assignedTo?.name}
                                             </span>
                                             {isAdminOrManager && (
@@ -1897,7 +1897,7 @@ const ProjectTaskBoard = ({
                                         ) : (
                                           /* Unassigned State: Dotted Circle with Person Icon (Hover to Plus) */
                                           <div className="group/assign relative w-5 h-5 flex items-center justify-center cursor-pointer">
-                                            <div className="w-5 h-5 rounded-full border border-dashed border-slate-350 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-600 hover:border-slate-400 dark:hover:border-slate-500 transition-colors bg-white dark:bg-slate-900">
+                                            <div className="w-5 h-5 rounded-full border border-dashed border-slate-350 dark:border-indigo-900/60 flex items-center justify-center text-slate-400 dark:text-indigo-400/80 hover:border-indigo-400 hover:text-indigo-700 dark:hover:border-[#e5ff00] transition-colors bg-white dark:bg-slate-900">
                                               <FiUser
                                                 size={10}
                                                 className="group-hover/assign:hidden"
@@ -1940,7 +1940,7 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* Start Date */}
-                                    <td className="px-3 py-0.5 border-r border-b border-slate-200 dark:border-slate-800">
+                                    <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800">
                                       <div
                                         className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
                                         onClick={(e) => {
@@ -1952,8 +1952,8 @@ const ProjectTaskBoard = ({
                                         }}
                                       >
                                         {task.startDate ? (
-                                          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-slate-200 dark:border-white/10 hover:border-slate-350 dark:hover:border-[#e5ff00]/40 text-slate-700 dark:text-slate-300 text-[10px] font-semibold bg-slate-50 dark:bg-[#111] transition-all">
-                                            <FiCalendar size={10} className="text-slate-400 dark:text-slate-500" />
+                                          <div className="flex items-center gap-1.5 px-2 py-2 rounded-md border border-amber-200 dark:border-amber-900/60 hover:border-amber-350 dark:hover:border-amber-500/40 text-amber-700 dark:text-amber-305 text-[10px] font-semibold bg-amber-50 dark:bg-amber-955/30 transition-all">
+                                            <FiCalendar size={10} className="text-amber-500 dark:text-amber-400" />
                                             <span>
                                               {new Date(task.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                                             </span>
@@ -1964,14 +1964,14 @@ const ProjectTaskBoard = ({
                                                   e.stopPropagation();
                                                   handleTaskFieldChange(task._id, { startDate: null });
                                                 }}
-                                                className="ml-1 text-slate-400 hover:text-rose-500 relative z-10 transition-colors"
+                                                className="ml-1 text-amber-450 hover:text-rose-500 relative z-10 transition-colors"
                                               >
                                                 <FiX size={10} />
                                               </button>
                                             )}
                                           </div>
                                         ) : (
-                                          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-555 hover:border-slate-400 hover:text-slate-700 dark:hover:text-[#e5ff00] dark:hover:border-[#e5ff00]/40 bg-white dark:bg-[#111] transition-all text-[9px] font-medium">
+                                          <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-amber-200 dark:border-amber-900/40 text-amber-500/70 dark:text-amber-500/50 hover:border-amber-400 hover:text-amber-700 dark:hover:text-amber-400 dark:hover:border-amber-500/40 bg-amber-50/20 dark:bg-amber-955/10 transition-all text-[9px] font-medium">
                                             <FiCalendar size={10} />
                                             <span>+ Start Date</span>
                                           </div>
@@ -1988,7 +1988,7 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* End Date */}
-                                    <td className="px-3 py-0.5 border-r border-b border-slate-200 dark:border-slate-800">
+                                    <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800">
                                       <div
                                         className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
                                         onClick={(e) => {
@@ -2000,8 +2000,8 @@ const ProjectTaskBoard = ({
                                         }}
                                       >
                                         {task.dueDate ? (
-                                          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-slate-200 dark:border-white/10 hover:border-slate-350 dark:hover:border-[#e5ff00]/40 text-slate-700 dark:text-slate-300 text-[10px] font-semibold bg-slate-50 dark:bg-[#111] transition-all">
-                                            <FiCalendar size={10} className="text-slate-400 dark:text-slate-500" />
+                                          <div className="flex items-center gap-1.5 px-2 py-2 rounded-md border border-rose-200 dark:border-rose-900/60 hover:border-rose-350 dark:hover:border-rose-500/40 text-rose-700 dark:text-rose-305 text-[10px] font-semibold bg-rose-50 dark:bg-rose-955/30 transition-all">
+                                            <FiCalendar size={10} className="text-rose-555 dark:text-rose-400" />
                                             <span>
                                               {new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                                             </span>
@@ -2012,14 +2012,14 @@ const ProjectTaskBoard = ({
                                                   e.stopPropagation();
                                                   handleTaskFieldChange(task._id, { dueDate: null });
                                                 }}
-                                                className="ml-1 text-slate-400 hover:text-rose-500 relative z-10 transition-colors"
+                                                className="ml-1 text-rose-455 hover:text-rose-500 relative z-10 transition-colors"
                                               >
                                                 <FiX size={10} />
                                               </button>
                                             )}
                                           </div>
                                         ) : (
-                                          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-555 hover:border-slate-400 hover:text-slate-700 dark:hover:text-[#e5ff00] dark:hover:border-[#e5ff00]/40 bg-white dark:bg-[#111] transition-all text-[9px] font-medium">
+                                          <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-rose-200 dark:border-rose-900/40 text-rose-500/70 dark:text-rose-500/50 hover:border-rose-400 hover:text-rose-700 dark:hover:text-rose-400 dark:hover:border-rose-500/40 bg-rose-50/20 dark:bg-rose-955/10 transition-all text-[9px] font-medium">
                                             <FiCalendar size={10} />
                                             <span>+ End Date</span>
                                           </div>
@@ -2036,7 +2036,7 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* Priority */}
-                                    <td className="px-3 py-0.5 border-r border-b border-slate-200 dark:border-slate-800">
+                                    <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800">
                                       <div onClick={(e) => e.stopPropagation()}>
                                         {isAdminOrManager ? (
                                           <select
@@ -2077,7 +2077,7 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* Status */}
-                                    <td className="px-3 py-0.5 border-r border-b border-slate-200 dark:border-slate-800">
+                                    <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800">
                                       <div onClick={(e) => e.stopPropagation()}>
                                         {isAdminOrManager ? (
                                           <select
@@ -2129,7 +2129,7 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* Action Controls */}
-                                    <td className="px-3 py-0.5 border-b border-slate-200 dark:border-slate-800 text-center">
+                                    <td className="px-3 py-2 border-b border-slate-200 dark:border-slate-800 text-center">
                                       <div
                                         className="flex items-center justify-center gap-2.5"
                                         onClick={(e) => e.stopPropagation()}
@@ -2222,7 +2222,7 @@ const ProjectTaskBoard = ({
                                                     } ${
                                                       isSubCompleted
                                                         ? "bg-emerald-500 border-emerald-500 text-white"
-                                                        : "border-slate-300 dark:border-white/10 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
+                                                        : "border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
                                                     }`}
                                                   >
                                                     <FiCheck size={8} />
@@ -2283,9 +2283,9 @@ const ProjectTaskBoard = ({
                                                         );
                                                       }
                                                     }}
-                                                    className={`outline-none w-full font-medium text-slate-700 dark:text-slate-200 text-[11px] block min-h-[16px] cursor-text ${
+                                                    className={`outline-none w-full font-medium text-slate-700 dark:text-white text-[11px] block min-h-[16px] cursor-text ${
                                                       isSubCompleted
-                                                        ? "line-through text-slate-400 dark:text-slate-500"
+                                                        ? "line-through text-slate-450 dark:text-slate-550"
                                                         : ""
                                                     }`}
                                                   >
@@ -2303,7 +2303,7 @@ const ProjectTaskBoard = ({
                                                   }
                                                 >
                                                   {sub.assignedTo ? (
-                                                    <div className="group/subassigned relative flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/80 px-1.5 py-0.5 rounded-lg border border-slate-100 dark:border-slate-800 transition-colors">
+                                                    <div className="group/subassigned relative flex items-center gap-1.5 bg-indigo-50/50 dark:bg-indigo-950/30 hover:bg-indigo-100/50 dark:hover:bg-indigo-900/30 px-1.5 py-2 rounded-lg border border-indigo-100/80 dark:border-indigo-900/50 transition-colors">
                                                       {sub.assignedTo
                                                         ?.profileImage?.url ? (
                                                         <img
@@ -2314,7 +2314,7 @@ const ProjectTaskBoard = ({
                                                           alt={
                                                             sub.assignedTo.name
                                                           }
-                                                          className="w-4.5 h-4.5 rounded-full object-cover border border-slate-100 dark:border-slate-800 shrink-0"
+                                                          className="w-4.5 h-4.5 rounded-full object-cover border border-indigo-100 dark:border-indigo-900 shrink-0"
                                                         />
                                                       ) : (
                                                         <div
@@ -2330,7 +2330,7 @@ const ProjectTaskBoard = ({
                                                             .join("") || "U"}
                                                         </div>
                                                       )}
-                                                      <span className="text-[9px] font-semibold text-slate-700 dark:text-slate-350 max-w-[80px] truncate">
+                                                      <span className="text-[9px] font-semibold text-indigo-700 dark:text-indigo-300 max-w-[80px] truncate">
                                                         {sub.assignedTo?.name}
                                                       </span>
                                                       {isAdminOrManager && (
@@ -2371,7 +2371,7 @@ const ProjectTaskBoard = ({
                                                     </div>
                                                   ) : (
                                                     <div className="group/subassign relative w-5 h-5 flex items-center justify-center cursor-pointer">
-                                                      <div className="w-5 h-5 rounded-full border border-dashed border-slate-350 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-600 hover:border-slate-400 dark:hover:border-slate-500 transition-colors bg-white dark:bg-slate-900">
+                                                      <div className="w-5 h-5 rounded-full border border-dashed border-slate-350 dark:border-indigo-900/60 flex items-center justify-center text-slate-400 dark:text-indigo-400/80 hover:border-indigo-400 hover:text-indigo-700 dark:hover:border-[#e5ff00] transition-colors bg-white dark:bg-slate-900">
                                                         <FiUser
                                                           size={10}
                                                           className="group-hover/subassign:hidden"
@@ -2429,8 +2429,8 @@ const ProjectTaskBoard = ({
                                                   }}
                                                 >
                                                   {sub.startDate ? (
-                                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-slate-200 dark:border-white/10 hover:border-slate-350 dark:hover:border-[#e5ff00]/40 text-slate-700 dark:text-slate-300 text-[10px] font-semibold bg-slate-50 dark:bg-[#111] transition-all">
-                                                      <FiCalendar size={10} className="text-slate-400 dark:text-slate-500" />
+                                                    <div className="flex items-center gap-1.5 px-2 py-2 rounded-md border border-amber-200 dark:border-amber-900/60 hover:border-amber-350 dark:hover:border-amber-500/40 text-amber-700 dark:text-amber-300 text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/30 transition-all">
+                                                      <FiCalendar size={10} className="text-amber-500 dark:text-amber-400" />
                                                       <span>
                                                         {new Date(sub.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                                                       </span>
@@ -2441,14 +2441,14 @@ const ProjectTaskBoard = ({
                                                             e.stopPropagation();
                                                             handleSubtaskFieldChange(task, sub._id, { startDate: null });
                                                           }}
-                                                          className="ml-1 text-slate-400 hover:text-rose-500 relative z-10 transition-colors"
+                                                          className="ml-1 text-amber-450 hover:text-rose-500 relative z-10 transition-colors"
                                                         >
                                                           <FiX size={10} />
                                                         </button>
                                                       )}
                                                     </div>
                                                   ) : (
-                                                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-555 hover:border-slate-400 hover:text-slate-700 dark:hover:text-[#e5ff00] dark:hover:border-[#e5ff00]/40 bg-white dark:bg-[#111] transition-all text-[9px] font-medium">
+                                                    <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-amber-200 dark:border-amber-900/40 text-amber-500/70 dark:text-amber-500/50 hover:border-amber-400 hover:text-amber-700 dark:hover:text-amber-400 dark:hover:border-amber-500/40 bg-amber-50/20 dark:bg-amber-950/10 transition-all text-[9px] font-medium">
                                                       <FiCalendar size={10} />
                                                       <span>+ Start Date</span>
                                                     </div>
@@ -2477,8 +2477,8 @@ const ProjectTaskBoard = ({
                                                   }}
                                                 >
                                                   {sub.dueDate ? (
-                                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-slate-200 dark:border-white/10 hover:border-slate-350 dark:hover:border-[#e5ff00]/40 text-slate-700 dark:text-slate-300 text-[10px] font-semibold bg-slate-50 dark:bg-[#111] transition-all">
-                                                      <FiCalendar size={10} className="text-slate-400 dark:text-slate-500" />
+                                                    <div className="flex items-center gap-1.5 px-2 py-2 rounded-md border border-rose-200 dark:border-rose-900/60 hover:border-rose-350 dark:hover:border-rose-500/40 text-rose-700 dark:text-rose-300 text-[10px] font-semibold bg-rose-50 dark:bg-rose-955/30 transition-all">
+                                                      <FiCalendar size={10} className="text-rose-555 dark:text-rose-400" />
                                                       <span>
                                                         {new Date(sub.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                                                       </span>
@@ -2489,14 +2489,14 @@ const ProjectTaskBoard = ({
                                                             e.stopPropagation();
                                                             handleSubtaskFieldChange(task, sub._id, { dueDate: null });
                                                           }}
-                                                          className="ml-1 text-slate-400 hover:text-rose-500 relative z-10 transition-colors"
+                                                          className="ml-1 text-rose-455 hover:text-rose-500 relative z-10 transition-colors"
                                                         >
                                                           <FiX size={10} />
                                                         </button>
                                                       )}
                                                     </div>
                                                   ) : (
-                                                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-555 hover:border-slate-400 hover:text-slate-700 dark:hover:text-[#e5ff00] dark:hover:border-[#e5ff00]/40 bg-white dark:bg-[#111] transition-all text-[9px] font-medium">
+                                                    <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-rose-200 dark:border-rose-900/40 text-rose-500/70 dark:text-rose-500/50 hover:border-rose-400 hover:text-rose-700 dark:hover:text-rose-400 dark:hover:border-rose-500/40 bg-rose-50/20 dark:bg-rose-955/10 transition-all text-[9px] font-medium">
                                                       <FiCalendar size={10} />
                                                       <span>+ End Date</span>
                                                     </div>
@@ -2763,7 +2763,7 @@ const ProjectTaskBoard = ({
                             {sectionName}
                           </h4>
                         </div>
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-lg bg-slate-200/50 dark:bg-white/10 text-slate-600 dark:text-slate-300">
+                        <span className="text-[10px] font-extrabold px-2 py-2 rounded-lg bg-slate-200/50 dark:bg-white/10 text-slate-600 dark:text-slate-300">
                           {columnTasks.length}
                         </span>
                       </div>
@@ -2817,7 +2817,7 @@ const ProjectTaskBoard = ({
                                           className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
                                             isCompleted
                                               ? "bg-emerald-500 border-emerald-500 text-white"
-                                              : "border-slate-350 dark:border-white/10 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
+                                              : "border-slate-350 dark:border-slate-650 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
                                           }`}
                                         >
                                           <FiCheck size={9} />
@@ -2839,7 +2839,7 @@ const ProjectTaskBoard = ({
                                       <div className="flex flex-wrap items-center gap-1 mt-1.5 mb-2">
                                         {/* Status Badge */}
                                         <span
-                                          className={`text-[8px] font-medium  tracking-wider px-1 py-0.5 rounded-md border ${
+                                          className={`text-[8px] font-medium  tracking-wider px-1 py-2 rounded-md border ${
                                             task.status === "Completed"
                                               ? "bg-emerald-55/10 text-emerald-600 border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/40"
                                               : task.status === "In Progress"
@@ -2854,7 +2854,7 @@ const ProjectTaskBoard = ({
 
                                         {/* Priority Badge */}
                                         <span
-                                          className={`text-[8px] font-medium  tracking-wider px-1 py-0.5 rounded-md border ${
+                                          className={`text-[8px] font-medium  tracking-wider px-1 py-2 rounded-md border ${
                                             task.priority === "High"
                                               ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-955/20 dark:border-rose-900/40"
                                               : task.priority === "Medium"
@@ -2867,8 +2867,8 @@ const ProjectTaskBoard = ({
 
                                         {/* Due Date */}
                                         {task.dueDate && (
-                                          <span className="flex items-center gap-1 text-[8px] font-bold px-1.5 py-0.5 rounded-md bg-slate-50 border border-slate-100 text-slate-500 dark:bg-[#1a1a1a] dark:border-white/10 dark:text-slate-400">
-                                            <FiCalendar size={8} />
+                                          <span className="flex items-center gap-1 text-[8px] font-bold px-1.5 py-2 rounded-md bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900/40 text-rose-600 dark:text-rose-300">
+                                            <FiCalendar size={8} className="text-rose-505 dark:text-rose-400" />
                                             {new Date(
                                               task.dueDate,
                                             ).toLocaleDateString("en-GB", {
@@ -2949,7 +2949,7 @@ const ProjectTaskBoard = ({
                                                   },
                                                 )
                                               }
-                                              className="bg-transparent border-0 text-[10px] font-semibold text-slate-500 hover:text-slate-750 px-1 py-0.5 rounded cursor-pointer focus:outline-none"
+                                              className="bg-transparent border-0 text-[10px] font-semibold text-slate-500 hover:text-slate-750 px-1 py-2 rounded cursor-pointer focus:outline-none"
                                             >
                                               <option value="">
                                                 Unassigned
@@ -3174,7 +3174,7 @@ const ProjectTaskBoard = ({
                                         : "bg-slate-400"
                                 }`}
                               />
-                              <span className="truncate text-[9.5px] font-bold text-slate-655 dark:text-slate-350">
+                              <span className="truncate text-[9.5px] font-bold text-slate-655 dark:text-white">
                                 {task.title || "Untitled Task"}
                               </span>
                             </div>
@@ -3895,8 +3895,8 @@ const ProjectTaskBoard = ({
                         className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00]"
                       />
                     ) : (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        <FiCalendar className="text-slate-400" size={13} />
+                      <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-955/30 border border-amber-200 dark:border-amber-900/60 rounded-xl text-xs font-semibold text-amber-700 dark:text-amber-300">
+                        <FiCalendar className="text-amber-500 dark:text-amber-400" size={13} />
                         {selectedTask.startDate
                           ? new Date(
                               selectedTask.startDate,
@@ -3929,8 +3929,8 @@ const ProjectTaskBoard = ({
                         className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00]"
                       />
                     ) : (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        <FiClock className="text-slate-400" size={13} />
+                      <div className="flex items-center gap-2 px-3 py-2 bg-rose-50 dark:bg-rose-955/30 border border-rose-200 dark:border-rose-900/60 rounded-xl text-xs font-semibold text-rose-700 dark:text-rose-305">
+                        <FiClock className="text-rose-555 dark:text-rose-400" size={13} />
                         {selectedTask.dueDate
                           ? new Date(selectedTask.dueDate).toLocaleDateString()
                           : "N/A"}
@@ -3995,7 +3995,7 @@ const ProjectTaskBoard = ({
                       <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
                         Subtasks
                       </h3>
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400">
+                      <span className="px-2 py-2 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400">
                         {
                           (selectedTask.subtasks || []).filter(
                             (s) => s.status === "Completed",
