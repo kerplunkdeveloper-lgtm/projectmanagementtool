@@ -207,19 +207,8 @@ const Navbar = ({ setSidebarOpen }) => {
 
       {/* RIGHT */}
       <div className="flex items-center gap-2">
-        {/* LIGHT/DARK MODE TOGGLE */}
-        <button
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="
-            w-8 h-8 rounded-lg  border flex items-center justify-center transition-all duration-200 cursor-pointer
-            theme-border theme-bg-card hover:theme-bg-main
-          "
-          title="Toggle Theme"
-        >
-          {getThemeIcon()}
-        </button>
 
-        {/* NOTIFICATIONS */}
+             {/* NOTIFICATIONS */}
         <div className="relative" ref={notificationRef}>
           <button
             onClick={() => setOpenNotifications(!openNotifications)}
@@ -321,9 +310,9 @@ const Navbar = ({ setSidebarOpen }) => {
                               navigate(
                                 `/${user?.role}/chat?id=${n.chatRoomId}`,
                               );
-                            } else if (n.type?.includes("task")) {
+                            } else if (n.type === "task_assigned") {
                               navigate(`/${user?.role}/tasks`);
-                            } else if (n.project && user?.role !== "team") {
+                            } else if (n.project) {
                               navigate(
                                 `/${user?.role}/projects?id=${n.project}`,
                               );
@@ -404,6 +393,21 @@ const Navbar = ({ setSidebarOpen }) => {
             )}
           </AnimatePresence>
         </div>
+
+        
+        {/* LIGHT/DARK MODE TOGGLE */}
+        <button
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="
+            w-8 h-8 rounded-lg  border flex items-center justify-center transition-all duration-200 cursor-pointer
+            theme-border theme-bg-card hover:theme-bg-main
+          "
+          title="Toggle Theme"
+        >
+          {getThemeIcon()}
+        </button>
+
+   
 
         {/* PROFILE DROPDOWN */}
         <div className="relative" ref={dropdownRef}>

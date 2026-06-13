@@ -81,6 +81,7 @@ exports.updateTask = async (req, res) => {
 
     const previousStatus = task.status;
     const previousAssignee = task.assignedTo;
+    const previousSubtasks = task.subtasks ? JSON.parse(JSON.stringify(task.subtasks)) : [];
 
     task = await Task.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
@@ -108,7 +109,7 @@ exports.updateTask = async (req, res) => {
             type: "task_updated",
             message: `Member ${req.user.name} updated task "${task.title}" to: ${task.status}`,
             task: task._id,
-            project: task.project?._id,
+            project: task.project?._id || task.project,
           });
 
           if (io) {
@@ -118,7 +119,7 @@ exports.updateTask = async (req, res) => {
         }
       } else {
         // An admin/manager updated the task status. Notify the assignee!
-        const recipient = task.assignedTo?._id;
+        const recipient = task.assignedTo?._id || task.assignedTo;
         if (recipient) {
           const notification = await Notification.create({
             recipient,
@@ -126,7 +127,7 @@ exports.updateTask = async (req, res) => {
             type: "task_updated",
             message: `Task "${task.title}" status updated to: ${task.status}`,
             task: task._id,
-            project: task.project?._id,
+            project: task.project?._id || task.project,
           });
 
           if (io) {
@@ -145,13 +146,104 @@ exports.updateTask = async (req, res) => {
         type: "task_assigned",
         message: `You have been assigned the task: "${task.title}"`,
         task: task._id,
-        project: task.project?._id,
+        project: task.project?._id || task.project,
       });
 
       const io = req.app.get("io");
       if (io) {
         const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
         io.to(req.body.assignedTo.toString()).emit("notification", populatedNotification);
+      }
+    }
+
+    // Check subtask updates
+    if (req.body.subtasks) {
+      const io = req.app.get("io");
+      for (const sub of (task.subtasks || [])) {
+        // Find previous subtask state
+        const prevSub = previousSubtasks.find(p => p._id && sub._id && p._id.toString() === sub._id.toString());
+        
+        if (!prevSub) {
+          // New subtask added! If assigned, send notification
+          const subAssignee = sub.assignedTo?._id || sub.assignedTo;
+          if (subAssignee) {
+            const notification = await Notification.create({
+              recipient: subAssignee,
+              sender: req.user.id,
+              type: "task_assigned",
+              message: `You have been assigned a new subtask: "${sub.title || 'Untitled'}" in task "${task.title}"`,
+              task: task._id,
+              project: task.project?._id || task.project,
+            });
+
+            if (io) {
+              const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
+              io.to(subAssignee.toString()).emit("notification", populatedNotification);
+            }
+          }
+        } else {
+          // Existing subtask. Check for assignee change
+          const prevSubAssignee = prevSub.assignedTo?._id || prevSub.assignedTo;
+          const currSubAssignee = sub.assignedTo?._id || sub.assignedTo;
+
+          if (currSubAssignee && currSubAssignee.toString() !== prevSubAssignee?.toString()) {
+            // Assigned to someone else
+            const notification = await Notification.create({
+              recipient: currSubAssignee,
+              sender: req.user.id,
+              type: "task_assigned",
+              message: `You have been assigned the subtask: "${sub.title}" in task "${task.title}"`,
+              task: task._id,
+              project: task.project?._id || task.project,
+            });
+
+            if (io) {
+              const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
+              io.to(currSubAssignee.toString()).emit("notification", populatedNotification);
+            }
+          }
+
+          // Check for status change
+          if (sub.status && sub.status !== prevSub.status) {
+            const isSubAssignee = currSubAssignee?.toString() === req.user.id || prevSubAssignee?.toString() === req.user.id;
+            if (isSubAssignee) {
+              // Member updated their own subtask status. Notify all admins and operation managers!
+              const managers = await User.find({ role: { $in: ["admin", "operationmanager"] } });
+              for (const manager of managers) {
+                const notification = await Notification.create({
+                  recipient: manager._id,
+                  sender: req.user.id,
+                  type: "task_updated",
+                  message: `Member ${req.user.name} updated subtask "${sub.title}" to: ${sub.status} (in task "${task.title}")`,
+                  task: task._id,
+                  project: task.project?._id || task.project,
+                });
+
+                if (io) {
+                  const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
+                  io.to(manager._id.toString()).emit("notification", populatedNotification);
+                }
+              }
+            } else {
+              // Admin/manager updated the subtask status. Notify assignee!
+              if (currSubAssignee) {
+                const notification = await Notification.create({
+                  recipient: currSubAssignee,
+                  sender: req.user.id,
+                  type: "task_updated",
+                  message: `Subtask "${sub.title}" status updated to: ${sub.status} (in task "${task.title}")`,
+                  task: task._id,
+                  project: task.project?._id || task.project,
+                });
+
+                if (io) {
+                  const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
+                  io.to(currSubAssignee.toString()).emit("notification", populatedNotification);
+                }
+              }
+            }
+          }
+        }
       }
     }
 

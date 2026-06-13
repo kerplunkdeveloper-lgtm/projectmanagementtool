@@ -30,6 +30,9 @@ import {
   FiAlertTriangle,
   FiLayers,
   FiSliders,
+  FiSearch,
+  FiActivity,
+  FiAlertCircle,
 } from "react-icons/fi";
 import axiosInstance from "../../services/axiosInstance";
 import toast from "react-hot-toast";
@@ -198,24 +201,106 @@ const SubtaskRow = ({
         className="flex items-center gap-2 shrink-0"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Calendar / Date Picker (Always Visible) */}
-        <div className="relative h-6 flex items-center justify-center transition-all cursor-pointer">
-          {sub.dueDate ? (
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-slate-200 dark:border-white/10 hover:border-slate-350 dark:hover:border-[#e5ff00]/40 text-slate-605 dark:text-slate-300 text-[10px] font-semibold bg-slate-50 dark:bg-[#111111] transition-all">
+        {/* Start Date Picker */}
+        <div 
+          className="relative h-6 flex items-center justify-center transition-all cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            const input = e.currentTarget.querySelector('input[type="date"]');
+            if (input && typeof input.showPicker === 'function') {
+              input.showPicker();
+            }
+          }}
+        >
+          {sub.startDate ? (
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-slate-200 dark:border-white/10 hover:border-slate-355 dark:hover:border-[#e5ff00]/40 text-slate-605 dark:text-slate-300 text-[9px] font-semibold bg-slate-50 dark:bg-[#111111] transition-all">
               <FiCalendar
-                size={10}
-                className="text-slate-400 dark:text-slate-500"
+                size={8}
+                className="text-slate-400 dark:text-slate-500 mr-1"
               />
               <span>
-                {new Date(sub.dueDate).toLocaleDateString(undefined, {
+                S: {new Date(sub.startDate).toLocaleDateString(undefined, {
                   month: "short",
                   day: "numeric",
                 })}
               </span>
+              {isAdminOrManager && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSubtaskFieldChange(task, sub._id, { startDate: null });
+                  }}
+                  className="ml-1 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer relative z-10"
+                >
+                  <FiX size={10} />
+                </button>
+              )}
             </div>
           ) : (
-            <div className="w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:border-slate-400 hover:text-slate-700 dark:hover:text-[#e5ff00] dark:hover:border-[#e5ff00]/40 bg-white dark:bg-[#111111] transition-all">
-              <FiCalendar size={11} />
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:border-slate-400 hover:text-slate-700 dark:hover:text-[#e5ff00] dark:hover:border-[#e5ff00]/40 bg-white dark:bg-[#111111] transition-all text-[9px] font-medium">
+              <FiCalendar size={9} />
+              <span>+ Start</span>
+            </div>
+          )}
+          {isAdminOrManager && (
+            <input
+              type="date"
+              value={
+                sub.startDate
+                  ? new Date(sub.startDate).toISOString().split("T")[0]
+                  : ""
+              }
+              onChange={(e) =>
+                handleSubtaskFieldChange(task, sub._id, {
+                  startDate: e.target.value || null,
+                })
+              }
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+          )}
+        </div>
+
+        {/* End Date Picker */}
+        <div 
+          className="relative h-6 flex items-center justify-center transition-all cursor-pointer"
+          onClick={(e) => {
+            e.stopPropagation();
+            const input = e.currentTarget.querySelector('input[type="date"]');
+            if (input && typeof input.showPicker === 'function') {
+              input.showPicker();
+            }
+          }}
+        >
+          {sub.dueDate ? (
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-slate-200 dark:border-white/10 hover:border-slate-355 dark:hover:border-[#e5ff00]/40 text-slate-605 dark:text-slate-300 text-[9px] font-semibold bg-slate-50 dark:bg-[#111111] transition-all">
+              <FiCalendar
+                size={8}
+                className="text-slate-400 dark:text-slate-500 mr-1"
+              />
+              <span>
+                E: {new Date(sub.dueDate).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                })}
+              </span>
+              {isAdminOrManager && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSubtaskFieldChange(task, sub._id, { dueDate: null });
+                  }}
+                  className="ml-1 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer relative z-10"
+                >
+                  <FiX size={10} />
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-555 hover:border-slate-400 hover:text-slate-700 dark:hover:text-[#e5ff00] dark:hover:border-[#e5ff00]/40 bg-white dark:bg-[#111111] transition-all text-[9px] font-medium">
+              <FiCalendar size={9} />
+              <span>+ End</span>
             </div>
           )}
           {isAdminOrManager && (
@@ -401,6 +486,34 @@ const ProjectTaskBoard = ({
   const [autoFocusDrawerSubtaskIdx, setAutoFocusDrawerSubtaskIdx] =
     useState(null);
 
+  // Filter & Sort State
+  const [filterSearch, setFilterSearch] = useState("");
+  const [filterAssignee, setFilterAssignee] = useState("all"); // "all" | "unassigned" | userId
+  const [filterStatus, setFilterStatus] = useState("all"); // "all" | "Pending" | "In Progress" | "Completed" | "On Hold"
+  const [filterPriority, setFilterPriority] = useState("all"); // "all" | "Low" | "Medium" | "High"
+  const [filterStartDate, setFilterStartDate] = useState("");
+  const [filterEndDate, setFilterEndDate] = useState("");
+  const [sortBy, setSortBy] = useState("none"); // "none" | "name" | "startDate" | "dueDate" | "priority" | "status"
+  const [sortOrder, setSortOrder] = useState("asc"); // "asc" | "desc"
+
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const filterDropdownRef = useRef(null);
+  const sortDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target)) {
+        setIsFilterOpen(false);
+      }
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target)) {
+        setIsSortOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleRenameSectionSubmit = async (e, oldName) => {
     e.preventDefault();
     if (!editSectionValue.trim() || editSectionValue === oldName) {
@@ -500,6 +613,72 @@ const ProjectTaskBoard = ({
   const activeProjectTasks = localTasks.filter(
     (t) => t.project?._id === activeProjectId || t.project === activeProjectId,
   );
+
+  const filteredTasks = activeProjectTasks.filter((task) => {
+    // 1. Search text (matches title)
+    if (filterSearch && !task.title?.toLowerCase().includes(filterSearch.toLowerCase())) {
+      return false;
+    }
+    // 2. Assignee filter
+    if (filterAssignee !== "all") {
+      if (filterAssignee === "unassigned") {
+        if (task.assignedTo) return false;
+      } else {
+        const assignedId = task.assignedTo?._id || task.assignedTo;
+        if (assignedId !== filterAssignee) return false;
+      }
+    }
+    // 3. Status filter
+    if (filterStatus !== "all" && task.status !== filterStatus) {
+      return false;
+    }
+    // 4. Priority filter
+    if (filterPriority !== "all" && task.priority !== filterPriority) {
+      return false;
+    }
+    // 5. Date filter (Start Date & End Date range match)
+    if (filterStartDate) {
+      if (!task.startDate) return false;
+      const tStart = new Date(task.startDate).setHours(0,0,0,0);
+      const fStart = new Date(filterStartDate).setHours(0,0,0,0);
+      if (tStart < fStart) return false;
+    }
+    if (filterEndDate) {
+      if (!task.dueDate) return false;
+      const tDue = new Date(task.dueDate).setHours(0,0,0,0);
+      const fEnd = new Date(filterEndDate).setHours(0,0,0,0);
+      if (tDue > fEnd) return false;
+    }
+    return true;
+  });
+
+  const sortedTasks = [...filteredTasks].sort((a, b) => {
+    if (sortBy === "none") return 0;
+    
+    let valA, valB;
+    if (sortBy === "name") {
+      valA = a.title?.toLowerCase() || "";
+      valB = b.title?.toLowerCase() || "";
+    } else if (sortBy === "startDate") {
+      valA = a.startDate ? new Date(a.startDate).getTime() : 0;
+      valB = b.startDate ? new Date(b.startDate).getTime() : 0;
+    } else if (sortBy === "dueDate") {
+      valA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+      valB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+    } else if (sortBy === "priority") {
+      const pMap = { Low: 1, Medium: 2, High: 3 };
+      valA = pMap[a.priority] || 0;
+      valB = pMap[b.priority] || 0;
+    } else if (sortBy === "status") {
+      const sMap = { Pending: 1, "In Progress": 2, "On Hold": 3, Completed: 4 };
+      valA = sMap[a.status] || 0;
+      valB = sMap[b.status] || 0;
+    }
+
+    if (valA < valB) return sortOrder === "asc" ? -1 : 1;
+    if (valA > valB) return sortOrder === "asc" ? 1 : -1;
+    return 0;
+  });
 
   const handleDragEnd = async (result) => {
     const { destination, source, draggableId } = result;
@@ -723,6 +902,7 @@ const ProjectTaskBoard = ({
       title: subtaskTitle.trim(),
       status: "Pending",
       assignedTo: null,
+      startDate: null,
       dueDate: null,
       priority: "Medium",
     };
@@ -752,6 +932,7 @@ const ProjectTaskBoard = ({
   const handleSubtaskFieldChange = async (task, subtaskId, updatedFields) => {
     const sanitizedFields = { ...updatedFields };
     if (sanitizedFields.assignedTo === "") sanitizedFields.assignedTo = null;
+    if (sanitizedFields.startDate === "") sanitizedFields.startDate = null;
     if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
 
     const updatedSubtasks = task.subtasks.map((sub) =>
@@ -784,6 +965,7 @@ const ProjectTaskBoard = ({
       title: "",
       status: "Pending",
       assignedTo: null,
+      startDate: null,
       dueDate: null,
       priority: "Medium",
     };
@@ -816,6 +998,7 @@ const ProjectTaskBoard = ({
       title: "",
       status: "Pending",
       assignedTo: null,
+      startDate: null,
       dueDate: null,
       priority: "Medium",
     };
@@ -908,22 +1091,23 @@ const ProjectTaskBoard = ({
         <div className="flex flex-col md:flex-row justify-between items-start gap-4 md:gap-6">
           <div className="space-y-2 w-full">
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate(-1)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 hover:border-slate-350 dark:hover:border-white/20 bg-white/50 dark:bg-[#0f172a]/40 hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-[#e5ff00] transition-all text-[10px] font-black uppercase tracking-wider cursor-pointer shadow-sm mr-1 active:scale-95 group shrink-0"
-                title="Go Back"
-              >
-                <FiArrowLeft
-                  size={13}
-                  className="group-hover:-translate-x-0.5 transition-transform shrink-0"
-                />
-              </button>
+             
+
+                              <div>
+                                {/* Breadcrumb Back Button */}
+                                <button
+                             onClick={() => navigate(-1)}
+                                  className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-250 transition-colors"
+                                >
+                                  <FiChevronLeft size={16} />
+                                </button>
+                              </div>
               <ProjectIcon
                 name={activeProject.name}
                 size="lg"
                 className="shadow-md"
               />
-              <h1 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white truncate">
+              <h1 className="text-xl sm:text-2xl font-medium text-slate-800 dark:text-white truncate">
                 {activeProject.name}
               </h1>
             </div>
@@ -932,93 +1116,375 @@ const ProjectTaskBoard = ({
       </div>
 
       {/* ACTION HEADER: ADD TASK & TABS SELECTOR */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mt-6 mb-2">
-        {/* Left Side: Tab Selector - High-end, Premium Design */}
-        <div className="bg-slate-100/80 dark:bg-[#121212] p-1 rounded-full flex items-center gap-1 w-full overflow-x-auto hide-scrollbar sm:w-fit border border-slate-200/60 dark:border-white/5 shadow-inner backdrop-blur-md">
-          {["List", "Board", "Timeline", "Dashboard"].map((tab) => {
-            const isActive = activeTab === tab;
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`relative px-4 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all duration-300 rounded-full shrink-0 cursor-pointer ${
-                  isActive
-                    ? "text-[var(--color-active-tab-text)]"
-                    : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-[#e5ff00]"
-                }`}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="activeWorkspaceTabPill"
-                    className="absolute inset-0 bg-blue-600 dark:bg-[#e5ff00] rounded-full shadow-lg"
-                    style={{ zIndex: 0 }}
-                    transition={{ type: "spring", stiffness: 350, damping: 26 }}
-                  />
-                )}
-                <span className="relative z-10 flex items-center justify-center gap-2">
-                  {tab === "List" && (
-                    <FiList
-                      size={12.5}
-                      className={`shrink-0 transition-colors duration-300 ${
-                        isActive
-                          ? "text-[var(--color-active-tab-text)]"
-                          : "text-slate-400 dark:text-slate-500"
-                      }`}
-                    />
-                  )}
-                  {tab === "Board" && (
-                    <FiGrid
-                      size={12.5}
-                      className={`shrink-0 transition-colors duration-300 ${
-                        isActive
-                          ? "text-[var(--color-active-tab-text)]"
-                          : "text-slate-400 dark:text-slate-500"
-                      }`}
-                    />
-                  )}
-                  {tab === "Timeline" && (
-                    <FiTrendingUp
-                      size={12.5}
-                      className={`shrink-0 transition-colors duration-300 ${
-                        isActive
-                          ? "text-[var(--color-active-tab-text)]"
-                          : "text-slate-400 dark:text-slate-500"
-                      }`}
-                    />
-                  )}
-                  {tab === "Dashboard" && (
-                    <FiPieChart
-                      size={12.5}
-                      className={`shrink-0 transition-colors duration-300 ${
-                        isActive
-                          ? "text-[var(--color-active-tab-text)]"
-                          : "text-slate-400 dark:text-slate-500"
-                      }`}
-                    />
-                  )}
-                  <span>{tab}</span>
-                  {isActive && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-active-tab-text)]" />
-                  )}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Right Side: Add Task Button */}
-        <div className="flex-shrink-0">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mt-6 mb-4">
+        {/* Left Side: Add Task Button */}
+        <div className="flex items-center justify-start w-full md:w-1/4 order-1 md:order-none">
           {isAdminOrManager ? (
             <button
               onClick={() => handleAddTask()}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[9px] sm:text-[10px] rounded-xl bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black shadow-lg  shadow-blue-500/20 dark:shadow-[#e5ff00]/20 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 font-medium uppercase tracking-wider"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] rounded-xl bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black shadow-lg shadow-blue-500/20 dark:shadow-[#e5ff00]/20 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 font-bold  tracking-wider cursor-pointer animate-fade-in"
             >
-              <FiPlus size={12} className="shrink-0" />
+              <FiPlus size={13} className="shrink-0" />
               Add Task
             </button>
           ) : (
-            <div className="w-1" />
+            <div className="h-6" />
           )}
+        </div>
+
+        {/* Center: Tab Selector - High-end, Premium Design */}
+        <div className="flex items-center justify-center w-full md:w-auto order-2 md:order-none shrink-0">
+          <div className="bg-slate-100/80 dark:bg-[#121212] p-1 rounded-full flex items-center gap-1.5 border border-slate-200/60 dark:border-white/5 shadow-inner backdrop-blur-md">
+            {["List", "Board", "Timeline", "Dashboard"].map((tab) => {
+              const isActive = activeTab === tab;
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`relative px-2 sm:px-4 py-1.5 text-[9px] sm:text-[11px] font-medium  tracking-wider transition-all duration-300 rounded-full shrink-0 cursor-pointer ${
+                    isActive
+                      ? "text-[var(--color-active-tab-text)]"
+                      : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-[#e5ff00]"
+                  }`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeWorkspaceTabPill"
+                      className="absolute inset-0 bg-blue-600 dark:bg-[#e5ff00] rounded-full shadow-lg"
+                      style={{ zIndex: 0 }}
+                      transition={{ type: "spring", stiffness: 350, damping: 26 }}
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    {tab === "List" && (
+                      <FiList
+                        size={12.5}
+                        className={`shrink-0 transition-colors duration-300 ${
+                          isActive
+                            ? "text-[var(--color-active-tab-text)]"
+                            : "text-slate-400 dark:text-slate-500"
+                        }`}
+                      />
+                    )}
+                    {tab === "Board" && (
+                      <FiGrid
+                        size={12.5}
+                        className={`shrink-0 transition-colors duration-300 ${
+                          isActive
+                            ? "text-[var(--color-active-tab-text)]"
+                            : "text-slate-400 dark:text-slate-500"
+                        }`}
+                      />
+                    )}
+                    {tab === "Timeline" && (
+                      <FiTrendingUp
+                        size={12.5}
+                        className={`shrink-0 transition-colors duration-300 ${
+                          isActive
+                            ? "text-[var(--color-active-tab-text)]"
+                            : "text-slate-400 dark:text-slate-500"
+                        }`}
+                      />
+                    )}
+                    {tab === "Dashboard" && (
+                      <FiPieChart
+                        size={12.5}
+                        className={`shrink-0 transition-colors duration-300 ${
+                          isActive
+                            ? "text-[var(--color-active-tab-text)]"
+                            : "text-slate-400 dark:text-slate-500"
+                        }`}
+                      />
+                    )}
+                    <span>{tab}</span>
+                    {isActive && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-active-tab-text)]" />
+                    )}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right Side: Filter & Sort Popover Dropdowns */}
+        <div className="flex items-center justify-between md:justify-end gap-2 w-full md:w-1/4 order-3 md:order-none relative">
+          {activeTab === "List" ? (
+            <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+              {/* Filter Trigger Button */}
+              <div className="relative" ref={filterDropdownRef}>
+                <button
+                  onClick={() => {
+                    setIsFilterOpen(!isFilterOpen);
+                    setIsSortOpen(false);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 ${
+                    isFilterOpen || filterSearch || filterAssignee !== "all" || filterStatus !== "all" || filterPriority !== "all" || filterStartDate || filterEndDate
+                      ? "bg-blue-50 dark:bg-[#e5ff00]/10 border-blue-200 dark:border-[#e5ff00]/30 text-blue-600 dark:text-[#e5ff00]"
+                      : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                  }`}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                    <line x1="4" y1="6" x2="20" y2="6" />
+                    <line x1="6" y1="12" x2="18" y2="12" />
+                    <line x1="9" y1="18" x2="15" y2="18" />
+                  </svg>
+                  <span>Filter</span>
+                  {(filterSearch || filterAssignee !== "all" || filterStatus !== "all" || filterPriority !== "all" || filterStartDate || filterEndDate) && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-[#e5ff00]" />
+                  )}
+                </button>
+
+                <AnimatePresence>
+                  {isFilterOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute left-0 md:left-auto md:right-0 mt-2 w-80 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-2xl p-4 z-50 space-y-4 backdrop-blur-md max-h-[460px] overflow-y-auto custom-scrollbar"
+                    >
+                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2">
+                        <span className="text-xs font-bold text-slate-800 dark:text-white  tracking-wider">Filters</span>
+                        {(filterSearch || filterAssignee !== "all" || filterStatus !== "all" || filterPriority !== "all" || filterStartDate || filterEndDate) && (
+                          <button
+                            onClick={() => {
+                              setFilterSearch("");
+                              setFilterAssignee("all");
+                              setFilterStatus("all");
+                              setFilterPriority("all");
+                              setFilterStartDate("");
+                              setFilterEndDate("");
+                            }}
+                            className="text-[10px] font-medium  text-rose-500 hover:text-rose-600 cursor-pointer"
+                          >
+                            Clear All
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Search */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-medium text-slate-400 dark:text-slate-500  tracking-wider">Search</label>
+                        <div className="relative">
+                        
+                          <input
+                            type="text"
+                            placeholder="Type to search..."
+                            value={filterSearch}
+                            onChange={(e) => setFilterSearch(e.target.value)}
+                            className="w-full pl-8 pr-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-[#181818] border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00] text-slate-800 dark:text-slate-200"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Status */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-medium text-slate-400 dark:text-slate-500  tracking-wider">Status</label>
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          {["all", "Pending", "In Progress", "Completed", "On Hold"].map((status) => (
+                            <button
+                              key={status}
+                              onClick={() => setFilterStatus(status)}
+                              className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
+                                filterStatus === status
+                                  ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black shadow-sm"
+                                  : "bg-slate-50 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200/50 dark:border-white/5"
+                              }`}
+                            >
+                              {status === "all" ? "All" : status}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Priority */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-medium text-slate-400 dark:text-slate-500  tracking-wider">Priority</label>
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          {["all", "Low", "Medium", "High"].map((priority) => (
+                            <button
+                              key={priority}
+                              onClick={() => setFilterPriority(priority)}
+                              className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
+                                filterPriority === priority
+                                  ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black shadow-sm"
+                                  : "bg-slate-50 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200/50 dark:border-white/5"
+                              }`}
+                            >
+                              {priority === "all" ? "All" : priority}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Assignee */}
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-medium text-slate-400 dark:text-slate-500  tracking-wider">Assignee</label>
+                        <div className="flex flex-wrap gap-1.5 mt-1 max-h-24 overflow-y-auto custom-scrollbar pr-1">
+                          <button
+                            onClick={() => setFilterAssignee("all")}
+                            className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
+                              filterAssignee === "all"
+                                ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black"
+                                : "bg-slate-50 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200/50 dark:border-white/5"
+                            }`}
+                          >
+                            All
+                          </button>
+                          <button
+                            onClick={() => setFilterAssignee("unassigned")}
+                            className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
+                              filterAssignee === "unassigned"
+                                ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black"
+                                : "bg-slate-50 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200/50 dark:border-white/5"
+                            }`}
+                          >
+                            Unassigned
+                          </button>
+                          {users.map((u) => (
+                            <button
+                              key={u._id}
+                              onClick={() => setFilterAssignee(u._id)}
+                              className={`flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
+                                filterAssignee === u._id
+                                  ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black"
+                                  : "bg-slate-50 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200/50 dark:border-white/5"
+                              }`}
+                            >
+                              <span className="w-3.5 h-3.5 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center text-[8px] ">
+                                {u.name.charAt(0)}
+                              </span>
+                              <span>{u.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Date Range */}
+                      <div className="space-y-1 border-t border-slate-100 dark:border-white/5 pt-2.5">
+                        <label className="text-[10px] font-medium text-slate-400 dark:text-slate-500  tracking-wider">Date Range</label>
+                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-[#181818] border border-slate-200 dark:border-white/5 rounded-xl px-2.5 py-1.5 text-slate-500">
+                          <FiCalendar size={12} className="shrink-0 text-slate-400" />
+                          <div className="flex items-center gap-1 w-full">
+                            <input
+                              type="date"
+                              value={filterStartDate}
+                              onChange={(e) => setFilterStartDate(e.target.value)}
+                              className="bg-transparent border-none p-0 text-[10px] font-semibold text-slate-750 dark:text-slate-300 outline-none cursor-pointer focus:ring-0 w-full"
+                              title="Start Date"
+                            />
+                            <span className="text-[10px] text-slate-450 dark:text-slate-500 font-bold shrink-0">to</span>
+                            <input
+                              type="date"
+                              value={filterEndDate}
+                              onChange={(e) => setFilterEndDate(e.target.value)}
+                              className="bg-transparent border-none p-0 text-[10px] font-semibold text-slate-750 dark:text-slate-300 outline-none cursor-pointer focus:ring-0 w-full"
+                              title="End Date"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Sort Trigger Button */}
+              <div className="relative" ref={sortDropdownRef}>
+                <button
+                  onClick={() => {
+                    setIsSortOpen(!isSortOpen);
+                    setIsFilterOpen(false);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 ${
+                    isSortOpen || sortBy !== "none"
+                      ? "bg-blue-50 dark:bg-[#e5ff00]/10 border-blue-200 dark:border-[#e5ff00]/30 text-blue-600 dark:text-[#e5ff00]"
+                      : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                  }`}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                    <line x1="17" y1="4" x2="17" y2="20" />
+                    <polyline points="13 8 17 4 21 8" />
+                    <line x1="7" y1="20" x2="7" y2="4" />
+                    <polyline points="3 16 7 20 11 16" />
+                  </svg>
+                  <span>Sort</span>
+                  {sortBy !== "none" && (
+                    <span className="text-[10px] font-medium text-blue-600 dark:text-[#e5ff00] ml-0.5">
+                      ({sortOrder === "asc" ? "▲" : "▼"})
+                    </span>
+                  )}
+                </button>
+
+                <AnimatePresence>
+                  {isSortOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-52 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-2xl p-2.5 z-50 space-y-1.5 backdrop-blur-md"
+                    >
+                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2 px-1">
+                        <span className="text-xs font-bold text-slate-800 dark:text-white  tracking-wider">Sort By</span>
+                        {sortBy !== "none" && (
+                          <button
+                            onClick={() => {
+                              setSortBy("none");
+                              setSortOrder("asc");
+                            }}
+                            className="text-[10px] font-medium  text-rose-500 hover:text-rose-600 cursor-pointer"
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="space-y-1 pt-1">
+                        {[
+                          { id: "none", label: "No Sort" },
+                          { id: "name", label: "Name" },
+                          { id: "startDate", label: "Start Date" },
+                          { id: "dueDate", label: "End Date" },
+                          { id: "priority", label: "Priority" },
+                          { id: "status", label: "Status" }
+                        ].map((option) => {
+                          const isSelected = sortBy === option.id;
+                          return (
+                            <button
+                              key={option.id}
+                              onClick={() => {
+                                if (isSelected) {
+                                  // Toggle sort order
+                                  setSortOrder(prev => prev === "asc" ? "desc" : "asc");
+                                } else {
+                                  setSortBy(option.id);
+                                  setSortOrder("asc");
+                                }
+                              }}
+                              className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                                isSelected
+                                  ? "bg-blue-50 dark:bg-[#e5ff00]/10 text-blue-600 dark:text-[#e5ff00]"
+                                  : "text-slate-650 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-white/5"
+                              }`}
+                            >
+                              <span>{option.label}</span>
+                              {isSelected && (
+                                <span className="text-[10px] font-medium ">
+                                  {sortOrder === "asc" ? "▲ Asc" : "▼ Desc"}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -1026,26 +1492,30 @@ const ProjectTaskBoard = ({
       <div className="min-h-[400px]">
         {activeTab === "List" && (
           <div className="overflow-hidden pt-3">
+
             <div className="overflow-x-auto pb-48 bg-white dark:bg-slate-900/30 shadow-xl shadow-slate-200/50 dark:shadow-none">
               <table className="w-full text-left border-collapse text-[11px] border border-slate-200 dark:border-slate-800/80">
                 <thead>
                   <tr className="bg-slate-50/50   dark:bg-slate-900/60 text-slate-700 dark:text-slate-300  tracking-wider text-[12px]">
-                    <th className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[240px]">
+                    <th className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[240px]">
                       Name
                     </th>
-                    <th className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[140px]">
+                    <th className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[140px]">
                       Assignee
                     </th>
-                    <th className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
-                      Due Date
+                    <th className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                      Start Date
                     </th>
-                    <th className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                    <th className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                      End Date
+                    </th>
+                    <th className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
                       Priority
                     </th>
-                    <th className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                    <th className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
                       Status
                     </th>
-                    <th className="px-3 py-1 border-b border-slate-200 dark:border-slate-800 text-center whitespace-nowrap min-w-[80px]">
+                    <th className="px-3 py-2 border-b border-slate-200 dark:border-slate-800 text-center whitespace-nowrap min-w-[80px]">
                       Actions
                     </th>
                   </tr>
@@ -1058,7 +1528,7 @@ const ProjectTaskBoard = ({
                         : ["Recently assigned"],
                     ),
                   ).map((sectionName, sectionIndex) => {
-                    const sectionTasks = activeProjectTasks.filter(
+                    const sectionTasks = sortedTasks.filter(
                       (t) =>
                         t.section === sectionName ||
                         (!t.section && sectionName === "Recently assigned"),
@@ -1069,9 +1539,9 @@ const ProjectTaskBoard = ({
                       <React.Fragment key={`${sectionName}-${sectionIndex}`}>
                         {/* SECTION HEADER ROW */}
                         {sectionName !== "Recently assigned" && (
-                          <tr className="bg-slate-50/20 dark:bg-slate-900/10 border-y border-slate-100 dark:border-slate-800/60 group">
-                            <td
-                              colSpan={6}
+                           <tr className="bg-slate-50/20 dark:bg-slate-900/10 border-y border-slate-100 dark:border-slate-800/60 group">
+                             <td
+                              colSpan={7}
                               className="px-4 py-2 border-b border-slate-100 dark:border-slate-800/60"
                             >
                               <div className="flex items-center gap-3 py-1">
@@ -1187,7 +1657,7 @@ const ProjectTaskBoard = ({
                           (sectionTasks.length === 0 ? (
                             <tr>
                               <td
-                                colSpan={6}
+                                colSpan={7}
                                 className="px-4 py-4 text-center text-slate-400 italic text-[10px] border-b border-slate-200 dark:border-slate-800"
                               >
                                 No tasks in this section.
@@ -1469,445 +1939,98 @@ const ProjectTaskBoard = ({
                                       </div>
                                     </td>
 
-                                    {/* Due Date (with Custom Start & End Date picker) */}
-                                    <td className={`px-3 py-0.5 border-r border-b border-slate-200 dark:border-slate-800 relative ${editingDateTaskId === task._id ? "z-[200]" : "z-10"}`}>
+                                    {/* Start Date */}
+                                    <td className="px-3 py-0.5 border-r border-b border-slate-200 dark:border-slate-800">
                                       <div
-                                        className="flex items-center gap-1"
-                                        onClick={(e) => e.stopPropagation()}
+                                        className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const input = e.currentTarget.querySelector('input[type="date"]');
+                                          if (input && typeof input.showPicker === 'function') {
+                                            input.showPicker();
+                                          }
+                                        }}
                                       >
-                                        {task.startDate || task.dueDate ? (
-                                          <div className="flex items-center gap-1">
-                                            <div
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                const startVal = task.startDate
-                                                  ? new Date(task.startDate)
-                                                      .toISOString()
-                                                      .split("T")[0]
-                                                  : "";
-                                                const endVal = task.dueDate
-                                                  ? new Date(task.dueDate)
-                                                      .toISOString()
-                                                      .split("T")[0]
-                                                  : "";
-                                                setTempStartDate(startVal);
-                                                setTempEndDate(endVal);
-                                                const initialDate =
-                                                  task.startDate ||
-                                                  task.dueDate ||
-                                                  new Date();
-                                                const parsedDate = new Date(
-                                                  initialDate,
-                                                );
-                                                setCalendarMonth(
-                                                  parsedDate.getMonth(),
-                                                );
-                                                setCalendarYear(
-                                                  parsedDate.getFullYear(),
-                                                );
-                                                setActiveDateSelectionField(
-                                                  task.startDate
-                                                    ? "due"
-                                                    : "start",
-                                                );
-                                                setEditingDateTaskId(task._id);
-                                              }}
-                                              className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-rose-50/50 dark:bg-rose-955/20 text-rose-600 dark:text-rose-450 border border-rose-100 dark:border-rose-900/30 flex items-center gap-1 hover:bg-rose-100/30 dark:hover:bg-rose-955/40 transition-colors cursor-pointer shadow-sm"
-                                            >
-                                              <FiCalendar
-                                                size={10}
-                                                className="shrink-0 text-rose-500"
-                                              />
-                                              <span>
-                                                {formatDateRange(
-                                                  task.startDate,
-                                                  task.dueDate,
-                                                )}
-                                              </span>
-                                            </div>
+                                        {task.startDate ? (
+                                          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-slate-200 dark:border-white/10 hover:border-slate-350 dark:hover:border-[#e5ff00]/40 text-slate-700 dark:text-slate-300 text-[10px] font-semibold bg-slate-50 dark:bg-[#111] transition-all">
+                                            <FiCalendar size={10} className="text-slate-400 dark:text-slate-500" />
+                                            <span>
+                                              {new Date(task.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                            </span>
                                             {isAdminOrManager && (
                                               <button
                                                 type="button"
                                                 onClick={(e) => {
                                                   e.stopPropagation();
-                                                  handleTaskFieldChange(
-                                                    task._id,
-                                                    {
-                                                      startDate: null,
-                                                      dueDate: null,
-                                                    },
-                                                  );
+                                                  handleTaskFieldChange(task._id, { startDate: null });
                                                 }}
-                                                className="p-0.5 text-slate-400 hover:text-rose-500 rounded transition-colors hover:bg-slate-200 dark:hover:bg-white/10 shrink-0"
-                                                title="Clear Date"
+                                                className="ml-1 text-slate-400 hover:text-rose-500 relative z-10 transition-colors"
                                               >
                                                 <FiX size={10} />
                                               </button>
                                             )}
                                           </div>
                                         ) : (
-                                          /* Empty Date State: Dotted Circle with Calendar Icon (Hover to Plus) */
-                                          <div className="group/date relative w-5 h-5 flex items-center justify-center cursor-pointer">
-                                            <div
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setTempStartDate("");
-                                                setTempEndDate("");
-                                                setCalendarMonth(
-                                                  new Date().getMonth(),
-                                                );
-                                                setCalendarYear(
-                                                  new Date().getFullYear(),
-                                                );
-                                                setActiveDateSelectionField(
-                                                  "start",
-                                                );
-                                                setEditingDateTaskId(task._id);
-                                              }}
-                                              className="w-5 h-5 rounded-full border border-dashed border-slate-350 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-600 hover:border-slate-400 dark:hover:border-slate-500 transition-colors bg-white dark:bg-slate-900"
-                                            >
-                                              <FiCalendar
-                                                size={10}
-                                                className="group-hover/date:hidden"
-                                              />
-                                              <FiPlus
-                                                size={10}
-                                                className="hidden group-hover/date:block text-blue-500 dark:text-[#e5ff00]"
-                                              />
-                                            </div>
+                                          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-555 hover:border-slate-400 hover:text-slate-700 dark:hover:text-[#e5ff00] dark:hover:border-[#e5ff00]/40 bg-white dark:bg-[#111] transition-all text-[9px] font-medium">
+                                            <FiCalendar size={10} />
+                                            <span>+ Start Date</span>
                                           </div>
                                         )}
+                                        {isAdminOrManager && (
+                                          <input
+                                            type="date"
+                                            value={task.startDate ? new Date(task.startDate).toISOString().split("T")[0] : ""}
+                                            onChange={(e) => handleTaskFieldChange(task._id, { startDate: e.target.value || null })}
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                          />
+                                        )}
+                                      </div>
+                                    </td>
 
-                                        {/* Custom Start/End Date Range Picker Popover (Matches Reference UI) */}
-                                        {editingDateTaskId === task._id && (
-                                          <>
-                                            <div
-                                              className="fixed inset-0 z-[210]"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setEditingDateTaskId(null);
-                                              }}
-                                            />
-                                            <div
-                                              className="absolute right-0 top-10 bg-white dark:bg-[#111622] border border-slate-200 dark:border-slate-800/80 rounded-xl shadow-2xl p-2.5 z-[220] w-[205px] space-y-2.5 text-slate-800 dark:text-slate-200"
-                                              onClick={(e) =>
-                                                e.stopPropagation()
-                                              }
-                                            >
-                                              {/* Top Fields Selector */}
-                                              <div className="grid grid-cols-2 gap-1">
-                                                <button
-                                                  type="button"
-                                                  onClick={() =>
-                                                    setActiveDateSelectionField(
-                                                      "start",
-                                                    )
-                                                  }
-                                                  className={`px-1 py-0.5 text-[9px] font-semibold rounded-md border text-center transition-all ${
-                                                    activeDateSelectionField ===
-                                                    "start"
-                                                      ? "border-blue-500 bg-blue-50/50 text-blue-600 dark:border-[#e5ff00] dark:bg-[#e5ff00]/10 dark:text-[#e5ff00]"
-                                                      : "border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400"
-                                                  }`}
-                                                >
-                                                  {tempStartDate ? (
-                                                    <span className="flex flex-col items-center justify-center">
-                                                      <span className="text-[7px] uppercase tracking-wider text-slate-450 dark:text-slate-500">
-                                                        Start Date
-                                                      </span>
-                                                      <span className="font-bold text-[9px]">
-                                                        {new Date(
-                                                          tempStartDate,
-                                                        ).toLocaleDateString(
-                                                          undefined,
-                                                          {
-                                                            month: "short",
-                                                            day: "numeric",
-                                                          },
-                                                        )}
-                                                      </span>
-                                                    </span>
-                                                  ) : (
-                                                    "+ Start"
-                                                  )}
-                                                </button>
-                                                <button
-                                                  type="button"
-                                                  onClick={() =>
-                                                    setActiveDateSelectionField(
-                                                      "due",
-                                                    )
-                                                  }
-                                                  className={`px-1 py-0.5 text-[9px] font-semibold rounded-md border text-center transition-all ${
-                                                    activeDateSelectionField ===
-                                                    "due"
-                                                      ? "border-blue-500 bg-blue-50/50 text-blue-600 dark:border-[#e5ff00] dark:bg-[#e5ff00]/10 dark:text-[#e5ff00]"
-                                                      : "border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400"
-                                                  }`}
-                                                >
-                                                  {tempEndDate ? (
-                                                    <span className="flex flex-col items-center justify-center">
-                                                      <span className="text-[7px] uppercase tracking-wider text-slate-450 dark:text-slate-500">
-                                                        Due Date
-                                                      </span>
-                                                      <span className="font-bold text-[9px]">
-                                                        {new Date(
-                                                          tempEndDate,
-                                                        ).toLocaleDateString(
-                                                          undefined,
-                                                          {
-                                                            month: "short",
-                                                            day: "numeric",
-                                                          },
-                                                        )}
-                                                      </span>
-                                                    </span>
-                                                  ) : (
-                                                    "+ Due"
-                                                  )}
-                                                </button>
-                                              </div>
-
-                                              {/* Month Navigator */}
-                                              <div className="flex items-center justify-between text-[10px] font-black px-0.5">
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    if (calendarMonth === 0) {
-                                                      setCalendarMonth(11);
-                                                      setCalendarYear(
-                                                        calendarYear - 1,
-                                                      );
-                                                    } else {
-                                                      setCalendarMonth(
-                                                        calendarMonth - 1,
-                                                      );
-                                                    }
-                                                  }}
-                                                  className="p-0.5 rounded-md hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400"
-                                                >
-                                                  &lt;
-                                                </button>
-                                                <span className="capitalize text-slate-700 dark:text-slate-200">
-                                                  {new Date(
-                                                    calendarYear,
-                                                    calendarMonth,
-                                                  ).toLocaleDateString(
-                                                    undefined,
-                                                    {
-                                                      month: "short",
-                                                      year: "numeric",
-                                                    },
-                                                  )}
-                                                </span>
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    if (calendarMonth === 11) {
-                                                      setCalendarMonth(0);
-                                                      setCalendarYear(
-                                                        calendarYear + 1,
-                                                      );
-                                                    } else {
-                                                      setCalendarMonth(
-                                                        calendarMonth + 1,
-                                                      );
-                                                    }
-                                                  }}
-                                                  className="p-0.5 rounded-md hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400"
-                                                >
-                                                  &gt;
-                                                </button>
-                                              </div>
-
-                                              {/* Weekday headers */}
-                                              <div className="grid grid-cols-7 gap-0.5 text-center text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                                                {[
-                                                  "S",
-                                                  "M",
-                                                  "T",
-                                                  "W",
-                                                  "T",
-                                                  "F",
-                                                  "S",
-                                                ].map((day, idx) => (
-                                                  <div
-                                                    key={idx}
-                                                    className="h-4 flex items-center justify-center"
-                                                  >
-                                                    {day}
-                                                  </div>
-                                                ))}
-                                              </div>
-
-                                              {/* Days Grid */}
-                                              <div className="grid grid-cols-7 gap-0.5 text-center text-[9px]">
-                                                {getCalendarDays(
-                                                  calendarYear,
-                                                  calendarMonth,
-                                                ).map((day, idx) => {
-                                                  const isCurrentMonth =
-                                                    day.getMonth() ===
-                                                    calendarMonth;
-                                                  const dateStr = day
-                                                    .toISOString()
-                                                    .split("T")[0];
-
-                                                  const isStart =
-                                                    tempStartDate === dateStr;
-                                                  const isDue =
-                                                    tempEndDate === dateStr;
-                                                  const isToday =
-                                                    new Date()
-                                                      .toISOString()
-                                                      .split("T")[0] ===
-                                                    dateStr;
-
-                                                  const inRange =
-                                                    tempStartDate &&
-                                                    tempEndDate &&
-                                                    dateStr > tempStartDate &&
-                                                    dateStr < tempEndDate;
-
-                                                  let dayClass =
-                                                    "text-slate-700 dark:text-slate-300 hover:bg-slate-105 dark:hover:bg-white/5 rounded-full";
-                                                  if (!isCurrentMonth) {
-                                                    dayClass =
-                                                      "text-slate-300 dark:text-slate-600 hover:bg-slate-105 dark:hover:bg-white/5 rounded-full";
-                                                  }
-
-                                                  if (isStart || isDue) {
-                                                    dayClass =
-                                                      "bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black font-extrabold rounded-full scale-90 shadow-md shadow-blue-500/10 dark:shadow-[#e5ff00]/10";
-                                                  } else if (inRange) {
-                                                    dayClass =
-                                                      "bg-blue-50/40 dark:bg-[#e5ff00]/5 text-blue-600 dark:text-[#e5ff00] font-bold rounded-none";
-                                                  } else if (isToday) {
-                                                    dayClass =
-                                                      "border border-slate-350 dark:border-slate-700 text-slate-800 dark:text-white rounded-full font-bold";
-                                                  }
-
-                                                  return (
-                                                    <button
-                                                      key={idx}
-                                                      type="button"
-                                                      onClick={() => {
-                                                        const updatedDateStr =
-                                                          day
-                                                            .toISOString()
-                                                            .split("T")[0];
-                                                        if (
-                                                          activeDateSelectionField ===
-                                                          "start"
-                                                        ) {
-                                                          setTempStartDate(
-                                                            updatedDateStr,
-                                                          );
-                                                          setActiveDateSelectionField(
-                                                            "due",
-                                                          );
-                                                        } else {
-                                                          setTempEndDate(
-                                                            updatedDateStr,
-                                                          );
-                                                        }
-                                                      }}
-                                                      className={`h-5.5 w-5.5 mx-auto flex items-center justify-center transition-all ${dayClass}`}
-                                                    >
-                                                      {day.getDate()}
-                                                    </button>
-                                                  );
-                                                })}
-                                              </div>
-
-                                              {/* Bottom Actions Row */}
-                                              <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-850">
-                                                <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500">
-                                                  <button
-                                                    type="button"
-                                                    className="hover:text-slate-600 dark:hover:text-slate-300"
-                                                  >
-                                                    <svg
-                                                      viewBox="0 0 24 24"
-                                                      className="w-3 h-3"
-                                                      fill="none"
-                                                      stroke="currentColor"
-                                                      strokeWidth="2.5"
-                                                      strokeLinecap="round"
-                                                      strokeLinejoin="round"
-                                                    >
-                                                      <circle
-                                                        cx="12"
-                                                        cy="12"
-                                                        r="10"
-                                                      ></circle>
-                                                      <polyline points="12 6 12 12 16 14"></polyline>
-                                                    </svg>
-                                                  </button>
-                                                  <button
-                                                    type="button"
-                                                    className="hover:text-slate-600 dark:hover:text-slate-300"
-                                                  >
-                                                    <svg
-                                                      viewBox="0 0 24 24"
-                                                      className="w-3 h-3"
-                                                      fill="none"
-                                                      stroke="currentColor"
-                                                      strokeWidth="2.5"
-                                                      strokeLinecap="round"
-                                                      strokeLinejoin="round"
-                                                    >
-                                                      <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
-                                                    </svg>
-                                                  </button>
-                                                </div>
-
-                                                <div className="flex items-center gap-1">
-                                                  <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                      setTempStartDate("");
-                                                      setTempEndDate("");
-                                                      handleTaskFieldChange(
-                                                        task._id,
-                                                        {
-                                                          startDate: null,
-                                                          dueDate: null,
-                                                        },
-                                                      );
-                                                      setEditingDateTaskId(
-                                                        null,
-                                                      );
-                                                    }}
-                                                    className="px-1.5 py-0.5 text-[9px] font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
-                                                  >
-                                                    Clear
-                                                  </button>
-                                                  <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                      handleTaskFieldChange(
-                                                        task._id,
-                                                        {
-                                                          startDate:
-                                                            tempStartDate ||
-                                                            null,
-                                                          dueDate:
-                                                            tempEndDate || null,
-                                                        },
-                                                      );
-                                                      setEditingDateTaskId(
-                                                        null,
-                                                      );
-                                                    }}
-                                                    className="px-2 py-0.5 bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black rounded text-[9px] font-black uppercase tracking-wider transition-all"
-                                                  >
-                                                    Save
-                                                  </button>
-                                                </div>
-                                              </div>
-                                            </div>
-                                          </>
+                                    {/* End Date */}
+                                    <td className="px-3 py-0.5 border-r border-b border-slate-200 dark:border-slate-800">
+                                      <div
+                                        className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const input = e.currentTarget.querySelector('input[type="date"]');
+                                          if (input && typeof input.showPicker === 'function') {
+                                            input.showPicker();
+                                          }
+                                        }}
+                                      >
+                                        {task.dueDate ? (
+                                          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-slate-200 dark:border-white/10 hover:border-slate-350 dark:hover:border-[#e5ff00]/40 text-slate-700 dark:text-slate-300 text-[10px] font-semibold bg-slate-50 dark:bg-[#111] transition-all">
+                                            <FiCalendar size={10} className="text-slate-400 dark:text-slate-500" />
+                                            <span>
+                                              {new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                            </span>
+                                            {isAdminOrManager && (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleTaskFieldChange(task._id, { dueDate: null });
+                                                }}
+                                                className="ml-1 text-slate-400 hover:text-rose-500 relative z-10 transition-colors"
+                                              >
+                                                <FiX size={10} />
+                                              </button>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-555 hover:border-slate-400 hover:text-slate-700 dark:hover:text-[#e5ff00] dark:hover:border-[#e5ff00]/40 bg-white dark:bg-[#111] transition-all text-[9px] font-medium">
+                                            <FiCalendar size={10} />
+                                            <span>+ End Date</span>
+                                          </div>
+                                        )}
+                                        {isAdminOrManager && (
+                                          <input
+                                            type="date"
+                                            value={task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : ""}
+                                            onChange={(e) => handleTaskFieldChange(task._id, { dueDate: e.target.value || null })}
+                                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                          />
                                         )}
                                       </div>
                                     </td>
@@ -2293,91 +2416,98 @@ const ProjectTaskBoard = ({
                                                 </div>
                                               </td>
 
-                                              {/* 3. Due Date Column */}
+                                              {/* 3. Start Date Column */}
                                               <td className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800">
                                                 <div
-                                                  className="flex items-center gap-1.5"
-                                                  onClick={(e) =>
-                                                    e.stopPropagation()
-                                                  }
+                                                  className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const input = e.currentTarget.querySelector('input[type="date"]');
+                                                    if (input && typeof input.showPicker === 'function') {
+                                                      input.showPicker();
+                                                    }
+                                                  }}
                                                 >
-                                                  {sub.dueDate ? (
-                                                    <div className="relative group/subdate">
-                                                      <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-rose-50/50 dark:bg-rose-955/20 text-rose-600 dark:text-rose-450 border border-rose-100 dark:border-rose-900/30 flex items-center gap-1 hover:bg-rose-100/30 dark:hover:bg-rose-955/40 transition-colors cursor-pointer">
-                                                        <FiCalendar
-                                                          size={10}
-                                                          className="shrink-0 text-rose-500"
-                                                        />
-                                                        <span>
-                                                          {new Date(
-                                                            sub.dueDate,
-                                                          ).toLocaleDateString(
-                                                            undefined,
-                                                            {
-                                                              month: "short",
-                                                              day: "numeric",
-                                                            },
-                                                          )}
-                                                        </span>
+                                                  {sub.startDate ? (
+                                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-slate-200 dark:border-white/10 hover:border-slate-350 dark:hover:border-[#e5ff00]/40 text-slate-700 dark:text-slate-300 text-[10px] font-semibold bg-slate-50 dark:bg-[#111] transition-all">
+                                                      <FiCalendar size={10} className="text-slate-400 dark:text-slate-500" />
+                                                      <span>
+                                                        {new Date(sub.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                                                       </span>
                                                       {isAdminOrManager && (
-                                                        <input
-                                                          type="date"
-                                                          value={
-                                                            new Date(
-                                                              sub.dueDate,
-                                                            )
-                                                              .toISOString()
-                                                              .split("T")[0]
-                                                          }
-                                                          onChange={(e) =>
-                                                            handleSubtaskFieldChange(
-                                                              task,
-                                                              sub._id,
-                                                              {
-                                                                dueDate:
-                                                                  e.target
-                                                                    .value ||
-                                                                  null,
-                                                              },
-                                                            )
-                                                          }
-                                                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                        />
+                                                        <button
+                                                          type="button"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleSubtaskFieldChange(task, sub._id, { startDate: null });
+                                                          }}
+                                                          className="ml-1 text-slate-400 hover:text-rose-500 relative z-10 transition-colors"
+                                                        >
+                                                          <FiX size={10} />
+                                                        </button>
                                                       )}
                                                     </div>
                                                   ) : (
-                                                    <div className="group/subdate relative w-5 h-5 flex items-center justify-center cursor-pointer">
-                                                      <div className="w-5 h-5 rounded-full border border-dashed border-slate-350 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-600 hover:border-slate-400 dark:hover:border-slate-500 transition-colors bg-white dark:bg-slate-900">
-                                                        <FiCalendar
-                                                          size={10}
-                                                          className="group-hover/subdate:hidden"
-                                                        />
-                                                        <FiPlus
-                                                          size={10}
-                                                          className="hidden group-hover/subdate:block text-blue-500 dark:text-[#e5ff00]"
-                                                        />
-                                                      </div>
+                                                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-555 hover:border-slate-400 hover:text-slate-700 dark:hover:text-[#e5ff00] dark:hover:border-[#e5ff00]/40 bg-white dark:bg-[#111] transition-all text-[9px] font-medium">
+                                                      <FiCalendar size={10} />
+                                                      <span>+ Start Date</span>
+                                                    </div>
+                                                  )}
+                                                  {isAdminOrManager && (
+                                                    <input
+                                                      type="date"
+                                                      value={sub.startDate ? new Date(sub.startDate).toISOString().split("T")[0] : ""}
+                                                      onChange={(e) => handleSubtaskFieldChange(task, sub._id, { startDate: e.target.value || null })}
+                                                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                    />
+                                                  )}
+                                                </div>
+                                              </td>
+
+                                              {/* 4. End Date Column */}
+                                              <td className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800">
+                                                <div
+                                                  className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const input = e.currentTarget.querySelector('input[type="date"]');
+                                                    if (input && typeof input.showPicker === 'function') {
+                                                      input.showPicker();
+                                                    }
+                                                  }}
+                                                >
+                                                  {sub.dueDate ? (
+                                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md border border-slate-200 dark:border-white/10 hover:border-slate-350 dark:hover:border-[#e5ff00]/40 text-slate-700 dark:text-slate-300 text-[10px] font-semibold bg-slate-50 dark:bg-[#111] transition-all">
+                                                      <FiCalendar size={10} className="text-slate-400 dark:text-slate-500" />
+                                                      <span>
+                                                        {new Date(sub.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                                      </span>
                                                       {isAdminOrManager && (
-                                                        <input
-                                                          type="date"
-                                                          value=""
-                                                          onChange={(e) =>
-                                                            handleSubtaskFieldChange(
-                                                              task,
-                                                              sub._id,
-                                                              {
-                                                                dueDate:
-                                                                  e.target
-                                                                    .value ||
-                                                                  null,
-                                                              },
-                                                            )
-                                                          }
-                                                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                        />
+                                                        <button
+                                                          type="button"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleSubtaskFieldChange(task, sub._id, { dueDate: null });
+                                                          }}
+                                                          className="ml-1 text-slate-400 hover:text-rose-500 relative z-10 transition-colors"
+                                                        >
+                                                          <FiX size={10} />
+                                                        </button>
                                                       )}
                                                     </div>
+                                                  ) : (
+                                                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-555 hover:border-slate-400 hover:text-slate-700 dark:hover:text-[#e5ff00] dark:hover:border-[#e5ff00]/40 bg-white dark:bg-[#111] transition-all text-[9px] font-medium">
+                                                      <FiCalendar size={10} />
+                                                      <span>+ End Date</span>
+                                                    </div>
+                                                  )}
+                                                  {isAdminOrManager && (
+                                                    <input
+                                                      type="date"
+                                                      value={sub.dueDate ? new Date(sub.dueDate).toISOString().split("T")[0] : ""}
+                                                      onChange={(e) => handleSubtaskFieldChange(task, sub._id, { dueDate: e.target.value || null })}
+                                                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                    />
                                                   )}
                                                 </div>
                                               </td>
@@ -2629,7 +2759,7 @@ const ProjectTaskBoard = ({
                       {/* Column Header */}
                       <div className="flex items-center justify-between mb-4 px-1">
                         <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-black text-slate-800 dark:text-white">
+                          <h4 className="text-sm font-medium text-slate-800 dark:text-white">
                             {sectionName}
                           </h4>
                         </div>
@@ -2709,7 +2839,7 @@ const ProjectTaskBoard = ({
                                       <div className="flex flex-wrap items-center gap-1 mt-1.5 mb-2">
                                         {/* Status Badge */}
                                         <span
-                                          className={`text-[8px] font-black uppercase tracking-wider px-1 py-0.5 rounded-md border ${
+                                          className={`text-[8px] font-medium  tracking-wider px-1 py-0.5 rounded-md border ${
                                             task.status === "Completed"
                                               ? "bg-emerald-55/10 text-emerald-600 border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/40"
                                               : task.status === "In Progress"
@@ -2724,7 +2854,7 @@ const ProjectTaskBoard = ({
 
                                         {/* Priority Badge */}
                                         <span
-                                          className={`text-[8px] font-black uppercase tracking-wider px-1 py-0.5 rounded-md border ${
+                                          className={`text-[8px] font-medium  tracking-wider px-1 py-0.5 rounded-md border ${
                                             task.priority === "High"
                                               ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-955/20 dark:border-rose-900/40"
                                               : task.priority === "Medium"
@@ -2784,7 +2914,7 @@ const ProjectTaskBoard = ({
                                               />
                                             ) : (
                                               <div
-                                                className={`w-4.5 h-4.5 rounded-full flex items-center justify-center text-white text-[7.5px] font-black bg-gradient-to-br ${getAvatarColor(
+                                                className={`w-4.5 h-4.5 rounded-full flex items-center justify-center text-white text-[7.5px] font-medium bg-gradient-to-br ${getAvatarColor(
                                                   task.assignedTo.name,
                                                 )}`}
                                                 title={task.assignedTo.name}
@@ -2972,7 +3102,7 @@ const ProjectTaskBoard = ({
                     </button>
                     <button
                       onClick={() => setTimelineOffsetWeeks(0)}
-                      className="px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg border border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-650 dark:text-slate-355 cursor-pointer"
+                      className="px-2.5 py-1 text-[9px] font-medium  tracking-wider rounded-lg border border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-650 dark:text-slate-355 cursor-pointer"
                     >
                       Today
                     </button>
@@ -2985,7 +3115,7 @@ const ProjectTaskBoard = ({
                     </button>
                   </div>
 
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-550 dark:text-slate-400 bg-slate-50 dark:bg-[#141414] px-2.5 py-1 rounded-lg border border-slate-100 dark:border-white/5">
+                  <span className="text-[10px] font-medium  tracking-wider text-slate-550 dark:text-slate-400 bg-slate-50 dark:bg-[#141414] px-2.5 py-1 rounded-lg border border-slate-100 dark:border-white/5">
                     {timelineStart.toLocaleDateString("en-US", {
                       month: "long",
                       year: "numeric",
@@ -3000,7 +3130,7 @@ const ProjectTaskBoard = ({
                     {activeSections.map((sectionName) => (
                       <React.Fragment key={sectionName}>
                         <div className="border-b border-slate-200 dark:border-white/5 h-10 flex items-center justify-between px-3 bg-slate-100/40 dark:bg-[#161616]/30">
-                          <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-700 dark:text-slate-350">
+                          <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-700 dark:text-slate-350">
                             <FiChevronDown
                               size={12}
                               className="text-slate-400"
@@ -3055,7 +3185,7 @@ const ProjectTaskBoard = ({
                       <div className="py-3 px-3 h-10 flex items-center">
                         <button
                           onClick={() => setIsAddingSection(true)}
-                          className="flex items-center gap-1.5 text-[10px] font-black text-slate-500 hover:text-slate-800 dark:hover:text-[#e5ff00] transition-colors cursor-pointer"
+                          className="flex items-center gap-1.5 text-[10px] font-medium text-slate-500 hover:text-slate-800 dark:hover:text-[#e5ff00] transition-colors cursor-pointer"
                         >
                           <FiPlus size={11} /> Add section
                         </button>
@@ -3075,7 +3205,7 @@ const ProjectTaskBoard = ({
                               key={weekIdx}
                               className="w-1/4 px-3 flex flex-col justify-center border-r border-slate-200 dark:border-white/5"
                             >
-                              <span className="text-[9px] font-black text-slate-700 dark:text-slate-350">
+                              <span className="text-[9px] font-medium text-slate-700 dark:text-slate-350">
                                 {weekData.label}
                               </span>
                               <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500">
@@ -3188,7 +3318,7 @@ const ProjectTaskBoard = ({
                                           left: `${leftPercent}%`,
                                           width: `${widthPercent}%`,
                                         }}
-                                        className={`absolute top-1 h-6 rounded-lg shadow-sm text-[9.5px] font-black px-2 flex items-center justify-between truncate cursor-pointer transition-all hover:scale-[1.01] hover:brightness-105 ${
+                                        className={`absolute top-1 h-6 rounded-lg shadow-sm text-[9.5px] font-medium px-2 flex items-center justify-between truncate cursor-pointer transition-all hover:scale-[1.01] hover:brightness-105 ${
                                           task.status === "Completed"
                                             ? "bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-100 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400"
                                             : task.status === "In Progress"
@@ -3238,7 +3368,7 @@ const ProjectTaskBoard = ({
 
         {activeTab === "Dashboard" && (
           <div className="space-y-6">
-            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 dark:text-white">
+            <h3 className="text-xs font-medium  tracking-wider text-slate-400 dark:text-white">
               Dashboard Metrics
             </h3>
 
@@ -3252,14 +3382,14 @@ const ProjectTaskBoard = ({
                   className="text-emerald-500/40 dark:text-emerald-400/25 absolute top-5 right-5 pointer-events-none"
                 />
                 <div className="relative z-10">
-                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <h4 className="text-[10px] font-medium  tracking-wider text-slate-500 dark:text-slate-400">
                     Completed tasks
                   </h4>
-                  <div className="text-4xl font-black mt-4 drop-shadow-sm text-emerald-500 dark:text-emerald-400">
+                  <div className="text-4xl font-medium mt-4 drop-shadow-sm text-emerald-500 dark:text-emerald-400">
                     {completedTasks}
                   </div>
                 </div>
-                <div className="relative z-10 text-[9px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                <div className="relative z-10 text-[9px] font-bold  tracking-wider mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
                   <FiClock size={11} /> 1 Filter
                 </div>
               </div>
@@ -3272,14 +3402,14 @@ const ProjectTaskBoard = ({
                   className="text-blue-550/40 dark:text-[#e5ff00]/25 absolute top-5 right-5 pointer-events-none"
                 />
                 <div className="relative z-10">
-                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <h4 className="text-[10px] font-medium  tracking-wider text-slate-500 dark:text-slate-400">
                     Incomplete tasks
                   </h4>
-                  <div className="text-4xl font-black mt-4 drop-shadow-sm text-blue-500 dark:text-[#e5ff00]">
+                  <div className="text-4xl font-medium mt-4 drop-shadow-sm text-blue-500 dark:text-[#e5ff00]">
                     {incompleteTasks}
                   </div>
                 </div>
-                <div className="relative z-10 text-[9px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                <div className="relative z-10 text-[9px] font-bold  tracking-wider mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
                   <FiClock size={11} /> 1 Filter
                 </div>
               </div>
@@ -3292,14 +3422,14 @@ const ProjectTaskBoard = ({
                   className="text-rose-500/40 dark:text-rose-450/25 absolute top-5 right-5 pointer-events-none"
                 />
                 <div className="relative z-10">
-                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <h4 className="text-[10px] font-medium  tracking-wider text-slate-500 dark:text-slate-400">
                     Overdue tasks
                   </h4>
-                  <div className="text-4xl font-black mt-4 drop-shadow-sm text-rose-500 dark:text-rose-455">
+                  <div className="text-4xl font-medium mt-4 drop-shadow-sm text-rose-500 dark:text-rose-455">
                     {overdueTasks}
                   </div>
                 </div>
-                <div className="relative z-10 text-[9px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                <div className="relative z-10 text-[9px] font-bold  tracking-wider mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
                   <FiClock size={11} /> 1 Filter
                 </div>
               </div>
@@ -3312,14 +3442,14 @@ const ProjectTaskBoard = ({
                   className="text-slate-500/40 dark:text-white/20 absolute top-5 right-5 pointer-events-none"
                 />
                 <div className="relative z-10">
-                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  <h4 className="text-[10px] font-medium  tracking-wider text-slate-500 dark:text-slate-400">
                     Total tasks
                   </h4>
-                  <div className="text-4xl font-black mt-4 drop-shadow-sm text-slate-700 dark:text-white">
+                  <div className="text-4xl font-medium mt-4 drop-shadow-sm text-slate-700 dark:text-white">
                     {totalTasks}
                   </div>
                 </div>
-                <div className="relative z-10 text-[9px] font-bold uppercase tracking-wider mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
+                <div className="relative z-10 text-[9px] font-bold  tracking-wider mt-4 border-t border-slate-100 dark:border-white/5 pt-2 flex items-center gap-1.5 text-slate-400 dark:text-slate-500">
                   <FiClock size={11} /> No Filters
                 </div>
               </div>
@@ -3329,7 +3459,7 @@ const ProjectTaskBoard = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               {/* Chart 1: Total incomplete tasks by section (Status Breakdown) */}
               <div className="bg-white dark:bg-[#070b13] p-6 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none flex flex-col transition-all duration-300 hover:shadow-2xl hover:border-slate-300 dark:hover:border-[#e5ff00]/30">
-                <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider mb-8">
+                <h4 className="text-xs font-medium text-slate-800 dark:text-slate-100  tracking-wider mb-8">
                   Total incomplete tasks by section
                 </h4>
 
@@ -3363,7 +3493,7 @@ const ProjectTaskBoard = ({
                         key={sectionName}
                         className="flex flex-col items-center gap-2 z-10 w-20 group cursor-default shrink-0"
                       >
-                        <span className="text-xs font-black text-slate-600 dark:text-slate-405 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-405 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
                           {sectionIncompleteCount}
                         </span>
                         <motion.div
@@ -3375,7 +3505,7 @@ const ProjectTaskBoard = ({
                           className="w-10 rounded-t-xl bg-gradient-to-t from-blue-600 to-cyan-400 dark:from-[#99cc00] dark:to-[#e5ff00] shadow-[0_0_15px_rgba(56,189,248,0.3)] dark:shadow-[0_0_15px_rgba(229,255,0,0.3)] transition-all duration-300 group-hover:brightness-125"
                         />
                         <span
-                          className="text-[9px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-2 text-center w-full truncate"
+                          className="text-[9px] font-medium  tracking-wider text-slate-500 dark:text-slate-400 mt-2 text-center w-full truncate"
                           title={sectionName}
                         >
                           {sectionName}
@@ -3385,7 +3515,7 @@ const ProjectTaskBoard = ({
                   })}
                 </div>
 
-                <div className="text-[9px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-wider pt-4 flex items-center justify-between">
+                <div className="text-[9px] font-medium text-slate-400 dark:text-slate-550  tracking-wider pt-4 flex items-center justify-between">
                   <span>2 Filters Active</span>
                   <button className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#1a1a1a] text-blue-600 dark:text-[#e5ff00] hover:bg-slate-200 dark:hover:bg-white/10 transition-all shadow-sm">
                     View Details
@@ -3395,7 +3525,7 @@ const ProjectTaskBoard = ({
 
               {/* Chart 2: Total tasks by completion status (Donut Chart) */}
               <div className="bg-white dark:bg-[#070b13] p-6 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none flex flex-col transition-all duration-300 hover:shadow-2xl hover:border-slate-300 dark:hover:border-[#e5ff00]/30">
-                <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider mb-6">
+                <h4 className="text-xs font-medium text-slate-800 dark:text-slate-100  tracking-wider mb-6">
                   Total tasks by completion status
                 </h4>
 
@@ -3512,10 +3642,10 @@ const ProjectTaskBoard = ({
                       transition={{ delay: 0.5, type: "spring" }}
                       className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
                     >
-                      <span className="text-3xl font-black bg-clip-text text-transparent bg-gradient-to-br from-violet-600 to-pink-500 dark:from-[#99cc00] dark:to-[#e5ff00] drop-shadow-sm">
+                      <span className="text-3xl font-medium bg-clip-text text-transparent bg-gradient-to-br from-violet-600 to-pink-500 dark:from-[#99cc00] dark:to-[#e5ff00] drop-shadow-sm">
                         {incompleteTasks}
                       </span>
-                      <span className="text-[8px] font-black uppercase text-slate-400 mt-1">
+                      <span className="text-[8px] font-medium  text-slate-400 mt-1">
                         Remaining
                       </span>
                     </motion.div>
@@ -3526,10 +3656,10 @@ const ProjectTaskBoard = ({
                     <div className="flex items-center gap-3">
                       <div className="w-4 h-4 rounded-full bg-gradient-to-br from-violet-550 to-pink-500 dark:from-[#99cc00] dark:to-[#e5ff00] shadow-sm shadow-violet-500/40 dark:shadow-[#e5ff00]/40 shrink-0" />
                       <div>
-                        <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400  tracking-wider block">
                           Incomplete
                         </span>
-                        <span className="text-sm font-black text-slate-800 dark:text-slate-100">
+                        <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
                           {incompleteTasks} Tasks
                         </span>
                       </div>
@@ -3537,10 +3667,10 @@ const ProjectTaskBoard = ({
                     <div className="flex items-center gap-3">
                       <div className="w-4 h-4 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 dark:from-emerald-500/80 dark:to-emerald-500 shadow-sm shrink-0 border border-emerald-100 dark:border-white/10" />
                       <div>
-                        <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400  tracking-wider block">
                           Completed
                         </span>
-                        <span className="text-sm font-black text-slate-800 dark:text-slate-100">
+                        <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
                           {completedTasks} Tasks
                         </span>
                       </div>
@@ -3548,7 +3678,7 @@ const ProjectTaskBoard = ({
                   </div>
                 </div>
 
-                <div className="text-[9px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-wider pt-4 flex items-center justify-between">
+                <div className="text-[9px] font-medium text-slate-400 dark:text-slate-550  tracking-wider pt-4 flex items-center justify-between">
                   <span>1 Filter Active</span>
                   <button className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#1a1a1a] text-blue-600 dark:text-[#e5ff00] hover:bg-slate-200 dark:hover:bg-white/10 transition-all shadow-sm">
                     View Details
@@ -3588,10 +3718,10 @@ const ProjectTaskBoard = ({
                     <FiBriefcase size={20} />
                   </div>
                   <div>
-                    <h2 className="text-sm font-black text-slate-800 dark:text-slate-100 uppercase tracking-wider">
+                    <h2 className="text-sm font-medium text-slate-800 dark:text-slate-100  tracking-wider">
                       Task Workspace Preview
                     </h2>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                    <p className="text-[10px] text-slate-400 font-bold  tracking-wider mt-0.5">
                       Real-time Editing & Details
                     </p>
                   </div>
@@ -3608,7 +3738,7 @@ const ProjectTaskBoard = ({
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 {/* Title Section (Autosaves on blur/enter) */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                  <label className="text-[10px] font-medium text-slate-400  tracking-wider">
                     Task Title
                   </label>
                   <div className="p-3 bg-slate-50 dark:bg-[#0a0a0a]/50 border border-slate-150 dark:border-white/10 rounded-xl focus-within:bg-white dark:focus-within:bg-[#111111] focus-within:ring-1 focus-within:ring-blue-500 dark:focus-within:ring-[#e5ff00] transition-all">
@@ -3631,7 +3761,7 @@ const ProjectTaskBoard = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50/50 dark:bg-[#0a0a0a]/40 p-4 rounded-2xl border border-slate-100 dark:border-white/5">
                   {/* Status Selection */}
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400  tracking-wider flex items-center gap-1.5">
                       <FiTag size={12} /> Status
                     </label>
                     {isAdminOrManager ? (
@@ -3671,7 +3801,7 @@ const ProjectTaskBoard = ({
                       </select>
                     ) : (
                       <div
-                        className={`px-3 py-2 border rounded-xl text-xs font-semibold w-fit uppercase tracking-wider ${getStatusBadge(
+                        className={`px-3 py-2 border rounded-xl text-xs font-semibold w-fit  tracking-wider ${getStatusBadge(
                           selectedTask.status,
                         )}`}
                       >
@@ -3682,7 +3812,7 @@ const ProjectTaskBoard = ({
 
                   {/* Assignee Selection */}
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400  tracking-wider flex items-center gap-1.5">
                       <FiUser size={12} /> Assignee
                     </label>
                     {isAdminOrManager ? (
@@ -3744,7 +3874,7 @@ const ProjectTaskBoard = ({
 
                   {/* Start Date Picker */}
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400  tracking-wider flex items-center gap-1.5">
                       <FiCalendar size={12} /> Start Date
                     </label>
                     {isAdminOrManager ? (
@@ -3778,7 +3908,7 @@ const ProjectTaskBoard = ({
 
                   {/* End Date (Due Date) Picker */}
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400  tracking-wider flex items-center gap-1.5">
                       <FiCalendar size={12} /> End Date
                     </label>
                     {isAdminOrManager ? (
@@ -3810,7 +3940,7 @@ const ProjectTaskBoard = ({
 
                   {/* Priority Selection */}
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400  tracking-wider flex items-center gap-1.5">
                       <FiClock size={12} /> Priority
                     </label>
                     {isAdminOrManager ? (
@@ -3993,7 +4123,7 @@ const ProjectTaskBoard = ({
 
                 {/* Comments & Attachments */}
                 <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
-                  <h3 className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                  <h3 className="text-xs font-medium text-slate-500  tracking-wider">
                     Discussion & Attachments
                   </h3>
 
