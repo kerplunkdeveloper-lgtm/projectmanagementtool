@@ -23,7 +23,7 @@ import {
   FiFilter,
   FiList,
   FiGrid,
-  FiSearch
+  FiSearch,
 } from "react-icons/fi";
 import {
   useGetTasksQuery,
@@ -68,7 +68,7 @@ const TaskTitleInput = ({ task, handleTaskFieldChange, isCompleted }) => {
 
 const Task = () => {
   const { user } = useSelector((state) => state.auth);
-  
+
   const { data: tasks = [], isLoading: loading } = useGetTasksQuery(undefined, {
     skip: !user,
   });
@@ -82,7 +82,7 @@ const Task = () => {
   const [sortBy, setSortBy] = useState("dueDate-asc");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  
+
   const [openDropdown, setOpenDropdown] = useState(null);
   const filterRef = useRef(null);
 
@@ -99,7 +99,7 @@ const Task = () => {
   const [expandedTasks, setExpandedTasks] = useState({});
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [draggedTaskId, setDraggedTaskId] = useState(null);
-  
+
   // Continuous subtask input state inside the drawer
   const [drawerSubtaskTitle, setDrawerSubtaskTitle] = useState("");
   const subtaskInputRef = useRef(null);
@@ -135,7 +135,20 @@ const Task = () => {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return "No Date";
     const day = date.getDate();
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
     const month = months[date.getMonth()];
     const year = date.getFullYear();
     return `${day} ${month} ${year}`;
@@ -145,20 +158,26 @@ const Task = () => {
   const filteredTasks = React.useMemo(() => {
     return myTasks.filter((task) => {
       // Status filter
-      const matchesStatus = statusFilter === "All" || task.status === statusFilter;
-      
+      const matchesStatus =
+        statusFilter === "All" || task.status === statusFilter;
+
       // Priority filter
-      const matchesPriority = priorityFilter === "All" || task.priority === priorityFilter;
+      const matchesPriority =
+        priorityFilter === "All" || task.priority === priorityFilter;
 
       // Project filter
       const taskProjectId = task.project?._id || task.project;
-      const matchesProject = projectFilter === "All" || taskProjectId === projectFilter;
+      const matchesProject =
+        projectFilter === "All" || taskProjectId === projectFilter;
 
       // Search term
-      const matchesSearch = task.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      const matchesSearch =
+        task.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         task.project?.name?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      return matchesStatus && matchesPriority && matchesProject && matchesSearch;
+      return (
+        matchesStatus && matchesPriority && matchesProject && matchesSearch
+      );
     });
   }, [myTasks, statusFilter, priorityFilter, projectFilter, searchTerm]);
 
@@ -238,14 +257,21 @@ const Task = () => {
       text: newComment.trim(),
       createdAt: new Date(),
     };
-    
+
     updateTaskTrigger({
       id: selectedTask._id,
       taskData: {
-        comments: [...(selectedTask.comments || []).map(c => ({ user: c.user?._id || c.user, text: c.text, createdAt: c.createdAt })), commentData]
-      }
+        comments: [
+          ...(selectedTask.comments || []).map((c) => ({
+            user: c.user?._id || c.user,
+            text: c.text,
+            createdAt: c.createdAt,
+          })),
+          commentData,
+        ],
+      },
     });
-    
+
     setNewComment("");
   };
 
@@ -260,16 +286,20 @@ const Task = () => {
     try {
       setIsUploading(true);
       toast.loading("Uploading attachment...", { id: "upload" });
-      
+
       const config = {
         headers: {
-          Authorization: `Bearer ${user?.token || localStorage.getItem('token')}`,
+          Authorization: `Bearer ${user?.token || localStorage.getItem("token")}`,
           "Content-Type": "multipart/form-data",
         },
       };
 
-      const { data } = await axiosInstance.post("/messages/upload", formData, config);
-      
+      const { data } = await axiosInstance.post(
+        "/messages/upload",
+        formData,
+        config,
+      );
+
       if (data.success) {
         const attachmentData = {
           url: data.data.url,
@@ -282,8 +312,14 @@ const Task = () => {
         updateTaskTrigger({
           id: selectedTask._id,
           taskData: {
-            attachments: [...(selectedTask.attachments || []).map(a => ({ ...a, uploadedBy: a.uploadedBy?._id || a.uploadedBy })), attachmentData]
-          }
+            attachments: [
+              ...(selectedTask.attachments || []).map((a) => ({
+                ...a,
+                uploadedBy: a.uploadedBy?._id || a.uploadedBy,
+              })),
+              attachmentData,
+            ],
+          },
         });
 
         toast.success("Attachment uploaded successfully!", { id: "upload" });
@@ -293,7 +329,7 @@ const Task = () => {
       toast.error("Failed to upload attachment", { id: "upload" });
     } finally {
       setIsUploading(false);
-      e.target.value = null; 
+      e.target.value = null;
     }
   };
 
@@ -328,7 +364,7 @@ const Task = () => {
     e.preventDefault();
     const taskId = e.dataTransfer.getData("taskId");
     if (taskId) {
-      const task = tasks.find(t => t._id === taskId);
+      const task = tasks.find((t) => t._id === taskId);
       if (task && task.status !== newStatus) {
         handleStatusChange(taskId, newStatus);
       }
@@ -340,17 +376,24 @@ const Task = () => {
   const handleToggleSubtask = (task, subtask) => {
     const updatedSubtasks = task.subtasks.map((sub) =>
       sub._id === subtask._id
-        ? { ...sub, status: sub.status === "Completed" ? "Pending" : "Completed" }
-        : sub
+        ? {
+            ...sub,
+            status: sub.status === "Completed" ? "Pending" : "Completed",
+          }
+        : sub,
     );
-    updateTaskTrigger({ id: task._id, taskData: { subtasks: updatedSubtasks } });
+    updateTaskTrigger({
+      id: task._id,
+      taskData: { subtasks: updatedSubtasks },
+    });
   };
 
   // Add subtask inside drawer (continuous typing helper)
   const handleAddSubtaskInDrawer = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      if (!drawerSubtaskTitle || !drawerSubtaskTitle.trim() || !selectedTask) return;
+      if (!drawerSubtaskTitle || !drawerSubtaskTitle.trim() || !selectedTask)
+        return;
 
       const newSubtask = {
         title: drawerSubtaskTitle.trim(),
@@ -360,10 +403,13 @@ const Task = () => {
       };
 
       const updatedSubtasks = [...(selectedTask.subtasks || []), newSubtask];
-      updateTaskTrigger({ id: selectedTask._id, taskData: { subtasks: updatedSubtasks } });
+      updateTaskTrigger({
+        id: selectedTask._id,
+        taskData: { subtasks: updatedSubtasks },
+      });
 
       setDrawerSubtaskTitle("");
-      
+
       // Auto refocus the input field for continuous addition
       setTimeout(() => {
         if (subtaskInputRef.current) {
@@ -375,16 +421,24 @@ const Task = () => {
 
   // Delete subtask
   const handleDeleteSubtask = (task, subtaskId) => {
-    const updatedSubtasks = task.subtasks.filter((sub) => sub._id !== subtaskId);
-    updateTaskTrigger({ id: task._id, taskData: { subtasks: updatedSubtasks } });
+    const updatedSubtasks = task.subtasks.filter(
+      (sub) => sub._id !== subtaskId,
+    );
+    updateTaskTrigger({
+      id: task._id,
+      taskData: { subtasks: updatedSubtasks },
+    });
   };
 
   // Update specific subtask fields (e.g. inline title edit, priority, due date)
   const handleUpdateSubtaskField = (task, subtaskId, fields) => {
     const updatedSubtasks = task.subtasks.map((sub) =>
-      sub._id === subtaskId ? { ...sub, ...fields } : sub
+      sub._id === subtaskId ? { ...sub, ...fields } : sub,
     );
-    updateTaskTrigger({ id: task._id, taskData: { subtasks: updatedSubtasks } });
+    updateTaskTrigger({
+      id: task._id,
+      taskData: { subtasks: updatedSubtasks },
+    });
   };
 
   const toggleTaskExpanded = (taskId) => {
@@ -395,25 +449,25 @@ const Task = () => {
     switch (status) {
       case "Completed":
         return {
-          bg: "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900 dark:text-emerald-300 dark:border-emerald-600",
+          bg: "!bg-emerald-50 !text-emerald-700 !border-emerald-200 dark:!bg-emerald-500/20 dark:!text-emerald-300 dark:!border-emerald-500/40",
           dot: "bg-emerald-500",
           icon: FiCheckSquare,
         };
       case "In Progress":
         return {
-          bg: "bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-600",
+          bg: "!bg-blue-50 !text-blue-700 !border-blue-200 dark:!bg-blue-500/20 dark:!text-blue-300 dark:!border-blue-500/40",
           dot: "bg-blue-500",
           icon: FiClock,
         };
       case "On Hold":
         return {
-          bg: "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900 dark:text-amber-300 dark:border-amber-600",
+          bg: "!bg-amber-50 !text-amber-700 !border-amber-200 dark:!bg-amber-500/20 dark:!text-amber-300 dark:!border-amber-500/40",
           dot: "bg-amber-500",
           icon: FiAlertCircle,
         };
       default:
         return {
-          bg: "bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600",
+          bg: "!bg-slate-50 !text-slate-600 !border-slate-200 dark:!bg-slate-500/20 dark:!text-slate-300 dark:!border-slate-500/40",
           dot: "bg-slate-400",
           icon: FiClock,
         };
@@ -437,17 +491,14 @@ const Task = () => {
     <div className="p-1 space-y-4 pb-16">
       {/* UNIFIED HEADER & CONTROLS */}
       <div className="bg-white dark:bg-[#0f172a] relative z-20">
-          <h1 className="text-lg font-black tracking-tight text-slate-800 dark:text-yellow-50 whitespace-nowrap hidden sm:block px-2">My Assigned Tasks</h1>
-
+        <h1 className="text-lg font-black tracking-tight text-slate-800 dark:text-yellow-50 whitespace-nowrap hidden sm:block px-2">
+          My Assigned Tasks
+        </h1>
       </div>
       <div className="flex flex-col xl:flex-row items-center justify-between gap-4 bg-white dark:bg-[#0f172a] p-2 relative z-20">
-        
         {/* Left: Title, Add Task & Search */}
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
-          
-        
           <div className="relative w-full sm:w-56 shrink-0">
-        
             <input
               type="text"
               placeholder="Search..."
@@ -462,36 +513,49 @@ const Task = () => {
         <div className="flex bg-slate-50 dark:bg-black p-1 rounded-xl shrink-0 w-full xl:w-auto mx-auto justify-center">
           <button
             onClick={() => setViewType("list")}
-            className={`flex items-center justify-center gap-2 px-6 py-1.5 rounded-lg text-xs font-bold transition-all ${viewType === "list" ? "bg-white dark:bg-[#0f172a] text-blue-600 dark:text-[#e5ff00] shadow-sm border border-slate-200 dark:border-slate-800" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+            className={`flex items-center justify-center gap-2 px-6 py-1.5 rounded-lg text-xs font-bold transition-all ${viewType === "list" ? "bg-white dark:bg-[#0f172a] text-blue-600 dark:text-[#e5ff00] shadow-sm border border-slate-200 dark:border-0" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
           >
             <FiList size={14} /> List
           </button>
           <button
             onClick={() => setViewType("kanban")}
-            className={`flex items-center justify-center gap-2 px-6 py-1.5 rounded-lg text-xs font-bold transition-all ${viewType === "kanban" ? "bg-white dark:bg-[#0f172a] text-blue-600 dark:text-[#e5ff00] shadow-sm border border-slate-200 dark:border-slate-800" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+            className={`flex items-center justify-center gap-2 px-6 py-1.5 rounded-lg text-xs font-bold transition-all ${viewType === "kanban" ? "bg-white dark:bg-[#0f172a] text-blue-600 dark:text-[#e5ff00] shadow-sm border border-slate-200 dark:border-0" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
           >
             <FiGrid size={14} /> Kanban
           </button>
         </div>
 
         {/* Right: Filter & Sort Actions */}
-        <div className="flex items-center justify-end gap-2.5 w-full xl:w-auto" ref={filterRef}>
-          
+        <div
+          className="flex items-center justify-end gap-2.5 w-full xl:w-auto"
+          ref={filterRef}
+        >
           {/* Filter Dropdown Toggle */}
           <div className="relative">
             <button
-              onClick={() => setOpenDropdown(openDropdown === "filter" ? null : "filter")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-                openDropdown === "filter" || statusFilter !== "All" || priorityFilter !== "All" || projectFilter !== "All"
-                  ? "bg-blue-50 dark:bg-[#e5ff00]/10 border-blue-200 dark:border-[#e5ff00]/20 text-blue-700 dark:text-[#e5ff00]"
-                  : "bg-white dark:bg-black border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
+              onClick={() =>
+                setOpenDropdown(openDropdown === "filter" ? null : "filter")
+              }
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border dark:border-0 ${
+                openDropdown === "filter" ||
+                statusFilter !== "All" ||
+                priorityFilter !== "All" ||
+                projectFilter !== "All"
+                  ? "bg-blue-55 dark:bg-[#e5ff00]/10 border-blue-200 dark:border-transparent text-blue-700 dark:text-[#e5ff00]"
+                  : "bg-white dark:bg-black border-slate-200 dark:border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
               }`}
             >
               <FiFilter size={14} />
               Filter
-              {(statusFilter !== "All" || priorityFilter !== "All" || projectFilter !== "All") && (
+              {(statusFilter !== "All" ||
+                priorityFilter !== "All" ||
+                projectFilter !== "All") && (
                 <span className="flex items-center justify-center bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black text-[9px] w-4 h-4 rounded-full ml-1 font-black">
-                  {[statusFilter, priorityFilter, projectFilter].filter(f => f !== "All").length}
+                  {
+                    [statusFilter, priorityFilter, projectFilter].filter(
+                      (f) => f !== "All",
+                    ).length
+                  }
                 </span>
               )}
             </button>
@@ -504,16 +568,18 @@ const Task = () => {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute right-0 mt-3 w-72 bg-white dark:bg-[#0f172a] border border-slate-100 dark:border-slate-800 rounded-3xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] z-50 p-5 origin-top-right flex flex-col gap-4"
+                  className="absolute right-0 mt-3 w-72 bg-white dark:bg-[#0f172a] border border-slate-100 dark:border-0 rounded-3xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] z-50 p-5 origin-top-right flex flex-col gap-4"
                 >
                   {/* Status Selection */}
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Status</label>
+                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                      Status
+                    </label>
                     <div className="relative">
                       <select
                         value={statusFilter}
                         onChange={(e) => setStatusFilter(e.target.value)}
-                        className="w-full h-10 px-3 pr-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-black text-xs text-slate-700 dark:text-slate-300 font-bold appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors hover:border-slate-300 dark:hover:border-slate-700"
+                        className="w-full h-10 px-3 pr-8 rounded-xl border border-slate-200 dark:border-0 bg-slate-50 dark:bg-black text-xs text-slate-700 dark:text-slate-300 font-bold appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors hover:border-slate-300 dark:hover:border-transparent"
                       >
                         <option value="All">All Statuses</option>
                         <option value="Pending">Pending</option>
@@ -521,50 +587,71 @@ const Task = () => {
                         <option value="Completed">Completed</option>
                         <option value="On Hold">On Hold</option>
                       </select>
-                      <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                      <FiChevronDown
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                        size={14}
+                      />
                     </div>
                   </div>
 
                   {/* Priority Selection */}
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Priority</label>
+                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                      Priority
+                    </label>
                     <div className="relative">
                       <select
                         value={priorityFilter}
                         onChange={(e) => setPriorityFilter(e.target.value)}
-                        className="w-full h-10 px-3 pr-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-black text-xs text-slate-700 dark:text-slate-300 font-bold appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors hover:border-slate-300 dark:hover:border-slate-700"
+                        className="w-full h-10 px-3 pr-8 rounded-xl border border-slate-200 dark:border-0 bg-slate-50 dark:bg-black text-xs text-slate-700 dark:text-slate-300 font-bold appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors hover:border-slate-300 dark:hover:border-transparent"
                       >
                         <option value="All">All Priorities</option>
                         <option value="Low">Low</option>
                         <option value="Medium">Medium</option>
                         <option value="High">High</option>
                       </select>
-                      <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                      <FiChevronDown
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                        size={14}
+                      />
                     </div>
                   </div>
 
                   {/* Project Selection */}
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Project</label>
+                    <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                      Project
+                    </label>
                     <div className="relative">
                       <select
                         value={projectFilter}
                         onChange={(e) => setProjectFilter(e.target.value)}
-                        className="w-full h-10 px-3 pr-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-black text-xs text-slate-700 dark:text-slate-300 font-bold appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors hover:border-slate-300 dark:hover:border-slate-700"
+                        className="w-full h-10 px-3 pr-8 rounded-xl border border-slate-200 dark:border-0 bg-slate-50 dark:bg-black text-xs text-slate-700 dark:text-slate-300 font-bold appearance-none cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors hover:border-slate-300 dark:hover:border-transparent"
                       >
                         <option value="All">All Projects</option>
                         {uniqueProjects.map((p) => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
                         ))}
                       </select>
-                      <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
+                      <FiChevronDown
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                        size={14}
+                      />
                     </div>
                   </div>
-                  
+
                   {/* Reset Filters */}
-                  {(statusFilter !== "All" || priorityFilter !== "All" || projectFilter !== "All") && (
-                    <button 
-                      onClick={() => { setStatusFilter("All"); setPriorityFilter("All"); setProjectFilter("All"); }}
+                  {(statusFilter !== "All" ||
+                    priorityFilter !== "All" ||
+                    projectFilter !== "All") && (
+                    <button
+                      onClick={() => {
+                        setStatusFilter("All");
+                        setPriorityFilter("All");
+                        setProjectFilter("All");
+                      }}
                       className="mt-2 w-full py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 text-[11px] font-black tracking-wider hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400 transition-colors flex justify-center items-center gap-1.5"
                     >
                       <FiX size={14} /> Reset Filters
@@ -578,11 +665,13 @@ const Task = () => {
           {/* Sort Dropdown Toggle */}
           <div className="relative">
             <button
-              onClick={() => setOpenDropdown(openDropdown === "sort" ? null : "sort")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
+              onClick={() =>
+                setOpenDropdown(openDropdown === "sort" ? null : "sort")
+              }
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border dark:border-0 ${
                 openDropdown === "sort"
-                  ? "bg-blue-50 dark:bg-[#e5ff00]/10 border-blue-200 dark:border-[#e5ff00]/20 text-blue-700 dark:text-[#e5ff00]"
-                  : "bg-white dark:bg-black border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
+                  ? "bg-blue-55 dark:bg-[#e5ff00]/10 border-blue-200 dark:border-transparent text-blue-700 dark:text-[#e5ff00]"
+                  : "bg-white dark:bg-black border-slate-200 dark:border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
               }`}
             >
               <FiList size={14} /> Sort By
@@ -596,7 +685,7 @@ const Task = () => {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute right-0 mt-3 w-56 bg-white dark:bg-[#0f172a] border border-slate-100 dark:border-slate-800 rounded-3xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] z-50 p-2 origin-top-right flex flex-col"
+                  className="absolute right-0 mt-3 w-56 bg-white dark:bg-[#0f172a] border border-slate-100 dark:border-0 rounded-3xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] z-50 p-2 origin-top-right flex flex-col"
                 >
                   {[
                     { value: "dueDate-asc", label: "End Date (Nearest)" },
@@ -610,11 +699,14 @@ const Task = () => {
                   ].map((option) => (
                     <button
                       key={option.value}
-                      onClick={() => { setSortBy(option.value); setOpenDropdown(null); }}
+                      onClick={() => {
+                        setSortBy(option.value);
+                        setOpenDropdown(null);
+                      }}
                       className={`flex items-center justify-between w-full text-left px-4 py-2.5 rounded-2xl text-xs font-bold transition-colors ${
                         sortBy === option.value
                           ? "bg-blue-50 dark:bg-slate-800 text-blue-700 dark:text-[#e5ff00]"
-                          : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900"
+                          : "text-slate-650 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900"
                       }`}
                     >
                       {option.label}
@@ -625,7 +717,6 @@ const Task = () => {
               )}
             </AnimatePresence>
           </div>
-
         </div>
       </div>
 
@@ -636,87 +727,124 @@ const Task = () => {
         </div>
       ) : filteredTasks.length === 0 ? (
         <div className="text-center py-20 bg-white dark:bg-[#0f172a] rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)]">
-          <FiCheckSquare size={36} className="mx-auto text-slate-300 dark:text-slate-600" />
-          <h3 className="mt-4 text-sm font-black text-slate-800 dark:text-slate-200  tracking-wider">No Tasks Found</h3>
-          <p className="text-slate-400 text-[11px] font-semibold mt-1">You have no tasks assigned matching this criteria.</p>
+          <FiCheckSquare
+            size={36}
+            className="mx-auto text-slate-300 dark:text-slate-600"
+          />
+          <h3 className="mt-4 text-sm font-black text-slate-800 dark:text-slate-200  tracking-wider">
+            No Tasks Found
+          </h3>
+          <p className="text-slate-400 text-[11px] font-semibold mt-1">
+            You have no tasks assigned matching this criteria.
+          </p>
         </div>
       ) : viewType === "kanban" ? (
         <div className="flex gap-6 overflow-x-auto pb-8 pt-2 scrollbar-thin px-2">
-          {["Pending", "In Progress", "On Hold", "Completed"].map((colStatus) => {
-            const colTasks = filteredTasks.filter(t => t.status === colStatus);
-            const style = getStatusStyle(colStatus);
-            
-            return (
-              <div 
-                key={colStatus} 
-                className={`flex-shrink-0 w-[300px] sm:w-[340px] flex flex-col rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/80 p-4 transition-colors duration-300 ${draggedTaskId ? 'border-dashed border-blue-300 dark:border-blue-500/50 bg-blue-50/30 dark:bg-blue-900/10' : ''}`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, colStatus)}
-              >
-                <div className="mb-5 flex items-center justify-between">
-                  <h3 className="text-sm font-black tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2.5">
-                    <span className={`w-2.5 h-2.5 rounded-full shadow-sm ${style.dot}`}></span>
-                    {colStatus}
-                  </h3>
-                  <span className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-black px-2.5 py-1 rounded-full shadow-sm">
-                    {colTasks.length}
-                  </span>
-                </div>
-                
-                <div className="flex flex-col gap-3 h-full min-h-[200px]">
-                  {colTasks.length === 0 ? (
-                    <div className="bg-white/50 dark:bg-[#0f172a]/30 border-2 border-slate-200/50 dark:border-slate-800/40 border-dashed rounded-2xl h-32 flex flex-col items-center justify-center text-center px-4 transition-colors">
-                      <span className="text-[11px] font-bold text-slate-400 tracking-wider">Drop tasks here</span>
-                    </div>
-                  ) : (
-                    colTasks.map(task => {
-                      const isCompleted = task.status === "Completed";
-                      return (
-                        <div 
-                          key={task._id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, task._id)}
-                          onDragEnd={() => setDraggedTaskId(null)}
-                          onClick={() => setSelectedTaskId(task._id)}
-                          className={`bg-white dark:bg-[#0f172a] shadow-sm hover:shadow-lg dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-5 border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-500/60 transition-all cursor-grab active:cursor-grabbing group flex flex-col gap-3 ${
-                            draggedTaskId === task._id ? 'opacity-50 scale-95 border-blue-500' : ''
-                          }`}
-                        >
-                          <div className="flex justify-between items-start">
-                              <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black tracking-wider uppercase ${getPriorityStyle(task.priority || "Medium")}`}>
+          {["Pending", "In Progress", "On Hold", "Completed"].map(
+            (colStatus) => {
+              const colTasks = filteredTasks.filter(
+                (t) => t.status === colStatus,
+              );
+              const style = getStatusStyle(colStatus);
+
+              return (
+                <div
+                  key={colStatus}
+                  className={`flex-shrink-0 w-[300px] sm:w-[340px] flex flex-col rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/80 p-4 transition-colors duration-300 ${draggedTaskId ? "border-dashed border-blue-300 dark:border-blue-500/50 bg-blue-50/30 dark:bg-blue-900/10" : ""}`}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, colStatus)}
+                >
+                  <div className="mb-5 flex items-center justify-between">
+                    <h3 className="text-sm font-black tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2.5">
+                      <span
+                        className={`w-2.5 h-2.5 rounded-full shadow-sm ${style.dot}`}
+                      ></span>
+                      {colStatus}
+                    </h3>
+                    <span className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-black px-2.5 py-1 rounded-full shadow-sm">
+                      {colTasks.length}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-3 h-full min-h-[200px]">
+                    {colTasks.length === 0 ? (
+                      <div className="bg-white/50 dark:bg-[#0f172a]/30 border-2 border-slate-200/50 dark:border-slate-800/40 border-dashed rounded-2xl h-32 flex flex-col items-center justify-center text-center px-4 transition-colors">
+                        <span className="text-[11px] font-bold text-slate-400 tracking-wider">
+                          Drop tasks here
+                        </span>
+                      </div>
+                    ) : (
+                      colTasks.map((task) => {
+                        const isCompleted = task.status === "Completed";
+                        return (
+                          <div
+                            key={task._id}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, task._id)}
+                            onDragEnd={() => setDraggedTaskId(null)}
+                            className={`bg-white dark:bg-[#0f172a] shadow-sm hover:shadow-lg dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-5 border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-500/60 transition-all cursor-grab active:cursor-grabbing group flex flex-col gap-3 ${
+                              draggedTaskId === task._id
+                                ? "opacity-50 scale-95 border-blue-500"
+                                : ""
+                            }`}
+                          >
+                            <div className="flex justify-between items-start">
+                              <span
+                                className={`px-2.5 py-1 rounded-lg text-[9px] font-black tracking-wider uppercase ${getPriorityStyle(task.priority || "Medium")}`}
+                              >
                                 {task.priority || "Medium"}
                               </span>
                               {task.dueDate && (
-                                 <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200/50 dark:border-rose-500/40 font-extrabold text-[9px] whitespace-nowrap tracking-wider">
-                                   <FiCalendar size={10} />
-                                   {new Date(task.dueDate).toLocaleDateString(undefined, {month: 'short', day: 'numeric'})}
-                                 </span>
+                                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200/50 dark:border-rose-500/40 font-extrabold text-[9px] whitespace-nowrap tracking-wider">
+                                  <FiCalendar size={10} />
+                                  {new Date(task.dueDate).toLocaleDateString(
+                                    undefined,
+                                    { month: "short", day: "numeric" },
+                                  )}
+                                </span>
                               )}
+                            </div>
+                            <h4
+                              className={`text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : ""}`}
+                            >
+                              {task.title}
+                            </h4>
+                            <div className="flex items-center justify-between pt-4 mt-1 border-t border-slate-100 dark:border-slate-800/80">
+                              <span className="inline-flex items-center gap-1.5 text-[9px] font-black tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-2.5 py-1 rounded-lg border border-blue-100 dark:border-blue-900/40">
+                                <FiBriefcase size={10} />
+                                {task.project?.name || "Internal"}
+                              </span>
+                              {task.subtasks?.length > 0 && (
+                                <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 flex items-center gap-1 bg-slate-50 dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                                  <FiCheckSquare
+                                    size={11}
+                                    className={
+                                      task.subtasks.filter(
+                                        (s) => s.status === "Completed",
+                                      ).length === task.subtasks.length
+                                        ? "text-emerald-500"
+                                        : ""
+                                    }
+                                  />
+                                  {
+                                    task.subtasks.filter(
+                                      (s) => s.status === "Completed",
+                                    ).length
+                                  }
+                                  /{task.subtasks.length}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <h4 className={`text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug ${isCompleted ? 'line-through text-slate-400 dark:text-slate-500' : ''}`}>
-                             {task.title}
-                          </h4>
-                          <div className="flex items-center justify-between pt-4 mt-1 border-t border-slate-100 dark:border-slate-800/80">
-                             <span className="inline-flex items-center gap-1.5 text-[9px] font-black tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-2.5 py-1 rounded-lg border border-blue-100 dark:border-blue-900/40">
-                               <FiBriefcase size={10} />
-                               {task.project?.name || "Internal"}
-                             </span>
-                             {task.subtasks?.length > 0 && (
-                               <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 flex items-center gap-1 bg-slate-50 dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                                 <FiCheckSquare size={11} className={task.subtasks.filter(s => s.status === 'Completed').length === task.subtasks.length ? 'text-emerald-500' : ''} />
-                                 {task.subtasks.filter(s => s.status === 'Completed').length}/{task.subtasks.length}
-                               </span>
-                             )}
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
+                        );
+                      })
+                    )}
+                  </div>
                 </div>
-              </div>
-            )
-          })}
+              );
+            },
+          )}
         </div>
       ) : (
         <div className="bg-white dark:bg-[#0f172a]  shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)] overflow-hidden transition-all">
@@ -725,13 +853,13 @@ const Task = () => {
             <table className="w-full min-w-[800px] text-left border-collapse table-auto">
               <thead>
                 <tr className="bg-slate-50/50 dark:bg-slate-800/30 text-slate-500 dark:text-slate-400 text-[10px] font-bold  tracking-wider border-b border-slate-100 dark:border-slate-800/60">
-                  <th className="px-6 py-3.5 w-12 text-center">Status</th>
-                  <th className="px-6 py-3.5">Task Name</th>
-                  <th className="px-6 py-3.5">Associated Project</th>
-                  <th className="px-6 py-3.5">Priority</th>
-                  <th className="px-6 py-3.5">Start Date</th>
-                  <th className="px-6 py-3.5">End Date</th>
-                  <th className="px-6 py-3.5 w-44">Status Mode</th>
+                  <th className="px-6 py-2 w-12 text-center">Status</th>
+                  <th className="px-6 py-2">Task Name</th>
+                  <th className="px-6 py-2">Associated Project</th>
+                  <th className="px-6 py-2">Priority</th>
+                  <th className="px-6 py-2">Start Date</th>
+                  <th className="px-6 py-2">End Date</th>
+                  <th className="px-6 py-2 w-44">Status Mode</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
@@ -742,14 +870,18 @@ const Task = () => {
 
                   return (
                     <React.Fragment key={task._id}>
-                      <tr 
-                        onClick={() => setSelectedTaskId(task._id)}
-                        className={`hover:bg-slate-50/40 dark:hover:bg-slate-850/40 transition-colors cursor-pointer group ${
-                          isCompleted ? "bg-slate-50/20 text-slate-400 dark:text-slate-500" : "text-slate-800 dark:text-slate-200"
-                        } ${selectedTaskId === task._id ? "bg-blue-50/30 dark:bg-blue-950/20" : ""}`}
+                      <tr
+                        className={`hover:bg-slate-50/40 dark:hover:bg-slate-850/40 transition-colors group ${
+                          isCompleted
+                            ? "bg-slate-50/20 text-slate-400 dark:text-slate-500"
+                            : "text-slate-850 dark:text-slate-200"
+                        }`}
                       >
                         {/* Checkbox Status Toggle */}
-                        <td className="px-6 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                        <td
+                          className="px-6 py-2 text-center"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <button
                             onClick={() => handleToggleStatus(task)}
                             className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
@@ -763,9 +895,11 @@ const Task = () => {
                         </td>
 
                         {/* Title & Subtasks Dropdown */}
-                        <td className="px-6 py-3.5 font-bold">
+                        <td className="px-6 py-2 font-bold">
                           <div className="flex items-center gap-3">
-                            <span className={`text-xs ${isCompleted ? "line-through" : ""}`}>
+                            <span
+                              className={`text-xs ${isCompleted ? "line-through" : ""}`}
+                            >
                               {task.title}
                             </span>
                             {task.subtasks?.length > 0 && (
@@ -776,7 +910,11 @@ const Task = () => {
                                 }}
                                 className="text-slate-400 hover:text-blue-600 flex items-center gap-0.5 text-[10px] font-extrabold shrink-0"
                               >
-                                {isExpanded ? <FiChevronDown size={14} /> : <FiChevronRight size={14} />}
+                                {isExpanded ? (
+                                  <FiChevronDown size={14} />
+                                ) : (
+                                  <FiChevronRight size={14} />
+                                )}
                                 <span>Subtasks ({task.subtasks.length})</span>
                               </button>
                             )}
@@ -784,7 +922,7 @@ const Task = () => {
                         </td>
 
                         {/* Project Badge */}
-                        <td className="px-6 py-3.5">
+                        <td className="px-6 py-2">
                           <span className="inline-flex items-center gap-1.5 font-extrabold text-[10px]  tracking-wider text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-800/40">
                             <FiBriefcase size={11} />
                             {task.project?.name || "Internal"}
@@ -792,14 +930,16 @@ const Task = () => {
                         </td>
 
                         {/* Priority Badge */}
-                        <td className="px-6 py-3.5">
-                          <span className={`px-2 py-0.5 rounded-lg border text-[9px] font-extrabold  tracking-wider ${getPriorityStyle(task.priority || "Medium")}`}>
+                        <td className="px-6 py-2">
+                          <span
+                            className={`px-2 py-0.5 rounded-lg border text-[9px] font-extrabold  tracking-wider ${getPriorityStyle(task.priority || "Medium")}`}
+                          >
                             {task.priority || "Medium"}
                           </span>
                         </td>
 
                         {/* Start Date */}
-                        <td className="px-6 py-3.5">
+                        <td className="px-6 py-2">
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300 border border-indigo-200/50 dark:border-indigo-500/40 font-extrabold text-[10px] whitespace-nowrap tracking-wider">
                             <FiCalendar size={11} />
                             {formatDate(task.startDate)}
@@ -807,7 +947,7 @@ const Task = () => {
                         </td>
 
                         {/* End Date */}
-                        <td className="px-6 py-3.5">
+                        <td className="px-6 py-2">
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200/50 dark:border-rose-500/40 font-extrabold text-[10px] whitespace-nowrap tracking-wider">
                             <FiCalendar size={11} />
                             {formatDate(task.dueDate)}
@@ -815,107 +955,182 @@ const Task = () => {
                         </td>
 
                         {/* Status Select */}
-                        <td className="px-6 py-3.5" onClick={(e) => e.stopPropagation()}>
+                        <td
+                          className="px-6 py-2"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           <select
                             value={task.status}
-                            onChange={(e) => handleStatusChange(task._id, e.target.value)}
+                            onChange={(e) =>
+                              handleStatusChange(task._id, e.target.value)
+                            }
                             className={`px-2.5 py-1 text-[10px] font-extrabold rounded-lg border tracking-wider cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors ${statusStyle.bg}`}
                           >
-                            <option value="Pending" className={getStatusStyle("Pending").bg}>Pending</option>
-                            <option value="In Progress" className={getStatusStyle("In Progress").bg}>In Progress</option>
-                            <option value="Completed" className={getStatusStyle("Completed").bg}>Completed</option>
-                            <option value="On Hold" className={getStatusStyle("On Hold").bg}>On Hold</option>
+                            <option
+                              value="Pending"
+                              className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                            >
+                              Pending
+                            </option>
+                            <option
+                              value="In Progress"
+                              className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                            >
+                              In Progress
+                            </option>
+                            <option
+                              value="Completed"
+                              className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                            >
+                              Completed
+                            </option>
+                            <option
+                              value="On Hold"
+                              className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                            >
+                              On Hold
+                            </option>
                           </select>
                         </td>
                       </tr>
 
-                      {/* Expanded Subtasks List (Table Row) */}
-                      {isExpanded && task.subtasks?.length > 0 && (
-                        <tr className="bg-slate-50/10 dark:bg-slate-900/10">
-                          <td></td>
-                          <td colSpan={6} className="px-6 py-3">
-                            <div className="border-l-2 border-slate-200 dark:border-slate-800/80 pl-4 py-1 space-y-2.5">
-                              <div className="text-[10px] font-extrabold text-slate-450 dark:text-slate-500 uppercase tracking-widest mb-1.5">
-                                Subtasks ({task.subtasks.length})
-                              </div>
-                              <div className="space-y-2">
-                                {task.subtasks.map((sub) => {
-                                  const isSubCompleted = sub.status === "Completed";
-                                  const subStatusStyle = getStatusStyle(sub.status);
-                                  return (
-                                    <div
-                                      key={sub._id}
-                                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900/40 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800/80 shadow-sm hover:shadow-md transition-all"
-                                    >
-                                      {/* Left side: Checkbox + Name */}
-                                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                                        <FiCornerDownRight className="text-slate-400 shrink-0" size={14} />
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleToggleSubtask(task, sub);
-                                          }}
-                                          className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
-                                            isSubCompleted
-                                              ? "bg-emerald-500 border-emerald-500 text-white"
-                                              : "border-slate-300 dark:border-slate-700 hover:border-emerald-500 text-transparent"
-                                          }`}
-                                        >
-                                          <FiCheck size={10} />
-                                        </button>
-                                        <span className={`font-bold text-xs text-slate-850 dark:text-slate-200 truncate ${isSubCompleted ? "line-through text-slate-450 dark:text-slate-505 font-medium" : ""}`}>
-                                          {sub.title}
-                                        </span>
-                                      </div>
+                      {/* Expanded Subtasks List (Separate Rows for Column Alignment) */}
+                      {isExpanded &&
+                        task.subtasks?.length > 0 &&
+                        task.subtasks.map((sub, subIdx) => {
+                          const isSubCompleted = sub.status === "Completed";
+                          const subStatusStyle = getStatusStyle(sub.status);
+                          return (
+                            <tr
+                              key={sub._id || subIdx}
+                              className={`bg-slate-50/5 dark:bg-slate-900/5 hover:bg-slate-50/20 dark:hover:bg-slate-800/25 transition-colors border-b border-slate-100/60 dark:border-slate-800/40 ${
+                                isSubCompleted
+                                  ? "text-slate-400 dark:text-slate-500"
+                                  : "text-slate-800 dark:text-slate-200"
+                              }`}
+                            >
+                              {/* 1. Status Column (Empty for Alignment) */}
+                              <td className="px-6 py-1.5 w-12"></td>
 
-                                      {/* Right side: Meta Details (Dates, Priority, Status Dropdown) */}
-                                      <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs">
-                                        {/* Start Date */}
-                                        <div className="flex items-center gap-1.5 bg-indigo-50 dark:bg-indigo-500/20 px-2.5 py-1 rounded-xl border border-indigo-200/50 dark:border-indigo-500/40">
-                                          <span className="text-[9px] font-black text-indigo-400 dark:text-indigo-400/70 uppercase tracking-wider">Start:</span>
-                                          <span className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300">
-                                            {formatDate(sub.startDate)}
-                                          </span>
-                                        </div>
+                              {/* 2. Subtask Name Column with Indentation and indicator */}
+                              <td className="px-6 py-1.5 font-bold">
+                                <div className="flex items-center gap-3 pl-4 border-l-2 border-slate-200 dark:border-slate-800">
+                                  <FiCornerDownRight
+                                    className="text-slate-400 shrink-0"
+                                    size={12}
+                                  />
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleToggleSubtask(task, sub);
+                                    }}
+                                    className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center shrink-0 transition-all cursor-pointer ${
+                                      isSubCompleted
+                                        ? "bg-emerald-500 border-emerald-500 text-white"
+                                        : "border-slate-300 dark:border-slate-700 hover:border-emerald-500 text-transparent"
+                                    }`}
+                                  >
+                                    <FiCheck size={10} />
+                                  </button>
+                                  <span
+                                    className={`text-xs truncate ${isSubCompleted ? "line-through text-slate-450 dark:text-slate-550 font-medium" : "text-slate-850 dark:text-white"}`}
+                                  >
+                                    {sub.title}
+                                  </span>
+                                </div>
+                              </td>
 
-                                        {/* End Date */}
-                                        <div className="flex items-center gap-1.5 bg-rose-50 dark:bg-rose-500/20 px-2.5 py-1 rounded-xl border border-rose-200/50 dark:border-rose-500/40">
-                                          <span className="text-[9px] font-black text-rose-400 dark:text-rose-400/70 uppercase tracking-wider">End:</span>
-                                          <span className="text-[10px] font-bold text-rose-700 dark:text-rose-300">
-                                            {formatDate(sub.dueDate)}
-                                          </span>
-                                        </div>
+                              {/* 3. Associated Project */}
+                              <td className="px-6 py-1.5 text-xs text-slate-500 dark:text-slate-400 font-semibold">
+                                —
+                              </td>
 
-                                        {/* Priority */}
-                                        <span className={`px-2 py-0.5 rounded-lg border text-[9px] font-extrabold tracking-wider ${getPriorityStyle(sub.priority || "Medium")}`}>
-                                          {sub.priority || "Medium"}
-                                        </span>
+                              {/* 4. Priority */}
+                              <td className="px-6 py-1.5">
+                                <span
+                                  className={`px-2 py-0.5 rounded-lg border text-[9px] font-extrabold tracking-wider uppercase ${getPriorityStyle(sub.priority || "Medium")}`}
+                                >
+                                  {sub.priority || "Medium"}
+                                </span>
+                              </td>
 
-                                        {/* Status dropdown */}
-                                        <select
-                                          value={sub.status || "Pending"}
-                                          onChange={(e) => {
-                                            const updatedSubtasks = task.subtasks.map((s) =>
-                                              s._id === sub._id ? { ...s, status: e.target.value } : s
-                                            );
-                                            handleTaskFieldChange(task._id, { subtasks: updatedSubtasks });
-                                          }}
-                                          className={`px-2 py-0.5 text-[9px] font-extrabold rounded-lg border tracking-wider cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors ${subStatusStyle.bg}`}
-                                        >
-                                          <option value="Pending" className={getStatusStyle("Pending").bg}>Pending</option>
-                                          <option value="In Progress" className={getStatusStyle("In Progress").bg}>In Progress</option>
-                                          <option value="Completed" className={getStatusStyle("Completed").bg}>Completed</option>
-                                          <option value="On Hold" className={getStatusStyle("On Hold").bg}>On Hold</option>
-                                        </select>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      )}
+                              {/* 5. Start Date */}
+                              <td className="px-6 py-1.5">
+                                <span
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold ${
+                                    sub.startDate
+                                      ? "bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300 border border-amber-200/50 dark:border-amber-500/20"
+                                      : "text-slate-400 dark:text-slate-600 border border-dashed border-slate-200 dark:border-slate-800"
+                                  }`}
+                                >
+                                  <FiCalendar size={11} />
+                                  {formatDate(sub.startDate)}
+                                </span>
+                              </td>
+
+                              {/* 6. End Date */}
+                              <td className="px-6 py-1.5">
+                                <span
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold ${
+                                    sub.dueDate
+                                      ? "bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300 border border-rose-200/50 dark:border-rose-500/20"
+                                      : "text-slate-400 dark:text-slate-600 border border-dashed border-slate-200 dark:border-slate-800"
+                                  }`}
+                                >
+                                  <FiCalendar size={11} />
+                                  {formatDate(sub.dueDate)}
+                                </span>
+                              </td>
+
+                              {/* 7. Status Mode Dropdown */}
+                              <td
+                                className="px-6 py-1.5"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <select
+                                  value={sub.status || "Pending"}
+                                  onChange={(e) => {
+                                    const updatedSubtasks = task.subtasks.map(
+                                      (s) =>
+                                        s._id === sub._id
+                                          ? { ...s, status: e.target.value }
+                                          : s,
+                                    );
+                                    handleTaskFieldChange(task._id, {
+                                      subtasks: updatedSubtasks,
+                                    });
+                                  }}
+                                  className={`px-2 py-0.5 text-[9px] font-extrabold rounded-lg border tracking-wider cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors ${subStatusStyle.bg}`}
+                                >
+                                  <option
+                                    value="Pending"
+                                    className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                                  >
+                                    Pending
+                                  </option>
+                                  <option
+                                    value="In Progress"
+                                    className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                                  >
+                                    In Progress
+                                  </option>
+                                  <option
+                                    value="Completed"
+                                    className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                                  >
+                                    Completed
+                                  </option>
+                                  <option
+                                    value="On Hold"
+                                    className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                                  >
+                                    On Hold
+                                  </option>
+                                </select>
+                              </td>
+                            </tr>
+                          );
+                        })}
                     </React.Fragment>
                   );
                 })}
@@ -957,25 +1172,29 @@ const Task = () => {
                       <FiChevronLeft size={14} className="stroke-[2.5]" />
                     </button>
 
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                      const isSelected = page === currentPage;
-                      return (
-                        <button
-                          key={page}
-                          onClick={() => setCurrentPage(page)}
-                          className={`h-8 w-8 rounded-xl border text-[10px] font-extrabold flex items-center justify-center transition-all ${
-                            isSelected
-                              ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-md"
-                              : "border-slate-205 dark:border-slate-805 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-400 hover:bg-blue-50/50 dark:hover:bg-[#e5ff00]/5 hover:border-blue-400 dark:hover:border-[#e5ff00] hover:text-blue-600 dark:hover:text-[#e5ff00] active:scale-90 cursor-pointer shadow-sm"
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      );
-                    })}
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (page) => {
+                        const isSelected = page === currentPage;
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`h-8 w-8 rounded-xl border text-[10px] font-extrabold flex items-center justify-center transition-all ${
+                              isSelected
+                                ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-md"
+                                : "border-slate-205 dark:border-slate-805 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-400 hover:bg-blue-50/50 dark:hover:bg-[#e5ff00]/5 hover:border-blue-400 dark:hover:border-[#e5ff00] hover:text-blue-600 dark:hover:text-[#e5ff00] active:scale-90 cursor-pointer shadow-sm"
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        );
+                      },
+                    )}
 
                     <button
-                      onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                      onClick={() =>
+                        setCurrentPage((p) => Math.min(p + 1, totalPages))
+                      }
                       disabled={currentPage === totalPages}
                       className={`h-8 w-8 rounded-xl border text-[10px] font-bold flex items-center justify-center transition-all ${
                         currentPage === totalPages
@@ -1021,7 +1240,9 @@ const Task = () => {
                         >
                           <FiCheck size={11} />
                         </button>
-                        <span className={`text-xs font-bold text-slate-800 dark:text-slate-200 ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : ""}`}>
+                        <span
+                          className={`text-xs font-bold text-slate-800 dark:text-slate-200 ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : ""}`}
+                        >
                           {task.title}
                         </span>
                       </div>
@@ -1030,13 +1251,35 @@ const Task = () => {
                       <div onClick={(e) => e.stopPropagation()}>
                         <select
                           value={task.status}
-                          onChange={(e) => handleStatusChange(task._id, e.target.value)}
+                          onChange={(e) =>
+                            handleStatusChange(task._id, e.target.value)
+                          }
                           className={`px-2 py-0.5 text-[9px] font-extrabold rounded-lg border  tracking-wider cursor-pointer ${statusStyle.bg}`}
                         >
-                          <option value="Pending" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">Pending</option>
-                          <option value="In Progress" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">In Progress</option>
-                          <option value="Completed" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">Completed</option>
-                          <option value="On Hold" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">On Hold</option>
+                          <option
+                            value="Pending"
+                            className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200"
+                          >
+                            Pending
+                          </option>
+                          <option
+                            value="In Progress"
+                            className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200"
+                          >
+                            In Progress
+                          </option>
+                          <option
+                            value="Completed"
+                            className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200"
+                          >
+                            Completed
+                          </option>
+                          <option
+                            value="On Hold"
+                            className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200"
+                          >
+                            On Hold
+                          </option>
                         </select>
                       </div>
                     </div>
@@ -1050,7 +1293,9 @@ const Task = () => {
                       </span>
 
                       {/* Priority */}
-                      <span className={`px-1.5 py-0.5 rounded-md border text-[8px] font-black  tracking-wider ${getPriorityStyle(task.priority || "Medium")}`}>
+                      <span
+                        className={`px-1.5 py-0.5 rounded-md border text-[8px] font-black  tracking-wider ${getPriorityStyle(task.priority || "Medium")}`}
+                      >
                         {task.priority || "Medium"}
                       </span>
 
@@ -1071,7 +1316,11 @@ const Task = () => {
                           }}
                           className="ml-auto text-slate-400 hover:text-blue-600 flex items-center gap-0.5 text-[9px] font-extrabold shrink-0"
                         >
-                          {isExpanded ? <FiChevronDown size={12} /> : <FiChevronRight size={12} />}
+                          {isExpanded ? (
+                            <FiChevronDown size={12} />
+                          ) : (
+                            <FiChevronRight size={12} />
+                          )}
                           <span>Subtasks ({task.subtasks.length})</span>
                         </button>
                       )}
@@ -1101,7 +1350,9 @@ const Task = () => {
                                 >
                                   <FiCheck size={8} />
                                 </button>
-                                <span className={`text-[11px] text-slate-700 dark:text-slate-300 font-semibold ${isSubCompleted ? "line-through text-slate-400" : ""}`}>
+                                <span
+                                  className={`text-[11px] text-slate-700 dark:text-slate-300 font-semibold ${isSubCompleted ? "line-through text-slate-400" : ""}`}
+                                >
                                   {sub.title}
                                 </span>
                               </div>
@@ -1120,7 +1371,7 @@ const Task = () => {
 
       {/* OFF-CANVAS PREVIEW DRAWER */}
       <AnimatePresence>
-        {selectedTaskId && selectedTask && (
+        {false && (
           <div className="fixed inset-0 z-50 flex justify-end">
             {/* Backdrop */}
             <motion.div
@@ -1189,14 +1440,36 @@ const Task = () => {
                     <select
                       value={selectedTask.status}
                       onChange={(e) =>
-                        handleTaskFieldChange(selectedTask._id, { status: e.target.value })
+                        handleTaskFieldChange(selectedTask._id, {
+                          status: e.target.value,
+                        })
                       }
                       className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors ${getStatusStyle(selectedTask.status).bg}`}
                     >
-                      <option value="Pending" className={getStatusStyle("Pending").bg}>Pending</option>
-                      <option value="In Progress" className={getStatusStyle("In Progress").bg}>In Progress</option>
-                      <option value="Completed" className={getStatusStyle("Completed").bg}>Completed</option>
-                      <option value="On Hold" className={getStatusStyle("On Hold").bg}>On Hold</option>
+                      <option
+                        value="Pending"
+                        className={getStatusStyle("Pending").bg}
+                      >
+                        Pending
+                      </option>
+                      <option
+                        value="In Progress"
+                        className={getStatusStyle("In Progress").bg}
+                      >
+                        In Progress
+                      </option>
+                      <option
+                        value="Completed"
+                        className={getStatusStyle("Completed").bg}
+                      >
+                        Completed
+                      </option>
+                      <option
+                        value="On Hold"
+                        className={getStatusStyle("On Hold").bg}
+                      >
+                        On Hold
+                      </option>
                     </select>
                   </div>
 
@@ -1208,7 +1481,9 @@ const Task = () => {
                     <select
                       value={selectedTask.priority || "Medium"}
                       onChange={(e) =>
-                        handleTaskFieldChange(selectedTask._id, { priority: e.target.value })
+                        handleTaskFieldChange(selectedTask._id, {
+                          priority: e.target.value,
+                        })
                       }
                       className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500"
                     >
@@ -1227,11 +1502,15 @@ const Task = () => {
                       type="date"
                       value={
                         selectedTask.startDate
-                          ? new Date(selectedTask.startDate).toISOString().split("T")[0]
+                          ? new Date(selectedTask.startDate)
+                              .toISOString()
+                              .split("T")[0]
                           : ""
                       }
                       onChange={(e) =>
-                        handleTaskFieldChange(selectedTask._id, { startDate: e.target.value })
+                        handleTaskFieldChange(selectedTask._id, {
+                          startDate: e.target.value,
+                        })
                       }
                       className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
@@ -1246,11 +1525,15 @@ const Task = () => {
                       type="date"
                       value={
                         selectedTask.dueDate
-                          ? new Date(selectedTask.dueDate).toISOString().split("T")[0]
+                          ? new Date(selectedTask.dueDate)
+                              .toISOString()
+                              .split("T")[0]
                           : ""
                       }
                       onChange={(e) =>
-                        handleTaskFieldChange(selectedTask._id, { dueDate: e.target.value })
+                        handleTaskFieldChange(selectedTask._id, {
+                          dueDate: e.target.value,
+                        })
                       }
                       className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
@@ -1272,12 +1555,18 @@ const Task = () => {
                   <h3 className="text-[10px] font-black text-slate-400  tracking-wider flex items-center gap-1.5">
                     Discussion & Attachments
                   </h3>
-                  
+
                   {/* Attachments List */}
                   {selectedTask.attachments?.length > 0 && (
                     <div className="flex flex-wrap gap-2 mb-3">
-                      {selectedTask.attachments.map(att => (
-                        <a key={att._id || att.url} href={att.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                      {selectedTask.attachments.map((att) => (
+                        <a
+                          key={att._id || att.url}
+                          href={att.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                        >
                           <FiFile size={12} /> {att.filename}
                         </a>
                       ))}
@@ -1293,8 +1582,12 @@ const Task = () => {
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">{comment.user?.name || "Unknown User"}</span>
-                            <span className="text-[9px] text-slate-400">{new Date(comment.createdAt).toLocaleDateString()}</span>
+                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                              {comment.user?.name || "Unknown User"}
+                            </span>
+                            <span className="text-[9px] text-slate-400">
+                              {new Date(comment.createdAt).toLocaleDateString()}
+                            </span>
                           </div>
                           <div className="text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 p-2 rounded-lg rounded-tl-none border border-slate-100 dark:border-slate-700">
                             {comment.text}
@@ -1303,7 +1596,9 @@ const Task = () => {
                       </div>
                     ))}
                     {selectedTask.comments?.length === 0 && (
-                      <div className="text-[10px] text-slate-400 italic">No comments yet.</div>
+                      <div className="text-[10px] text-slate-400 italic">
+                        No comments yet.
+                      </div>
                     )}
                   </div>
 
@@ -1319,17 +1614,20 @@ const Task = () => {
                       />
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
-                      <input 
-                        type="file" 
-                        id="my-task-attachment" 
-                        className="hidden" 
-                        onChange={handleUploadAttachment} 
+                      <input
+                        type="file"
+                        id="my-task-attachment"
+                        className="hidden"
+                        onChange={handleUploadAttachment}
                         disabled={isUploading}
                       />
-                      <label htmlFor="my-task-attachment" className={`p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors ${isUploading ? "opacity-50 cursor-not-allowed" : ""}`}>
+                      <label
+                        htmlFor="my-task-attachment"
+                        className={`p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors ${isUploading ? "opacity-50 cursor-not-allowed" : ""}`}
+                      >
                         <FiPaperclip size={14} />
                       </label>
-                      <button 
+                      <button
                         onClick={handleAddComment}
                         disabled={!newComment.trim() || isUploading}
                         className="p-2 bg-blue-600 text-white rounded-lg disabled:opacity-50 hover:bg-blue-700 transition-colors"
@@ -1364,7 +1662,8 @@ const Task = () => {
 
                   {/* Drawer subtask list items */}
                   <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
-                    {!selectedTask.subtasks || selectedTask.subtasks.length === 0 ? (
+                    {!selectedTask.subtasks ||
+                    selectedTask.subtasks.length === 0 ? (
                       <div className="text-center py-6 text-slate-400 italic text-[11px] font-bold">
                         No subtasks assigned yet. Type above to add.
                       </div>
@@ -1381,7 +1680,9 @@ const Task = () => {
                             <div className="flex items-center gap-3">
                               {/* Checkbox */}
                               <button
-                                onClick={() => handleToggleSubtask(selectedTask, sub)}
+                                onClick={() =>
+                                  handleToggleSubtask(selectedTask, sub)
+                                }
                                 className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
                                   isSubCompleted
                                     ? "bg-emerald-500 border-emerald-500 text-white"
@@ -1396,18 +1697,26 @@ const Task = () => {
                                 type="text"
                                 value={sub.title}
                                 onChange={(e) =>
-                                  handleUpdateSubtaskField(selectedTask, sub._id, {
-                                    title: e.target.value,
-                                  })
+                                  handleUpdateSubtaskField(
+                                    selectedTask,
+                                    sub._id,
+                                    {
+                                      title: e.target.value,
+                                    },
+                                  )
                                 }
                                 className={`flex-1 min-w-0 bg-transparent border-0 font-extrabold text-xs text-slate-800 dark:text-white focus:ring-0 focus:outline-none p-0 ${
-                                  isSubCompleted ? "line-through text-slate-400 font-medium" : ""
+                                  isSubCompleted
+                                    ? "line-through text-slate-400 font-medium"
+                                    : ""
                                 }`}
                               />
 
                               {/* Delete */}
                               <button
-                                onClick={() => handleDeleteSubtask(selectedTask, sub._id)}
+                                onClick={() =>
+                                  handleDeleteSubtask(selectedTask, sub._id)
+                                }
                                 className="text-slate-400 hover:text-rose-600 transition-colors duration-150 shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
                               >
                                 <FiTrash2 size={13} />
@@ -1418,39 +1727,71 @@ const Task = () => {
                             <div className="grid grid-cols-2 gap-2 text-[10px]">
                               {/* Status Select */}
                               <div className="space-y-1">
-                                <label className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">Status</label>
+                                <label className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                                  Status
+                                </label>
                                 <select
                                   value={sub.status || "Pending"}
                                   onChange={(e) =>
-                                    handleUpdateSubtaskField(selectedTask, sub._id, {
-                                      status: e.target.value,
-                                    })
+                                    handleUpdateSubtaskField(
+                                      selectedTask,
+                                      sub._id,
+                                      {
+                                        status: e.target.value,
+                                      },
+                                    )
                                   }
                                   className={`w-full px-2 py-1 text-[9px] font-extrabold rounded-lg border tracking-wider cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors ${subStatusStyle.bg}`}
                                 >
-                                  <option value="Pending" className={getStatusStyle("Pending").bg}>Pending</option>
-                                  <option value="In Progress" className={getStatusStyle("In Progress").bg}>In Progress</option>
-                                  <option value="Completed" className={getStatusStyle("Completed").bg}>Completed</option>
-                                  <option value="On Hold" className={getStatusStyle("On Hold").bg}>On Hold</option>
+                                  <option
+                                    value="Pending"
+                                    className={getStatusStyle("Pending").bg}
+                                  >
+                                    Pending
+                                  </option>
+                                  <option
+                                    value="In Progress"
+                                    className={getStatusStyle("In Progress").bg}
+                                  >
+                                    In Progress
+                                  </option>
+                                  <option
+                                    value="Completed"
+                                    className={getStatusStyle("Completed").bg}
+                                  >
+                                    Completed
+                                  </option>
+                                  <option
+                                    value="On Hold"
+                                    className={getStatusStyle("On Hold").bg}
+                                  >
+                                    On Hold
+                                  </option>
                                 </select>
                               </div>
 
                               {/* Priority Select */}
                               <div className="space-y-1">
-                                <label className="text-[8px] font-black text-slate-400 dark:text-slate-505 uppercase tracking-wider">Priority</label>
+                                <label className="text-[8px] font-black text-slate-400 dark:text-slate-505 uppercase tracking-wider">
+                                  Priority
+                                </label>
                                 <select
                                   value={sub.priority || "Medium"}
                                   onChange={(e) =>
-                                    handleUpdateSubtaskField(selectedTask, sub._id, {
-                                      priority: e.target.value,
-                                    })
+                                    handleUpdateSubtaskField(
+                                      selectedTask,
+                                      sub._id,
+                                      {
+                                        priority: e.target.value,
+                                      },
+                                    )
                                   }
                                   className={`w-full px-2 py-1 text-[9px] font-extrabold rounded-lg border focus:outline-none cursor-pointer ${
                                     sub.priority === "High"
                                       ? "bg-rose-50 text-rose-700 border-rose-200/50"
                                       : sub.priority === "Medium"
-                                      ? "bg-amber-50 text-amber-700 border-amber-200/50"
-                                      : "bg-slate-50 text-slate-600 border-slate-200"
+                                        ? "bg-amber-50 text-amber-700 border-amber-200/50"
+                                        : "bg-slate-50 text-slate-600 border-slate-200"
                                   }`}
                                 >
                                   <option value="Low">Low</option>
@@ -1461,18 +1802,26 @@ const Task = () => {
 
                               {/* Start Date Picker */}
                               <div className="space-y-1">
-                                <label className="text-[8px] font-black text-slate-405 dark:text-slate-500 uppercase tracking-wider">Start Date</label>
+                                <label className="text-[8px] font-black text-slate-405 dark:text-slate-500 uppercase tracking-wider">
+                                  Start Date
+                                </label>
                                 <input
                                   type="date"
                                   value={
                                     sub.startDate
-                                      ? new Date(sub.startDate).toISOString().split("T")[0]
+                                      ? new Date(sub.startDate)
+                                          .toISOString()
+                                          .split("T")[0]
                                       : ""
                                   }
                                   onChange={(e) =>
-                                    handleUpdateSubtaskField(selectedTask, sub._id, {
-                                      startDate: e.target.value || null,
-                                    })
+                                    handleUpdateSubtaskField(
+                                      selectedTask,
+                                      sub._id,
+                                      {
+                                        startDate: e.target.value || null,
+                                      },
+                                    )
                                   }
                                   className="w-full bg-indigo-50 dark:bg-indigo-500/20 border border-indigo-200/50 dark:border-indigo-500/40 text-indigo-700 dark:text-indigo-300 rounded-lg px-2 py-1 text-[10px] font-extrabold focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors cursor-pointer"
                                 />
@@ -1480,18 +1829,26 @@ const Task = () => {
 
                               {/* End Date Picker */}
                               <div className="space-y-1">
-                                <label className="text-[8px] font-black text-slate-405 dark:text-slate-500 uppercase tracking-wider">End Date</label>
+                                <label className="text-[8px] font-black text-slate-405 dark:text-slate-500 uppercase tracking-wider">
+                                  End Date
+                                </label>
                                 <input
                                   type="date"
                                   value={
                                     sub.dueDate
-                                      ? new Date(sub.dueDate).toISOString().split("T")[0]
+                                      ? new Date(sub.dueDate)
+                                          .toISOString()
+                                          .split("T")[0]
                                       : ""
                                   }
                                   onChange={(e) =>
-                                    handleUpdateSubtaskField(selectedTask, sub._id, {
-                                      dueDate: e.target.value || null,
-                                    })
+                                    handleUpdateSubtaskField(
+                                      selectedTask,
+                                      sub._id,
+                                      {
+                                        dueDate: e.target.value || null,
+                                      },
+                                    )
                                   }
                                   className="w-full bg-rose-50 dark:bg-rose-500/20 border border-rose-200/50 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 rounded-lg px-2 py-1 text-[10px] font-extrabold focus:outline-none focus:ring-1 focus:ring-rose-500 transition-colors cursor-pointer"
                                 />

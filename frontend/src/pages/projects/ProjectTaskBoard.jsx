@@ -188,7 +188,7 @@ const SubtaskRow = ({
             }
           }}
           placeholder="Write a subtask..."
-          className={`bg-transparent border-0 focus:outline-none focus:ring-0 w-full p-0 font-medium rounded text-[12px] placeholder-slate-400 dark:placeholder-slate-600 transition-all ${
+          className={`bg-transparent border-0 focus:outline-none focus:ring-0 w-full p-0 font-bold rounded text-[12px] placeholder-slate-400 dark:placeholder-slate-600 transition-all ${
             isSubCompleted
               ? "line-through text-slate-400 dark:text-slate-500 font-normal"
               : "text-slate-800 dark:text-slate-200"
@@ -238,7 +238,7 @@ const SubtaskRow = ({
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-amber-200 dark:border-amber-900/40 text-amber-500/70 dark:text-amber-500/50 hover:border-amber-400 hover:text-amber-700 dark:hover:text-amber-400 dark:hover:border-amber-500/40 bg-amber-50/20 dark:bg-amber-950/10 transition-all text-[9px] font-medium">
+            <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-amber-200 dark:border-amber-900/40 text-amber-500/70 dark:text-amber-500/50 hover:border-amber-400 hover:text-amber-700 dark:hover:text-amber-400 dark:hover:border-amber-500/40 bg-amber-50/20 dark:bg-amber-950/10 transition-all text-[9px] font-bold">
               <FiCalendar size={9} />
               <span>+ Start</span>
             </div>
@@ -298,7 +298,7 @@ const SubtaskRow = ({
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-rose-200 dark:border-rose-900/40 text-rose-500/70 dark:text-rose-500/50 hover:border-rose-400 hover:text-rose-700 dark:hover:text-rose-400 dark:hover:border-rose-500/40 bg-rose-50/20 dark:bg-rose-955/10 transition-all text-[9px] font-medium">
+            <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-rose-200 dark:border-rose-900/40 text-rose-500/70 dark:text-rose-500/50 hover:border-rose-400 hover:text-rose-700 dark:hover:text-rose-400 dark:hover:border-rose-500/40 bg-rose-50/20 dark:bg-rose-955/10 transition-all text-[9px] font-bold">
               <FiCalendar size={9} />
               <span>+ End</span>
             </div>
@@ -1107,7 +1107,7 @@ const ProjectTaskBoard = ({
                 size="lg"
                 className="shadow-md"
               />
-              <h1 className="text-xl sm:text-2xl font-medium text-slate-800 dark:text-white truncate">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white truncate">
                 {activeProject.name}
               </h1>
             </div>
@@ -1134,14 +1134,14 @@ const ProjectTaskBoard = ({
 
         {/* Center: Tab Selector - High-end, Premium Design */}
         <div className="flex items-center justify-center w-full md:w-auto order-2 md:order-none shrink-0">
-          <div className="bg-slate-100/80 dark:bg-[#121212] p-1 rounded-full flex items-center gap-1.5 border border-slate-200/60 dark:border-white/5 shadow-inner backdrop-blur-md">
+          <div className="bg-slate-100/80 dark:bg-[#121212] p-1 rounded-full flex items-center gap-1.5 border border-slate-200/60 dark:border-transparent shadow-inner backdrop-blur-md">
             {["List", "Board", "Timeline", "Dashboard"].map((tab) => {
               const isActive = activeTab === tab;
               return (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`relative px-2 sm:px-4 py-1.5 text-[9px] sm:text-[11px] font-medium  tracking-wider transition-all duration-300 rounded-full shrink-0 cursor-pointer ${
+                  className={`relative px-2 sm:px-4 py-1.5 text-[9px] sm:text-[11px] font-bold  tracking-wider transition-all duration-300 rounded-full shrink-0 cursor-pointer ${
                     isActive
                       ? "text-[var(--color-active-tab-text)]"
                       : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-[#e5ff00]"
@@ -1220,8 +1220,8 @@ const ProjectTaskBoard = ({
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 ${
                     isFilterOpen || filterSearch || filterAssignee !== "all" || filterStatus !== "all" || filterPriority !== "all" || filterStartDate || filterEndDate
-                      ? "bg-blue-50 dark:bg-[#e5ff00]/10 border-blue-200 dark:border-[#e5ff00]/30 text-blue-600 dark:text-[#e5ff00]"
-                      : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                      ? "bg-blue-55 dark:bg-[#e5ff00]/10 border-blue-200 dark:border-transparent text-blue-600 dark:text-[#e5ff00]"
+                      : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
                   }`}
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
@@ -1242,7 +1242,7 @@ const ProjectTaskBoard = ({
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 8, scale: 0.95 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute left-0 md:left-auto md:right-0 mt-2 w-80 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-2xl p-4 z-50 space-y-4 backdrop-blur-md max-h-[460px] overflow-y-auto custom-scrollbar"
+                      className="absolute left-0 md:left-auto md:right-0 mt-2 w-80 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-transparent rounded-2xl shadow-2xl p-4 z-50 space-y-4 backdrop-blur-md max-h-[460px] overflow-y-auto custom-scrollbar"
                     >
                       <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2">
                         <span className="text-xs font-bold text-slate-800 dark:text-white  tracking-wider">Filters</span>
@@ -1256,7 +1256,7 @@ const ProjectTaskBoard = ({
                               setFilterStartDate("");
                               setFilterEndDate("");
                             }}
-                            className="text-[10px] font-medium  text-rose-500 hover:text-rose-600 cursor-pointer"
+                            className="text-[10px] font-bold  text-rose-500 hover:text-rose-600 cursor-pointer"
                           >
                             Clear All
                           </button>
@@ -1265,22 +1265,21 @@ const ProjectTaskBoard = ({
 
                       {/* Search */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-medium text-slate-400 dark:text-slate-500  tracking-wider">Search</label>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500  tracking-wider">Search</label>
                         <div className="relative">
-                        
                           <input
                             type="text"
                             placeholder="Type to search..."
                             value={filterSearch}
                             onChange={(e) => setFilterSearch(e.target.value)}
-                            className="w-full pl-8 pr-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-[#181818] border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00] text-slate-800 dark:text-slate-200"
+                            className="w-full pl-8 pr-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-[#181818] border border-slate-200 dark:border-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00] text-slate-800 dark:text-slate-200"
                           />
                         </div>
                       </div>
 
                       {/* Status */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-medium text-slate-400 dark:text-slate-500  tracking-wider">Status</label>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500  tracking-wider">Status</label>
                         <div className="flex flex-wrap gap-1.5 mt-1">
                           {["all", "Pending", "In Progress", "Completed", "On Hold"].map((status) => (
                             <button
@@ -1289,7 +1288,7 @@ const ProjectTaskBoard = ({
                               className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
                                 filterStatus === status
                                   ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black shadow-sm"
-                                  : "bg-slate-50 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200/50 dark:border-white/5"
+                                  : "bg-slate-50 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200/50 dark:border-transparent"
                               }`}
                             >
                               {status === "all" ? "All" : status}
@@ -1300,7 +1299,7 @@ const ProjectTaskBoard = ({
 
                       {/* Priority */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-medium text-slate-400 dark:text-slate-500  tracking-wider">Priority</label>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500  tracking-wider">Priority</label>
                         <div className="flex flex-wrap gap-1.5 mt-1">
                           {["all", "Low", "Medium", "High"].map((priority) => (
                             <button
@@ -1309,7 +1308,7 @@ const ProjectTaskBoard = ({
                               className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
                                 filterPriority === priority
                                   ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black shadow-sm"
-                                  : "bg-slate-50 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200/50 dark:border-white/5"
+                                  : "bg-slate-50 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200/50 dark:border-transparent"
                               }`}
                             >
                               {priority === "all" ? "All" : priority}
@@ -1320,14 +1319,14 @@ const ProjectTaskBoard = ({
 
                       {/* Assignee */}
                       <div className="space-y-1">
-                        <label className="text-[10px] font-medium text-slate-400 dark:text-slate-500  tracking-wider">Assignee</label>
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500  tracking-wider">Assignee</label>
                         <div className="flex flex-wrap gap-1.5 mt-1 max-h-24 overflow-y-auto custom-scrollbar pr-1">
                           <button
                             onClick={() => setFilterAssignee("all")}
                             className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
                               filterAssignee === "all"
                                 ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black"
-                                : "bg-slate-50 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200/50 dark:border-white/5"
+                                : "bg-slate-50 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200/50 dark:border-transparent"
                             }`}
                           >
                             All
@@ -1337,7 +1336,7 @@ const ProjectTaskBoard = ({
                             className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
                               filterAssignee === "unassigned"
                                 ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black"
-                                : "bg-slate-50 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200/50 dark:border-white/5"
+                                : "bg-slate-50 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200/50 dark:border-transparent"
                             }`}
                           >
                             Unassigned
@@ -1349,7 +1348,7 @@ const ProjectTaskBoard = ({
                               className={`flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
                                 filterAssignee === u._id
                                   ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black"
-                                  : "bg-slate-50 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200/50 dark:border-white/5"
+                                  : "bg-slate-50 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200/50 dark:border-transparent"
                               }`}
                             >
                               <span className="w-3.5 h-3.5 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center text-[8px] ">
@@ -1363,8 +1362,8 @@ const ProjectTaskBoard = ({
 
                       {/* Date Range */}
                       <div className="space-y-1 border-t border-slate-100 dark:border-white/5 pt-2.5">
-                        <label className="text-[10px] font-medium text-slate-400 dark:text-slate-500  tracking-wider">Date Range</label>
-                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-[#181818] border border-slate-200 dark:border-white/5 rounded-xl px-2.5 py-1.5 text-slate-500">
+                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500  tracking-wider">Date Range</label>
+                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-[#181818] border border-slate-200 dark:border-transparent rounded-xl px-2.5 py-1.5 text-slate-500">
                           <FiCalendar size={12} className="shrink-0 text-slate-400" />
                           <div className="flex items-center gap-1 w-full">
                             <input
@@ -1399,8 +1398,8 @@ const ProjectTaskBoard = ({
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 ${
                     isSortOpen || sortBy !== "none"
-                      ? "bg-blue-50 dark:bg-[#e5ff00]/10 border-blue-200 dark:border-[#e5ff00]/30 text-blue-600 dark:text-[#e5ff00]"
-                      : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                      ? "bg-blue-55 dark:bg-[#e5ff00]/10 border-blue-200 dark:border-transparent text-blue-600 dark:text-[#e5ff00]"
+                      : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
                   }`}
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
@@ -1411,7 +1410,7 @@ const ProjectTaskBoard = ({
                   </svg>
                   <span>Sort</span>
                   {sortBy !== "none" && (
-                    <span className="text-[10px] font-medium text-blue-600 dark:text-[#e5ff00] ml-0.5">
+                    <span className="text-[10px] font-bold text-blue-600 dark:text-[#e5ff00] ml-0.5">
                       ({sortOrder === "asc" ? "▲" : "▼"})
                     </span>
                   )}
@@ -1424,7 +1423,7 @@ const ProjectTaskBoard = ({
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 8, scale: 0.95 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute right-0 mt-2 w-52 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-2xl p-2.5 z-50 space-y-1.5 backdrop-blur-md"
+                      className="absolute right-0 mt-2 w-52 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-transparent rounded-2xl shadow-2xl p-2.5 z-50 space-y-1.5 backdrop-blur-md"
                     >
                       <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2 px-1">
                         <span className="text-xs font-bold text-slate-800 dark:text-white  tracking-wider">Sort By</span>
@@ -1434,7 +1433,7 @@ const ProjectTaskBoard = ({
                               setSortBy("none");
                               setSortOrder("asc");
                             }}
-                            className="text-[10px] font-medium  text-rose-500 hover:text-rose-600 cursor-pointer"
+                            className="text-[10px] font-bold  text-rose-500 hover:text-rose-600 cursor-pointer"
                           >
                             Reset
                           </button>
@@ -1471,7 +1470,7 @@ const ProjectTaskBoard = ({
                             >
                               <span>{option.label}</span>
                               {isSelected && (
-                                <span className="text-[10px] font-medium ">
+                                <span className="text-[10px] font-bold ">
                                   {sortOrder === "asc" ? "▲ Asc" : "▼ Desc"}
                                 </span>
                               )}
@@ -1590,7 +1589,7 @@ const ProjectTaskBoard = ({
                                       onClick={() => toggleSection(sectionName)}
                                     >
                                       {sectionName}{" "}
-                                      <span className="text-slate-400 font-medium ml-1.5 text-[10px]">
+                                      <span className="text-slate-400 font-bold ml-1.5 text-[10px]">
                                         ({sectionTasks.length})
                                       </span>
                                     </h3>
@@ -1774,7 +1773,7 @@ const ProjectTaskBoard = ({
                                             }}
                                             className={`font-semibold text-slate-800 dark:text-white text-[11px] cursor-text outline-none block min-h-[16px] w-full ${
                                               isCompleted
-                                                ? "line-through text-slate-450 dark:text-slate-550 font-medium"
+                                                ? "line-through text-slate-450 dark:text-slate-550 font-bold"
                                                 : ""
                                             }`}
                                           >
@@ -1971,7 +1970,7 @@ const ProjectTaskBoard = ({
                                             )}
                                           </div>
                                         ) : (
-                                          <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-amber-200 dark:border-amber-900/40 text-amber-500/70 dark:text-amber-500/50 hover:border-amber-400 hover:text-amber-700 dark:hover:text-amber-400 dark:hover:border-amber-500/40 bg-amber-50/20 dark:bg-amber-955/10 transition-all text-[9px] font-medium">
+                                          <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-amber-200 dark:border-amber-900/40 text-amber-500/70 dark:text-amber-500/50 hover:border-amber-400 hover:text-amber-700 dark:hover:text-amber-400 dark:hover:border-amber-500/40 bg-amber-50/20 dark:bg-amber-955/10 transition-all text-[9px] font-bold">
                                             <FiCalendar size={10} />
                                             <span>+ Start Date</span>
                                           </div>
@@ -2019,7 +2018,7 @@ const ProjectTaskBoard = ({
                                             )}
                                           </div>
                                         ) : (
-                                          <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-rose-200 dark:border-rose-900/40 text-rose-500/70 dark:text-rose-500/50 hover:border-rose-400 hover:text-rose-700 dark:hover:text-rose-400 dark:hover:border-rose-500/40 bg-rose-50/20 dark:bg-rose-955/10 transition-all text-[9px] font-medium">
+                                          <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-rose-200 dark:border-rose-900/40 text-rose-500/70 dark:text-rose-500/50 hover:border-rose-400 hover:text-rose-700 dark:hover:text-rose-400 dark:hover:border-rose-500/40 bg-rose-50/20 dark:bg-rose-955/10 transition-all text-[9px] font-bold">
                                             <FiCalendar size={10} />
                                             <span>+ End Date</span>
                                           </div>
@@ -2283,7 +2282,7 @@ const ProjectTaskBoard = ({
                                                         );
                                                       }
                                                     }}
-                                                    className={`outline-none w-full font-medium text-slate-700 dark:text-white text-[11px] block min-h-[16px] cursor-text ${
+                                                    className={`outline-none w-full font-bold text-slate-700 dark:text-white text-[11px] block min-h-[16px] cursor-text ${
                                                       isSubCompleted
                                                         ? "line-through text-slate-450 dark:text-slate-550"
                                                         : ""
@@ -2448,7 +2447,7 @@ const ProjectTaskBoard = ({
                                                       )}
                                                     </div>
                                                   ) : (
-                                                    <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-amber-200 dark:border-amber-900/40 text-amber-500/70 dark:text-amber-500/50 hover:border-amber-400 hover:text-amber-700 dark:hover:text-amber-400 dark:hover:border-amber-500/40 bg-amber-50/20 dark:bg-amber-950/10 transition-all text-[9px] font-medium">
+                                                    <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-amber-200 dark:border-amber-900/40 text-amber-500/70 dark:text-amber-500/50 hover:border-amber-400 hover:text-amber-700 dark:hover:text-amber-400 dark:hover:border-amber-500/40 bg-amber-50/20 dark:bg-amber-950/10 transition-all text-[9px] font-bold">
                                                       <FiCalendar size={10} />
                                                       <span>+ Start Date</span>
                                                     </div>
@@ -2496,7 +2495,7 @@ const ProjectTaskBoard = ({
                                                       )}
                                                     </div>
                                                   ) : (
-                                                    <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-rose-200 dark:border-rose-900/40 text-rose-500/70 dark:text-rose-500/50 hover:border-rose-400 hover:text-rose-700 dark:hover:text-rose-400 dark:hover:border-rose-500/40 bg-rose-50/20 dark:bg-rose-955/10 transition-all text-[9px] font-medium">
+                                                    <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-rose-200 dark:border-rose-900/40 text-rose-500/70 dark:text-rose-500/50 hover:border-rose-400 hover:text-rose-700 dark:hover:text-rose-400 dark:hover:border-rose-500/40 bg-rose-50/20 dark:bg-rose-955/10 transition-all text-[9px] font-bold">
                                                       <FiCalendar size={10} />
                                                       <span>+ End Date</span>
                                                     </div>
@@ -2759,7 +2758,7 @@ const ProjectTaskBoard = ({
                       {/* Column Header */}
                       <div className="flex items-center justify-between mb-4 px-1">
                         <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-medium text-slate-800 dark:text-white">
+                          <h4 className="text-sm font-bold text-slate-800 dark:text-white">
                             {sectionName}
                           </h4>
                         </div>
@@ -2839,7 +2838,7 @@ const ProjectTaskBoard = ({
                                       <div className="flex flex-wrap items-center gap-1 mt-1.5 mb-2">
                                         {/* Status Badge */}
                                         <span
-                                          className={`text-[8px] font-medium  tracking-wider px-1 py-2 rounded-md border ${
+                                          className={`text-[8px] font-bold  tracking-wider px-1 py-2 rounded-md border ${
                                             task.status === "Completed"
                                               ? "bg-emerald-55/10 text-emerald-600 border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/40"
                                               : task.status === "In Progress"
@@ -2854,7 +2853,7 @@ const ProjectTaskBoard = ({
 
                                         {/* Priority Badge */}
                                         <span
-                                          className={`text-[8px] font-medium  tracking-wider px-1 py-2 rounded-md border ${
+                                          className={`text-[8px] font-bold  tracking-wider px-1 py-2 rounded-md border ${
                                             task.priority === "High"
                                               ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-955/20 dark:border-rose-900/40"
                                               : task.priority === "Medium"
@@ -2914,7 +2913,7 @@ const ProjectTaskBoard = ({
                                               />
                                             ) : (
                                               <div
-                                                className={`w-4.5 h-4.5 rounded-full flex items-center justify-center text-white text-[7.5px] font-medium bg-gradient-to-br ${getAvatarColor(
+                                                className={`w-4.5 h-4.5 rounded-full flex items-center justify-center text-white text-[7.5px] font-bold bg-gradient-to-br ${getAvatarColor(
                                                   task.assignedTo.name,
                                                 )}`}
                                                 title={task.assignedTo.name}
@@ -3102,7 +3101,7 @@ const ProjectTaskBoard = ({
                     </button>
                     <button
                       onClick={() => setTimelineOffsetWeeks(0)}
-                      className="px-2.5 py-1 text-[9px] font-medium  tracking-wider rounded-lg border border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-650 dark:text-slate-355 cursor-pointer"
+                      className="px-2.5 py-1 text-[9px] font-bold  tracking-wider rounded-lg border border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 text-slate-650 dark:text-slate-355 cursor-pointer"
                     >
                       Today
                     </button>
@@ -3115,7 +3114,7 @@ const ProjectTaskBoard = ({
                     </button>
                   </div>
 
-                  <span className="text-[10px] font-medium  tracking-wider text-slate-550 dark:text-slate-400 bg-slate-50 dark:bg-[#141414] px-2.5 py-1 rounded-lg border border-slate-100 dark:border-white/5">
+                  <span className="text-[10px] font-bold  tracking-wider text-slate-550 dark:text-slate-400 bg-slate-50 dark:bg-[#141414] px-2.5 py-1 rounded-lg border border-slate-100 dark:border-white/5">
                     {timelineStart.toLocaleDateString("en-US", {
                       month: "long",
                       year: "numeric",
@@ -3130,7 +3129,7 @@ const ProjectTaskBoard = ({
                     {activeSections.map((sectionName) => (
                       <React.Fragment key={sectionName}>
                         <div className="border-b border-slate-200 dark:border-white/5 h-10 flex items-center justify-between px-3 bg-slate-100/40 dark:bg-[#161616]/30">
-                          <div className="flex items-center gap-1.5 text-[10px] font-medium text-slate-700 dark:text-slate-350">
+                          <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-700 dark:text-slate-350">
                             <FiChevronDown
                               size={12}
                               className="text-slate-400"
@@ -3185,7 +3184,7 @@ const ProjectTaskBoard = ({
                       <div className="py-3 px-3 h-10 flex items-center">
                         <button
                           onClick={() => setIsAddingSection(true)}
-                          className="flex items-center gap-1.5 text-[10px] font-medium text-slate-500 hover:text-slate-800 dark:hover:text-[#e5ff00] transition-colors cursor-pointer"
+                          className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 hover:text-slate-800 dark:hover:text-[#e5ff00] transition-colors cursor-pointer"
                         >
                           <FiPlus size={11} /> Add section
                         </button>
@@ -3205,7 +3204,7 @@ const ProjectTaskBoard = ({
                               key={weekIdx}
                               className="w-1/4 px-3 flex flex-col justify-center border-r border-slate-200 dark:border-white/5"
                             >
-                              <span className="text-[9px] font-medium text-slate-700 dark:text-slate-350">
+                              <span className="text-[9px] font-bold text-slate-700 dark:text-slate-350">
                                 {weekData.label}
                               </span>
                               <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500">
@@ -3318,7 +3317,7 @@ const ProjectTaskBoard = ({
                                           left: `${leftPercent}%`,
                                           width: `${widthPercent}%`,
                                         }}
-                                        className={`absolute top-1 h-6 rounded-lg shadow-sm text-[9.5px] font-medium px-2 flex items-center justify-between truncate cursor-pointer transition-all hover:scale-[1.01] hover:brightness-105 ${
+                                        className={`absolute top-1 h-6 rounded-lg shadow-sm text-[9.5px] font-bold px-2 flex items-center justify-between truncate cursor-pointer transition-all hover:scale-[1.01] hover:brightness-105 ${
                                           task.status === "Completed"
                                             ? "bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-100 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400"
                                             : task.status === "In Progress"
@@ -3368,7 +3367,7 @@ const ProjectTaskBoard = ({
 
         {activeTab === "Dashboard" && (
           <div className="space-y-6">
-            <h3 className="text-xs font-medium  tracking-wider text-slate-400 dark:text-white">
+            <h3 className="text-xs font-bold  tracking-wider text-slate-400 dark:text-white">
               Dashboard Metrics
             </h3>
 
@@ -3382,10 +3381,10 @@ const ProjectTaskBoard = ({
                   className="text-emerald-500/40 dark:text-emerald-400/25 absolute top-5 right-5 pointer-events-none"
                 />
                 <div className="relative z-10">
-                  <h4 className="text-[10px] font-medium  tracking-wider text-slate-500 dark:text-slate-400">
+                  <h4 className="text-[10px] font-bold  tracking-wider text-slate-500 dark:text-slate-400">
                     Completed tasks
                   </h4>
-                  <div className="text-4xl font-medium mt-4 drop-shadow-sm text-emerald-500 dark:text-emerald-400">
+                  <div className="text-4xl font-bold mt-4 drop-shadow-sm text-emerald-500 dark:text-emerald-400">
                     {completedTasks}
                   </div>
                 </div>
@@ -3402,10 +3401,10 @@ const ProjectTaskBoard = ({
                   className="text-blue-550/40 dark:text-[#e5ff00]/25 absolute top-5 right-5 pointer-events-none"
                 />
                 <div className="relative z-10">
-                  <h4 className="text-[10px] font-medium  tracking-wider text-slate-500 dark:text-slate-400">
+                  <h4 className="text-[10px] font-bold  tracking-wider text-slate-500 dark:text-slate-400">
                     Incomplete tasks
                   </h4>
-                  <div className="text-4xl font-medium mt-4 drop-shadow-sm text-blue-500 dark:text-[#e5ff00]">
+                  <div className="text-4xl font-bold mt-4 drop-shadow-sm text-blue-500 dark:text-[#e5ff00]">
                     {incompleteTasks}
                   </div>
                 </div>
@@ -3422,10 +3421,10 @@ const ProjectTaskBoard = ({
                   className="text-rose-500/40 dark:text-rose-450/25 absolute top-5 right-5 pointer-events-none"
                 />
                 <div className="relative z-10">
-                  <h4 className="text-[10px] font-medium  tracking-wider text-slate-500 dark:text-slate-400">
+                  <h4 className="text-[10px] font-bold  tracking-wider text-slate-500 dark:text-slate-400">
                     Overdue tasks
                   </h4>
-                  <div className="text-4xl font-medium mt-4 drop-shadow-sm text-rose-500 dark:text-rose-455">
+                  <div className="text-4xl font-bold mt-4 drop-shadow-sm text-rose-500 dark:text-rose-455">
                     {overdueTasks}
                   </div>
                 </div>
@@ -3442,10 +3441,10 @@ const ProjectTaskBoard = ({
                   className="text-slate-500/40 dark:text-white/20 absolute top-5 right-5 pointer-events-none"
                 />
                 <div className="relative z-10">
-                  <h4 className="text-[10px] font-medium  tracking-wider text-slate-500 dark:text-slate-400">
+                  <h4 className="text-[10px] font-bold  tracking-wider text-slate-500 dark:text-slate-400">
                     Total tasks
                   </h4>
-                  <div className="text-4xl font-medium mt-4 drop-shadow-sm text-slate-700 dark:text-white">
+                  <div className="text-4xl font-bold mt-4 drop-shadow-sm text-slate-700 dark:text-white">
                     {totalTasks}
                   </div>
                 </div>
@@ -3459,7 +3458,7 @@ const ProjectTaskBoard = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               {/* Chart 1: Total incomplete tasks by section (Status Breakdown) */}
               <div className="bg-white dark:bg-[#070b13] p-6 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none flex flex-col transition-all duration-300 hover:shadow-2xl hover:border-slate-300 dark:hover:border-[#e5ff00]/30">
-                <h4 className="text-xs font-medium text-slate-800 dark:text-slate-100  tracking-wider mb-8">
+                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100  tracking-wider mb-8">
                   Total incomplete tasks by section
                 </h4>
 
@@ -3493,7 +3492,7 @@ const ProjectTaskBoard = ({
                         key={sectionName}
                         className="flex flex-col items-center gap-2 z-10 w-20 group cursor-default shrink-0"
                       >
-                        <span className="text-xs font-medium text-slate-600 dark:text-slate-405 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-405 opacity-0 group-hover:opacity-100 -translate-y-2 group-hover:translate-y-0 transition-all duration-300">
                           {sectionIncompleteCount}
                         </span>
                         <motion.div
@@ -3505,7 +3504,7 @@ const ProjectTaskBoard = ({
                           className="w-10 rounded-t-xl bg-gradient-to-t from-blue-600 to-cyan-400 dark:from-[#99cc00] dark:to-[#e5ff00] shadow-[0_0_15px_rgba(56,189,248,0.3)] dark:shadow-[0_0_15px_rgba(229,255,0,0.3)] transition-all duration-300 group-hover:brightness-125"
                         />
                         <span
-                          className="text-[9px] font-medium  tracking-wider text-slate-500 dark:text-slate-400 mt-2 text-center w-full truncate"
+                          className="text-[9px] font-bold  tracking-wider text-slate-500 dark:text-slate-400 mt-2 text-center w-full truncate"
                           title={sectionName}
                         >
                           {sectionName}
@@ -3515,7 +3514,7 @@ const ProjectTaskBoard = ({
                   })}
                 </div>
 
-                <div className="text-[9px] font-medium text-slate-400 dark:text-slate-550  tracking-wider pt-4 flex items-center justify-between">
+                <div className="text-[9px] font-bold text-slate-400 dark:text-slate-550  tracking-wider pt-4 flex items-center justify-between">
                   <span>2 Filters Active</span>
                   <button className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#1a1a1a] text-blue-600 dark:text-[#e5ff00] hover:bg-slate-200 dark:hover:bg-white/10 transition-all shadow-sm">
                     View Details
@@ -3525,7 +3524,7 @@ const ProjectTaskBoard = ({
 
               {/* Chart 2: Total tasks by completion status (Donut Chart) */}
               <div className="bg-white dark:bg-[#070b13] p-6 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none flex flex-col transition-all duration-300 hover:shadow-2xl hover:border-slate-300 dark:hover:border-[#e5ff00]/30">
-                <h4 className="text-xs font-medium text-slate-800 dark:text-slate-100  tracking-wider mb-6">
+                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100  tracking-wider mb-6">
                   Total tasks by completion status
                 </h4>
 
@@ -3642,10 +3641,10 @@ const ProjectTaskBoard = ({
                       transition={{ delay: 0.5, type: "spring" }}
                       className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
                     >
-                      <span className="text-3xl font-medium bg-clip-text text-transparent bg-gradient-to-br from-violet-600 to-pink-500 dark:from-[#99cc00] dark:to-[#e5ff00] drop-shadow-sm">
+                      <span className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-violet-600 to-pink-500 dark:from-[#99cc00] dark:to-[#e5ff00] drop-shadow-sm">
                         {incompleteTasks}
                       </span>
-                      <span className="text-[8px] font-medium  text-slate-400 mt-1">
+                      <span className="text-[8px] font-bold  text-slate-400 mt-1">
                         Remaining
                       </span>
                     </motion.div>
@@ -3656,10 +3655,10 @@ const ProjectTaskBoard = ({
                     <div className="flex items-center gap-3">
                       <div className="w-4 h-4 rounded-full bg-gradient-to-br from-violet-550 to-pink-500 dark:from-[#99cc00] dark:to-[#e5ff00] shadow-sm shadow-violet-500/40 dark:shadow-[#e5ff00]/40 shrink-0" />
                       <div>
-                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400  tracking-wider block">
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400  tracking-wider block">
                           Incomplete
                         </span>
-                        <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                        <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
                           {incompleteTasks} Tasks
                         </span>
                       </div>
@@ -3667,10 +3666,10 @@ const ProjectTaskBoard = ({
                     <div className="flex items-center gap-3">
                       <div className="w-4 h-4 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 dark:from-emerald-500/80 dark:to-emerald-500 shadow-sm shrink-0 border border-emerald-100 dark:border-white/10" />
                       <div>
-                        <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400  tracking-wider block">
+                        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400  tracking-wider block">
                           Completed
                         </span>
-                        <span className="text-sm font-medium text-slate-800 dark:text-slate-100">
+                        <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
                           {completedTasks} Tasks
                         </span>
                       </div>
@@ -3678,7 +3677,7 @@ const ProjectTaskBoard = ({
                   </div>
                 </div>
 
-                <div className="text-[9px] font-medium text-slate-400 dark:text-slate-550  tracking-wider pt-4 flex items-center justify-between">
+                <div className="text-[9px] font-bold text-slate-400 dark:text-slate-550  tracking-wider pt-4 flex items-center justify-between">
                   <span>1 Filter Active</span>
                   <button className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#1a1a1a] text-blue-600 dark:text-[#e5ff00] hover:bg-slate-200 dark:hover:bg-white/10 transition-all shadow-sm">
                     View Details
@@ -3718,7 +3717,7 @@ const ProjectTaskBoard = ({
                     <FiBriefcase size={20} />
                   </div>
                   <div>
-                    <h2 className="text-sm font-medium text-slate-800 dark:text-slate-100  tracking-wider">
+                    <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100  tracking-wider">
                       Task Workspace Preview
                     </h2>
                     <p className="text-[10px] text-slate-400 font-bold  tracking-wider mt-0.5">
@@ -3738,7 +3737,7 @@ const ProjectTaskBoard = ({
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 {/* Title Section (Autosaves on blur/enter) */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-medium text-slate-400  tracking-wider">
+                  <label className="text-[10px] font-bold text-slate-400  tracking-wider">
                     Task Title
                   </label>
                   <div className="p-3 bg-slate-50 dark:bg-[#0a0a0a]/50 border border-slate-150 dark:border-white/10 rounded-xl focus-within:bg-white dark:focus-within:bg-[#111111] focus-within:ring-1 focus-within:ring-blue-500 dark:focus-within:ring-[#e5ff00] transition-all">
@@ -4112,7 +4111,7 @@ const ProjectTaskBoard = ({
                             console.error("Failed to add subtask:", err);
                           }
                         }}
-                        className="w-full text-left px-3.5 py-2 text-[11px] font-medium text-slate-500 hover:text-slate-850 dark:text-slate-400 dark:hover:text-[#e5ff00] hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-all flex items-center gap-1.5 cursor-pointer border-t border-slate-100 dark:border-white/5"
+                        className="w-full text-left px-3.5 py-2 text-[11px] font-bold text-slate-500 hover:text-slate-850 dark:text-slate-400 dark:hover:text-[#e5ff00] hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-all flex items-center gap-1.5 cursor-pointer border-t border-slate-100 dark:border-white/5"
                       >
                         <FiPlus size={12} />
                         Add subtask
@@ -4123,7 +4122,7 @@ const ProjectTaskBoard = ({
 
                 {/* Comments & Attachments */}
                 <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
-                  <h3 className="text-xs font-medium text-slate-500  tracking-wider">
+                  <h3 className="text-xs font-bold text-slate-500  tracking-wider">
                     Discussion & Attachments
                   </h3>
 
@@ -4192,7 +4191,7 @@ const ProjectTaskBoard = ({
                               value={newComment}
                               onChange={(e) => setNewComment(e.target.value)}
                               placeholder="Add a comment..."
-                              className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00] resize-none min-h-[40px]"
+                              className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00] resize-none min-h-[40px]"
                               rows={1}
                             />
                           </div>
