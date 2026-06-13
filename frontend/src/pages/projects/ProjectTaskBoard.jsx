@@ -213,10 +213,10 @@ const SubtaskRow = ({
           }}
         >
           {sub.startDate ? (
-            <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-amber-200 dark:border-amber-900/60 hover:border-amber-350 dark:hover:border-amber-500/40 text-amber-700 dark:text-amber-305 text-[9px] font-semibold bg-amber-50 dark:bg-amber-950/30 transition-all">
+            <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-blue-200 dark:border-blue-900/60 hover:border-blue-350 dark:hover:border-blue-500/40 text-blue-700 dark:text-blue-300 text-[9px] font-semibold bg-blue-50 dark:bg-blue-950/30 transition-all">
               <FiCalendar
                 size={8}
-                className="text-amber-500 dark:text-amber-400 mr-1"
+                className="text-blue-500 dark:text-blue-400 mr-1"
               />
               <span>
                 S: {new Date(sub.startDate).toLocaleDateString(undefined, {
@@ -231,14 +231,14 @@ const SubtaskRow = ({
                     e.stopPropagation();
                     handleSubtaskFieldChange(task, sub._id, { startDate: null });
                   }}
-                  className="ml-1 text-amber-400 hover:text-rose-500 transition-colors cursor-pointer relative z-10"
+                  className="ml-1 text-blue-400 hover:text-rose-500 transition-colors cursor-pointer relative z-10"
                 >
                   <FiX size={10} />
                 </button>
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-amber-200 dark:border-amber-900/40 text-amber-500/70 dark:text-amber-500/50 hover:border-amber-400 hover:text-amber-700 dark:hover:text-amber-400 dark:hover:border-amber-500/40 bg-amber-50/20 dark:bg-amber-950/10 transition-all text-[9px] font-bold">
+            <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-blue-200 dark:border-blue-900/40 text-blue-500/70 dark:text-blue-500/50 hover:border-blue-400 hover:text-blue-700 dark:hover:text-blue-400 dark:hover:border-blue-500/40 bg-blue-50/20 dark:bg-blue-950/10 transition-all text-[9px] font-bold">
               <FiCalendar size={9} />
               <span>+ Start</span>
             </div>
@@ -322,46 +322,61 @@ const SubtaskRow = ({
         </div>
 
         {/* Assignee Picker (Always Visible) */}
-        <div className="relative w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-indigo-900 flex items-center justify-center text-slate-400 dark:text-indigo-400/75 hover:border-indigo-400 hover:text-indigo-700 dark:hover:text-[#e5ff00] dark:hover:border-[#e5ff00]/40 bg-white dark:bg-[#111111] transition-all cursor-pointer overflow-hidden">
-          {sub.assignedTo ? (
-            sub.assignedTo?.profileImage?.url ? (
-              <img
-                src={sub.assignedTo.profileImage.url}
-                alt={sub.assignedTo.name}
-                className="w-full h-full object-cover"
-              />
+        <div className="flex items-center gap-1.5">
+          <div className="relative w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-indigo-900 flex items-center justify-center text-slate-400 dark:text-indigo-400/75 hover:border-indigo-400 hover:text-indigo-700 dark:hover:text-[#e5ff00] dark:hover:border-[#e5ff00]/40 bg-white dark:bg-[#111111] transition-all cursor-pointer overflow-hidden">
+            {sub.assignedTo ? (
+              sub.assignedTo?.profileImage?.url ? (
+                <img
+                  src={sub.assignedTo.profileImage.url}
+                  alt={sub.assignedTo.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div
+                  className={`w-full h-full flex items-center justify-center text-white text-[8px] font-bold bg-gradient-to-br ${getAvatarColor(
+                    sub.assignedTo?.name || "U",
+                  )}`}
+                >
+                  {sub.assignedTo?.name
+                    ?.split(" ")
+                    .map((n) => n[0])
+                    .join("") || "U"}
+                </div>
+              )
             ) : (
-              <div
-                className={`w-full h-full flex items-center justify-center text-white text-[8px] font-bold bg-gradient-to-br ${getAvatarColor(
-                  sub.assignedTo?.name || "U",
-                )}`}
+              <FiUser size={11} />
+            )}
+            {isAdminOrManager && (
+              <select
+                value={sub.assignedTo?._id || sub.assignedTo || ""}
+                onChange={(e) =>
+                  handleSubtaskFieldChange(task, sub._id, {
+                    assignedTo: e.target.value || null,
+                  })
+                }
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               >
-                {sub.assignedTo?.name
-                  ?.split(" ")
-                  .map((n) => n[0])
-                  .join("") || "U"}
-              </div>
-            )
-          ) : (
-            <FiUser size={11} />
-          )}
-          {isAdminOrManager && (
-            <select
-              value={sub.assignedTo?._id || sub.assignedTo || ""}
-              onChange={(e) =>
-                handleSubtaskFieldChange(task, sub._id, {
-                  assignedTo: e.target.value || null,
-                })
-              }
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                <option value="">Unassigned</option>
+                {users.map((u) => (
+                  <option key={u._id} value={u._id}>
+                    {u.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          {sub.assignedTo && isAdminOrManager && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSubtaskFieldChange(task, sub._id, { assignedTo: null });
+              }}
+              className="p-0.5 text-slate-400 hover:text-rose-500 rounded transition-colors hover:bg-slate-200 dark:hover:bg-white/10 shrink-0 relative z-10"
+              title="Clear Assignee"
             >
-              <option value="">Unassigned</option>
-              {users.map((u) => (
-                <option key={u._id} value={u._id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
+              <FiX size={10} />
+            </button>
           )}
         </div>
 
@@ -524,7 +539,7 @@ const ProjectTaskBoard = ({
     const currentSections =
       activeProject.sections?.length > 0
         ? activeProject.sections
-        : ["Recently assigned"];
+        : ["Recent assignment"];
     const updatedSections = currentSections.map((s) =>
       s === oldName ? newName : s,
     );
@@ -542,7 +557,7 @@ const ProjectTaskBoard = ({
       const tasksToUpdate = tasks.filter(
         (t) =>
           t.section === oldName ||
-          (!t.section && oldName === "Recently assigned"),
+          (!t.section && oldName === "Recent assignment"),
       );
       await Promise.all(
         tasksToUpdate.map((t) =>
@@ -568,7 +583,7 @@ const ProjectTaskBoard = ({
       const currentSections =
         activeProject.sections?.length > 0
           ? activeProject.sections
-          : ["Recently assigned"];
+          : ["Recent assignment"];
       const updatedSections = currentSections.filter((s) => s !== sectionName);
 
       try {
@@ -582,7 +597,7 @@ const ProjectTaskBoard = ({
         const tasksToDelete = tasks.filter(
           (t) =>
             t.section === sectionName ||
-            (!t.section && sectionName === "Recently assigned"),
+            (!t.section && sectionName === "Recent assignment"),
         );
         await Promise.all(
           tasksToDelete.map((t) => dispatch(deleteTask(t._id)).unwrap()),
@@ -715,7 +730,7 @@ const ProjectTaskBoard = ({
     const currentSections =
       activeProject.sections?.length > 0
         ? activeProject.sections
-        : ["Recently assigned"];
+        : ["Recent assignment"];
     const updatedSections = [...currentSections, newSectionName.trim()];
     dispatch(
       updateProject({
@@ -728,7 +743,7 @@ const ProjectTaskBoard = ({
   };
 
   // Add Task directly to DB (autosave pattern)
-  const handleAddTask = async (sectionName = "Recently assigned") => {
+  const handleAddTask = async (sectionName = "Recent assignment") => {
     try {
       await createTaskMutation({
         title: "",
@@ -759,7 +774,7 @@ const ProjectTaskBoard = ({
       const defaultSection =
         activeProject?.sections?.length > 0
           ? activeProject.sections[0]
-          : "Recently assigned";
+          : "Recent assignment";
       handleAddTask(defaultSection);
     }
 
@@ -1524,26 +1539,26 @@ const ProjectTaskBoard = ({
                     new Set(
                       activeProject.sections?.length > 0
                         ? activeProject.sections
-                        : ["Recently assigned"],
+                        : ["Recent assignment"],
                     ),
                   ).map((sectionName, sectionIndex) => {
                     const sectionTasks = sortedTasks.filter(
                       (t) =>
                         t.section === sectionName ||
-                        (!t.section && sectionName === "Recently assigned"),
+                        (!t.section && sectionName === "Recent assignment"),
                     );
                     const isSectionCollapsed = !!collapsedSections[sectionName];
 
                     return (
                       <React.Fragment key={`${sectionName}-${sectionIndex}`}>
                         {/* SECTION HEADER ROW */}
-                        {sectionName !== "Recently assigned" && (
-                           <tr className="bg-slate-50/20 dark:bg-slate-900/10 border-y border-slate-100 dark:border-slate-800/60 group">
+                        {true && (
+                           <tr className="bg-gradient-to-r from-blue-50/50 via-slate-50/30 to-transparent dark:from-blue-950/20 dark:via-slate-900/10 dark:to-transparent border-y border-blue-100/60 dark:border-blue-900/50 group">
                              <td
                               colSpan={7}
-                              className="px-4 py-2 border-b border-slate-100 dark:border-slate-800/60"
+                              className="px-4 py-2 border-b border-blue-100/40 dark:border-blue-900/30"
                             >
-                              <div className="flex items-center gap-3 py-1">
+                              <div className="flex items-center gap-3 py-1 border-l-4 border-blue-500 dark:border-[#e5ff00] pl-3">
                                 <div className="flex items-center gap-2">
                                   {/* Play/triangle icon that rotates */}
                                   <button
@@ -1585,12 +1600,12 @@ const ProjectTaskBoard = ({
                                     </form>
                                   ) : (
                                     <h3
-                                      className="font-semibold text-xs text-slate-800 dark:text-slate-250 cursor-pointer select-none"
+                                      className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-350 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer select-none"
                                       onClick={() => toggleSection(sectionName)}
                                     >
-                                      {sectionName}{" "}
-                                      <span className="text-slate-400 font-bold ml-1.5 text-[10px]">
-                                        ({sectionTasks.length})
+                                      {sectionName}
+                                      <span className="ml-2 bg-blue-100/60 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200/40 dark:border-blue-800/30 font-bold px-2 py-0.5 rounded-full text-[10px]">
+                                        {sectionTasks.length}
                                       </span>
                                     </h3>
                                   )}
@@ -1608,20 +1623,22 @@ const ProjectTaskBoard = ({
 
                                     {/* Action button */}
                                     <div className="relative">
-                                      <button
-                                        onClick={() =>
-                                          setOpenSectionMenu(
-                                            openSectionMenu === sectionName
-                                              ? null
-                                              : sectionName,
-                                          )
-                                        }
-                                        className="p-0.5 px-1 bg-slate-100/60 dark:bg-white/5 text-slate-550 hover:text-slate-800 dark:hover:text-slate-100 rounded hover:bg-slate-200/60 dark:hover:bg-white/10 transition-colors"
-                                      >
-                                        <FiMoreHorizontal size={13} />
-                                      </button>
+                                      {sectionName !== "Recent assignment" && (
+                                        <button
+                                          onClick={() =>
+                                            setOpenSectionMenu(
+                                              openSectionMenu === sectionName
+                                                ? null
+                                                : sectionName,
+                                            )
+                                          }
+                                          className="p-0.5 px-1 bg-slate-100/60 dark:bg-white/5 text-slate-550 hover:text-slate-800 dark:hover:text-slate-100 rounded hover:bg-slate-200/60 dark:hover:bg-white/10 transition-colors"
+                                        >
+                                          <FiMoreHorizontal size={13} />
+                                        </button>
+                                      )}
 
-                                      {openSectionMenu === sectionName && (
+                                      {sectionName !== "Recent assignment" && openSectionMenu === sectionName && (
                                         <div className="absolute left-0 mt-1 w-32 bg-white dark:bg-[#151518] rounded-lg shadow-lg border border-slate-100 dark:border-white/10 z-50 overflow-hidden">
                                           <button
                                             onClick={() => {
@@ -1767,7 +1784,7 @@ const ProjectTaskBoard = ({
                                                 e.target.blur();
                                                 handleAddTask(
                                                   task.section ||
-                                                    "Recently assigned",
+                                                    "Recent assignment",
                                                 );
                                               }
                                             }}
@@ -1951,8 +1968,8 @@ const ProjectTaskBoard = ({
                                         }}
                                       >
                                         {task.startDate ? (
-                                          <div className="flex items-center gap-1.5 px-2 py-2 rounded-md border border-amber-200 dark:border-amber-900/60 hover:border-amber-350 dark:hover:border-amber-500/40 text-amber-700 dark:text-amber-305 text-[10px] font-semibold bg-amber-50 dark:bg-amber-955/30 transition-all">
-                                            <FiCalendar size={10} className="text-amber-500 dark:text-amber-400" />
+                                          <div className="flex items-center gap-1.5 px-2 py-2 rounded-md border border-blue-200 dark:border-blue-900/60 hover:border-blue-350 dark:hover:border-blue-500/40 text-blue-700 dark:text-blue-300 text-[10px] font-semibold bg-blue-50 dark:bg-blue-955/30 transition-all">
+                                            <FiCalendar size={10} className="text-blue-500 dark:text-blue-400" />
                                             <span>
                                               {new Date(task.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                                             </span>
@@ -1963,14 +1980,14 @@ const ProjectTaskBoard = ({
                                                   e.stopPropagation();
                                                   handleTaskFieldChange(task._id, { startDate: null });
                                                 }}
-                                                className="ml-1 text-amber-450 hover:text-rose-500 relative z-10 transition-colors"
+                                                className="ml-1 text-blue-400 hover:text-rose-500 relative z-10 transition-colors"
                                               >
                                                 <FiX size={10} />
                                               </button>
                                             )}
                                           </div>
                                         ) : (
-                                          <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-amber-200 dark:border-amber-900/40 text-amber-500/70 dark:text-amber-500/50 hover:border-amber-400 hover:text-amber-700 dark:hover:text-amber-400 dark:hover:border-amber-500/40 bg-amber-50/20 dark:bg-amber-955/10 transition-all text-[9px] font-bold">
+                                          <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-blue-200 dark:border-blue-900/40 text-blue-500/70 dark:text-blue-500/50 hover:border-blue-400 hover:text-blue-700 dark:hover:text-blue-400 dark:hover:border-blue-500/40 bg-blue-50/20 dark:bg-blue-955/10 transition-all text-[9px] font-bold">
                                             <FiCalendar size={10} />
                                             <span>+ Start Date</span>
                                           </div>
@@ -2173,10 +2190,8 @@ const ProjectTaskBoard = ({
                                               currentUser?._id ||
                                             sub.assignedTo === currentUser?._id;
                                           const rowBgSub = isSubCompleted
-                                            ? "bg-slate-55/20 text-slate-400 dark:text-slate-500"
-                                            : subIdx % 2 === 0
-                                              ? "bg-white dark:bg-slate-800/20 text-slate-800 dark:text-slate-100"
-                                              : "bg-slate-50/20 dark:bg-slate-900/5 text-slate-800 dark:text-slate-100";
+                                            ? "bg-slate-100/40 text-slate-400 dark:text-slate-550/80 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                                            : "bg-slate-50/70 dark:bg-slate-900/45 text-slate-800 dark:text-slate-100 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]";
 
                                           return (
                                             <tr
@@ -2290,6 +2305,23 @@ const ProjectTaskBoard = ({
                                                   >
                                                     {sub.title}
                                                   </span>
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setSelectedTaskId(task._id);
+                                                      setTimeout(() => {
+                                                        const el = document.getElementById("drawer-subtasks-section");
+                                                        if (el) {
+                                                          el.scrollIntoView({ behavior: "smooth", block: "start" });
+                                                        }
+                                                      }, 350);
+                                                    }}
+                                                    className="shrink-0 text-slate-400 dark:text-slate-550 hover:text-blue-500 dark:hover:text-[#e5ff00] p-0.5 rounded hover:bg-slate-100 dark:hover:bg-white/5 transition-all opacity-0 group-hover/subrow:opacity-100 cursor-pointer ml-auto"
+                                                    title="Open Details & View Subtasks"
+                                                  >
+                                                    <FiChevronRight size={12} />
+                                                  </button>
                                                 </div>
                                               </td>
 
@@ -2367,6 +2399,20 @@ const ProjectTaskBoard = ({
                                                           ))}
                                                         </select>
                                                       )}
+                                                      {sub.assignedTo && isAdminOrManager && (
+                                                        <button
+                                                          type="button"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            e.preventDefault();
+                                                            handleSubtaskFieldChange(task, sub._id, { assignedTo: null });
+                                                          }}
+                                                          className="relative z-20 p-0.5 text-indigo-400 hover:text-rose-500 rounded transition-colors hover:bg-slate-200 dark:hover:bg-white/10 shrink-0"
+                                                          title="Clear Assignee"
+                                                        >
+                                                          <FiX size={10} />
+                                                        </button>
+                                                      )}
                                                     </div>
                                                   ) : (
                                                     <div className="group/subassign relative w-5 h-5 flex items-center justify-center cursor-pointer">
@@ -2428,8 +2474,8 @@ const ProjectTaskBoard = ({
                                                   }}
                                                 >
                                                   {sub.startDate ? (
-                                                    <div className="flex items-center gap-1.5 px-2 py-2 rounded-md border border-amber-200 dark:border-amber-900/60 hover:border-amber-350 dark:hover:border-amber-500/40 text-amber-700 dark:text-amber-300 text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/30 transition-all">
-                                                      <FiCalendar size={10} className="text-amber-500 dark:text-amber-400" />
+                                                    <div className="flex items-center gap-1.5 px-2 py-2 rounded-md border border-blue-200 dark:border-blue-900/60 hover:border-blue-350 dark:hover:border-blue-500/40 text-blue-700 dark:text-blue-300 text-[10px] font-semibold bg-blue-50 dark:bg-blue-950/30 transition-all">
+                                                      <FiCalendar size={10} className="text-blue-500 dark:text-blue-400" />
                                                       <span>
                                                         {new Date(sub.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                                                       </span>
@@ -2440,14 +2486,14 @@ const ProjectTaskBoard = ({
                                                             e.stopPropagation();
                                                             handleSubtaskFieldChange(task, sub._id, { startDate: null });
                                                           }}
-                                                          className="ml-1 text-amber-450 hover:text-rose-500 relative z-10 transition-colors"
+                                                          className="ml-1 text-blue-400 hover:text-rose-500 relative z-10 transition-colors"
                                                         >
                                                           <FiX size={10} />
                                                         </button>
                                                       )}
                                                     </div>
                                                   ) : (
-                                                    <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-amber-200 dark:border-amber-900/40 text-amber-500/70 dark:text-amber-500/50 hover:border-amber-400 hover:text-amber-700 dark:hover:text-amber-400 dark:hover:border-amber-500/40 bg-amber-50/20 dark:bg-amber-950/10 transition-all text-[9px] font-bold">
+                                                    <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-dashed border-blue-200 dark:border-blue-900/40 text-blue-500/70 dark:text-blue-500/50 hover:border-blue-400 hover:text-blue-700 dark:hover:text-blue-400 dark:hover:border-blue-500/40 bg-blue-50/20 dark:bg-blue-950/10 transition-all text-[9px] font-bold">
                                                       <FiCalendar size={10} />
                                                       <span>+ Start Date</span>
                                                     </div>
@@ -2741,13 +2787,13 @@ const ProjectTaskBoard = ({
                   new Set(
                     activeProject.sections?.length > 0
                       ? activeProject.sections
-                      : ["Recently assigned"],
+                      : ["Recent assignment"],
                   ),
                 ).map((sectionName) => {
                   const columnTasks = activeProjectTasks.filter(
                     (t) =>
                       t.section === sectionName ||
-                      (!t.section && sectionName === "Recently assigned"),
+                      (!t.section && sectionName === "Recent assignment"),
                   );
 
                   return (
@@ -3083,7 +3129,7 @@ const ProjectTaskBoard = ({
               new Set(
                 activeProject.sections?.length > 0
                   ? activeProject.sections
-                  : ["Recently assigned"],
+                  : ["Recent assignment"],
               ),
             );
 
@@ -3154,7 +3200,7 @@ const ProjectTaskBoard = ({
                             (t) =>
                               t.section === sectionName ||
                               (!t.section &&
-                                sectionName === "Recently assigned"),
+                                sectionName === "Recent assignment"),
                           )
                           .map((task) => (
                             <div
@@ -3251,7 +3297,7 @@ const ProjectTaskBoard = ({
                                 (t) =>
                                   t.section === sectionName ||
                                   (!t.section &&
-                                    sectionName === "Recently assigned"),
+                                    sectionName === "Recent assignment"),
                               )
                               .map((task) => {
                                 // Calculate real date-based positioning
@@ -3476,14 +3522,14 @@ const ProjectTaskBoard = ({
                     new Set(
                       activeProject.sections?.length > 0
                         ? activeProject.sections
-                        : ["Recently assigned"],
+                        : ["Recent assignment"],
                     ),
                   ).map((sectionName, index) => {
                     const sectionIncompleteCount = activeProjectTasks.filter(
                       (t) =>
                         (t.section === sectionName ||
                           (!t.section &&
-                            sectionName === "Recently assigned")) &&
+                            sectionName === "Recent assignment")) &&
                         t.status !== "Completed",
                     ).length;
 
@@ -3894,8 +3940,8 @@ const ProjectTaskBoard = ({
                         className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00]"
                       />
                     ) : (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 dark:bg-amber-955/30 border border-amber-200 dark:border-amber-900/60 rounded-xl text-xs font-semibold text-amber-700 dark:text-amber-300">
-                        <FiCalendar className="text-amber-500 dark:text-amber-400" size={13} />
+                      <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-955/30 border border-blue-200 dark:border-blue-900/60 rounded-xl text-xs font-semibold text-blue-700 dark:text-blue-300">
+                        <FiCalendar className="text-blue-500 dark:text-blue-400" size={13} />
                         {selectedTask.startDate
                           ? new Date(
                               selectedTask.startDate,
@@ -3987,7 +4033,7 @@ const ProjectTaskBoard = ({
                   </div>
                 </div>
                 {/* ── Asana-style Subtask Workspace ── */}
-                <div className="pt-4 border-t border-slate-100 dark:border-white/5">
+                <div id="drawer-subtasks-section" className="pt-4 border-t border-slate-100 dark:border-white/5">
                   {/* Header */}
                   <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-100 dark:border-white/5">
                     <div className="flex items-center gap-2.5">
@@ -4041,7 +4087,7 @@ const ProjectTaskBoard = ({
                   </div>
 
                   {/* Subtask rows — Asana style */}
-                  <div className="rounded-xl border border-slate-150 dark:border-white/10 overflow-hidden bg-white dark:bg-[#0b0b0b] divide-y divide-slate-100/80 dark:divide-white/5">
+                  <div className="rounded-xl border border-slate-150 dark:border-white/10 overflow-hidden bg-white dark:bg-[#0b0b0b] divide-y divide-slate-100/80 dark:divide-white/5 shadow-md shadow-slate-100 dark:shadow-none">
                     {/* Empty state */}
                     {(!selectedTask.subtasks ||
                       selectedTask.subtasks.length === 0) && (
