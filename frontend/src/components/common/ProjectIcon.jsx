@@ -45,11 +45,11 @@ export const ProjectIcon = ({ name, size = "sm", className = "" }) => {
 
   // Responsive / standard size classes
   const sizeClasses = {
-    xs: "w-4 h-4 text-[8px] rounded",
-    sm: "w-5 h-5 text-[9.5px] rounded",
-    md: "w-6 h-6 text-[11px] rounded-lg",
-    lg: "w-8 h-8 text-[14px] rounded-lg",
-    xl: "w-10 h-10 text-[16px] rounded-xl",
+    xs: "w-4 h-4 text-[8px] italic rounded",
+    sm: "w-5 h-5 text-[9.5px] italic rounded",
+    md: "w-6 h-6 text-[11px] italic rounded-lg",
+    lg: "w-8 h-8 text-[14px] italic rounded-lg",
+    xl: "w-10 h-10 text-[16px] italic rounded-xl",
   };
 
   const sizeClass = sizeClasses[size] || sizeClasses.sm;

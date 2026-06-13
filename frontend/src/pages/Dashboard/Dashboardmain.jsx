@@ -196,9 +196,9 @@ const Dashboardmain = () => {
                   <ProjectIcon
                     name={project.name}
                     size="xl"
-                    className="transition-transform group-hover:scale-[1.03]"
+                    className="transition-transform   group-hover:scale-[1.03]"
                   />
-                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 line-clamp-2">
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-700 line-clamp-2">
                     {project.name}
                   </span>
                 </button>

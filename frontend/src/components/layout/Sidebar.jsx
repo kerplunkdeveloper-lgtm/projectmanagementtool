@@ -191,7 +191,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           className={`w-full flex items-center gap-2 text-left text-[11.5px] font-bold py-2 rounded-lg px-2 transition-colors group ${
                             isActive
                               ? "bg-blue-50 dark:bg-[#e5ff00]/20 text-blue-600 dark:text-[#e5ff00]"
-                              : "theme-text-secondary hover:theme-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                              : "theme-text-secondary hover:theme-text-primary"
                           }`}
                           title={project.name}
                         >
@@ -257,7 +257,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           className={`w-full flex items-center gap-2 text-left text-[11.5px] font-bold py-2 rounded-lg px-2 transition-colors group ${
                             isActive
                               ? "bg-blue-50 dark:bg-[#e5ff00]/20 text-blue-600 dark:text-[#e5ff00]"
-                              : "theme-text-secondary hover:theme-text-primary hover:bg-slate-100 dark:hover:bg-slate-800/50"
+                              : "theme-text-secondary hover:theme-text-primary"
                           }`}
                           title={portfolio.name}
                         >
