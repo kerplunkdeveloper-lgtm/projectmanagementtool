@@ -73,7 +73,7 @@ const Dashboardmain = () => {
   useEffect(() => {
     dispatch(getEvents());
     dispatch(getProjects());
-    if (user?.role === "admin") {
+    if (user?.role === "admin" || user?.role === "operationmanager" || user?.role === "team") {
       dispatch(getClients());
     }
   }, [dispatch, user]);
@@ -169,7 +169,7 @@ const Dashboardmain = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
             {/* CREATE PROJECT BUTTON */}
-            {user?.role === "admin" && (
+            {(user?.role === "admin" || user?.role === "operationmanager" || user?.role === "team") && (
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="flex items-center gap-2 group text-left"

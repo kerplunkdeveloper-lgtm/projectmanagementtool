@@ -108,7 +108,7 @@ const Navbar = ({ setSidebarOpen }) => {
     };
 
     if (path.includes("dashboard") || path === "/admin" || path === "/admin/" || path === "/operationmanager" || path === "/operationmanager/" || path === "/team" || path === "/team/") return renderDashboardTitle();
-    if (path.includes("clients")) return "Clients";
+    if (path.includes("clients")) return "Clients Management";
     if (path.includes("portfolio")) return "Portfolio";
 
     if (path.includes("projects")) return "Projects";
@@ -116,7 +116,7 @@ const Navbar = ({ setSidebarOpen }) => {
     if (path.includes("partnerhub")) return "PartnerHub";
     if (path.includes("profile")) return "Profile";
     if (path.includes("team")) return "Team";
-    if (path.includes("users")) return "Users";
+    if (path.includes("users")) return "Users Management";
     if (path.includes("template")) return "Template";
     if (path.includes("chat")) return "Chat";
     if (path.includes("notifications")) return "Notifications";
@@ -200,7 +200,7 @@ const Navbar = ({ setSidebarOpen }) => {
         </button>
 
         {/* PAGE TITLE */}
-        <h1 className="text-[13px] italic md:text-[20px] text-blue-600 dark:text-[#e5ff00] font-medium">
+        <h1 className="text-[13px] md:text-[20px] text-blue-600 dark:text-[#e5ff00] font-extrabold">
           {pageTitle}
         </h1>
       </div>

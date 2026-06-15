@@ -72,8 +72,8 @@ const Project = () => {
     }
   }, [clients, clientId]);
 
-  const isAdmin = currentUser?.role === "admin";
-  const isAdminOrManager = currentUser?.role === "admin" || currentUser?.role === "operationmanager";
+  const isAdmin = currentUser?.role === "admin" || currentUser?.role === "operationmanager" || currentUser?.role === "team";
+  const isAdminOrManager = currentUser?.role === "admin" || currentUser?.role === "operationmanager" || currentUser?.role === "team";
 
   // Filter projects
   const filteredProjects = projects.filter((project) => {
@@ -256,6 +256,8 @@ const Project = () => {
                 <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Project Name</th>
                 <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Client Name</th>
                 <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Portfolio</th>
+                <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">User Name</th>
+                <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Department</th>
                 <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Status</th>
                 <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Progress</th>
                 <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800 text-center">View</th>
@@ -309,6 +311,16 @@ const Project = () => {
                             None
                           </span>
                         )}
+                      </td>
+                      <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                        <span className="font-semibold text-slate-700 dark:text-slate-350">
+                          {project.createdBy?.name || "N/A"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                        <span className="font-semibold text-slate-700 dark:text-slate-350">
+                          {project.createdBy?.department || "N/A"}
+                        </span>
                       </td>
                       <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
                         <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-lg border uppercase tracking-wider ${getStatusBadge(project.status)}`}>

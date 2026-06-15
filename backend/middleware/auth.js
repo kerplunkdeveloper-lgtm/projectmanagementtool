@@ -39,15 +39,51 @@ exports.protect = async (req, res, next) => {
   }
 };
 
-// Grant access to specific roles
+// Grant access to specific roles or users with appropriate permissions
 exports.authorize = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({
-        success: false,
-        message: `User role ${req.user.role} is not authorized to access this route`,
-      });
+    // Admin always has full access
+    if (req.user.role === 'admin') {
+      return next();
     }
-    next();
+
+    // Check if user has explicit role access
+    if (roles.includes(req.user.role)) {
+      return next();
+    }
+
+    // Check permission based on the endpoint
+    const url = req.originalUrl || '';
+    const permissions = req.user.permissions || {};
+
+    let hasPermission = false;
+    if (url.includes('/projects') || url.includes('/business-projects')) {
+      const perm = permissions.manage_projects;
+      hasPermission = perm === true || perm?.read || perm?.write;
+    } else if (url.includes('/tasks')) {
+      const perm = permissions.manage_tasks;
+      hasPermission = perm === true || perm?.read || perm?.write;
+    } else if (url.includes('/portfolios') || url.includes('/templates') || url.includes('/overheads')) {
+      const perm = permissions.manage_settings;
+      hasPermission = perm === true || perm?.read || perm?.write;
+    } else if (url.includes('/clients')) {
+      const perm = permissions.manage_clients;
+      hasPermission = perm === true || perm?.read || perm?.write;
+    } else if (url.includes('/users')) {
+      const perm = permissions.manage_users;
+      hasPermission = perm === true || perm?.read || perm?.write;
+    } else if (url.includes('/eod-reports')) {
+      const perm = permissions.view_reports;
+      hasPermission = perm === true || perm?.read || perm?.write;
+    }
+
+    if (hasPermission) {
+      return next();
+    }
+
+    return res.status(403).json({
+      success: false,
+      message: `User role ${req.user.role} is not authorized to access this route`,
+    });
   };
 };

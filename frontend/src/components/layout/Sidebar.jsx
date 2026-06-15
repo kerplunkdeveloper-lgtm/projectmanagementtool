@@ -54,6 +54,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
   const menuItems = (sidebarConfig[role] || []).filter((item) => {
     if (role === "admin") return true;
+    if (item.permissionKey === "manage_clients") return true;
     if (!item.permissionKey) return true;
     const perm = currentUser?.permissions?.[item.permissionKey];
     if (perm === true) return true; // legacy

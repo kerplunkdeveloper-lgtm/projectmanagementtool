@@ -5,8 +5,13 @@ const Project = require("../models/Project");
 // @access  Private
 exports.getProjects = async (req, res) => {
   try {
-    const projects = await Project.find()
-      .populate("client", "companyName industry primaryContact");
+    let query = {};
+    if (req.user.role !== "admin") {
+      query.createdBy = req.user._id;
+    }
+    const projects = await Project.find(query)
+      .populate("client", "companyName industry primaryContact")
+      .populate("createdBy", "name department");
 
     res.status(200).json({
       success: true,
@@ -23,10 +28,14 @@ exports.getProjects = async (req, res) => {
 // @access  Private/Admin/OperationManager
 exports.createProject = async (req, res) => {
   try {
-    const project = await Project.create(req.body);
+    const project = await Project.create({
+      ...req.body,
+      createdBy: req.user._id,
+    });
 
     const populatedProject = await Project.findById(project._id)
-      .populate("client", "companyName industry primaryContact");
+      .populate("client", "companyName industry primaryContact")
+      .populate("createdBy", "name department");
 
     res.status(201).json({
       success: true,
@@ -51,7 +60,9 @@ exports.updateProject = async (req, res) => {
     project = await Project.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
-    }).populate("client", "companyName industry primaryContact");
+    })
+      .populate("client", "companyName industry primaryContact")
+      .populate("createdBy", "name department");
 
     res.status(200).json({
       success: true,

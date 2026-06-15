@@ -5,10 +5,13 @@ const Portfolio = require("../models/Portfolio");
 // @access  Private
 exports.getPortfolios = async (req, res) => {
   try {
-    const portfolios = await Portfolio.find().populate(
-      "projectIds",
-      "name status client"
-    );
+    let query = {};
+    if (req.user.role !== "admin") {
+      query.createdBy = req.user._id;
+    }
+    const portfolios = await Portfolio.find(query)
+      .populate("projectIds", "name status client")
+      .populate("createdBy", "name department");
     res.status(200).json({ success: true, data: portfolios });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -24,7 +27,10 @@ exports.createPortfolio = async (req, res) => {
       ...req.body,
       createdBy: req.user._id,
     });
-    res.status(201).json({ success: true, data: portfolio });
+    const populatedPortfolio = await Portfolio.findById(portfolio._id)
+      .populate("projectIds", "name status client")
+      .populate("createdBy", "name department");
+    res.status(201).json({ success: true, data: populatedPortfolio });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
   }
@@ -39,7 +45,9 @@ exports.updatePortfolio = async (req, res) => {
       req.params.id,
       req.body,
       { new: true, runValidators: true }
-    ).populate("projectIds", "name status client");
+    )
+      .populate("projectIds", "name status client")
+      .populate("createdBy", "name department");
 
     if (!portfolio) {
       return res

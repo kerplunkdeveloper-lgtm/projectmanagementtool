@@ -267,19 +267,9 @@ const Clients = () => {
       
       {/* HEADER SECTION */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-xl md:text-2xl font-black tracking-tight flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl  dashboard-btn-primary dark:dashboard-btn-primary text-white flex items-center justify-center  shrink-0">
-              <FiUsers size={18} />
-            </div>
-            <div>
-              <span>Client Portfolio</span>
-             
-            </div>
-          </h1>
-        </div>
+       
 
-        {user?.role === "admin" && (
+        {(user?.role === "admin" || user?.role === "operationmanager" || user?.role === "team") && (
           <button
             onClick={() => {
               setFormData(initialForm);
@@ -350,7 +340,7 @@ const Clients = () => {
                   <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">Contact Info</th>
                   <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">Service & Plan</th>
                   <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">Budget (INR)</th>
-                  {user?.role === "admin" && <th className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 text-center w-28">Actions</th>}
+                  {(user?.role === "admin" || user?.role === "operationmanager" || user?.role === "team") && <th className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 text-center w-28">Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -458,12 +448,12 @@ const Clients = () => {
                           </td>
 
                           {/* Actions */}
-                          {user?.role === "admin" && (
+                          {(user?.role === "admin" || user?.role === "operationmanager" || user?.role === "team") && (
                             <td className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 text-center">
                               <div className="flex items-center justify-center gap-1.5">
                                 <button
                                   onClick={() => handleEdit(client)}
-                                  className="p-1 bg-amber-50 hover:bg-amber-100 border border-amber-200/40 dark:bg-amber-950/20 dark:hover:bg-amber-950/40 dark:border-amber-900/30 text-amber-600 dark:text-amber-450 rounded transition-all"
+                                  className="p-1 bg-amber-50 hover:bg-amber-100 border border-amber-200/40 dark:bg-amber-950/20 dark:hover:bg-amber-950/40 dark:border-amber-900/30 text-amber-600 dark:text-amber-455 rounded transition-all"
                                   title="Edit Record"
                                 >
                                   <FiEdit size={12} className="stroke-[2.5]" />
@@ -483,7 +473,7 @@ const Clients = () => {
                     })
                   ) : (
                     <tr>
-                      <td colSpan={user?.role === "admin" ? 5 : 4} className="px-5 py-16 border-b border-slate-200 dark:border-slate-800">
+                      <td colSpan={(user?.role === "admin" || user?.role === "operationmanager" || user?.role === "team") ? 5 : 4} className="px-5 py-16 border-b border-slate-200 dark:border-slate-800">
                         <div className="flex flex-col items-center justify-center text-center">
                           <div className="w-14 h-14 rounded-full theme-bg-main flex items-center justify-center mb-3">
                             <FiUsers className="text-blue-500 animate-pulse" size={22} />

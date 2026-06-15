@@ -20,7 +20,7 @@ const {
 router.post(
   "/",
   protect,
-  authorize("admin"),
+  authorize("admin", "operationmanager", "team"),
   createClient
 );
 
@@ -47,7 +47,7 @@ router.get(
 router.put(
   "/:id",
   protect,
-  authorize("admin"),
+  authorize("admin", "operationmanager", "team"),
   updateClient
 );
 
@@ -56,7 +56,7 @@ router.put(
 router.delete(
   "/:id",
   protect,
-  authorize("admin"),
+  authorize("admin", "operationmanager", "team"),
   deleteClient
 );
 

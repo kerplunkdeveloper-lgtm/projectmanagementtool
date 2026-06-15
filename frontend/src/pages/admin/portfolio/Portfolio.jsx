@@ -473,6 +473,11 @@ const Portfolio = () => {
                       {(portfolio.projectIdsList || []).filter(id => projects.some(p => p._id === id)).length} Project
                       {(portfolio.projectIdsList || []).filter(id => projects.some(p => p._id === id)).length !== 1 ? "s" : ""}
                     </p>
+
+                    {/* Created by info */}
+                    <p className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold uppercase mt-0.5">
+                      {portfolio.createdBy?.name || "N/A"} ({portfolio.createdBy?.department || "N/A"})
+                    </p>
                   </div>
                 );
               })}
@@ -516,6 +521,9 @@ const Portfolio = () => {
                       {activePortfolio.name}
                     </h1>
                   </div>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase mt-0.5">
+                    Created By: {activePortfolio.createdBy?.name || "N/A"} ({activePortfolio.createdBy?.department || "N/A"})
+                  </p>
                 </div>
               </div>
 
@@ -777,6 +785,8 @@ const Portfolio = () => {
                       <thead>
                         <tr className="bg-slate-50/50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider text-[10px]">
                           <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Project Name</th>
+                          <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">User Name</th>
+                          <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Department</th>
                           <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Status</th>
                           <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Task progress</th>
                           <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Due date</th>
@@ -840,6 +850,20 @@ const Portfolio = () => {
                                   </div>
                                   <FiChevronRight size={12} className="text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-all duration-200" />
                                 </div>
+                              </td>
+
+                              {/* User Name */}
+                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                                <span className="font-semibold text-slate-705 dark:text-slate-400">
+                                  {project.createdBy?.name || "N/A"}
+                                </span>
+                              </td>
+
+                              {/* Department */}
+                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                                <span className="font-semibold text-slate-705 dark:text-slate-400">
+                                  {project.createdBy?.department || "N/A"}
+                                </span>
                               </td>
 
                               {/* Status */}

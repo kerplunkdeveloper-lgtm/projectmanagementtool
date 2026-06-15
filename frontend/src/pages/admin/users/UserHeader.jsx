@@ -10,14 +10,6 @@ const UserHeader = ({ setOpenModal, searchTerm, setSearchTerm, filterDept, setFi
   <div className="flex flex-col gap-3 mb-5">
     {/* TOP ROW */}
     <div className="flex justify-between items-center gap-3">
-      <div>
-        <div className="flex items-center gap-2 mb-0.5">
-          <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-[#e5ff00]/10 border border-blue-100 dark:border-[#e5ff00]/20 flex items-center justify-center">
-            <FiUsers size={14} className="text-blue-600 dark:text-[#e5ff00]" />
-          </div>
-          <h1 className="text-md md:text-2xl font-extrabold text-slate-800 dark:text-white">User Management</h1>
-        </div>
-      </div>
 
       {!isReadOnly && (
         <button

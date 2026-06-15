@@ -21,6 +21,10 @@ const ProjectSchema = new mongoose.Schema(
       type: [String],
       default: ["Recently assigned"],
     },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
   },
   {
     timestamps: true,

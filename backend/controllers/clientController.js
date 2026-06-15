@@ -6,12 +6,7 @@ const Client = require("../models/Client");
 // @access  Private
 exports.createClient = async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        message: "Only administrators are authorized to perform CRUD operations on clients",
-      });
-    }
+    // Removed admin check to allow other authorized roles to create clients
 
     const {
       companyName,
@@ -52,7 +47,7 @@ exports.createClient = async (req, res) => {
       onpage,
       offpage,
       createdBy: req.user._id,
-      assignedTo: assignedTo || undefined,
+      assignedTo: req.user.role !== "admin" ? req.user._id : (assignedTo || undefined),
     });
 
     const populatedClient = await Client.findById(client._id)
@@ -153,10 +148,18 @@ exports.getClient = async (req, res) => {
 // @access  Private
 exports.updateClient = async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
+    const clientToCheck = await Client.findById(req.params.id);
+    if (!clientToCheck) {
+      return res.status(404).json({
+        success: false,
+        message: "Client not found",
+      });
+    }
+
+    if (req.user.role !== "admin" && (!clientToCheck.assignedTo || clientToCheck.assignedTo.toString() !== req.user._id.toString())) {
       return res.status(403).json({
         success: false,
-        message: "Only administrators are authorized to perform CRUD operations on clients",
+        message: "You are not authorized to perform CRUD operations on this client",
       });
     }
 
@@ -203,13 +206,6 @@ exports.updateClient = async (req, res) => {
 // @access  Private
 exports.deleteClient = async (req, res) => {
   try {
-    if (req.user.role !== "admin") {
-      return res.status(403).json({
-        success: false,
-        message: "Only administrators are authorized to perform CRUD operations on clients",
-      });
-    }
-
     const client = await Client.findById(
       req.params.id
     );
@@ -218,6 +214,13 @@ exports.deleteClient = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Client not found",
+      });
+    }
+
+    if (req.user.role !== "admin" && (!client.assignedTo || client.assignedTo.toString() !== req.user._id.toString())) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to perform CRUD operations on this client",
       });
     }
 

@@ -7,7 +7,14 @@ const User = require("../models/User");
 // @access  Private
 exports.getTasks = async (req, res) => {
   try {
-    const tasks = await Task.find()
+    let query = {};
+    if (req.user.role !== "admin") {
+      query.$or = [
+        { createdBy: req.user._id },
+        { assignedTo: req.user._id }
+      ];
+    }
+    const tasks = await Task.find(query)
       .populate("project", "name client")
       .populate("assignedTo", "name email profileImage")
       .populate("createdBy", "name email profileImage")
