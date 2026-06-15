@@ -934,19 +934,35 @@ const Task = () => {
             <table className="w-full min-w-[800px] text-left border-collapse table-auto border border-slate-200/60 dark:border-slate-800/80 rounded-lg overflow-hidden">
               <thead>
                 <tr className="bg-slate-50/50 dark:bg-slate-800/30 text-slate-500 dark:text-slate-400 text-[10px] font-bold tracking-wider border-b border-slate-200/60 dark:border-slate-800/80">
-                  <th className="px-6 py-2 w-12 text-center border-r border-slate-200/60 dark:border-slate-800/80">Status</th>
-                  <th className="px-6 py-2 border-r border-slate-200/60 dark:border-slate-800/80">Task Name</th>
-                  <th className="px-6 py-2 border-r border-slate-200/60 dark:border-slate-800/80">Associated Project</th>
-                  <th className="px-6 py-2 border-r border-slate-200/60 dark:border-slate-800/80">Priority</th>
-                  <th className="px-6 py-2 border-r border-slate-200/60 dark:border-slate-800/80">Start Date</th>
-                  <th className="px-6 py-2 border-r border-slate-200/60 dark:border-slate-800/80">End Date</th>
+                  <th className="px-6 py-2 w-12 text-center border-r border-slate-200/60 dark:border-slate-800/80">
+                    Status
+                  </th>
+                  <th className="px-6 py-2 border-r border-slate-200/60 dark:border-slate-800/80">
+                    Task Name
+                  </th>
+                  <th className="px-6 py-2 border-r border-slate-200/60 dark:border-slate-800/80">
+                    Associated Project
+                  </th>
+                  <th className="px-6 py-2 border-r border-slate-200/60 dark:border-slate-800/80">
+                    Priority
+                  </th>
+                  <th className="px-6 py-2 border-r border-slate-200/60 dark:border-slate-800/80">
+                    Start Date
+                  </th>
+                  <th className="px-6 py-2 border-r border-slate-200/60 dark:border-slate-800/80">
+                    End Date
+                  </th>
                   <th className="px-6 py-2 w-44">Status Mode</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
                 {(() => {
                   const uniqueSections = Array.from(
-                    new Set(paginatedTasks.map((t) => t.section || "Recent assignment"))
+                    new Set(
+                      paginatedTasks.map(
+                        (t) => t.section || "Recent assignment",
+                      ),
+                    ),
                   );
 
                   return uniqueSections.map((sectionName) => {
@@ -962,7 +978,10 @@ const Task = () => {
                       <React.Fragment key={sectionName}>
                         {/* Section Header Row */}
                         <tr className="bg-gradient-to-r from-blue-50/40 via-slate-50/10 to-transparent dark:from-blue-950/15 dark:via-slate-900/5 dark:to-transparent border-y border-slate-200/50 dark:border-slate-800/80 group">
-                          <td colSpan={7} className="px-6 py-2 border-b border-slate-200/40 dark:border-slate-800/40">
+                          <td
+                            colSpan={7}
+                            className="px-6 py-2 border-b border-slate-200/40 dark:border-slate-800/40"
+                          >
                             <div className="flex items-center gap-3 py-1 border-l-4 border-blue-500 dark:border-[#e5ff00] pl-3">
                               <button
                                 onClick={() => toggleSection(sectionName)}
@@ -976,7 +995,7 @@ const Task = () => {
                                   <path d="M8 5v14l11-7z" />
                                 </svg>
                               </button>
-                              <span 
+                              <span
                                 onClick={() => toggleSection(sectionName)}
                                 className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-350 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer select-none"
                               >
@@ -1042,7 +1061,9 @@ const Task = () => {
                                           ) : (
                                             <FiChevronRight size={14} />
                                           )}
-                                          <span>Subtasks ({task.subtasks.length})</span>
+                                          <span>
+                                            Subtasks ({task.subtasks.length})
+                                          </span>
                                         </button>
                                       )}
                                     </div>
@@ -1089,7 +1110,10 @@ const Task = () => {
                                     <select
                                       value={task.status}
                                       onChange={(e) =>
-                                        handleStatusChange(task._id, e.target.value)
+                                        handleStatusChange(
+                                          task._id,
+                                          e.target.value,
+                                        )
                                       }
                                       className={`px-2.5 py-1 text-[10px] font-extrabold rounded-lg border tracking-wider cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors ${statusStyle.bg}`}
                                     >
@@ -1125,8 +1149,11 @@ const Task = () => {
                                 {isExpanded &&
                                   task.subtasks?.length > 0 &&
                                   task.subtasks.map((sub, subIdx) => {
-                                    const isSubCompleted = sub.status === "Completed";
-                                    const subStatusStyle = getStatusStyle(sub.status);
+                                    const isSubCompleted =
+                                      sub.status === "Completed";
+                                    const subStatusStyle = getStatusStyle(
+                                      sub.status,
+                                    );
                                     return (
                                       <tr
                                         key={sub._id || subIdx}
@@ -1217,12 +1244,15 @@ const Task = () => {
                                           <select
                                             value={sub.status || "Pending"}
                                             onChange={(e) => {
-                                              const updatedSubtasks = task.subtasks.map(
-                                                (s) =>
+                                              const updatedSubtasks =
+                                                task.subtasks.map((s) =>
                                                   s._id === sub._id
-                                                    ? { ...s, status: e.target.value }
+                                                    ? {
+                                                        ...s,
+                                                        status: e.target.value,
+                                                      }
                                                     : s,
-                                              );
+                                                );
                                               handleTaskFieldChange(task._id, {
                                                 subtasks: updatedSubtasks,
                                               });

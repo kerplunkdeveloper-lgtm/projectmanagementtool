@@ -539,7 +539,7 @@ const ProjectTaskBoard = ({
     const currentSections =
       activeProject.sections?.length > 0
         ? activeProject.sections
-        : ["Recent assignment"];
+        : ["Recently Assigned"];
     const updatedSections = currentSections.map((s) =>
       s === oldName ? newName : s,
     );
@@ -557,7 +557,7 @@ const ProjectTaskBoard = ({
       const tasksToUpdate = tasks.filter(
         (t) =>
           t.section === oldName ||
-          (!t.section && oldName === "Recent assignment"),
+          (!t.section && oldName === "Recently Assigned"),
       );
       await Promise.all(
         tasksToUpdate.map((t) =>
@@ -583,7 +583,7 @@ const ProjectTaskBoard = ({
       const currentSections =
         activeProject.sections?.length > 0
           ? activeProject.sections
-          : ["Recent assignment"];
+          : ["Recently Assigned"];
       const updatedSections = currentSections.filter((s) => s !== sectionName);
 
       try {
@@ -597,7 +597,7 @@ const ProjectTaskBoard = ({
         const tasksToDelete = tasks.filter(
           (t) =>
             t.section === sectionName ||
-            (!t.section && sectionName === "Recent assignment"),
+            (!t.section && sectionName === "Recently Assigned"),
         );
         await Promise.all(
           tasksToDelete.map((t) => dispatch(deleteTask(t._id)).unwrap()),
@@ -730,7 +730,7 @@ const ProjectTaskBoard = ({
     const currentSections =
       activeProject.sections?.length > 0
         ? activeProject.sections
-        : ["Recent assignment"];
+        : ["Recently Assigned"];
     const updatedSections = [...currentSections, newSectionName.trim()];
     dispatch(
       updateProject({
@@ -743,7 +743,7 @@ const ProjectTaskBoard = ({
   };
 
   // Add Task directly to DB (autosave pattern)
-  const handleAddTask = async (sectionName = "Recent assignment") => {
+  const handleAddTask = async (sectionName = "Recently Assigned") => {
     try {
       await createTaskMutation({
         title: "",
@@ -774,7 +774,7 @@ const ProjectTaskBoard = ({
       const defaultSection =
         activeProject?.sections?.length > 0
           ? activeProject.sections[0]
-          : "Recent assignment";
+          : "Recently Assigned";
       handleAddTask(defaultSection);
     }
 
@@ -1539,13 +1539,13 @@ const ProjectTaskBoard = ({
                     new Set(
                       activeProject.sections?.length > 0
                         ? activeProject.sections
-                        : ["Recent assignment"],
+                        : ["Recently Assigned"],
                     ),
                   ).map((sectionName, sectionIndex) => {
                     const sectionTasks = sortedTasks.filter(
                       (t) =>
                         t.section === sectionName ||
-                        (!t.section && sectionName === "Recent assignment"),
+                        (!t.section && sectionName === "Recently Assigned"),
                     );
                     const isSectionCollapsed = !!collapsedSections[sectionName];
 
@@ -1623,7 +1623,7 @@ const ProjectTaskBoard = ({
 
                                     {/* Action button */}
                                     <div className="relative">
-                                      {sectionName !== "Recent assignment" && (
+                                      {sectionName !== "Recently Assigned" && (
                                         <button
                                           onClick={() =>
                                             setOpenSectionMenu(
@@ -1638,7 +1638,7 @@ const ProjectTaskBoard = ({
                                         </button>
                                       )}
 
-                                      {sectionName !== "Recent assignment" && openSectionMenu === sectionName && (
+                                      {sectionName !== "Recently Assigned" && openSectionMenu === sectionName && (
                                         <div className="absolute left-0 mt-1 w-32 bg-white dark:bg-[#151518] rounded-lg shadow-lg border border-slate-100 dark:border-white/10 z-50 overflow-hidden">
                                           <button
                                             onClick={() => {
@@ -1784,7 +1784,7 @@ const ProjectTaskBoard = ({
                                                 e.target.blur();
                                                 handleAddTask(
                                                   task.section ||
-                                                    "Recent assignment",
+                                                    "Recently Assigned",
                                                 );
                                               }
                                             }}
@@ -2787,13 +2787,13 @@ const ProjectTaskBoard = ({
                   new Set(
                     activeProject.sections?.length > 0
                       ? activeProject.sections
-                      : ["Recent assignment"],
+                      : ["Recently Assigned"],
                   ),
                 ).map((sectionName) => {
                   const columnTasks = activeProjectTasks.filter(
                     (t) =>
                       t.section === sectionName ||
-                      (!t.section && sectionName === "Recent assignment"),
+                      (!t.section && sectionName === "Recently Assigned"),
                   );
 
                   return (
@@ -3129,7 +3129,7 @@ const ProjectTaskBoard = ({
               new Set(
                 activeProject.sections?.length > 0
                   ? activeProject.sections
-                  : ["Recent assignment"],
+                  : ["Recently Assigned"],
               ),
             );
 
@@ -3200,7 +3200,7 @@ const ProjectTaskBoard = ({
                             (t) =>
                               t.section === sectionName ||
                               (!t.section &&
-                                sectionName === "Recent assignment"),
+                                sectionName === "Recently Assigned"),
                           )
                           .map((task) => (
                             <div
@@ -3297,7 +3297,7 @@ const ProjectTaskBoard = ({
                                 (t) =>
                                   t.section === sectionName ||
                                   (!t.section &&
-                                    sectionName === "Recent assignment"),
+                                    sectionName === "Recently Assigned"),
                               )
                               .map((task) => {
                                 // Calculate real date-based positioning
@@ -3522,14 +3522,14 @@ const ProjectTaskBoard = ({
                     new Set(
                       activeProject.sections?.length > 0
                         ? activeProject.sections
-                        : ["Recent assignment"],
+                        : ["Recently Assigned"],
                     ),
                   ).map((sectionName, index) => {
                     const sectionIncompleteCount = activeProjectTasks.filter(
                       (t) =>
                         (t.section === sectionName ||
                           (!t.section &&
-                            sectionName === "Recent assignment")) &&
+                            sectionName === "Recently Assigned")) &&
                         t.status !== "Completed",
                     ).length;
 
