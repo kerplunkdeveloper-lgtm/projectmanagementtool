@@ -1,6 +1,7 @@
 const Task = require("../models/Task");
 const Notification = require("../models/Notification");
 const User = require("../models/User");
+const Project = require("../models/Project");
 
 // @desc    Get all tasks
 // @route   GET /api/tasks
@@ -9,9 +10,17 @@ exports.getTasks = async (req, res) => {
   try {
     let query = {};
     if (req.user.role !== "admin") {
+      let projectIds = [];
+      if (req.user.department) {
+        const usersInSameDept = await User.find({ department: req.user.department }).select("_id");
+        const userIds = usersInSameDept.map(u => u._id);
+        const projectsInDept = await Project.find({ createdBy: { $in: userIds } }).select("_id");
+        projectIds = projectsInDept.map(p => p._id);
+      }
       query.$or = [
         { createdBy: req.user._id },
-        { assignedTo: req.user._id }
+        { assignedTo: req.user._id },
+        { project: { $in: projectIds } }
       ];
     }
     const tasks = await Task.find(query)

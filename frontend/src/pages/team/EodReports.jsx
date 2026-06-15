@@ -77,15 +77,15 @@ const EodReports = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-gray-100 px-4 sm:px-6 lg:px-10 py-6 md:py-10">
-      <div className="max-w-9xl mx-auto">
+    <div className=" bg-gradient-to-br from-slate-50 via-white to-gray-100 ">
+      <div className="max-w-7xl mx-auto">
         {/* HEADER */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
           <div>
-            <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-extrabold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
               My EOD Reports
             </h1>
-            <p className="text-gray-500 mt-2 text-lg">Log your daily progress and future initiatives</p>
+            <p className="text-gray-500 mt-2 text-sm">Log your daily progress and future initiatives</p>
           </div>
 
           <button
@@ -93,7 +93,7 @@ const EodReports = () => {
               setOpenModal(true);
               setEditReport(null);
             }}
-            className="flex items-center justify-center gap-3 px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg shadow-[0_15px_30px_rgba(37,99,235,0.3)] hover:scale-105 hover:shadow-[0_20px_40px_rgba(37,99,235,0.4)] transition-all active:scale-95"
+            className="flex items-center justify-center gap-3 p-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-md shadow-[0_15px_30px_rgba(37,99,235,0.3)] hover:scale-105 hover:shadow-[0_20px_40px_rgba(37,99,235,0.4)] transition-all active:scale-95"
           >
             <FiPlus size={24} />
             Submit Report

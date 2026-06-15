@@ -1,4 +1,5 @@
 const Portfolio = require("../models/Portfolio");
+const User = require("../models/User");
 
 // @desc    Get all portfolios
 // @route   GET /api/portfolios
@@ -7,7 +8,13 @@ exports.getPortfolios = async (req, res) => {
   try {
     let query = {};
     if (req.user.role !== "admin") {
-      query.createdBy = req.user._id;
+      if (req.user.department) {
+        const usersInSameDept = await User.find({ department: req.user.department }).select("_id");
+        const userIds = usersInSameDept.map(u => u._id);
+        query.createdBy = { $in: userIds };
+      } else {
+        query.createdBy = req.user._id;
+      }
     }
     const portfolios = await Portfolio.find(query)
       .populate("projectIds", "name status client")

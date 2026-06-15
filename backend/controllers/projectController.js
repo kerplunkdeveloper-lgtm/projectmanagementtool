@@ -1,4 +1,5 @@
 const Project = require("../models/Project");
+const User = require("../models/User");
 
 // @desc    Get all projects
 // @route   GET /api/projects
@@ -7,7 +8,13 @@ exports.getProjects = async (req, res) => {
   try {
     let query = {};
     if (req.user.role !== "admin") {
-      query.createdBy = req.user._id;
+      if (req.user.department) {
+        const usersInSameDept = await User.find({ department: req.user.department }).select("_id");
+        const userIds = usersInSameDept.map(u => u._id);
+        query.createdBy = { $in: userIds };
+      } else {
+        query.createdBy = req.user._id;
+      }
     }
     const projects = await Project.find(query)
       .populate("client", "companyName industry primaryContact")
@@ -57,6 +64,13 @@ exports.updateProject = async (req, res) => {
       return res.status(404).json({ success: false, message: "Project not found" });
     }
 
+    if (req.user.role !== "admin") {
+      const creator = await User.findById(project.createdBy);
+      if (!creator || creator.department !== req.user.department) {
+        return res.status(403).json({ success: false, message: "You are not authorized to edit projects outside your department" });
+      }
+    }
+
     project = await Project.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
@@ -82,6 +96,13 @@ exports.deleteProject = async (req, res) => {
 
     if (!project) {
       return res.status(404).json({ success: false, message: "Project not found" });
+    }
+
+    if (req.user.role !== "admin") {
+      const creator = await User.findById(project.createdBy);
+      if (!creator || creator.department !== req.user.department) {
+        return res.status(403).json({ success: false, message: "You are not authorized to delete projects outside your department" });
+      }
     }
 
     await project.deleteOne();
