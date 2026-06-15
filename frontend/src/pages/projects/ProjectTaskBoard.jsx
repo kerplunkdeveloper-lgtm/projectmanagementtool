@@ -202,12 +202,12 @@ const SubtaskRow = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Start Date Picker */}
-        <div 
+        <div
           className="relative h-6 flex items-center justify-center transition-all cursor-pointer"
           onClick={(e) => {
             e.stopPropagation();
             const input = e.currentTarget.querySelector('input[type="date"]');
-            if (input && typeof input.showPicker === 'function') {
+            if (input && typeof input.showPicker === "function") {
               input.showPicker();
             }
           }}
@@ -219,7 +219,8 @@ const SubtaskRow = ({
                 className="text-blue-500 dark:text-blue-400 mr-1"
               />
               <span>
-                S: {new Date(sub.startDate).toLocaleDateString(undefined, {
+                S:{" "}
+                {new Date(sub.startDate).toLocaleDateString(undefined, {
                   month: "short",
                   day: "numeric",
                 })}
@@ -229,7 +230,9 @@ const SubtaskRow = ({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleSubtaskFieldChange(task, sub._id, { startDate: null });
+                    handleSubtaskFieldChange(task, sub._id, {
+                      startDate: null,
+                    });
                   }}
                   className="ml-1 text-blue-400 hover:text-rose-500 transition-colors cursor-pointer relative z-10"
                 >
@@ -262,12 +265,12 @@ const SubtaskRow = ({
         </div>
 
         {/* End Date Picker */}
-        <div 
+        <div
           className="relative h-6 flex items-center justify-center transition-all cursor-pointer"
           onClick={(e) => {
             e.stopPropagation();
             const input = e.currentTarget.querySelector('input[type="date"]');
-            if (input && typeof input.showPicker === 'function') {
+            if (input && typeof input.showPicker === "function") {
               input.showPicker();
             }
           }}
@@ -279,7 +282,8 @@ const SubtaskRow = ({
                 className="text-rose-555 dark:text-rose-400 mr-1"
               />
               <span>
-                E: {new Date(sub.dueDate).toLocaleDateString(undefined, {
+                E:{" "}
+                {new Date(sub.dueDate).toLocaleDateString(undefined, {
                   month: "short",
                   day: "numeric",
                 })}
@@ -518,10 +522,16 @@ const ProjectTaskBoard = ({
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target)) {
+      if (
+        filterDropdownRef.current &&
+        !filterDropdownRef.current.contains(event.target)
+      ) {
         setIsFilterOpen(false);
       }
-      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target)) {
+      if (
+        sortDropdownRef.current &&
+        !sortDropdownRef.current.contains(event.target)
+      ) {
         setIsSortOpen(false);
       }
     };
@@ -539,7 +549,7 @@ const ProjectTaskBoard = ({
     const currentSections =
       activeProject.sections?.length > 0
         ? activeProject.sections
-        : ["Recently Assigned"];
+        : ["Recent assignment"];
     const updatedSections = currentSections.map((s) =>
       s === oldName ? newName : s,
     );
@@ -557,7 +567,7 @@ const ProjectTaskBoard = ({
       const tasksToUpdate = tasks.filter(
         (t) =>
           t.section === oldName ||
-          (!t.section && oldName === "Recently Assigned"),
+          (!t.section && oldName === "Recent assignment"),
       );
       await Promise.all(
         tasksToUpdate.map((t) =>
@@ -583,7 +593,7 @@ const ProjectTaskBoard = ({
       const currentSections =
         activeProject.sections?.length > 0
           ? activeProject.sections
-          : ["Recently Assigned"];
+          : ["Recent assignment"];
       const updatedSections = currentSections.filter((s) => s !== sectionName);
 
       try {
@@ -597,7 +607,7 @@ const ProjectTaskBoard = ({
         const tasksToDelete = tasks.filter(
           (t) =>
             t.section === sectionName ||
-            (!t.section && sectionName === "Recently Assigned"),
+            (!t.section && sectionName === "Recent assignment"),
         );
         await Promise.all(
           tasksToDelete.map((t) => dispatch(deleteTask(t._id)).unwrap()),
@@ -631,7 +641,10 @@ const ProjectTaskBoard = ({
 
   const filteredTasks = activeProjectTasks.filter((task) => {
     // 1. Search text (matches title)
-    if (filterSearch && !task.title?.toLowerCase().includes(filterSearch.toLowerCase())) {
+    if (
+      filterSearch &&
+      !task.title?.toLowerCase().includes(filterSearch.toLowerCase())
+    ) {
       return false;
     }
     // 2. Assignee filter
@@ -654,14 +667,14 @@ const ProjectTaskBoard = ({
     // 5. Date filter (Start Date & End Date range match)
     if (filterStartDate) {
       if (!task.startDate) return false;
-      const tStart = new Date(task.startDate).setHours(0,0,0,0);
-      const fStart = new Date(filterStartDate).setHours(0,0,0,0);
+      const tStart = new Date(task.startDate).setHours(0, 0, 0, 0);
+      const fStart = new Date(filterStartDate).setHours(0, 0, 0, 0);
       if (tStart < fStart) return false;
     }
     if (filterEndDate) {
       if (!task.dueDate) return false;
-      const tDue = new Date(task.dueDate).setHours(0,0,0,0);
-      const fEnd = new Date(filterEndDate).setHours(0,0,0,0);
+      const tDue = new Date(task.dueDate).setHours(0, 0, 0, 0);
+      const fEnd = new Date(filterEndDate).setHours(0, 0, 0, 0);
       if (tDue > fEnd) return false;
     }
     return true;
@@ -669,7 +682,7 @@ const ProjectTaskBoard = ({
 
   const sortedTasks = [...filteredTasks].sort((a, b) => {
     if (sortBy === "none") return 0;
-    
+
     let valA, valB;
     if (sortBy === "name") {
       valA = a.title?.toLowerCase() || "";
@@ -730,7 +743,7 @@ const ProjectTaskBoard = ({
     const currentSections =
       activeProject.sections?.length > 0
         ? activeProject.sections
-        : ["Recently Assigned"];
+        : ["Recent assignment"];
     const updatedSections = [...currentSections, newSectionName.trim()];
     dispatch(
       updateProject({
@@ -743,7 +756,7 @@ const ProjectTaskBoard = ({
   };
 
   // Add Task directly to DB (autosave pattern)
-  const handleAddTask = async (sectionName = "Recently Assigned") => {
+  const handleAddTask = async (sectionName = "Recent assignment") => {
     try {
       await createTaskMutation({
         title: "",
@@ -774,7 +787,7 @@ const ProjectTaskBoard = ({
       const defaultSection =
         activeProject?.sections?.length > 0
           ? activeProject.sections[0]
-          : "Recently Assigned";
+          : "Recent assignment";
       handleAddTask(defaultSection);
     }
 
@@ -1106,17 +1119,15 @@ const ProjectTaskBoard = ({
         <div className="flex flex-col md:flex-row justify-between items-start gap-4 md:gap-6">
           <div className="space-y-2 w-full">
             <div className="flex items-center gap-3">
-             
-
-                              <div>
-                                {/* Breadcrumb Back Button */}
-                                <button
-                             onClick={() => navigate(-1)}
-                                  className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-250 transition-colors"
-                                >
-                                  <FiChevronLeft size={16} />
-                                </button>
-                              </div>
+              <div>
+                {/* Breadcrumb Back Button */}
+                <button
+                  onClick={() => navigate(-1)}
+                  className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-250 transition-colors"
+                >
+                  <FiChevronLeft size={16} />
+                </button>
+              </div>
               <ProjectIcon
                 name={activeProject.name}
                 size="lg"
@@ -1167,7 +1178,11 @@ const ProjectTaskBoard = ({
                       layoutId="activeWorkspaceTabPill"
                       className="absolute inset-0 bg-blue-600 dark:bg-[#e5ff00] rounded-full shadow-lg"
                       style={{ zIndex: 0 }}
-                      transition={{ type: "spring", stiffness: 350, damping: 26 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 350,
+                        damping: 26,
+                      }}
                     />
                   )}
                   <span className="relative z-10 flex items-center justify-center gap-2">
@@ -1234,18 +1249,39 @@ const ProjectTaskBoard = ({
                     setIsSortOpen(false);
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 ${
-                    isFilterOpen || filterSearch || filterAssignee !== "all" || filterStatus !== "all" || filterPriority !== "all" || filterStartDate || filterEndDate
-                      ? "bg-blue-55 dark:bg-[#e5ff00]/10 border-blue-200 dark:border-transparent text-blue-600 dark:text-[#e5ff00]"
+                    isFilterOpen ||
+                    filterSearch ||
+                    filterAssignee !== "all" ||
+                    filterStatus !== "all" ||
+                    filterPriority !== "all" ||
+                    filterStartDate ||
+                    filterEndDate
+                      ? "bg-blue-50 dark:bg-[#e5ff00]/10 border-blue-200 dark:border-transparent text-blue-600 dark:text-[#e5ff00]"
                       : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
                   }`}
                 >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="shrink-0"
+                  >
                     <line x1="4" y1="6" x2="20" y2="6" />
                     <line x1="6" y1="12" x2="18" y2="12" />
                     <line x1="9" y1="18" x2="15" y2="18" />
                   </svg>
                   <span>Filter</span>
-                  {(filterSearch || filterAssignee !== "all" || filterStatus !== "all" || filterPriority !== "all" || filterStartDate || filterEndDate) && (
+                  {(filterSearch ||
+                    filterAssignee !== "all" ||
+                    filterStatus !== "all" ||
+                    filterPriority !== "all" ||
+                    filterStartDate ||
+                    filterEndDate) && (
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-[#e5ff00]" />
                   )}
                 </button>
@@ -1253,14 +1289,24 @@ const ProjectTaskBoard = ({
                 <AnimatePresence>
                   {isFilterOpen && (
                     <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                      initial={{ opacity: 0, y: 12, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute left-0 md:left-auto md:right-0 mt-2 w-80 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-transparent rounded-2xl shadow-2xl p-4 z-50 space-y-4 backdrop-blur-md max-h-[460px] overflow-y-auto custom-scrollbar"
+                      exit={{ opacity: 0, y: 12, scale: 0.95 }}
+                      transition={{ duration: 0.18, ease: "easeOut" }}
+                      className="absolute left-0 md:left-auto md:right-0 mt-3 w-80 bg-white/95 dark:bg-[#121215]/95 border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)] p-5 z-50 space-y-4 backdrop-blur-xl max-h-[480px] overflow-y-auto custom-scrollbar select-none"
                     >
-                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2">
-                        <span className="text-xs font-bold text-slate-800 dark:text-white  tracking-wider">Filters</span>
+                      {/* Dropdown Header */}
+                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-3">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-5 h-5 rounded-md bg-blue-500/10 dark:bg-[#e5ff00]/10 flex items-center justify-center">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-blue-600 dark:text-[#e5ff00]">
+                              <line x1="4" y1="6" x2="20" y2="6" />
+                              <line x1="6" y1="12" x2="18" y2="12" />
+                              <line x1="9" y1="18" x2="15" y2="18" />
+                            </svg>
+                          </div>
+                          <span className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">Filters</span>
+                        </div>
                         {(filterSearch || filterAssignee !== "all" || filterStatus !== "all" || filterPriority !== "all" || filterStartDate || filterEndDate) && (
                           <button
                             onClick={() => {
@@ -1271,87 +1317,108 @@ const ProjectTaskBoard = ({
                               setFilterStartDate("");
                               setFilterEndDate("");
                             }}
-                            className="text-[10px] font-bold  text-rose-500 hover:text-rose-600 cursor-pointer"
+                            className="flex items-center gap-1 text-[10px] font-bold text-rose-500 hover:text-rose-600 transition-colors cursor-pointer bg-rose-50 dark:bg-rose-500/10 px-2 py-1 rounded-lg"
                           >
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                            </svg>
                             Clear All
                           </button>
                         )}
                       </div>
 
                       {/* Search */}
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500  tracking-wider">Search</label>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">Search</label>
                         <div className="relative">
+                          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-550" size={12} />
                           <input
                             type="text"
-                            placeholder="Type to search..."
+                            placeholder="Type to search tasks..."
                             value={filterSearch}
                             onChange={(e) => setFilterSearch(e.target.value)}
-                            className="w-full pl-8 pr-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-[#181818] border border-slate-200 dark:border-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00] text-slate-800 dark:text-slate-200"
+                            className="w-full pl-9 pr-3 py-2 text-xs font-semibold rounded-xl bg-slate-50/50 dark:bg-[#18181b]/50 border border-slate-200/60 dark:border-white/10 focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00] text-slate-800 dark:text-slate-200 transition-all placeholder-slate-450 dark:placeholder-slate-550"
                           />
                         </div>
                       </div>
 
                       {/* Status */}
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500  tracking-wider">Status</label>
-                        <div className="flex flex-wrap gap-1.5 mt-1">
-                          {["all", "Pending", "In Progress", "Completed", "On Hold"].map((status) => (
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">Status</label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {[
+                            { name: "all", label: "All", color: "bg-slate-400" },
+                            { name: "Pending", label: "Pending", color: "bg-amber-500" },
+                            { name: "In Progress", label: "In Progress", color: "bg-blue-500" },
+                            { name: "Completed", label: "Completed", color: "bg-emerald-500" },
+                            { name: "On Hold", label: "On Hold", color: "bg-rose-500" }
+                          ].map((status) => (
                             <button
-                              key={status}
-                              onClick={() => setFilterStatus(status)}
-                              className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
-                                filterStatus === status
-                                  ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black shadow-sm"
-                                  : "bg-slate-50 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200/50 dark:border-transparent"
+                              key={status.name}
+                              onClick={() => setFilterStatus(status.name)}
+                              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-bold rounded-xl transition-all cursor-pointer border ${
+                                filterStatus === status.name
+                                  ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#e5ff00]/10"
+                                  : "bg-slate-50/50 border-slate-200/60 dark:bg-white/[0.02] dark:border-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                               }`}
                             >
-                              {status === "all" ? "All" : status}
+                              {status.name !== "all" && (
+                                <span className={`w-1.5 h-1.5 rounded-full ${status.color} shrink-0`} />
+                              )}
+                              {status.label}
                             </button>
                           ))}
                         </div>
                       </div>
 
                       {/* Priority */}
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500  tracking-wider">Priority</label>
-                        <div className="flex flex-wrap gap-1.5 mt-1">
-                          {["all", "Low", "Medium", "High"].map((priority) => (
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">Priority</label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {[
+                            { name: "all", label: "All", color: "bg-slate-400" },
+                            { name: "Low", label: "Low", color: "bg-slate-400" },
+                            { name: "Medium", label: "Medium", color: "bg-amber-500" },
+                            { name: "High", label: "High", color: "bg-rose-500" }
+                          ].map((priority) => (
                             <button
-                              key={priority}
-                              onClick={() => setFilterPriority(priority)}
-                              className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
-                                filterPriority === priority
-                                  ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black shadow-sm"
-                                  : "bg-slate-50 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200/50 dark:border-transparent"
+                              key={priority.name}
+                              onClick={() => setFilterPriority(priority.name)}
+                              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-bold rounded-xl transition-all cursor-pointer border ${
+                                filterPriority === priority.name
+                                  ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#e5ff00]/10"
+                                  : "bg-slate-50/50 border-slate-200/60 dark:bg-white/[0.02] dark:border-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                               }`}
                             >
-                              {priority === "all" ? "All" : priority}
+                              {priority.name !== "all" && (
+                                <span className={`w-1.5 h-1.5 rounded-full ${priority.color} shrink-0`} />
+                              )}
+                              {priority.label}
                             </button>
                           ))}
                         </div>
                       </div>
 
                       {/* Assignee */}
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500  tracking-wider">Assignee</label>
-                        <div className="flex flex-wrap gap-1.5 mt-1 max-h-24 overflow-y-auto custom-scrollbar pr-1">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-455 dark:text-slate-500 uppercase tracking-wider">Assignee</label>
+                        <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto custom-scrollbar pr-1">
                           <button
                             onClick={() => setFilterAssignee("all")}
-                            className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
+                            className={`px-2.5 py-1.5 text-[10px] font-bold rounded-xl transition-all cursor-pointer border ${
                               filterAssignee === "all"
-                                ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black"
-                                : "bg-slate-50 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200/50 dark:border-transparent"
+                                ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#e5ff00]/10"
+                                : "bg-slate-50/50 border-slate-200/60 dark:bg-white/[0.02] dark:border-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                             }`}
                           >
                             All
                           </button>
                           <button
                             onClick={() => setFilterAssignee("unassigned")}
-                            className={`px-2 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
+                            className={`px-2.5 py-1.5 text-[10px] font-bold rounded-xl transition-all cursor-pointer border ${
                               filterAssignee === "unassigned"
-                                ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black"
-                                : "bg-slate-50 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200/50 dark:border-transparent"
+                                ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#e5ff00]/10"
+                                : "bg-slate-50/50 border-slate-200/60 dark:bg-white/[0.02] dark:border-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                             }`}
                           >
                             Unassigned
@@ -1360,14 +1427,14 @@ const ProjectTaskBoard = ({
                             <button
                               key={u._id}
                               onClick={() => setFilterAssignee(u._id)}
-                              className={`flex items-center gap-1.5 px-2 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
+                              className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-bold rounded-xl transition-all cursor-pointer border ${
                                 filterAssignee === u._id
-                                  ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black"
-                                  : "bg-slate-50 dark:bg-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-white border border-slate-200/50 dark:border-transparent"
+                                  ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#e5ff00]/10"
+                                  : "bg-slate-50/50 border-slate-200/60 dark:bg-white/[0.02] dark:border-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                               }`}
                             >
-                              <span className="w-3.5 h-3.5 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center text-[8px] ">
-                                {u.name.charAt(0)}
+                              <span className="w-3.5 h-3.5 rounded-full bg-blue-500/20 text-blue-600 dark:bg-[#e5ff00]/20 dark:text-[#e5ff00] flex items-center justify-center text-[7px] font-extrabold shrink-0">
+                                {u.name.charAt(0).toUpperCase()}
                               </span>
                               <span>{u.name}</span>
                             </button>
@@ -1376,24 +1443,26 @@ const ProjectTaskBoard = ({
                       </div>
 
                       {/* Date Range */}
-                      <div className="space-y-1 border-t border-slate-100 dark:border-white/5 pt-2.5">
-                        <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500  tracking-wider">Date Range</label>
-                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-[#181818] border border-slate-200 dark:border-transparent rounded-xl px-2.5 py-1.5 text-slate-500">
-                          <FiCalendar size={12} className="shrink-0 text-slate-400" />
-                          <div className="flex items-center gap-1 w-full">
+                      <div className="space-y-1.5 border-t border-slate-100 dark:border-white/5 pt-3">
+                        <label className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">Date Range</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="flex items-center gap-1.5 bg-slate-50/50 dark:bg-[#18181b]/50 border border-slate-200/60 dark:border-white/10 rounded-xl px-2.5 py-1.5 text-slate-500 transition-all focus-within:border-blue-550 dark:focus-within:border-[#e5ff00]">
+                            <FiCalendar size={11} className="shrink-0 text-slate-400 dark:text-slate-550" />
                             <input
                               type="date"
                               value={filterStartDate}
                               onChange={(e) => setFilterStartDate(e.target.value)}
-                              className="bg-transparent border-none p-0 text-[10px] font-semibold text-slate-750 dark:text-slate-300 outline-none cursor-pointer focus:ring-0 w-full"
+                              className="bg-transparent border-none p-0 text-[10px] font-semibold text-slate-700 dark:text-slate-300 outline-none cursor-pointer focus:ring-0 w-full"
                               title="Start Date"
                             />
-                            <span className="text-[10px] text-slate-450 dark:text-slate-500 font-bold shrink-0">to</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 bg-slate-50/50 dark:bg-[#18181b]/50 border border-slate-200/60 dark:border-white/10 rounded-xl px-2.5 py-1.5 text-slate-500 transition-all focus-within:border-blue-550 dark:focus-within:border-[#e5ff00]">
+                            <FiCalendar size={11} className="shrink-0 text-slate-400 dark:text-slate-550" />
                             <input
                               type="date"
                               value={filterEndDate}
                               onChange={(e) => setFilterEndDate(e.target.value)}
-                              className="bg-transparent border-none p-0 text-[10px] font-semibold text-slate-750 dark:text-slate-300 outline-none cursor-pointer focus:ring-0 w-full"
+                              className="bg-transparent border-none p-0 text-[10px] font-semibold text-slate-700 dark:text-slate-300 outline-none cursor-pointer focus:ring-0 w-full"
                               title="End Date"
                             />
                           </div>
@@ -1413,11 +1482,21 @@ const ProjectTaskBoard = ({
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 ${
                     isSortOpen || sortBy !== "none"
-                      ? "bg-blue-55 dark:bg-[#e5ff00]/10 border-blue-200 dark:border-transparent text-blue-600 dark:text-[#e5ff00]"
+                      ? "bg-blue-50 dark:bg-[#e5ff00]/10 border-blue-200 dark:border-transparent text-blue-600 dark:text-[#e5ff00]"
                       : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
                   }`}
                 >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="shrink-0"
+                  >
                     <line x1="17" y1="4" x2="17" y2="20" />
                     <polyline points="13 8 17 4 21 8" />
                     <line x1="7" y1="20" x2="7" y2="4" />
@@ -1441,7 +1520,9 @@ const ProjectTaskBoard = ({
                       className="absolute right-0 mt-2 w-52 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-transparent rounded-2xl shadow-2xl p-2.5 z-50 space-y-1.5 backdrop-blur-md"
                     >
                       <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2 px-1">
-                        <span className="text-xs font-bold text-slate-800 dark:text-white  tracking-wider">Sort By</span>
+                        <span className="text-xs font-bold text-slate-800 dark:text-white  tracking-wider">
+                          Sort By
+                        </span>
                         {sortBy !== "none" && (
                           <button
                             onClick={() => {
@@ -1462,7 +1543,7 @@ const ProjectTaskBoard = ({
                           { id: "startDate", label: "Start Date" },
                           { id: "dueDate", label: "End Date" },
                           { id: "priority", label: "Priority" },
-                          { id: "status", label: "Status" }
+                          { id: "status", label: "Status" },
                         ].map((option) => {
                           const isSelected = sortBy === option.id;
                           return (
@@ -1471,7 +1552,9 @@ const ProjectTaskBoard = ({
                               onClick={() => {
                                 if (isSelected) {
                                   // Toggle sort order
-                                  setSortOrder(prev => prev === "asc" ? "desc" : "asc");
+                                  setSortOrder((prev) =>
+                                    prev === "asc" ? "desc" : "asc",
+                                  );
                                 } else {
                                   setSortBy(option.id);
                                   setSortOrder("asc");
@@ -1506,7 +1589,6 @@ const ProjectTaskBoard = ({
       <div className="min-h-[400px]">
         {activeTab === "List" && (
           <div className="overflow-hidden pt-3">
-
             <div className="overflow-x-auto pb-48 bg-white dark:bg-slate-900/30 shadow-xl shadow-slate-200/50 dark:shadow-none">
               <table className="w-full text-left border-collapse text-[11px] border border-slate-200 dark:border-slate-800/80">
                 <thead>
@@ -1539,13 +1621,13 @@ const ProjectTaskBoard = ({
                     new Set(
                       activeProject.sections?.length > 0
                         ? activeProject.sections
-                        : ["Recently Assigned"],
+                        : ["Recent assignment"],
                     ),
                   ).map((sectionName, sectionIndex) => {
                     const sectionTasks = sortedTasks.filter(
                       (t) =>
                         t.section === sectionName ||
-                        (!t.section && sectionName === "Recently Assigned"),
+                        (!t.section && sectionName === "Recent assignment"),
                     );
                     const isSectionCollapsed = !!collapsedSections[sectionName];
 
@@ -1553,8 +1635,8 @@ const ProjectTaskBoard = ({
                       <React.Fragment key={`${sectionName}-${sectionIndex}`}>
                         {/* SECTION HEADER ROW */}
                         {true && (
-                           <tr className="bg-gradient-to-r from-blue-50/50 via-slate-50/30 to-transparent dark:from-blue-950/20 dark:via-slate-900/10 dark:to-transparent border-y border-blue-100/60 dark:border-blue-900/50 group">
-                             <td
+                          <tr className="bg-gradient-to-r from-blue-50/50 via-slate-50/30 to-transparent dark:from-blue-950/20 dark:via-slate-900/10 dark:to-transparent border-y border-blue-100/60 dark:border-blue-900/50 group">
+                            <td
                               colSpan={7}
                               className="px-4 py-2 border-b border-blue-100/40 dark:border-blue-900/30"
                             >
@@ -1623,7 +1705,7 @@ const ProjectTaskBoard = ({
 
                                     {/* Action button */}
                                     <div className="relative">
-                                      {sectionName !== "Recently Assigned" && (
+                                      {sectionName !== "Recent assignment" && (
                                         <button
                                           onClick={() =>
                                             setOpenSectionMenu(
@@ -1638,28 +1720,31 @@ const ProjectTaskBoard = ({
                                         </button>
                                       )}
 
-                                      {sectionName !== "Recently Assigned" && openSectionMenu === sectionName && (
-                                        <div className="absolute left-0 mt-1 w-32 bg-white dark:bg-[#151518] rounded-lg shadow-lg border border-slate-100 dark:border-white/10 z-50 overflow-hidden">
-                                          <button
-                                            onClick={() => {
-                                              setEditingSection(sectionName);
-                                              setEditSectionValue(sectionName);
-                                              setOpenSectionMenu(null);
-                                            }}
-                                            className="w-full text-left px-3 py-2 text-[11px] font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center gap-2"
-                                          >
-                                            <FiEdit2 size={12} /> Rename
-                                          </button>
-                                          <button
-                                            onClick={() =>
-                                              handleDeleteSection(sectionName)
-                                            }
-                                            className="w-full text-left px-3 py-2 text-[11px] font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-955/30 flex items-center gap-2"
-                                          >
-                                            <FiTrash2 size={12} /> Delete
-                                          </button>
-                                        </div>
-                                      )}
+                                      {sectionName !== "Recent assignment" &&
+                                        openSectionMenu === sectionName && (
+                                          <div className="absolute left-0 mt-1 w-32 bg-white dark:bg-[#151518] rounded-lg shadow-lg border border-slate-100 dark:border-white/10 z-50 overflow-hidden">
+                                            <button
+                                              onClick={() => {
+                                                setEditingSection(sectionName);
+                                                setEditSectionValue(
+                                                  sectionName,
+                                                );
+                                                setOpenSectionMenu(null);
+                                              }}
+                                              className="w-full text-left px-3 py-2 text-[11px] font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center gap-2"
+                                            >
+                                              <FiEdit2 size={12} /> Rename
+                                            </button>
+                                            <button
+                                              onClick={() =>
+                                                handleDeleteSection(sectionName)
+                                              }
+                                              className="w-full text-left px-3 py-2 text-[11px] font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-955/30 flex items-center gap-2"
+                                            >
+                                              <FiTrash2 size={12} /> Delete
+                                            </button>
+                                          </div>
+                                        )}
                                     </div>
                                   </div>
                                 )}
@@ -1702,7 +1787,7 @@ const ProjectTaskBoard = ({
                                   {/* Parent Task Row */}
                                   <tr
                                     onClick={() => setSelectedTaskId(task._id)}
-                                    className={`group cursor-pointer transition-colors ${rowBg} hover:bg-blue-55/20 dark:hover:bg-[#e5ff00]/5`}
+                                    className={`group cursor-pointer transition-colors ${rowBg} hover:bg-blue-50/20 dark:hover:bg-[#e5ff00]/5`}
                                   >
                                     {/* Name Field with Circle Checkbox */}
                                     <td
@@ -1784,7 +1869,7 @@ const ProjectTaskBoard = ({
                                                 e.target.blur();
                                                 handleAddTask(
                                                   task.section ||
-                                                    "Recently Assigned",
+                                                    "Recent assignment",
                                                 );
                                               }
                                             }}
@@ -1961,24 +2046,42 @@ const ProjectTaskBoard = ({
                                         className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          const input = e.currentTarget.querySelector('input[type="date"]');
-                                          if (input && typeof input.showPicker === 'function') {
+                                          const input =
+                                            e.currentTarget.querySelector(
+                                              'input[type="date"]',
+                                            );
+                                          if (
+                                            input &&
+                                            typeof input.showPicker ===
+                                              "function"
+                                          ) {
                                             input.showPicker();
                                           }
                                         }}
                                       >
                                         {task.startDate ? (
                                           <div className="flex items-center gap-1.5 px-2 py-2 rounded-md border border-blue-200 dark:border-blue-900/60 hover:border-blue-350 dark:hover:border-blue-500/40 text-blue-700 dark:text-blue-300 text-[10px] font-semibold bg-blue-50 dark:bg-blue-955/30 transition-all">
-                                            <FiCalendar size={10} className="text-blue-500 dark:text-blue-400" />
+                                            <FiCalendar
+                                              size={10}
+                                              className="text-blue-500 dark:text-blue-400"
+                                            />
                                             <span>
-                                              {new Date(task.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                              {new Date(
+                                                task.startDate,
+                                              ).toLocaleDateString(undefined, {
+                                                month: "short",
+                                                day: "numeric",
+                                              })}
                                             </span>
                                             {isAdminOrManager && (
                                               <button
                                                 type="button"
                                                 onClick={(e) => {
                                                   e.stopPropagation();
-                                                  handleTaskFieldChange(task._id, { startDate: null });
+                                                  handleTaskFieldChange(
+                                                    task._id,
+                                                    { startDate: null },
+                                                  );
                                                 }}
                                                 className="ml-1 text-blue-400 hover:text-rose-500 relative z-10 transition-colors"
                                               >
@@ -1995,8 +2098,19 @@ const ProjectTaskBoard = ({
                                         {isAdminOrManager && (
                                           <input
                                             type="date"
-                                            value={task.startDate ? new Date(task.startDate).toISOString().split("T")[0] : ""}
-                                            onChange={(e) => handleTaskFieldChange(task._id, { startDate: e.target.value || null })}
+                                            value={
+                                              task.startDate
+                                                ? new Date(task.startDate)
+                                                    .toISOString()
+                                                    .split("T")[0]
+                                                : ""
+                                            }
+                                            onChange={(e) =>
+                                              handleTaskFieldChange(task._id, {
+                                                startDate:
+                                                  e.target.value || null,
+                                              })
+                                            }
                                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                           />
                                         )}
@@ -2009,24 +2123,42 @@ const ProjectTaskBoard = ({
                                         className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          const input = e.currentTarget.querySelector('input[type="date"]');
-                                          if (input && typeof input.showPicker === 'function') {
+                                          const input =
+                                            e.currentTarget.querySelector(
+                                              'input[type="date"]',
+                                            );
+                                          if (
+                                            input &&
+                                            typeof input.showPicker ===
+                                              "function"
+                                          ) {
                                             input.showPicker();
                                           }
                                         }}
                                       >
                                         {task.dueDate ? (
                                           <div className="flex items-center gap-1.5 px-2 py-2 rounded-md border border-rose-200 dark:border-rose-900/60 hover:border-rose-350 dark:hover:border-rose-500/40 text-rose-700 dark:text-rose-305 text-[10px] font-semibold bg-rose-50 dark:bg-rose-955/30 transition-all">
-                                            <FiCalendar size={10} className="text-rose-555 dark:text-rose-400" />
+                                            <FiCalendar
+                                              size={10}
+                                              className="text-rose-555 dark:text-rose-400"
+                                            />
                                             <span>
-                                              {new Date(task.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                              {new Date(
+                                                task.dueDate,
+                                              ).toLocaleDateString(undefined, {
+                                                month: "short",
+                                                day: "numeric",
+                                              })}
                                             </span>
                                             {isAdminOrManager && (
                                               <button
                                                 type="button"
                                                 onClick={(e) => {
                                                   e.stopPropagation();
-                                                  handleTaskFieldChange(task._id, { dueDate: null });
+                                                  handleTaskFieldChange(
+                                                    task._id,
+                                                    { dueDate: null },
+                                                  );
                                                 }}
                                                 className="ml-1 text-rose-455 hover:text-rose-500 relative z-10 transition-colors"
                                               >
@@ -2043,8 +2175,18 @@ const ProjectTaskBoard = ({
                                         {isAdminOrManager && (
                                           <input
                                             type="date"
-                                            value={task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] : ""}
-                                            onChange={(e) => handleTaskFieldChange(task._id, { dueDate: e.target.value || null })}
+                                            value={
+                                              task.dueDate
+                                                ? new Date(task.dueDate)
+                                                    .toISOString()
+                                                    .split("T")[0]
+                                                : ""
+                                            }
+                                            onChange={(e) =>
+                                              handleTaskFieldChange(task._id, {
+                                                dueDate: e.target.value || null,
+                                              })
+                                            }
                                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                           />
                                         )}
@@ -2196,7 +2338,7 @@ const ProjectTaskBoard = ({
                                           return (
                                             <tr
                                               key={sub._id || subIdx}
-                                              className={`group/subrow transition-colors ${rowBgSub} hover:bg-blue-55/10 dark:hover:bg-[#e5ff00]/5`}
+                                              className={`group/subrow transition-colors ${rowBgSub} hover:bg-blue-50/10 dark:hover:bg-[#e5ff00]/5`}
                                             >
                                               {/* 1. Name Column */}
                                               <td
@@ -2309,11 +2451,19 @@ const ProjectTaskBoard = ({
                                                     type="button"
                                                     onClick={(e) => {
                                                       e.stopPropagation();
-                                                      setSelectedTaskId(task._id);
+                                                      setSelectedTaskId(
+                                                        task._id,
+                                                      );
                                                       setTimeout(() => {
-                                                        const el = document.getElementById("drawer-subtasks-section");
+                                                        const el =
+                                                          document.getElementById(
+                                                            "drawer-subtasks-section",
+                                                          );
                                                         if (el) {
-                                                          el.scrollIntoView({ behavior: "smooth", block: "start" });
+                                                          el.scrollIntoView({
+                                                            behavior: "smooth",
+                                                            block: "start",
+                                                          });
                                                         }
                                                       }, 350);
                                                     }}
@@ -2399,20 +2549,28 @@ const ProjectTaskBoard = ({
                                                           ))}
                                                         </select>
                                                       )}
-                                                      {sub.assignedTo && isAdminOrManager && (
-                                                        <button
-                                                          type="button"
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            e.preventDefault();
-                                                            handleSubtaskFieldChange(task, sub._id, { assignedTo: null });
-                                                          }}
-                                                          className="relative z-20 p-0.5 text-indigo-400 hover:text-rose-500 rounded transition-colors hover:bg-slate-200 dark:hover:bg-white/10 shrink-0"
-                                                          title="Clear Assignee"
-                                                        >
-                                                          <FiX size={10} />
-                                                        </button>
-                                                      )}
+                                                      {sub.assignedTo &&
+                                                        isAdminOrManager && (
+                                                          <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              e.preventDefault();
+                                                              handleSubtaskFieldChange(
+                                                                task,
+                                                                sub._id,
+                                                                {
+                                                                  assignedTo:
+                                                                    null,
+                                                                },
+                                                              );
+                                                            }}
+                                                            className="relative z-20 p-0.5 text-indigo-400 hover:text-rose-500 rounded transition-colors hover:bg-slate-200 dark:hover:bg-white/10 shrink-0"
+                                                            title="Clear Assignee"
+                                                          >
+                                                            <FiX size={10} />
+                                                          </button>
+                                                        )}
                                                     </div>
                                                   ) : (
                                                     <div className="group/subassign relative w-5 h-5 flex items-center justify-center cursor-pointer">
@@ -2467,24 +2625,48 @@ const ProjectTaskBoard = ({
                                                   className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
                                                   onClick={(e) => {
                                                     e.stopPropagation();
-                                                    const input = e.currentTarget.querySelector('input[type="date"]');
-                                                    if (input && typeof input.showPicker === 'function') {
+                                                    const input =
+                                                      e.currentTarget.querySelector(
+                                                        'input[type="date"]',
+                                                      );
+                                                    if (
+                                                      input &&
+                                                      typeof input.showPicker ===
+                                                        "function"
+                                                    ) {
                                                       input.showPicker();
                                                     }
                                                   }}
                                                 >
                                                   {sub.startDate ? (
                                                     <div className="flex items-center gap-1.5 px-2 py-2 rounded-md border border-blue-200 dark:border-blue-900/60 hover:border-blue-350 dark:hover:border-blue-500/40 text-blue-700 dark:text-blue-300 text-[10px] font-semibold bg-blue-50 dark:bg-blue-950/30 transition-all">
-                                                      <FiCalendar size={10} className="text-blue-500 dark:text-blue-400" />
+                                                      <FiCalendar
+                                                        size={10}
+                                                        className="text-blue-500 dark:text-blue-400"
+                                                      />
                                                       <span>
-                                                        {new Date(sub.startDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                                        {new Date(
+                                                          sub.startDate,
+                                                        ).toLocaleDateString(
+                                                          undefined,
+                                                          {
+                                                            month: "short",
+                                                            day: "numeric",
+                                                          },
+                                                        )}
                                                       </span>
                                                       {isAdminOrManager && (
                                                         <button
                                                           type="button"
                                                           onClick={(e) => {
                                                             e.stopPropagation();
-                                                            handleSubtaskFieldChange(task, sub._id, { startDate: null });
+                                                            handleSubtaskFieldChange(
+                                                              task,
+                                                              sub._id,
+                                                              {
+                                                                startDate: null,
+                                                              },
+                                                            );
                                                           }}
                                                           className="ml-1 text-blue-400 hover:text-rose-500 relative z-10 transition-colors"
                                                         >
@@ -2501,8 +2683,26 @@ const ProjectTaskBoard = ({
                                                   {isAdminOrManager && (
                                                     <input
                                                       type="date"
-                                                      value={sub.startDate ? new Date(sub.startDate).toISOString().split("T")[0] : ""}
-                                                      onChange={(e) => handleSubtaskFieldChange(task, sub._id, { startDate: e.target.value || null })}
+                                                      value={
+                                                        sub.startDate
+                                                          ? new Date(
+                                                              sub.startDate,
+                                                            )
+                                                              .toISOString()
+                                                              .split("T")[0]
+                                                          : ""
+                                                      }
+                                                      onChange={(e) =>
+                                                        handleSubtaskFieldChange(
+                                                          task,
+                                                          sub._id,
+                                                          {
+                                                            startDate:
+                                                              e.target.value ||
+                                                              null,
+                                                          },
+                                                        )
+                                                      }
                                                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                                     />
                                                   )}
@@ -2515,24 +2715,46 @@ const ProjectTaskBoard = ({
                                                   className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
                                                   onClick={(e) => {
                                                     e.stopPropagation();
-                                                    const input = e.currentTarget.querySelector('input[type="date"]');
-                                                    if (input && typeof input.showPicker === 'function') {
+                                                    const input =
+                                                      e.currentTarget.querySelector(
+                                                        'input[type="date"]',
+                                                      );
+                                                    if (
+                                                      input &&
+                                                      typeof input.showPicker ===
+                                                        "function"
+                                                    ) {
                                                       input.showPicker();
                                                     }
                                                   }}
                                                 >
                                                   {sub.dueDate ? (
                                                     <div className="flex items-center gap-1.5 px-2 py-2 rounded-md border border-rose-200 dark:border-rose-900/60 hover:border-rose-350 dark:hover:border-rose-500/40 text-rose-700 dark:text-rose-300 text-[10px] font-semibold bg-rose-50 dark:bg-rose-955/30 transition-all">
-                                                      <FiCalendar size={10} className="text-rose-555 dark:text-rose-400" />
+                                                      <FiCalendar
+                                                        size={10}
+                                                        className="text-rose-555 dark:text-rose-400"
+                                                      />
                                                       <span>
-                                                        {new Date(sub.dueDate).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                                                        {new Date(
+                                                          sub.dueDate,
+                                                        ).toLocaleDateString(
+                                                          undefined,
+                                                          {
+                                                            month: "short",
+                                                            day: "numeric",
+                                                          },
+                                                        )}
                                                       </span>
                                                       {isAdminOrManager && (
                                                         <button
                                                           type="button"
                                                           onClick={(e) => {
                                                             e.stopPropagation();
-                                                            handleSubtaskFieldChange(task, sub._id, { dueDate: null });
+                                                            handleSubtaskFieldChange(
+                                                              task,
+                                                              sub._id,
+                                                              { dueDate: null },
+                                                            );
                                                           }}
                                                           className="ml-1 text-rose-455 hover:text-rose-500 relative z-10 transition-colors"
                                                         >
@@ -2549,8 +2771,26 @@ const ProjectTaskBoard = ({
                                                   {isAdminOrManager && (
                                                     <input
                                                       type="date"
-                                                      value={sub.dueDate ? new Date(sub.dueDate).toISOString().split("T")[0] : ""}
-                                                      onChange={(e) => handleSubtaskFieldChange(task, sub._id, { dueDate: e.target.value || null })}
+                                                      value={
+                                                        sub.dueDate
+                                                          ? new Date(
+                                                              sub.dueDate,
+                                                            )
+                                                              .toISOString()
+                                                              .split("T")[0]
+                                                          : ""
+                                                      }
+                                                      onChange={(e) =>
+                                                        handleSubtaskFieldChange(
+                                                          task,
+                                                          sub._id,
+                                                          {
+                                                            dueDate:
+                                                              e.target.value ||
+                                                              null,
+                                                          },
+                                                        )
+                                                      }
                                                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                                     />
                                                   )}
@@ -2787,13 +3027,13 @@ const ProjectTaskBoard = ({
                   new Set(
                     activeProject.sections?.length > 0
                       ? activeProject.sections
-                      : ["Recently Assigned"],
+                      : ["Recent assignment"],
                   ),
                 ).map((sectionName) => {
                   const columnTasks = activeProjectTasks.filter(
                     (t) =>
                       t.section === sectionName ||
-                      (!t.section && sectionName === "Recently Assigned"),
+                      (!t.section && sectionName === "Recent assignment"),
                   );
 
                   return (
@@ -2913,7 +3153,10 @@ const ProjectTaskBoard = ({
                                         {/* Due Date */}
                                         {task.dueDate && (
                                           <span className="flex items-center gap-1 text-[8px] font-bold px-1.5 py-2 rounded-md bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900/40 text-rose-600 dark:text-rose-300">
-                                            <FiCalendar size={8} className="text-rose-505 dark:text-rose-400" />
+                                            <FiCalendar
+                                              size={8}
+                                              className="text-rose-505 dark:text-rose-400"
+                                            />
                                             {new Date(
                                               task.dueDate,
                                             ).toLocaleDateString("en-GB", {
@@ -3129,7 +3372,7 @@ const ProjectTaskBoard = ({
               new Set(
                 activeProject.sections?.length > 0
                   ? activeProject.sections
-                  : ["Recently Assigned"],
+                  : ["Recent assignment"],
               ),
             );
 
@@ -3200,7 +3443,7 @@ const ProjectTaskBoard = ({
                             (t) =>
                               t.section === sectionName ||
                               (!t.section &&
-                                sectionName === "Recently Assigned"),
+                                sectionName === "Recent assignment"),
                           )
                           .map((task) => (
                             <div
@@ -3297,7 +3540,7 @@ const ProjectTaskBoard = ({
                                 (t) =>
                                   t.section === sectionName ||
                                   (!t.section &&
-                                    sectionName === "Recently Assigned"),
+                                    sectionName === "Recent assignment"),
                               )
                               .map((task) => {
                                 // Calculate real date-based positioning
@@ -3522,14 +3765,14 @@ const ProjectTaskBoard = ({
                     new Set(
                       activeProject.sections?.length > 0
                         ? activeProject.sections
-                        : ["Recently Assigned"],
+                        : ["Recent assignment"],
                     ),
                   ).map((sectionName, index) => {
                     const sectionIncompleteCount = activeProjectTasks.filter(
                       (t) =>
                         (t.section === sectionName ||
                           (!t.section &&
-                            sectionName === "Recently Assigned")) &&
+                            sectionName === "Recent assignment")) &&
                         t.status !== "Completed",
                     ).length;
 
@@ -3941,7 +4184,10 @@ const ProjectTaskBoard = ({
                       />
                     ) : (
                       <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-955/30 border border-blue-200 dark:border-blue-900/60 rounded-xl text-xs font-semibold text-blue-700 dark:text-blue-300">
-                        <FiCalendar className="text-blue-500 dark:text-blue-400" size={13} />
+                        <FiCalendar
+                          className="text-blue-500 dark:text-blue-400"
+                          size={13}
+                        />
                         {selectedTask.startDate
                           ? new Date(
                               selectedTask.startDate,
@@ -3975,7 +4221,10 @@ const ProjectTaskBoard = ({
                       />
                     ) : (
                       <div className="flex items-center gap-2 px-3 py-2 bg-rose-50 dark:bg-rose-955/30 border border-rose-200 dark:border-rose-900/60 rounded-xl text-xs font-semibold text-rose-700 dark:text-rose-305">
-                        <FiClock className="text-rose-555 dark:text-rose-400" size={13} />
+                        <FiClock
+                          className="text-rose-555 dark:text-rose-400"
+                          size={13}
+                        />
                         {selectedTask.dueDate
                           ? new Date(selectedTask.dueDate).toLocaleDateString()
                           : "N/A"}
@@ -4033,7 +4282,10 @@ const ProjectTaskBoard = ({
                   </div>
                 </div>
                 {/* ── Asana-style Subtask Workspace ── */}
-                <div id="drawer-subtasks-section" className="pt-4 border-t border-slate-100 dark:border-white/5">
+                <div
+                  id="drawer-subtasks-section"
+                  className="pt-4 border-t border-slate-100 dark:border-white/5"
+                >
                   {/* Header */}
                   <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-100 dark:border-white/5">
                     <div className="flex items-center gap-2.5">

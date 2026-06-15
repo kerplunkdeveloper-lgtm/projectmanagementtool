@@ -87,7 +87,7 @@ exports.createUser = async (req, res) => {
       password: hashedPassword,
     };
 
-    if (userData.role !== "team") {
+    if (userData.role !== "team" && userData.role !== "operationmanager") {
       delete userData.department;
     }
 
@@ -118,7 +118,7 @@ exports.updateUser = async (req, res) => {
       ...req.body,
     };
 
-    if (updateData.role && updateData.role !== "team") {
+    if (updateData.role && updateData.role !== "team" && updateData.role !== "operationmanager") {
       updateData.department = undefined;
     }
 

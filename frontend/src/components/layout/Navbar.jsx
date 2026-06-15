@@ -107,7 +107,7 @@ const Navbar = ({ setSidebarOpen }) => {
       );
     };
 
-    if (path.includes("dashboard")) return renderDashboardTitle();
+    if (path.includes("dashboard") || path === "/admin" || path === "/admin/" || path === "/operationmanager" || path === "/operationmanager/" || path === "/team" || path === "/team/") return renderDashboardTitle();
     if (path.includes("clients")) return "Clients";
     if (path.includes("portfolio")) return "Portfolio";
 
