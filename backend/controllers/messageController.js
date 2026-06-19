@@ -47,6 +47,21 @@ exports.getDirectMessages = async (req, res) => {
 exports.getGroupMessages = async (req, res) => {
   try {
     const roomId = req.params.roomId || "group";
+
+    // If it's a custom group room, verify user is a member
+    if (roomId !== "group") {
+      const room = await ChatRoom.findById(roomId);
+      if (!room) {
+        return res.status(404).json({ success: false, message: "Group room not found" });
+      }
+      const isMember = room.members.some(
+        (memberId) => memberId.toString() === req.user.id.toString()
+      );
+      if (!isMember && req.user.role !== "admin") {
+        return res.status(403).json({ success: false, message: "Not authorized to access this room" });
+      }
+    }
+
     const messages = await Message.find({ chatRoom: roomId })
       .sort("createdAt")
       .populate({
@@ -74,6 +89,20 @@ exports.getGroupMessages = async (req, res) => {
 exports.sendMessage = async (req, res) => {
   try {
     const { recipient, chatRoom, text, sticker, messageType, file, callStatus, callDuration, replyTo } = req.body;
+
+    // Check membership authorization if sending to custom room
+    if (chatRoom && chatRoom !== "group" && chatRoom !== "direct") {
+      const room = await ChatRoom.findById(chatRoom);
+      if (!room) {
+        return res.status(404).json({ success: false, message: "Group room not found" });
+      }
+      const isMember = room.members.some(
+        (memberId) => memberId.toString() === req.user.id.toString()
+      );
+      if (!isMember && req.user.role !== "admin") {
+        return res.status(403).json({ success: false, message: "Not authorized to post to this group room" });
+      }
+    }
 
     const message = await Message.create({
       sender: req.user.id,
@@ -403,9 +432,15 @@ exports.getLastMessages = async (req, res) => {
       $or: [{ sender: userId }, { recipient: userId }]
     }).sort({ createdAt: -1 });
 
-    // Find all group messages
+    // Find all custom rooms the user is a member of
+    const userRooms = await ChatRoom.find({ members: userId });
+    const userRoomIds = userRooms.map(r => r._id.toString());
+    // Also include the global "group" room
+    userRoomIds.push("group");
+
+    // Find all group messages for rooms the user is a member of
     const groupMessages = await Message.find({
-      chatRoom: { $ne: "direct" }
+      chatRoom: { $in: userRoomIds }
     }).sort({ createdAt: -1 });
 
     const lastMessagesMap = {};
@@ -434,6 +469,36 @@ exports.getLastMessages = async (req, res) => {
       success: true,
       data: lastMessagesMap
     });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Clear all direct messages between logged-in user and another user
+// @route   DELETE /api/messages/direct/:userId
+// @access  Private
+exports.clearDirectMessages = async (req, res) => {
+  try {
+    const otherUserId = req.params.userId;
+    const userId = req.user.id;
+
+    // Delete all messages between these two users
+    await Message.deleteMany({
+      chatRoom: "direct",
+      $or: [
+        { sender: userId, recipient: otherUserId },
+        { sender: otherUserId, recipient: userId }
+      ]
+    });
+
+    const io = req.app.get("io");
+    if (io) {
+      // Notify both users that the conversation has been cleared
+      io.to(userId.toString()).emit("chat_cleared", { otherUserId });
+      io.to(otherUserId.toString()).emit("chat_cleared", { otherUserId: userId });
+    }
+
+    res.status(200).json({ success: true, message: "Chat history cleared successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

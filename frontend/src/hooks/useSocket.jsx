@@ -3,6 +3,7 @@ import { io } from 'socket.io-client';
 import { useDispatch, useSelector } from 'react-redux';
 import { addNotification } from '../features/notifications/notificationSlice';
 import { apiSlice } from '../features/api/apiSlice';
+import { incrementUnreadCount } from '../features/chat/chatSlice';
 import toast from 'react-hot-toast';
 import { FiBell, FiX } from 'react-icons/fi';
 
@@ -54,6 +55,11 @@ const useSocket = () => {
         
         // Sync RTK Query cache so the Navbar instantly shows the new notification
         dispatch(apiSlice.util.invalidateTags(['Notification']));
+
+        // If it's a direct or group message, increment the sidebar chat unread badge count
+        if (notification.type === 'message_received' && notification.chatRoomId) {
+          dispatch(incrementUnreadCount(notification.chatRoomId));
+        }
         
         // Play premium audio chime
         playNotificationSound();

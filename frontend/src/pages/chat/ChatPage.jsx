@@ -9,6 +9,7 @@ import {
   sendMessageAction,
   receiveMessage,
   removeMessage,
+  clearMessages,
   deleteMessageAction,
   fetchRooms,
   createRoomAction,
@@ -16,6 +17,9 @@ import {
   deleteRoomAction,
   markChatAsRead,
   fetchLastMessages,
+  setActiveChatId,
+  clearChatAction,
+  clearChatLocal,
 } from "../../features/chat/chatSlice";
 import {
   FiSend,
@@ -321,11 +325,10 @@ const ChatPage = () => {
     toast.success("Meeting Started");
   };
 
-  // Active chat ref to avoid socket listener recreation stale state
-  const activeChatRef = useRef(activeChat);
+  // Sync active chat ID to Redux state so the reducer can route messages properly
   useEffect(() => {
-    activeChatRef.current = activeChat;
-  }, [activeChat]);
+    dispatch(setActiveChatId(activeChat));
+  }, [activeChat, dispatch]);
 
   // Load chat query param & handle auto-joining call via link
   useEffect(() => {
@@ -355,14 +358,21 @@ const ChatPage = () => {
     dispatch(fetchLastMessages());
   }, [dispatch]);
 
-  // Load chat history on activeChat change
+  // Use a ref for rooms so the chat loading effect doesn't re-run when rooms list updates
+  const roomsRef = useRef(rooms);
   useEffect(() => {
-    if (activeChat === "group" || rooms.some((r) => r._id === activeChat)) {
+    roomsRef.current = rooms;
+  }, [rooms]);
+
+  // Load chat history on activeChat change ONLY (not on rooms change)
+  useEffect(() => {
+    const isGroupType = activeChat === "group" || roomsRef.current.some((r) => r._id === activeChat);
+    if (isGroupType) {
       dispatch(fetchGroupMessages(activeChat));
     } else {
       dispatch(fetchDirectMessages(activeChat));
     }
-  }, [activeChat, rooms, dispatch]);
+  }, [activeChat, dispatch]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -375,18 +385,25 @@ const ChatPage = () => {
       import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
     socketRef.current = io(apiBase);
 
-    if (currentUserId) {
-      socketRef.current.on('connect', () => {
+    const performJoin = () => {
+      if (currentUserId) {
         socketRef.current.emit("join", currentUserId);
-      });
+        console.log(`Socket joined room: ${currentUserId}`);
+      }
+    };
+
+    // If socket is already connected when listener is registered, join immediately
+    if (socketRef.current.connected) {
+      performJoin();
     }
+
+    socketRef.current.on('connect', performJoin);
 
     socketRef.current.on("direct_message", (msg) => {
       dispatch(
         receiveMessage({
           message: msg,
           currentUserId,
-          activeChatId: activeChatRef.current,
         }),
       );
     });
@@ -396,13 +413,16 @@ const ChatPage = () => {
         receiveMessage({
           message: msg,
           currentUserId,
-          activeChatId: activeChatRef.current,
         }),
       );
     });
 
     socketRef.current.on("message_deleted", ({ messageId }) => {
       dispatch(removeMessage(messageId));
+    });
+
+    socketRef.current.on("chat_cleared", ({ otherUserId }) => {
+      dispatch(clearChatLocal(otherUserId));
     });
 
     return () => {
@@ -761,13 +781,20 @@ const ChatPage = () => {
   };
 
   const sortedDMs = filteredUsers
-    ? [...filteredUsers].sort((a, b) => {
-        const msgA = lastMessages[a._id];
-        const msgB = lastMessages[b._id];
-        const timeA = msgA ? new Date(msgA.createdAt).getTime() : 0;
-        const timeB = msgB ? new Date(msgB.createdAt).getTime() : 0;
-        return timeB - timeA;
-      })
+    ? [...filteredUsers]
+        .filter((u) => {
+          // If searching, show all users matching search query
+          if (searchTerm.trim() !== "") return true;
+          // Otherwise, only show users with active message history or currently active conversation
+          return u._id === activeChat || lastMessages[u._id] !== undefined;
+        })
+        .sort((a, b) => {
+          const msgA = lastMessages[a._id];
+          const msgB = lastMessages[b._id];
+          const timeA = msgA ? new Date(msgA.createdAt).getTime() : 0;
+          const timeB = msgB ? new Date(msgB.createdAt).getTime() : 0;
+          return timeB - timeA;
+        })
     : [];
 
   const sortedRooms = rooms
@@ -795,7 +822,7 @@ const ChatPage = () => {
             </h2>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="w-7 h-7 rounded-lg  bg-blue-300  dark:bg-[#e5ff00]  dark:text-gray-900  flex items-center justify-center transition-all cursor-pointer"
+              className="w-7 h-7 rounded-lg bg-blue-600 text-white hover:bg-blue-700 dark:bg-[#e5ff00] dark:text-gray-900 flex items-center justify-center transition-all cursor-pointer shadow-sm"
               title="Create Custom Group"
             >
               <FiPlus size={16} />
@@ -808,7 +835,7 @@ const ChatPage = () => {
               placeholder="Search team member..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-100/50 dark:bg-slate-800/50 border border-slate-205 dark:border-slate-700/50 rounded-xl pl-9 pr-4 py-2 text-xs outline-none focus:border-blue-300 dark:focus:border-[#e5ff00] focus:ring-2 focus:ring-blue-300/20 dark:focus:ring-[#e5ff00]/20 transition-all theme-text-primary placeholder:theme-text-secondary"
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs outline-none focus:border-blue-600 dark:focus:border-[#e5ff00] focus:ring-2 focus:ring-blue-600/20 dark:focus:ring-[#e5ff00]/20 transition-all theme-text-primary placeholder:theme-text-secondary"
             />
           </div>
         </div>
@@ -827,21 +854,21 @@ const ChatPage = () => {
               }}
               className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
                 activeChat === "group"
-                  ? "bg-blue-300 text-black dark:bg-[#e5ff00] dark:text-black font-bold shadow-md"
+                  ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black font-bold shadow-md"
                   : unreadCounts["group"] > 0
                     ? "bg-blue-50/80 dark:bg-blue-900/20 border-l-4 border-l-blue-500 dark:border-l-[#e5ff00] border-y border-r border-transparent theme-text-primary font-extrabold shadow-sm"
                     : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 theme-text-secondary hover:theme-text-primary border border-transparent"
               }`}
             >
               <div
-                className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${activeChat === "group" ? "bg-slate-900/10 text-black dark:bg-black/20 dark:text-black" : "bg-blue-300 text-black dark:bg-[#e5ff00] dark:text-black shadow-sm"}`}
+                className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${activeChat === "group" ? "bg-black/10 text-white dark:bg-black/20 dark:text-black" : "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black shadow-sm"}`}
               >
                 <FiLayers size={16} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <span
-                    className={`text-xs font-bold truncate ${activeChat === "group" ? "text-black dark:text-black font-bold" : "text-blue-300 dark:text-[#a78bfa]"}`}
+                    className={`text-xs font-bold truncate ${activeChat === "group" ? "text-white dark:text-black font-bold" : "theme-text-primary"}`}
                   >
                     Common group Chat
                   </span>
@@ -852,14 +879,14 @@ const ChatPage = () => {
                       </span>
                     )}
                     <span
-                      className={`text-[9px] font-black uppercase tracking-wider ${activeChat === "group" ? "text-black/80 dark:text-black/85 font-black" : "text-blue-300 dark:text-[#a78bfa]"}`}
+                      className={`text-[9px] font-black uppercase tracking-wider ${activeChat === "group" ? "text-white/80 dark:text-black/85 font-black" : "theme-text-secondary"}`}
                     >
                       All
                     </span>
                   </div>
                 </div>
                 <p
-                  className={`text-[10px] truncate mt-0.5 ${activeChat === "group" ? "text-black/95 dark:text-black/95 font-bold" : unreadCounts["group"] > 0 ? "theme-text-primary font-extrabold" : "theme-text-secondary font-semibold"}`}
+                  className={`text-[10px] truncate mt-0.5 ${activeChat === "group" ? "text-white/90 dark:text-black/90 font-bold" : unreadCounts["group"] > 0 ? "theme-text-primary font-extrabold" : "theme-text-secondary font-semibold"}`}
                 >
                   {lastMessages["group"]
                     ? formatLastMessageText(lastMessages["group"])
@@ -886,21 +913,21 @@ const ChatPage = () => {
                   }}
                   className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
                     activeChat === r._id
-                      ? "bg-blue-300 text-black dark:bg-[#e5ff00] dark:text-black font-bold shadow-md"
+                      ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black font-bold shadow-md"
                       : unreadCounts[r._id] > 0
                         ? "bg-blue-50/80 dark:bg-blue-900/20 border-l-4 border-l-blue-500 dark:border-l-[#e5ff00] border-y border-r border-transparent theme-text-primary font-extrabold shadow-sm"
                         : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 theme-text-secondary hover:theme-theme-text-primary border border-transparent"
                   }`}
                 >
                   <div
-                    className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${activeChat === r._id ? "bg-slate-900/10 text-black dark:bg-black/20 dark:text-black" : "bg-blue-300 text-black dark:bg-[#e5ff00] dark:text-black shadow-sm"}`}
+                    className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${activeChat === r._id ? "bg-black/10 text-white dark:bg-black/20 dark:text-black" : "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black shadow-sm"}`}
                   >
                     <FiUsers size={16} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <span
-                        className={`text-xs font-bold truncate ${activeChat === r._id ? "text-black dark:text-black font-bold" : "text-blue-300 dark:text-[#a78bfa]"}`}
+                        className={`text-xs font-bold truncate ${activeChat === r._id ? "text-white dark:text-black font-bold" : "theme-text-primary"}`}
                       >
                         {r.name}
                       </span>
@@ -911,14 +938,14 @@ const ChatPage = () => {
                           </span>
                         )}
                         <span
-                          className={`text-[9px] font-bold ${activeChat === r._id ? "text-black/80 dark:text-black/85 font-black" : "text-blue-300 dark:text-[#a78bfa]"}`}
+                          className={`text-[9px] font-bold ${activeChat === r._id ? "text-white/80 dark:text-black/85 font-black" : "theme-text-secondary"}`}
                         >
                           {r.members.length} members
                         </span>
                       </div>
                     </div>
                     <p
-                      className={`text-[10px] truncate mt-0.5 ${activeChat === r._id ? "text-black/95 dark:text-black/95 font-bold" : unreadCounts[r._id] > 0 ? "theme-text-primary font-extrabold" : "theme-text-secondary font-semibold"}`}
+                      className={`text-[10px] truncate mt-0.5 ${activeChat === r._id ? "text-white/95 dark:text-black/95 font-bold" : unreadCounts[r._id] > 0 ? "theme-text-primary font-extrabold" : "theme-text-secondary font-semibold"}`}
                     >
                       {lastMessages[r._id]
                         ? formatLastMessageText(lastMessages[r._id])
@@ -950,7 +977,7 @@ const ChatPage = () => {
                 }}
                 className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
                   activeChat === u._id
-                    ? "bg-blue-300 text-black dark:bg-[#e5ff00] dark:text-black font-bold shadow-md"
+                    ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black font-bold shadow-md"
                     : unreadCounts[u._id] > 0
                       ? "bg-blue-50/80 dark:bg-blue-900/20 border-l-4 border-l-blue-500 dark:border-l-[#e5ff00] border-y border-r border-transparent theme-text-primary font-extrabold shadow-sm"
                       : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 theme-text-secondary hover:theme-text-primary border border-transparent"
@@ -965,19 +992,19 @@ const ChatPage = () => {
                     />
                   ) : (
                     <div
-                      className={`w-10 h-10 rounded-2xl border flex items-center justify-center font-bold text-xs ${activeChat === u._id ? "bg-black/10 border-black/20 text-black dark:bg-black/20  dark:text-black font-bold" : "bg-indigo-100 dark:bg-indigo-900/40 border-indigo-200/80 dark:border-indigo-800/60"}`}
+                      className={`w-10 h-10 rounded-2xl border flex items-center justify-center font-bold text-xs ${activeChat === u._id ? "bg-black/10 border-black/20 text-white dark:bg-black/20  dark:text-black font-bold" : "bg-indigo-100 dark:bg-indigo-900/40 border-indigo-200/80 dark:border-indigo-800/60"}`}
                     >
                       {u.name.charAt(0)}
                     </div>
                   )}
                   <span
-                    className={`absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 shadow-sm ${activeChat === u._id ? "border-blue-300 dark:border-[#e5ff00]" : "border-white dark:border-slate-900"}`}
+                    className={`absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 shadow-sm ${activeChat === u._id ? "border-blue-600 dark:border-[#e5ff00]" : "border-white dark:border-slate-900"}`}
                   />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <span
-                      className={`text-xs font-bold truncate block ${activeChat === u._id ? "text-black dark:text-black font-bold" : "text-blue-300 dark:text-[#a78bfa]"}`}
+                      className={`text-xs font-bold truncate block ${activeChat === u._id ? "text-white dark:text-black font-bold" : "theme-text-primary"}`}
                     >
                       {u.name}
                     </span>
@@ -990,7 +1017,7 @@ const ChatPage = () => {
                   <p
                     className={`text-[10px] truncate mt-0.5 ${
                       activeChat === u._id
-                        ? "text-black/95 dark:text-black/95 font-bold"
+                        ? "text-white/90 dark:text-black/90 font-bold"
                         : unreadCounts[u._id] > 0
                           ? "theme-text-primary font-extrabold"
                           : "theme-text-secondary font-semibold"
@@ -1025,7 +1052,7 @@ const ChatPage = () => {
 
             {activeChat === "group" ? (
               <>
-                <div className="w-10 h-10 rounded-2xl bg-blue-300 dark:bg-[#e5ff00] text-gray-50 flex items-center justify-center font-bold shadow-md shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black flex items-center justify-center font-bold shadow-md shrink-0">
                   <FiLayers size={16} />
                 </div>
                 <div className="min-w-0">
@@ -1085,16 +1112,29 @@ const ChatPage = () => {
 
           {/* CALL TRIGGER BUTTONS */}
           <div className="flex items-center gap-1.5 shrink-0">
+            {activeChatUser && (
+              <button
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to clear this conversation history? This cannot be undone.")) {
+                    dispatch(clearChatAction(activeChatUser._id));
+                  }
+                }}
+                className="w-8 h-8 rounded-lg bg-rose-100 hover:bg-rose-200 dark:bg-rose-950/45 dark:hover:bg-rose-950/70 text-rose-600 dark:text-rose-400 flex items-center justify-center transition-all cursor-pointer shadow-sm mr-1"
+                title="Clear Chat History"
+              >
+                <FiTrash2 size={13} />
+              </button>
+            )}
             <button
               onClick={() => startCall("voice")}
-              className="w-8 h-8 rounded-lg  bg-blue-300 dark:bg-[#e5ff00] flex items-center justify-center text-black dark:text-black font-bold dark:font-bold transition-all cursor-pointer"
+              className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white dark:bg-[#e5ff00] dark:text-black flex items-center justify-center font-bold transition-all cursor-pointer shadow-sm"
               title="Voice Call"
             >
               <FiPhone size={14} />
             </button>
             <button
               onClick={() => startCall("video")}
-              className="w-8 h-8 rounded-lg  bg-blue-300 dark:bg-[#e5ff00] flex items-center justify-center text-black dark:text-black font-bold dark:font-bold transition-all cursor-pointer"
+              className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white dark:bg-[#e5ff00] dark:text-black flex items-center justify-center font-bold transition-all cursor-pointer shadow-sm"
               title="Video Call"
             >
               <FiVideo size={14} />
@@ -1324,8 +1364,8 @@ const ChatPage = () => {
                               }}
                               className={`w-full py-1.5 px-3 rounded-lg text-[10px] font-black uppercase tracking-wider text-center cursor-pointer transition-all ${
                                 isMe
-                                  ? "bg-red-500 text-white dark:bg-red-500 dark:text-white "
-                                  : "bg-blue-300 text-black hover:bg-blue-400 dark:bg-[#e5ff00] dark:text-black dark:font-bold dark:hover:bg-[#d4ec00] shadow shadow-blue-300/20 dark:shadow-[#e5ff00]/20"
+                                  ? "bg-red-500 text-white dark:bg-red-500 dark:text-white"
+                                  : "bg-blue-600 text-white hover:bg-blue-700 dark:bg-[#e5ff00] dark:text-black dark:font-bold dark:hover:bg-[#d4ec00] shadow shadow-blue-600/20 dark:shadow-[#e5ff00]/20"
                               }`}
                             >
                               Join Call Meeting
@@ -1581,13 +1621,13 @@ const ChatPage = () => {
               placeholder="Type message or reply..."
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              className="flex-1 theme-bg-main border theme-border rounded-xl px-4 py-2 text-xs outline-none focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 transition-all theme-text-primary placeholder:theme-text-secondary"
+              className="flex-1 theme-bg-main border theme-border rounded-xl px-4 py-2 text-xs outline-none focus:border-blue-600 dark:focus:border-[#e5ff00] focus:ring-2 focus:ring-blue-600/20 dark:focus:ring-[#e5ff00]/20 transition-all theme-text-primary placeholder:theme-text-secondary"
             />
 
             <button
               type="submit"
               disabled={!inputText.trim()}
-              className="w-9 h-9 bg-blue-600 text-white rounded-xl flex items-center justify-center hover:bg-blue-700 transition-all shadow-md shadow-blue-100 hover:shadow-blue-200 active:scale-95 disabled:opacity-50 disabled:shadow-none shrink-0 cursor-pointer"
+              className="w-9 h-9 bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black rounded-xl flex items-center justify-center hover:bg-blue-700 dark:hover:bg-[#d4ec00] transition-all shadow-md shadow-blue-100 dark:shadow-[#e5ff00]/10 active:scale-95 disabled:opacity-50 disabled:shadow-none shrink-0 cursor-pointer"
             >
               <FiSend size={14} />
             </button>
@@ -1681,10 +1721,9 @@ const ChatPage = () => {
                   Direct Contacts
                 </p>
                 <div className="space-y-1.5">
-                  {users
+                                  {filteredUsers
                     .filter(
                       (u) =>
-                        u._id !== currentUserId &&
                         u.name
                           .toLowerCase()
                           .includes(forwardSearchTerm.toLowerCase()),

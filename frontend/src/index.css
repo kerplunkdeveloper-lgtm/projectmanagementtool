@@ -631,5 +631,20 @@ select.badge-select, span.badge-span {
   border-color: rgba(124, 58, 237, 0.25) !important;
 }
 
+/* Premium Chat Wallpaper dot patterns */
+.bg-chat-wallpaper-light {
+  background-color: #f8fafc !important;
+  background-image: radial-gradient(rgba(99, 102, 241, 0.07) 1px, transparent 0), radial-gradient(rgba(99, 102, 241, 0.07) 1px, transparent 0) !important;
+  background-size: 20px 20px !important;
+  background-position: 0 0, 10px 10px !important;
+}
+.dark .bg-chat-wallpaper-dark,
+.bg-chat-wallpaper-dark {
+  background-color: #020710 !important;
+  background-image: radial-gradient(rgba(229, 255, 0, 0.03) 1px, transparent 0), radial-gradient(rgba(229, 255, 0, 0.03) 1px, transparent 0) !important;
+  background-size: 20px 20px !important;
+  background-position: 0 0, 10px 10px !important;
+}
+
 
 

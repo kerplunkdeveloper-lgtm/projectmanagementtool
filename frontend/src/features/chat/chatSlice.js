@@ -114,6 +114,26 @@ export const deleteMessageAction = createAsyncThunk(
   }
 );
 
+export const clearChatAction = createAsyncThunk(
+  "chat/clearChatAction",
+  async (userId, thunkAPI) => {
+    try {
+      await axiosInstance.delete(`/messages/direct/${userId}`);
+      return userId;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data?.message || "Failed to clear chat");
+    }
+  }
+);
+
+// Helper to safely get a string ID from a field that could be an object or string
+const getIdString = (field) => {
+  if (!field) return "";
+  if (typeof field === "string") return field;
+  if (field._id) return field._id.toString();
+  return field.toString();
+};
+
 const chatSlice = createSlice({
   name: "chat",
   initialState: {
@@ -121,42 +141,63 @@ const chatSlice = createSlice({
     rooms: [],
     loading: false,
     error: null,
-    unreadCounts: JSON.parse(localStorage.getItem("chatUnreadCounts") || "{}"),
-    lastMessages: JSON.parse(localStorage.getItem("chatLastMessages") || "{}"),
+    activeChatId: null, // Track the current active chat for proper message routing
+    unreadCounts: {},
+    lastMessages: {},
   },
   reducers: {
+    setActiveChatId: (state, action) => {
+      state.activeChatId = action.payload;
+    },
     receiveMessage: (state, action) => {
-      const { message, currentUserId, activeChatId } = action.payload;
+      const { message, currentUserId } = action.payload;
       if (!message) return;
 
-      const chatId = message.chatRoom === "direct"
-        ? (message.sender._id || message.sender) === currentUserId
-          ? (message.recipient._id || message.recipient)
-          : (message.sender._id || message.sender)
-        : message.chatRoom;
+      const senderId = getIdString(message.sender);
+      const recipientId = getIdString(message.recipient);
 
+      // Determine which chat this message belongs to
+      let chatId;
+      if (message.chatRoom === "direct") {
+        // Security guard: if current user is neither sender nor recipient of this direct message, ignore it!
+        if (senderId !== currentUserId && recipientId !== currentUserId) {
+          return;
+        }
+        // For direct messages, chatId is the OTHER person's ID
+        chatId = senderId === currentUserId ? recipientId : senderId;
+      } else {
+        // For group/custom room messages, chatId is the room identifier
+        chatId = message.chatRoom;
+      }
+
+      // Don't add duplicate messages
       const exists = state.messages.some((m) => m._id === message._id);
       if (!exists) {
-        if (chatId === activeChatId) {
+        // Only add to messages array if this message belongs to the active chat
+        if (chatId === state.activeChatId) {
           state.messages.push(message);
         }
       }
 
-      // Update last message
+      // Always update last message for this chat (for sidebar preview)
       state.lastMessages[chatId] = message;
-      localStorage.setItem("chatLastMessages", JSON.stringify(state.lastMessages));
 
-      // Increment unread count if it's not the active chat room, and sender is not current user
-      const senderId = message.sender._id || message.sender;
-      if (chatId !== activeChatId && senderId !== currentUserId) {
+      // Increment unread count if:
+      // 1. It's not the currently active/open chat
+      // 2. The sender is not the current user (don't count own messages)
+      if (chatId !== state.activeChatId && senderId !== currentUserId) {
         state.unreadCounts[chatId] = (state.unreadCounts[chatId] || 0) + 1;
-        localStorage.setItem("chatUnreadCounts", JSON.stringify(state.unreadCounts));
       }
     },
     markChatAsRead: (state, action) => {
       const chatId = action.payload;
       state.unreadCounts[chatId] = 0;
-      localStorage.setItem("chatUnreadCounts", JSON.stringify(state.unreadCounts));
+    },
+    incrementUnreadCount: (state, action) => {
+      const chatId = action.payload;
+      // If we are currently active on this chat, do not increment
+      if (state.activeChatId === chatId) return;
+      state.unreadCounts[chatId] = (state.unreadCounts[chatId] || 0) + 1;
     },
     removeMessage: (state, action) => {
       state.messages = state.messages.filter((m) => m._id !== action.payload);
@@ -164,16 +205,37 @@ const chatSlice = createSlice({
     clearMessages: (state) => {
       state.messages = [];
     },
+    clearChatLocal: (state, action) => {
+      const otherUserId = action.payload;
+      if (state.activeChatId === otherUserId) {
+        state.messages = [];
+      }
+      delete state.lastMessages[otherUserId];
+    },
   },
   extraReducers: (builder) => {
     builder
+      .addCase(clearChatAction.fulfilled, (state, action) => {
+        const otherUserId = action.payload;
+        if (state.activeChatId === otherUserId) {
+          state.messages = [];
+        }
+        delete state.lastMessages[otherUserId];
+      })
       .addCase(fetchDirectMessages.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.messages = []; // Clear old messages immediately to prevent cross-chat bleed
       })
       .addCase(fetchDirectMessages.fulfilled, (state, action) => {
-        state.loading = false;
-        state.messages = action.payload;
+        // Race condition guard: only apply if this response matches the active chat
+        const requestedUserId = action.meta.arg;
+        if (state.activeChatId === requestedUserId) {
+          state.loading = false;
+          state.messages = action.payload;
+        } else {
+          state.loading = false;
+        }
       })
       .addCase(fetchDirectMessages.rejected, (state, action) => {
         state.loading = false;
@@ -182,10 +244,17 @@ const chatSlice = createSlice({
       .addCase(fetchGroupMessages.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.messages = []; // Clear old messages immediately to prevent cross-chat bleed
       })
       .addCase(fetchGroupMessages.fulfilled, (state, action) => {
-        state.loading = false;
-        state.messages = action.payload;
+        // Race condition guard: only apply if this response matches the active chat
+        const requestedRoomId = action.meta.arg || "group";
+        if (state.activeChatId === requestedRoomId) {
+          state.loading = false;
+          state.messages = action.payload;
+        } else {
+          state.loading = false;
+        }
       })
       .addCase(fetchGroupMessages.rejected, (state, action) => {
         state.loading = false;
@@ -193,25 +262,32 @@ const chatSlice = createSlice({
       })
       .addCase(sendMessageAction.fulfilled, (state, action) => {
         const message = action.payload;
+        
+        // Compute which chat this message belongs to
+        const senderId = getIdString(message.sender);
+        const recipientId = getIdString(message.recipient);
+        let chatId;
+        if (message.chatRoom === "direct") {
+          chatId = recipientId; // Sender is always the current user when sending
+        } else {
+          chatId = message.chatRoom;
+        }
+
+        // Only add to messages array if this message belongs to the active chat
         const exists = state.messages.some((m) => m._id === message._id);
-        if (!exists) {
+        if (!exists && chatId === state.activeChatId) {
           state.messages.push(message);
         }
         
-        const chatId = message.chatRoom === "direct"
-          ? (message.recipient._id || message.recipient)
-          : message.chatRoom;
-          
+        // Always update lastMessages for sidebar preview
         state.lastMessages[chatId] = message;
-        localStorage.setItem("chatLastMessages", JSON.stringify(state.lastMessages));
       })
       // Rooms/Groups Reducers
       .addCase(fetchRooms.fulfilled, (state, action) => {
         state.rooms = action.payload;
       })
       .addCase(fetchLastMessages.fulfilled, (state, action) => {
-        state.lastMessages = { ...state.lastMessages, ...action.payload };
-        localStorage.setItem("chatLastMessages", JSON.stringify(state.lastMessages));
+        state.lastMessages = action.payload || {};
       })
       .addCase(createRoomAction.fulfilled, (state, action) => {
         state.rooms.push(action.payload);
@@ -230,5 +306,5 @@ const chatSlice = createSlice({
   },
 });
 
-export const { receiveMessage, removeMessage, clearMessages, markChatAsRead } = chatSlice.actions;
+export const { receiveMessage, removeMessage, clearMessages, markChatAsRead, setActiveChatId, clearChatLocal, incrementUnreadCount } = chatSlice.actions;
 export default chatSlice.reducer;

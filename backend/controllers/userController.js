@@ -10,9 +10,6 @@ const bcrypt = require('bcryptjs');
 exports.getUsers = async (req, res) => {
   try {
     let query = {};
-    if (req.user.role === "team" && req.user.department) {
-      query.department = req.user.department;
-    }
     const users = await User.find(query).populate('profile');
 
     res.status(200).json({

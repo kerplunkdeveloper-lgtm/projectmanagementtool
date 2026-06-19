@@ -10,6 +10,7 @@ const {
   uploadFile,
   deleteMessage,
   getLastMessages,
+  clearDirectMessages,
 } = require("../controllers/messageController");
 const { protect } = require("../middleware/auth");
 const chatUpload = require("../middleware/chatUpload");
@@ -23,6 +24,7 @@ router.post("/", sendMessage);
 router.get("/last", getLastMessages);
 router.get("/group/:roomId?", getGroupMessages);
 router.get("/direct/:userId", getDirectMessages);
+router.delete("/direct/:userId", clearDirectMessages);
 router.delete("/:messageId", deleteMessage);
 
 // Custom Group Chat Room Routes
