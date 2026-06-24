@@ -200,7 +200,7 @@ const Navbar = ({ setSidebarOpen }) => {
         </button>
 
         {/* PAGE TITLE */}
-        <h1 className="text-[13px] md:text-[20px] text-blue-600 dark:text-[#e5ff00] font-extrabold">
+        <h1 className="text-[12px] md:text-[20px] text-blue-600 dark:text-[#e5ff00] font-bold">
           {pageTitle}
         </h1>
       </div>
@@ -433,7 +433,7 @@ const Navbar = ({ setSidebarOpen }) => {
               </div>
             )}
 
-            <div className="text-left ">
+            <div className="text-left hidden md:block">
               <h3 className="text-[12px] font-black theme-text-primary leading-tight">
                 {user?.name}
               </h3>
@@ -461,6 +461,16 @@ const Navbar = ({ setSidebarOpen }) => {
                   p-1.5 z-50
                 "
               >
+                {/* User Info Header */}
+                <div className="px-3 py-2 border-b theme-border mb-1">
+                  <p className="text-[12px] font-black theme-text-primary truncate">
+                    {user?.name}
+                  </p>
+                  <p className="text-[10px] theme-text-secondary truncate capitalize font-medium">
+                    {user?.role}
+                  </p>
+                </div>
+
                 <button
                   onClick={() => {
                     navigate(`/${user?.role}/profile`);
