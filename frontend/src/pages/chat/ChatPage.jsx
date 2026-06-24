@@ -237,9 +237,9 @@ const ChatPage = () => {
 
   const [activeChat, setActiveChat] = useState("group"); // 'group' or custom roomId or userId
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedDept, setSelectedDept] = useState("All");
   const [inputText, setInputText] = useState("");
   const [showStickerPicker, setShowStickerPicker] = useState(false);
-  const [pickerTab, setPickerTab] = useState("emoji"); // 'emoji' or 'sticker'
   const [showChatWindowMobile, setShowChatWindowMobile] = useState(false);
 
   // New Reply, Forward & Share State
@@ -766,9 +766,31 @@ const ChatPage = () => {
     activeCustomRoom && activeCustomRoom.creator._id === currentUserId;
   const isAdmin = user?.role === "admin";
 
+  // Get all unique departments from users list
+  const departments = React.useMemo(() => {
+    if (!users) return [];
+    const depts = new Set();
+    users.forEach((u) => {
+      if (u.department && u.department.trim() !== "") {
+        depts.add(u.department.trim());
+      }
+    });
+    return Array.from(depts).sort();
+  }, [users]);
+
   const filteredUsers = users?.filter((u) => {
     if (u._id === currentUserId) return false;
-    return u.name.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Search Term Filter
+    const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase());
+    if (!matchesSearch) return false;
+    
+    // Department Filter
+    if (selectedDept !== "All") {
+      return u.department === selectedDept;
+    }
+    
+    return true;
   });
 
   const formatLastMessageText = (msg) => {
@@ -783,8 +805,8 @@ const ChatPage = () => {
   const sortedDMs = filteredUsers
     ? [...filteredUsers]
         .filter((u) => {
-          // If searching, show all users matching search query
-          if (searchTerm.trim() !== "") return true;
+          // If searching or filtering by department, show matching users
+          if (searchTerm.trim() !== "" || selectedDept !== "All") return true;
           // Otherwise, only show users with active message history or currently active conversation
           return u._id === activeChat || lastMessages[u._id] !== undefined;
         })
@@ -852,24 +874,18 @@ const ChatPage = () => {
                 setActiveChat("group");
                 setShowChatWindowMobile(true);
               }}
-              className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
-                activeChat === "group"
-                  ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black font-bold shadow-md"
-                  : unreadCounts["group"] > 0
-                    ? "bg-blue-50/80 dark:bg-blue-900/20 border-l-4 border-l-blue-500 dark:border-l-[#e5ff00] border-y border-r border-transparent theme-text-primary font-extrabold shadow-sm"
-                    : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 theme-text-secondary hover:theme-text-primary border border-transparent"
+              className={`chat-sidebar-item ${
+                activeChat === "group" ? "chat-sidebar-item-active" : ""
               }`}
             >
               <div
-                className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${activeChat === "group" ? "bg-black/10 text-white dark:bg-black/20 dark:text-black" : "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black shadow-sm"}`}
+                className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${activeChat === "group" ? "bg-blue-600/10 text-blue-600 dark:bg-[#e5ff00]/10 dark:text-[#e5ff00]" : "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black shadow-sm"}`}
               >
                 <FiLayers size={16} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <span
-                    className={`text-xs font-bold truncate ${activeChat === "group" ? "text-white dark:text-black font-bold" : "theme-text-primary"}`}
-                  >
+                  <span className="item-title truncate">
                     Common group Chat
                   </span>
                   <div className="flex items-center gap-1.5 shrink-0">
@@ -878,16 +894,12 @@ const ChatPage = () => {
                         {unreadCounts["group"]}
                       </span>
                     )}
-                    <span
-                      className={`text-[9px] font-black uppercase tracking-wider ${activeChat === "group" ? "text-white/80 dark:text-black/85 font-black" : "theme-text-secondary"}`}
-                    >
+                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
                       All
                     </span>
                   </div>
                 </div>
-                <p
-                  className={`text-[10px] truncate mt-0.5 ${activeChat === "group" ? "text-white/90 dark:text-black/90 font-bold" : unreadCounts["group"] > 0 ? "theme-text-primary font-extrabold" : "theme-text-secondary font-semibold"}`}
-                >
+                <p className="item-subtitle truncate mt-0.5">
                   {lastMessages["group"]
                     ? formatLastMessageText(lastMessages["group"])
                     : "All developers and admins"}
@@ -911,24 +923,18 @@ const ChatPage = () => {
                     setActiveChat(r._id);
                     setShowChatWindowMobile(true);
                   }}
-                  className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
-                    activeChat === r._id
-                      ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black font-bold shadow-md"
-                      : unreadCounts[r._id] > 0
-                        ? "bg-blue-50/80 dark:bg-blue-900/20 border-l-4 border-l-blue-500 dark:border-l-[#e5ff00] border-y border-r border-transparent theme-text-primary font-extrabold shadow-sm"
-                        : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 theme-text-secondary hover:theme-theme-text-primary border border-transparent"
+                  className={`chat-sidebar-item ${
+                    activeChat === r._id ? "chat-sidebar-item-active" : ""
                   }`}
                 >
                   <div
-                    className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${activeChat === r._id ? "bg-black/10 text-white dark:bg-black/20 dark:text-black" : "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black shadow-sm"}`}
+                    className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${activeChat === r._id ? "bg-blue-600/10 text-blue-600 dark:bg-[#e5ff00]/10 dark:text-[#e5ff00]" : "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black shadow-sm"}`}
                   >
                     <FiUsers size={16} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span
-                        className={`text-xs font-bold truncate ${activeChat === r._id ? "text-white dark:text-black font-bold" : "theme-text-primary"}`}
-                      >
+                      <span className="item-title truncate">
                         {r.name}
                       </span>
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -937,16 +943,12 @@ const ChatPage = () => {
                             {unreadCounts[r._id]}
                           </span>
                         )}
-                        <span
-                          className={`text-[9px] font-bold ${activeChat === r._id ? "text-white/80 dark:text-black/85 font-black" : "theme-text-secondary"}`}
-                        >
+                        <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500">
                           {r.members.length} members
                         </span>
                       </div>
                     </div>
-                    <p
-                      className={`text-[10px] truncate mt-0.5 ${activeChat === r._id ? "text-white/95 dark:text-black/95 font-bold" : unreadCounts[r._id] > 0 ? "theme-text-primary font-extrabold" : "theme-text-secondary font-semibold"}`}
-                    >
+                    <p className="item-subtitle truncate mt-0.5">
                       {lastMessages[r._id]
                         ? formatLastMessageText(lastMessages[r._id])
                         : r.description || "No description"}
@@ -958,9 +960,39 @@ const ChatPage = () => {
           )}
 
           <div className="h-px theme-border border-t my-2" />
-          <p className="text-[10px] font-black uppercase tracking-wider theme-text-secondary px-3 mb-1.5">
-            Direct Messages
-          </p>
+          <div className="px-3 mb-2">
+            <p className="text-[10px] font-black uppercase tracking-wider theme-text-secondary mb-2">
+              Direct Messages
+            </p>
+            {/* Scrollable Department Tabs */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-none snap-x">
+              <button
+                type="button"
+                onClick={() => setSelectedDept("All")}
+                className={`dept-filter-tab snap-start ${
+                  selectedDept === "All"
+                    ? "dept-filter-tab-active"
+                    : "dept-filter-tab-inactive"
+                }`}
+              >
+                All
+              </button>
+              {departments.map((dept) => (
+                <button
+                  key={dept}
+                  type="button"
+                  onClick={() => setSelectedDept(dept)}
+                  className={`dept-filter-tab snap-start ${
+                    selectedDept === dept
+                      ? "dept-filter-tab-active"
+                      : "dept-filter-tab-inactive"
+                  }`}
+                >
+                  {dept}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* User List */}
           {sortedDMs.length === 0 ? (
@@ -975,12 +1007,8 @@ const ChatPage = () => {
                   setActiveChat(u._id);
                   setShowChatWindowMobile(true);
                 }}
-                className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left ${
-                  activeChat === u._id
-                    ? "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black font-bold shadow-md"
-                    : unreadCounts[u._id] > 0
-                      ? "bg-blue-50/80 dark:bg-blue-900/20 border-l-4 border-l-blue-500 dark:border-l-[#e5ff00] border-y border-r border-transparent theme-text-primary font-extrabold shadow-sm"
-                      : "hover:bg-slate-50/60 dark:hover:bg-slate-800/40 theme-text-secondary hover:theme-text-primary border border-transparent"
+                className={`chat-sidebar-item ${
+                  activeChat === u._id ? "chat-sidebar-item-active" : ""
                 }`}
               >
                 <div className="relative shrink-0">
@@ -988,24 +1016,22 @@ const ChatPage = () => {
                     <img
                       src={u.profile.profileImage.url}
                       alt="profile"
-                      className={`w-10 h-10 rounded-2xl object-cover border ${activeChat === u._id ? "border-black/20 dark:border-black/30" : "theme-border"}`}
+                      className={`w-10 h-10 rounded-2xl object-cover border ${activeChat === u._id ? "border-blue-600/30 dark:border-[#e5ff00]/30" : "theme-border"}`}
                     />
                   ) : (
                     <div
-                      className={`w-10 h-10 rounded-2xl border flex items-center justify-center font-bold text-xs ${activeChat === u._id ? "bg-black/10 border-black/20 text-white dark:bg-black/20  dark:text-black font-bold" : "bg-indigo-100 dark:bg-indigo-900/40 border-indigo-200/80 dark:border-indigo-800/60"}`}
+                      className={`w-10 h-10 rounded-2xl border flex items-center justify-center font-bold text-xs ${activeChat === u._id ? "bg-blue-600/10 border-blue-600/20 text-blue-600 dark:bg-[#e5ff00]/10 dark:border-[#e5ff00]/20 dark:text-[#e5ff00] font-bold" : "bg-indigo-100 dark:bg-indigo-900/40 border-indigo-200/80 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400"}`}
                     >
                       {u.name.charAt(0)}
                     </div>
                   )}
                   <span
-                    className={`absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 shadow-sm ${activeChat === u._id ? "border-blue-600 dark:border-[#e5ff00]" : "border-white dark:border-slate-900"}`}
+                    className={`absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 shadow-sm ${activeChat === u._id ? "border-blue-500 dark:border-slate-900" : "border-white dark:border-slate-900"}`}
                   />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span
-                      className={`text-xs font-bold truncate block ${activeChat === u._id ? "text-white dark:text-black font-bold" : "theme-text-primary"}`}
-                    >
+                    <span className="item-title truncate block">
                       {u.name}
                     </span>
                     {unreadCounts[u._id] > 0 && (
@@ -1014,15 +1040,7 @@ const ChatPage = () => {
                       </span>
                     )}
                   </div>
-                  <p
-                    className={`text-[10px] truncate mt-0.5 ${
-                      activeChat === u._id
-                        ? "text-white/90 dark:text-black/90 font-bold"
-                        : unreadCounts[u._id] > 0
-                          ? "theme-text-primary font-extrabold"
-                          : "theme-text-secondary font-semibold"
-                    }`}
-                  >
+                  <p className="item-subtitle truncate mt-0.5">
                     {lastMessages[u._id]
                       ? formatLastMessageText(lastMessages[u._id])
                       : `${u.role}${u.department ? ` — ${u.department}` : ""}`}
@@ -1143,7 +1161,7 @@ const ChatPage = () => {
         </div>
 
         {/* MESSAGES LIST AREA */}
-        <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-3.5 scrollbar-thin bg-chat-wallpaper-light dark:bg-chat-wallpaper-dark">
+        <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-3.5 scrollbar-thin bg-chat-wallpaper">
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <span className="text-xs theme-text-secondary font-semibold">
@@ -1244,7 +1262,7 @@ const ChatPage = () => {
                       <div
                         className={`rounded-[1.25rem] overflow-hidden shadow-sm border max-w-xs md:max-w-sm ${
                           isMe
-                            ? "bg-blue-300 text-black font-bold border-blue-300 dark:bg-[#e5ff00] dark:text-black dark:font-bold dark:border-[#e5ff00] rounded-tr-none"
+                            ? "chat-bubble-me rounded-tr-none"
                             : "theme-bg-card theme-text-primary theme-border rounded-tl-none"
                         }`}
                       >
@@ -1338,7 +1356,7 @@ const ChatPage = () => {
                       <div
                         className={`px-4 py-2.5 rounded-[1.25rem] text-xs font-medium leading-relaxed break-words shadow-sm border ${
                           isMe
-                            ? "bg-blue-300 text-black font-bold border-blue-300 dark:bg-[#e5ff00] dark:text-black dark:font-bold dark:border-[#e5ff00] rounded-tr-none"
+                            ? "chat-bubble-me rounded-tr-none"
                             : "theme-bg-card theme-text-primary theme-border rounded-tl-none"
                         }`}
                       >
@@ -1364,7 +1382,7 @@ const ChatPage = () => {
                               }}
                               className={`w-full py-1.5 px-3 rounded-lg text-[10px] font-black uppercase tracking-wider text-center cursor-pointer transition-all ${
                                 isMe
-                                  ? "bg-red-500 text-white dark:bg-red-500 dark:text-white"
+                                  ? "bg-white text-indigo-600 hover:bg-white/95 dark:bg-red-500 dark:text-white dark:font-bold"
                                   : "bg-blue-600 text-white hover:bg-blue-700 dark:bg-[#e5ff00] dark:text-black dark:font-bold dark:hover:bg-[#d4ec00] shadow shadow-blue-600/20 dark:shadow-[#e5ff00]/20"
                               }`}
                             >
@@ -1494,30 +1512,9 @@ const ChatPage = () => {
           {showStickerPicker && (
             <div className="absolute bottom-16 left-2 right-2 sm:left-4 sm:right-auto theme-bg-card border theme-border rounded-2xl p-3 shadow-xl z-20 w-auto sm:w-72">
               <div className="flex items-center justify-between mb-2 pb-2 border-b theme-border">
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setPickerTab("emoji")}
-                    className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg cursor-pointer ${
-                      pickerTab === "emoji"
-                        ? "bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400"
-                        : "theme-text-secondary hover:theme-text-primary"
-                    }`}
-                  >
-                    Emojis
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPickerTab("sticker")}
-                    className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-lg cursor-pointer ${
-                      pickerTab === "sticker"
-                        ? "bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400"
-                        : "theme-text-secondary hover:theme-text-primary"
-                    }`}
-                  >
-                    Stickers
-                  </button>
-                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider theme-text-primary px-1">
+                  Emojis
+                </span>
                 <button
                   type="button"
                   onClick={() => setShowStickerPicker(false)}
@@ -1527,7 +1524,7 @@ const ChatPage = () => {
                 </button>
               </div>
               <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto pr-1">
-                {(pickerTab === "emoji" ? EMOJIS : STICKERS).map((s) => (
+                {EMOJIS.map((s) => (
                   <button
                     key={s}
                     type="button"

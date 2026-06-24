@@ -631,19 +631,183 @@ select.badge-select, span.badge-span {
   border-color: rgba(124, 58, 237, 0.25) !important;
 }
 
-/* Premium Chat Wallpaper dot patterns */
-.bg-chat-wallpaper-light {
-  background-color: #f8fafc !important;
-  background-image: radial-gradient(rgba(99, 102, 241, 0.07) 1px, transparent 0), radial-gradient(rgba(99, 102, 241, 0.07) 1px, transparent 0) !important;
-  background-size: 20px 20px !important;
-  background-position: 0 0, 10px 10px !important;
+/* Premium Chat Wallpaper grid and dot patterns */
+.bg-chat-wallpaper {
+  background-color: #f1f5f9 !important;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.08) 1.5px, transparent 1.5px),
+    linear-gradient(to right, rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(99, 102, 241, 0.03) 1px, transparent 1px) !important;
+  background-size: 24px 24px, 24px 24px, 24px 24px !important;
+  background-position: 0 0, 12px 12px, 12px 12px !important;
 }
-.dark .bg-chat-wallpaper-dark,
-.bg-chat-wallpaper-dark {
-  background-color: #020710 !important;
-  background-image: radial-gradient(rgba(229, 255, 0, 0.03) 1px, transparent 0), radial-gradient(rgba(229, 255, 0, 0.03) 1px, transparent 0) !important;
-  background-size: 20px 20px !important;
-  background-position: 0 0, 10px 10px !important;
+
+.dark .bg-chat-wallpaper {
+  background-color: #070a13 !important;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(229, 255, 0, 0.05) 1.5px, transparent 1.5px),
+    linear-gradient(to right, rgba(229, 255, 0, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(229, 255, 0, 0.02) 1px, transparent 1px) !important;
+  background-size: 24px 24px, 24px 24px, 24px 24px !important;
+  background-position: 0 0, 12px 12px, 12px 12px !important;
+}
+
+/* Premium Sidebar Department Filter Tabs */
+.dept-filter-tab {
+  padding: 5px 12px !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  border-radius: 9999px !important;
+  transition: all 0.2s ease-in-out !important;
+  border: 1px solid transparent !important;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Light Mode: Inactive Tab */
+.dept-filter-tab-inactive {
+  background-color: #f1f5f9 !important;
+  color: #64748b !important;
+}
+.dept-filter-tab-inactive:hover {
+  background-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+/* Light Mode: Active Tab */
+.dept-filter-tab-active {
+  background-color: #3b82f6 !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15) !important;
+}
+
+/* Dark Mode: Inactive Tab */
+.dark .dept-filter-tab-inactive {
+  background-color: #1e293b !important;
+  color: #94a3b8 !important;
+}
+.dark .dept-filter-tab-inactive:hover {
+  background-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+/* Dark Mode: Active Tab */
+.dark .dept-filter-tab-active {
+  background-color: #e5ff00 !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 2px 10px rgba(229, 255, 0, 0.2) !important;
+}
+
+/* Premium Chat Sidebar Item Class */
+.chat-sidebar-item {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 10px 14px !important;
+  border-radius: 16px !important;
+  text-align: left !important;
+  transition: all 0.2s ease-in-out !important;
+  border-left: 4px solid transparent !important;
+  cursor: pointer !important;
+  background-color: transparent !important;
+}
+
+/* Light Mode: Inactive Item Hover */
+.chat-sidebar-item:hover {
+  background-color: rgba(99, 102, 241, 0.04) !important;
+}
+
+/* Light Mode: Active Item */
+.chat-sidebar-item-active {
+  background-color: rgba(59, 130, 246, 0.07) !important;
+  border-left-color: #3b82f6 !important;
+}
+
+/* Dark Mode overrides */
+.dark .chat-sidebar-item:hover {
+  background-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+.dark .chat-sidebar-item-active {
+  background-color: rgba(229, 255, 0, 0.07) !important;
+  border-left-color: #e5ff00 !important;
+}
+
+/* Sidebar item text contrast control */
+.chat-sidebar-item .item-title {
+  color: var(--color-slate-900) !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  transition: color 0.2s ease;
+}
+.chat-sidebar-item .item-subtitle {
+  color: var(--color-slate-500) !important;
+  font-size: 10px !important;
+  transition: color 0.2s ease;
+}
+
+/* When active in light mode */
+.chat-sidebar-item-active .item-title {
+  color: #2563eb !important; /* Premium Blue */
+}
+.chat-sidebar-item-active .item-subtitle {
+  color: #475569 !important;
+}
+
+/* Dark Mode text states */
+.dark .chat-sidebar-item .item-title {
+  color: #f1f5f9 !important;
+}
+.dark .chat-sidebar-item .item-subtitle {
+  color: #94a3b8 !important;
+}
+
+/* When active in dark mode */
+.dark .chat-sidebar-item-active .item-title {
+  color: #e5ff00 !important; /* Neon Yellow Accent */
+}
+.dark .chat-sidebar-item-active .item-subtitle {
+  color: #cbd5e1 !important;
+}
+
+/* Premium Chat Bubbles styling */
+.chat-bubble-me {
+  background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+}
+
+.dark .chat-bubble-me {
+  background-image: none !important;
+  background-color: #e5ff00 !important;
+  color: #000000 !important;
+  border-color: #e5ff00 !important;
+  font-weight: 700 !important;
+}
+
+/* Children inheritance inside active bubble */
+.chat-bubble-me,
+.chat-bubble-me *,
+.chat-bubble-me span,
+.chat-bubble-me p,
+.chat-bubble-me div {
+  color: inherit !important;
+}
+
+.chat-bubble-me .theme-text-primary {
+  color: inherit !important;
+}
+.chat-bubble-me .theme-text-secondary {
+  color: inherit !important;
+  opacity: 0.75 !important;
+}
+.chat-bubble-me .theme-border {
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+.dark .chat-bubble-me .theme-border {
+  border-color: rgba(0, 0, 0, 0.15) !important;
 }
 
 
