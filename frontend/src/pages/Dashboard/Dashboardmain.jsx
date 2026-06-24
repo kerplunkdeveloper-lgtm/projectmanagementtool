@@ -163,7 +163,7 @@ const Dashboardmain = () => {
         </div>
 
         <div className="col-span-1 theme-bg-card border theme-border rounded-xl p-4 shadow-xl">
-          <h1 className="text-[20px] text-blue-500 dark:text-[#e5ff00] font-medium italic tracking-wider mb-8">
+          <h1 className="text-[20px] text-blue-500 dark:text-[#e5ff00] font-medium tracking-wider mb-8">
             Projects OverView
           </h1>
 
