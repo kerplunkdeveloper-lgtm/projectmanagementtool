@@ -7,9 +7,28 @@ export const ThemeProvider = ({ children }) => {
     return localStorage.getItem("theme") || "system";
   });
 
+  const [accentColor, setAccentColorState] = useState(() => {
+    return localStorage.getItem("accentColor") || "default";
+  });
+
+  const [soundEnabled, setSoundEnabledState] = useState(() => {
+    const saved = localStorage.getItem("soundEnabled");
+    return saved !== null ? saved === "true" : true;
+  });
+
   const setTheme = (newTheme) => {
     localStorage.setItem("theme", newTheme);
     setThemeState(newTheme);
+  };
+
+  const setAccentColor = (newAccent) => {
+    localStorage.setItem("accentColor", newAccent);
+    setAccentColorState(newAccent);
+  };
+
+  const setSoundEnabled = (enabled) => {
+    localStorage.setItem("soundEnabled", enabled ? "true" : "false");
+    setSoundEnabledState(enabled);
   };
 
   useEffect(() => {
@@ -42,8 +61,23 @@ export const ThemeProvider = ({ children }) => {
     }
   }, [theme]);
 
+  // Apply accent attribute on root html node
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.setAttribute("data-accent", accentColor);
+  }, [accentColor]);
+
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
+    <ThemeContext.Provider
+      value={{
+        theme,
+        setTheme,
+        accentColor,
+        setAccentColor,
+        soundEnabled,
+        setSoundEnabled,
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );

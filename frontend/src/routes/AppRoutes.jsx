@@ -16,6 +16,7 @@ import PartnerHub from "../pages/admin/partnerhub/PartnerHub.jsx";
 
 
 import Profile from "../pages/profile/Profile.jsx";
+import Settings from "../pages/settings/Settings.jsx";
 
 import OperationHome from "../pages/OperationMananger/OperationHome.jsx";
 import OperationProjects from "../pages/OperationMananger/OperationProjects.jsx";
@@ -94,6 +95,11 @@ const AppRoutes = () => {
           element={<Profile />}
         />
 
+        <Route
+          path="settings"
+          element={<Settings />}
+        />
+
    
         <Route
           path="template-library"
@@ -163,6 +169,11 @@ const AppRoutes = () => {
         <Route
           path="profile"
           element={<Profile />}
+        />
+
+        <Route
+          path="settings"
+          element={<Settings />}
         />
 
         <Route
@@ -245,6 +256,11 @@ const AppRoutes = () => {
         <Route
           path="profile"
           element={<Profile />}
+        />
+
+        <Route
+          path="settings"
+          element={<Settings />}
         />
 
         <Route

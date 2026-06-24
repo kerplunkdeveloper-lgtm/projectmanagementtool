@@ -38,10 +38,20 @@ html {
   --color-slate-900: #0f172a; /* Headings */
   --color-slate-950: #0f172a; /* Primary Text */
   
+  /* Accent variables */
+  --accent-gradient: linear-gradient(180deg, #92d1ef 0%, #69afe2 50%, #408ed8 100%);
+  --accent-color: #3b82f6;
+  --accent-hover-shadow: rgba(64, 142, 216, 0.25);
+  --accent-gradient-dark: #e5ff00;
+  --accent-color-dark: #e5ff00;
+  --accent-hover-shadow-dark: rgba(229, 255, 0, 0.25);
+  --accent-light-bg-subtle: rgba(59, 130, 246, 0.1);
+  --accent-dark-bg-subtle: rgba(229, 255, 0, 0.1);
+
   /* Theme-specific variables */
-  --color-brand-primary: #6366f1; /* Indigo Accent */
-  --color-brand-hover: #4f46e5;
-  --color-brand-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  --color-brand-primary: var(--accent-color); /* Dynamically mapped */
+  --color-brand-hover: var(--accent-color);
+  --color-brand-gradient: var(--accent-gradient);
   --color-card-gradient: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   --color-active-tab-text: #ffffff;
   --color-incomplete-start: #8b5cf6;
@@ -116,13 +126,13 @@ aside {
   --color-purple-200: rgba(192, 132, 252, 0.2);
 
   /* Theme-specific variables in Dark */
-  --color-brand-primary: #8b5cf6; /* Violet Accent */
-  --color-brand-hover: #7c3aed;
-  --color-brand-gradient: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  --color-brand-primary: var(--accent-color-dark);
+  --color-brand-hover: var(--accent-color-dark);
+  --color-brand-gradient: var(--accent-gradient-dark);
   --color-card-gradient: linear-gradient(135deg, #0f172a 0%, #090d16 100%);
   --color-active-tab-text: #020710;
   --color-incomplete-start: #99cc00;
-  --color-incomplete-end: #e5ff00;
+  --color-incomplete-end: var(--accent-color-dark);
   --color-completed-start: #10b981;
   --color-completed-end: #059669;
 
@@ -267,10 +277,10 @@ button.bg-blue-600,
 button.bg-blue-500,
 button.bg-slate-900,
 .dashboard-btn-primary {
-  background: linear-gradient(180deg, #92d1ef 0%, #69afe2 50%, #408ed8 100%) !important;
+  background: var(--accent-gradient) !important;
   color: #ffffff !important;
   border: none !important;
-  box-shadow: 0 4px 14px rgba(64, 142, 216, 0.25) !important;
+  box-shadow: 0 4px 14px var(--accent-hover-shadow) !important;
   transition: all 0.2s ease-in-out !important;
   cursor: pointer;
 }
@@ -293,10 +303,10 @@ button.bg-slate-900 *,
 .dark button.bg-slate-900,
 .dark .dashboard-btn-primary,
 .dark button[type="submit"] {
-  background: #e5ff00 !important;
-  background-color: #e5ff00 !important;
+  background: var(--accent-gradient-dark) !important;
+  background-color: var(--accent-gradient-dark) !important;
   color: #000000 !important;
-  box-shadow: 0 4px 14px rgba(229, 255, 0, 0.2) !important;
+  box-shadow: 0 4px 14px var(--accent-hover-shadow-dark) !important;
 }
 
 .dark button.bg-\[\#7c5ff0\] *,
@@ -319,7 +329,7 @@ button.bg-slate-900:hover,
 .dashboard-btn-primary:hover {
   opacity: 1 !important;
   transform: none !important;
-  box-shadow: 0 4px 14px rgba(64, 142, 216, 0.25) !important;
+  box-shadow: 0 4px 14px var(--accent-hover-shadow) !important;
 }
 
 .dark button.bg-\[\#7c5ff0\]:hover,
@@ -329,10 +339,11 @@ button.bg-slate-900:hover,
 .dark button.bg-slate-900:hover,
 .dark .dashboard-btn-primary:hover,
 .dark button[type="submit"]:hover {
-  background: #d4ec00 !important;
-  background-color: #d4ec00 !important;
+  background: var(--accent-gradient-dark) !important;
+  background-color: var(--accent-gradient-dark) !important;
+  opacity: 0.9 !important;
   color: #000000 !important;
-  box-shadow: 0 6px 20px rgba(229, 255, 0, 0.3) !important;
+  box-shadow: 0 6px 20px var(--accent-hover-shadow-dark) !important;
 }
 
 /* Dashboard Table Heading Override */
@@ -808,6 +819,328 @@ select.badge-select, span.badge-span {
 }
 .dark .chat-bubble-me .theme-border {
   border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Theme Accent Color Variables Overrides */
+:root[data-accent="emerald"] {
+  --accent-gradient: linear-gradient(180deg, #a7f3d0 0%, #34d399 50%, #059669 100%);
+  --accent-color: #059669;
+  --accent-hover-shadow: rgba(5, 150, 105, 0.25);
+  --accent-gradient-dark: #10b981;
+  --accent-color-dark: #10b981;
+  --accent-hover-shadow-dark: rgba(16, 185, 129, 0.25);
+  --accent-light-bg-subtle: rgba(5, 150, 105, 0.1);
+  --accent-dark-bg-subtle: rgba(16, 185, 129, 0.1);
+}
+:root[data-accent="violet"] {
+  --accent-gradient: linear-gradient(180deg, #ddd6fe 0%, #a78bfa 50%, #7c3aed 100%);
+  --accent-color: #7c3aed;
+  --accent-hover-shadow: rgba(124, 58, 237, 0.25);
+  --accent-gradient-dark: #8b5cf6;
+  --accent-color-dark: #8b5cf6;
+  --accent-hover-shadow-dark: rgba(139, 92, 246, 0.25);
+  --accent-light-bg-subtle: rgba(124, 58, 237, 0.1);
+  --accent-dark-bg-subtle: rgba(139, 92, 246, 0.1);
+}
+:root[data-accent="amber"] {
+  --accent-gradient: linear-gradient(180deg, #fef3c7 0%, #fbbf24 50%, #d97706 100%);
+  --accent-color: #d97706;
+  --accent-hover-shadow: rgba(217, 119, 6, 0.25);
+  --accent-gradient-dark: #f59e0b;
+  --accent-color-dark: #f59e0b;
+  --accent-hover-shadow-dark: rgba(245, 158, 11, 0.25);
+  --accent-light-bg-subtle: rgba(217, 119, 6, 0.1);
+  --accent-dark-bg-subtle: rgba(245, 158, 11, 0.1);
+}
+:root[data-accent="rose"] {
+  --accent-gradient: linear-gradient(180deg, #ffe4e6 0%, #f43f5e 50%, #e11d48 100%);
+  --accent-color: #e11d48;
+  --accent-hover-shadow: rgba(225, 29, 72, 0.25);
+  --accent-gradient-dark: #f43f5e;
+  --accent-color-dark: #f43f5e;
+  --accent-hover-shadow-dark: rgba(244, 63, 94, 0.25);
+  --accent-light-bg-subtle: rgba(225, 29, 72, 0.1);
+  --accent-dark-bg-subtle: rgba(244, 63, 94, 0.1);
+}
+
+/* Accent-specific rules to override hardcoded components dynamically */
+.theme-text-accent {
+  color: var(--accent-color) !important;
+}
+.dark .theme-text-accent {
+  color: var(--accent-color-dark) !important;
+}
+
+.theme-bg-accent {
+  background-color: var(--accent-color) !important;
+}
+.dark .theme-bg-accent {
+  background-color: var(--accent-color-dark) !important;
+}
+
+.theme-border-accent {
+  border-color: var(--accent-color) !important;
+}
+.dark .theme-border-accent {
+  border-color: var(--accent-color-dark) !important;
+}
+
+.chat-sidebar-item-active {
+  border-left-color: var(--accent-color) !important;
+}
+.dark .chat-sidebar-item-active {
+  border-left-color: var(--accent-color-dark) !important;
+}
+.chat-sidebar-item-active .item-title {
+  color: var(--accent-color) !important;
+}
+.dark .chat-sidebar-item-active .item-title {
+  color: var(--accent-color-dark) !important;
+}
+
+.chat-bubble-me {
+  background: var(--accent-gradient) !important;
+}
+.dark .chat-bubble-me {
+  background-image: none !important;
+  background-color: var(--accent-color-dark) !important;
+  border-color: var(--accent-color-dark) !important;
+}
+
+/* GLOBAL ACCENT COLOR OVERRIDES FOR TEXT */
+:root[data-accent="emerald"] .text-blue-600,
+:root[data-accent="emerald"] .text-blue-500,
+:root[data-accent="emerald"] .text-indigo-600,
+:root[data-accent="emerald"] .text-indigo-500,
+:root[data-accent="emerald"] .text-blue-900,
+:root[data-accent="emerald"] .text-indigo-900,
+
+:root[data-accent="violet"] .text-blue-600,
+:root[data-accent="violet"] .text-blue-500,
+:root[data-accent="violet"] .text-indigo-600,
+:root[data-accent="violet"] .text-indigo-500,
+:root[data-accent="violet"] .text-blue-900,
+:root[data-accent="violet"] .text-indigo-900,
+
+:root[data-accent="amber"] .text-blue-600,
+:root[data-accent="amber"] .text-blue-500,
+:root[data-accent="amber"] .text-indigo-600,
+:root[data-accent="amber"] .text-indigo-500,
+:root[data-accent="amber"] .text-blue-900,
+:root[data-accent="amber"] .text-indigo-900,
+
+:root[data-accent="rose"] .text-blue-600,
+:root[data-accent="rose"] .text-blue-500,
+:root[data-accent="rose"] .text-indigo-600,
+:root[data-accent="rose"] .text-indigo-500,
+:root[data-accent="rose"] .text-blue-900,
+:root[data-accent="rose"] .text-indigo-900 {
+  color: var(--accent-color) !important;
+}
+
+/* Dark mode text overrides */
+:root[data-accent="emerald"] .dark .dark\:text-\[\#e5ff00\],
+:root[data-accent="emerald"] .dark .text-blue-500,
+:root[data-accent="emerald"] .dark .text-blue-600,
+:root[data-accent="emerald"] .dark .text-indigo-500,
+:root[data-accent="emerald"] .dark .text-indigo-600,
+:root[data-accent="emerald"] .dark .text-blue-900,
+:root[data-accent="emerald"] .dark .text-indigo-900,
+
+:root[data-accent="violet"] .dark .dark\:text-\[\#e5ff00\],
+:root[data-accent="violet"] .dark .text-blue-500,
+:root[data-accent="violet"] .dark .text-blue-600,
+:root[data-accent="violet"] .dark .text-indigo-500,
+:root[data-accent="violet"] .dark .text-indigo-600,
+:root[data-accent="violet"] .dark .text-blue-900,
+:root[data-accent="violet"] .dark .text-indigo-900,
+
+:root[data-accent="amber"] .dark .dark\:text-\[\#e5ff00\],
+:root[data-accent="amber"] .dark .text-blue-500,
+:root[data-accent="amber"] .dark .text-blue-600,
+:root[data-accent="amber"] .dark .text-indigo-500,
+:root[data-accent="amber"] .dark .text-indigo-600,
+:root[data-accent="amber"] .dark .text-blue-900,
+:root[data-accent="amber"] .dark .text-indigo-900,
+
+:root[data-accent="rose"] .dark .dark\:text-\[\#e5ff00\],
+:root[data-accent="rose"] .dark .text-blue-500,
+:root[data-accent="rose"] .dark .text-blue-600,
+:root[data-accent="rose"] .dark .text-indigo-500,
+:root[data-accent="rose"] .dark .text-indigo-600,
+:root[data-accent="rose"] .dark .text-blue-900,
+:root[data-accent="rose"] .dark .text-indigo-900 {
+  color: var(--accent-color-dark) !important;
+}
+
+/* GLOBAL ACCENT BACKGROUND OVERRIDES */
+:root[data-accent="emerald"] .bg-blue-600,
+:root[data-accent="emerald"] .bg-blue-505,
+:root[data-accent="emerald"] .bg-blue-500,
+:root[data-accent="emerald"] .bg-indigo-650,
+:root[data-accent="emerald"] .bg-indigo-600,
+:root[data-accent="emerald"] .bg-indigo-500,
+
+:root[data-accent="violet"] .bg-blue-600,
+:root[data-accent="violet"] .bg-blue-505,
+:root[data-accent="violet"] .bg-blue-500,
+:root[data-accent="violet"] .bg-indigo-650,
+:root[data-accent="violet"] .bg-indigo-600,
+:root[data-accent="violet"] .bg-indigo-500,
+
+:root[data-accent="amber"] .bg-blue-600,
+:root[data-accent="amber"] .bg-blue-505,
+:root[data-accent="amber"] .bg-blue-500,
+:root[data-accent="amber"] .bg-indigo-650,
+:root[data-accent="amber"] .bg-indigo-600,
+:root[data-accent="amber"] .bg-indigo-500,
+
+:root[data-accent="rose"] .bg-blue-600,
+:root[data-accent="rose"] .bg-blue-505,
+:root[data-accent="rose"] .bg-blue-500,
+:root[data-accent="rose"] .bg-indigo-650,
+:root[data-accent="rose"] .bg-indigo-600,
+:root[data-accent="rose"] .bg-indigo-500 {
+  background-color: var(--accent-color) !important;
+  background-image: var(--accent-gradient) !important;
+}
+
+/* Subtle background overrides */
+:root[data-accent="emerald"] .bg-blue-50,
+:root[data-accent="emerald"] .bg-indigo-50,
+:root[data-accent="emerald"] .bg-blue-600\/10,
+:root[data-accent="emerald"] .bg-indigo-600\/10,
+
+:root[data-accent="violet"] .bg-blue-50,
+:root[data-accent="violet"] .bg-indigo-50,
+:root[data-accent="violet"] .bg-blue-600\/10,
+:root[data-accent="violet"] .bg-indigo-600\/10,
+
+:root[data-accent="amber"] .bg-blue-50,
+:root[data-accent="amber"] .bg-indigo-50,
+:root[data-accent="amber"] .bg-blue-600\/10,
+:root[data-accent="amber"] .bg-indigo-600\/10,
+
+:root[data-accent="rose"] .bg-blue-50,
+:root[data-accent="rose"] .bg-indigo-50,
+:root[data-accent="rose"] .bg-blue-600\/10,
+:root[data-accent="rose"] .bg-indigo-600\/10 {
+  background-color: var(--accent-light-bg-subtle) !important;
+  background-image: none !important;
+}
+
+/* Dark mode background overrides */
+:root[data-accent="emerald"] .dark .dark\:bg-\[\#e5ff00\],
+:root[data-accent="emerald"] .dark .bg-blue-600,
+:root[data-accent="emerald"] .dark .bg-blue-505,
+:root[data-accent="emerald"] .dark .bg-blue-500,
+:root[data-accent="emerald"] .dark .bg-indigo-650,
+:root[data-accent="emerald"] .dark .bg-indigo-600,
+:root[data-accent="emerald"] .dark .bg-[#e5ff00],
+
+:root[data-accent="violet"] .dark .dark\:bg-\[\#e5ff00\],
+:root[data-accent="violet"] .dark .bg-blue-600,
+:root[data-accent="violet"] .dark .bg-blue-505,
+:root[data-accent="violet"] .dark .bg-blue-500,
+:root[data-accent="violet"] .dark .bg-indigo-650,
+:root[data-accent="violet"] .dark .bg-indigo-600,
+:root[data-accent="violet"] .dark .bg-[#e5ff00],
+
+:root[data-accent="amber"] .dark .dark\:bg-\[\#e5ff00\],
+:root[data-accent="amber"] .dark .bg-blue-600,
+:root[data-accent="amber"] .dark .bg-blue-505,
+:root[data-accent="amber"] .dark .bg-blue-500,
+:root[data-accent="amber"] .dark .bg-indigo-650,
+:root[data-accent="amber"] .dark .bg-indigo-600,
+:root[data-accent="amber"] .dark .bg-[#e5ff00],
+
+:root[data-accent="rose"] .dark .dark\:bg-\[\#e5ff00\],
+:root[data-accent="rose"] .dark .bg-blue-600,
+:root[data-accent="rose"] .dark .bg-blue-505,
+:root[data-accent="rose"] .dark .bg-blue-500,
+:root[data-accent="rose"] .dark .bg-indigo-650,
+:root[data-accent="rose"] .dark .bg-indigo-600,
+:root[data-accent="rose"] .dark .bg-[#e5ff00] {
+  background-color: var(--accent-color-dark) !important;
+  background-image: none !important;
+}
+
+/* Dark mode subtle background overrides */
+:root[data-accent="emerald"] .dark .dark\:bg-\[\#e5ff00\]\/10,
+:root[data-accent="emerald"] .dark .bg-blue-600\/10,
+:root[data-accent="emerald"] .dark .bg-blue-500\/10,
+:root[data-accent="emerald"] .dark .bg-indigo-600\/10,
+:root[data-accent="emerald"] .dark .bg-indigo-500\/10,
+
+:root[data-accent="violet"] .dark .dark\:bg-\[\#e5ff00\]\/10,
+:root[data-accent="violet"] .dark .bg-blue-600\/10,
+:root[data-accent="violet"] .dark .bg-blue-500\/10,
+:root[data-accent="violet"] .dark .bg-indigo-600\/10,
+:root[data-accent="violet"] .dark .bg-indigo-500\/10,
+
+:root[data-accent="amber"] .dark .dark\:bg-\[\#e5ff00\]\/10,
+:root[data-accent="amber"] .dark .bg-blue-600\/10,
+:root[data-accent="amber"] .dark .bg-blue-500\/10,
+:root[data-accent="amber"] .dark .bg-indigo-600\/10,
+:root[data-accent="amber"] .dark .bg-indigo-500\/10,
+
+:root[data-accent="rose"] .dark .dark\:bg-\[\#e5ff00\]\/10,
+:root[data-accent="rose"] .dark .bg-blue-600\/10,
+:root[data-accent="rose"] .dark .bg-blue-500\/10,
+:root[data-accent="rose"] .dark .bg-indigo-600\/10,
+:root[data-accent="rose"] .dark .bg-indigo-500\/10 {
+  background-color: var(--accent-dark-bg-subtle) !important;
+  background-image: none !important;
+}
+
+/* Border overrides */
+:root[data-accent="emerald"] .border-blue-500,
+:root[data-accent="emerald"] .border-indigo-500,
+:root[data-accent="emerald"] .border-blue-600,
+:root[data-accent="emerald"] .border-indigo-600,
+
+:root[data-accent="violet"] .border-blue-500,
+:root[data-accent="violet"] .border-indigo-500,
+:root[data-accent="violet"] .border-blue-600,
+:root[data-accent="violet"] .border-indigo-600,
+
+:root[data-accent="amber"] .border-blue-500,
+:root[data-accent="amber"] .border-indigo-500,
+:root[data-accent="amber"] .border-blue-600,
+:root[data-accent="amber"] .border-indigo-600,
+
+:root[data-accent="rose"] .border-blue-500,
+:root[data-accent="rose"] .border-indigo-500,
+:root[data-accent="rose"] .border-blue-600,
+:root[data-accent="rose"] .border-indigo-600 {
+  border-color: var(--accent-color) !important;
+}
+
+/* Dark mode border overrides */
+:root[data-accent="emerald"] .dark .border-blue-500,
+:root[data-accent="emerald"] .dark .border-indigo-500,
+:root[data-accent="emerald"] .dark .border-blue-600,
+:root[data-accent="emerald"] .dark .border-indigo-600,
+:root[data-accent="emerald"] .dark .dark\:border-\[\#e5ff00\]\/25,
+
+:root[data-accent="violet"] .dark .border-blue-500,
+:root[data-accent="violet"] .dark .border-indigo-500,
+:root[data-accent="violet"] .dark .border-blue-600,
+:root[data-accent="violet"] .dark .border-indigo-600,
+:root[data-accent="violet"] .dark .dark\:border-\[\#e5ff00\]\/25,
+
+:root[data-accent="amber"] .dark .border-blue-500,
+:root[data-accent="amber"] .dark .border-indigo-500,
+:root[data-accent="amber"] .dark .border-blue-600,
+:root[data-accent="amber"] .dark .border-indigo-600,
+:root[data-accent="amber"] .dark .dark\:border-\[\#e5ff00\]\/25,
+
+:root[data-accent="rose"] .dark .border-blue-500,
+:root[data-accent="rose"] .dark .border-indigo-500,
+:root[data-accent="rose"] .dark .border-blue-600,
+:root[data-accent="rose"] .dark .border-indigo-600,
+:root[data-accent="rose"] .dark .dark\:border-\[\#e5ff00\]\/25 {
+  border-color: var(--accent-color-dark) !important;
 }
 
 

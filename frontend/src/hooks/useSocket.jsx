@@ -8,6 +8,10 @@ import toast from 'react-hot-toast';
 import { FiBell, FiX } from 'react-icons/fi';
 
 const playNotificationSound = () => {
+  const soundEnabledSetting = localStorage.getItem("soundEnabled");
+  if (soundEnabledSetting === "false") {
+    return;
+  }
   try {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const playTone = (time, freq, duration, vol) => {
