@@ -213,6 +213,7 @@ const Dashboardmain = () => {
 
       {/* TWO-COLUMN LOWER DASHBOARD SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 max-w-7xl">
+        
         {/* UPCOMING EVENTS SECTION */}
         <div className="lg:col-span-2 theme-bg-card border theme-border rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between mb-4 border-b theme-border pb-3">
@@ -409,6 +410,11 @@ const Dashboardmain = () => {
             </div>
           </div>
         </div>
+
+
+
+
+
       </div>
 
       {/* CREATE PROJECT OFFCANVAS DRAWER */}
