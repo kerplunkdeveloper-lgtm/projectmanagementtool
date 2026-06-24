@@ -10,7 +10,7 @@ import { FiBell, FiX } from 'react-icons/fi';
 const playNotificationSound = () => {
   try {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const playTone = (time, freq, duration) => {
+    const playTone = (time, freq, duration, vol) => {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       
@@ -21,7 +21,7 @@ const playNotificationSound = () => {
       osc.frequency.setValueAtTime(freq, time);
       
       gain.gain.setValueAtTime(0, time);
-      gain.gain.linearRampToValueAtTime(0.12, time + 0.02);
+      gain.gain.linearRampToValueAtTime(vol, time + 0.015);
       gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
       
       osc.start(time);
@@ -29,8 +29,10 @@ const playNotificationSound = () => {
     };
 
     const now = audioCtx.currentTime;
-    playTone(now, 880, 0.15); // A5
-    playTone(now + 0.08, 1109, 0.3); // C#6
+    // Premium major triad crystal bell chime (C6, E6, G6)
+    playTone(now, 1046.50, 0.6, 0.08); // C6
+    playTone(now + 0.05, 1318.51, 0.8, 0.06); // E6
+    playTone(now + 0.10, 1567.98, 1.0, 0.05); // G6
   } catch (err) {
     console.error("Audio Context playback failed:", err);
   }
@@ -51,53 +53,115 @@ const useSocket = () => {
       });
 
       socket.current.on('notification', (notification) => {
-        dispatch(addNotification(notification));
-        
-        // Sync RTK Query cache so the Navbar instantly shows the new notification
-        dispatch(apiSlice.util.invalidateTags(['Notification']));
-
-        // If it's a direct or group message, increment the sidebar chat unread badge count
-        if (notification.type === 'message_received' && notification.chatRoomId) {
-          dispatch(incrementUnreadCount(notification.chatRoomId));
-        }
-        
         // Play premium audio chime
         playNotificationSound();
 
-        // Premium Real-time Toast
-        toast.custom((t) => (
-          <div
-            className={`${
-              t.visible ? 'animate-enter' : 'animate-leave'
-            } max-w-[340px] w-full bg-gradient-to-r from-blue-600 to-indigo-700 dark:from-[#0f172a] dark:to-[#0f172a] shadow-[0_12px_30px_rgba(59,130,246,0.25)] dark:shadow-[0_12px_30px_rgba(229,255,0,0.1)] border border-blue-500/30 dark:border-slate-800/80 rounded-xl pointer-events-auto flex items-center p-3 pr-8 relative`}
-          >
-            {/* White/Neon Icon Wrapper */}
-            <div className="flex-shrink-0 relative">
-              <div className="absolute inset-0 bg-white/20 dark:bg-[#e5ff00]/10 rounded-lg animate-pulse" />
-              <div className="h-8 w-8 rounded-lg bg-white dark:bg-[#e5ff00] flex items-center justify-center text-blue-600 dark:text-black shadow-sm relative z-10">
-                <FiBell size={14} />
-              </div>
-            </div>
+        if (notification.type === 'message_received') {
+          // If it's a message, increment the sidebar chat unread count
+          if (notification.chatRoomId) {
+            dispatch(incrementUnreadCount(notification.chatRoomId));
+          }
 
-            {/* Content text */}
-            <div className="ml-3 flex-1 min-w-0">
-              <p className="text-[9px] font-bold text-blue-200 dark:text-slate-400 tracking-wider uppercase">
-                New Notification
-              </p>
-              <p className="mt-0.5 text-[11px] font-bold text-white dark:text-slate-100 leading-normal">
-                {notification.message}
-              </p>
-            </div>
+          // Premium Chatting-Style Toast Card on the Top Right
+          const senderName = notification.sender?.name || "Someone";
+          const senderImage = notification.sender?.profile?.profileImage?.url;
 
-            {/* Top-Right Dismiss Button */}
-            <button
-              onClick={() => toast.dismiss(t.id)}
-              className="absolute top-2.5 right-2.5 w-5 h-5 rounded-md hover:bg-white/10 dark:hover:bg-slate-800 flex items-center justify-center text-blue-100 dark:text-slate-400 hover:text-white dark:hover:text-[#e5ff00] transition-colors"
+          toast.custom((t) => (
+            <div
+              className={`${
+                t.visible ? 'animate-enter' : 'animate-leave'
+              } max-w-[360px] w-full bg-white dark:bg-[#0f172a] shadow-2xl rounded-2xl pointer-events-auto flex items-start p-4 border border-slate-100 dark:border-slate-800 relative cursor-pointer`}
+              onClick={() => {
+                toast.dismiss(t.id);
+                window.location.href = "/chat";
+              }}
             >
-              <FiX size={12} />
-            </button>
-          </div>
-        ), { duration: 5000 });
+              {/* Sender Image / Initials */}
+              <div className="shrink-0">
+                {senderImage ? (
+                  <img
+                    src={senderImage}
+                    alt={senderName}
+                    className="w-10 h-10 rounded-full object-cover border-2 border-indigo-500/10"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-black shadow-inner">
+                    {senderName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+
+              {/* Chat Message details */}
+              <div className="ml-3 flex-1 min-w-0 pr-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-black text-slate-800 dark:text-slate-100 truncate">
+                    {senderName}
+                  </p>
+                  <span className="text-[8px] font-bold text-indigo-600 dark:text-[#e5ff00] uppercase tracking-wider bg-indigo-50 dark:bg-[#e5ff00]/10 px-1.5 py-0.5 rounded-md">
+                    Message
+                  </span>
+                </div>
+                <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                  {notification.message.replace(/^New message( in General Team Chat)? from [^:]+: /, '')}
+                </p>
+              </div>
+
+              {/* Dismiss Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toast.dismiss(t.id);
+                }}
+                className="absolute top-3 right-3 w-5 h-5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors"
+              >
+                <FiX size={12} />
+              </button>
+            </div>
+          ), { 
+            duration: 3500, 
+            position: 'top-right' 
+          });
+        } else {
+          // Standard system notifications (like task assigned)
+          dispatch(addNotification(notification));
+          
+          // Sync RTK Query cache
+          dispatch(apiSlice.util.invalidateTags(['Notification']));
+
+          // Standard Alert Toast
+          toast.custom((t) => (
+            <div
+              className={`${
+                t.visible ? 'animate-enter' : 'animate-leave'
+              } max-w-[340px] w-full bg-white dark:bg-[#0f172a] shadow-xl border border-slate-200/60 dark:border-slate-800/80 rounded-xl pointer-events-auto flex items-center p-3 pr-8 relative`}
+            >
+              <div className="flex-shrink-0 relative">
+                <div className="h-8 w-8 rounded-lg bg-indigo-50 dark:bg-slate-800 flex items-center justify-center text-indigo-600 dark:text-white shadow-sm relative z-10">
+                  <FiBell size={14} />
+                </div>
+              </div>
+
+              <div className="ml-3 flex-1 min-w-0">
+                <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 tracking-wider uppercase">
+                  System Alert
+                </p>
+                <p className="mt-0.5 text-[11px] font-bold text-slate-800 dark:text-slate-100 leading-normal">
+                  {notification.message}
+                </p>
+              </div>
+
+              <button
+                onClick={() => toast.dismiss(t.id)}
+                className="absolute top-2.5 right-2.5 w-5 h-5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 transition-colors"
+              >
+                <FiX size={12} />
+              </button>
+            </div>
+          ), { 
+            duration: 3000, 
+            position: 'bottom-right' 
+          });
+        }
       });
 
       return () => {

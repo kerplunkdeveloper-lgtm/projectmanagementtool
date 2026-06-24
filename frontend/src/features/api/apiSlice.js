@@ -143,7 +143,10 @@ export const apiSlice = createApi({
     getNotifications: builder.query({
       query: () => "/notifications",
       providesTags: ["Notification"],
-      transformResponse: (response) => response.data,
+      transformResponse: (response) => {
+        const notifications = response?.data || [];
+        return notifications.filter(n => n.type !== 'message_received');
+      },
     }),
     markAsRead: builder.mutation({
       query: (id) => ({

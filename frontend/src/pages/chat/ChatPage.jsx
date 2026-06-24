@@ -53,6 +53,8 @@ import {
 import io from "socket.io-client";
 import toast from "react-hot-toast";
 import axiosInstance from "../../services/axiosInstance";
+import { motion, AnimatePresence } from "framer-motion";
+import { FiMail, FiInfo } from "react-icons/fi";
 
 const EMOJIS = [
   "😀",
@@ -269,6 +271,7 @@ const ChatPage = () => {
   const [callRoomId, setCallRoomId] = useState("");
   const [uploadingFile, setUploadingFile] = useState(false);
   const [activeMessageMenu, setActiveMessageMenu] = useState(null);
+  const [profileModalUser, setProfileModalUser] = useState(null);
 
   const zegoInitializedRef = useRef(false);
   const zegoInstanceRef = useRef(null);
@@ -1075,7 +1078,7 @@ const ChatPage = () => {
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-xs font-black theme-text-primary leading-tight truncate max-w-[120px] sm:max-w-xs">
-                    General Team Chat
+                    General Group Chat
                   </h3>
                   <p className="text-[9px] text-emerald-500 font-black uppercase tracking-wider leading-none mt-1 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />{" "}
@@ -1106,10 +1109,14 @@ const ChatPage = () => {
                   <img
                     src={activeChatUser.profile.profileImage.url}
                     alt="profile"
-                    className="w-10 h-10 rounded-2xl object-cover border theme-border shrink-0"
+                    className="w-10 h-10 rounded-2xl object-cover border theme-border shrink-0 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                    onClick={() => setProfileModalUser(activeChatUser)}
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-800/60 flex items-center justify-center font-black text-indigo-600 dark:text-indigo-400 text-xs shrink-0">
+                  <div 
+                    className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-800/60 flex items-center justify-center font-black text-indigo-600 dark:text-indigo-400 text-xs shrink-0 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                    onClick={() => setProfileModalUser(activeChatUser)}
+                  >
                     {activeChatUser.name.charAt(0)}
                   </div>
                 )}
@@ -1212,10 +1219,20 @@ const ChatPage = () => {
                       <img
                         src={m.sender.profile.profileImage.url}
                         alt="profile"
-                        className="w-7 h-7 rounded-lg object-cover border border-slate-300 dark:border-slate-800 shrink-0"
+                        className="w-7 h-7 rounded-lg object-cover border border-slate-300 dark:border-slate-800 shrink-0 cursor-pointer hover:scale-110 active:scale-90 transition-transform duration-200"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setProfileModalUser(m.sender);
+                        }}
                       />
                     ) : (
-                      <div className="w-7 h-7 rounded-lg bg-blue-300 dark:bg-[#e5ff00] text-[10px] font-black text-slate-900 dark:text-slate-900 flex items-center justify-center shrink-0">
+                      <div 
+                        className="w-7 h-7 rounded-lg bg-blue-300 dark:bg-[#e5ff00] text-[10px] font-black text-slate-900 dark:text-slate-900 flex items-center justify-center shrink-0 cursor-pointer hover:scale-110 active:scale-90 transition-transform duration-200"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setProfileModalUser(m.sender);
+                        }}
+                      >
                         {senderInitial}
                       </div>
                     ))}
@@ -2030,6 +2047,134 @@ const ChatPage = () => {
           </div>
         </div>
       )}
+
+      {/* USER DETAILS MODAL */}
+      <AnimatePresence>
+        {profileModalUser && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setProfileModalUser(null)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            />
+
+            {/* Modal Box */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="relative w-full max-w-sm md:max-w-2xl overflow-hidden bg-white dark:bg-[#0f172a] border border-slate-200/80 rounded-3xl shadow-2xl z-10 flex flex-col md:flex-row transition-colors duration-300"
+            >
+              {/* Left Section - Full Image / Initials */}
+              <div className="w-full md:w-[42%] min-h-[220px] md:min-h-[380px] bg-slate-50 dark:bg-slate-900/50 relative flex items-center justify-center shrink-0 overflow-hidden">
+                {profileModalUser.profile?.profileImage?.url ? (
+                  <>
+                    <img
+                      src={profileModalUser.profile.profileImage.url}
+                      alt={profileModalUser.name}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-black/50 md:from-black/30 via-transparent to-transparent" />
+                  </>
+                ) : (
+                  <div className="w-full h-full min-h-[220px] md:min-h-[380px] bg-gradient-to-tr from-indigo-500 to-purple-600 dark:from-[#e5ff00]/20 dark:to-emerald-500/20 flex items-center justify-center text-white dark:text-[#e5ff00] text-6xl font-black shadow-inner">
+                    {profileModalUser.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+
+              {/* Right Section - Details */}
+              <div className="w-full md:w-[58%] p-6 md:p-8 flex flex-col justify-center relative bg-white dark:bg-[#0f172a]">
+                {/* Close Button */}
+                <button
+                  onClick={() => setProfileModalUser(null)}
+                  className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-800 transition-colors"
+                >
+                  <FiX size={18} />
+                </button>
+
+                <div>
+                  {/* Header Badge */}
+                  <span className="inline-block text-[9px] font-extrabold tracking-widest text-indigo-600 dark:text-[#e5ff00] uppercase bg-indigo-50 dark:bg-[#e5ff00]/10 px-2.5 py-1 rounded-full mb-4">
+                    Member Profile
+                  </span>
+
+                  {/* Basic Info */}
+                  <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight leading-tight">
+                    {profileModalUser.name}
+                  </h2>
+                  <div className="flex flex-wrap items-center gap-1.5 mt-2 mb-6">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-md">
+                      {profileModalUser.role}
+                    </span>
+                    {profileModalUser.department && (
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-650 dark:text-[#e5ff00] bg-indigo-50 dark:bg-[#e5ff00]/10 px-2.5 py-0.5 rounded-md">
+                        {profileModalUser.department}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Details List */}
+                  <div className="space-y-4 border-t border-slate-100 pt-5">
+                    {/* Email */}
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-slate-450 shrink-0">
+                        <FiMail size={14} className="text-indigo-600 dark:text-[#e5ff00]" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[8px] font-extrabold uppercase tracking-wider text-slate-500">
+                          Email Address
+                        </p>
+                        <p className="text-xs font-semibold text-slate-700 truncate mt-0.5 select-all">
+                          {profileModalUser.email}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Phone */}
+                    {profileModalUser.profile?.phone ? (
+                      <div className="flex items-start gap-3">
+                        <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-slate-450 shrink-0">
+                          <FiPhone size={14} className="text-indigo-600 dark:text-[#e5ff00]" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[8px] font-extrabold uppercase tracking-wider text-slate-500">
+                            Phone Number
+                          </p>
+                          <p className="text-xs font-semibold text-slate-700 mt-0.5">
+                            {profileModalUser.profile.phone}
+                          </p>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {/* Bio */}
+                    {profileModalUser.profile?.bio ? (
+                      <div className="flex items-start gap-3">
+                        <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-slate-450 shrink-0">
+                          <FiInfo size={14} className="text-indigo-600 dark:text-[#e5ff00]" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[8px] font-extrabold uppercase tracking-wider text-slate-500">
+                            About / Bio
+                          </p>
+                          <p className="text-[11px] font-medium text-slate-600 leading-relaxed mt-0.5 whitespace-pre-line italic">
+                            "{profileModalUser.profile.bio}"
+                          </p>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

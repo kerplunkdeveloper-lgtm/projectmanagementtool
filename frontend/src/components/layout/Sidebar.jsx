@@ -62,8 +62,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   });
 
   const [isWorkOpen, setIsWorkOpen] = useState(false);
-  const [isProjectsListOpen, setIsProjectsListOpen] = useState(true);
-  const [isPortfoliosListOpen, setIsPortfoliosListOpen] = useState(true);
+  const [isProjectsListOpen, setIsProjectsListOpen] = useState(false);
+  const [isPortfoliosListOpen, setIsPortfoliosListOpen] = useState(false);
 
   useEffect(() => {
     dispatch(getProjects());
@@ -349,7 +349,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                             )}
 
                             {item.name === "Chat" && totalUnreadChatCount > 0 && (
-                              <span className="ml-auto min-w-[16px] h-[16px] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse">
+                              <span className="ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-red-600 px-1 text-[9px] font-black text-white shadow-[0_4px_10px_rgba(244,63,94,0.3)] animate-pulse border border-white/25">
                                 {totalUnreadChatCount}
                               </span>
                             )}

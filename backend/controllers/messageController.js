@@ -149,11 +149,15 @@ exports.sendMessage = async (req, res) => {
             recipient: otherUser._id,
             sender: req.user.id,
             type: "message_received",
-            message: `New message in General Team Chat from ${req.user.name}: "${notificationText}"`,
+            message: `New message in General Group Chat from ${req.user.name}: "${notificationText}"`,
             chatRoomId: "group",
             chatRoomType: "group",
           });
-          const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
+          const populatedNotification = await Notification.findById(notification._id).populate({
+            path: "sender",
+            select: "name profile",
+            populate: { path: "profile" }
+          });
           io.to(otherUser._id.toString()).emit("notification", populatedNotification);
         }
       }
@@ -175,7 +179,11 @@ exports.sendMessage = async (req, res) => {
               chatRoomId: room._id.toString(),
               chatRoomType: "group",
             });
-            const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
+            const populatedNotification = await Notification.findById(notification._id).populate({
+              path: "sender",
+              select: "name profile",
+              populate: { path: "profile" }
+            });
             io.to(memberId.toString()).emit("notification", populatedNotification);
           }
         }
@@ -197,7 +205,11 @@ exports.sendMessage = async (req, res) => {
           chatRoomType: "direct",
         });
         
-        const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
+        const populatedNotification = await Notification.findById(notification._id).populate({
+          path: "sender",
+          select: "name profile",
+          populate: { path: "profile" }
+        });
         io.to(recipient.toString()).emit("notification", populatedNotification);
       }
     }
