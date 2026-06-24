@@ -54,7 +54,7 @@ import io from "socket.io-client";
 import toast from "react-hot-toast";
 import axiosInstance from "../../services/axiosInstance";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiMail, FiInfo } from "react-icons/fi";
+import { FiMail, FiInfo, FiEye } from "react-icons/fi";
 
 const EMOJIS = [
   "😀",
@@ -738,6 +738,21 @@ const ChatPage = () => {
     }
   };
 
+  // Clear Direct Message conversation
+  const handleClearChat = async (targetUserId, targetUserName) => {
+    if (!window.confirm(`Are you sure you want to delete all messages with ${targetUserName}?`)) return;
+
+    try {
+      await dispatch(clearChatAction(targetUserId)).unwrap();
+      toast.success("Conversation deleted successfully");
+      if (activeChat === targetUserId) {
+        setActiveChat("group");
+      }
+    } catch (err) {
+      toast.error(err || "Failed to delete conversation");
+    }
+  };
+
   const handleToggleMember = (userId) => {
     if (selectedMembers.includes(userId)) {
       setSelectedMembers((prev) => prev.filter((id) => id !== userId));
@@ -1004,13 +1019,13 @@ const ChatPage = () => {
             </p>
           ) : (
             sortedDMs.map((u) => (
-              <button
+              <div
                 key={u._id}
                 onClick={() => {
                   setActiveChat(u._id);
                   setShowChatWindowMobile(true);
                 }}
-                className={`chat-sidebar-item ${
+                className={`chat-sidebar-item group relative flex items-center gap-3 cursor-pointer select-none ${
                   activeChat === u._id ? "chat-sidebar-item-active" : ""
                 }`}
               >
@@ -1033,23 +1048,48 @@ const ChatPage = () => {
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="item-title truncate block">
-                      {u.name}
-                    </span>
-                    {unreadCounts[u._id] > 0 && (
-                      <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shrink-0 min-w-[16px] text-center shadow-sm">
-                        {unreadCounts[u._id]}
-                      </span>
-                    )}
-                  </div>
+                  <span className="item-title truncate block">
+                    {u.name}
+                  </span>
                   <p className="item-subtitle truncate mt-0.5">
                     {lastMessages[u._id]
                       ? formatLastMessageText(lastMessages[u._id])
                       : `${u.role}${u.department ? ` — ${u.department}` : ""}`}
                   </p>
                 </div>
-              </button>
+                <div className="flex items-center gap-1.5 shrink-0 ml-auto relative min-h-[32px] justify-end">
+                  {/* Unread badge */}
+                  {unreadCounts[u._id] > 0 && (
+                    <span className="absolute right-0 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shrink-0 min-w-[16px] text-center shadow-sm group-hover:scale-0 group-hover:opacity-0 transition-all duration-200">
+                      {unreadCounts[u._id]}
+                    </span>
+                  )}
+                  
+                  {/* Action Group */}
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100 transition-all duration-200 origin-right">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setProfileModalUser(u);
+                      }}
+                      className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-650 dark:hover:text-[#e5ff00] transition-colors cursor-pointer"
+                      title="View Profile"
+                    >
+                      <FiEye size={13} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleClearChat(u._id, u.name);
+                      }}
+                      className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-rose-500 dark:hover:text-rose-450 transition-colors cursor-pointer"
+                      title="Delete Conversation"
+                    >
+                      <FiTrash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              </div>
             ))
           )}
         </div>
