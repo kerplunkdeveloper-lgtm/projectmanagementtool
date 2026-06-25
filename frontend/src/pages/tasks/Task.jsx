@@ -161,6 +161,36 @@ const Task = () => {
     return `${day} ${month} ${year}`;
   };
 
+  // Date and Time formatter helper: DD MMM YYYY HH:MM AM/PM
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return "—";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "—";
+    const day = date.getDate();
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    let hours = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    const ampm = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    return `${day} ${month} ${year} ${hours}:${minutes} ${ampm}`;
+  };
+
   // Filter tasks
   const filteredTasks = React.useMemo(() => {
     return myTasks.filter((task) => {
@@ -571,24 +601,8 @@ const Task = () => {
   return (
     <div className="p-1 space-y-4 pb-16">
       {/* UNIFIED HEADER & CONTROLS */}
-      <div className="bg-white dark:bg-[#0f172a] relative z-20">
-        <h1 className="text-lg font-black tracking-tight text-slate-800 dark:text-yellow-50 whitespace-nowrap hidden sm:block px-2">
-          My Assigned Tasks
-        </h1>
-      </div>
+
       <div className="flex flex-col xl:flex-row items-center justify-between gap-4 bg-white dark:bg-[#0f172a] p-2 relative z-20">
-        {/* Left: Title, Add Task & Search */}
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full xl:w-auto">
-          <div className="relative w-full sm:w-56 shrink-0">
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-9 pl-9 pr-4  bg-slate-50 dark:bg-black text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-semibold"
-            />
-          </div>
-        </div>
 
         {/* Center: View Toggle */}
         <div className="flex bg-slate-50 dark:bg-black p-1 rounded-xl shrink-0 w-full xl:w-auto mx-auto justify-center">
@@ -959,257 +973,285 @@ const Task = () => {
           )}
         </div>
       ) : (
-        <div className="bg-white dark:bg-[#0f172a]  shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)] overflow-hidden transition-all">
-          <div className="overflow-x-auto w-full">
-            {/* Table View (now responsive on all devices if preferred, but usually cards for mobile) */}
-            <table className="w-full min-w-[800px] text-left border-collapse table-auto border border-slate-200/60 dark:border-slate-800/80 rounded-lg overflow-hidden">
-              <thead>
-                <tr className="bg-slate-50/50 dark:bg-slate-800/30 text-slate-500 dark:text-slate-400 text-[10px] font-bold tracking-wider border-b border-slate-200/60 dark:border-slate-800/80">
-                  <th className="px-6 py-2 w-12 text-center border-r border-slate-200/60 dark:border-slate-800/80">
-                    Status
-                  </th>
-                  <th className="px-6 py-2 border-r border-slate-200/60 dark:border-slate-800/80">
-                    Task Name
-                  </th>
-                  <th className="px-6 py-2 border-r border-slate-200/60 dark:border-slate-800/80">
-                    Associated Project
-                  </th>
-                  <th className="px-6 py-2 border-r border-slate-200/60 dark:border-slate-800/80">
-                    Priority
-                  </th>
-                  <th className="px-6 py-2 border-r border-slate-200/60 dark:border-slate-800/80">
-                    Start Date
-                  </th>
-                  <th className="px-6 py-2 border-r border-slate-200/60 dark:border-slate-800/80">
-                    End Date
-                  </th>
-                  <th className="px-6 py-2 w-44">Status Mode</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
-                {(() => {
-                  const uniqueSections = Array.from(
-                    new Set(
-                      paginatedTasks.map(
-                        (t) => t.section || "Recent assignment",
-                      ),
-                    ),
-                  );
+        <div className="space-y-4">
+          {(() => {
+            const uniqueStatuses = ["Pending", "In Progress", "Completed", "On Hold"];
 
-                  return uniqueSections.map((sectionName) => {
-                    const tasksInSection = paginatedTasks.filter(
-                      (t) =>
-                        t.section === sectionName ||
-                        (!t.section && sectionName === "Recent assignment"),
-                    );
-                    const isSectionCollapsed = !!collapsedSections[sectionName];
-                    const sectionStyle = getSectionStyle(sectionName);
+            return uniqueStatuses.map((statusName) => {
+              const tasksInStatus = paginatedTasks.filter(
+                (t) => (t.status || "Pending") === statusName,
+              );
+              if (tasksInStatus.length === 0) return null;
 
-                    return (
-                      <React.Fragment key={sectionName}>
-                        {/* Section Header Row */}
-                        <tr className="bg-gradient-to-r from-blue-50/40 via-slate-50/10 to-transparent dark:from-blue-950/15 dark:via-slate-900/5 dark:to-transparent border-y border-slate-200/50 dark:border-slate-800/80 group">
-                          <td
-                            colSpan={7}
-                            className="px-6 py-2 border-b border-slate-200/40 dark:border-slate-800/40"
-                          >
-                            <div className="flex items-center gap-3 py-1 border-l-4 border-blue-500 dark:border-[#e5ff00] pl-3">
-                              <button
-                                onClick={() => toggleSection(sectionName)}
-                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-0.5 rounded cursor-pointer"
-                              >
-                                <svg
-                                  viewBox="0 0 24 24"
-                                  className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${isSectionCollapsed ? "" : "rotate-90"}`}
-                                  fill="currentColor"
-                                >
-                                  <path d="M8 5v14l11-7z" />
-                                </svg>
-                              </button>
-                              <span
-                                onClick={() => toggleSection(sectionName)}
-                                className="font-bold text-xs uppercase tracking-wider text-slate-700 dark:text-slate-350 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer select-none"
-                              >
-                                {sectionName}
-                              </span>
-                              <span className="ml-2 bg-blue-100/60 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200/40 dark:border-blue-800/30 font-bold px-2 py-0.5 rounded-full text-[10px]">
-                                {tasksInSection.length}
-                              </span>
-                            </div>
-                          </td>
-                        </tr>
+              const isSectionCollapsed = collapsedSections[statusName] !== undefined
+                ? collapsedSections[statusName]
+                : false;              const displayStatusName = statusName === "Pending" ? "Not started" : statusName === "Completed" ? "Done" : statusName;
 
-                        {!isSectionCollapsed &&
-                          tasksInSection.map((task) => {
-                            const isCompleted = task.status === "Completed";
-                            const statusStyle = getStatusStyle(task.status);
-                            const isExpanded = !!expandedTasks[task._id];
+              const statusColors = {
+                "Pending": { 
+                  dot: "bg-slate-400 dark:bg-slate-500", 
+                  text: "text-slate-600 dark:text-slate-400", 
+                  bg: "bg-slate-100/80 dark:bg-[#1e293b]/60" 
+                },
+                "In Progress": { 
+                  dot: "bg-blue-500 dark:bg-blue-400", 
+                  text: "text-blue-700 dark:text-[#e5ff00]", 
+                  bg: "bg-blue-50 dark:bg-[#e5ff00]/10" 
+                },
+                "Completed": { 
+                  dot: "bg-emerald-500 dark:bg-emerald-400", 
+                  text: "text-emerald-700 dark:text-emerald-400", 
+                  bg: "bg-emerald-50 dark:bg-emerald-500/15" 
+                },
+                "On Hold": { 
+                  dot: "bg-amber-500 dark:bg-amber-400", 
+                  text: "text-amber-700 dark:text-amber-400", 
+                  bg: "bg-amber-50 dark:bg-amber-500/15" 
+                },
+              };
+              const color = statusColors[statusName] || { dot: "bg-slate-400", text: "text-slate-600", bg: "bg-slate-100" };
 
-                            return (
-                              <React.Fragment key={task._id}>
-                                <tr
-                                  className={`hover:bg-slate-50/40 dark:hover:bg-slate-850/40 transition-colors group ${
-                                    isCompleted
-                                      ? "bg-slate-50/20 text-slate-400 dark:text-slate-550"
-                                      : "text-slate-850 dark:text-slate-200"
-                                  }`}
-                                >
-                                  {/* Checkbox Status Toggle */}
-                                  <td
-                                    className="px-6 py-2 text-center border-r border-b border-slate-200/60 dark:border-slate-800/80"
-                                    onClick={(e) => e.stopPropagation()}
+              return (
+                <div key={statusName} className="bg-white dark:bg-[#070b13] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)] rounded-xl overflow-hidden border border-slate-200/60 dark:border-[#1e293b]/50 transition-all">
+                  {/* Section Accordion Header */}
+                  <div
+                    onClick={() => toggleSection(statusName)}
+                    className="flex items-center justify-between px-6 py-3 bg-slate-50/50 dark:bg-[#111827]/40 border-b border-slate-200/40 dark:border-[#1e293b]/30 cursor-pointer select-none group hover:bg-slate-100/40 dark:hover:bg-[#111827]/60 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        className="text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors flex items-center justify-center p-0.5 rounded cursor-pointer"
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${isSectionCollapsed ? "" : "rotate-90"}`}
+                          fill="currentColor"
+                        >
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </button>
+
+                      <div className={`flex items-center gap-2 px-2.5 py-0.5 rounded-full ${color.bg} border border-slate-200/40 dark:border-[#1e293b]/30`}>
+                        <span className={`w-2 h-2 rounded-full ${color.dot}`} />
+                        <span className={`font-bold text-[10px] uppercase tracking-wider ${color.text}`}>
+                          {displayStatusName}
+                        </span>
+                      </div>
+
+                      <span className="bg-slate-100 dark:bg-[#1e293b]/40 text-slate-500 dark:text-slate-400 font-bold px-2 py-0.5 rounded-full text-[10px]">
+                        {tasksInStatus.length}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-[10px] hover:text-slate-700 dark:hover:text-slate-200 p-1 font-extrabold">•••</span>
+                      <span className="text-[10px] hover:text-slate-700 dark:hover:text-slate-200 p-1 font-bold">+</span>
+                    </div>
+                  </div>
+
+                  {/* Collapsible Content */}
+                  {!isSectionCollapsed && (
+                    <div className="overflow-x-auto w-full">
+                      <table className="w-full min-w-[800px] text-left border-collapse table-auto border-0">
+                        <thead>
+                          <tr className="bg-slate-50/20 dark:bg-[#0f172a]/30 text-slate-500 dark:text-slate-400 text-[10px] font-bold tracking-wider border-b border-slate-200/60 dark:border-[#1e293b]/50">
+                            <th className="px-6 py-2 w-12 text-center border-r border-slate-200/60 dark:border-[#1e293b]/40">
+                              Status
+                            </th>
+                            <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-24">
+                              Priority
+                            </th>
+                            <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40">
+                              Task Name
+                            </th>
+                            <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-36">
+                              Status Mode
+                            </th>
+                            <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-32">
+                              Due Date
+                            </th>
+                            <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-44">
+                              Assigned By
+                            </th>
+                            <th className="px-6 py-2 w-48">
+                              Created Time
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
+                          {tasksInStatus.length > 0 ? (
+                            tasksInStatus.map((task) => {
+                              const isCompleted = task.status === "Completed";
+                              const statusStyle = getStatusStyle(task.status);
+                              const isExpanded = !!expandedTasks[task._id];
+
+                              return (
+                                <React.Fragment key={task._id}>
+                                  <tr
+                                    className={`hover:bg-slate-50/40 dark:hover:bg-[#1e293b]/20 transition-colors group ${
+                                      isCompleted
+                                        ? "bg-slate-50/20 text-slate-400 dark:text-slate-500"
+                                        : "text-slate-700 dark:text-slate-200"
+                                    }`}
                                   >
-                                    <button
-                                      onClick={() => handleToggleStatus(task)}
-                                      className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
-                                        isCompleted
-                                          ? "bg-emerald-500 border-emerald-500 text-white"
-                                          : "border-slate-300 dark:border-slate-700 hover:border-emerald-500 text-transparent hover:text-slate-400"
-                                      }`}
+                                    {/* Checkbox Status Toggle */}
+                                    <td
+                                      className="px-6 py-2 text-center border-r border-b border-slate-200/60 dark:border-[#1e293b]/40"
+                                      onClick={(e) => e.stopPropagation()}
                                     >
-                                      <FiCheck size={11} />
-                                    </button>
-                                  </td>
-
-                                  {/* Title & Subtasks Dropdown */}
-                                  <td className="px-6 py-2 font-bold border-r border-b border-slate-200/60 dark:border-slate-800/80">
-                                    <div className="flex items-center gap-3">
-                                      <span
-                                        className={`text-xs ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-850 dark:text-white"}`}
-                                      >
-                                        {task.title}
-                                      </span>
-                                      {task.subtasks?.length > 0 && (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            toggleTaskExpanded(task._id);
-                                          }}
-                                          className="text-slate-400 hover:text-blue-600 flex items-center gap-0.5 text-[10px] font-extrabold shrink-0"
-                                        >
-                                          {isExpanded ? (
-                                            <FiChevronDown size={14} />
-                                          ) : (
-                                            <FiChevronRight size={14} />
-                                          )}
-                                          <span>
-                                            Subtasks ({task.subtasks.length})
-                                          </span>
-                                        </button>
-                                      )}
-                                    </div>
-                                  </td>
-
-                                  {/* Project Badge */}
-                                  <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-slate-800/80">
-                                    <span className="inline-flex items-center gap-1.5 font-extrabold text-[10px]  tracking-wider text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-800/40">
-                                      <FiBriefcase size={11} />
-                                      {task.project?.name || "Internal"}
-                                    </span>
-                                  </td>
-
-                                  {/* Priority Badge */}
-                                  <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-slate-800/80">
-                                    <span
-                                      className={`px-2 py-0.5 rounded-lg border text-[9px] font-extrabold  tracking-wider ${getPriorityStyle(task.priority || "Medium")}`}
-                                    >
-                                      {task.priority || "Medium"}
-                                    </span>
-                                  </td>
-
-                                  {/* Start Date */}
-                                  <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-slate-800/80">
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-200/50 dark:border-blue-500/40 font-extrabold text-[10px] whitespace-nowrap tracking-wider">
-                                      <FiCalendar size={11} />
-                                      {formatDate(task.startDate)}
-                                    </span>
-                                  </td>
-
-                                  {/* End Date */}
-                                  <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-slate-800/80">
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200/50 dark:border-rose-500/40 font-extrabold text-[10px] whitespace-nowrap tracking-wider">
-                                      <FiCalendar size={11} />
-                                      {formatDate(task.dueDate)}
-                                    </span>
-                                  </td>
-
-                                  {/* Status Select */}
-                                  <td
-                                    className="px-6 py-2 border-b border-slate-200/60 dark:border-slate-800/80"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <select
-                                      value={task.status}
-                                      onChange={(e) =>
-                                        handleStatusChange(
-                                          task._id,
-                                          e.target.value,
-                                        )
-                                      }
-                                      className={`px-2.5 py-1 text-[10px] font-extrabold rounded-lg border tracking-wider cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors ${statusStyle.bg}`}
-                                    >
-                                      <option
-                                        value="Pending"
-                                        className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
-                                      >
-                                        Pending
-                                      </option>
-                                      <option
-                                        value="In Progress"
-                                        className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
-                                      >
-                                        In Progress
-                                      </option>
-                                      <option
-                                        value="Completed"
-                                        className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
-                                      >
-                                        Completed
-                                      </option>
-                                      <option
-                                        value="On Hold"
-                                        className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
-                                      >
-                                        On Hold
-                                      </option>
-                                    </select>
-                                  </td>
-                                </tr>
-
-                                {/* Expanded Subtasks List (Separate Rows for Column Alignment) */}
-                                {isExpanded &&
-                                  task.subtasks?.length > 0 &&
-                                  task.subtasks.map((sub, subIdx) => {
-                                    const isSubCompleted =
-                                      sub.status === "Completed";
-                                    const subStatusStyle = getStatusStyle(
-                                      sub.status,
-                                    );
-                                    return (
-                                      <tr
-                                        key={sub._id || subIdx}
-                                        className={`bg-slate-50/5 dark:bg-slate-900/5 hover:bg-slate-50/20 dark:hover:bg-slate-800/25 transition-colors border-b border-slate-100/60 dark:border-slate-800/40 ${
-                                          isSubCompleted
-                                            ? "text-slate-400 dark:text-slate-550"
-                                            : "text-slate-850 dark:text-slate-200"
+                                      <button
+                                        onClick={() => handleToggleStatus(task)}
+                                        className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all mx-auto ${
+                                          isCompleted
+                                            ? "bg-emerald-500 border-emerald-500 text-white"
+                                            : "border-slate-300 dark:border-slate-700 hover:border-emerald-500 text-transparent hover:text-slate-400"
                                         }`}
                                       >
-                                        {/* 1. Status Column (Empty for Alignment) */}
-                                        <td className="px-6 py-1.5 w-12 border-r border-b border-slate-100/60 dark:border-slate-800/40"></td>
+                                        <FiCheck size={11} />
+                                      </button>
+                                    </td>
 
-                                        {/* 2. Subtask Name Column with Indentation and indicator */}
-                                        <td className="px-6 py-1.5 font-bold border-r border-b border-slate-100/60 dark:border-slate-800/40">
-                                          <div className="flex items-center gap-3 pl-4 border-l-2 border-slate-200 dark:border-slate-800">
-                                            <FiCornerDownRight
-                                              className="text-slate-400 shrink-0"
-                                              size={12}
-                                            />
+                                    {/* Priority Badge */}
+                                    <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40">
+                                      <span
+                                        className={`px-2 py-0.5 rounded-lg border text-[9px] font-extrabold tracking-wider ${getPriorityStyle(task.priority || "Medium")}`}
+                                      >
+                                        {task.priority || "Medium"}
+                                      </span>
+                                    </td>
+
+                                    {/* Title & Subtasks Dropdown */}
+                                    <td className="px-6 py-2 font-bold border-r border-b border-slate-200/60 dark:border-[#1e293b]/40">
+                                      <div className="flex items-center gap-3">
+                                        <span
+                                          className={`text-xs ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-white"}`}
+                                        >
+                                          {task.title}
+                                        </span>
+                                        {task.subtasks?.length > 0 && (
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              toggleTaskExpanded(task._id);
+                                            }}
+                                            className="text-slate-400 hover:text-blue-600 flex items-center gap-0.5 text-[10px] font-extrabold shrink-0"
+                                          >
+                                            {isExpanded ? (
+                                              <FiChevronDown size={14} />
+                                            ) : (
+                                              <FiChevronRight size={14} />
+                                            )}
+                                            <span>
+                                              Subtasks ({task.subtasks.length})
+                                            </span>
+                                          </button>
+                                        )}
+                                      </div>
+                                    </td>
+
+                                    {/* Status Select */}
+                                    <td
+                                      className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-36"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <select
+                                        value={task.status}
+                                        onChange={(e) =>
+                                          handleStatusChange(
+                                            task._id,
+                                            e.target.value,
+                                          )
+                                        }
+                                        className={`px-2.5 py-1 text-[10px] font-extrabold rounded-lg border tracking-wider cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors ${statusStyle.bg}`}
+                                      >
+                                        <option
+                                          value="Pending"
+                                          className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                                        >
+                                          Pending
+                                        </option>
+                                        <option
+                                          value="In Progress"
+                                          className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                                        >
+                                          In Progress
+                                        </option>
+                                        <option
+                                          value="Completed"
+                                          className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                                        >
+                                          Completed
+                                        </option>
+                                        <option
+                                          value="On Hold"
+                                          className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                                        >
+                                          On Hold
+                                        </option>
+                                      </select>
+                                    </td>
+
+                                    {/* Due Date */}
+                                    <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40">
+                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200/50 dark:border-rose-500/40 font-extrabold text-[10px] whitespace-nowrap tracking-wider">
+                                        <FiCalendar size={11} />
+                                        {formatDate(task.dueDate)}
+                                      </span>
+                                    </td>
+
+                                    {/* Assignee */}
+                                    <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40">
+                                      {task.createdBy ? (
+                                        <div className="flex items-center gap-2">
+                                          <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/35 flex items-center justify-center text-[10px] font-black text-blue-700 dark:text-blue-400 overflow-hidden">
+                                            {task.createdBy.profile?.profileImage?.url || task.createdBy.profileImage?.url ? (
+                                              <img src={task.createdBy.profile?.profileImage?.url || task.createdBy.profileImage.url} alt={task.createdBy.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                              task.createdBy.name?.charAt(0).toUpperCase()
+                                            )}
+                                          </div>
+                                          <span className="font-semibold text-slate-700 dark:text-slate-350">{task.createdBy.name}</span>
+                                        </div>
+                                      ) : (
+                                        <span className="text-gray-400 dark:text-slate-600">—</span>
+                                      )}
+                                    </td>
+
+                                    {/* Created Time */}
+                                    <td className="px-6 py-2 border-b border-slate-200/60 dark:border-[#1e293b]/40">
+                                      <span className="text-slate-500 dark:text-slate-400 font-semibold">
+                                        {formatDateTime(task.createdAt)}
+                                      </span>
+                                    </td>
+                                  </tr>
+
+                                  {/* Expanded Subtasks List */}
+                                  {isExpanded &&
+                                    task.subtasks?.length > 0 &&
+                                    task.subtasks.map((sub, subIdx) => {
+                                      const isSubCompleted =
+                                        sub.status === "Completed";
+                                      const subStatusStyle = getStatusStyle(
+                                        sub.status,
+                                      );
+                                      return (
+                                        <tr
+                                          key={sub._id || subIdx}
+                                          className={`bg-slate-50/5 dark:bg-[#111827]/15 hover:bg-slate-50/20 dark:hover:bg-[#1e293b]/25 transition-colors border-b border-slate-100/60 dark:border-[#1e293b]/30 ${
+                                            isSubCompleted
+                                              ? "text-slate-400 dark:text-slate-500"
+                                              : "text-slate-700 dark:text-slate-200"
+                                          }`}
+                                        >
+                                          {/* 1. Status Column */}
+                                          <td className="px-6 py-1.5 w-12 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30 text-center">
                                             <button
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 handleToggleSubtask(task, sub);
                                               }}
-                                              className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center shrink-0 transition-all cursor-pointer ${
+                                              className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center shrink-0 transition-all cursor-pointer mx-auto ${
                                                 isSubCompleted
                                                   ? "bg-emerald-500 border-emerald-500 text-white"
                                                   : "border-slate-300 dark:border-slate-700 hover:border-emerald-500 text-transparent"
@@ -1217,117 +1259,139 @@ const Task = () => {
                                             >
                                               <FiCheck size={10} />
                                             </button>
+                                          </td>
+
+                                          {/* 2. Priority */}
+                                          <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30">
                                             <span
-                                              className={`text-xs truncate ${isSubCompleted ? "line-through text-slate-455 dark:text-slate-550 font-medium" : "text-slate-850 dark:text-white"}`}
+                                              className={`px-2 py-0.5 rounded-lg border text-[9px] font-extrabold tracking-wider uppercase ${getPriorityStyle(sub.priority || "Medium")}`}
                                             >
-                                              {sub.title}
+                                              {sub.priority || "Medium"}
                                             </span>
-                                          </div>
-                                        </td>
+                                          </td>
 
-                                        {/* 3. Associated Project */}
-                                        <td className="px-6 py-1.5 text-xs text-slate-500 dark:text-slate-400 font-semibold border-r border-b border-slate-100/60 dark:border-slate-800/40">
-                                          —
-                                        </td>
+                                          {/* 3. Subtask Title */}
+                                          <td className="px-6 py-1.5 font-bold border-r border-b border-slate-100/60 dark:border-[#1e293b]/30">
+                                            <div className="flex items-center gap-2 pl-4 border-l-2 border-slate-200 dark:border-[#1e293b]/50">
+                                              <FiCornerDownRight
+                                                className="text-slate-400 shrink-0"
+                                                size={12}
+                                              />
+                                              <span
+                                                className={`text-xs truncate ${isSubCompleted ? "line-through text-slate-400 dark:text-slate-500 font-medium" : "text-slate-700 dark:text-white"}`}
+                                              >
+                                                {sub.title}
+                                              </span>
+                                            </div>
+                                          </td>
 
-                                        {/* 4. Priority */}
-                                        <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-slate-800/40">
-                                          <span
-                                            className={`px-2 py-0.5 rounded-lg border text-[9px] font-extrabold tracking-wider uppercase ${getPriorityStyle(sub.priority || "Medium")}`}
+                                          {/* 4. Status Mode */}
+                                          <td
+                                            className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30 w-36"
+                                            onClick={(e) => e.stopPropagation()}
                                           >
-                                            {sub.priority || "Medium"}
-                                          </span>
-                                        </td>
+                                            <select
+                                              value={sub.status || "Pending"}
+                                              onChange={(e) => {
+                                                const updatedSubtasks =
+                                                  task.subtasks.map((s) =>
+                                                    s._id === sub._id
+                                                      ? {
+                                                          ...s,
+                                                          status: e.target.value,
+                                                        }
+                                                      : s,
+                                                  );
+                                                handleTaskFieldChange(task._id, {
+                                                  subtasks: updatedSubtasks,
+                                                });
+                                              }}
+                                              className={`px-2 py-0.5 text-[9px] font-extrabold rounded-lg border tracking-wider cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors ${subStatusStyle.bg}`}
+                                            >
+                                              <option
+                                                value="Pending"
+                                                className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                                              >
+                                                Pending
+                                              </option>
+                                              <option
+                                                value="In Progress"
+                                                className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                                              >
+                                                In Progress
+                                              </option>
+                                              <option
+                                                value="Completed"
+                                                className="bg-white dark:bg-[#0f172a] text-[#888] dark:text-[#888]"
+                                              >
+                                                Completed
+                                              </option>
+                                              <option
+                                                value="On Hold"
+                                                className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                                              >
+                                                On Hold
+                                              </option>
+                                            </select>
+                                          </td>
 
-                                        {/* 5. Start Date */}
-                                        <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-slate-800/40">
-                                          <span
-                                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold ${
-                                              sub.startDate
-                                                ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300 border border-blue-200/50 dark:border-blue-500/20"
-                                                : "text-slate-400 dark:text-slate-600 border border-dashed border-slate-200 dark:border-slate-800"
-                                            }`}
-                                          >
-                                            <FiCalendar size={11} />
-                                            {formatDate(sub.startDate)}
-                                          </span>
-                                        </td>
+                                          {/* 5. Due Date */}
+                                          <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30">
+                                            <span
+                                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold ${
+                                                sub.dueDate
+                                                  ? "bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300 border border-rose-200/50 dark:border-rose-500/20"
+                                                  : "text-slate-400 dark:text-slate-600 border border-dashed border-slate-200 dark:border-[#1e293b]/40"
+                                              }`}
+                                            >
+                                              <FiCalendar size={11} />
+                                              {formatDate(sub.dueDate)}
+                                            </span>
+                                          </td>
 
-                                        {/* 6. End Date */}
-                                        <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-slate-800/40">
-                                          <span
-                                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold ${
-                                              sub.dueDate
-                                                ? "bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300 border border-rose-200/50 dark:border-rose-500/20"
-                                                : "text-slate-400 dark:text-slate-600 border border-dashed border-slate-200 dark:border-slate-800"
-                                            }`}
-                                          >
-                                            <FiCalendar size={11} />
-                                            {formatDate(sub.dueDate)}
-                                          </span>
-                                        </td>
+                                          {/* 7. Assignee */}
+                                          <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30">
+                                            {task.createdBy ? (
+                                              <div className="flex items-center gap-2">
+                                                <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/35 flex items-center justify-center text-[9px] font-black text-blue-700 dark:text-blue-400 overflow-hidden">
+                                                  {task.createdBy.profile?.profileImage?.url || task.createdBy.profileImage?.url ? (
+                                                    <img src={task.createdBy.profile?.profileImage?.url || task.createdBy.profileImage.url} alt={task.createdBy.name} className="w-full h-full object-cover" />
+                                                  ) : (
+                                                    task.createdBy.name?.charAt(0).toUpperCase()
+                                                  )}
+                                                </div>
+                                                <span className="font-semibold text-slate-700 dark:text-slate-350">{task.createdBy.name}</span>
+                                              </div>
+                                            ) : (
+                                              <span className="text-gray-400 dark:text-slate-600">—</span>
+                                            )}
+                                          </td>
 
-                                        {/* 7. Status Mode Dropdown */}
-                                        <td
-                                          className="px-6 py-1.5 border-b border-slate-100/60 dark:border-slate-800/40"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <select
-                                            value={sub.status || "Pending"}
-                                            onChange={(e) => {
-                                              const updatedSubtasks =
-                                                task.subtasks.map((s) =>
-                                                  s._id === sub._id
-                                                    ? {
-                                                        ...s,
-                                                        status: e.target.value,
-                                                      }
-                                                    : s,
-                                                );
-                                              handleTaskFieldChange(task._id, {
-                                                subtasks: updatedSubtasks,
-                                              });
-                                            }}
-                                            className={`px-2 py-0.5 text-[9px] font-extrabold rounded-lg border tracking-wider cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors ${subStatusStyle.bg}`}
-                                          >
-                                            <option
-                                              value="Pending"
-                                              className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
-                                            >
-                                              Pending
-                                            </option>
-                                            <option
-                                              value="In Progress"
-                                              className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
-                                            >
-                                              In Progress
-                                            </option>
-                                            <option
-                                              value="Completed"
-                                              className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
-                                            >
-                                              Completed
-                                            </option>
-                                            <option
-                                              value="On Hold"
-                                              className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
-                                            >
-                                              On Hold
-                                            </option>
-                                          </select>
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                              </React.Fragment>
-                            );
-                          })}
-                      </React.Fragment>
-                    );
-                  });
-                })()}
-              </tbody>
-            </table>
+                                          {/* 8. Created Time */}
+                                          <td className="px-6 py-1.5 border-b border-slate-100/60 dark:border-[#1e293b]/30">
+                                            <span className="text-slate-400">—</span>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                </React.Fragment>
+                              );
+                            })
+                          ) : (
+                            <tr>
+                              <td colSpan={7} className="px-6 py-6 text-center text-slate-400 dark:text-slate-600 font-bold bg-slate-50/5 dark:bg-slate-900/5">
+                                No tasks in this status
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              );
+            });
+          })()}
 
             {/* Pagination Controls */}
             {totalItems > itemsPerPage && (
@@ -1558,8 +1622,7 @@ const Task = () => {
               })}
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {/* OFF-CANVAS PREVIEW DRAWER */}
       <AnimatePresence>

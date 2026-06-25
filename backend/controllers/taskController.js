@@ -25,11 +25,31 @@ exports.getTasks = async (req, res) => {
     }
     const tasks = await Task.find(query)
       .populate("project", "name client")
-      .populate("assignedTo", "name email profileImage")
-      .populate("createdBy", "name email profileImage")
-      .populate("subtasks.assignedTo", "name email profileImage")
-      .populate("comments.user", "name email profileImage")
-      .populate("attachments.uploadedBy", "name email profileImage");
+      .populate({
+        path: "assignedTo",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "createdBy",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "subtasks.assignedTo",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "comments.user",
+        select: "name email profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "attachments.uploadedBy",
+        select: "name email profile",
+        populate: { path: "profile", select: "profileImage" }
+      });
 
     res.status(200).json({
       success: true,
@@ -51,11 +71,31 @@ exports.createTask = async (req, res) => {
 
     const populatedTask = await Task.findById(task._id)
       .populate("project", "name client")
-      .populate("assignedTo", "name email profileImage")
-      .populate("createdBy", "name email profileImage")
-      .populate("subtasks.assignedTo", "name email profileImage")
-      .populate("comments.user", "name email profileImage")
-      .populate("attachments.uploadedBy", "name email profileImage");
+      .populate({
+        path: "assignedTo",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "createdBy",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "subtasks.assignedTo",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "comments.user",
+        select: "name email profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "attachments.uploadedBy",
+        select: "name email profile",
+        populate: { path: "profile", select: "profileImage" }
+      });
 
     // Real-time Notification
     if (task.assignedTo) {
@@ -104,11 +144,31 @@ exports.updateTask = async (req, res) => {
       runValidators: true,
     })
       .populate("project", "name client")
-      .populate("assignedTo", "name email profileImage")
-      .populate("createdBy", "name email profileImage")
-      .populate("subtasks.assignedTo", "name email profileImage")
-      .populate("comments.user", "name email profileImage")
-      .populate("attachments.uploadedBy", "name email profileImage");
+      .populate({
+        path: "assignedTo",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "createdBy",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "subtasks.assignedTo",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "comments.user",
+        select: "name email profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "attachments.uploadedBy",
+        select: "name email profile",
+        populate: { path: "profile", select: "profileImage" }
+      });
 
     // Check if task status has been updated (e.g. marked completed)
     if (req.body.status && req.body.status !== previousStatus) {
