@@ -114,9 +114,11 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       <aside
         className={`
           fixed top-0 left-0 z-[100] h-screen
-          w-72 lg:w-60 xl:w-64
-          theme-bg-card
-          border-r theme-border
+          w-64 lg:w-48 xl:w-52
+          bg-white/60 dark:bg-[#0b0c10]/65
+          backdrop-blur-xl
+          border-r border-slate-200/40 dark:border-white/5
+          shadow-[0_8px_32px_0_rgba(0,0,0,0.02)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.25)]
           flex flex-col
           transition-all duration-300 ease-in-out
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
@@ -135,9 +137,9 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden w-8 h-8 rounded-lg theme-bg-main hover:opacity-85 flex items-center justify-center transition-all border theme-border"
+            className="lg:hidden w-8 h-8 rounded-lg bg-white dark:bg-[#0b0c10] hover:bg-slate-50  flex items-center justify-center transition-all border border-slate-200 dark:border-white/5"
           >
-            <FiX size={18} className="theme-text-primary" />
+            <FiX size={18} className="text-slate-900 dark:text-white" />
           </button>
         </div>
 
@@ -189,10 +191,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                             setSidebarOpen(false);
                             navigate(`/${role}/projects?id=${project._id}`);
                           }}
-                          className={`w-full flex items-center gap-2 text-left text-[11.5px] font-bold py-2 rounded-lg px-2 transition-colors group ${
+                          className={`w-full flex items-center gap-2 text-left text-[11px] font-bold py-1.5 rounded-lg px-2 transition-colors group ${
                             isActive
                               ? "bg-blue-50 dark:bg-[#e5ff00]/20 text-blue-600 dark:text-[#e5ff00]"
-                              : "theme-text-secondary hover:theme-text-primary"
+                              : "text-slate-600 dark:text-slate-350 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5"
                           }`}
                           title={project.name}
                         >
@@ -255,10 +257,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                             setSidebarOpen(false);
                             navigate(`/${role}/portfolio?id=${portfolio._id}`);
                           }}
-                          className={`w-full flex items-center gap-2 text-left text-[11.5px] font-bold py-2 rounded-lg px-2 transition-colors group ${
+                          className={`w-full flex items-center gap-2 text-left text-[11px] font-bold py-1.5 rounded-lg px-2 transition-colors group ${
                             isActive
                               ? "bg-blue-50 dark:bg-[#e5ff00]/20 text-blue-600 dark:text-[#e5ff00]"
-                              : "theme-text-secondary hover:theme-text-primary"
+                              : "text-slate-600 dark:text-slate-350 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5"
                           }`}
                           title={portfolio.name}
                         >
@@ -300,15 +302,15 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         }
                         className={({ isActive }) => {
                           const activeClass = isActive
-                            ? ` dashboard-btn-primary shadow-md`
-                            : `theme-text-primary border-transparent hover:theme-bg-main hover:theme-text-primary`;
+                            ? `bg-blue-600/10 dark:bg-[#e5ff00]/10 text-blue-600 dark:text-[#e5ff00] border-blue-200/50 dark:border-[#e5ff00]/25 shadow-sm`
+                            : `text-slate-600 dark:text-slate-350 border-transparent hover:bg-slate-100/40 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white`;
 
                           return `block rounded-xl border transition-all duration-200 ${activeClass}`;
                         }}
                       >
                         {({ isActive }) => (
                           <motion.div
-                            className="flex items-center gap-3 px-3 py-2.5 w-full"
+                            className="flex items-center gap-2 px-2.5 py-1.5 w-full"
                             initial="initial"
                             whileHover="hover"
                             whileTap="tap"
@@ -379,10 +381,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         </nav>
 
         {/* FOOTER */}
-        <div className="p-3 border-t theme-border space-y-1.5">
+        <div className="p-3 border-t border-slate-200 dark:border-white/5 space-y-1.5">
           {role === "admin" && users && users.length > 0 && (
             <div className="p-1.5 text-left">
-              <label className="block text-[8px] font-black theme-text-secondary uppercase tracking-wider mb-0.5 px-0.5">
+              <label className="block text-[8px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5 px-0.5">
                 Switch User
               </label>
               <div className="relative flex items-center">
@@ -396,7 +398,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       handleSwitchUser(e.target.value);
                     }
                   }}
-                  className="w-full theme-bg-card border theme-border rounded-lg pl-1.5 pr-6 py-1 text-[8px] font-black theme-text-primary outline-none cursor-pointer focus:border-indigo-500 dark:focus:border-indigo-400 transition-all appearance-none"
+                  className="w-full bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 rounded-lg pl-1.5 pr-6 py-1 text-[8px] font-black text-slate-800 dark:text-slate-200 outline-none cursor-pointer focus:border-indigo-500 dark:focus:border-indigo-400 transition-all appearance-none"
                 >
                   {users.map((u) => {
                     const isCurrent =
@@ -442,7 +444,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                     );
                   })}
                 </select>
-                <div className="absolute right-2 pointer-events-none theme-text-secondary">
+                <div className="absolute right-2 pointer-events-none text-slate-500 dark:text-slate-400">
                   <svg
                     className="w-3 h-3"
                     fill="none"

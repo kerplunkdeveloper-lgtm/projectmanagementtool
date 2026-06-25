@@ -28,7 +28,7 @@ import UserModal from "./users/UserModel";
 import DeleteUserModal from "./users/DeleteUserModal";
 import PermissionsModal from "./users/PermissionsModal";
 
-const USERS_PER_PAGE = 5;
+const USERS_PER_PAGE = 6;
 
 const AdminUsers = () => {
 
@@ -237,6 +237,7 @@ const AdminUsers = () => {
 
       {/* HEADER */}
       <UserHeader
+        users={users}
         setOpenModal={setOpenModal}
         setEditUser={setEditUser}
         searchTerm={searchTerm}

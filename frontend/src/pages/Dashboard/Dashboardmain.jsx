@@ -153,7 +153,7 @@ const Dashboardmain = () => {
   };
 
   return (
-    <div className="space-y-4 pb-6">
+    <div className="space-y-4 pb-6 ">
       {/* GREETING */}
       <WelcomeUser />
 

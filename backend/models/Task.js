@@ -26,6 +26,10 @@ const SubtaskSchema = new mongoose.Schema({
     enum: ["Low", "Medium", "High"],
     default: "Medium",
   },
+  contentType: {
+    type: String,
+    default: "",
+  },
 });
 
 const TaskSchema = new mongoose.Schema(
@@ -67,6 +71,10 @@ const TaskSchema = new mongoose.Schema(
     section: {
       type: String,
       default: "Recently assigned",
+    },
+    contentType: {
+      type: String,
+      default: "",
     },
     comments: [
       {

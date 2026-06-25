@@ -24,7 +24,10 @@ const DashboardLayout = ({ role }) => {
   };
 
   return (
-    <div className="h-screen overflow-hidden theme-bg-main">
+    <div className="h-screen overflow-hidden theme-bg-main relative">
+      {/* Glassmorphic Background Blobs */}
+      <div className="fixed top-[-10%] left-[-10%] w-[350px] h-[350px] rounded-full bg-gradient-to-br from-blue-400/20 to-indigo-500/20 blur-[80px] pointer-events-none z-0 dark:from-indigo-500/10 dark:to-[#e5ff00]/5" />
+      <div className="fixed bottom-[20%] left-[-5%] w-[250px] h-[250px] rounded-full bg-gradient-to-br from-pink-400/10 to-purple-500/15 blur-[60px] pointer-events-none z-0 dark:from-purple-500/5 dark:to-blue-500/5" />
       {/* SIDEBAR */}
       <Sidebar
         role={role}
@@ -33,7 +36,7 @@ const DashboardLayout = ({ role }) => {
       />
 
       {/* RIGHT SIDE */}
-      <div className="lg:ml-60 xl:ml-64 h-screen flex flex-col">
+      <div className="lg:ml-48 xl:ml-52 h-screen flex flex-col relative z-10">
         {/* IMPERSONATION BANNER */}
         {originalAdminUser && (
           <div className="bg-blue-500 dark:bg-[#e5ff00]  px-4 py-2 text-[10px] flex items-center justify-between gap-5 shadow-md z-50">
@@ -41,8 +44,13 @@ const DashboardLayout = ({ role }) => {
               <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 dark:bg-red-500   animate-pulse" />
               <span className="dark:text-black">
                 Viewing as{" "}
-                <strong className="text-yellow-400 dark:text-black font-bold">{user?.name}</strong>{" "}
-                <span className="font-medium text-yellow-400 dark:text-black"> ({role})</span>{" "}
+                <strong className="text-yellow-400 dark:text-black font-bold">
+                  {user?.name}
+                </strong>{" "}
+                <span className="font-medium text-yellow-400 dark:text-black">
+                  {" "}
+                  ({role})
+                </span>{" "}
                 in Original account:{" "}
                 <strong className="text-yellow-400 dark:text-black font-bold">
                   {originalAdminUser.name}

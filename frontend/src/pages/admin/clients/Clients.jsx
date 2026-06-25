@@ -265,25 +265,7 @@ const Clients = () => {
   return (
     <div className="min-h-screen pb-12 transition-colors duration-300">
       
-      {/* HEADER SECTION */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-       
-
-        {(user?.role === "admin" || user?.role === "operationmanager" || user?.role === "team") && (
-          <button
-            onClick={() => {
-              setFormData(initialForm);
-              setEditId(null);
-              setActiveTab("profile");
-              setShowModal(true);
-            }}
-            className="dashboard-btn-primary dark:dashboard-btn-primary   px-5 py-3 rounded-xl flex items-center  justify-center gap-2.5 shadow-md hover:shadow-lg text-xs font-medium active:scale-[0.98] transition-all cursor-pointer"
-          >
-            <FiPlus size={15} className="stroke-[3]" />
-            Add New Client
-          </button>
-        )}
-      </div>
+    
 
       {/* SEARCH + FILTER CONTROLS */}
       <div className="bg-white dark:bg-slate-800 p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -316,6 +298,30 @@ const Clients = () => {
             <option value="SEO">SEO Strategy</option>
           </select>
         </div>
+
+
+
+<div>
+    {(user?.role === "admin" || user?.role === "operationmanager" || user?.role === "team") && (
+          <button
+            onClick={() => {
+              setFormData(initialForm);
+              setEditId(null);
+              setActiveTab("profile");
+              setShowModal(true);
+            }}
+            className="dashboard-btn-primary dark:dashboard-btn-primary   px-5 py-3 rounded-xl flex items-center  justify-center gap-2.5 shadow-md hover:shadow-lg text-xs font-medium active:scale-[0.98] transition-all cursor-pointer"
+          >
+            <FiPlus size={15} className="stroke-[3]" />
+            Add New Client
+          </button>
+        )}
+</div>
+
+
+
+
+
       </div>
 
       {/* LOADING LOADER */}

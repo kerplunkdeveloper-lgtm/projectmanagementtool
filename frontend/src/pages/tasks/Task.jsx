@@ -1065,6 +1065,9 @@ const Task = () => {
                             <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40">
                               Task Name
                             </th>
+                            <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-32">
+                              Content-type
+                            </th>
                             <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-36">
                               Status Mode
                             </th>
@@ -1072,7 +1075,7 @@ const Task = () => {
                               Due Date
                             </th>
                             <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-44">
-                              Assigned By
+                              Created By
                             </th>
                             <th className="px-6 py-2 w-48">
                               Created Time
@@ -1148,6 +1151,21 @@ const Task = () => {
                                           </button>
                                         )}
                                       </div>
+                                    </td>
+
+                                    {/* Content-type */}
+                                    <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40">
+                                      <span
+                                        className={`px-2 py-0.5 rounded-md text-[9px] font-bold tracking-wider uppercase border border-slate-200 dark:border-slate-800/80 ${
+                                          task.contentType === "Post"
+                                            ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300"
+                                            : task.contentType === "Story"
+                                              ? "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300"
+                                              : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                                        }`}
+                                      >
+                                        {task.contentType || "None"}
+                                      </span>
                                     </td>
 
                                     {/* Status Select */}
@@ -1285,6 +1303,21 @@ const Task = () => {
                                             </div>
                                           </td>
 
+                                          {/* Content-type */}
+                                          <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30">
+                                            <span
+                                              className={`px-2 py-0.5 rounded-md text-[9px] font-bold tracking-wider uppercase border border-slate-200 dark:border-slate-800/80 ${
+                                                sub.contentType === "Post"
+                                                  ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300"
+                                                  : sub.contentType === "Story"
+                                                    ? "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-300"
+                                                    : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                                              }`}
+                                            >
+                                              {sub.contentType || "None"}
+                                            </span>
+                                          </td>
+
                                           {/* 4. Status Mode */}
                                           <td
                                             className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30 w-36"
@@ -1379,7 +1412,7 @@ const Task = () => {
                             })
                           ) : (
                             <tr>
-                              <td colSpan={7} className="px-6 py-6 text-center text-slate-400 dark:text-slate-600 font-bold bg-slate-50/5 dark:bg-slate-900/5">
+                              <td colSpan={8} className="px-6 py-6 text-center text-slate-400 dark:text-slate-600 font-bold bg-slate-50/5 dark:bg-slate-900/5">
                                 No tasks in this status
                               </td>
                             </tr>
