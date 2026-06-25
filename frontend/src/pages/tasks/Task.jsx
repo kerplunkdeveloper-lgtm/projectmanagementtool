@@ -24,6 +24,7 @@ import {
   FiList,
   FiGrid,
   FiSearch,
+  FiMessageSquare,
 } from "react-icons/fi";
 import {
   useGetTasksQuery,
@@ -1068,6 +1069,9 @@ const Task = () => {
                             <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-32">
                               Content-type
                             </th>
+                            <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-24">
+                              Comments
+                            </th>
                             <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-36">
                               Status Mode
                             </th>
@@ -1075,7 +1079,7 @@ const Task = () => {
                               Due Date
                             </th>
                             <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-44">
-                              Created By
+                              Assigned By
                             </th>
                             <th className="px-6 py-2 w-48">
                               Created Time
@@ -1166,6 +1170,13 @@ const Task = () => {
                                       >
                                         {task.contentType || "None"}
                                       </span>
+                                    </td>
+                                    {/* Comments */}
+                                    <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 text-center">
+                                      <div className="flex items-center justify-center gap-1.5 text-slate-500 dark:text-slate-400">
+                                        <FiMessageSquare size={13} className="text-slate-400 dark:text-slate-500" />
+                                        <span className="font-bold text-[10px] text-slate-600 dark:text-slate-300">{task.comments?.length || 0}</span>
+                                      </div>
                                     </td>
 
                                     {/* Status Select */}
@@ -1317,6 +1328,10 @@ const Task = () => {
                                               {sub.contentType || "None"}
                                             </span>
                                           </td>
+                                          {/* Comments */}
+                                          <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30 text-center">
+                                            <span className="text-slate-300 dark:text-slate-600">—</span>
+                                          </td>
 
                                           {/* 4. Status Mode */}
                                           <td
@@ -1412,7 +1427,7 @@ const Task = () => {
                             })
                           ) : (
                             <tr>
-                              <td colSpan={8} className="px-6 py-6 text-center text-slate-400 dark:text-slate-600 font-bold bg-slate-50/5 dark:bg-slate-900/5">
+                              <td colSpan={9} className="px-6 py-6 text-center text-slate-400 dark:text-slate-600 font-bold bg-slate-50/5 dark:bg-slate-900/5">
                                 No tasks in this status
                               </td>
                             </tr>

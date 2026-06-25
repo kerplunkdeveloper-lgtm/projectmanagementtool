@@ -34,6 +34,7 @@ import {
   FiSearch,
   FiActivity,
   FiAlertCircle,
+  FiMessageSquare,
 } from "react-icons/fi";
 import axiosInstance from "../../services/axiosInstance";
 import toast from "react-hot-toast";
@@ -2125,6 +2126,9 @@ const ProjectTaskBoard = ({
                             <th className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[130px]">
                               Content Type
                             </th>
+                            <th className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[100px]">
+                              Comments
+                            </th>
                             <th className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
                               Start Date
                             </th>
@@ -2146,7 +2150,7 @@ const ProjectTaskBoard = ({
                           {sectionTasks.length === 0 ? (
                             <tr>
                               <td
-                                colSpan={9}
+                                colSpan={10}
                                 className="px-4 py-4 text-center text-slate-400 italic text-[10px] border-b border-slate-200 dark:border-slate-800"
                               >
                                 No tasks in this section.
@@ -2388,6 +2392,14 @@ const ProjectTaskBoard = ({
                                             {task.contentType || "None"}
                                           </span>
                                         )}
+                                      </div>
+                                    </td>
+
+                                    {/* Comments Column */}
+                                    <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 text-center">
+                                      <div className="flex items-center justify-center gap-1.5 text-slate-500 dark:text-slate-400">
+                                        <FiMessageSquare size={13} className="text-slate-400 dark:text-slate-500" />
+                                        <span className="font-bold text-[10px] text-slate-600 dark:text-slate-350">{task.comments?.length || 0}</span>
                                       </div>
                                     </td>
 
@@ -2949,7 +2961,10 @@ const ProjectTaskBoard = ({
                                                   )}
                                                 </div>
                                               </td>
-
+                                              {/* Comments Column */}
+                                              <td className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800 text-center">
+                                                <span className="text-slate-350 dark:text-slate-650">—</span>
+                                              </td>
                                               {/* 5. Start Date Column */}
                                               <td className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800">
                                                 <div
