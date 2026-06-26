@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import logo from "../../assets/logo.avif";
+import logo from "../../assets/light.png";
 import logoDark from "../../assets/logodark.png";
 import { useTheme } from "../../context/ThemeContext";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";

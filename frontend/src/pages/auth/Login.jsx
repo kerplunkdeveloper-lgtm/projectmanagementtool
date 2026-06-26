@@ -67,7 +67,7 @@ const Login = () => {
   return (
     <div className="min-h-screen theme-bg-main flex flex-col md:flex-row overflow-hidden">
       {/* TOP / LEFT SIDE IMAGE SECTION */}
-      <div id="login-image-section" className="relative w-full h-[45vh] sm:h-[45vh] md:h-screen md:w-[55%] xl:w-[60%] overflow-hidden flex items-center justify-center shrink-0 z-0" style={{ backgroundColor: 'var(--accent-color)' }}>
+      <div id="login-image-section" className="relative w-full h-[45vh] sm:h-[45vh] md:h-screen md:w-[55%] xl:w-[60%] overflow-hidden flex items-center justify-center shrink-0 z-0 bg-[var(--accent-color)] dark:bg-[#e5ff00]">
         <img
           src={lightlogin}
           alt="Project Management Light"

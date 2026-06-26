@@ -263,11 +263,11 @@ button.bg-blue-600,
 button.bg-blue-500,
 button.bg-slate-900,
 .dashboard-btn-primary {
-  background: var(--accent-gradient) !important;
+  background: var(--accent-color) !important;
   color: #ffffff !important;
   border: none !important;
   box-shadow: 0 4px 14px var(--accent-hover-shadow) !important;
-  transition: all 0.2s ease-in-out !important;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
   cursor: pointer;
 }
 
@@ -289,10 +289,11 @@ button.bg-slate-900 *,
 .dark button.bg-slate-900,
 .dark .dashboard-btn-primary,
 .dark button[type="submit"] {
-  background: var(--accent-gradient-dark) !important;
-  background-color: var(--accent-gradient-dark) !important;
+  background: var(--accent-color-dark) !important;
+  background-color: var(--accent-color-dark) !important;
   color: #000000 !important;
   box-shadow: 0 4px 14px var(--accent-hover-shadow-dark) !important;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
 }
 
 .dark button.bg-\[\#7c5ff0\] *,
@@ -315,7 +316,7 @@ button.bg-slate-900:hover,
 .dashboard-btn-primary:hover {
   opacity: 1 !important;
   transform: none !important;
-  box-shadow: 0 4px 14px var(--accent-hover-shadow) !important;
+  box-shadow: 0 6px 16px var(--accent-hover-shadow) !important;
 }
 
 .dark button.bg-\[\#7c5ff0\]:hover,
@@ -325,9 +326,10 @@ button.bg-slate-900:hover,
 .dark button.bg-slate-900:hover,
 .dark .dashboard-btn-primary:hover,
 .dark button[type="submit"]:hover {
-  background: var(--accent-gradient-dark) !important;
-  background-color: var(--accent-gradient-dark) !important;
+  background: var(--accent-color-dark) !important;
+  background-color: var(--accent-color-dark) !important;
   opacity: 0.9 !important;
+  transform: none !important;
   color: #000000 !important;
   box-shadow: 0 6px 20px var(--accent-hover-shadow-dark) !important;
 }
