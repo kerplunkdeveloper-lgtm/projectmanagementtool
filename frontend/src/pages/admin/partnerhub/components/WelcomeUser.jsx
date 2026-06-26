@@ -57,7 +57,10 @@ const WelcomeUser = () => {
 
   return (
     <>
-      <div className="relative overflow-hidden p-4 sm:p-5 mb-4 rounded-2xl border theme-border bg-blue-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fadeIn">
+      <div 
+        className="relative overflow-hidden p-4 sm:p-5 mb-4 rounded-2xl border-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fadeIn shadow-lg transition-colors duration-300"
+        style={{ backgroundColor: 'var(--color-brand-primary)' }}
+      >
         {/* Left Side: Greeting & User Profile Card */}
         <div className="flex items-center gap-4 min-w-0 relative z-10">
           {/* Avatar initials / Image */}
@@ -66,7 +69,7 @@ const WelcomeUser = () => {
             className="relative shrink-0 cursor-pointer hover:scale-105 active:scale-98 transition-all duration-300 group"
             title="Click to view profile details"
           >
-            <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 dark:from-[#e5ff00] dark:to-emerald-500 p-[2px] shadow-sm">
+            <div className="w-20 h-20 md:w-[270px] md:h-[270px] rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 dark:from-[#e5ff00] dark:to-emerald-500 p-[2px] shadow-sm">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
@@ -86,18 +89,18 @@ const WelcomeUser = () => {
 
           <div className="min-w-0">
             {/* Greeting label */}
-            <p className="text-[12px] mb-2 font-extrabold uppercase tracking-widest flex items-center gap-1.5 mb-1">
-              <Icon className={`text-2xl ${iconColor}`} /> {greeting}
+            <p className="text-[12px] font-extrabold uppercase tracking-widest flex items-center gap-1.5 mb-1 text-white/90 dark:text-black/90">
+              <Icon className={`text-2xl ${iconColor} drop-shadow-sm`} /> {greeting}
             </p>
             
             {/* Name & Badges */}
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl sm:text-lg font-black theme-text-primary leading-tight tracking-tight">
+              <h1 className="text-xl sm:text-4xl font-medium text-black leading-tight tracking-tight">
                 {user?.name || "User"}
               </h1>
               <div className="flex items-center gap-1">
                 {user?.department && (
-                  <span className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-[#e5ff00]/10 border border-blue-100 dark:border-[#e5ff00]/25 text-blue-600 dark:text-[#e5ff00] text-[9px] font-black uppercase tracking-wider whitespace-nowrap shadow-sm">
+                  <span className="px-2 py-0.5 rounded-md bg-white/20 dark:bg-black/10 border border-white/30 dark:border-black/20 text-black text-[9px] font-black uppercase tracking-wider whitespace-nowrap shadow-sm backdrop-blur-sm">
                     {user.department}
                   </span>
                 )}
@@ -105,35 +108,35 @@ const WelcomeUser = () => {
             </div>
 
             {/* Email Address */}
-            <p className="text-[12px] font-medium text-slate-900 dark:text-slate-900 mt-1 select-all">
+            <p className="text-[12px] font-medium text-black/90 mt-1 select-all">
               {user?.email}
             </p>
           </div>
         </div>
 
         {/* Right Side: Date/Time */}
-        <div className="flex items-center justify-between sm:justify-end gap-3.5 theme-bg-main border theme-border rounded-2xl p-2.5 shadow-inner w-full sm:w-auto min-w-0 sm:min-w-[240px] relative z-10">
+        <div className="flex items-center justify-between sm:justify-end gap-3.5 bg-white/10 dark:bg-black/5 border border-white/20 dark:border-black/10 rounded-2xl p-2.5 shadow-inner w-full sm:w-auto min-w-0 sm:min-w-[240px] relative z-10 backdrop-blur-sm">
           {/* Date */}
           <div className="flex items-center gap-2.5 min-w-0 flex-1 sm:flex-initial">
-            <div className="w-8 h-8 rounded-lg bg-blue-600/10 dark:bg-[#e5ff00]/10 flex items-center justify-center flex-shrink-0">
-              <FiCalendar size={13} className="text-blue-600 dark:text-[#e5ff00]" />
+            <div className="w-8 h-8 rounded-lg bg-white/20 dark:bg-black/10 flex items-center justify-center flex-shrink-0 shadow-sm">
+              <FiCalendar size={13} className="text-black" />
             </div>
             <div className="min-w-0">
-              <p className="text-[8px] font-bold uppercase tracking-wider theme-text-secondary leading-none mb-1">Date</p>
-              <p className="text-xs font-black theme-text-primary truncate leading-none">{formattedDate}</p>
+              <p className="text-[8px] font-bold uppercase tracking-wider text-white/80 dark:text-black/80 leading-none mb-1">Date</p>
+              <p className="text-xs font-black text-black dark:text-black truncate leading-none">{formattedDate}</p>
             </div>
           </div>
 
-          <div className="w-px h-6 theme-border border-l flex-shrink-0" />
+          <div className="w-px h-6 border-l border-white/20 dark:border-black/10 flex-shrink-0" />
 
           {/* Time */}
           <div className="flex items-center gap-2.5 min-w-0 flex-1 sm:flex-initial">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600/10 dark:bg-[#e5ff00]/10 flex items-center justify-center flex-shrink-0">
-              <FiClock size={13} className="text-indigo-600 dark:text-[#e5ff00]" />
+            <div className="w-8 h-8 rounded-lg bg-white/20 dark:bg-black/10 flex items-center justify-center flex-shrink-0 shadow-sm">
+              <FiClock size={13} className="text-black" />
             </div>
             <div className="min-w-0">
-              <p className="text-[8px] font-bold uppercase tracking-wider theme-text-secondary leading-none mb-1">Time</p>
-              <p className="text-xs font-black theme-text-primary font-mono tracking-tight whitespace-nowrap leading-none">{formattedTime}</p>
+              <p className="text-[8px] font-bold uppercase tracking-wider text-white/80 dark:text-black/80 leading-none mb-1">Time</p>
+              <p className="text-xs font-black text-black dark:text-black font-mono tracking-tight whitespace-nowrap leading-none">{formattedTime}</p>
             </div>
           </div>
         </div>

@@ -195,23 +195,20 @@ const Login = () => {
 
             {/* FOOTER */}
 
-            <p className="text-center mt-8 text-sm">
-              <span className="relative inline-flex items-center justify-center px-6 py-3 rounded-full overflow-hidden">
-                {/* Animated Gradient Border */}
-                <span className="absolute inset-0 rounded-full p-[2px] bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 animate-spin-slow">
-                  <span className="block w-full h-full rounded-full bg-white dark:bg-gray-900"></span>
-                </span>
+            <p className="text-center mt-8 text-sm group">
+              <span className="relative inline-flex items-center justify-center px-6 py-3 rounded-full">
+                {/* Glowing Outer Border */}
+                <span className="absolute inset-0 rounded-full border border-[var(--accent-color)] dark:border-[#e5ff00] opacity-80 shadow-[0_0_15px_var(--accent-color)] dark:shadow-[0_0_15px_#e5ff00] animate-pulse"></span>
 
-                {/* Glow Effect */}
-                <span className="absolute inset-0 rounded-full bg-cyan-400 opacity-20 blur-xl animate-pulse"></span>
+                {/* Deep Background Glow */}
+                <span className="absolute inset-0 rounded-full bg-[var(--accent-color)] dark:bg-[#e5ff00] opacity-20 blur-xl animate-pulse"></span>
 
                 {/* Content */}
-                <span className="relative z-10 flex items-center gap-1">
-                  <span className="text-gray-600 dark:text-gray-300 font-medium">
+                <span className="relative z-10 flex items-center gap-1.5 font-bold tracking-wide">
+                  <span className="text-slate-500 dark:text-slate-400 font-semibold text-xs">
                     Developed by
                   </span>
-
-                  <span className="  text-gray-600 dark:text-gray-300 ">
+                  <span className="text-[var(--accent-color)] dark:text-[#e5ff00] font-medium uppercase drop-shadow-[0_0_8px_var(--accent-color)] dark:drop-shadow-[0_0_8px_#e5ff00]">
                     Kerplunk Media
                   </span>
                 </span>
