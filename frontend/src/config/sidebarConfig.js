@@ -36,6 +36,7 @@ export const sidebarConfig = {
     { name: "Tasks", path: "/operationmanager/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
     { name: "Calendar", path: "/operationmanager/calendar", icon: LuCalendarDays },
     { name: "Users", path: "/operationmanager/users", icon: LuUsers, permissionKey: "manage_users" },
+    { name: "EOD Reports", path: "/operationmanager/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
     { name: "Profile", path: "/operationmanager/profile", icon: FiUser },
     { name: "Chat", path: "/operationmanager/chat", icon: LuMessagesSquare },
     { name: "Settings", path: "/operationmanager/settings", icon: FiSettings },

@@ -166,6 +166,11 @@ const AppRoutes = () => {
           element={<ProtectedRoute requiredPermission="manage_tasks"><Task /></ProtectedRoute>}   
         />
 
+         <Route
+          path="eod-reports"
+          element={<ProtectedRoute requiredPermission="view_reports"><AdminEodReports /></ProtectedRoute>}
+        />
+
         <Route
           path="profile"
           element={<Profile />}
