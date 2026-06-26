@@ -62,6 +62,58 @@ const StrictModeDroppable = ({ children, ...props }) => {
   return <Droppable {...props}>{children}</Droppable>;
 };
 
+const TimeTracker = ({ startTime, endTime, status }) => {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    if (!startTime) return;
+    
+    const calculateElapsed = () => {
+      const start = new Date(startTime).getTime();
+      const end = endTime ? new Date(endTime).getTime() : Date.now();
+      return Math.max(0, Math.floor((end - start) / 1000));
+    };
+
+    setElapsed(calculateElapsed());
+
+    if (status === "In Progress" && !endTime) {
+      const interval = setInterval(() => {
+        setElapsed(calculateElapsed());
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [startTime, endTime, status]);
+
+  if (!startTime && status !== "In Progress") return null;
+  if (!startTime && status === "In Progress") return (
+    <div className="inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold tracking-wider bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30 shadow-sm w-full">
+      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#e5ff00] animate-pulse"></span>
+      Starting...
+    </div>
+  );
+
+  const hours = Math.floor(elapsed / 3600);
+  const minutes = Math.floor((elapsed % 3600) / 60);
+  const seconds = elapsed % 60;
+
+  const timeString = `${hours > 0 ? `${hours}h ` : ''}${minutes}m ${seconds}s`;
+
+  return (
+    <div className={`inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold tracking-wider w-full ${
+      status === "In Progress" && !endTime
+        ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30 shadow-sm" 
+        : "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
+    }`}>
+      {status === "In Progress" && !endTime ? (
+        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#e5ff00] animate-pulse"></span>
+      ) : (
+        <FiClock size={10} />
+      )}
+      {timeString}
+    </div>
+  );
+};
+
 // Task Title Input Component for autosaving inline without cursor jump
 const TaskTitleInput = ({
   task,
@@ -2390,6 +2442,9 @@ const ProjectTaskBoard = ({
                             <th className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
                               Status
                             </th>
+                            <th className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                              Total Hours
+                            </th>
                             <th className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 text-center whitespace-nowrap min-w-[80px]">
                               Actions
                             </th>
@@ -2399,7 +2454,7 @@ const ProjectTaskBoard = ({
                           {sectionTasks.length === 0 ? (
                             <tr>
                               <td
-                                colSpan={selectionModeSections[sectionName] ? 10 : 9}
+                                colSpan={selectionModeSections[sectionName] ? 11 : 10}
                                 className="px-4 py-4 text-center text-slate-400 italic text-[10px] border-b border-slate-200 dark:border-slate-800"
                               >
                                 No tasks in this section.
@@ -2928,6 +2983,15 @@ const ProjectTaskBoard = ({
                                           </span>
                                         )}
                                       </div>
+                                    </td>
+
+                                    {/* Total Hours */}
+                                    <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                      <TimeTracker 
+                                        startTime={task.actualStartTime} 
+                                        endTime={task.actualEndTime} 
+                                        status={task.status} 
+                                      />
                                     </td>
 
                                     {/* Action Controls */}
@@ -3569,6 +3633,15 @@ const ProjectTaskBoard = ({
                                                     </span>
                                                   )}
                                                 </div>
+                                              </td>
+
+                                              {/* Total Hours Column */}
+                                              <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                                <TimeTracker 
+                                                  startTime={sub.actualStartTime} 
+                                                  endTime={sub.actualEndTime} 
+                                                  status={sub.status} 
+                                                />
                                               </td>
 
                                               {/* 9. Actions Column */}

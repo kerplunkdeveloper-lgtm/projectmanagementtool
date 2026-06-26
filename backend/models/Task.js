@@ -30,6 +30,12 @@ const SubtaskSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
+  actualStartTime: {
+    type: Date,
+  },
+  actualEndTime: {
+    type: Date,
+  },
 });
 
 const TaskSchema = new mongoose.Schema(
@@ -75,6 +81,12 @@ const TaskSchema = new mongoose.Schema(
     contentType: {
       type: String,
       default: "",
+    },
+    actualStartTime: {
+      type: Date,
+    },
+    actualEndTime: {
+      type: Date,
     },
     comments: [
       {

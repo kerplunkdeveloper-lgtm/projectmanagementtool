@@ -67,6 +67,58 @@ const TaskTitleInput = ({ task, handleTaskFieldChange, isCompleted }) => {
   );
 };
 
+const TimeTracker = ({ startTime, endTime, status }) => {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    if (!startTime) return;
+    
+    const calculateElapsed = () => {
+      const start = new Date(startTime).getTime();
+      const end = endTime ? new Date(endTime).getTime() : Date.now();
+      return Math.max(0, Math.floor((end - start) / 1000));
+    };
+
+    setElapsed(calculateElapsed());
+
+    if (status === "In Progress" && !endTime) {
+      const interval = setInterval(() => {
+        setElapsed(calculateElapsed());
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [startTime, endTime, status]);
+
+  if (!startTime && status !== "In Progress") return null;
+  if (!startTime && status === "In Progress") return (
+    <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded border text-[9px] font-bold tracking-wider bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30 shadow-sm">
+      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#e5ff00] animate-pulse"></span>
+      Starting...
+    </div>
+  );
+
+  const hours = Math.floor(elapsed / 3600);
+  const minutes = Math.floor((elapsed % 3600) / 60);
+  const seconds = elapsed % 60;
+
+  const timeString = `${hours > 0 ? `${hours}h ` : ''}${minutes}m ${seconds}s`;
+
+  return (
+    <div className={`mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded border text-[9px] font-bold tracking-wider ${
+      status === "In Progress" && !endTime
+        ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30 shadow-sm" 
+        : "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
+    }`}>
+      {status === "In Progress" && !endTime ? (
+        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#e5ff00] animate-pulse"></span>
+      ) : (
+        <FiClock size={10} />
+      )}
+      {timeString}
+    </div>
+  );
+};
+
 const Task = () => {
   const { user } = useSelector((state) => state.auth);
 
@@ -1175,41 +1227,48 @@ const Task = () => {
                                       className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-36"
                                       onClick={(e) => e.stopPropagation()}
                                     >
-                                      <select
-                                        value={task.status}
-                                        onChange={(e) =>
-                                          handleStatusChange(
-                                            task._id,
-                                            e.target.value,
-                                          )
-                                        }
-                                        className={`px-2.5 py-1 text-[10px] font-extrabold rounded-lg border tracking-wider cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors ${statusStyle.bg}`}
-                                      >
-                                        <option
-                                          value="Pending"
-                                          className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                                      <div className="flex flex-col items-start gap-1">
+                                        <select
+                                          value={task.status}
+                                          onChange={(e) =>
+                                            handleStatusChange(
+                                              task._id,
+                                              e.target.value,
+                                            )
+                                          }
+                                          className={`px-2.5 py-1 text-[10px] font-extrabold rounded-lg border tracking-wider cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors w-full ${statusStyle.bg}`}
                                         >
-                                          Pending
-                                        </option>
-                                        <option
-                                          value="In Progress"
-                                          className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
-                                        >
-                                          In Progress
-                                        </option>
-                                        <option
-                                          value="Completed"
-                                          className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
-                                        >
-                                          Completed
-                                        </option>
-                                        <option
-                                          value="On Hold"
-                                          className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
-                                        >
-                                          On Hold
-                                        </option>
-                                      </select>
+                                          <option
+                                            value="Pending"
+                                            className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                                          >
+                                            Pending
+                                          </option>
+                                          <option
+                                            value="In Progress"
+                                            className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                                          >
+                                            In Progress
+                                          </option>
+                                          <option
+                                            value="Completed"
+                                            className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                                          >
+                                            Completed
+                                          </option>
+                                          <option
+                                            value="On Hold"
+                                            className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                                          >
+                                            On Hold
+                                          </option>
+                                        </select>
+                                        <TimeTracker 
+                                          startTime={task.actualStartTime} 
+                                          endTime={task.actualEndTime} 
+                                          status={task.status} 
+                                        />
+                                      </div>
                                     </td>
 
                                     {/* Due Date */}
@@ -1326,49 +1385,56 @@ const Task = () => {
                                             className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30 w-36"
                                             onClick={(e) => e.stopPropagation()}
                                           >
-                                            <select
-                                              value={sub.status || "Pending"}
-                                              onChange={(e) => {
-                                                const updatedSubtasks =
-                                                  task.subtasks.map((s) =>
-                                                    s._id === sub._id
-                                                      ? {
-                                                          ...s,
-                                                          status: e.target.value,
-                                                        }
-                                                      : s,
-                                                  );
-                                                handleTaskFieldChange(task._id, {
-                                                  subtasks: updatedSubtasks,
-                                                });
-                                              }}
-                                              className={`px-2 py-0.5 text-[9px] font-extrabold rounded-lg border tracking-wider cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors ${subStatusStyle.bg}`}
-                                            >
-                                              <option
-                                                value="Pending"
-                                                className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                                            <div className="flex flex-col items-start gap-1">
+                                              <select
+                                                value={sub.status || "Pending"}
+                                                onChange={(e) => {
+                                                  const updatedSubtasks =
+                                                    task.subtasks.map((s) =>
+                                                      s._id === sub._id
+                                                        ? {
+                                                            ...s,
+                                                            status: e.target.value,
+                                                          }
+                                                        : s,
+                                                    );
+                                                  handleTaskFieldChange(task._id, {
+                                                    subtasks: updatedSubtasks,
+                                                  });
+                                                }}
+                                                className={`px-2 py-0.5 text-[9px] font-extrabold rounded-lg border tracking-wider cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors w-full ${subStatusStyle.bg}`}
                                               >
-                                                Pending
-                                              </option>
-                                              <option
-                                                value="In Progress"
-                                                className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
-                                              >
-                                                In Progress
-                                              </option>
-                                              <option
-                                                value="Completed"
-                                                className="bg-white dark:bg-[#0f172a] text-[#888] dark:text-[#888]"
-                                              >
-                                                Completed
-                                              </option>
-                                              <option
-                                                value="On Hold"
-                                                className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
-                                              >
-                                                On Hold
-                                              </option>
-                                            </select>
+                                                <option
+                                                  value="Pending"
+                                                  className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                                                >
+                                                  Pending
+                                                </option>
+                                                <option
+                                                  value="In Progress"
+                                                  className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                                                >
+                                                  In Progress
+                                                </option>
+                                                <option
+                                                  value="Completed"
+                                                  className="bg-white dark:bg-[#0f172a] text-[#888] dark:text-[#888]"
+                                                >
+                                                  Completed
+                                                </option>
+                                                <option
+                                                  value="On Hold"
+                                                  className="bg-white dark:bg-[#0f172a] text-slate-800 dark:text-slate-100"
+                                                >
+                                                  On Hold
+                                                </option>
+                                              </select>
+                                              <TimeTracker 
+                                                startTime={sub.actualStartTime} 
+                                                endTime={sub.actualEndTime} 
+                                                status={sub.status} 
+                                              />
+                                            </div>
                                           </td>
 
                                           {/* 5. Due Date */}

@@ -139,6 +139,38 @@ exports.updateTask = async (req, res) => {
     const previousAssignee = task.assignedTo;
     const previousSubtasks = task.subtasks ? JSON.parse(JSON.stringify(task.subtasks)) : [];
 
+    // Time tracking logic for parent task
+    if (req.body.status && req.body.status !== previousStatus) {
+      if (req.body.status === "Pending") {
+        req.body.actualStartTime = null;
+        req.body.actualEndTime = null;
+      } else if (req.body.status === "In Progress" && !task.actualStartTime) {
+        req.body.actualStartTime = Date.now();
+      } else if (req.body.status === "Completed" && !task.actualEndTime) {
+        req.body.actualEndTime = Date.now();
+      }
+    }
+
+    // Time tracking logic for subtasks
+    if (req.body.subtasks) {
+      req.body.subtasks = req.body.subtasks.map((sub) => {
+        const prevSub = previousSubtasks.find(
+          (p) => p._id && sub._id && p._id.toString() === sub._id.toString()
+        );
+        if (prevSub && sub.status && sub.status !== prevSub.status) {
+          if (sub.status === "Pending") {
+            sub.actualStartTime = null;
+            sub.actualEndTime = null;
+          } else if (sub.status === "In Progress" && !prevSub.actualStartTime && !sub.actualStartTime) {
+            sub.actualStartTime = Date.now();
+          } else if (sub.status === "Completed" && !prevSub.actualEndTime && !sub.actualEndTime) {
+            sub.actualEndTime = Date.now();
+          }
+        }
+        return sub;
+      });
+    }
+
     task = await Task.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
