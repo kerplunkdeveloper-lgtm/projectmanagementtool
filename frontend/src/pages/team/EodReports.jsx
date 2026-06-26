@@ -1,12 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   getEodReports,
   createEodReport,
   updateEodReport,
 } from "../../features/eodReports/eodReportSlice";
-import { FiPlus, FiEdit, FiX } from "react-icons/fi";
+import { 
+  FiPlus, FiEdit, FiX, FiPaperclip, FiTrash2, FiFile, FiImage, 
+  FiSearch, FiCalendar, FiFilter, FiChevronLeft, FiChevronRight 
+} from "react-icons/fi";
 import axiosInstance from "../../services/axiosInstance";
+import toast from "react-hot-toast";
 
 const EodReports = () => {
   const dispatch = useDispatch();
@@ -14,154 +18,309 @@ const EodReports = () => {
   
   const [openModal, setOpenModal] = useState(false);
   const [editReport, setEditReport] = useState(null);
-  const [projects, setProjects] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
+  // Form State
   const [formData, setFormData] = useState({
-    project: "",
-    tasksCompleted: "",
-    blockers: "None",
-    nextDayPlan: "",
+    projectName: "",
+    description: "",
+    status: "Completed",
+    attachments: [],
   });
+
+  // Filter & Pagination State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [dateFilter, setDateFilter] = useState(""); // YYYY-MM-DD
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     dispatch(getEodReports());
-    fetchProjects();
   }, [dispatch]);
-
-  const fetchProjects = async () => {
-    try {
-      const res = await axiosInstance.get("/projects");
-      setProjects(res.data.data);
-    } catch (error) {
-      console.log(error);
-    }
-  };
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size should be less than 5MB");
+      return;
+    }
+
+    setUploading(true);
+    const data = new FormData();
+    data.append("file", file);
+
+    try {
+      const res = await axiosInstance.post("/eod-reports/upload", data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      
+      const newAttachment = {
+        url: res.data.data.url,
+        filename: res.data.data.filename,
+        fileType: res.data.data.fileType,
+      };
+
+      setFormData((prev) => ({
+        ...prev,
+        attachments: [...prev.attachments, newAttachment],
+      }));
+      toast.success("File uploaded successfully");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Error uploading file");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const removeAttachment = (index) => {
+    const newAttachments = [...formData.attachments];
+    newAttachments.splice(index, 1);
+    setFormData({ ...formData, attachments: newAttachments });
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const payload = { ...formData };
-    if (!payload.project) {
-      delete payload.project;
-    }
-
     if (editReport) {
-      dispatch(updateEodReport({ id: editReport._id, data: payload }));
+      dispatch(updateEodReport({ id: editReport._id, data: formData }));
     } else {
-      dispatch(createEodReport(payload));
+      dispatch(createEodReport(formData));
     }
 
     setOpenModal(false);
     setEditReport(null);
     setFormData({
-      project: "",
-      tasksCompleted: "",
-      blockers: "None",
-      nextDayPlan: "",
+      projectName: "",
+      description: "",
+      status: "Completed",
+      attachments: [],
     });
   };
 
   const handleEdit = (report) => {
     setEditReport(report);
     setFormData({
-      project: report.project?._id || "",
-      tasksCompleted: report.tasksCompleted,
-      blockers: report.blockers,
-      nextDayPlan: report.nextDayPlan,
+      projectName: report.projectName || "",
+      description: report.description || "",
+      status: report.status || "Completed",
+      attachments: report.attachments || [],
     });
     setOpenModal(true);
   };
 
+  const [imagePreview, setImagePreview] = useState(null);
+
+  // Filter Logic
+  const filteredReports = useMemo(() => {
+    return eodReports.filter((report) => {
+      // Search text in projectName or description
+      const matchesSearch = 
+        report.projectName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        report.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      // Status Match
+      const matchesStatus = statusFilter === "All" || report.status === statusFilter;
+      
+      // Date Match
+      let matchesDate = true;
+      if (dateFilter) {
+        const reportDate = new Date(report.date).toISOString().split('T')[0];
+        matchesDate = reportDate === dateFilter;
+      }
+
+      return matchesSearch && matchesStatus && matchesDate;
+    });
+  }, [eodReports, searchQuery, statusFilter, dateFilter]);
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
+  const currentReports = filteredReports.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, dateFilter]);
+
   return (
-    <div className=" bg-gradient-to-br from-slate-50 via-white to-gray-100 ">
-      <div className="max-w-7xl mx-auto">
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
-          <div>
-            <h1 className="text-2xl font-extrabold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-              My EOD Reports
-            </h1>
-            <p className="text-gray-500 mt-2 text-sm">Log your daily progress and future initiatives</p>
+    <div className="min-h-screen transition-colors duration-300">
+      <div className="max-w-8xl mx-auto">
+        {/* TOP ACTION & FILTER BAR */}
+        <div className="bg-white dark:bg-slate-800 shadow-sm p-3 mb-6 flex flex-col lg:flex-row gap-3 justify-between items-center transition-colors rounded-xl">
+          
+          {/* FILTERS (LEFT) */}
+          <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-3 flex-1">
+            {/* SEARCH */}
+            <div className="relative w-full sm:max-w-xs">
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] font-medium text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              />
+            </div>
+
+            {/* DATE FILTER */}
+            <div className="relative w-full sm:w-auto">
+              <input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 text-[13px] font-medium text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer [&::-webkit-calendar-picker-indicator]:dark:invert min-w-[150px] rounded-lg border border-slate-200 dark:border-slate-700"
+              />
+            </div>
+
+            {/* STATUS FILTER */}
+            <div className="relative w-full sm:w-auto">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full pl-4 pr-8 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] font-medium text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer appearance-none min-w-[140px]"
+              >
+                <option value="All">All Statuses</option>
+                <option value="Completed">Completed</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Pending">Pending</option>
+                <option value="On Hold">On Hold</option>
+              </select>
+              <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                <FiChevronRight className="text-slate-400 rotate-90" size={14} />
+              </div>
+            </div>
           </div>
 
-          <button
-            onClick={() => {
-              setOpenModal(true);
-              setEditReport(null);
-            }}
-            className="flex items-center justify-center gap-3 p-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-md shadow-[0_15px_30px_rgba(37,99,235,0.3)] hover:scale-105 hover:shadow-[0_20px_40px_rgba(37,99,235,0.4)] transition-all active:scale-95"
-          >
-            <FiPlus size={24} />
-            Submit Report
-          </button>
+          {/* ADD BUTTON (RIGHT) */}
+          <div className="shrink-0 w-full lg:w-auto">
+            <button
+              onClick={() => {
+                setOpenModal(true);
+                setEditReport(null);
+                setFormData({
+                  projectName: "",
+                  description: "",
+                  status: "Completed",
+                  attachments: [],
+                });
+              }}
+              className="flex w-full lg:w-auto items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium text-[13px] rounded-lg shadow-sm hover:shadow-md transition-all active:scale-[0.98]"
+            >
+              <FiPlus size={16} />
+              New Report
+            </button>
+          </div>
         </div>
 
-        {/* TABLE */}
-        <div className="overflow-hidden rounded-[2.5rem] border border-gray-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[1000px]">
+        {/* TABLE SECTION */}
+        <div className="bg-white dark:bg-[#111827] overflow-hidden transition-colors rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="overflow-x-auto custom-scrollbar">
+            <table className="w-full min-w-[900px] text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/50 border-b border-gray-100">
-                  <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Submission Date</th>
-                  <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Project Context</th>
-                  <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Achievements</th>
-                  <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Obstacles</th>
-                  <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Strategic Plan</th>
-                  <th className="px-8 py-6 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Operations</th>
+                <tr className="bg-slate-50/50 dark:bg-[#0f172a]/50 border-b border-slate-200 dark:border-slate-800">
+                  <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Date</th>
+                  <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Project Name</th>
+                  <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Description</th>
+                  <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Status</th>
+                  <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Attachments</th>
+                  <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                 {loading ? (
                   <tr>
-                    <td colSpan="6" className="text-center py-20">
-                      <div className="flex flex-col items-center gap-4">
-                        <div className="w-12 h-12 border-4 border-blue-100 border-t-blue-500 rounded-full animate-spin"></div>
-                        <p className="text-slate-400 font-bold italic">Synchronizing reports...</p>
+                    <td colSpan="6" className="text-center py-16">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="w-8 h-8 border-3 border-slate-200 dark:border-slate-700 border-t-blue-500 rounded-full animate-spin"></div>
+                        <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">Loading...</p>
                       </div>
                     </td>
                   </tr>
-                ) : eodReports.length === 0 ? (
+                ) : currentReports.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="text-center py-20">
-                      <p className="text-slate-400 font-bold text-lg italic">No tactical reports found in your history.</p>
+                    <td colSpan="6" className="text-center py-16">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center border border-slate-100 dark:border-slate-800">
+                          <FiFile className="text-slate-400 dark:text-slate-500" size={20} />
+                        </div>
+                        <p className="text-slate-600 dark:text-slate-400 font-medium text-sm mt-2">No reports found.</p>
+                      </div>
                     </td>
                   </tr>
                 ) : (
-                  eodReports.map((report) => (
-                    <tr key={report._id} className="hover:bg-blue-50/30 transition-colors group">
-                      <td className="px-8 py-6 whitespace-nowrap font-bold text-slate-700">
-                        {new Date(report.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                  currentReports.map((report) => (
+                    <tr key={report._id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors group">
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        <p className="text-[13px] font-semibold text-slate-700 dark:text-slate-300">
+                          {new Date(report.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
+                        </p>
                       </td>
-                      <td className="px-8 py-6">
-                        <span className="px-4 py-1.5 rounded-xl bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-wider border border-indigo-100 shadow-sm">
-                          {report.project?.title || "Operational"}
+                      <td className="px-5 py-3.5">
+                        <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200">
+                          {report.projectName}
                         </span>
                       </td>
-                      <td className="px-8 py-6 max-w-xs">
-                        <p className="text-slate-600 text-sm font-medium leading-relaxed truncate group-hover:whitespace-normal" title={report.tasksCompleted}>
-                          {report.tasksCompleted}
+                      <td className="px-5 py-3.5 max-w-[300px]">
+                        <p className="text-slate-600 dark:text-slate-400 text-[13px] leading-relaxed line-clamp-1 group-hover:line-clamp-none transition-all" title={report.description}>
+                          {report.description}
                         </p>
                       </td>
-                      <td className="px-8 py-6 max-w-xs">
-                        <p className={`text-sm font-bold truncate group-hover:whitespace-normal ${report.blockers && report.blockers !== 'None' ? 'text-rose-500' : 'text-slate-400 font-medium italic'}`} title={report.blockers}>
-                          {report.blockers || "No obstacles."}
-                        </p>
+                      <td className="px-5 py-3.5 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${
+                          report.status === "Completed" ? "bg-emerald-50 text-emerald-600 border border-emerald-200/50 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20" :
+                          report.status === "In Progress" ? "bg-blue-50 text-blue-600 border border-blue-200/50 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20" :
+                          report.status === "On Hold" ? "bg-amber-50 text-amber-600 border border-amber-200/50 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20" :
+                          "bg-slate-50 text-slate-600 border border-slate-200/50 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20"
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                            report.status === "Completed" ? "bg-emerald-500" :
+                            report.status === "In Progress" ? "bg-blue-500" :
+                            report.status === "On Hold" ? "bg-amber-500" : "bg-slate-400"
+                          }`}></span>
+                          {report.status}
+                        </span>
                       </td>
-                      <td className="px-8 py-6 max-w-xs">
-                        <p className="text-blue-600 text-sm font-bold leading-relaxed truncate group-hover:whitespace-normal" title={report.nextDayPlan}>
-                          {report.nextDayPlan}
-                        </p>
+                      <td className="px-5 py-3.5">
+                        {report.attachments?.length > 0 ? (
+                          <div className="flex -space-x-1.5">
+                            {report.attachments.map((att, i) => (
+                              <a 
+                                key={i} 
+                                href={att.fileType === "image" ? "#" : att.url} 
+                                target={att.fileType === "image" ? "_self" : "_blank"} 
+                                rel="noopener noreferrer" 
+                                title={att.filename}
+                                onClick={(e) => {
+                                  if (att.fileType === "image") {
+                                    e.preventDefault();
+                                    setImagePreview(att.url);
+                                  }
+                                }}
+                                className="w-7 h-7 rounded-full border-2 border-white dark:border-[#111827] bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:z-10 hover:scale-110 hover:shadow-sm transition-all">
+                                {att.fileType === "image" ? <FiImage size={12} /> : <FiFile size={12} />}
+                              </a>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 dark:text-slate-500 text-[11px] font-medium italic">None</span>
+                        )}
                       </td>
-                      <td className="px-8 py-6 text-center">
+                      <td className="px-5 py-3.5 text-center">
                         <button
                           onClick={() => handleEdit(report)}
-                          className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-amber-50 hover:text-amber-600 hover:border-amber-100 border border-transparent transition-all shadow-sm active:scale-90"
+                          className="w-8 h-8 rounded-lg bg-transparent hover:bg-blue-50 dark:hover:bg-blue-500/10 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-center transition-all mx-auto"
                         >
-                          <FiEdit size={18} />
+                          <FiEdit size={14} />
                         </button>
                       </td>
                     </tr>
@@ -170,99 +329,216 @@ const EodReports = () => {
               </tbody>
             </table>
           </div>
+
+          {/* PAGINATION (Only shows if there are more items than itemsPerPage) */}
+          {!loading && filteredReports.length > itemsPerPage && (
+            <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111827] flex flex-col sm:flex-row items-center justify-between gap-4">
+              <p className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
+                Showing <span className="font-semibold text-slate-700 dark:text-slate-300">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-semibold text-slate-700 dark:text-slate-300">{Math.min(currentPage * itemsPerPage, filteredReports.length)}</span> of <span className="font-semibold text-slate-700 dark:text-slate-300">{filteredReports.length}</span>
+              </p>
+              
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <FiChevronLeft size={16} />
+                </button>
+                
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }).map((_, idx) => {
+                    const page = idx + 1;
+                    if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`min-w-[28px] h-7 px-2 rounded text-[12px] font-bold transition-colors ${
+                            currentPage === page 
+                              ? "bg-blue-600 text-white" 
+                              : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                      return <span key={page} className="px-1 text-[12px] text-slate-400">...</span>;
+                    }
+                    return null;
+                  })}
+                </div>
+
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 rounded text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <FiChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* MODAL */}
         {openModal && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center p-4 z-50">
-            <div className="bg-white w-full max-w-2xl rounded-[2.5rem] border border-gray-200 shadow-[0_30px_70px_rgba(0,0,0,0.2)] overflow-hidden">
+          <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-slate-800 w-full max-w-[480px] rounded-2xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
               {/* HEADER */}
-              <div className="flex items-center justify-between px-10 py-8 border-b border-gray-100 bg-slate-50/50">
-                <h2 className="text-3xl font-black text-slate-800">
-                  {editReport ? "Update Report" : "Daily Briefing"}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
+                <h2 className="text-[17px] font-bold text-slate-800 dark:text-slate-100 tracking-tight">
+                  {editReport ? "Update Report" : "Daily Report"}
                 </h2>
                 <button
                   onClick={() => setOpenModal(false)}
-                  className="w-12 h-12 rounded-2xl bg-white border border-gray-200 flex items-center justify-center text-slate-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 transition-all duration-300 shadow-sm"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
                 >
-                  <FiX size={24} />
+                  <FiX size={18} />
                 </button>
               </div>
 
               {/* FORM */}
-              <form onSubmit={handleSubmit} className="p-10 space-y-8 max-h-[75vh] overflow-y-auto">
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Project Alignment *</label>
-                  <select
-                    name="project"
+              <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
+                
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Project Name</label>
+                  <input
+                    type="text"
+                    name="projectName"
                     required
-                    value={formData.project}
+                    placeholder="E.g. Website Redesign..."
+                    value={formData.projectName}
                     onChange={handleChange}
-                    className="w-full h-14 bg-slate-50 border border-gray-200 rounded-2xl px-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium cursor-pointer"
-                  >
-                    <option value="">Select Specific Project...</option>
-                    {projects.map((proj) => (
-                      <option key={proj._id} value={proj._id}>
-                        {proj.title} {proj.client?.companyName ? `(${proj.client.companyName})` : ''}
-                      </option>
-                    ))}
-                  </select>
+                    className="w-full bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg px-3.5 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[13px] font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
+                  />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Key Achievements *</label>
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Description</label>
                   <textarea
                     rows="3"
-                    name="tasksCompleted"
+                    name="description"
                     required
-                    placeholder="Document your milestones for today..."
-                    value={formData.tasksCompleted}
+                    placeholder="What did you work on today?"
+                    value={formData.description}
                     onChange={handleChange}
-                    className="w-full bg-slate-50 border border-gray-200 rounded-[2rem] p-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium resize-none"
+                    className="w-full bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg px-3.5 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[13px] font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Obstacles & Blockers</label>
-                  <textarea
-                    rows="2"
-                    name="blockers"
-                    placeholder="Any challenges that required intervention?"
-                    value={formData.blockers}
-                    onChange={handleChange}
-                    className="w-full bg-slate-50 border border-gray-200 rounded-[2rem] p-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium resize-none"
-                  />
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Status</label>
+                  <div className="relative">
+                    <select
+                      name="status"
+                      required
+                      value={formData.status}
+                      onChange={handleChange}
+                      className="w-full bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg px-3.5 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[13px] font-medium text-slate-800 dark:text-slate-100 cursor-pointer appearance-none"
+                    >
+                      <option value="Completed">Completed</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Pending">Pending</option>
+                      <option value="On Hold">On Hold</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      <FiChevronRight className="text-slate-400 rotate-90" size={16} />
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-3 ml-1">Strategic Roadmap (Next Day) *</label>
-                  <textarea
-                    rows="2"
-                    name="nextDayPlan"
-                    required
-                    placeholder="What is your primary objective for tomorrow?"
-                    value={formData.nextDayPlan}
-                    onChange={handleChange}
-                    className="w-full bg-slate-50 border border-gray-200 rounded-[2rem] p-6 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100 transition-all text-slate-800 font-medium resize-none"
-                  />
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Attachments</label>
+                  
+                  {formData.attachments.length > 0 && (
+                    <div className="flex flex-col gap-2 mb-3">
+                      {formData.attachments.map((att, i) => (
+                        <div key={i} className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/30 px-3 py-2 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <div className="text-slate-400 dark:text-slate-500 shrink-0">
+                              {att.fileType === "image" ? <FiImage size={14} /> : <FiFile size={14} />}
+                            </div>
+                            <span className="text-[12px] font-medium text-slate-700 dark:text-slate-300 truncate">{att.filename}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeAttachment(i)}
+                            className="shrink-0 p-1 rounded-md text-rose-500/70 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors ml-2"
+                          >
+                            <FiTrash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="relative w-full border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-all flex flex-col items-center justify-center p-6 cursor-pointer group">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileUpload}
+                      disabled={uploading}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                    />
+                    <div className="flex flex-col items-center justify-center text-center gap-2">
+                      {uploading ? (
+                        <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <div className="text-slate-400 group-hover:text-blue-500 transition-colors">
+                          <FiPaperclip size={20} />
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">
+                          {uploading ? "Uploading..." : "Click or drag file"}
+                        </p>
+                        <p className="text-[10px] text-slate-500 dark:text-slate-500 mt-0.5">
+                          Max 5MB (Images, PDF, Docs)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-5 pt-6">
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-700/50 mt-2">
                   <button
                     type="button"
                     onClick={() => setOpenModal(false)}
-                    className="px-10 py-4 rounded-2xl border border-gray-200 text-slate-600 font-bold hover:bg-slate-50 transition-all active:scale-95"
+                    className="px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium text-[13px] hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-12 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black text-lg shadow-[0_15px_35px_rgba(37,99,235,0.3)] hover:scale-[1.02] hover:shadow-[0_20px_45px_rgba(37,99,235,0.4)] transition-all active:scale-95"
+                    disabled={uploading}
+                    className="px-5 py-2 rounded-lg bg-blue-600 text-white font-medium text-[13px] hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {editReport ? "Confirm Update" : "Launch Report"}
+                    {editReport ? "Update" : "Submit"}
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* IMAGE PREVIEW MODAL */}
+        {imagePreview && (
+          <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setImagePreview(null)}>
+            <div className="relative max-w-4xl w-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+              <button 
+                onClick={() => setImagePreview(null)} 
+                className="absolute -top-12 right-0 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 p-2 rounded-full transition-all"
+              >
+                <FiX size={20} />
+              </button>
+              <img 
+                src={imagePreview} 
+                alt="Attachment Preview" 
+                className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl" 
+              />
             </div>
           </div>
         )}

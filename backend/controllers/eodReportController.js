@@ -1,23 +1,19 @@
 const EodReport = require("../models/EodReport");
+const cloudinary = require("../config/cloudinary");
 
 // ==========================================
 // CREATE EOD REPORT
 // ==========================================
 exports.createEodReport = async (req, res) => {
   try {
-    const { project, tasksCompleted, blockers, nextDayPlan } = req.body;
-
     const report = await EodReport.create({
+      ...req.body,
       user: req.user._id,
-      project: project || null,
-      tasksCompleted,
-      blockers,
-      nextDayPlan,
     });
 
     const populatedReport = await EodReport.findById(report._id).populate(
-      "project",
-      "title"
+      "user",
+      "name email role profile"
     );
 
     res.status(201).json({
@@ -47,8 +43,7 @@ exports.getEodReports = async (req, res) => {
 
     // Admins and Operation Managers can see all reports
     const reports = await EodReport.find(query)
-      .populate("user", "name email role")
-      .populate("project", "title")
+      .populate("user", "name email role profile")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -70,8 +65,7 @@ exports.getEodReports = async (req, res) => {
 exports.getEodReport = async (req, res) => {
   try {
     const report = await EodReport.findById(req.params.id)
-      .populate("user", "name email role")
-      .populate("project", "title");
+      .populate("user", "name email role profile");
 
     if (!report) {
       return res.status(404).json({
@@ -125,9 +119,7 @@ exports.updateEodReport = async (req, res) => {
     report = await EodReport.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
-    })
-      .populate("user", "name email")
-      .populate("project", "title");
+    }).populate("user", "name email profile");
 
     res.status(200).json({
       success: true,
@@ -139,5 +131,42 @@ exports.updateEodReport = async (req, res) => {
       success: false,
       message: err.message,
     });
+  }
+};
+
+// ==========================================
+// UPLOAD ATTACHMENT FOR EOD REPORT
+// ==========================================
+exports.uploadEodAttachment = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No file provided" });
+    }
+
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: "eod_attachments",
+      resource_type: "auto",
+    });
+
+    let fileType = "document";
+    const mime = req.file.mimetype;
+    if (mime.startsWith("image/")) {
+      fileType = "image";
+    } else if (mime.startsWith("video/")) {
+      fileType = "video";
+    } else if (mime.startsWith("audio/")) {
+      fileType = "audio";
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        url: result.secure_url,
+        filename: req.file.originalname,
+        fileType,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };

@@ -8,9 +8,9 @@ const eodReportSchema = new mongoose.Schema(
       required: true,
     },
 
-    project: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Project",
+    projectName: {
+      type: String,
+      required: [true, "Project name is required"],
     },
 
     date: {
@@ -19,20 +19,34 @@ const eodReportSchema = new mongoose.Schema(
       required: true,
     },
 
-    tasksCompleted: {
+    description: {
       type: String,
-      required: [true, "Please describe the tasks completed today"],
+      required: [true, "Please provide a description"],
     },
 
-    blockers: {
+    status: {
       type: String,
-      default: "None",
+      enum: ["In Progress", "Completed", "On Hold", "Pending"],
+      default: "Completed",
     },
 
-    nextDayPlan: {
-      type: String,
-      required: [true, "Please describe your plan for tomorrow"],
-    },
+    attachments: [
+      {
+        url: {
+          type: String,
+          required: true,
+        },
+        filename: {
+          type: String,
+          required: true,
+        },
+        fileType: String,
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   {
     timestamps: true,
