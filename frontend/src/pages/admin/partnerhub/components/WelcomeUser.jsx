@@ -69,7 +69,7 @@ const WelcomeUser = () => {
             className="relative shrink-0 cursor-pointer hover:scale-105 active:scale-98 transition-all duration-300 group"
             title="Click to view profile details"
           >
-            <div className="w-20 h-20 md:w-[270px] md:h-[270px] rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 dark:from-[#e5ff00] dark:to-emerald-500 p-[2px] shadow-sm">
+            <div className="w-20 h-20 md:w-[200px] md:h-[200px] rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 dark:from-[#e5ff00] dark:to-emerald-500 p-[2px] shadow-sm">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
