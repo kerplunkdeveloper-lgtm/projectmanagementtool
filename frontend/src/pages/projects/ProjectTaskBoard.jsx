@@ -108,6 +108,44 @@ const TaskTitleInput = ({
   );
 };
 
+// Content Type Input Component for inline editing in the table
+const ContentTypeInput = ({
+  value,
+  onChange,
+  placeholder = "Enter type...",
+}) => {
+  const [val, setVal] = useState(value);
+
+  useEffect(() => {
+    setVal(value);
+  }, [value]);
+
+  return (
+    <input
+      type="text"
+      value={val}
+      onChange={(e) => setVal(e.target.value)}
+      onClick={(e) => e.stopPropagation()}
+      onBlur={() => {
+        if (val !== value) {
+          onChange(val);
+        }
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          if (val !== value) {
+            onChange(val);
+          }
+          e.target.blur();
+        }
+      }}
+      placeholder={placeholder}
+      className="bg-transparent border border-slate-200 dark:border-white/10 rounded px-2 py-0.5 outline-none text-slate-800 dark:text-white w-full max-w-[120px] text-[11px] font-semibold text-center focus:border-blue-500 dark:focus:border-[#e5ff00]"
+    />
+  );
+};
+
 // Subtask Row Component for the Drawer subtasks list
 const SubtaskRow = ({
   sub,
@@ -388,7 +426,7 @@ const AssigneeDropdown = ({
   isAdminOrManager,
   getAvatarColor,
   align = "left",
-  size = "md"
+  size = "md",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
@@ -398,18 +436,18 @@ const AssigneeDropdown = ({
     if (dropdownRef.current) {
       const rect = dropdownRef.current.getBoundingClientRect();
       const dropdownWidth = 224; // w-56 is 14rem = 224px
-      
+
       // Check if left alignment would go off-screen
       let left = rect.left + window.scrollX;
       if (rect.left + dropdownWidth > window.innerWidth) {
         // Right align instead: align right edge of dropdown with right edge of trigger
         left = rect.right - dropdownWidth + window.scrollX;
       }
-      
+
       setCoords({
         top: rect.bottom + window.scrollY,
         left: left,
-        width: rect.width
+        width: rect.width,
       });
     }
   };
@@ -444,9 +482,10 @@ const AssigneeDropdown = ({
     };
   }, [isOpen]);
 
-  const selectedUserObj = typeof selectedUser === "string"
-    ? users.find((u) => u._id === selectedUser)
-    : selectedUser;
+  const selectedUserObj =
+    typeof selectedUser === "string"
+      ? users.find((u) => u._id === selectedUser)
+      : selectedUser;
 
   const handleSelect = (user) => {
     onChange(user ? user._id : null);
@@ -454,11 +493,13 @@ const AssigneeDropdown = ({
   };
 
   const getInitials = (name) => {
-    return name
-      ?.split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase() || "U";
+    return (
+      name
+        ?.split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase() || "U"
+    );
   };
 
   const renderTrigger = () => {
@@ -480,7 +521,7 @@ const AssigneeDropdown = ({
             ) : (
               <div
                 className={`w-full h-full flex items-center justify-center text-white text-[8px] font-bold bg-gradient-to-br ${getAvatarColor(
-                  selectedUserObj.name || "U"
+                  selectedUserObj.name || "U",
                 )}`}
               >
                 {getInitials(selectedUserObj.name)}
@@ -500,7 +541,9 @@ const AssigneeDropdown = ({
           disabled={!isAdminOrManager}
           onClick={() => setIsOpen(!isOpen)}
           className={`w-full flex items-center justify-between bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 ${
-            isAdminOrManager ? "cursor-pointer hover:border-slate-350 dark:hover:border-white/20" : "cursor-not-allowed"
+            isAdminOrManager
+              ? "cursor-pointer hover:border-slate-350 dark:hover:border-white/20"
+              : "cursor-not-allowed"
           } focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00]`}
         >
           <div className="flex items-center gap-2 truncate">
@@ -515,7 +558,7 @@ const AssigneeDropdown = ({
                 ) : (
                   <div
                     className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
-                      selectedUserObj.name || "U"
+                      selectedUserObj.name || "U",
                     )}`}
                   >
                     {getInitials(selectedUserObj.name)}
@@ -531,10 +574,15 @@ const AssigneeDropdown = ({
                 </span>
               </>
             ) : (
-              <span className="text-slate-400 dark:text-slate-500">Unassigned</span>
+              <span className="text-slate-400 dark:text-slate-500">
+                Unassigned
+              </span>
             )}
           </div>
-          <FiChevronDown size={14} className="text-slate-400 dark:text-slate-500 shrink-0" />
+          <FiChevronDown
+            size={14}
+            className="text-slate-400 dark:text-slate-500 shrink-0"
+          />
         </button>
       );
     }
@@ -556,7 +604,7 @@ const AssigneeDropdown = ({
           ) : (
             <div
               className={`w-4.5 h-4.5 rounded-full flex items-center justify-center text-white font-bold text-[8px] bg-gradient-to-br shrink-0 ${getAvatarColor(
-                selectedUserObj.name || "Unknown"
+                selectedUserObj.name || "Unknown",
               )}`}
             >
               {getInitials(selectedUserObj.name)}
@@ -591,7 +639,10 @@ const AssigneeDropdown = ({
       >
         <div className="w-5 h-5 rounded-full border border-dashed border-slate-350 dark:border-indigo-900/60 flex items-center justify-center text-slate-400 dark:text-indigo-400/80 hover:border-indigo-400 hover:text-indigo-700 dark:hover:text-[#e5ff00] transition-colors bg-white dark:bg-slate-905">
           <FiUser size={10} className="group-hover/assign:hidden" />
-          <FiPlus size={10} className="hidden group-hover/assign:block text-blue-500 dark:text-[#e5ff00]" />
+          <FiPlus
+            size={10}
+            className="hidden group-hover/assign:block text-blue-500 dark:text-[#e5ff00]"
+          />
         </div>
       </div>
     );
@@ -601,76 +652,81 @@ const AssigneeDropdown = ({
     <div ref={dropdownRef} className="relative inline-block text-left w-full">
       {renderTrigger()}
 
-      {isOpen && createPortal(
-        <div
-          style={{
-            position: "absolute",
-            top: `${coords.top}px`,
-            left: `${coords.left}px`,
-            zIndex: 999999,
-          }}
-          className={`assignee-dropdown-portal mt-1 w-56 rounded-xl bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-2xl py-1.5 max-h-60 overflow-y-auto ${
-            align === "right" ? "right-0" : "left-0"
-          }`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            type="button"
-            onClick={() => handleSelect(null)}
-            className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white flex items-center gap-2 border-b border-slate-100 dark:border-white/5"
+      {isOpen &&
+        createPortal(
+          <div
+            style={{
+              position: "absolute",
+              top: `${coords.top}px`,
+              left: `${coords.left}px`,
+              zIndex: 999999,
+            }}
+            className={`assignee-dropdown-portal mt-1 w-56 rounded-xl bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-2xl py-1.5 max-h-60 overflow-y-auto ${
+              align === "right" ? "right-0" : "left-0"
+            }`}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-5 h-5 rounded-full border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400">
-              <FiX size={10} />
-            </div>
-            <span>Unassigned</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => handleSelect(null)}
+              className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-slate-800 dark:hover:text-white flex items-center gap-2 border-b border-slate-100 dark:border-white/5"
+            >
+              <div className="w-5 h-5 rounded-full border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400">
+                <FiX size={10} />
+              </div>
+              <span>Unassigned</span>
+            </button>
 
-          {users.map((u) => {
-            const isSelected = selectedUserObj?._id === u._id;
-            return (
-              <button
-                key={u._id}
-                type="button"
-                onClick={() => handleSelect(u)}
-                className={`w-full text-left px-3 py-2 text-xs font-semibold flex items-center justify-between hover:bg-slate-50 dark:hover:bg-white/5 transition-colors ${
-                  isSelected
-                    ? "text-blue-600 dark:text-[#e5ff00] bg-blue-50/30 dark:bg-[#e5ff00]/5"
-                    : "text-slate-700 dark:text-slate-200"
-                }`}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  {u.profileImage?.url ? (
-                    <img
-                      src={u.profileImage.url}
-                      alt={u.name}
-                      className="w-5 h-5 rounded-full object-cover shrink-0 border border-slate-100 dark:border-white/5"
-                    />
-                  ) : (
-                    <div
-                      className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
-                        u.name || "U"
-                      )}`}
-                    >
-                      {getInitials(u.name)}
-                    </div>
-                  )}
-                  <div className="flex flex-col truncate">
-                    <span className="truncate">{u.name}</span>
-                    {u.department && (
-                      <span className="text-[9px] text-slate-400 dark:text-slate-500 font-normal truncate">
-                        {u.department}
-                      </span>
+            {users.map((u) => {
+              const isSelected = selectedUserObj?._id === u._id;
+              return (
+                <button
+                  key={u._id}
+                  type="button"
+                  onClick={() => handleSelect(u)}
+                  className={`w-full text-left px-3 py-2 text-xs font-semibold flex items-center justify-between hover:bg-slate-50 dark:hover:bg-white/5 transition-colors ${
+                    isSelected
+                      ? "text-blue-600 dark:text-[#e5ff00] bg-blue-50/30 dark:bg-[#e5ff00]/5"
+                      : "text-slate-700 dark:text-slate-200"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    {u.profileImage?.url ? (
+                      <img
+                        src={u.profileImage.url}
+                        alt={u.name}
+                        className="w-5 h-5 rounded-full object-cover shrink-0 border border-slate-100 dark:border-white/5"
+                      />
+                    ) : (
+                      <div
+                        className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
+                          u.name || "U",
+                        )}`}
+                      >
+                        {getInitials(u.name)}
+                      </div>
                     )}
+                    <div className="flex flex-col truncate">
+                      <span className="truncate">{u.name}</span>
+                      {u.department && (
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 font-normal truncate">
+                          {u.department}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-                {isSelected && (
-                  <FiCheck size={12} className="text-blue-600 dark:text-[#e5ff00] shrink-0" />
-                )}
-              </button>
-            );
-          })}
-        </div>, document.body
-      )}
+                  {isSelected && (
+                    <FiCheck
+                      size={12}
+                      className="text-blue-600 dark:text-[#e5ff00] shrink-0"
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 };
@@ -698,6 +754,8 @@ const ProjectTaskBoard = ({
   const [focusedTaskId, setFocusedTaskId] = useState(null);
   const [checkedProjects, setCheckedProjects] = useState({});
   const [expandedTasks, setExpandedTasks] = useState({}); // taskId -> boolean
+  const [selectedTasks, setSelectedTasks] = useState({}); // taskId -> boolean
+  const [selectionModeSections, setSelectionModeSections] = useState({}); // sectionName -> boolean
   const [timelineOffsetWeeks, setTimelineOffsetWeeks] = useState(0);
   const [editingDateTaskId, setEditingDateTaskId] = useState(null);
   const [tempStartDate, setTempStartDate] = useState("");
@@ -843,7 +901,10 @@ const ProjectTaskBoard = ({
       );
       await Promise.all(
         tasksToUpdate.map((t) =>
-          updateTaskMutation({ id: t._id, taskData: { section: newName } }).unwrap(),
+          updateTaskMutation({
+            id: t._id,
+            taskData: { section: newName },
+          }).unwrap(),
         ),
       );
     } catch (err) {
@@ -1025,7 +1086,11 @@ const ProjectTaskBoard = ({
 
   // Add Task directly to DB (autosave pattern)
   const handleAddTask = async (sectionName) => {
-    const resolvedSectionName = sectionName || (activeProject?.sections?.length > 0 ? activeProject.sections[0] : "Recent assignment");
+    const resolvedSectionName =
+      sectionName ||
+      (activeProject?.sections?.length > 0
+        ? activeProject.sections[0]
+        : "Recent assignment");
     const tempId = "temp-" + Date.now();
     const tempTask = {
       _id: tempId,
@@ -1059,7 +1124,7 @@ const ProjectTaskBoard = ({
 
       if (response && response.data) {
         setLocalTasks((prev) =>
-          prev.map((t) => (t._id === tempId ? response.data : t))
+          prev.map((t) => (t._id === tempId ? response.data : t)),
         );
       }
     } catch (err) {
@@ -1136,7 +1201,7 @@ const ProjectTaskBoard = ({
 
       if (response && response.data) {
         setLocalTasks((prev) =>
-          prev.map((t) => (t._id === tempId ? response.data : t))
+          prev.map((t) => (t._id === tempId ? response.data : t)),
         );
       }
     } catch (err) {
@@ -1182,7 +1247,7 @@ const ProjectTaskBoard = ({
     }
 
     setLocalTasks((prev) =>
-      prev.map((t) => (t._id === taskId ? { ...t, ...sanitizedFields } : t))
+      prev.map((t) => (t._id === taskId ? { ...t, ...sanitizedFields } : t)),
     );
 
     if (String(taskId).startsWith("temp-")) {
@@ -1467,6 +1532,34 @@ const ProjectTaskBoard = ({
     }
   };
 
+  // Bulk Delete Tasks in a Section
+  const handleBulkDelete = async (sectionTasks) => {
+    const idsToDelete = Object.keys(selectedTasks).filter(
+      (id) => selectedTasks[id] && sectionTasks.some((t) => t._id === id),
+    );
+
+    if (idsToDelete.length === 0) return;
+
+    if (
+      window.confirm(
+        `Are you sure you want to delete the ${idsToDelete.length} selected task(s)?`,
+      )
+    ) {
+      try {
+        await Promise.all(
+          idsToDelete.map((id) => deleteTaskMutation(id).unwrap()),
+        );
+        setSelectedTasks((prev) => {
+          const next = { ...prev };
+          idsToDelete.forEach((id) => delete next[id]);
+          return next;
+        });
+      } catch (err) {
+        console.error("Failed to delete selected tasks:", err);
+      }
+    }
+  };
+
   const toggleTaskExpanded = (taskId) => {
     setExpandedTasks((prev) => ({ ...prev, [taskId]: !prev[taskId] }));
   };
@@ -1528,7 +1621,7 @@ const ProjectTaskBoard = ({
               />
               <div className="flex items-center gap-2 min-w-0 truncate">
                 <h1 className="text-lg sm:text-[15px] font-bold text-slate-800 dark:text-white truncate">
-                {activeProject.name}
+                  {activeProject.name}
                 </h1>
                 {activeProject?.client?.companyName && (
                   <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-800/30 shrink-0">
@@ -1540,11 +1633,9 @@ const ProjectTaskBoard = ({
           </div>
         </div>
 
-
-      {/* ACTION HEADER: ADD TASK & TABS SELECTOR */}
+        {/* ACTION HEADER: ADD TASK & TABS SELECTOR */}
 
         {/* Left Side: Spacer to keep Tab Selector centered */}
-
 
         {/* Center: Tab Selector - High-end, Premium Design */}
         <div className="flex items-center justify-center w-full lg:w-auto order-2 lg:order-none shrink-0">
@@ -1687,15 +1778,30 @@ const ProjectTaskBoard = ({
                       <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-3">
                         <div className="flex items-center gap-1.5">
                           <div className="w-5 h-5 rounded-md bg-blue-500/10 dark:bg-[#e5ff00]/10 flex items-center justify-center">
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-blue-600 dark:text-[#e5ff00]">
+                            <svg
+                              width="11"
+                              height="11"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="3"
+                              className="text-blue-600 dark:text-[#e5ff00]"
+                            >
                               <line x1="4" y1="6" x2="20" y2="6" />
                               <line x1="6" y1="12" x2="18" y2="12" />
                               <line x1="9" y1="18" x2="15" y2="18" />
                             </svg>
                           </div>
-                          <span className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">Filters</span>
+                          <span className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">
+                            Filters
+                          </span>
                         </div>
-                        {(filterSearch || filterAssignee !== "all" || filterStatus !== "all" || filterPriority !== "all" || filterStartDate || filterEndDate) && (
+                        {(filterSearch ||
+                          filterAssignee !== "all" ||
+                          filterStatus !== "all" ||
+                          filterPriority !== "all" ||
+                          filterStartDate ||
+                          filterEndDate) && (
                           <button
                             onClick={() => {
                               setFilterSearch("");
@@ -1707,8 +1813,15 @@ const ProjectTaskBoard = ({
                             }}
                             className="flex items-center gap-1 text-[10px] font-bold text-rose-500 hover:text-rose-600 transition-colors cursor-pointer bg-rose-50 dark:bg-rose-500/10 px-2 py-1 rounded-lg"
                           >
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                            <svg
+                              width="10"
+                              height="10"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="3"
+                            >
+                              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
                             </svg>
                             Clear All
                           </button>
@@ -1717,9 +1830,14 @@ const ProjectTaskBoard = ({
 
                       {/* Search */}
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">Search</label>
+                        <label className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">
+                          Search
+                        </label>
                         <div className="relative">
-                          <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-550" size={12} />
+                          <FiSearch
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-550"
+                            size={12}
+                          />
                           <input
                             type="text"
                             placeholder="Type to search tasks..."
@@ -1732,14 +1850,36 @@ const ProjectTaskBoard = ({
 
                       {/* Status */}
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">Status</label>
+                        <label className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">
+                          Status
+                        </label>
                         <div className="flex flex-wrap gap-1.5">
                           {[
-                            { name: "all", label: "All", color: "bg-slate-400" },
-                            { name: "Pending", label: "Pending", color: "bg-amber-500" },
-                            { name: "In Progress", label: "In Progress", color: "bg-blue-500" },
-                            { name: "Completed", label: "Completed", color: "bg-emerald-500" },
-                            { name: "On Hold", label: "On Hold", color: "bg-rose-500" }
+                            {
+                              name: "all",
+                              label: "All",
+                              color: "bg-slate-400",
+                            },
+                            {
+                              name: "Pending",
+                              label: "Pending",
+                              color: "bg-amber-500",
+                            },
+                            {
+                              name: "In Progress",
+                              label: "In Progress",
+                              color: "bg-blue-500",
+                            },
+                            {
+                              name: "Completed",
+                              label: "Completed",
+                              color: "bg-emerald-500",
+                            },
+                            {
+                              name: "On Hold",
+                              label: "On Hold",
+                              color: "bg-rose-500",
+                            },
                           ].map((status) => (
                             <button
                               key={status.name}
@@ -1751,7 +1891,9 @@ const ProjectTaskBoard = ({
                               }`}
                             >
                               {status.name !== "all" && (
-                                <span className={`w-1.5 h-1.5 rounded-full ${status.color} shrink-0`} />
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${status.color} shrink-0`}
+                                />
                               )}
                               {status.label}
                             </button>
@@ -1761,13 +1903,31 @@ const ProjectTaskBoard = ({
 
                       {/* Priority */}
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">Priority</label>
+                        <label className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">
+                          Priority
+                        </label>
                         <div className="flex flex-wrap gap-1.5">
                           {[
-                            { name: "all", label: "All", color: "bg-slate-400" },
-                            { name: "Low", label: "Low", color: "bg-slate-400" },
-                            { name: "Medium", label: "Medium", color: "bg-amber-500" },
-                            { name: "High", label: "High", color: "bg-rose-500" }
+                            {
+                              name: "all",
+                              label: "All",
+                              color: "bg-slate-400",
+                            },
+                            {
+                              name: "Low",
+                              label: "Low",
+                              color: "bg-slate-400",
+                            },
+                            {
+                              name: "Medium",
+                              label: "Medium",
+                              color: "bg-amber-500",
+                            },
+                            {
+                              name: "High",
+                              label: "High",
+                              color: "bg-rose-500",
+                            },
                           ].map((priority) => (
                             <button
                               key={priority.name}
@@ -1779,7 +1939,9 @@ const ProjectTaskBoard = ({
                               }`}
                             >
                               {priority.name !== "all" && (
-                                <span className={`w-1.5 h-1.5 rounded-full ${priority.color} shrink-0`} />
+                                <span
+                                  className={`w-1.5 h-1.5 rounded-full ${priority.color} shrink-0`}
+                                />
                               )}
                               {priority.label}
                             </button>
@@ -1789,7 +1951,9 @@ const ProjectTaskBoard = ({
 
                       {/* Assignee */}
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-slate-455 dark:text-slate-500 uppercase tracking-wider">Assignee</label>
+                        <label className="text-[10px] font-bold text-slate-455 dark:text-slate-500 uppercase tracking-wider">
+                          Assignee
+                        </label>
                         <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto custom-scrollbar pr-1">
                           <button
                             onClick={() => setFilterAssignee("all")}
@@ -1832,20 +1996,30 @@ const ProjectTaskBoard = ({
 
                       {/* Date Range */}
                       <div className="space-y-1.5 border-t border-slate-100 dark:border-white/5 pt-3">
-                        <label className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">Date Range</label>
+                        <label className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">
+                          Date Range
+                        </label>
                         <div className="grid grid-cols-2 gap-2">
                           <div className="flex items-center gap-1.5 bg-slate-50/50 dark:bg-[#18181b]/50 border border-slate-200/60 dark:border-white/10 rounded-xl px-2.5 py-1.5 text-slate-500 transition-all focus-within:border-blue-550 dark:focus-within:border-[#e5ff00]">
-                            <FiCalendar size={11} className="shrink-0 text-slate-400 dark:text-slate-550" />
+                            <FiCalendar
+                              size={11}
+                              className="shrink-0 text-slate-400 dark:text-slate-550"
+                            />
                             <input
                               type="date"
                               value={filterStartDate}
-                              onChange={(e) => setFilterStartDate(e.target.value)}
+                              onChange={(e) =>
+                                setFilterStartDate(e.target.value)
+                              }
                               className="bg-transparent border-none p-0 text-[10px] font-semibold text-slate-700 dark:text-slate-300 outline-none cursor-pointer focus:ring-0 w-full"
                               title="Start Date"
                             />
                           </div>
                           <div className="flex items-center gap-1.5 bg-slate-50/50 dark:bg-[#18181b]/50 border border-slate-200/60 dark:border-white/10 rounded-xl px-2.5 py-1.5 text-slate-500 transition-all focus-within:border-blue-550 dark:focus-within:border-[#e5ff00]">
-                            <FiCalendar size={11} className="shrink-0 text-slate-400 dark:text-slate-550" />
+                            <FiCalendar
+                              size={11}
+                              className="shrink-0 text-slate-400 dark:text-slate-550"
+                            />
                             <input
                               type="date"
                               value={filterEndDate}
@@ -1994,7 +2168,7 @@ const ProjectTaskBoard = ({
               return (
                 <div
                   key={`${sectionName}-${sectionIndex}`}
-                  className="bg-white dark:bg-[#111111]/40 border border-slate-200 dark:border-white/5 rounded-2xl p-4 shadow-sm space-y-4"
+                  className="bg-blue-50 dark:bg-blue-50 border border-slate-200 dark:border-white/5 rounded-2xl p-4 shadow-sm space-y-4"
                 >
                   {/* SECTION HEADER BLOCK */}
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5">
@@ -2015,10 +2189,7 @@ const ProjectTaskBoard = ({
                       {editingSection === sectionName ? (
                         <form
                           onSubmit={(e) =>
-                            handleRenameSectionSubmit(
-                              e,
-                              sectionName,
-                            )
+                            handleRenameSectionSubmit(e, sectionName)
                           }
                           className="ml-1"
                         >
@@ -2029,10 +2200,7 @@ const ProjectTaskBoard = ({
                               setEditSectionValue(e.target.value)
                             }
                             onBlur={(e) =>
-                              handleRenameSectionSubmit(
-                                e,
-                                sectionName,
-                              )
+                              handleRenameSectionSubmit(e, sectionName)
                             }
                             className="text-xs font-semibold bg-white dark:bg-slate-800 border border-blue-400 rounded px-2 py-1 outline-none text-slate-800 dark:text-white"
                           />
@@ -2052,10 +2220,61 @@ const ProjectTaskBoard = ({
 
                     {isAdminOrManager && (
                       <div className="flex items-center gap-2">
+                        {/* Cancel Selection Button */}
+                        {selectionModeSections[sectionName] && (
+                          <button
+                            onClick={() => {
+                              setSelectionModeSections((prev) => ({
+                                ...prev,
+                                [sectionName]: false,
+                              }));
+                              setSelectedTasks((prev) => {
+                                const next = { ...prev };
+                                sectionTasks.forEach((t) => {
+                                  delete next[t._id];
+                                });
+                                return next;
+                              });
+                            }}
+                            className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-250 dark:border-slate-750 rounded-lg transition-all cursor-pointer hover:shadow-sm"
+                          >
+                            <FiX size={11} />
+                            <span>Cancel</span>
+                          </button>
+                        )}
+
+                        {/* Bulk Delete Button */}
+                        {Object.keys(selectedTasks).some(
+                          (id) =>
+                            selectedTasks[id] &&
+                            sectionTasks.some((t) => t._id === id),
+                        ) && (
+                          <button
+                            onClick={() => handleBulkDelete(sectionTasks)}
+                            className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold bg-rose-50/80 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-400 border border-rose-200/50 dark:border-rose-800/30 rounded-lg transition-all cursor-pointer hover:shadow-sm"
+                          >
+                            <FiTrash2
+                              size={11}
+                              className="text-rose-600 dark:text-rose-455"
+                            />
+                            <span>
+                              Delete Selected (
+                              {
+                                Object.keys(selectedTasks).filter(
+                                  (id) =>
+                                    selectedTasks[id] &&
+                                    sectionTasks.some((t) => t._id === id),
+                                ).length
+                              }
+                              )
+                            </span>
+                          </button>
+                        )}
+
                         {/* Add Task button */}
                         <button
                           onClick={() => handleAddTask(sectionName)}
-                          className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold bg-blue-50/80 hover:bg-blue-100 dark:bg-blue-950/30 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-800/30 rounded-lg transition-all cursor-pointer hover:shadow-sm"
+                          className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold bg-blue-50/80 hover:bg-blue-100 dark:bg-blue-955/30 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-800/30 rounded-lg transition-all cursor-pointer hover:shadow-sm"
                         >
                           <FiPlus size={11} />
                           <span>Add Task</span>
@@ -2078,18 +2297,29 @@ const ProjectTaskBoard = ({
                             </button>
                           )}
 
-                          {sectionName !== "Recent assignment" &&
+                              {sectionName !== "Recent assignment" &&
                             openSectionMenu === sectionName && (
                               <div className="absolute right-0 mt-1 w-32 bg-white dark:bg-[#151518] rounded-lg shadow-lg border border-slate-100 dark:border-white/10 z-50 overflow-hidden">
                                 <button
                                   onClick={() => {
-                                    setEditingSection(sectionName);
-                                    setEditSectionValue(
-                                      sectionName,
-                                    );
+                                    setSelectionModeSections((prev) => ({
+                                      ...prev,
+                                      [sectionName]: !prev[sectionName],
+                                    }));
                                     setOpenSectionMenu(null);
                                   }}
-                                  className="w-full text-left px-3 py-2 text-[11px] font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center gap-2 cursor-pointer"
+                                  className="w-full text-left px-3 py-2 text-[11px] font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center gap-2 cursor-pointer border-b border-slate-100 dark:border-white/5"
+                                >
+                                  <FiCheckCircle size={12} className="text-blue-500" />{" "}
+                                  {selectionModeSections[sectionName] ? "Cancel Select" : "Select Tasks"}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setEditingSection(sectionName);
+                                    setEditSectionValue(sectionName);
+                                    setOpenSectionMenu(null);
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-[11px] font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center gap-2 cursor-pointer border-b border-slate-100 dark:border-white/5"
                                 >
                                   <FiEdit2 size={12} /> Rename
                                 </button>
@@ -2110,38 +2340,57 @@ const ProjectTaskBoard = ({
 
                   {/* SECTION TABLE */}
                   {!isSectionCollapsed && (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse text-[11px] border border-slate-200 dark:border-slate-800/80">
+                    <div className="overflow-x-auto w-full">
+                      <table className="w-full text-left border-spacing-0 text-[11px] border border-slate-200 dark:border-slate-800/80">
                         <thead>
                           <tr className="bg-slate-50/50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 tracking-wider text-[12px]">
-                            <th className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[240px]">
+                            {selectionModeSections[sectionName] && (
+                              <th className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 text-center w-10">
+                                <input
+                                  type="checkbox"
+                                  className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                  checked={
+                                    sectionTasks.length > 0 &&
+                                    sectionTasks.every((t) => selectedTasks[t._id])
+                                  }
+                                  onChange={(e) => {
+                                    const checked = e.target.checked;
+                                    setSelectedTasks((prev) => {
+                                      const next = { ...prev };
+                                      sectionTasks.forEach((t) => {
+                                        next[t._id] = checked;
+                                      });
+                                      return next;
+                                    });
+                                  }}
+                                />
+                              </th>
+                            )}
+                            <th className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[400px] sticky left-0 z-30 bg-slate-50/50 dark:bg-slate-900/60">
                               Name
                             </th>
-                            <th className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[140px]">
+                            <th className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[140px]">
                               Client
                             </th>
-                            <th className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[140px]">
+                            <th className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[140px]">
                               Assignee
                             </th>
-                            <th className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[130px]">
+                            <th className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[130px]">
                               Content Type
                             </th>
-                            <th className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[100px]">
-                              Comments
-                            </th>
-                            <th className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                            <th className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
                               Start Date
                             </th>
-                            <th className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                            <th className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
                               End Date
                             </th>
-                            <th className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                            <th className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
                               Priority
                             </th>
-                            <th className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                            <th className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
                               Status
                             </th>
-                            <th className="px-3 py-2 border-b border-slate-200 dark:border-slate-800 text-center whitespace-nowrap min-w-[80px]">
+                            <th className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 text-center whitespace-nowrap min-w-[80px]">
                               Actions
                             </th>
                           </tr>
@@ -2150,7 +2399,7 @@ const ProjectTaskBoard = ({
                           {sectionTasks.length === 0 ? (
                             <tr>
                               <td
-                                colSpan={10}
+                                colSpan={selectionModeSections[sectionName] ? 10 : 9}
                                 className="px-4 py-4 text-center text-slate-400 italic text-[10px] border-b border-slate-200 dark:border-slate-800"
                               >
                                 No tasks in this section.
@@ -2179,12 +2428,31 @@ const ProjectTaskBoard = ({
                                   {/* Parent Task Row */}
                                   <tr
                                     onClick={() => setSelectedTaskId(task._id)}
-                                    className={`group cursor-pointer transition-colors ${rowBg} hover:bg-blue-50/20 dark:hover:bg-[#e5ff00]/5`}
+                                    className={`group cursor-pointer transition-colors ${rowBg} `}
                                   >
+                                    {selectionModeSections[sectionName] && (
+                                      <td
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 text-center w-10"
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                          checked={!!selectedTasks[task._id]}
+                                          onChange={(e) => {
+                                            const checked = e.target.checked;
+                                            setSelectedTasks((prev) => ({
+                                              ...prev,
+                                              [task._id]: checked,
+                                            }));
+                                          }}
+                                        />
+                                      </td>
+                                    )}
                                     {/* Name Field with Circle Checkbox */}
                                     <td
                                       onClick={(e) => e.stopPropagation()}
-                                      className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 font-semibold"
+                                      className={`px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 font-semibold sticky left-0 z-10 min-w-[400px] ${rowBg}`}
                                     >
                                       <div className="flex items-center gap-2.5 w-full">
                                         {/* Expand/Collapse Chevron (only if subtasks exist) */}
@@ -2194,7 +2462,7 @@ const ProjectTaskBoard = ({
                                               e.stopPropagation();
                                               toggleTaskExpanded(task._id);
                                             }}
-                                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded transition-colors shrink-0 cursor-pointer"
+                                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded  shrink-0 cursor-pointer"
                                             title={
                                               isExpanded
                                                 ? "Collapse Subtasks"
@@ -2241,7 +2509,10 @@ const ProjectTaskBoard = ({
                                         <div className="flex-grow min-w-0">
                                           <span
                                             ref={(el) => {
-                                              if (el && focusedTaskId === task._id) {
+                                              if (
+                                                el &&
+                                                focusedTaskId === task._id
+                                              ) {
                                                 el.focus();
                                                 setFocusedTaskId(null);
                                               }
@@ -2289,7 +2560,7 @@ const ProjectTaskBoard = ({
                                               setSelectedTaskId(task._id);
                                             }}
                                             title={`${task.subtasks.length} subtask${task.subtasks.length !== 1 ? "s" : ""} — open details`}
-                                            className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/5 text-[8.5px] font-bold shrink-0 hover:bg-blue-50 dark:hover:bg-[#e5ff00]/10 hover:text-blue-600 dark:hover:text-[#e5ff00] hover:border-blue-200 dark:hover:border-[#e5ff00]/20 transition-all cursor-pointer"
+                                            className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/5 text-[8.5px] font-bold shrink-0 bg-blue-50 bg-[#e5ff00]/10 hover:text-blue-600 dark:hover:text-[#e5ff00] hover:border-blue-200 dark:hover:border-[#e5ff00]/20 transition-all cursor-pointer"
                                           >
                                             <FiCornerDownRight size={8} />
                                             {task.subtasks.length}
@@ -2311,12 +2582,13 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* Client Column */}
-                                    <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 text-slate-655 dark:text-slate-355 font-medium">
-                                      {activeProject?.client?.companyName || "N/A"}
+                                    <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 text-slate-655 dark:text-slate-355 font-medium">
+                                      {activeProject?.client?.companyName ||
+                                        "N/A"}
                                     </td>
 
                                     {/* Assignee Selection */}
-                                    <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                                    <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
                                       <div
                                         className="flex items-center gap-1.5"
                                         onClick={(e) => e.stopPropagation()}
@@ -2337,7 +2609,7 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* Content Type Column */}
-                                    <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                                    <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
                                       <div onClick={(e) => e.stopPropagation()}>
                                         {isAdminOrManager ? (
                                           <select
@@ -2352,13 +2624,17 @@ const ProjectTaskBoard = ({
                                                 ? "badge-type-video"
                                                 : task.contentType === "Image"
                                                   ? "badge-type-image"
-                                                  : task.contentType === "Carousel"
+                                                  : task.contentType ===
+                                                      "Carousel"
                                                     ? "badge-type-carousel"
-                                                    : task.contentType === "Reel"
+                                                    : task.contentType ===
+                                                        "Reel"
                                                       ? "badge-type-reel"
-                                                      : task.contentType === "Post"
+                                                      : task.contentType ===
+                                                          "Post"
                                                         ? "badge-type-post"
-                                                        : task.contentType === "Story"
+                                                        : task.contentType ===
+                                                            "Story"
                                                           ? "badge-type-story"
                                                           : "badge-type-none"
                                             }`}
@@ -2366,7 +2642,9 @@ const ProjectTaskBoard = ({
                                             <option value="">None</option>
                                             <option value="Video">Video</option>
                                             <option value="Image">Image</option>
-                                            <option value="Carousel">Carousel</option>
+                                            <option value="Carousel">
+                                              Carousel
+                                            </option>
                                             <option value="Reel">Reel</option>
                                             <option value="Post">Post</option>
                                             <option value="Story">Story</option>
@@ -2378,13 +2656,17 @@ const ProjectTaskBoard = ({
                                                 ? "badge-type-video"
                                                 : task.contentType === "Image"
                                                   ? "badge-type-image"
-                                                  : task.contentType === "Carousel"
+                                                  : task.contentType ===
+                                                      "Carousel"
                                                     ? "badge-type-carousel"
-                                                    : task.contentType === "Reel"
+                                                    : task.contentType ===
+                                                        "Reel"
                                                       ? "badge-type-reel"
-                                                      : task.contentType === "Post"
+                                                      : task.contentType ===
+                                                          "Post"
                                                         ? "badge-type-post"
-                                                        : task.contentType === "Story"
+                                                        : task.contentType ===
+                                                            "Story"
                                                           ? "badge-type-story"
                                                           : "badge-type-none"
                                             }`}
@@ -2395,18 +2677,10 @@ const ProjectTaskBoard = ({
                                       </div>
                                     </td>
 
-                                    {/* Comments Column */}
-                                    <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 text-center">
-                                      <div className="flex items-center justify-center gap-1.5 text-slate-500 dark:text-slate-400">
-                                        <FiMessageSquare size={13} className="text-slate-400 dark:text-slate-500" />
-                                        <span className="font-bold text-[10px] text-slate-600 dark:text-slate-350">{task.comments?.length || 0}</span>
-                                      </div>
-                                    </td>
-
                                     {/* Start Date */}
-                                    <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                                    <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
                                       <div
-                                        className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
+                                        className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           const input =
@@ -2423,10 +2697,10 @@ const ProjectTaskBoard = ({
                                         }}
                                       >
                                         {task.startDate ? (
-                                          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-blue-200 dark:border-blue-900/60 hover:border-blue-350 dark:hover:border-blue-500/40 text-blue-700 dark:text-blue-300 text-[10px] font-semibold bg-blue-50 dark:bg-blue-955/30 transition-all">
+                                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-blue-300 dark:border-blue-700/80 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-800 dark:text-blue-200 text-[10px] font-bold bg-blue-100/90 dark:bg-blue-950/70 transition-all shadow-sm">
                                             <FiCalendar
-                                              size={10}
-                                              className="text-blue-500 dark:text-blue-400"
+                                              size={10.5}
+                                              className="text-blue-600 dark:text-blue-400"
                                             />
                                             <span>
                                               {new Date(
@@ -2446,15 +2720,15 @@ const ProjectTaskBoard = ({
                                                     { startDate: null },
                                                   );
                                                 }}
-                                                className="ml-1 text-blue-400 hover:text-rose-500 relative z-10 transition-colors cursor-pointer"
+                                                className="ml-1 text-blue-500 hover:text-rose-600 dark:text-blue-400 dark:hover:text-rose-450 relative z-10 transition-colors cursor-pointer"
                                               >
                                                 <FiX size={10} />
                                               </button>
                                             )}
                                           </div>
                                         ) : (
-                                          <div className="flex items-center gap-1 px-1.5 py-1 rounded-md border border-dashed border-blue-200 dark:border-blue-900/40 text-blue-500/70 dark:text-blue-500/50 hover:border-blue-400 hover:text-blue-700 dark:hover:text-blue-400 dark:hover:border-blue-500/40 bg-blue-50/20 dark:bg-blue-955/10 transition-all text-[9px] font-bold">
-                                            <FiCalendar size={10} />
+                                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-blue-300 dark:border-blue-800/80 text-blue-600 dark:text-blue-400/90 hover:border-blue-400 hover:text-blue-750 dark:hover:text-blue-300 dark:hover:border-blue-600/80 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-all text-[8px] font-bold">
+                                            <FiCalendar size={10.5} />
                                             <span>+ Start Date</span>
                                           </div>
                                         )}
@@ -2481,9 +2755,9 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* End Date */}
-                                    <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                                    <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
                                       <div
-                                        className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
+                                        className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           const input =
@@ -2500,10 +2774,10 @@ const ProjectTaskBoard = ({
                                         }}
                                       >
                                         {task.dueDate ? (
-                                          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-rose-200 dark:border-rose-900/60 hover:border-rose-350 dark:hover:border-rose-500/40 text-rose-700 dark:text-rose-300 text-[10px] font-semibold bg-rose-50 dark:bg-rose-955/30 transition-all">
+                                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-700/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-850 dark:text-rose-200 text-[10px] font-bold bg-rose-100/90 dark:bg-rose-950/70 transition-all shadow-sm">
                                             <FiCalendar
-                                              size={10}
-                                              className="text-rose-555 dark:text-rose-400"
+                                              size={10.5}
+                                              className="text-rose-600 dark:text-rose-400"
                                             />
                                             <span>
                                               {new Date(
@@ -2523,15 +2797,15 @@ const ProjectTaskBoard = ({
                                                     { dueDate: null },
                                                   );
                                                 }}
-                                                className="ml-1 text-rose-455 hover:text-rose-500 relative z-10 transition-colors cursor-pointer"
+                                                className="ml-1 text-rose-500 hover:text-rose-750 dark:text-rose-400 dark:hover:text-rose-300 relative z-10 transition-colors cursor-pointer"
                                               >
                                                 <FiX size={10} />
                                               </button>
                                             )}
                                           </div>
                                         ) : (
-                                          <div className="flex items-center gap-1 px-1.5 py-1 rounded-md border border-dashed border-rose-200 dark:border-rose-900/40 text-rose-500/70 dark:text-rose-500/50 hover:border-rose-400 hover:text-rose-700 dark:hover:text-rose-400 dark:hover:border-rose-500/40 bg-rose-50/20 dark:bg-rose-955/10 transition-all text-[9px] font-bold">
-                                            <FiCalendar size={10} />
+                                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-rose-300 dark:border-rose-800/80 text-rose-600 dark:text-rose-400/90 hover:border-rose-400 hover:text-rose-750 dark:hover:text-rose-300 dark:hover:border-rose-600/80 bg-rose-50/50 dark:bg-rose-950/20 hover:bg-rose-100 dark:hover:bg-rose-950/50 transition-all text-[9.5px] font-bold">
+                                            <FiCalendar size={10.5} />
                                             <span>+ End Date</span>
                                           </div>
                                         )}
@@ -2564,7 +2838,7 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* Priority */}
-                                    <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                                    <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
                                       <div onClick={(e) => e.stopPropagation()}>
                                         {isAdminOrManager ? (
                                           <select
@@ -2605,7 +2879,7 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* Status */}
-                                    <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                                    <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
                                       <div onClick={(e) => e.stopPropagation()}>
                                         {isAdminOrManager ? (
                                           <select
@@ -2657,7 +2931,7 @@ const ProjectTaskBoard = ({
                                     </td>
 
                                     {/* Action Controls */}
-                                    <td className="px-3 py-2 border-b border-slate-200 dark:border-slate-800 text-center">
+                                    <td className="px-3 py-2 border-b border-t border-slate-200 dark:border-slate-800 text-center">
                                       <div
                                         className="flex items-center justify-center gap-2.5"
                                         onClick={(e) => e.stopPropagation()}
@@ -2710,9 +2984,12 @@ const ProjectTaskBoard = ({
                                               key={sub._id || subIdx}
                                               className={`group/subrow transition-colors ${rowBgSub} hover:bg-blue-50/10 dark:hover:bg-[#e5ff00]/5`}
                                             >
+                                              {selectionModeSections[sectionName] && (
+                                                <td className={`px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 ${rowBgSub}`} />
+                                              )}
                                               {/* 1. Name Column */}
                                               <td
-                                                className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800 font-semibold pl-10"
+                                                className={`px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 font-semibold pl-10 sticky left-0 z-10 min-w-[400px] ${rowBgSub}`}
                                                 onClick={(e) =>
                                                   e.stopPropagation()
                                                 }
@@ -2845,12 +3122,13 @@ const ProjectTaskBoard = ({
                                               </td>
 
                                               {/* 2. Client Column */}
-                                              <td className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800 text-slate-450 opacity-60">
-                                                {activeProject?.client?.companyName || "N/A"}
+                                              <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 text-slate-450 opacity-60">
+                                                {activeProject?.client
+                                                  ?.companyName || "N/A"}
                                               </td>
 
                                               {/* 3. Assignee Column */}
-                                              <td className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800">
+                                              <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
                                                 <div
                                                   className="flex items-center gap-1.5"
                                                   onClick={(e) =>
@@ -2858,7 +3136,9 @@ const ProjectTaskBoard = ({
                                                   }
                                                 >
                                                   <AssigneeDropdown
-                                                    selectedUser={sub.assignedTo}
+                                                    selectedUser={
+                                                      sub.assignedTo
+                                                    }
                                                     users={users}
                                                     onChange={(userId) =>
                                                       handleSubtaskFieldChange(
@@ -2869,19 +3149,29 @@ const ProjectTaskBoard = ({
                                                         },
                                                       )
                                                     }
-                                                    isAdminOrManager={isAdminOrManager}
-                                                    getAvatarColor={getAvatarColor}
+                                                    isAdminOrManager={
+                                                      isAdminOrManager
+                                                    }
+                                                    getAvatarColor={
+                                                      getAvatarColor
+                                                    }
                                                     size="md"
                                                   />
                                                 </div>
                                               </td>
 
                                               {/* 4. Content Type Column */}
-                                              <td className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800">
-                                                <div onClick={(e) => e.stopPropagation()}>
+                                              <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                                <div
+                                                  onClick={(e) =>
+                                                    e.stopPropagation()
+                                                  }
+                                                >
                                                   {isAdminOrManager ? (
                                                     <select
-                                                      value={sub.contentType || ""}
+                                                      value={
+                                                        sub.contentType || ""
+                                                      }
                                                       onChange={(e) =>
                                                         handleSubtaskFieldChange(
                                                           task,
@@ -2893,7 +3183,8 @@ const ProjectTaskBoard = ({
                                                         )
                                                       }
                                                       className={`badge-select ${
-                                                        sub.contentType === "Video"
+                                                        sub.contentType ===
+                                                        "Video"
                                                           ? "badge-type-video"
                                                           : sub.contentType ===
                                                               "Image"
@@ -2913,7 +3204,9 @@ const ProjectTaskBoard = ({
                                                                     : "badge-type-none"
                                                       }`}
                                                     >
-                                                      <option value="">None</option>
+                                                      <option value="">
+                                                        None
+                                                      </option>
                                                       <option value="Video">
                                                         Video
                                                       </option>
@@ -2936,7 +3229,8 @@ const ProjectTaskBoard = ({
                                                   ) : (
                                                     <span
                                                       className={`badge-span ${
-                                                        sub.contentType === "Video"
+                                                        sub.contentType ===
+                                                        "Video"
                                                           ? "badge-type-video"
                                                           : sub.contentType ===
                                                               "Image"
@@ -2956,19 +3250,17 @@ const ProjectTaskBoard = ({
                                                                     : "badge-type-none"
                                                       }`}
                                                     >
-                                                      {sub.contentType || "None"}
+                                                      {sub.contentType ||
+                                                        "None"}
                                                     </span>
                                                   )}
                                                 </div>
                                               </td>
-                                              {/* Comments Column */}
-                                              <td className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800 text-center">
-                                                <span className="text-slate-350 dark:text-slate-650">—</span>
-                                              </td>
+
                                               {/* 5. Start Date Column */}
-                                              <td className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800">
+                                              <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
                                                 <div
-                                                  className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
+                                                  className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
                                                   onClick={(e) => {
                                                     e.stopPropagation();
                                                     const input =
@@ -2985,10 +3277,10 @@ const ProjectTaskBoard = ({
                                                   }}
                                                 >
                                                   {sub.startDate ? (
-                                                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-blue-200 dark:border-blue-900/60 hover:border-blue-350 dark:hover:border-blue-500/40 text-blue-700 dark:text-blue-300 text-[10px] font-semibold bg-blue-50 dark:bg-blue-950/30 transition-all">
+                                                    <div className="flex items-center gap-1.5 px-2 py-2 rounded-md border border-blue-300 dark:border-blue-750/80 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-800 dark:text-blue-200 text-[10px] font-bold bg-blue-100/90 dark:bg-blue-950/70 transition-all shadow-sm">
                                                       <FiCalendar
-                                                        size={10}
-                                                        className="text-blue-500 dark:text-blue-400"
+                                                        size={10.5}
+                                                        className="text-blue-600 dark:text-blue-400"
                                                       />
                                                       <span>
                                                         {new Date(
@@ -3014,15 +3306,15 @@ const ProjectTaskBoard = ({
                                                               },
                                                             );
                                                           }}
-                                                          className="ml-1 text-blue-400 hover:text-rose-500 relative z-10 transition-colors cursor-pointer"
+                                                          className="ml-1 text-blue-500 hover:text-rose-600 dark:text-blue-450 dark:hover:text-rose-450 relative z-10 transition-colors cursor-pointer"
                                                         >
                                                           <FiX size={10} />
                                                         </button>
                                                       )}
                                                     </div>
                                                   ) : (
-                                                    <div className="flex items-center gap-1 px-1.5 py-1 rounded-md border border-dashed border-blue-200 dark:border-blue-900/40 text-blue-500/70 dark:text-blue-500/50 hover:border-blue-400 hover:text-blue-700 dark:hover:text-blue-400 dark:hover:border-blue-500/40 bg-blue-50/20 dark:bg-blue-950/10 transition-all text-[9px] font-bold">
-                                                      <FiCalendar size={10} />
+                                                    <div className="flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-blue-300 dark:border-blue-800/80 text-blue-600 dark:text-blue-400/90 hover:border-blue-400 hover:text-blue-750 dark:hover:text-blue-300 dark:hover:border-blue-600/80 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/50 transition-all text-[8px] font-bold">
+                                                      <FiCalendar size={10.5} />
                                                       <span>+ Start Date</span>
                                                     </div>
                                                   )}
@@ -3056,9 +3348,9 @@ const ProjectTaskBoard = ({
                                               </td>
 
                                               {/* 6. End Date Column */}
-                                              <td className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800">
+                                              <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
                                                 <div
-                                                  className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
+                                                  className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
                                                   onClick={(e) => {
                                                     e.stopPropagation();
                                                     const input =
@@ -3075,10 +3367,10 @@ const ProjectTaskBoard = ({
                                                   }}
                                                 >
                                                   {sub.dueDate ? (
-                                                    <div className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-rose-200 dark:border-rose-900/60 hover:border-rose-350 dark:hover:border-rose-500/40 text-rose-700 dark:text-rose-300 text-[10px] font-semibold bg-rose-50 dark:bg-rose-955/30 transition-all">
+                                                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-750/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-850 dark:text-rose-200 text-[10px] font-bold bg-rose-100/90 dark:bg-rose-950/70 transition-all shadow-sm">
                                                       <FiCalendar
-                                                        size={10}
-                                                        className="text-rose-555 dark:text-rose-400"
+                                                        size={10.5}
+                                                        className="text-rose-600 dark:text-rose-400"
                                                       />
                                                       <span>
                                                         {new Date(
@@ -3102,15 +3394,15 @@ const ProjectTaskBoard = ({
                                                               { dueDate: null },
                                                             );
                                                           }}
-                                                          className="ml-1 text-rose-455 hover:text-rose-500 relative z-10 transition-colors cursor-pointer"
+                                                          className="ml-1 text-rose-500 hover:text-rose-750 dark:text-rose-400 dark:hover:text-rose-300 relative z-10 transition-colors cursor-pointer"
                                                         >
                                                           <FiX size={10} />
                                                         </button>
                                                       )}
                                                     </div>
                                                   ) : (
-                                                    <div className="flex items-center gap-1 px-1.5 py-1 rounded-md border border-dashed border-rose-200 dark:border-rose-900/40 text-rose-500/70 dark:text-rose-555 hover:border-rose-400 hover:text-rose-700 dark:hover:text-rose-400 dark:hover:border-rose-500/40 bg-rose-50/20 dark:bg-rose-955/10 transition-all text-[9px] font-bold">
-                                                      <FiCalendar size={10} />
+                                                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-rose-300 dark:border-rose-800/80 text-rose-600 dark:text-rose-400/90 hover:border-rose-400 hover:text-rose-750 dark:hover:text-rose-300 dark:hover:border-rose-600/80 bg-rose-50/50 dark:bg-rose-950/20 hover:bg-rose-100 dark:hover:bg-rose-950/50 transition-all text-[9.5px] font-bold">
+                                                      <FiCalendar size={10.5} />
                                                       <span>+ End Date</span>
                                                     </div>
                                                   )}
@@ -3153,7 +3445,7 @@ const ProjectTaskBoard = ({
                                               </td>
 
                                               {/* 7. Priority Column */}
-                                              <td className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800">
+                                              <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
                                                 <div
                                                   onClick={(e) =>
                                                     e.stopPropagation()
@@ -3211,7 +3503,7 @@ const ProjectTaskBoard = ({
                                               </td>
 
                                               {/* 8. Status Column */}
-                                              <td className="px-3 py-1 border-r border-b border-slate-200 dark:border-slate-800">
+                                              <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
                                                 <div
                                                   onClick={(e) =>
                                                     e.stopPropagation()
@@ -3280,7 +3572,7 @@ const ProjectTaskBoard = ({
                                               </td>
 
                                               {/* 9. Actions Column */}
-                                              <td className="px-3 py-1 border-b border-slate-200 dark:border-slate-800 text-center">
+                                              <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-slate-800 text-center">
                                                 <div
                                                   className="flex items-center justify-center gap-2.5 opacity-0 group-hover/subrow:opacity-100 transition-opacity"
                                                   onClick={(e) =>
@@ -3333,9 +3625,7 @@ const ProjectTaskBoard = ({
                       type="text"
                       autoFocus
                       value={newSectionName}
-                      onChange={(e) =>
-                        setNewSectionName(e.target.value)
-                      }
+                      onChange={(e) => setNewSectionName(e.target.value)}
                       placeholder="New section name..."
                       className="px-3 py-1.5 text-xs font-bold border border-slate-200 dark:border-white/10 rounded-lg bg-transparent focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00] text-slate-700 dark:text-white"
                     />
@@ -3782,7 +4072,7 @@ const ProjectTaskBoard = ({
                   {/* Timeline Right Grid Area */}
                   <div className="flex-1 overflow-x-auto relative hide-scrollbar">
                     {/* Timeline Header (Months & Weeks) */}
-                    <div className="flex flex-col border-b border-slate-200 dark:border-white/5 min-w-[800px] bg-slate-50 dark:bg-[#090d16] sticky top-0 z-20">
+                    <div className="flex flex-col border-b border-slate-200 dark:border-white/5 min-w-[800px] bg-slate-50 dark:bg-[#090d16] sticky top-0 z-30">
                       <div className="flex h-13">
                         {[0, 1, 2, 3].map((weekIdx) => {
                           const weekData = getWeekRange(weekIdx);

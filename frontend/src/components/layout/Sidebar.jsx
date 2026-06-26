@@ -193,8 +193,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           }}
                           className={`w-full flex items-center gap-2 text-left text-[11px] font-bold py-1.5 rounded-lg px-2 transition-colors group ${
                             isActive
-                              ? "bg-blue-50 dark:bg-[#e5ff00]/20 text-blue-600 dark:text-[#e5ff00]"
-                              : "text-slate-600 dark:text-slate-350 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5"
+                              ? "text-blue-600 dark:text-[#e5ff00]"
+                              : "text-slate-600 dark:text-slate-250"
                           }`}
                           title={project.name}
                         >
@@ -303,7 +303,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         className={({ isActive }) => {
                           const activeClass = isActive
                             ? `bg-blue-600/10 dark:bg-[#e5ff00]/10 text-blue-600 dark:text-[#e5ff00] border-blue-200/50 dark:border-[#e5ff00]/25 shadow-sm`
-                            : `text-slate-600 dark:text-slate-350 border-transparent hover:bg-slate-100/40 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white`;
+                            : `text-slate-600 dark:text-slate-350 border-transparent hover:bg-slate-100/40  hover:text-slate-900 `;
 
                           return `block rounded-xl border transition-all duration-200 ${activeClass}`;
                         }}

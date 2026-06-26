@@ -78,7 +78,7 @@ const Profile = () => {
           <p className="text-xs text-gray-400">Manage your personal information</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-4">
 
           {/* ── LEFT CARD ── */}
           <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm flex flex-col items-center text-center">
