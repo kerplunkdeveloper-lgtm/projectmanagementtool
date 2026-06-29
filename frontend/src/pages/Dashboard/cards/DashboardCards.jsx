@@ -54,12 +54,12 @@ const DashboardCards = () => {
       value: activeClientsCount,
       icon: FiBriefcase,
       gradient:
-        "bg-gradient-to-br from-amber-300 to-orange-400 dark:from-amber-400/10 dark:to-orange-400/5",
-      border: "border-white/30 dark:border-amber-500/20",
-      titleColor: "text-amber-50 dark:text-amber-400",
-      valueColor: "text-white dark:text-amber-300",
+        "bg-gradient-to-br from-amber-300 to-orange-400 ",
+      border: "border-white/30 ",
+     
+      valueColor: "text-white",
       glowColor: "rgba(245, 158, 11, 0.4)",
-      subtitleColor: "text-white/80 dark:text-amber-500/70",
+      subtitleColor: "text-white/80 ",
       subtitle: "Total managed client accounts",
     },
     {
@@ -67,25 +67,25 @@ const DashboardCards = () => {
       value: activeProjectsCount,
       icon: FiBriefcase,
       gradient:
-        "bg-gradient-to-br from-blue-400 to-indigo-400 dark:from-blue-400/10 dark:to-indigo-400/5",
-      border: "border-white/30 dark:border-blue-500/20",
-      titleColor: "text-blue-50 dark:text-blue-400",
-      valueColor: "text-white dark:text-blue-300",
+        "bg-gradient-to-br from-blue-400 to-indigo-400 ",
+      border: "border-white/30 ",
+     
+      valueColor: "text-white",
       glowColor: "rgba(59, 130, 246, 0.4)",
-      subtitleColor: "text-white/80 dark:text-blue-500/70",
-      subtitle: `Completed: ${completedProjectsCount} • On Hold: ${onHoldProjectsCount} • Inactive: ${inactiveProjectsCount} • Active: ${totalProjectsCount}`,
+      subtitleColor: "text-white/80 ",
+      subtitle: `Active: ${completedProjectsCount} • On Hold: ${onHoldProjectsCount} • Inactive: ${inactiveProjectsCount} • Active: ${totalProjectsCount}`,
     },
     {
       title: "Total Strength",
       value: teamStrengthCount,
       icon: FiUsers,
       gradient:
-        "bg-gradient-to-br from-emerald-300 to-teal-400 dark:from-emerald-400/10 dark:to-teal-400/5",
-      border: "border-white/30 dark:border-emerald-500/20",
-      titleColor: "text-emerald-50 dark:text-emerald-400",
-      valueColor: "text-white dark:text-emerald-300",
+        "bg-gradient-to-br from-emerald-300 to-teal-400",
+      border: "border-white/30 ",
+    
+      valueColor: "text-white",
       glowColor: "rgba(16, 185, 129, 0.4)",
-      subtitleColor: "text-white/80 dark:text-emerald-500/70",
+      subtitleColor: "text-white/80 ",
       subtitle: "Active registered team members",
     },
   ];
@@ -115,14 +115,14 @@ const DashboardCards = () => {
             >
               <div className="px-4 py-3 md:px-6 md:py-3 flex items-center justify-between relative z-10">
                 <p
-                  className={`text-xs md:text-sm uppercase tracking-wider font-bold ${card.titleColor}`}
+                  className={`text-xs md:text-xs uppercase tracking-wider font-medium`}
                 >
                   {card.title}
                 </p>
 
                 <div className="flex flex-col items-end">
                   <h2
-                    className={`text-base md:text-lg font-bold ${card.valueColor}`}
+                    className={`text-base md:text-sm font-bold`}
                   >
                     {card.value}
                   </h2>

@@ -9,6 +9,12 @@ import {
   createProject,
 } from "../../features/projects/projectSlice";
 import { getClients } from "../../features/clients/clientslice";
+import { getUsers } from "../../features/users/userSlice";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Doughnut } from 'react-chartjs-2';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
+
 import {
   FiCalendar,
   FiClock,
@@ -29,6 +35,7 @@ import {
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import ProjectIcon from "../../components/common/ProjectIcon";
+import { useTheme } from "../../context/ThemeContext";
 
 const TYPE_CONFIG = {
   Post: {
@@ -61,9 +68,88 @@ const Dashboardmain = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
   const { events, loading } = useSelector((state) => state.events);
   const { projects } = useSelector((state) => state.projects);
   const { clients } = useSelector((state) => state.clients);
+  const { users } = useSelector((state) => state.users);
+
+  // Process chart data for departments
+  const departmentCounts = users?.reduce((acc, user) => {
+    if (user.department) {
+      acc[user.department] = (acc[user.department] || 0) + 1;
+    }
+    return acc;
+  }, {}) || {};
+
+  const chartData = {
+    labels: Object.keys(departmentCounts),
+    datasets: [
+      {
+        data: Object.values(departmentCounts),
+        backgroundColor: [
+          "rgba(59, 130, 246, 0.8)", // blue-500
+          "rgba(16, 185, 129, 0.8)", // emerald-500
+          "rgba(245, 158, 11, 0.8)", // amber-500
+          "rgba(239, 68, 68, 0.8)", // red-500
+          "rgba(139, 92, 246, 0.8)", // violet-500
+          "rgba(236, 72, 153, 0.8)", // pink-500
+          "rgba(6, 182, 212, 0.8)", // cyan-500
+          "rgba(249, 115, 22, 0.8)", // orange-500
+        ],
+        borderColor: [
+          "#3b82f6", 
+          "#10b981", 
+          "#f59e0b", 
+          "#ef4444", 
+          "#8b5cf6", 
+          "#ec4899", 
+          "#06b6d4", 
+          "#f97316", 
+        ],
+        borderWidth: 1,
+        hoverOffset: 6,
+      },
+    ],
+  };
+
+  const legendColor = isDark ? '#94a3b8' : '#475569';
+
+  const chartOptions = {
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: {
+          color: legendColor,
+          font: {
+            family: "'Inter', sans-serif",
+            size: 11,
+            weight: 600
+          },
+          usePointStyle: true,
+          padding: 16
+        }
+      },
+      tooltip: {
+        backgroundColor: isDark ? 'rgba(15, 23, 42, 0.97)' : 'rgba(30, 41, 59, 0.95)',
+        titleColor: '#f1f5f9',
+        bodyColor: '#cbd5e1',
+        padding: 12,
+        cornerRadius: 8,
+        displayColors: true,
+        usePointStyle: true,
+        borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.12)',
+        borderWidth: 1,
+      }
+    },
+    cutout: '72%',
+    maintainAspectRatio: false,
+    animation: {
+      animateScale: true,
+      animateRotate: true
+    }
+  };
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [name, setName] = useState("");
@@ -73,6 +159,7 @@ const Dashboardmain = () => {
   useEffect(() => {
     dispatch(getEvents());
     dispatch(getProjects());
+    dispatch(getUsers());
     if (user?.role === "admin" || user?.role === "operationmanager" || user?.role === "team") {
       dispatch(getClients());
     }
@@ -210,6 +297,136 @@ const Dashboardmain = () => {
             <DashboardCards />
       )} */}
       </div>
+
+
+
+      {/* user details list name and email */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+        
+        {/* Left Side: Users List */}
+        <div className="theme-bg-card theme-border border rounded-2xl p-5 shadow-sm flex flex-col h-[400px]">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[14px] font-bold theme-text-primary flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-[var(--accent-color)]/10 dark:bg-[#e5ff00]/10 flex items-center justify-center">
+                <FiUser size={12} className="text-[var(--accent-color)] dark:text-[#e5ff00]" />
+              </span>
+              Team Members
+            </h3>
+            <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 tracking-wider">
+              {users?.length || 0} USERS
+            </span>
+          </div>
+
+          {/* Scrollable List */}
+          <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin space-y-2">
+            {users?.map((u) => {
+              const avatarUrl = u.profile?.profileImage?.url || u.profileImage?.url;
+              const initial = u.name?.charAt(0).toUpperCase() || "?";
+              return (
+                <div
+                  key={u._id}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-800/40 hover:border-[var(--accent-color)]/30 dark:hover:border-[#e5ff00]/20 hover:shadow-md dark:hover:bg-slate-800/70 transition-all duration-200 group"
+                >
+                  {/* Avatar */}
+                  <div className="relative shrink-0">
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt={u.name}
+                        className="w-11 h-11 rounded-full object-cover shadow-sm ring-2 ring-white dark:ring-slate-700 group-hover:ring-[var(--accent-color)]/40 dark:group-hover:ring-[#e5ff00]/30 transition-all"
+                      />
+                    ) : (
+                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 dark:from-[#e5ff00] dark:to-emerald-400 flex items-center justify-center text-white dark:text-black font-black text-base shadow-sm ring-2 ring-white dark:ring-slate-700">
+                        {initial}
+                      </div>
+                    )}
+                    {/* Online dot */}
+                    <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-400 border-2 border-white dark:border-slate-800 shadow-sm" />
+                  </div>
+
+                  {/* Info */}
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-[13px] font-bold text-slate-800 dark:text-slate-100 truncate leading-tight">
+                      {u.name}
+                    </h4>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate mt-0.5">
+                      {u.email}
+                    </p>
+                  </div>
+
+                  {/* Department badge */}
+                  {u.department && (
+                    <div className="shrink-0 px-2 py-1 rounded-lg bg-[var(--accent-color)]/8 dark:bg-[#e5ff00]/8 border border-[var(--accent-color)]/20 dark:border-[#e5ff00]/15">
+                      <span className="text-[9px] font-extrabold text-[var(--accent-color)] dark:text-[#e5ff00] uppercase tracking-wider whitespace-nowrap">
+                        {u.department}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {!users?.length && (
+              <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2 opacity-60 pt-10">
+                <FiUser size={32} />
+                <p className="text-xs font-semibold">No users found</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Side: Department Chart */}
+        <div className="theme-bg-card theme-border border rounded-2xl p-5 shadow-sm flex flex-col h-[400px]">
+          <h3 className="text-[14px] font-bold theme-text-primary mb-2 flex items-center gap-2">
+            <FiTarget className="text-[var(--accent-color)] dark:text-[#e5ff00]" />
+            Department Distribution
+          </h3>
+          <div className="flex-1 relative w-full flex items-center justify-center min-h-[300px]">
+            {Object.keys(departmentCounts).length > 0 ? (
+              <Doughnut data={chartData} options={chartOptions} />
+            ) : (
+              <div className="flex flex-col items-center justify-center text-slate-400 gap-2 opacity-60">
+                <FiAlertCircle size={32} />
+                <p className="text-xs font-semibold">No department data</p>
+              </div>
+            )}
+            
+            {/* Center Label inside Doughnut */}
+            {Object.keys(departmentCounts).length > 0 && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none md:pr-[120px]">
+                <span className="text-3xl font-black theme-text-primary">{users?.filter(u => u.department).length || 0}</span>
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Assigned</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+      </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
       {/* TWO-COLUMN LOWER DASHBOARD SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 max-w-7xl">
