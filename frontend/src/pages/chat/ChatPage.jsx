@@ -821,20 +821,13 @@ const ChatPage = () => {
   };
 
   const sortedDMs = filteredUsers
-    ? [...filteredUsers]
-        .filter((u) => {
-          // If searching or filtering by department, show matching users
-          if (searchTerm.trim() !== "" || selectedDept !== "All") return true;
-          // Otherwise, only show users with active message history or currently active conversation
-          return u._id === activeChat || lastMessages[u._id] !== undefined;
-        })
-        .sort((a, b) => {
-          const msgA = lastMessages[a._id];
-          const msgB = lastMessages[b._id];
-          const timeA = msgA ? new Date(msgA.createdAt).getTime() : 0;
-          const timeB = msgB ? new Date(msgB.createdAt).getTime() : 0;
-          return timeB - timeA;
-        })
+    ? [...filteredUsers].sort((a, b) => {
+        const msgA = lastMessages[a._id];
+        const msgB = lastMessages[b._id];
+        const timeA = msgA ? new Date(msgA.createdAt).getTime() : 0;
+        const timeB = msgB ? new Date(msgB.createdAt).getTime() : 0;
+        return timeB - timeA;
+      })
     : [];
 
   const sortedRooms = rooms

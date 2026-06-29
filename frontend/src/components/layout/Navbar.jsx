@@ -26,6 +26,7 @@ import {
   FiSun,
   FiMoon,
   FiMonitor,
+  FiMessageSquare,
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -58,6 +59,12 @@ const Navbar = ({ setSidebarOpen }) => {
 
   const getNotificationDetails = (type) => {
     switch (type) {
+      case "message_received":
+        return {
+          icon: FiMessageSquare,
+          bgColor:
+            "bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30",
+        };
       case "project_assigned":
         return {
           icon: FiBriefcase,

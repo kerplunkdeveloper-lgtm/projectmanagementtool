@@ -42,6 +42,49 @@ const playNotificationSound = () => {
   }
 };
 
+let titleFlashInterval = null;
+let originalTitle = typeof document !== 'undefined' ? document.title : 'Project Management Tool';
+
+const flashTabTitle = (message) => {
+  if (typeof window === 'undefined') return;
+  
+  // Track dynamic tab titles updated by page navigation
+  const currentDocTitle = document.title;
+  if (currentDocTitle && !currentDocTitle.startsWith('🔔')) {
+    originalTitle = currentDocTitle;
+  }
+  
+  if (window.titleFlashInterval) {
+    clearInterval(window.titleFlashInterval);
+  }
+
+  let showFlash = true;
+  window.titleFlashInterval = setInterval(() => {
+    document.title = showFlash ? `🔔 ${message}` : (originalTitle || 'Project Management Tool');
+    showFlash = !showFlash;
+  }, 1200);
+};
+
+const clearTabTitleFlash = () => {
+  if (typeof window === 'undefined') return;
+  if (window.titleFlashInterval) {
+    clearInterval(window.titleFlashInterval);
+    window.titleFlashInterval = null;
+    document.title = originalTitle || 'Project Management Tool';
+  }
+};
+
+// Clear title flash on user activity / focus
+if (typeof window !== 'undefined') {
+  window.addEventListener('focus', clearTabTitleFlash);
+  window.addEventListener('click', clearTabTitleFlash);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      clearTabTitleFlash();
+    }
+  });
+}
+
 const useSocket = () => {
   const socket = useRef();
   const dispatch = useDispatch();
@@ -60,14 +103,21 @@ const useSocket = () => {
         // Play premium audio chime
         playNotificationSound();
 
+        // Sync local notification store and force RTK Query refetch so the Navbar bell updates instantly
+        dispatch(addNotification(notification));
+        dispatch(apiSlice.util.invalidateTags(['Notification']));
+
         if (notification.type === 'message_received') {
           // If it's a message, increment the sidebar chat unread count
           if (notification.chatRoomId) {
             dispatch(incrementUnreadCount(notification.chatRoomId));
           }
 
-          // Premium Chatting-Style Toast Card on the Top Right
+          // Flash tab title
           const senderName = notification.sender?.name || "Someone";
+          flashTabTitle(`New Message from ${senderName}`);
+
+          // Premium Chatting-Style Toast Card on the Top Right
           const senderImage = notification.sender?.profile?.profileImage?.url;
 
           toast.custom((t) => (
@@ -126,11 +176,8 @@ const useSocket = () => {
             position: 'top-right' 
           });
         } else {
-          // Standard system notifications (like task assigned)
-          dispatch(addNotification(notification));
-          
-          // Sync RTK Query cache
-          dispatch(apiSlice.util.invalidateTags(['Notification']));
+          // Flash tab title for system notifications
+          flashTabTitle(`New Alert: ${notification.message}`);
 
           // Standard Alert Toast
           toast.custom((t) => (
