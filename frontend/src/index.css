@@ -478,40 +478,40 @@ input:focus, select:focus, textarea:focus {
   }
 }
 
-/* Custom Webkit Scrollbar Styling */
+/* Custom Webkit Scrollbar Styling - Hidden / Invisible but Scrollable */
 ::-webkit-scrollbar {
-  width: 2px !important;
-  height: 2px !important;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
 }
 ::-webkit-scrollbar-track {
   background: transparent !important;
 }
 /* Light Mode Scrollbar Thumb */
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #92d1ef 0%, #69afe2 50%, #408ed8 100%) !important;
-  border-radius: 9999px !important;
+  background: transparent !important;
 }
 /* Dark Mode Scrollbar Thumb */
 .dark ::-webkit-scrollbar-thumb,
 .dark::-webkit-scrollbar-thumb {
-  background: #e5ff00 !important;
-  border-radius: 9999px !important;
+  background: transparent !important;
 }
 
-/* Dedicated Sidebar Scrollbar Styling */
+/* Dedicated Sidebar Scrollbar Styling - Also Hidden */
 .sidebar-scrollbar::-webkit-scrollbar {
-  width: 3px !important;
-  height: 3px !important;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 .sidebar-scrollbar::-webkit-scrollbar-track {
   background: transparent !important;
 }
 .sidebar-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #92d1ef 0%, #69afe2 50%, #408ed8 100%) !important;
-  border-radius: 9999px !important;
+  background: transparent !important;
 }
 .dark .sidebar-scrollbar::-webkit-scrollbar-thumb {
-  background: #e5ff00 !important;
+  background: transparent !important;
 }
 
 /* Placeholder for contentEditable elements */
@@ -1468,45 +1468,11 @@ td:first-child {
   --accent-dark-bg-subtle: rgba(251, 113, 133, 0.1);
 }
 
-/* Custom Premium Global Scrollbar Matching Accent Color Selection */
+/* Hide standard/Firefox scrollbars globally */
 * {
-  scrollbar-width: thin;
-  scrollbar-color: var(--accent-color) transparent;
+  scrollbar-width: none !important;
 }
 
-.dark * {
-  scrollbar-color: var(--accent-color-dark) transparent;
-}
-
-/* Webkit Scrollbars (Chrome, Safari, Edge, Opera) */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background-color: var(--accent-color);
-  border-radius: 99px;
-  transition: background-color 0.2s ease-in-out;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background-color: var(--accent-color-dark);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background-color: var(--accent-color);
-  filter: brightness(0.9);
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
-  background-color: var(--accent-color-dark);
-  filter: brightness(0.9);
-}
 
 
 
