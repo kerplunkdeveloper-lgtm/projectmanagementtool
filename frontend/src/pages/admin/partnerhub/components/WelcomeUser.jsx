@@ -59,7 +59,7 @@ const WelcomeUser = () => {
     <>
       <div 
         className="relative overflow-hidden p-4 sm:p-5 mb-4 rounded-2xl border-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fadeIn shadow-lg transition-colors duration-300"
-        style={{ backgroundColor: 'var(--color-brand-primary)' }}
+        style={{ background: 'var(--color-brand-gradient)' }}
       >
         {/* Left Side: Greeting & User Profile Card */}
         <div className="flex items-center gap-4 min-w-0 relative z-10">
@@ -69,7 +69,7 @@ const WelcomeUser = () => {
             className="relative shrink-0 cursor-pointer hover:scale-105 active:scale-98 transition-all duration-300 group"
             title="Click to view profile details"
           >
-            <div className="w-20 h-20 md:w-[150px] md:h-[150px] rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 dark:from-[#e5ff00] dark:to-emerald-500 p-[2px] shadow-sm">
+            <div className="w-20 h-20 md:w-[120px] md:h-[120px] rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 dark:from-[#e5ff00] dark:to-emerald-500 p-[2px] shadow-sm">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}

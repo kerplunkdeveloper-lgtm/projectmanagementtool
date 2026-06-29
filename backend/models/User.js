@@ -72,6 +72,21 @@ const userSchema = new mongoose.Schema({
     default: {},
   },
 
+  accentColor: {
+    type: String,
+    default: 'default',
+  },
+
+  themePreference: {
+    type: String,
+    default: 'light',
+  },
+
+  soundEnabled: {
+    type: Boolean,
+    default: true,
+  },
+
   createdAt: {
     type: Date,
     default: Date.now,

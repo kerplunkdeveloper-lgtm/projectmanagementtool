@@ -263,7 +263,7 @@ button.bg-blue-600,
 button.bg-blue-500,
 button.bg-slate-900,
 .dashboard-btn-primary {
-  background: var(--accent-color) !important;
+  background: var(--color-brand-gradient) !important;
   color: #ffffff !important;
   border: none !important;
   box-shadow: 0 4px 14px var(--accent-hover-shadow) !important;
@@ -289,8 +289,7 @@ button.bg-slate-900 *,
 .dark button.bg-slate-900,
 .dark .dashboard-btn-primary,
 .dark button[type="submit"] {
-  background: var(--accent-color-dark) !important;
-  background-color: var(--accent-color-dark) !important;
+  background: var(--color-brand-gradient) !important;
   color: #000000 !important;
   box-shadow: 0 4px 14px var(--accent-hover-shadow-dark) !important;
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;

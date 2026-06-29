@@ -253,7 +253,7 @@ const CalendarPage = () => {
     };
 
     return (
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-5 p-1">
+      <div className="flex flex-col md:flex-row  justify-between items-center gap-4 mb-5 p-1">
         {/* Navigation Buttons (Back, Today, Next) */}
         <div className="flex items-center gap-1 bg-slate-150/70 dark:bg-transparent p-1.5 rounded-xl border border-slate-200/50 dark:border-slate-800">
           <button

@@ -25,8 +25,12 @@ const projectColors = [
 
 const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   const location = useLocation();
-  const activeProjectId = location.pathname.includes("/projects") ? new URLSearchParams(location.search).get("id") : null;
-  const activePortfolioId = location.pathname.includes("/portfolio") ? new URLSearchParams(location.search).get("id") : null;
+  const activeProjectId = location.pathname.includes("/projects")
+    ? new URLSearchParams(location.search).get("id")
+    : null;
+  const activePortfolioId = location.pathname.includes("/portfolio")
+    ? new URLSearchParams(location.search).get("id")
+    : null;
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { theme } = useTheme();
@@ -62,8 +66,17 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   });
 
   const [isWorkOpen, setIsWorkOpen] = useState(false);
-  const [isProjectsListOpen, setIsProjectsListOpen] = useState(false);
-  const [isPortfoliosListOpen, setIsPortfoliosListOpen] = useState(false);
+  const [isProjectsListOpen, setIsProjectsListOpen] = useState(true);
+  const [isPortfoliosListOpen, setIsPortfoliosListOpen] = useState(true);
+  const [isPortfolioDropdownOpen, setIsPortfolioDropdownOpen] = useState(
+    location.pathname.includes("/portfolio"),
+  );
+
+  useEffect(() => {
+    if (location.pathname.includes("/portfolio")) {
+      setIsPortfolioDropdownOpen(true);
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     dispatch(getProjects());
@@ -157,7 +170,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   className="w-full flex items-center justify-between py-2 px-1 text-left text-blue-900 dark:text-[#e5ff00] hover:opacity-85 transition-opacity"
                 >
                   <div className="flex items-center gap-2">
-                    <FiList size={15} className="shrink-0 text-blue-900 dark:text-[#e5ff00]" />
+                    <FiList
+                      size={15}
+                      className="shrink-0 text-blue-900 dark:text-[#e5ff00]"
+                    />
                     <span className="text-[11px] font-black uppercase tracking-wider">
                       List of Projects
                     </span>
@@ -223,7 +239,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   className="w-full flex items-center justify-between py-2 px-1 text-left text-blue-900 dark:text-[#e5ff00] hover:opacity-85 transition-opacity"
                 >
                   <div className="flex items-center gap-2">
-                    <FiLayers size={15} className="shrink-0 text-blue-900 dark:text-[#e5ff00]" />
+                    <FiLayers
+                      size={15}
+                      className="shrink-0 text-blue-900 dark:text-[#e5ff00]"
+                    />
                     <span className="text-[11px] font-black uppercase tracking-wider">
                       List of Portfolio
                     </span>
@@ -287,7 +306,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
               <>
                 {menuItems.map((item) => {
                   const Icon = item.icon;
-                  const isProjectsItem = item.name === "Projects" || item.name === "Projects management" || item.name === "Projects Overview";
+                  const isProjectsItem =
+                    item.name === "Projects" ||
+                    item.name === "Projects management" ||
+                    item.name === "Projects Overview";
                   const isPortfoliosItem = item.name === "Portfolio";
 
                   return (
@@ -344,37 +366,51 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                               {item.name}
                             </span>
 
-                            {item.name === "Notifications" && unreadCount > 0 && (
-                              <span className="ml-auto min-w-[16px] h-[16px] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse">
-                                {unreadCount}
-                              </span>
-                            )}
+                            {item.name === "Notifications" &&
+                              unreadCount > 0 && (
+                                <span className="ml-auto min-w-[16px] h-[16px] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse">
+                                  {unreadCount}
+                                </span>
+                              )}
 
-                            {item.name === "Chat" && totalUnreadChatCount > 0 && (
-                              <span className="ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-red-600 px-1 text-[9px] font-black text-white shadow-[0_4px_10px_rgba(244,63,94,0.3)] animate-pulse border border-white/25">
-                                {totalUnreadChatCount}
-                              </span>
-                            )}
+                            {item.name === "Chat" &&
+                              totalUnreadChatCount > 0 && (
+                                <span className="ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-red-600 px-1 text-[9px] font-black text-white shadow-[0_4px_10px_rgba(244,63,94,0.3)] animate-pulse border border-white/25">
+                                  {totalUnreadChatCount}
+                                </span>
+                              )}
                           </motion.div>
                         )}
                       </NavLink>
 
-                      {isPortfoliosItem && portfolios && portfolios.length > 0 && (() => {
-                        hasRenderedPortfoliosList = true;
-                        return renderPortfoliosList();
-                      })()}
+                      {isPortfoliosItem &&
+                        portfolios &&
+                        portfolios.length > 0 &&
+                        (() => {
+                          hasRenderedPortfoliosList = true;
+                          return renderPortfoliosList();
+                        })()}
 
-                      {isProjectsItem && projects && projects.length > 0 && (() => {
-                        hasRenderedProjectsList = true;
-                        return renderProjectsList();
-                      })()}
+                      {isProjectsItem &&
+                        projects &&
+                        projects.length > 0 &&
+                        (() => {
+                          hasRenderedProjectsList = true;
+                          return renderProjectsList();
+                        })()}
                     </React.Fragment>
                   );
                 })}
 
                 {/* Fallback at the bottom if items were not in the menu list */}
-                {!hasRenderedPortfoliosList && portfolios && portfolios.length > 0 && renderPortfoliosList()}
-                {!hasRenderedProjectsList && projects && projects.length > 0 && renderProjectsList()}
+                {!hasRenderedPortfoliosList &&
+                  portfolios &&
+                  portfolios.length > 0 &&
+                  renderPortfoliosList()}
+                {!hasRenderedProjectsList &&
+                  projects &&
+                  projects.length > 0 &&
+                  renderProjectsList()}
               </>
             );
           })()}
