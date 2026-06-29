@@ -1228,6 +1228,31 @@ const ChatPage = () => {
               const isMe = m.sender?._id === currentUserId;
               const senderInitial = m.sender?.name?.charAt(0) || "?";
 
+              const renderReplyPreview = (replyTo) => (
+                <div
+                  className={`mb-2 p-2 rounded-lg border-l-4 text-[10px] text-left transition-all ${
+                    isMe
+                      ? "bg-black/10 dark:bg-white/10 text-current border-current/60"
+                      : "bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 border-indigo-500"
+                  }`}
+                >
+                  <div
+                    className={`font-black text-[9px] mb-0.5 ${
+                      isMe ? "text-current" : "text-indigo-600 dark:text-indigo-400"
+                    }`}
+                  >
+                    Replying to {replyTo.sender?.name || "User"}
+                  </div>
+                  <div className="truncate opacity-80 font-semibold text-[10px]">
+                    {replyTo.messageType === "file"
+                      ? `📁 ${replyTo.file?.filename || "Attachment"}`
+                      : replyTo.messageType === "sticker"
+                        ? `🎨 Sticker: ${replyTo.sticker}`
+                        : replyTo.text}
+                  </div>
+                </div>
+              );
+
               // Check if Call message style
               if (m.messageType === "call") {
                 return (
@@ -1280,29 +1305,6 @@ const ChatPage = () => {
                   <div
                     className={`max-w-[85%] md:max-w-[70%] flex flex-col ${isMe ? "items-end" : ""}`}
                   >
-                    {/* Replied message block preview inside bubble */}
-                    {m.replyTo && (
-                      <div
-                        className={`mb-1.5 p-2 rounded-lg border-l-2 text-[10px] text-left max-w-xs ${
-                          isMe
-                            ? "bg-white/10 text-white border-white/40"
-                            : "theme-bg-main theme-text-secondary border-indigo-500/40"
-                        }`}
-                      >
-                        <div
-                          className={`font-extrabold text-[9px] mb-0.5 ${isMe ? "text-white" : "text-indigo-500 dark:text-indigo-400"}`}
-                        >
-                          Replying to {m.replyTo.sender?.name || "User"}
-                        </div>
-                        <div className="truncate opacity-85 font-medium text-[10px]">
-                          {m.replyTo.messageType === "file"
-                            ? `📁 ${m.replyTo.file?.filename || "Attachment"}`
-                            : m.replyTo.messageType === "sticker"
-                              ? `🎨 Sticker: ${m.replyTo.sticker}`
-                              : m.replyTo.text}
-                        </div>
-                      </div>
-                    )}
                     {/* Sender Label */}
                     {!isMe && (
                       <span className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mb-0.5 ml-1">
@@ -1323,6 +1325,7 @@ const ChatPage = () => {
                             : "theme-bg-card theme-text-primary theme-border rounded-tl-none"
                         }`}
                       >
+                        {m.replyTo && <div className="p-2 pb-1">{renderReplyPreview(m.replyTo)}</div>}
                         {m.file.fileType === "image" ? (
                           <a
                             href={m.file.url}
@@ -1417,6 +1420,7 @@ const ChatPage = () => {
                             : "theme-bg-card theme-text-primary theme-border rounded-tl-none"
                         }`}
                       >
+                        {m.replyTo && renderReplyPreview(m.replyTo)}
                         {m.text.includes("Join my live") ? (
                           <div className="flex flex-col gap-2.5 p-0.5">
                             <span className="font-semibold">{m.text}</span>
@@ -1599,8 +1603,8 @@ const ChatPage = () => {
 
           {/* Replying To Preview Bar */}
           {replyingToMessage && (
-            <div className="mb-2 p-2 theme-bg-main border theme-border rounded-xl flex items-center justify-between z-10 animate-slide-up">
-              <div className="flex items-center gap-2 text-[10px] theme-text-secondary min-w-0">
+            <div className="mb-2 p-2.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between z-10 animate-slide-up shadow-sm">
+              <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 min-w-0">
                 <FiCornerUpLeft
                   className="text-indigo-500 shrink-0"
                   size={12}
@@ -1609,7 +1613,7 @@ const ChatPage = () => {
                   <span className="font-extrabold text-indigo-600 dark:text-indigo-400">
                     Replying to {replyingToMessage.sender?.name || "User"}:
                   </span>{" "}
-                  <span className="italic opacity-90">
+                  <span className="italic text-slate-500 dark:text-slate-400 font-medium">
                     {replyingToMessage.messageType === "file"
                       ? `📁 ${replyingToMessage.file?.filename}`
                       : replyingToMessage.messageType === "sticker"

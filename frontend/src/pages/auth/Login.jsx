@@ -198,17 +198,17 @@ const Login = () => {
             <p className="text-center mt-8 text-sm group">
               <span className="relative inline-flex items-center justify-center px-6 py-3 rounded-full">
                 {/* Glowing Outer Border */}
-                <span className="absolute inset-0 rounded-full border border-[var(--accent-color)] dark:border-[#e5ff00] opacity-80 shadow-[0_0_15px_var(--accent-color)] dark:shadow-[0_0_15px_#e5ff00] animate-pulse"></span>
+                <span className="absolute inset-0 rounded-full border border-[var(--accent-color)] dark:border-[var(--accent-color-dark)] opacity-80 shadow-[0_0_15px_var(--accent-color)] dark:shadow-[0_0_15px_var(--accent-color-dark)] animate-pulse"></span>
 
                 {/* Deep Background Glow */}
-                <span className="absolute inset-0 rounded-full bg-[var(--accent-color)] dark:bg-[#e5ff00] opacity-20 blur-xl animate-pulse"></span>
+                <span className="absolute inset-0 rounded-full bg-[var(--accent-color)] dark:bg-[var(--accent-color-dark)] opacity-20 blur-xl animate-pulse"></span>
 
                 {/* Content */}
                 <span className="relative z-10 flex items-center gap-1.5 font-bold tracking-wide">
                   <span className="text-slate-500 dark:text-slate-400 font-semibold text-xs">
                     Developed by
                   </span>
-                  <span className="text-[var(--accent-color)] dark:text-[#e5ff00] font-medium uppercase drop-shadow-[0_0_8px_var(--accent-color)] dark:drop-shadow-[0_0_8px_#e5ff00]">
+                  <span className="text-[var(--accent-color)] dark:text-[var(--accent-color-dark)] font-medium uppercase drop-shadow-[0_0_8px_var(--accent-color)] dark:drop-shadow-[0_0_8px_var(--accent-color-dark)]">
                     Kerplunk Media
                   </span>
                 </span>

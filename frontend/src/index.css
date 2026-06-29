@@ -765,9 +765,9 @@ select.badge-select:hover, span.badge-span:hover {
 
 /* Light Mode: Active Tab */
 .dept-filter-tab-active {
-  background-color: #3b82f6 !important;
+  background-color: var(--accent-color) !important;
   color: #ffffff !important;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15) !important;
+  box-shadow: 0 2px 8px var(--accent-hover-shadow) !important;
 }
 
 /* Dark Mode: Inactive Tab */
@@ -782,10 +782,15 @@ select.badge-select:hover, span.badge-span:hover {
 
 /* Dark Mode: Active Tab */
 .dark .dept-filter-tab-active {
-  background-color: #e5ff00 !important;
-  color: #000000 !important;
+  background-color: var(--accent-color-dark) !important;
+  color: #ffffff !important;
   font-weight: 800 !important;
-  box-shadow: 0 2px 10px rgba(229, 255, 0, 0.2) !important;
+  box-shadow: 0 2px 10px var(--accent-hover-shadow-dark) !important;
+}
+
+/* Specific lime active tab text color in dark mode */
+:root[data-accent="lime"] .dark .dept-filter-tab-active {
+  color: #000000 !important;
 }
 
 /* Premium Chat Sidebar Item Class */
@@ -1273,6 +1278,58 @@ td:first-child {
   z-index: 20;
   background: #020710;
  
+}
+
+/* Premium Spinning Border Badge */
+@keyframes spin-border {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinning-border-badge {
+  position: relative;
+  padding: 1.5px;
+  border-radius: 6px;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinning-border-badge::before {
+  content: '';
+  position: absolute;
+  width: 250%;
+  height: 250%;
+  background: conic-gradient(from 0deg, transparent 0%, var(--accent-color) 50%, transparent 100%);
+  animation: spin-border 3s linear infinite;
+}
+
+.dark .spinning-border-badge::before {
+  background: conic-gradient(from 0deg, transparent 0%, var(--accent-color-dark) 50%, transparent 100%);
+}
+
+.spinning-border-badge-inner {
+  position: relative;
+  padding: 2px 8px;
+  border-radius: 5px;
+  background-color: rgba(248, 250, 252, 0.95);
+  color: #0f172a;
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  backdrop-filter: blur(4px);
+}
+
+.dark .spinning-border-badge-inner {
+  background-color: rgba(0, 0, 0, 0.95);
+  color: #ffffff;
 }
 
 

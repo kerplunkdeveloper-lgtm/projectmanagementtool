@@ -94,13 +94,15 @@ const WelcomeUser = () => {
             
             {/* Name & Badges */}
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl sm:text-4xl font-medium text-black leading-tight tracking-tight">
+              <h1 className="text-xl sm:text-3xl font-medium text-black leading-tight tracking-tight">
                 {user?.name || "User"}
               </h1>
               <div className="flex items-center gap-1">
                 {user?.department && (
-                  <span className="px-2 py-0.5 rounded-md bg-white/20 dark:bg-black/10 border border-white/30 dark:border-black/20 text-black text-[9px] font-black uppercase tracking-wider whitespace-nowrap shadow-sm backdrop-blur-sm">
-                    {user.department}
+                  <span className="spinning-border-badge text-black">
+                    <span className="spinning-border-badge-inner text-black">
+                      {user.department}
+                    </span>
                   </span>
                 )}
               </div>
@@ -118,11 +120,11 @@ const WelcomeUser = () => {
           {/* Date */}
           <div className="flex items-center gap-2.5 min-w-0 flex-1 sm:flex-initial">
             <div className="w-8 h-8 rounded-lg bg-white/20 dark:bg-black/10 flex items-center justify-center flex-shrink-0 shadow-sm">
-              <FiCalendar size={13} className="text-white dark:text-black" />
+              <FiCalendar size={13} className="text-black" />
             </div>
             <div className="min-w-0">
-              <p className="text-[8px] font-bold uppercase tracking-wider text-white/80 dark:text-black/80 leading-none mb-1">Date</p>
-              <p className="text-xs font-black text-white dark:text-black truncate leading-none">{formattedDate}</p>
+              <p className="text-[9px] font-bold uppercase tracking-wider text-black leading-none mb-1">Date</p>
+              <p className="text-xs font-bold text-black truncate leading-none">{formattedDate}</p>
             </div>
           </div>
 
@@ -131,11 +133,11 @@ const WelcomeUser = () => {
           {/* Time */}
           <div className="flex items-center gap-2.5 min-w-0 flex-1 sm:flex-initial">
             <div className="w-8 h-8 rounded-lg bg-white/20 dark:bg-black/10 flex items-center justify-center flex-shrink-0 shadow-sm">
-              <FiClock size={13} className="text-white dark:text-black" />
+              <FiClock size={13} className="text-black" />
             </div>
             <div className="min-w-0">
-              <p className="text-[8px] font-bold uppercase tracking-wider text-white/80 dark:text-black/80 leading-none mb-1">Time</p>
-              <p className="text-xs font-black text-white dark:text-black font-mono tracking-tight whitespace-nowrap leading-none">{formattedTime}</p>
+              <p className="text-[8px] font-bold uppercase tracking-wider text-black/80 leading-none mb-1">Time</p>
+              <p className="text-xs font-black text-black font-mono tracking-tight whitespace-nowrap leading-none">{formattedTime}</p>
             </div>
           </div>
         </div>
