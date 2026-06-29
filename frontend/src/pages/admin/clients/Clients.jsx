@@ -376,10 +376,10 @@ const Clients = () => {
                             <div className="flex items-center gap-2.5">
                              
                               <div className="min-w-[120px]">
-                                <h2 className="font-bold theme-text-accent transition-colors text-xs truncate">
+                                <h2 className="font-thin theme-text-accent transition-colors text-md md:text-2xl truncate">
                                   {client.companyName}
                                 </h2>
-                                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium flex items-center gap-1 mt-0.5 truncate">
+                                <p className="text-[13px] text-slate-400 dark:text-slate-700 font-medium flex items-center gap-1 mt-0.5 truncate">
                                   <FiBriefcase size={9} />
                                   {client.industry}
                                 </p>
@@ -393,9 +393,9 @@ const Clients = () => {
                               {client.phoneNumber ? (
                                 <a
                                   href={`tel:${client.phoneNumber}`}
-                                  className="flex items-center gap-1 text-[11px] text-slate-650 dark:text-white hover:theme-text-accent font-medium"
+                                  className="flex items-center gap-1 text-[11px] md:text-[14px] text-slate-650 dark:text-white hover:theme-text-accent font-medium"
                                 >
-                                  <FiPhone size={10} className="text-slate-400 dark:text-slate-500" />
+                                  <FiPhone size={11} md:size={14} className="text-slate-400 dark:text-slate-500" />
                                   {client.phoneNumber}
                                 </a>
                               ) : <span className="text-[10px] text-slate-405 dark:text-slate-505 italic">No Phone</span>}
@@ -403,10 +403,10 @@ const Clients = () => {
                               {client.email ? (
                                 <a
                                   href={`mailto:${client.email}`}
-                                  className="flex items-center gap-1 text-[11px] text-slate-655 dark:text-white hover:theme-text-accent font-medium"
+                                  className="flex items-center gap-1 text-[11px] md:text-[14px] text-slate-655 dark:text-white hover:theme-text-accent font-medium"
                                 >
-                                  <FiMail size={10} className="text-slate-400 dark:text-slate-500" />
-                                  {client.email}
+                                  <FiMail size={11} md:size={14} className="text-slate-400 dark:text-slate-500" />
+                                  {client.email}  
                                 </a>
                               ) : <span className="text-[10px] text-slate-405 dark:text-slate-550 italic">No Email</span>}
                             </div>
@@ -415,7 +415,7 @@ const Clients = () => {
                           {/* Service Info */}
                           <td className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
                             <div className="space-y-1">
-                              <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase border ${conf.pill} items-center gap-1`}>
+                              <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] md:text-[13px] font-bold tracking-wider uppercase border ${conf.pill} items-center gap-1`}>
                                 <ServiceIcon size={9} />
                                 {client.service || "Contract"}
                               </span>
@@ -424,7 +424,7 @@ const Clients = () => {
                                   (() => {
                                     const uCol = getUserColor(client.assignedTo._id || client.assignedTo);
                                     return (
-                                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded ${uCol.bg} ${uCol.text} border ${uCol.border} font-semibold text-[9.5px]`}>
+                                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded ${uCol.bg} ${uCol.text} border ${uCol.border} font-semibold text-[9.5px] md:text-[13px]`}>
                                         <FiUser size={10} />
                                         <span>Assigned: {client.assignedTo.name || client.assignedTo.email}</span>
                                       </span>
@@ -443,13 +443,13 @@ const Clients = () => {
                           {/* Budget Info */}
                           <td className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
                             <div className="space-y-0.5">
-                              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                              <p className="text-[10px] md:text-[13px] text-slate-500 dark:text-slate-400 font-medium">
                                 Base: <span className="font-semibold text-slate-700 dark:text-slate-300">₹{Number(client.budget || 0).toLocaleString("en-IN")}</span>
                               </p>
-                              <p className="text-[11px] text-slate-605 dark:text-slate-400 font-medium">
+                              <p className="text-[11px] md:text-[13px] text-slate-605 dark:text-slate-400 font-medium">
                                 Total: <span className="text-emerald-600 dark:text-emerald-400 font-bold">₹{Number(client.totalBudget || 0).toLocaleString("en-IN")}</span>
                               </p>
-                              <p className="text-[9.5px] text-amber-600 dark:text-amber-500 font-semibold uppercase tracking-wider">
+                              <p className="text-[9.5px] md:text-[11px] text-amber-600 dark:text-amber-500 font-semibold uppercase tracking-wider">
                                 GST: {client.gst}%
                               </p>
                             </div>
@@ -464,14 +464,14 @@ const Clients = () => {
                                   className="p-1 bg-amber-50 hover:bg-amber-100 border border-amber-200/40 dark:bg-amber-950/20 dark:hover:bg-amber-950/40 dark:border-amber-900/30 text-amber-600 dark:text-amber-455 rounded transition-all"
                                   title="Edit Record"
                                 >
-                                  <FiEdit size={12} className="stroke-[2.5]" />
+                                  <FiEdit size={12} md:size={14} className="stroke-[2.5]" />
                                 </button>
                                 <button
                                   onClick={() => setClientToDelete(client)}
                                   className="p-1 bg-rose-50 hover:bg-rose-100 border border-rose-200/40 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 dark:border-rose-900/30 text-rose-600 dark:text-rose-455 rounded transition-all"
                                   title="Delete Record"
                                 >
-                                  <FiTrash2 size={12} className="stroke-[2.5]" />
+                                  <FiTrash2 size={12} md:size={14} className="stroke-[2.5]" />
                                 </button>
                               </div>
                             </td>
@@ -587,8 +587,8 @@ const Clients = () => {
               {/* MODAL HEADER */}
               <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-black/25">
                 <div>
-                  <h2 className="text-[15px] font-black text-slate-800 dark:text-yellow-50  flex items-center gap-2">
-                    <FiUsers size={16} className="theme-text-accent" />
+                  <h2 className="text-[15px] md:text-[20px] font-black text-slate-800 dark:text-yellow-50  flex items-center gap-2">
+                    <FiUsers size={16} md:size={20} className="theme-text-accent" />
                     {editId ? "Update Client details" : "Register New Client"}
                   </h2>
                 </div>

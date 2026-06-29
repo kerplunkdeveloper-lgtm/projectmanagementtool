@@ -13,6 +13,7 @@ import toast from "react-hot-toast";
 import lightlogin from "../../assets/newlogo.png";
 import darklogin from "../../assets/newlogo.png";
 
+
 const Login = () => {
   const dispatch = useDispatch();
 
@@ -67,7 +68,7 @@ const Login = () => {
   return (
     <div className="min-h-screen theme-bg-main flex flex-col md:flex-row overflow-hidden">
       {/* TOP / LEFT SIDE IMAGE SECTION */}
-      <div id="login-image-section" className="relative w-full h-[45vh] sm:h-[45vh] md:h-screen md:w-[55%] xl:w-[60%] overflow-hidden flex items-center justify-center shrink-0 z-0" style={{ background: 'var(--color-brand-gradient)' }}>
+      <div id="login-image-section" className="relative w-full h-[39vh] sm:h-[45vh] md:h-screen md:w-[55%] xl:w-[60%] overflow-hidden flex items-center justify-center shrink-0 z-0" style={{ background: 'var(--color-brand-gradient)' }}>
         <img
           src={lightlogin}
           alt="Project Management Light"
@@ -82,7 +83,7 @@ const Login = () => {
 
       {/* BOTTOM / RIGHT SIDE LOGIN FORM */}
       <div id="login-form-section" className="w-full md:w-[45%] xl:w-[40%] md:h-screen flex flex-col justify-center p-6 sm:p-12 md:px-10 lg:px-16 xl:px-24  relative rounded-t-[40px] md:rounded-none -mt-8 md:mt-0 z-10 backdrop-blur-xl">
-        <div className="w-full max-w-[420px] mx-auto relative z-10">
+        <div className="w-full max-w-[490px] mx-auto relative z-10">
           <form onSubmit={handleSubmit} className="w-full">
             <div className="mb-10 md:mb-12 text-center md:text-left">
               <h2 className="text-3xl md:text-4xl font-black mb-3 text-slate-800 dark:text-white tracking-tight">
@@ -96,13 +97,13 @@ const Login = () => {
             {/* EMAIL */}
             <div className="mb-5">
               <div className="flex items-center border theme-border rounded-2xl mt-2 px-5 py-4 bg-slate-50/50 dark:bg-black/20 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all shadow-sm">
-                <FaEnvelope className="theme-icon mr-3 text-lg" />
+                <FaEnvelope className="theme-icon mr-3 text-xl" />
                 <input
                   type="email"
                   name="email"
                   placeholder="Enter your email address"
                   required
-                  className="w-full !outline-none !bg-transparent !border-none !shadow-none !px-2 !py-2 text-[14px] theme-text-primary placeholder:text-slate-400 font-semibold"
+                  className="w-full !outline-none !bg-transparent !border-none !shadow-none !px-2 !py-2 text-[15px] theme-text-primary placeholder:text-slate-400 font-semibold"
                   onChange={handleChange}
                 />
               </div>
@@ -111,7 +112,7 @@ const Login = () => {
             {/* PASSWORD */}
             <div className="mb-8">
               <div className="flex items-center border theme-border rounded-2xl mt-2 px-5 py-4 bg-slate-50/50 dark:bg-black/20 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all shadow-sm">
-                <FaLock className="theme-icon mr-3 text-lg" />
+                <FaLock className="theme-icon mr-3 text-xl" />
                 <input
                   type={showPassword ? "text" : "password"}
                   name="password"
