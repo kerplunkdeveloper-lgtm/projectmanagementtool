@@ -58,8 +58,7 @@ const WelcomeUser = () => {
   return (
     <>
       <div 
-        className="relative overflow-hidden p-4 sm:p-5 mb-4 rounded-2xl border-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fadeIn shadow-lg transition-colors duration-300"
-        style={{ background: 'var(--color-brand-gradient)' }}
+        className="relative overflow-hidden p-4 sm:p-5 mb-4 rounded-2xl border-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fadeIn shadow-lg transition-colors duration-300 theme-bg-accent"
       >
         {/* Left Side: Greeting & User Profile Card */}
         <div className="flex items-center gap-4 min-w-0 relative z-10">
@@ -108,7 +107,7 @@ const WelcomeUser = () => {
             </div>
 
             {/* Email Address */}
-            <p className="text-[12px] font-medium text-black/90 mt-1 select-all">
+            <p className="text-[12px] font-medium text-white/90 dark:text-black/90 mt-1 select-all">
               {user?.email}
             </p>
           </div>
@@ -119,11 +118,11 @@ const WelcomeUser = () => {
           {/* Date */}
           <div className="flex items-center gap-2.5 min-w-0 flex-1 sm:flex-initial">
             <div className="w-8 h-8 rounded-lg bg-white/20 dark:bg-black/10 flex items-center justify-center flex-shrink-0 shadow-sm">
-              <FiCalendar size={13} className="text-black" />
+              <FiCalendar size={13} className="text-white dark:text-black" />
             </div>
             <div className="min-w-0">
               <p className="text-[8px] font-bold uppercase tracking-wider text-white/80 dark:text-black/80 leading-none mb-1">Date</p>
-              <p className="text-xs font-black text-black dark:text-black truncate leading-none">{formattedDate}</p>
+              <p className="text-xs font-black text-white dark:text-black truncate leading-none">{formattedDate}</p>
             </div>
           </div>
 
@@ -132,11 +131,11 @@ const WelcomeUser = () => {
           {/* Time */}
           <div className="flex items-center gap-2.5 min-w-0 flex-1 sm:flex-initial">
             <div className="w-8 h-8 rounded-lg bg-white/20 dark:bg-black/10 flex items-center justify-center flex-shrink-0 shadow-sm">
-              <FiClock size={13} className="text-black" />
+              <FiClock size={13} className="text-white dark:text-black" />
             </div>
             <div className="min-w-0">
               <p className="text-[8px] font-bold uppercase tracking-wider text-white/80 dark:text-black/80 leading-none mb-1">Time</p>
-              <p className="text-xs font-black text-black dark:text-black font-mono tracking-tight whitespace-nowrap leading-none">{formattedTime}</p>
+              <p className="text-xs font-black text-white dark:text-black font-mono tracking-tight whitespace-nowrap leading-none">{formattedTime}</p>
             </div>
           </div>
         </div>

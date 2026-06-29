@@ -134,10 +134,10 @@ exports.updateUser = async (req, res) => {
       );
     }
 
-    const targetId = req.params.id === 'me' ? req.user.id : req.params.id;
+    const targetId = (!req.params.id || req.params.id === 'me') ? req.user._id : req.params.id;
 
     // Security check: non-admins cannot update other users
-    if (req.user.role !== 'admin' && targetId !== req.user.id) {
+    if (req.user.role !== 'admin' && targetId.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to update this user',

@@ -97,7 +97,7 @@ const Navbar = ({ setSidebarOpen }) => {
     const renderDashboardTitle = () => {
       return user?.department ? (
         <>
-          <span className="text-blue-600 dark:text-[#e5ff00]">
+          <span className="theme-text-accent">
             {user.department}
           </span>{" "}
           <span className="text-black dark:text-white">Dashboard</span>
@@ -165,8 +165,8 @@ const Navbar = ({ setSidebarOpen }) => {
 
   const getThemeIcon = () => {
     if (theme === "dark")
-      return <FiMoon size={14} className="text-[#e5ff00]" />;
-    return <FiSun size={14} className="text-blue-500" />;
+      return <FiMoon size={14} className="theme-text-accent" />;
+    return <FiSun size={14} className="theme-text-accent" />;
   };
 
   return (
@@ -200,7 +200,7 @@ const Navbar = ({ setSidebarOpen }) => {
         </button>
 
         {/* PAGE TITLE */}
-        <h1 className="text-[12px] md:text-[20px] text-blue-600 dark:text-[#e5ff00] font-bold ">
+        <h1 className="text-[12px] md:text-[20px] theme-text-accent font-bold ">
           {pageTitle}
         </h1>
       </div>
@@ -258,13 +258,13 @@ const Navbar = ({ setSidebarOpen }) => {
                 "
               >
                 {/* Header */}
-                <div className="px-4 py-3 bg-blue-500 dark:bg-[#e5ff00] text-black border-b theme-border flex items-center justify-between">
+                <div className="px-4 py-3 theme-bg-accent text-white dark:text-black border-b theme-border flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-[11px] text-black uppercase tracking-wider">
+                    <span className="font-extrabold text-[11px] text-white dark:text-black uppercase tracking-wider">
                       Notifications
                     </span>
                     {unreadCount > 0 && (
-                      <span className="bg-black/10 text-black text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                      <span className="bg-white/20 dark:bg-black/10 text-white dark:text-black text-[10px] font-extrabold px-2 py-0.5 rounded-full">
                         {unreadCount} new
                       </span>
                     )}
@@ -274,7 +274,7 @@ const Navbar = ({ setSidebarOpen }) => {
                       onClick={() => {
                         markAllAsReadTrigger();
                       }}
-                      className="text-[10px] text-black/80 hover:text-black font-bold transition-colors cursor-pointer hover:underline"
+                      className="text-[10px] text-white/85 dark:text-black/85 hover:text-white dark:hover:text-black font-bold transition-colors cursor-pointer hover:underline"
                     >
                       Mark all as read
                     </button>
@@ -354,7 +354,7 @@ const Navbar = ({ setSidebarOpen }) => {
                           </div>
                           <div className="flex items-center gap-1 shrink-0 absolute right-3 top-1/2 -translate-y-1/2">
                             {!n.isRead && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse shadow-lg shadow-blue-500/50" />
+                              <span className="w-1.5 h-1.5 rounded-full theme-bg-accent animate-pulse shadow-lg shadow-[var(--accent-color)]/50" />
                             )}
                             <button
                               onClick={(e) => {
@@ -428,7 +428,7 @@ const Navbar = ({ setSidebarOpen }) => {
                 className="w-7 h-7 rounded-full object-cover"
               />
             ) : (
-              <div className="w-7 h-7 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500  flex items-center justify-center">
+              <div className="w-7 h-7 rounded-full theme-bg-accent flex items-center justify-center text-white dark:text-black">
                 <FiUser size={13} />
               </div>
             )}
@@ -482,7 +482,7 @@ const Navbar = ({ setSidebarOpen }) => {
                     text-xs theme-text-primary hover:theme-bg-main transition-all cursor-pointer
                   "
                 >
-                  <FiUser className="text-blue-500" size={13} />
+                  <FiUser className="theme-text-accent" size={13} />
                   <span>Edit Profile</span>
                 </button>
                 <button
