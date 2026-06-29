@@ -167,19 +167,19 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                 {/* Dropdown Header Toggle */}
                 <button
                   onClick={() => setIsProjectsListOpen(!isProjectsListOpen)}
-                  className="w-full flex items-center justify-between py-2 px-1 text-left text-blue-900 dark:text-[#e5ff00] hover:opacity-85 transition-opacity"
+                  className="w-full flex items-center justify-between py-2 px-1 text-left theme-text-accent hover:opacity-85 transition-opacity"
                 >
                   <div className="flex items-center gap-2">
                     <FiList
                       size={15}
-                      className="shrink-0 text-blue-900 dark:text-[#e5ff00]"
+                      className="shrink-0 theme-text-accent"
                     />
-                    <span className="text-[11px] font-black uppercase tracking-wider">
+                    <span className="text-[12px] font-medium tracking-wider">
                       List of Projects
                     </span>
                   </div>
                   <svg
-                    className={`w-3 h-3 transform transition-transform duration-200 text-blue-900 dark:text-[#e5ff00] ${
+                    className={`w-3 h-3 transform transition-transform duration-200 theme-text-accent ${
                       isProjectsListOpen ? "rotate-180" : ""
                     }`}
                     fill="none"
@@ -209,7 +209,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           }}
                           className={`w-full flex items-center gap-2 text-left text-[11px] font-bold py-1.5 rounded-lg px-2 transition-colors group ${
                             isActive
-                              ? "text-blue-600 dark:text-[#e5ff00]"
+                              ? "theme-text-accent"
                               : "text-slate-600 dark:text-slate-250"
                           }`}
                           title={project.name}
@@ -221,7 +221,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           />
                           <span className="truncate">{project.name}</span>
                           {isActive && (
-                            <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#e5ff00] shrink-0" />
+                            <span className="ml-auto w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
                           )}
                         </button>
                       );
@@ -236,19 +236,19 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                 {/* Dropdown Header Toggle */}
                 <button
                   onClick={() => setIsPortfoliosListOpen(!isPortfoliosListOpen)}
-                  className="w-full flex items-center justify-between py-2 px-1 text-left text-blue-900 dark:text-[#e5ff00] hover:opacity-85 transition-opacity"
+                  className="w-full flex items-center justify-between py-2 px-1 text-left theme-text-accent hover:opacity-85 transition-opacity"
                 >
                   <div className="flex items-center gap-2">
                     <FiLayers
                       size={15}
-                      className="shrink-0 text-blue-900 dark:text-[#e5ff00]"
+                      className="shrink-0 theme-text-accent"
                     />
-                    <span className="text-[11px] font-black uppercase tracking-wider">
+                    <span className="text-[12px] font-medium  tracking-wider">
                       List of Portfolio
                     </span>
                   </div>
                   <svg
-                    className={`w-3 h-3 transform transition-transform duration-200 text-blue-900 dark:text-[#e5ff00] ${
+                    className={`w-3 h-3 transform transition-transform duration-200 theme-text-accent ${
                       isPortfoliosListOpen ? "rotate-180" : ""
                     }`}
                     fill="none"
@@ -278,7 +278,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           }}
                           className={`w-full flex items-center gap-2 text-left text-[11px] font-bold py-1.5 rounded-lg px-2 transition-colors group ${
                             isActive
-                              ? "bg-blue-50 dark:bg-[#e5ff00]/20 text-blue-600 dark:text-[#e5ff00]"
+                              ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent"
                               : "text-slate-600 dark:text-slate-350 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5"
                           }`}
                           title={portfolio.name}
@@ -292,7 +292,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           </svg>
                           <span className="truncate">{portfolio.name}</span>
                           {isActive && (
-                            <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#e5ff00] shrink-0" />
+                            <span className="ml-auto w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
                           )}
                         </button>
                       );
@@ -324,7 +324,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         }
                         className={({ isActive }) => {
                           const activeClass = isActive
-                            ? `bg-blue-600/10 dark:bg-[#e5ff00]/10 text-blue-600 dark:text-[#e5ff00] border-blue-200/50 dark:border-[#e5ff00]/25 shadow-sm`
+                            ? `bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent border-[var(--accent-color)]/20 dark:border-[var(--accent-color-dark)]/25 shadow-sm`
                             : `text-slate-600 dark:text-slate-350 border-transparent hover:bg-slate-100/40  hover:text-slate-900 `;
 
                           return `block rounded-xl border transition-all duration-200 ${activeClass}`;

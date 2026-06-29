@@ -39,6 +39,7 @@ import {
 } from "../../../features/clients/clientslice";
 
 import { getUsers } from "../../../features/users/userSlice";
+import { useTheme } from "../../../context/ThemeContext";
 
 const getUserColor = (userId) => {
   if (!userId) return { bg: "bg-slate-50/80 dark:bg-slate-900/10", text: "text-slate-400 dark:text-slate-500", border: "border-slate-200 dark:border-slate-800" };
@@ -99,6 +100,7 @@ const Clients = () => {
   const { clients, loading } = useSelector((state) => state.clients);
   const { users } = useSelector((state) => state.users);
   const { user } = useSelector((state) => state.auth);
+  const { theme } = useTheme();
 
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -367,14 +369,14 @@ const Clients = () => {
                             index % 2 === 0
                               ? "bg-white dark:bg-slate-800/40"
                               : "bg-slate-50/40 dark:bg-slate-900/10"
-                          } hover:bg-blue-50/20 dark:hover:bg-[#e5ff00]/5`}
+                          } hover:bg-[var(--accent-light-bg-subtle)] dark:hover:bg-[var(--accent-dark-bg-subtle)]`}
                         >
                           {/* Client Info */}
                           <td className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
                             <div className="flex items-center gap-2.5">
                              
                               <div className="min-w-[120px]">
-                                <h2 className="font-bold text-blue-600 dark:text-[#e5ff00] transition-colors text-xs truncate">
+                                <h2 className="font-bold theme-text-accent transition-colors text-xs truncate">
                                   {client.companyName}
                                 </h2>
                                 <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium flex items-center gap-1 mt-0.5 truncate">
@@ -391,7 +393,7 @@ const Clients = () => {
                               {client.phoneNumber ? (
                                 <a
                                   href={`tel:${client.phoneNumber}`}
-                                  className="flex items-center gap-1 text-[11px] text-slate-650 dark:text-white hover:text-blue-600 dark:hover:text-[#e5ff00] font-medium"
+                                  className="flex items-center gap-1 text-[11px] text-slate-650 dark:text-white hover:theme-text-accent font-medium"
                                 >
                                   <FiPhone size={10} className="text-slate-400 dark:text-slate-500" />
                                   {client.phoneNumber}
@@ -401,7 +403,7 @@ const Clients = () => {
                               {client.email ? (
                                 <a
                                   href={`mailto:${client.email}`}
-                                  className="flex items-center gap-1 text-[11px] text-slate-655 dark:text-white hover:text-blue-600 dark:hover:text-[#e5ff00] font-medium"
+                                  className="flex items-center gap-1 text-[11px] text-slate-655 dark:text-white hover:theme-text-accent font-medium"
                                 >
                                   <FiMail size={10} className="text-slate-400 dark:text-slate-500" />
                                   {client.email}
@@ -529,7 +531,7 @@ const Clients = () => {
                     className={`h-8 w-8 rounded-xl border text-[10px] font-bold flex items-center justify-center transition-all ${
                       currentPage === 1
                         ? "border-slate-200 dark:border-slate-800/80 text-slate-300 dark:text-slate-700 cursor-not-allowed"
-                        : "border-slate-200 dark:border-slate-800 hover:bg-blue-50/50 dark:hover:bg-[#e5ff00]/5 text-slate-705 dark:text-slate-400 hover:border-blue-400 dark:hover:border-[#e5ff00] hover:text-blue-600 dark:hover:text-[#e5ff00] active:scale-90 cursor-pointer shadow-sm"
+                        : "border-slate-200 dark:border-slate-800 hover:bg-[var(--accent-light-bg-subtle)] dark:hover:bg-[var(--accent-dark-bg-subtle)] text-slate-705 dark:text-slate-400 hover:border-[var(--accent-color)] dark:hover:border-[var(--accent-color-dark)] hover:theme-text-accent active:scale-90 cursor-pointer shadow-sm"
                     }`}
                   >
                     <FiChevronLeft size={14} className="stroke-[2.5]" />
@@ -543,8 +545,8 @@ const Clients = () => {
                         onClick={() => setCurrentPage(page)}
                         className={`h-8 w-8 rounded-xl border text-[10px] font-extrabold flex items-center justify-center transition-all ${
                           isSelected
-                            ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-md"
-                            : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-705 dark:text-slate-400 hover:bg-blue-50/50 dark:hover:bg-[#e5ff00]/5 hover:border-blue-400 dark:hover:border-[#e5ff00] hover:text-blue-600 dark:hover:text-[#e5ff00] active:scale-90 cursor-pointer shadow-sm"
+                            ? "theme-bg-accent border-[var(--accent-color)] dark:border-[var(--accent-color-dark)] text-white dark:text-black shadow-md"
+                            : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-705 dark:text-slate-400 hover:bg-[var(--accent-light-bg-subtle)] dark:hover:bg-[var(--accent-dark-bg-subtle)] hover:border-[var(--accent-color)] dark:hover:border-[var(--accent-color-dark)] hover:theme-text-accent active:scale-90 cursor-pointer shadow-sm"
                         }`}
                       >
                         {page}
@@ -558,7 +560,7 @@ const Clients = () => {
                     className={`h-8 w-8 rounded-xl border text-[10px] font-bold flex items-center justify-center transition-all ${
                       currentPage === totalPages
                         ? "border-slate-200 dark:border-slate-800/80 text-slate-300 dark:text-slate-700 cursor-not-allowed"
-                        : "border-slate-200 dark:border-slate-805 hover:bg-blue-50/50 dark:hover:bg-[#e5ff00]/5 text-slate-705 dark:text-slate-400 hover:border-blue-400 dark:hover:border-[#e5ff00] hover:text-blue-600 dark:hover:text-[#e5ff00] active:scale-90 cursor-pointer shadow-sm"
+                        : "border-slate-200 dark:border-slate-805 hover:bg-[var(--accent-light-bg-subtle)] dark:hover:bg-[var(--accent-dark-bg-subtle)] text-slate-705 dark:text-slate-400 hover:border-[var(--accent-color)] dark:hover:border-[var(--accent-color-dark)] hover:theme-text-accent active:scale-90 cursor-pointer shadow-sm"
                     }`}
                   >
                     <FiChevronRight size={14} className="stroke-[2.5]" />
@@ -586,7 +588,7 @@ const Clients = () => {
               <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-black/25">
                 <div>
                   <h2 className="text-[15px] font-black text-slate-800 dark:text-yellow-50  flex items-center gap-2">
-                    <FiUsers size={16} className="text-blue-550 dark:text-[#e5ff00]" />
+                    <FiUsers size={16} className="theme-text-accent" />
                     {editId ? "Update Client details" : "Register New Client"}
                   </h2>
                 </div>
@@ -608,7 +610,7 @@ const Clients = () => {
                     onClick={() => setActiveTab(tab)}
                     className={`px-4 py-3.5 text-[11px] font-extrabold capitalize border-b-2 transition-all cursor-pointer ${
                       activeTab === tab
-                        ? "border-blue-500 dark:border-[#e5ff00] text-blue-600 dark:text-[#e5ff00] font-black"
+                        ? "border-[var(--accent-color)] dark:border-[var(--accent-color-dark)] theme-text-accent font-black"
                         : "border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-650"
                     }`}
                   >
@@ -917,50 +919,103 @@ const Clients = () => {
                 )}
 
                 {/* ACTION FOOTER */}
-                <div className="border-t border-slate-100 dark:border-slate-800/80 pt-5 mt-3 flex justify-between items-center">
-                  <div>
-                    {activeTab !== "profile" && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (activeTab === "finance") setActiveTab("service");
-                          else if (activeTab === "service") setActiveTab("profile");
-                        }}
-                        className="px-4.5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-950 text-slate-600 dark:text-slate-350 font-bold transition-all text-xs cursor-pointer shadow-sm"
-                      >
-                        Back
-                      </button>
-                    )}
+                <div className="border-t border-slate-100 dark:border-white/5 pt-5 mt-3">
+                  
+                  {/* Step Progress Indicator */}
+                  <div className="flex items-center justify-center gap-2 mb-5">
+                    {["profile", "service", "finance"].map((step, i) => {
+                      const stepIndex = ["profile", "service", "finance"].indexOf(activeTab);
+                      const isCurrent = step === activeTab;
+                      const isDone = i < stepIndex;
+                      return (
+                        <div key={step} className="flex items-center gap-2">
+                          <div
+                            className={`flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-black transition-all duration-300 ${
+                              isCurrent
+                                ? "theme-bg-accent text-white dark:text-black shadow-lg scale-110"
+                                : isDone
+                                ? "bg-emerald-500 text-white shadow-sm"
+                                : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600"
+                            }`}
+                          >
+                            {isDone ? "✓" : i + 1}
+                          </div>
+                          <span className={`text-[9px] font-bold hidden sm:block ${
+                            isCurrent ? "theme-text-accent" : isDone ? "text-emerald-500" : "text-slate-400 dark:text-slate-600"
+                          }`}>
+                            {step === "profile" ? "Company" : step === "service" ? "Service" : "Finance"}
+                          </span>
+                          {i < 2 && (
+                            <div className={`w-8 h-[2px] rounded-full ${isDone ? "bg-emerald-400" : "bg-slate-200 dark:bg-slate-800"}`} />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
 
-                  <div className="flex gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => setShowModal(false)}
-                      className="px-4.5 py-2.5 rounded-xl hover:bg-red-500 hover:text-white bg-red-500 text-white dark:text-slate-350 font-bold transition-all text-xs cursor-pointer shadow-sm"
-                    >
-                      Cancel
-                    </button>
+                  <div className="flex justify-between items-center gap-3">
+                    {/* Back Button */}
+                    <div>
+                      {activeTab !== "profile" && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (activeTab === "finance") setActiveTab("service");
+                            else if (activeTab === "service") setActiveTab("profile");
+                          }}
+                          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold transition-all text-xs cursor-pointer shadow-sm group"
+                        >
+                          <svg className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                          </svg>
+                          Back
+                        </button>
+                      )}
+                    </div>
 
-                    {activeTab !== "finance" ? (
+                    {/* Right Action Buttons */}
+                    <div className="flex items-center gap-2.5">
+                      {/* Cancel */}
                       <button
                         type="button"
-                        onClick={() => {
-                          if (activeTab === "profile") setActiveTab("service");
-                          else if (activeTab === "service") setActiveTab("finance");
-                        }}
-                        className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-750 dark:bg-[#e5ff00] dark:hover:bg-[#d4e600] dark:text-black font-bold text-xs cursor-pointer"
+                        onClick={() => setShowModal(false)}
+                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-rose-200 dark:border-rose-900/40 bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-100 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 font-bold transition-all text-xs cursor-pointer shadow-sm group"
                       >
-                        Next Step
+                        <svg className="w-3.5 h-3.5 group-hover:rotate-90 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Cancel
                       </button>
-                    ) : (
-                      <button
-                        type="submit"
-                        className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-[#e5ff00] dark:to-[#d4e600] hover:from-blue-700 hover:to-cyan-600 dark:hover:from-[#d4e600] dark:hover:to-[#bacc00] text-white dark:text-black font-bold shadow-md hover:shadow-lg transition-all text-xs cursor-pointer"
-                      >
-                        {editId ? "Update Record" : "Register Client"}
-                      </button>
-                    )}
+
+                      {/* Next Step / Submit */}
+                      {activeTab !== "finance" ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (activeTab === "profile") setActiveTab("service");
+                            else if (activeTab === "service") setActiveTab("finance");
+                          }}
+                          className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl font-bold text-xs cursor-pointer shadow-md hover:shadow-lg transition-all duration-200 group text-white dark:text-black"
+                          style={{ background: "var(--accent-gradient)" }}
+                        >
+                          Next Step
+                          <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                          </svg>
+                        </button>
+                      ) : (
+                        <button
+                          type="submit"
+                          className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl font-bold text-xs cursor-pointer shadow-md hover:shadow-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] group text-white dark:text-black"
+                          style={{ background: "var(--accent-gradient)" }}
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d={editId ? "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" : "M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"} />
+                          </svg>
+                          {editId ? "Update Record" : "Register Client"}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </form>

@@ -6,11 +6,78 @@ import { FiUser, FiMail, FiSliders, FiVolume2, FiVolumeX, FiMoon, FiSun, FiMonit
 import { LuPaintbrush } from "react-icons/lu";
 
 const colors = [
-  { id: "default", name: "Default", class: "bg-blue-500", darkClass: "dark:bg-[#e5ff00]" },
-  { id: "emerald", name: "Emerald Green", class: "bg-emerald-500", darkClass: "dark:bg-emerald-400" },
-  { id: "violet", name: "Royal Purple", class: "bg-violet-600", darkClass: "dark:bg-violet-400" },
-  { id: "amber", name: "Vibrant Orange", class: "bg-amber-500", darkClass: "dark:bg-amber-400" },
-  { id: "rose", name: "Neon Pink", class: "bg-rose-500", darkClass: "dark:bg-rose-400" }
+  {
+    id: "default",
+    name: "Ocean Blue",
+    lightGradient: "linear-gradient(135deg, #3b82f6, #6366f1)",
+    darkGradient: "linear-gradient(135deg, #e5ff00, #a3e635)",
+  },
+  {
+    id: "emerald",
+    name: "Emerald Green",
+    lightGradient: "linear-gradient(135deg, #10b981, #34d399)",
+    darkGradient: "linear-gradient(135deg, #34d399, #6ee7b7)",
+  },
+  {
+    id: "violet",
+    name: "Royal Purple",
+    lightGradient: "linear-gradient(135deg, #7c3aed, #a78bfa)",
+    darkGradient: "linear-gradient(135deg, #a78bfa, #c4b5fd)",
+  },
+  {
+    id: "amber",
+    name: "Sunset Orange",
+    lightGradient: "linear-gradient(135deg, #f59e0b, #fb923c)",
+    darkGradient: "linear-gradient(135deg, #fbbf24, #fcd34d)",
+  },
+  {
+    id: "rose",
+    name: "Hot Pink",
+    lightGradient: "linear-gradient(135deg, #f43f5e, #fb7185)",
+    darkGradient: "linear-gradient(135deg, #fb7185, #fda4af)",
+  },
+  {
+    id: "cyan",
+    name: "Electric Cyan",
+    lightGradient: "linear-gradient(135deg, #06b6d4, #22d3ee)",
+    darkGradient: "linear-gradient(135deg, #22d3ee, #67e8f9)",
+  },
+  {
+    id: "lime",
+    name: "Neon Lime",
+    lightGradient: "linear-gradient(135deg, #84cc16, #a3e635)",
+    darkGradient: "linear-gradient(135deg, #e5ff00, #d9f99d)",
+  },
+  {
+    id: "fuchsia",
+    name: "Fuchsia Glow",
+    lightGradient: "linear-gradient(135deg, #d946ef, #e879f9)",
+    darkGradient: "linear-gradient(135deg, #e879f9, #f0abfc)",
+  },
+  {
+    id: "teal",
+    name: "Deep Teal",
+    lightGradient: "linear-gradient(135deg, #0d9488, #2dd4bf)",
+    darkGradient: "linear-gradient(135deg, #2dd4bf, #5eead4)",
+  },
+  {
+    id: "red",
+    name: "Crimson Red",
+    lightGradient: "linear-gradient(135deg, #dc2626, #f87171)",
+    darkGradient: "linear-gradient(135deg, #f87171, #fca5a5)",
+  },
+  {
+    id: "indigo",
+    name: "Deep Indigo",
+    lightGradient: "linear-gradient(135deg, #4f46e5, #818cf8)",
+    darkGradient: "linear-gradient(135deg, #818cf8, #a5b4fc)",
+  },
+  {
+    id: "gold",
+    name: "Luxury Gold",
+    lightGradient: "linear-gradient(135deg, #b45309, #d97706)",
+    darkGradient: "linear-gradient(135deg, #f59e0b, #fcd34d)",
+  },
 ];
 
 const Settings = () => {
@@ -133,26 +200,39 @@ const Settings = () => {
 
               {/* ACCENT COLOR PRESET GRID */}
               <div>
-                <label className="block text-xs font-black theme-text-secondary uppercase tracking-wider mb-2.5">
+                <label className="block text-xs font-black theme-text-secondary uppercase tracking-wider mb-3">
                   Accent Color Preset
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {colors.map((color) => {
                     const isActive = accentColor === color.id;
+                    const gradient = theme === "dark" ? color.darkGradient : color.lightGradient;
                     return (
                       <button
                         key={color.id}
                         onClick={() => setAccentColor(color.id)}
-                        className={`flex items-center gap-3 p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                        className={`relative flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition-all duration-200 cursor-pointer overflow-hidden group ${
                           isActive
-                            ? "theme-border-accent bg-indigo-500/5 border-blue-500 dark:border-[#e5ff00]"
-                            : "theme-border theme-bg-card hover:theme-bg-main"
+                            ? "border-transparent ring-2 ring-offset-1 ring-offset-transparent"
+                            : "theme-border theme-bg-card hover:theme-bg-main hover:shadow-sm"
                         }`}
+                        style={isActive ? { ringColor: "transparent", boxShadow: `0 0 0 2px ${gradient.split(",")[1]?.trim().split(")")[0] ?? "#3b82f6"}` } : {}}
                       >
-                        <span className={`w-4 h-4 rounded-full shadow-inner ${color.class} ${color.darkClass}`} />
-                        <span className={`text-[11px] font-bold ${isActive ? "theme-text-primary" : "theme-text-secondary"}`}>
+                        {/* Gradient swatch */}
+                        <span
+                          className="w-8 h-8 rounded-lg shrink-0 shadow-sm"
+                          style={{ background: gradient }}
+                        />
+                        <span className={`text-[11px] font-bold leading-tight ${
+                          isActive ? "theme-text-primary" : "theme-text-secondary group-hover:theme-text-primary"
+                        }`}>
                           {color.name}
                         </span>
+                        {isActive && (
+                          <span className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full flex items-center justify-center text-white text-[9px] font-black shadow" style={{ background: gradient }}>
+                            ✓
+                          </span>
+                        )}
                       </button>
                     );
                   })}

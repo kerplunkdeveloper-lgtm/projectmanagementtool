@@ -1223,20 +1223,26 @@ const ChatPage = () => {
 
               const renderReplyPreview = (replyTo) => (
                 <div
-                  className={`mb-2 p-2 rounded-lg border-l-4 text-[10px] text-left transition-all ${
+                  className={`mb-2 p-2 rounded-lg border-l-[3px] text-[10px] text-left transition-all ${
                     isMe
-                      ? "bg-black/10 dark:bg-white/10 text-current border-current/60"
-                      : "bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 border-indigo-500"
+                      ? "bg-black/15 dark:bg-black/30 border-white/60 dark:border-white/40"
+                      : "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] border-[var(--accent-color)] dark:border-[var(--accent-color-dark)]"
                   }`}
                 >
                   <div
-                    className={`font-black text-[9px] mb-0.5 ${
-                      isMe ? "text-current" : "text-indigo-600 dark:text-indigo-400"
+                    className={`font-black text-[9px] mb-0.5 uppercase tracking-wider ${
+                      isMe
+                        ? "text-white/80 dark:text-white/70"
+                        : "theme-text-accent"
                     }`}
                   >
-                    Replying to {replyTo.sender?.name || "User"}
+                    ↩ Replying to {replyTo.sender?.name || "User"}
                   </div>
-                  <div className="truncate opacity-80 font-semibold text-[10px]">
+                  <div className={`truncate font-semibold text-[10px] ${
+                    isMe
+                      ? "text-white/70 dark:text-white/60"
+                      : "text-slate-600 dark:text-slate-300"
+                  }`}>
                     {replyTo.messageType === "file"
                       ? `📁 ${replyTo.file?.filename || "Attachment"}`
                       : replyTo.messageType === "sticker"

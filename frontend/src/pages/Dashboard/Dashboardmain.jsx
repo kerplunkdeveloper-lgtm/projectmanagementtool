@@ -308,8 +308,8 @@ const Dashboardmain = () => {
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-[14px] font-bold theme-text-primary flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-[var(--accent-color)]/10 dark:bg-[#e5ff00]/10 flex items-center justify-center">
-                <FiUser size={12} className="text-[var(--accent-color)] dark:text-[#e5ff00]" />
+              <span className="w-6 h-6 rounded-lg bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] flex items-center justify-center">
+                <FiUser size={12} className="text-[var(--accent-color)] dark:text-[var(--accent-color-dark)]" />
               </span>
               Team Members
             </h3>
@@ -326,7 +326,7 @@ const Dashboardmain = () => {
               return (
                 <div
                   key={u._id}
-                  className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-800/40 hover:border-[var(--accent-color)]/30 dark:hover:border-[#e5ff00]/20 hover:shadow-md dark:hover:bg-slate-800/70 transition-all duration-200 group"
+                  className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-800/40 hover:border-[var(--accent-color)]/30 dark:hover:border-[var(--accent-color-dark)]/30 hover:shadow-md dark:hover:bg-slate-800/70 transition-all duration-200 group"
                 >
                   {/* Avatar */}
                   <div className="relative shrink-0">
@@ -334,7 +334,7 @@ const Dashboardmain = () => {
                       <img
                         src={avatarUrl}
                         alt={u.name}
-                        className="w-11 h-11 rounded-full object-cover shadow-sm ring-2 ring-white dark:ring-slate-700 group-hover:ring-[var(--accent-color)]/40 dark:group-hover:ring-[#e5ff00]/30 transition-all"
+                        className="w-11 h-11 rounded-full object-cover shadow-sm ring-2 ring-white dark:ring-slate-700 group-hover:ring-[var(--accent-color)]/40 dark:group-hover:ring-[var(--accent-color-dark)]/30 transition-all"
                       />
                     ) : (
                       <div className="w-11 h-11 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 dark:from-[#e5ff00] dark:to-emerald-400 flex items-center justify-center text-white dark:text-black font-black text-base shadow-sm ring-2 ring-white dark:ring-slate-700">
@@ -347,18 +347,18 @@ const Dashboardmain = () => {
 
                   {/* Info */}
                   <div className="min-w-0 flex-1">
-                    <h4 className="text-[13px] font-bold text-slate-800 dark:text-slate-100 truncate leading-tight">
+                    <h4 className="text-[13px] font-bold text-slate-800 dark:text-white truncate leading-tight group-hover:text-[var(--accent-color)] dark:group-hover:text-[var(--accent-color-dark)] transition-colors">
                       {u.name}
                     </h4>
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate mt-0.5">
+                    <p className="text-[11px] text-slate-400 dark:text-slate-400 truncate mt-0.5">
                       {u.email}
                     </p>
                   </div>
 
                   {/* Department badge */}
                   {u.department && (
-                    <div className="shrink-0 px-2 py-1 rounded-lg bg-[var(--accent-color)]/8 dark:bg-[#e5ff00]/8 border border-[var(--accent-color)]/20 dark:border-[#e5ff00]/15">
-                      <span className="text-[9px] font-extrabold text-[var(--accent-color)] dark:text-[#e5ff00] uppercase tracking-wider whitespace-nowrap">
+                    <div className="shrink-0 px-2 py-1 rounded-lg bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] border border-[var(--accent-color)]/20 dark:border-[var(--accent-color-dark)]/15">
+                      <span className="text-[9px] font-extrabold text-[var(--accent-color)] dark:text-[var(--accent-color-dark)] uppercase tracking-wider whitespace-nowrap">
                         {u.department}
                       </span>
                     </div>
@@ -378,7 +378,7 @@ const Dashboardmain = () => {
         {/* Right Side: Department Chart */}
         <div className="theme-bg-card theme-border border rounded-2xl p-5 shadow-sm flex flex-col h-[400px]">
           <h3 className="text-[14px] font-bold theme-text-primary mb-2 flex items-center gap-2">
-            <FiTarget className="text-[var(--accent-color)] dark:text-[#e5ff00]" />
+            <FiTarget className="text-[var(--accent-color)] dark:text-[var(--accent-color-dark)]" />
             Department Distribution
           </h3>
           <div className="flex-1 relative w-full flex items-center justify-center min-h-[300px]">
