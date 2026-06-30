@@ -47,7 +47,7 @@ exports.createClient = async (req, res) => {
       onpage,
       offpage,
       createdBy: req.user._id,
-      assignedTo: req.user.role !== "admin" ? req.user._id : (assignedTo || undefined),
+      assignedTo: (req.user.role !== "admin" && req.user.role !== "operationmanager") ? req.user._id : (assignedTo || undefined),
     });
 
     const populatedClient = await Client.findById(client._id)
@@ -76,7 +76,7 @@ exports.createClient = async (req, res) => {
 exports.getClients = async (req, res) => {
   try {
     let query = {};
-    if (req.user.role !== "admin") {
+    if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
       query.assignedTo = req.user._id;
     }
 
@@ -123,7 +123,7 @@ exports.getClient = async (req, res) => {
       });
     }
 
-    if (req.user.role !== "admin" && (!client.assignedTo || client.assignedTo._id.toString() !== req.user._id.toString())) {
+    if (req.user.role !== "admin" && req.user.role !== "operationmanager" && (!client.assignedTo || client.assignedTo._id.toString() !== req.user._id.toString())) {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to view this client",
@@ -156,7 +156,7 @@ exports.updateClient = async (req, res) => {
       });
     }
 
-    if (req.user.role !== "admin" && (!clientToCheck.assignedTo || clientToCheck.assignedTo.toString() !== req.user._id.toString())) {
+    if (req.user.role !== "admin" && req.user.role !== "operationmanager" && (!clientToCheck.assignedTo || clientToCheck.assignedTo.toString() !== req.user._id.toString())) {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to perform CRUD operations on this client",
@@ -217,7 +217,7 @@ exports.deleteClient = async (req, res) => {
       });
     }
 
-    if (req.user.role !== "admin" && (!client.assignedTo || client.assignedTo.toString() !== req.user._id.toString())) {
+    if (req.user.role !== "admin" && req.user.role !== "operationmanager" && (!client.assignedTo || client.assignedTo.toString() !== req.user._id.toString())) {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to perform CRUD operations on this client",

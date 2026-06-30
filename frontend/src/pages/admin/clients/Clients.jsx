@@ -360,7 +360,7 @@ const Clients = () => {
                       return (
                         <motion.tr
                           layout
-                          initial={{ opacity: 0, y: 15 }}
+                          initial={{ opacity: 0, y: 15 }}  
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95 }}
                           transition={{ duration: 0.2 }}
@@ -376,7 +376,7 @@ const Clients = () => {
                             <div className="flex items-center gap-2.5">
                              
                               <div className="min-w-[120px]">
-                                <h2 className="font-thin theme-text-accent transition-colors text-md md:text-2xl truncate">
+                                <h2 className=" theme-text-accent  transition-colors text-md md:text-xl truncate">
                                   {client.companyName}
                                 </h2>
                                 <p className="text-[13px] text-slate-400 dark:text-slate-700 font-medium flex items-center gap-1 mt-0.5 truncate">
@@ -587,8 +587,8 @@ const Clients = () => {
               {/* MODAL HEADER */}
               <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-black/25">
                 <div>
-                  <h2 className="text-[15px] md:text-[20px] font-black text-slate-800 dark:text-yellow-50  flex items-center gap-2">
-                    <FiUsers size={16} md:size={20} className="theme-text-accent" />
+                  <h2 className="text-[15px] md:text-[20px] font-bold theme-text-accent  flex items-center gap-2">
+                    <FiUsers size={16} md:size={40} className="theme-text-accent" />
                     {editId ? "Update Client details" : "Register New Client"}
                   </h2>
                 </div>
@@ -602,13 +602,13 @@ const Clients = () => {
               </div>
 
               {/* MODERN TAB NAVIGATION */}
-              <div className="flex border-b border-slate-100 dark:border-slate-800 px-5 bg-slate-50/40 dark:bg-black/10">
+              <div className="flex border-b border-slate-100 dark:border-slate-800 px-5 bg-[var(--accent-color)]/20 dark:bg-[var(--accent-color-dark)]/20">
                 {["profile", "service", "finance"].map((tab) => (
                   <button
                     key={tab}
                     type="button"
                     onClick={() => setActiveTab(tab)}
-                    className={`px-4 py-3.5 text-[11px] font-extrabold capitalize border-b-2 transition-all cursor-pointer ${
+                    className={`px-4 py-3.5 text-[13px] font-bold capitalize  border-b-2 transition-all cursor-pointer ${
                       activeTab === tab
                         ? "border-[var(--accent-color)] dark:border-[var(--accent-color-dark)] theme-text-accent font-black"
                         : "border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-650"
@@ -639,7 +639,7 @@ const Clients = () => {
                           name="companyName"
                           value={formData.companyName}
                           onChange={handleChange}
-                          placeholder="e.g. Acme Corporation"
+                          placeholder="Enter Client or Company Name"
                           className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 focus:border-blue-500 dark:focus:border-[#e5ff00] transition-all font-semibold"
                           required
                         />
@@ -665,11 +665,12 @@ const Clients = () => {
                           Phone Number
                         </label>
                         <input
-                          type="text"
+                          type="tel"
+                          maxLength={10}
                           name="phoneNumber"
                           value={formData.phoneNumber}
                           onChange={handleChange}
-                          placeholder="e.g. +91 98765 43210"
+                          placeholder="Enter Phone Number"
                           className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 focus:border-blue-500 dark:focus:border-[#e5ff00] transition-all font-semibold"
                           required
                         />
@@ -684,7 +685,7 @@ const Clients = () => {
                           name="email"
                           value={formData.email}
                           onChange={handleChange}
-                          placeholder="e.g. contact@acme.com"
+                          placeholder="Enter Client Email Address"
                           className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 focus:border-blue-500 dark:focus:border-[#e5ff00] transition-all font-semibold"
                           required
                         />
