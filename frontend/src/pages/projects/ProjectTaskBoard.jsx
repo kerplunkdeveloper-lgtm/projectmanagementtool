@@ -2220,7 +2220,7 @@ const ProjectTaskBoard = ({
               return (
                 <div
                   key={`${sectionName}-${sectionIndex}`}
-                  className="bg-blue-50 dark:bg-blue-50 border border-slate-200 dark:border-white/5 rounded-2xl p-4 shadow-sm space-y-4"
+                  className="bg-blue-50 dark:bg-blue-50 border border-slate-200 dark:border-white/5 rounded-lg p-4 shadow-sm space-y-4"
                 >
                   {/* SECTION HEADER BLOCK */}
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-white/5">
@@ -2288,7 +2288,7 @@ const ProjectTaskBoard = ({
                                 return next;
                               });
                             }}
-                            className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-250 dark:border-slate-750 rounded-lg transition-all cursor-pointer hover:shadow-sm"
+                            className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold bg-red-500 text-white rounded-lg transition-all cursor-pointer hover:shadow-sm"
                           >
                             <FiX size={11} />
                             <span>Cancel</span>
@@ -2752,7 +2752,7 @@ const ProjectTaskBoard = ({
                                         }}
                                       >
                                         {task.startDate ? (
-                                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-blue-300 dark:border-blue-700/80 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-800 dark:text-blue-200 text-[10px] font-bold bg-blue-100/90 dark:bg-blue-950/70 transition-all shadow-sm">
+                                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-blue-300 dark:border-blue-700/80 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-700 dark:text-blue-600 text-[10px] font-bold bg-blue-100/90 dark:bg-blue-950/70 transition-all shadow-sm">
                                             <FiCalendar
                                               size={10.5}
                                               className="text-blue-600 dark:text-blue-400"
@@ -2829,7 +2829,7 @@ const ProjectTaskBoard = ({
                                         }}
                                       >
                                         {task.dueDate ? (
-                                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-700/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-850 dark:text-rose-200 text-[10px] font-bold bg-rose-100/90 dark:bg-rose-950/70 transition-all shadow-sm">
+                                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-700/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-850 dark:text-rose-700 text-[10px] font-bold bg-rose-100/90 dark:bg-rose-950/70 transition-all shadow-sm">
                                             <FiCalendar
                                               size={10.5}
                                               className="text-rose-600 dark:text-rose-400"
