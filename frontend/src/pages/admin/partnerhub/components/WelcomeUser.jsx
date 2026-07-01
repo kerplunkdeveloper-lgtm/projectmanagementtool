@@ -87,6 +87,137 @@ const WelcomeUser = () => {
     return "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80";
   };
 
+  const [isLive, setIsLive] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [viewDate, setViewDate] = useState(new Date());
+  const [selectedHour, setSelectedHour] = useState(12);
+  const [selectedMinute, setSelectedMinute] = useState(0);
+  const [selectedAmPm, setSelectedAmPm] = useState("PM");
+
+  const activeDate = isLive ? currentTime : selectedDate;
+  const activeHour = isLive ? (currentTime.getHours() % 12 || 12) : selectedHour;
+  const activeMinute = isLive ? currentTime.getMinutes() : selectedMinute;
+  const activeAmPm = isLive ? (currentTime.getHours() >= 12 ? "PM" : "AM") : selectedAmPm;
+  const activeViewDate = isLive ? currentTime : viewDate;
+
+  // Get days of the month for the calendar widget based on activeViewDate
+  const getCalendarDays = () => {
+    const year = activeViewDate.getFullYear();
+    const month = activeViewDate.getMonth();
+    
+    const firstDayIndex = new Date(year, month, 1).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    const prevTotalDays = new Date(year, month, 0).getDate();
+    
+    const days = [];
+    
+    // Previous month padding days
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      days.push({ day: prevTotalDays - i, isCurrentMonth: false });
+    }
+    
+    // Current month days
+    for (let i = 1; i <= totalDays; i++) {
+      days.push({ day: i, isCurrentMonth: true });
+    }
+    
+    // Next month padding days to make full grid
+    const totalCells = days.length <= 35 ? 35 : 42;
+    const remainingCells = totalCells - days.length;
+    for (let i = 1; i <= remainingCells; i++) {
+      days.push({ day: i, isCurrentMonth: false });
+    }
+    
+    return days;
+  };
+
+  const hours = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+  const getHourStyle = (h) => {
+    const angle = (h * 30 * Math.PI) / 180;
+    const radius = 38; // px radius for placement inside 110px dial
+    const x = Math.sin(angle) * radius;
+    const y = -Math.cos(angle) * radius;
+    return {
+      transform: `translate(${x}px, ${y}px)`,
+    };
+  };
+
+  const handAngle = activeHour * 30;
+
+  // Handler functions
+  const handlePrevMonth = () => {
+    setIsLive(false);
+    setViewDate(new Date(activeViewDate.getFullYear(), activeViewDate.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setIsLive(false);
+    setViewDate(new Date(activeViewDate.getFullYear(), activeViewDate.getMonth() + 1, 1));
+  };
+
+  const handleDayClick = (day, isCurrent) => {
+    setIsLive(false);
+    const targetMonth = isCurrent ? activeViewDate.getMonth() : (day > 20 ? activeViewDate.getMonth() - 1 : activeViewDate.getMonth() + 1);
+    const clicked = new Date(activeViewDate.getFullYear(), targetMonth, day);
+    setSelectedDate(clicked);
+    setViewDate(clicked);
+  };
+
+  const handleHourClick = (h) => {
+    setIsLive(false);
+    setSelectedHour(h);
+  };
+
+  const incrementHour = (e) => {
+    e.stopPropagation();
+    setIsLive(false);
+    setSelectedHour(prev => {
+      const cur = isLive ? (currentTime.getHours() % 12 || 12) : prev;
+      return cur === 12 ? 1 : cur + 1;
+    });
+  };
+
+  const decrementHour = (e) => {
+    e.stopPropagation();
+    setIsLive(false);
+    setSelectedHour(prev => {
+      const cur = isLive ? (currentTime.getHours() % 12 || 12) : prev;
+      return cur === 1 ? 12 : cur - 1;
+    });
+  };
+
+  const incrementMinute = (e) => {
+    e.stopPropagation();
+    setIsLive(false);
+    setSelectedMinute(prev => {
+      const cur = isLive ? currentTime.getMinutes() : prev;
+      return cur === 59 ? 0 : cur + 1;
+    });
+  };
+
+  const decrementMinute = (e) => {
+    e.stopPropagation();
+    setIsLive(false);
+    setSelectedMinute(prev => {
+      const cur = isLive ? currentTime.getMinutes() : prev;
+      return cur === 0 ? 59 : cur - 1;
+    });
+  };
+
+  const toggleAmPm = (e) => {
+    e.stopPropagation();
+    setIsLive(false);
+    setSelectedAmPm(prev => {
+      const cur = isLive ? (currentTime.getHours() >= 12 ? "PM" : "AM") : prev;
+      return cur === "PM" ? "AM" : "PM";
+    });
+  };
+
+  const handleTodayClick = () => {
+    setIsLive(true);
+  };
+
   return (
     <>
       <div 
@@ -110,7 +241,7 @@ const WelcomeUser = () => {
             className="relative shrink-0 cursor-pointer hover:scale-105 active:scale-98 transition-all duration-300 group"
             title="Click to view profile details"
           >
-            <div className="w-20 h-20 md:w-[200px] md:h-[200px] rounded-full  shadow-sm">
+            <div className="w-20 h-20 md:w-[180px] md:h-[180px] rounded-full  shadow-sm">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
@@ -157,33 +288,106 @@ const WelcomeUser = () => {
           </div>
         </div>
 
-        {/* Right Side: Date/Time */}
-        <div className="flex items-center justify-between sm:justify-end gap-3.5 bg-white/10 dark:bg-black/5 border border-white/20 dark:border-black/10 rounded-2xl p-2.5 shadow-inner w-full sm:w-auto min-w-0 sm:min-w-[240px] relative z-10 backdrop-blur-sm">
-          {/* Date */}
-          <div className="flex items-center gap-2.5 min-w-0 flex-1 sm:flex-initial">
-            <div className="w-8 h-8 rounded-lg bg-white/20 dark:bg-black/10 flex items-center justify-center flex-shrink-0 shadow-sm">
-              <FiCalendar size={13} className="text-black" />
+        {/* Right Side: Reference Image Calendar & Clock Widget */}
+        <div className="flex flex-row justify-between gap-3.5 bg-white dark:bg-[#070b13] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 shadow-xl w-full sm:w-[430px] min-w-[390px] relative z-10 backdrop-blur-sm shrink-0 select-none">
+          
+          {/* Left Side: Calendar picker */}
+          <div className="flex-1 flex flex-col justify-between">
+            {/* Calendar Header */}
+            <div className="flex items-center justify-between px-1 mb-1.5">
+              <button 
+                onClick={handlePrevMonth}
+                className="w-5 h-5 flex items-center justify-center text-[12px] font-bold text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-[#e5ff00] hover:bg-slate-100 dark:hover:bg-white/5 rounded transition-all"
+              >
+                ‹
+              </button>
+              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200">
+                {activeViewDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+              </span>
+              <button 
+                onClick={handleNextMonth}
+                className="w-5 h-5 flex items-center justify-center text-[12px] font-bold text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-[#e5ff00] hover:bg-slate-100 dark:hover:bg-white/5 rounded transition-all"
+              >
+                ›
+              </button>
             </div>
-            <div className="min-w-0">
-              <p className="text-[9px] font-bold uppercase tracking-wider text-black leading-none mb-1">Date</p>
-              <p className="text-xs font-bold text-black truncate leading-none">{formattedDate}</p>
+
+            {/* Weekdays */}
+            <div className="grid grid-cols-7 text-center text-[7px] font-black text-slate-400 dark:text-slate-500 mb-1.5 tracking-wider">
+              <span>SUN</span>
+              <span>MON</span>
+              <span>TUE</span>
+              <span>WED</span>
+              <span>THU</span>
+              <span>FRI</span>
+              <span>SAT</span>
+            </div>
+
+            {/* Days Grid */}
+            <div className="grid grid-cols-7 gap-y-1 gap-x-0.5 text-center text-[10px] font-bold">
+              {getCalendarDays().map((cell, idx) => {
+                const isSelected = cell.isCurrentMonth && 
+                  cell.day === activeDate.getDate() && 
+                  activeViewDate.getMonth() === activeDate.getMonth() && 
+                  activeViewDate.getFullYear() === activeDate.getFullYear();
+                return (
+                  <span
+                    key={idx}
+                    onClick={() => handleDayClick(cell.day, cell.isCurrentMonth)}
+                    className={`h-5.5 w-5.5 flex items-center justify-center rounded-full transition-all cursor-pointer ${
+                      isSelected
+                        ? "bg-blue-600 dark:bg-indigo-600 text-white font-black shadow-md shadow-blue-500/30"
+                        : cell.isCurrentMonth
+                        ? "text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/5"
+                        : "text-slate-350 dark:text-slate-700 font-normal"
+                    }`}
+                  >
+                    {cell.day}
+                  </span>
+                );
+              })}
+            </div>
+
+            {/* Calendar Footer */}
+            <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-850">
+              <button 
+                onClick={handleTodayClick}
+                className="text-[9px] font-extrabold text-blue-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-800 rounded-md px-3 py-1 bg-white dark:bg-slate-950 shadow-sm hover:bg-slate-50 dark:hover:bg-white/5 active:scale-95 transition-all"
+              >
+                Today
+              </button>
             </div>
           </div>
 
-          <div className="w-px h-6 border-l border-white/20 dark:border-black/10 flex-shrink-0" />
-
-          {/* Time */}
-          <div className="flex items-center gap-2.5 min-w-0 flex-1 sm:flex-initial">
-            <div className="w-8 h-8 rounded-lg bg-white/20 dark:bg-black/10 flex items-center justify-center flex-shrink-0 shadow-sm">
-              <FiClock size={13} className="text-black" />
+          {/* Divider */}
+          <div className="w-px bg-slate-200/80 dark:bg-slate-800/85 self-stretch my-0.5" />          {/* Right Side: Current Time Widget */}
+          <div className="flex-1 flex flex-col items-center justify-center">
+            {/* Header */}
+            <div className="text-[10px] font-black text-slate-850 dark:text-slate-100 mb-2.5 flex items-center gap-1.5">
+              Current Time
             </div>
-            <div className="min-w-0">
-              <p className="text-[8px] font-bold uppercase tracking-wider text-black/80 leading-none mb-1">Time</p>
-              <p className="text-xs font-black text-black font-mono tracking-tight whitespace-nowrap leading-none">{formattedTime}</p>
+
+            {/* Digital Clock Display */}
+            <div className="w-[110px] h-[110px] rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80 flex flex-col items-center justify-center shadow-inner">
+              {/* Digital Display: HH : MM */}
+              <div className="flex items-center text-xl font-black text-slate-800 dark:text-slate-100 my-0.5 tracking-tight leading-none">
+                <span>{String(currentTime.getHours() % 12 || 12).padStart(2, '0')}</span>
+                <span className="mx-1 text-blue-500/80 animate-pulse font-normal">:</span>
+                <span>{String(currentTime.getMinutes()).padStart(2, '0')}</span>
+              </div>
+
+              {/* AM/PM Pill */}
+              <div className="text-[7.5px] font-black uppercase px-2.5 py-0.5 rounded bg-slate-200/60 dark:bg-slate-900 text-slate-700 dark:text-slate-400 mt-2 tracking-wider">
+                {currentTime.getHours() >= 12 ? "PM" : "AM"}
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+
+
+
 
       {/* PROFILE DETAILS MODAL */}
       {isModalOpen && (
