@@ -555,7 +555,18 @@ const AssigneeDropdown = ({
     );
   };
 
+  const getAvatarUrl = (userObj) => {
+    return userObj?.profile?.profileImage?.url || userObj?.profileImage?.url || userObj?.profile?.avatar || userObj?.avatar || "";
+  };
+
+  const getDepartment = (userObj) => {
+    return userObj?.department || userObj?.profile?.department || userObj?.role || "";
+  };
+
   const renderTrigger = () => {
+    const avatarUrl = getAvatarUrl(selectedUserObj);
+    const dept = getDepartment(selectedUserObj);
+
     if (size === "sm") {
       return (
         <div
@@ -565,9 +576,9 @@ const AssigneeDropdown = ({
           } overflow-hidden`}
         >
           {selectedUserObj ? (
-            selectedUserObj.profileImage?.url ? (
+            avatarUrl ? (
               <img
-                src={selectedUserObj.profileImage.url}
+                src={avatarUrl}
                 alt={selectedUserObj.name}
                 className="w-full h-full object-cover"
               />
@@ -602,9 +613,9 @@ const AssigneeDropdown = ({
           <div className="flex items-center gap-2 truncate">
             {selectedUserObj ? (
               <>
-                {selectedUserObj.profileImage?.url ? (
+                {avatarUrl ? (
                   <img
-                    src={selectedUserObj.profileImage.url}
+                    src={avatarUrl}
                     alt={selectedUserObj.name}
                     className="w-5 h-5 rounded-full object-cover shrink-0"
                   />
@@ -619,9 +630,9 @@ const AssigneeDropdown = ({
                 )}
                 <span className="truncate">
                   {selectedUserObj.name}{" "}
-                  {selectedUserObj.department && (
+                  {dept && (
                     <span className="text-[10px] text-slate-400 dark:text-slate-550 font-normal">
-                      ({selectedUserObj.department})
+                      ({dept})
                     </span>
                   )}
                 </span>
@@ -644,28 +655,35 @@ const AssigneeDropdown = ({
       return (
         <div
           onClick={() => isAdminOrManager && setIsOpen(!isOpen)}
-          className={`group/assigned relative flex items-center gap-1.5 bg-indigo-50/50 dark:bg-indigo-950/30 hover:bg-indigo-100/50 dark:hover:bg-indigo-900/30 px-1.5 py-2 rounded-lg border border-indigo-100/80 dark:border-indigo-900/50 transition-colors ${
+          className={`group/assigned relative flex items-center gap-2 bg-slate-50/40 dark:bg-white/5 hover:bg-slate-100/50 dark:hover:bg-white/10 px-2 py-1 rounded-xl border border-slate-200/60 dark:border-white/10 transition-all ${
             isAdminOrManager ? "cursor-pointer" : "cursor-not-allowed"
-          }`}
+          } w-[130px] h-[34px] shadow-sm`}
         >
-          {selectedUserObj.profileImage?.url ? (
+          {avatarUrl ? (
             <img
-              src={selectedUserObj.profileImage.url}
+              src={avatarUrl}
               alt={selectedUserObj.name}
-              className="w-4.5 h-4.5 rounded-full object-cover border border-indigo-100 dark:border-indigo-900 shrink-0"
+              className="w-6.5 h-6.5 rounded-full object-cover border border-slate-250 dark:border-white/10 shrink-0"
             />
           ) : (
             <div
-              className={`w-4.5 h-4.5 rounded-full flex items-center justify-center text-white font-bold text-[8px] bg-gradient-to-br shrink-0 ${getAvatarColor(
+              className={`w-6.5 h-6.5 rounded-full flex items-center justify-center text-white font-black text-[9px] bg-gradient-to-br shrink-0 ${getAvatarColor(
                 selectedUserObj.name || "Unknown",
               )}`}
             >
               {getInitials(selectedUserObj.name)}
             </div>
           )}
-          <span className="text-[9px] font-semibold text-indigo-700 dark:text-indigo-300 max-w-[80px] truncate">
-            {selectedUserObj.name}
-          </span>
+          <div className="flex-1 min-w-0 flex flex-col text-left">
+            <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 truncate leading-tight">
+              {selectedUserObj.name}
+            </span>
+            {dept && (
+              <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 truncate leading-none mt-0.5">
+                {dept}
+              </span>
+            )}
+          </div>
           {isAdminOrManager && (
             <button
               type="button"
@@ -673,10 +691,10 @@ const AssigneeDropdown = ({
                 e.stopPropagation();
                 handleSelect(null);
               }}
-              className="relative z-20 p-0.5 text-slate-400 hover:text-rose-500 rounded transition-colors hover:bg-slate-200 dark:hover:bg-white/10 shrink-0"
+              className="relative z-20 p-0.5 text-slate-400 hover:text-rose-500 rounded transition-colors hover:bg-slate-200/60 dark:hover:bg-white/10 shrink-0"
               title="Clear Assignee"
             >
-              <FiX size={10} />
+              <FiX size={10.5} />
             </button>
           )}
         </div>
@@ -684,20 +702,30 @@ const AssigneeDropdown = ({
     }
 
     return (
-      <div
-        onClick={() => isAdminOrManager && setIsOpen(!isOpen)}
-        className={`group/assign relative w-5 h-5 flex items-center justify-center ${
+      <button
+        type="button"
+        disabled={!isAdminOrManager}
+        onClick={() => setIsOpen(!isOpen)}
+        className={`group/assign relative flex items-center gap-2 bg-slate-50/20 dark:bg-white/5 hover:bg-slate-100/40 dark:hover:bg-white/10 px-2 py-1 rounded-xl border border-dashed border-slate-300 dark:border-white/10 transition-all ${
           isAdminOrManager ? "cursor-pointer" : "cursor-not-allowed"
-        }`}
+        } w-[130px] h-[34px] text-left`}
       >
-        <div className="w-5 h-5 rounded-full border border-dashed border-slate-350 dark:border-indigo-900/60 flex items-center justify-center text-slate-400 dark:text-indigo-400/80 hover:border-indigo-400 hover:text-indigo-700 dark:hover:text-[#e5ff00] transition-colors bg-white dark:bg-slate-905">
-          <FiUser size={10} className="group-hover/assign:hidden" />
+        <div className="w-6.5 h-6.5 rounded-full border border-dashed border-slate-300 dark:border-white/20 flex items-center justify-center text-slate-400 dark:text-slate-500 shrink-0 bg-white dark:bg-[#111111]">
+          <FiUser size={11} className="group-hover/assign:hidden" />
           <FiPlus
-            size={10}
+            size={11}
             className="hidden group-hover/assign:block text-blue-500 dark:text-[#e5ff00]"
           />
         </div>
-      </div>
+        <div className="flex-1 min-w-0 flex flex-col text-left">
+          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-550 truncate leading-tight">
+            Unassigned
+          </span>
+          <span className="text-[8px] font-medium text-slate-400/80 dark:text-slate-550/80 truncate leading-none mt-0.5">
+            Assign Task
+          </span>
+        </div>
+      </button>
     );
   };
 
@@ -742,6 +770,8 @@ const AssigneeDropdown = ({
 
             {users.filter(u => !searchTerm || u.name?.toLowerCase().includes(searchTerm.toLowerCase())).map((u) => {
               const isSelected = selectedUserObj?._id === u._id;
+              const uAvatar = getAvatarUrl(u);
+              const uDept = getDepartment(u);
               return (
                 <button
                   key={u._id}
@@ -754,9 +784,9 @@ const AssigneeDropdown = ({
                   }`}
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    {u.profileImage?.url ? (
+                    {uAvatar ? (
                       <img
-                        src={u.profileImage.url}
+                        src={uAvatar}
                         alt={u.name}
                         className="w-5 h-5 rounded-full object-cover shrink-0 border border-slate-100 dark:border-white/5"
                       />
@@ -771,9 +801,9 @@ const AssigneeDropdown = ({
                     )}
                     <div className="flex flex-col truncate">
                       <span className="truncate">{u.name}</span>
-                      {u.department && (
-                        <span className="text-[9px] text-slate-400 dark:text-slate-500 font-normal truncate">
-                          {u.department}
+                      {uDept && (
+                        <span className="text-[9px] text-slate-400 dark:text-slate-550 font-normal truncate">
+                          {uDept}
                         </span>
                       )}
                     </div>
@@ -2789,9 +2819,14 @@ const ProjectTaskBoard = ({
                                       </td>
 
                                       {/* Client Column */}
-                                      <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 text-slate-655 dark:text-slate-355 font-medium">
-                                        {activeProject?.client?.companyName ||
-                                          "N/A"}
+                                      <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 font-medium">
+                                        {activeProject?.client?.companyName ? (
+                                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50/70 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30">
+                                            {activeProject.client.companyName}
+                                          </span>
+                                        ) : (
+                                          <span className="text-slate-400 dark:text-slate-500 text-[10px] font-normal">N/A</span>
+                                        )}
                                       </td>
 
                                       {/* Assignee Selection */}
@@ -3319,7 +3354,13 @@ const ProjectTaskBoard = ({
 
                                                 {/* 2. Client Column */}
                                                 <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 text-slate-450 opacity-60">
-                                                  {activeProject?.client?.companyName || "N/A"}
+                                                  {activeProject?.client?.companyName ? (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-50/70 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30">
+                                                      {activeProject.client.companyName}
+                                                    </span>
+                                                  ) : (
+                                                    <span className="text-slate-400 dark:text-slate-550 text-[9px] font-normal">N/A</span>
+                                                  )}
                                                 </td>
 
                                                 {/* 3. Assignee Column */}
@@ -3765,10 +3806,10 @@ const ProjectTaskBoard = ({
                           )}
 
                           {/* Spacer row between sections */}
-                          <tr className="h-10 pointer-events-none">
+                          <tr className="h-20 pointer-events-none">
                             <td
                               colSpan={showSelectionColumn ? 11 : 10}
-                              className="h-10 p-0 border-0 bg-transparent"
+                              className="h-20 p-10 border-0 bg-transparent"
                             />
                           </tr>
                         </React.Fragment>

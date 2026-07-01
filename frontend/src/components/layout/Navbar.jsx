@@ -116,9 +116,12 @@ const Navbar = ({ setSidebarOpen }) => {
 
     if (path.includes("dashboard") || path === "/admin" || path === "/admin/" || path === "/operationmanager" || path === "/operationmanager/" || path === "/team" || path === "/team/") return renderDashboardTitle();
     if (path.includes("clients")) return "Clients Management";
-    if (path.includes("portfolio")) return "Portfolio";
+    if (path.includes("portfolio")) return "Portfolio Groups";
 
-    if (path.includes("projects")) return "Projects";
+    if (path.includes("projects")) {
+      const searchParams = new URLSearchParams(location.search);
+      return searchParams.get("id") ? "Project task assign" : "Projects";
+    }
     if (path.includes("tasks")) return "Tasks";
     if (path.includes("partnerhub")) return "PartnerHub";
     if (path.includes("profile")) return "Profile";
