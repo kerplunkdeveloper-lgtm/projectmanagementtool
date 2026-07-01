@@ -47,7 +47,9 @@ exports.createClient = async (req, res) => {
       onpage,
       offpage,
       createdBy: req.user._id,
-      assignedTo: (req.user.role !== "admin" && req.user.role !== "operationmanager") ? req.user._id : (assignedTo || undefined),
+      assignedTo: (req.user.role !== "admin" && req.user.role !== "operationmanager")
+        ? [req.user._id]
+        : (Array.isArray(assignedTo) ? assignedTo.map(id => id._id || id) : (assignedTo ? [assignedTo._id || assignedTo] : [])),
     });
 
     const populatedClient = await Client.findById(client._id)
@@ -123,7 +125,13 @@ exports.getClient = async (req, res) => {
       });
     }
 
-    if (req.user.role !== "admin" && req.user.role !== "operationmanager" && (!client.assignedTo || client.assignedTo._id.toString() !== req.user._id.toString())) {
+    const isAssigned = client.assignedTo && (
+      Array.isArray(client.assignedTo)
+        ? client.assignedTo.some(item => (item._id ? item._id.toString() : item.toString()) === req.user._id.toString())
+        : (client.assignedTo._id ? client.assignedTo._id.toString() : client.assignedTo.toString()) === req.user._id.toString()
+    );
+
+    if (req.user.role !== "admin" && req.user.role !== "operationmanager" && !isAssigned) {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to view this client",
@@ -156,7 +164,13 @@ exports.updateClient = async (req, res) => {
       });
     }
 
-    if (req.user.role !== "admin" && req.user.role !== "operationmanager" && (!clientToCheck.assignedTo || clientToCheck.assignedTo.toString() !== req.user._id.toString())) {
+    const isAssigned = clientToCheck.assignedTo && (
+      Array.isArray(clientToCheck.assignedTo)
+        ? clientToCheck.assignedTo.some(id => id.toString() === req.user._id.toString())
+        : clientToCheck.assignedTo.toString() === req.user._id.toString()
+    );
+
+    if (req.user.role !== "admin" && req.user.role !== "operationmanager" && !isAssigned) {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to perform CRUD operations on this client",
@@ -168,6 +182,12 @@ exports.updateClient = async (req, res) => {
 
     req.body.totalBudget =
       budget + (budget * gst) / 100;
+
+    if (req.body.assignedTo) {
+      req.body.assignedTo = Array.isArray(req.body.assignedTo)
+        ? req.body.assignedTo.map(id => id._id || id)
+        : [req.body.assignedTo._id || req.body.assignedTo];
+    }
 
     const client =
       await Client.findByIdAndUpdate(
@@ -217,7 +237,13 @@ exports.deleteClient = async (req, res) => {
       });
     }
 
-    if (req.user.role !== "admin" && req.user.role !== "operationmanager" && (!client.assignedTo || client.assignedTo.toString() !== req.user._id.toString())) {
+    const isAssigned = client.assignedTo && (
+      Array.isArray(client.assignedTo)
+        ? client.assignedTo.some(id => id.toString() === req.user._id.toString())
+        : client.assignedTo.toString() === req.user._id.toString()
+    );
+
+    if (req.user.role !== "admin" && req.user.role !== "operationmanager" && !isAssigned) {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to perform CRUD operations on this client",

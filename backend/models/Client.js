@@ -44,11 +44,14 @@ const clientSchema = new mongoose.Schema(
     },
 
     service: {
-      type: String,
+      type: [String],
       enum: [
         "Digital Marketing",
         "Website",
         "SEO",
+        "Additional work",
+        "Video Production",
+        "Others",
       ],
       required: true,
     },
@@ -97,10 +100,10 @@ const clientSchema = new mongoose.Schema(
       ref: "User",
     },
 
-    assignedTo: {
+    assignedTo: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-    },
+    }],
   },
   {
     timestamps: true,

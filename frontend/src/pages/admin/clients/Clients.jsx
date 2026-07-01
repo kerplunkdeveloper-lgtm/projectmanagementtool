@@ -23,6 +23,9 @@ import {
   FiSearch,
   FiChevronLeft,
   FiChevronRight,
+  FiVideo,
+  FiPlusCircle,
+  FiHelpCircle,
 } from "react-icons/fi";
 
 import {
@@ -94,6 +97,93 @@ const getUserColor = (userId) => {
   return colors[index];
 };
 
+const MultiSelect = ({ label, options, selectedValues, onChange, placeholder, icon: Icon }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const toggleOption = (val) => {
+    if (selectedValues.includes(val)) {
+      onChange(selectedValues.filter((v) => v !== val));
+    } else {
+      onChange([...selectedValues, val]);
+    }
+  };
+
+  return (
+    <div className="relative">
+      <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+        {Icon && <Icon size={12} className="text-slate-450" />}
+        {label}
+      </label>
+      <div
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full min-h-10 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 flex flex-wrap gap-1.5 items-center cursor-pointer outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 focus:border-blue-500 dark:focus:border-[#e5ff00] transition-all"
+      >
+        {selectedValues.length === 0 ? (
+          <span className="text-xs text-slate-400 dark:text-slate-500 font-semibold">{placeholder}</span>
+        ) : (
+          selectedValues.map((val) => {
+            const opt = options.find((o) => o.value === val);
+            const displayLabel = opt ? opt.label : val;
+            return (
+              <span
+                key={val}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-550/5 text-blue-600 border border-blue-200/50 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-900/40"
+              >
+                {displayLabel}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleOption(val);
+                  }}
+                  className="hover:text-rose-500 dark:hover:text-rose-400 transition-colors p-0.5 focus:outline-none"
+                >
+                  <FiX size={10} className="stroke-[3]" />
+                </button>
+              </span>
+            );
+          })
+        )}
+        <span className="ml-auto pointer-events-none text-slate-400">
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+          </svg>
+        </span>
+      </div>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
+          <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto p-1.5 space-y-0.5">
+            {options.map((opt) => {
+              const isSelected = selectedValues.includes(opt.value);
+              return (
+                <div
+                  key={opt.value}
+                  onClick={() => toggleOption(opt.value)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                    isSelected
+                      ? "bg-blue-50/50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400"
+                      : "hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-705 dark:text-slate-300"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => {}}
+                    className="rounded text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 border-slate-350 dark:border-slate-700 bg-transparent"
+                  />
+                  <span>{opt.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 const Clients = () => {
   const dispatch = useDispatch();
 
@@ -121,7 +211,7 @@ const Clients = () => {
     budget: "",
     gst: "",
     totalBudget: "",
-    service: "",
+    service: [],
     reels: "",
     posts: "",
     videos: "",
@@ -129,10 +219,24 @@ const Clients = () => {
     pages: "",
     onpage: false,
     offpage: false,
-    assignedTo: "",
+    assignedTo: [],
   };
 
   const [formData, setFormData] = useState(initialForm);
+
+  const handleServiceChange = (services) => {
+    setFormData((prev) => ({
+      ...prev,
+      service: services,
+    }));
+  };
+
+  const handleAssignedChange = (assigned) => {
+    setFormData((prev) => ({
+      ...prev,
+      assignedTo: assigned,
+    }));
+  };
 
   useEffect(() => {
     dispatch(getClients());
@@ -184,7 +288,10 @@ const Clients = () => {
   const handleEdit = (client) => {
     setFormData({
       ...client,
-      assignedTo: client.assignedTo?._id || client.assignedTo || "",
+      service: Array.isArray(client.service) ? client.service : (client.service ? [client.service] : []),
+      assignedTo: Array.isArray(client.assignedTo)
+        ? client.assignedTo.map((u) => u._id || u)
+        : (client.assignedTo ? [client.assignedTo._id || client.assignedTo] : []),
     });
     setEditId(client._id);
     setActiveTab("profile");
@@ -203,7 +310,11 @@ const Clients = () => {
         (client.industry || "").toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesService =
-        serviceFilter === "All" ? true : client.service === serviceFilter;
+        serviceFilter === "All"
+          ? true
+          : (Array.isArray(client.service)
+              ? client.service.includes(serviceFilter)
+              : client.service === serviceFilter);
 
       return matchesSearch && matchesService;
     });
@@ -252,6 +363,33 @@ const Clients = () => {
           gradient: "from-purple-550 to-pink-500",
           icon: FiSearch,
         };
+      case "Additional work":
+        return {
+          bg: "bg-amber-50/50 dark:bg-amber-950/10",
+          text: "text-amber-600 dark:text-amber-400",
+          border: "border-amber-100 dark:border-amber-900/30",
+          pill: "bg-amber-50 text-amber-705 border-amber-200/50 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-800/50",
+          gradient: "from-amber-550 to-orange-500",
+          icon: FiPlusCircle,
+        };
+      case "Video Production":
+        return {
+          bg: "bg-rose-50/50 dark:bg-rose-950/10",
+          text: "text-rose-600 dark:text-rose-400",
+          border: "border-rose-100 dark:border-rose-900/30",
+          pill: "bg-rose-50 text-rose-705 border-rose-200/50 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-800/50",
+          gradient: "from-rose-550 to-red-500",
+          icon: FiVideo,
+        };
+      case "Others":
+        return {
+          bg: "bg-teal-50/50 dark:bg-teal-950/10",
+          text: "text-teal-605 dark:text-teal-400",
+          border: "border-teal-100 dark:border-teal-900/30",
+          pill: "bg-teal-50 text-teal-705 border-teal-200/50 dark:bg-teal-950/20 dark:text-teal-400 dark:border-teal-800/50",
+          gradient: "from-teal-550 to-emerald-500",
+          icon: FiHelpCircle,
+        };
       default:
         return {
           bg: "bg-slate-50/50 dark:bg-slate-800/20",
@@ -298,6 +436,9 @@ const Clients = () => {
             <option value="Digital Marketing">Digital Marketing</option>
             <option value="Website">Website Development</option>
             <option value="SEO">SEO Strategy</option>
+            <option value="Additional work">Additional work</option>
+            <option value="Video Production">Video Production</option>
+            <option value="Others">Others</option>
           </select>
         </div>
 
@@ -347,17 +488,20 @@ const Clients = () => {
                   <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">Client Details</th>
                   <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">Contact Info</th>
                   <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">Service & Plan</th>
-                  <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">Budget (INR)</th>
-                  {(user?.role === "admin" || user?.role === "operationmanager" || user?.role === "team") && <th className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 text-center w-28">Actions</th>}
+                  {user?.role !== "team" && <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">Budget (INR)</th>}
+                  {(user?.role === "admin" || user?.role === "operationmanager") && <th className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 text-center w-28">Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 <AnimatePresence>
                   {filteredClients.length > 0 ? (
                     paginatedClients.map((client, index) => {
-                      const conf = getServiceStyles(client.service);
-                      const ServiceIcon = conf.icon;
-                      return (
+                    const primaryService = Array.isArray(client.service)
+                      ? (client.service[0] || "")
+                      : (client.service || "");
+                    const conf = getServiceStyles(primaryService);
+                    const ServiceIcon = conf.icon;
+                    return (
                         <motion.tr
                           layout
                           initial={{ opacity: 0, y: 15 }}  
@@ -414,49 +558,82 @@ const Clients = () => {
 
                           {/* Service Info */}
                           <td className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
-                            <div className="space-y-1">
-                              <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] md:text-[13px] font-bold tracking-wider uppercase border ${conf.pill} items-center gap-1`}>
-                                <ServiceIcon size={9} />
-                                {client.service || "Contract"}
-                              </span>
-                              <div className="pt-0.5">
-                                {client.assignedTo ? (
+                            <div className="flex flex-wrap gap-1 max-w-[200px]">
+                              {Array.isArray(client.service) ? (
+                                client.service.map((srv) => {
+                                  const sConf = getServiceStyles(srv);
+                                  const SIcon = sConf.icon;
+                                  return (
+                                    <span key={srv} className={`inline-flex px-2 py-0.5 rounded-full text-[9px] md:text-[11px] font-bold tracking-wider uppercase border ${sConf.pill} items-center gap-1`}>
+                                      <SIcon size={9} />
+                                      {srv}
+                                    </span>
+                                  );
+                                })
+                              ) : (
+                                (() => {
+                                  const sConf = getServiceStyles(client.service || "");
+                                  const SIcon = sConf.icon;
+                                  return (
+                                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] md:text-[11px] font-bold tracking-wider uppercase border ${sConf.pill} items-center gap-1`}>
+                                      <SIcon size={9} />
+                                      {client.service || "Contract"}
+                                    </span>
+                                  );
+                                })()
+                              )}
+                            </div>
+                            <div className="pt-1.5 flex flex-wrap gap-1 max-w-[200px]">
+                              {client.assignedTo && (Array.isArray(client.assignedTo) ? client.assignedTo.length > 0 : true) ? (
+                                Array.isArray(client.assignedTo) ? (
+                                  client.assignedTo.map((member) => {
+                                    const uCol = getUserColor(member._id || member);
+                                    return (
+                                      <span key={member._id || member} className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${uCol.bg} ${uCol.text} border ${uCol.border} font-semibold text-[9.5px] md:text-[11px]`}>
+                                        <FiUser size={9} />
+                                        <span>{member.name || member.email}</span>
+                                      </span>
+                                    );
+                                  })
+                                ) : (
                                   (() => {
                                     const uCol = getUserColor(client.assignedTo._id || client.assignedTo);
                                     return (
-                                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded ${uCol.bg} ${uCol.text} border ${uCol.border} font-semibold text-[9.5px] md:text-[13px]`}>
-                                        <FiUser size={10} />
-                                        <span>Assigned: {client.assignedTo.name || client.assignedTo.email}</span>
+                                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${uCol.bg} ${uCol.text} border ${uCol.border} font-semibold text-[9.5px] md:text-[11px]`}>
+                                        <FiUser size={9} />
+                                        <span>{client.assignedTo.name || client.assignedTo.email}</span>
                                       </span>
                                     );
                                   })()
-                                ) : (
-                                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10 text-slate-400 dark:text-slate-500 italic text-[9.5px]">
-                                    <FiUser size={10} />
-                                    <span>Unassigned</span>
-                                  </span>
-                                )}
-                              </div>
+                                )
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10 text-slate-400 dark:text-slate-500 italic text-[9.5px]">
+                                  <FiUser size={9} />
+                                  <span>Unassigned</span>
+                                </span>
+                              )}
                             </div>
                           </td>
 
                           {/* Budget Info */}
-                          <td className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
-                            <div className="space-y-0.5">
-                              <p className="text-[10px] md:text-[13px] text-slate-500 dark:text-slate-400 font-medium">
-                                Base: <span className="font-semibold text-slate-700 dark:text-slate-300">₹{Number(client.budget || 0).toLocaleString("en-IN")}</span>
-                              </p>
-                              <p className="text-[11px] md:text-[13px] text-slate-605 dark:text-slate-400 font-medium">
-                                Total: <span className="text-emerald-600 dark:text-emerald-400 font-bold">₹{Number(client.totalBudget || 0).toLocaleString("en-IN")}</span>
-                              </p>
-                              <p className="text-[9.5px] md:text-[11px] text-amber-600 dark:text-amber-500 font-semibold uppercase tracking-wider">
-                                GST: {client.gst}%
-                              </p>
-                            </div>
-                          </td>
+                          {user?.role !== "team" && (
+                            <td className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
+                              <div className="space-y-0.5">
+                                <p className="text-[10px] md:text-[13px] text-slate-500 dark:text-slate-400 font-medium">
+                                  Base: <span className="font-semibold text-slate-700 dark:text-slate-300">₹{Number(client.budget || 0).toLocaleString("en-IN")}</span>
+                                </p>
+                                <p className="text-[11px] md:text-[13px] text-slate-605 dark:text-slate-400 font-medium">
+                                  Total: <span className="text-emerald-600 dark:text-emerald-400 font-bold">₹{Number(client.totalBudget || 0).toLocaleString("en-IN")}</span>
+                                </p>
+                                <p className="text-[9.5px] md:text-[11px] text-amber-600 dark:text-amber-500 font-semibold uppercase tracking-wider">
+                                  GST: {client.gst}%
+                                </p>
+                              </div>
+                            </td>
+                          )}
 
                           {/* Actions */}
-                          {(user?.role === "admin" || user?.role === "operationmanager" || user?.role === "team") && (
+                          {(user?.role === "admin" || user?.role === "operationmanager") && (
                             <td className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 text-center">
                               <div className="flex items-center justify-center gap-1.5">
                                 <button
@@ -481,7 +658,7 @@ const Clients = () => {
                     })
                   ) : (
                     <tr>
-                      <td colSpan={(user?.role === "admin" || user?.role === "operationmanager" || user?.role === "team") ? 5 : 4} className="px-5 py-16 border-b border-slate-200 dark:border-slate-800">
+                      <td colSpan={(user?.role === "admin" || user?.role === "operationmanager") ? 5 : (user?.role === "team" ? 3 : 4)} className="px-5 py-16 border-b border-slate-200 dark:border-slate-800">
                         <div className="flex flex-col items-center justify-center text-center">
                           <div className="w-14 h-14 rounded-full theme-bg-main flex items-center justify-center mb-3">
                             <FiUsers className="text-blue-500 animate-pulse" size={22} />
@@ -702,55 +879,49 @@ const Clients = () => {
                     className="space-y-4"
                   >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1">
-                          Core Contract Service
-                        </label>
-                        <select
-                          name="service"
-                          value={formData.service}
-                          onChange={handleChange}
-                          className="w-full h-10 rounded-xl border border-slate-205 dark:border-slate-800 bg-white dark:bg-black px-3 py-0 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 focus:border-blue-500 dark:focus:border-[#e5ff00] transition-all font-semibold cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em] pr-8"
-                          required
-                        >
-                          <option value="">Select Service Area</option>
-                          <option value="Digital Marketing">Digital Marketing</option>
-                          <option value="Website">Website Development</option>
-                          <option value="SEO">SEO Strategy</option>
-                        </select>
-                      </div>
+                      <MultiSelect
+                        label="Core Contract Service"
+                        placeholder="Select Service Areas"
+                        options={[
+                          { value: "Digital Marketing", label: "Digital Marketing" },
+                          { value: "Website", label: "Website Development" },
+                          { value: "SEO", label: "SEO Strategy" },
+                          { value: "Additional work", label: "Additional work" },
+                          { value: "Video Production", label: "Video Production" },
+                          { value: "Others", label: "Others" },
+                        ]}
+                        selectedValues={formData.service || []}
+                        onChange={handleServiceChange}
+                        icon={FiLayers}
+                      />
 
-                      <div>
-                        <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1">
-                          Assign to  members 
-                        </label>
-                        <select
-                          name="assignedTo"
-                          value={formData.assignedTo}
-                          onChange={handleChange}
-                          className="w-full h-10 rounded-xl border border-slate-205 dark:border-slate-800 bg-white dark:bg-black px-3 py-0 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 focus:border-blue-500 dark:focus:border-[#e5ff00] transition-all font-semibold cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em] pr-8"
-                        >
-                          <option value="">Select member</option>
-                          {allUsers.map((u) => (
-                            <option key={u._id} value={u._id}>
-                              {u.name} ({u.email})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                      <MultiSelect
+                        label="Assign to members"
+                        placeholder="Select members"
+                        options={allUsers.map((u) => ({
+                          value: u._id,
+                          label: `${u.name} (${u.email})`,
+                        }))}
+                        selectedValues={formData.assignedTo || []}
+                        onChange={handleAssignedChange}
+                        icon={FiUsers}
+                      />
                     </div>
 
                     {/* Commitments Dynamic Blocks */}
-                    {formData.service && (
-                      <div className="pt-2">
-                        <label className="block text-[10px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                    {formData.service && (Array.isArray(formData.service) ? formData.service.length > 0 : formData.service) && (
+                      <div className="pt-2 space-y-4">
+                        <label className="block text-[10px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-widest mb-2 flex items-center gap-1.5 font-bold">
                           <FiBookOpen size={11} />
-                          {formData.service} Deliverables
+                          Deliverables Setup
                         </label>
 
                         {/* Digital Marketing commitments */}
-                        {formData.service === "Digital Marketing" && (
+                        {((Array.isArray(formData.service) && formData.service.includes("Digital Marketing")) || formData.service === "Digital Marketing") && (
                           <div className="bg-blue-50/30 dark:bg-black/40 border border-blue-100/50 dark:border-blue-900/20 rounded-2xl p-4 space-y-3.5">
+                            <h4 className="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                              <FiLayers size={12} /> Digital Marketing Deliverables
+                            </h4>
                             <div className="grid grid-cols-3 gap-3">
                               <div>
                                 <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
@@ -814,8 +985,11 @@ const Clients = () => {
                         )}
 
                         {/* Website commitments */}
-                        {formData.service === "Website" && (
+                        {((Array.isArray(formData.service) && formData.service.includes("Website")) || formData.service === "Website") && (
                           <div className="bg-emerald-50/30 dark:bg-black/40 border border-emerald-100/50 dark:border-emerald-900/20 rounded-2xl p-4">
+                            <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 mb-2.5">
+                              <FiGlobe size={12} /> Website Deliverables
+                            </h4>
                             <div className="w-full md:w-1/2">
                               <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
                                 Estimated Web Pages
@@ -833,8 +1007,11 @@ const Clients = () => {
                         )}
 
                         {/* SEO commitments */}
-                        {formData.service === "SEO" && (
+                        {((Array.isArray(formData.service) && formData.service.includes("SEO")) || formData.service === "SEO") && (
                           <div className="bg-purple-50/30 dark:bg-black/40 border border-purple-100/50 dark:border-purple-900/20 rounded-2xl p-4">
+                            <h4 className="text-xs font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1.5 mb-2.5">
+                              <FiSearch size={12} /> SEO Deliverables
+                            </h4>
                             <label className="block text-[10px] font-bold text-slate-550 dark:text-slate-350 mb-2">
                               Select Deliverables
                             </label>
@@ -861,6 +1038,84 @@ const Clients = () => {
                                 Off-Page Link Building
                               </label>
                             </div>
+                          </div>
+                        )}
+
+                        {/* Video Production commitments */}
+                        {((Array.isArray(formData.service) && formData.service.includes("Video Production")) || formData.service === "Video Production") && (
+                          <div className="bg-rose-50/30 dark:bg-black/40 border border-rose-100/50 dark:border-rose-900/20 rounded-2xl p-4 space-y-3.5">
+                            <h4 className="text-xs font-bold text-rose-600 dark:text-rose-405 flex items-center gap-1.5">
+                              <FiVideo size={12} /> Video Production Deliverables
+                            </h4>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                                  Videos Count
+                                </label>
+                                <input
+                                  type="number"
+                                  name="videos"
+                                  value={formData.videos}
+                                  onChange={handleChange}
+                                  placeholder="Count"
+                                  className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 font-semibold"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                                  Reels Count
+                                </label>
+                                <input
+                                  type="number"
+                                  name="reels"
+                                  value={formData.reels}
+                                  onChange={handleChange}
+                                  placeholder="Count"
+                                  className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 font-semibold"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5">
+                                DSLR requirement
+                              </label>
+                              <select
+                                name="needDslr"
+                                value={formData.needDslr}
+                                onChange={handleChange}
+                                className="h-10 px-3.5 py-0 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#e5ff00]/20 font-semibold cursor-pointer w-full md:w-52 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em] pr-8"
+                              >
+                                <option value="">Select Option</option>
+                                <option value="Need DSLR">Need DSLR</option>
+                                <option value="No DSLR">No DSLR</option>
+                              </select>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Additional work commitments */}
+                        {((Array.isArray(formData.service) && formData.service.includes("Additional work")) || formData.service === "Additional work") && (
+                          <div className="bg-amber-50/30 dark:bg-black/40 border border-amber-100/50 dark:border-amber-900/20 rounded-2xl p-4">
+                            <h4 className="text-xs font-bold text-amber-600 dark:text-amber-455 flex items-center gap-1.5 mb-2.5">
+                              <FiPlusCircle size={12} /> Additional Work Details
+                            </h4>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
+                              Additional deliverables and project-specific tasks can be added directly via the project boards or EOD notes.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Others commitments */}
+                        {((Array.isArray(formData.service) && formData.service.includes("Others")) || formData.service === "Others") && (
+                          <div className="bg-teal-50/30 dark:bg-black/40 border border-teal-100/50 dark:border-teal-900/20 rounded-2xl p-4">
+                            <h4 className="text-xs font-bold text-teal-605 dark:text-teal-400 flex items-center gap-1.5 mb-2.5">
+                              <FiHelpCircle size={12} /> Custom Service Deliverables
+                            </h4>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
+                              Configure specific milestones and guidelines directly with the assigned team members.
+                            </p>
                           </div>
                         )}
                       </div>
