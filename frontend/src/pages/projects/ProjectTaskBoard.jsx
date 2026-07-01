@@ -2219,6 +2219,20 @@ const ProjectTaskBoard = ({
           const showSelectionColumn = Object.values(selectionModeSections).some(Boolean);
           return (
             <div className="pt-3 w-full">
+              {/* Mobile Horizontal Scroll Indicator Cue */}
+              <div className="flex md:hidden items-center justify-between gap-1.5 py-1.5 px-3 mb-2 rounded-lg bg-indigo-50/50 dark:bg-white/[0.02] border border-indigo-100/30 dark:border-white/5 text-[9px] text-slate-500 dark:text-slate-400 font-medium">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-[#e5ff00] animate-pulse" />
+                  <span>Scroll horizontally to view columns</span>
+                </div>
+                <div className="flex items-center gap-0.5 opacity-80">
+                  <span>← Swipe</span>
+                  <svg className="w-2.5 h-2.5 animate-bounce-horizontal" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </svg>
+                </div>
+              </div>
+
               <div className="overflow-x-auto w-full bg-white dark:bg-[#111115]">
                 <table className="w-full text-left border-spacing-0 text-[11px]">
                   <thead>
@@ -2228,7 +2242,7 @@ const ProjectTaskBoard = ({
                           {/* Selection column header */}
                         </th>
                       )}
-                      <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[400px] sticky left-0 z-30 bg-slate-50/50 dark:bg-slate-900/60">
+                      <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[250px] md:min-w-[400px] md:sticky md:left-0 z-30 bg-slate-50/50 dark:bg-slate-900/60">
                         Name
                       </th>
                       <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[140px]">
@@ -2285,7 +2299,7 @@ const ProjectTaskBoard = ({
                             >
                               <div className="flex items-center justify-between w-full min-w-full theme-bg-accent-ultrasubtle transition-colors">
                                 {/* Left Sticky Container */}
-                                <div className="sticky left-0 flex items-center gap-3 px-3 py-2.5 theme-bg-accent-ultrasubtle backdrop-blur-sm shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] dark:shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)] z-20 transition-colors">
+                                <div className="md:sticky md:left-0 flex items-center gap-3 px-3 py-2.5 theme-bg-accent-ultrasubtle backdrop-blur-sm shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] dark:shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)] z-20 transition-colors">
                                   {/* Play/triangle icon that rotates */}
                                   <button
                                     type="button"
@@ -2513,7 +2527,7 @@ const ProjectTaskBoard = ({
                                       {/* Name Field with Circle Checkbox */}
                                       <td
                                         onClick={(e) => e.stopPropagation()}
-                                        className={`px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 font-semibold sticky left-0 z-10 min-w-[400px] ${rowBg}`}
+                                        className={`px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 font-semibold md:sticky md:left-0 z-10 min-w-[250px] md:min-w-[400px] ${rowBg}`}
                                       >
                                         <div className="flex items-center gap-2.5 w-full">
                                           {/* Expand/Collapse Chevron (only if subtasks exist) */}
@@ -3044,7 +3058,7 @@ const ProjectTaskBoard = ({
                                                 )}
                                                 {/* 1. Name Column */}
                                                 <td
-                                                  className={`px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 font-semibold pl-10 sticky left-0 z-10 min-w-[400px] ${rowBgSub}`}
+                                                  className={`px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 font-semibold pl-10 md:sticky md:left-0 z-10 min-w-[250px] md:min-w-[400px] ${rowBgSub}`}
                                                   onClick={(e) =>
                                                     e.stopPropagation()
                                                   }
