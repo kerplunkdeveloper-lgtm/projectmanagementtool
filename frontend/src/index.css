@@ -371,6 +371,20 @@ thead th, thead tr {
   color: var(--color-slate-400) !important;
 }
 
+.theme-bg-accent-subtle {
+  background-color: var(--accent-light-bg-subtle) !important;
+}
+.dark .theme-bg-accent-subtle {
+  background-color: var(--accent-dark-bg-subtle) !important;
+}
+
+.theme-bg-accent-ultrasubtle {
+  background-color: color-mix(in srgb, var(--accent-light-bg-subtle) 30%, transparent) !important;
+}
+.dark .theme-bg-accent-ultrasubtle {
+  background-color: color-mix(in srgb, var(--accent-dark-bg-subtle) 25%, transparent) !important;
+}
+
 /* Reusable Global Table, Form, Modal Overrides */
 table {
   border-color: var(--color-slate-100) !important;
@@ -438,6 +452,11 @@ input:focus, select:focus, textarea:focus {
 .dark .border-white\/30 { border-color: rgba(255, 255, 255, 0.3) !important; }
 
 /* Force correct dropdown option colors in dark mode across all browsers */
+select.badge-select option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
 .dark select option {
   background-color: #0f172a !important;
   color: #ffffff !important;
@@ -554,40 +573,41 @@ select.badge-select:hover, span.badge-span:hover {
 
 /* Priority: High */
 .badge-priority-high {
-  background: linear-gradient(135deg, #ffe4e6 0%, #fecdd3 100%) !important;
-  color: #e11d48 !important;
-  border-color: #fda4af !important;
+  background: linear-gradient(135deg, #9f1239 0%, #be123c 100%) !important;
+  color: #ffffff !important;
+  border-color: #881337 !important;
 }
 .dark .badge-priority-high {
-  background: linear-gradient(135deg, rgba(225, 29, 72, 0.18) 0%, rgba(225, 29, 72, 0.28) 100%) !important;
-  color: #fda4af !important;
-  border-color: rgba(225, 29, 72, 0.4) !important;
-  box-shadow: 0 0 8px rgba(225, 29, 72, 0.15) !important;
+  background: linear-gradient(135deg, #9f1239 0%, #be123c 100%) !important;
+  color: #ffffff !important;
+  border-color: #881337 !important;
+  box-shadow: 0 4px 12px rgba(159, 18, 57, 0.4) !important;
 }
 
 /* Priority: Medium */
 .badge-priority-medium {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
-  color: #d97706 !important;
-  border-color: #fcd34d !important;
+  background: linear-gradient(135deg, #b45309 0%, #d97706 100%) !important;
+  color: #ffffff !important;
+  border-color: #78350f !important;
 }
 .dark .badge-priority-medium {
-  background: linear-gradient(135deg, rgba(217, 119, 6, 0.18) 0%, rgba(217, 119, 6, 0.28) 100%) !important;
-  color: #fbbf24 !important;
-  border-color: rgba(217, 119, 6, 0.4) !important;
-  box-shadow: 0 0 8px rgba(217, 119, 6, 0.12) !important;
+  background: linear-gradient(135deg, #b45309 0%, #d97706 100%) !important;
+  color: #ffffff !important;
+  border-color: #78350f !important;
+  box-shadow: 0 4px 12px rgba(180, 83, 9, 0.4) !important;
 }
 
 /* Priority: Low */
 .badge-priority-low {
-  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%) !important;
-  color: #475569 !important;
-  border-color: #cbd5e1 !important;
+  background: linear-gradient(135deg, #334155 0%, #475569 100%) !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
 }
 .dark .badge-priority-low {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.1) 100%) !important;
-  color: #94a3b8 !important;
-  border-color: rgba(255, 255, 255, 0.15) !important;
+  background: linear-gradient(135deg, #334155 0%, #475569 100%) !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
+  box-shadow: 0 4px 12px rgba(51, 65, 85, 0.4) !important;
 }
 
 /* Status: Completed */
