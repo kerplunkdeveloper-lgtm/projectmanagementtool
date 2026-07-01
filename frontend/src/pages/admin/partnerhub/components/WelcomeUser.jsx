@@ -288,8 +288,8 @@ const WelcomeUser = () => {
           </div>
         </div>
 
-        {/* Right Side: Reference Image Calendar & Clock Widget */}
-        <div className="flex flex-row justify-between gap-3.5 bg-white dark:bg-[#070b13] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 shadow-xl w-full sm:w-[430px] min-w-[390px] relative z-10 backdrop-blur-sm shrink-0 select-none">
+        {/* Right Side: Responsive Reference Image Calendar & Clock Widget */}
+        <div className="flex flex-col sm:flex-row justify-between gap-3.5 bg-white dark:bg-[#070b13] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 shadow-xl w-full sm:w-[430px] min-w-0 relative z-10 backdrop-blur-sm shrink-0 select-none">
           
           {/* Left Side: Calendar picker */}
           <div className="flex-1 flex flex-col justify-between">
@@ -359,8 +359,11 @@ const WelcomeUser = () => {
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="w-px bg-slate-200/80 dark:bg-slate-800/85 self-stretch my-0.5" />          {/* Right Side: Current Time Widget */}
+          {/* Divider: vertical on large screen, horizontal on mobile */}
+          <div className="hidden sm:block w-px bg-slate-200/80 dark:bg-slate-800/85 self-stretch my-0.5" />
+          <div className="block sm:hidden h-px w-full bg-slate-200/80 dark:bg-slate-800/85 my-1" />
+
+          {/* Right Side: Current Time Widget */}
           <div className="flex-1 flex flex-col items-center justify-center">
             {/* Header */}
             <div className="text-[10px] font-black text-slate-850 dark:text-slate-100 mb-2.5 flex items-center gap-1.5">
