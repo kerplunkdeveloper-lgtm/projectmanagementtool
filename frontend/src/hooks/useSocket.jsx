@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { addNotification } from '../features/notifications/notificationSlice';
 import { apiSlice } from '../features/api/apiSlice';
 import { incrementUnreadCount } from '../features/chat/chatSlice';
@@ -88,6 +89,7 @@ if (typeof window !== 'undefined') {
 const useSocket = () => {
   const socket = useRef();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
 
   useEffect(() => {
@@ -127,7 +129,7 @@ const useSocket = () => {
               } max-w-[360px] w-full bg-white dark:bg-[#0f172a] shadow-2xl rounded-2xl pointer-events-auto flex items-start p-4 border border-slate-100 dark:border-slate-800 relative cursor-pointer`}
               onClick={() => {
                 toast.dismiss(t.id);
-                window.location.href = "/chat";
+                navigate(`/${user?.role}/chat?id=${notification.chatRoomId}`);
               }}
             >
               {/* Sender Image / Initials */}
@@ -184,7 +186,15 @@ const useSocket = () => {
             <div
               className={`${
                 t.visible ? 'animate-enter' : 'animate-leave'
-              } max-w-[340px] w-full bg-white dark:bg-[#0f172a] shadow-xl border border-slate-200/60 dark:border-slate-800/80 rounded-xl pointer-events-auto flex items-center p-3 pr-8 relative`}
+              } max-w-[340px] w-full bg-white dark:bg-[#0f172a] shadow-xl border border-slate-200/60 dark:border-slate-800/80 rounded-xl pointer-events-auto flex items-center p-3 pr-8 relative cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/50`}
+              onClick={() => {
+                toast.dismiss(t.id);
+                if (notification.type === 'client_assigned' || (notification.message && notification.message.toLowerCase().includes('client:'))) {
+                  navigate(`/${user?.role}/clients`);
+                } else if (notification.type === 'task_assigned') {
+                  navigate(`/${user?.role}/tasks`);
+                }
+              }}
             >
               <div className="flex-shrink-0 relative">
                 <div className="h-8 w-8 rounded-lg bg-indigo-50 dark:bg-slate-800 flex items-center justify-center text-indigo-600 dark:text-white shadow-sm relative z-10">
@@ -193,7 +203,7 @@ const useSocket = () => {
               </div>
 
               <div className="ml-3 flex-1 min-w-0">
-                <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 tracking-wider uppercase">
+                <p className="text-[9px] font-bold text-slate-400 dark:text-slate-550 tracking-wider uppercase">
                   System Alert
                 </p>
                 <p className="mt-0.5 text-[11px] font-bold text-slate-800 dark:text-slate-100 leading-normal">
@@ -202,7 +212,10 @@ const useSocket = () => {
               </div>
 
               <button
-                onClick={() => toast.dismiss(t.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toast.dismiss(t.id);
+                }}
                 className="absolute top-2.5 right-2.5 w-5 h-5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 transition-colors"
               >
                 <FiX size={12} />

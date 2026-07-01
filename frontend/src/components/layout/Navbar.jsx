@@ -57,7 +57,16 @@ const Navbar = ({ setSidebarOpen }) => {
 
   const unreadCount = (notifications || []).filter((n) => !n.isRead).length;
 
-  const getNotificationDetails = (type) => {
+  const getNotificationDetails = (n) => {
+    const type = n?.type;
+    const message = n?.message || "";
+    if (type === "client_assigned" || message.toLowerCase().includes("client:")) {
+      return {
+        icon: FiUser,
+        bgColor:
+          "bg-indigo-50 dark:bg-indigo-950/20 text-indigo-650 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30",
+      };
+    }
     switch (type) {
       case "message_received":
         return {
@@ -308,7 +317,7 @@ const Navbar = ({ setSidebarOpen }) => {
                     </div>
                   ) : (
                     (notifications || []).map((n) => {
-                      const details = getNotificationDetails(n.type);
+                      const details = getNotificationDetails(n);
                       const Icon = details.icon;
                       return (
                         <div
@@ -324,6 +333,8 @@ const Navbar = ({ setSidebarOpen }) => {
                               );
                             } else if (n.type === "task_assigned") {
                               navigate(`/${user?.role}/tasks`);
+                            } else if (n.type === "client_assigned" || (n.message && n.message.toLowerCase().includes("client:"))) {
+                              navigate(`/${user?.role}/clients`);
                             } else if (n.project) {
                               navigate(
                                 `/${user?.role}/projects?id=${n.project}`,

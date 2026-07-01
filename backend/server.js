@@ -215,4 +215,4 @@ process.on('unhandledRejection', (err, promise) => {
   // Close server & exit process
   server.close(() => process.exit(1));
 });
-// Nodemon trigger
+// Nodemon trigger - reload config and models 1

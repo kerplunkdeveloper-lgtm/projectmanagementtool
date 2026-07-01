@@ -1,4 +1,5 @@
 const Client = require("../models/Client");
+const Notification = require("../models/Notification");
 
 
 // @desc    Create Client
@@ -55,6 +56,25 @@ exports.createClient = async (req, res) => {
     const populatedClient = await Client.findById(client._id)
       .populate("createdBy", "name email role")
       .populate("assignedTo", "name email role");
+
+    // Real-time Notification to assigned users
+    if (populatedClient.assignedTo && populatedClient.assignedTo.length > 0) {
+      const io = req.app.get("io");
+      for (const member of populatedClient.assignedTo) {
+        if (member._id.toString() !== req.user._id.toString()) {
+          const notification = await Notification.create({
+            recipient: member._id,
+            sender: req.user._id,
+            type: "client_assigned",
+            message: `You have been assigned to Client: "${populatedClient.companyName}"`,
+          });
+          if (io) {
+            const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
+            io.to(member._id.toString()).emit("notification", populatedNotification);
+          }
+        }
+      }
+    }
 
     res.status(201).json({
       success: true,
@@ -189,6 +209,8 @@ exports.updateClient = async (req, res) => {
         : [req.body.assignedTo._id || req.body.assignedTo];
     }
 
+    const previousAssignees = clientToCheck.assignedTo ? clientToCheck.assignedTo.map(id => id.toString()) : [];
+
     const client =
       await Client.findByIdAndUpdate(
         req.params.id,
@@ -206,6 +228,28 @@ exports.updateClient = async (req, res) => {
         success: false,
         message: "Client not found",
       });
+    }
+
+    // Identify newly assigned members
+    const currentAssignees = client.assignedTo ? client.assignedTo.map(u => (u._id || u).toString()) : [];
+    const newAssignees = currentAssignees.filter(id => !previousAssignees.includes(id));
+
+    if (newAssignees.length > 0) {
+      const io = req.app.get("io");
+      for (const memberId of newAssignees) {
+        if (memberId !== req.user._id.toString()) {
+          const notification = await Notification.create({
+            recipient: memberId,
+            sender: req.user._id,
+            type: "client_assigned",
+            message: `You have been assigned to Client: "${client.companyName}"`,
+          });
+          if (io) {
+            const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
+            io.to(memberId).emit("notification", populatedNotification);
+          }
+        }
+      }
     }
 
     res.status(200).json({

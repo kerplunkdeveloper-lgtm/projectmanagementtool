@@ -24,7 +24,14 @@ exports.getTasks = async (req, res) => {
       ];
     }
     const tasks = await Task.find(query)
-      .populate("project", "name client")
+      .populate({
+        path: "project",
+        select: "name client",
+        populate: {
+          path: "client",
+          select: "companyName"
+        }
+      })
       .populate({
         path: "assignedTo",
         select: "name email department profile",
@@ -70,7 +77,14 @@ exports.createTask = async (req, res) => {
     const task = await Task.create(req.body);
 
     const populatedTask = await Task.findById(task._id)
-      .populate("project", "name client")
+      .populate({
+        path: "project",
+        select: "name client",
+        populate: {
+          path: "client",
+          select: "companyName"
+        }
+      })
       .populate({
         path: "assignedTo",
         select: "name email department profile",
@@ -175,7 +189,14 @@ exports.updateTask = async (req, res) => {
       new: true,
       runValidators: true,
     })
-      .populate("project", "name client")
+      .populate({
+        path: "project",
+        select: "name client",
+        populate: {
+          path: "client",
+          select: "companyName"
+        }
+      })
       .populate({
         path: "assignedTo",
         select: "name email department profile",

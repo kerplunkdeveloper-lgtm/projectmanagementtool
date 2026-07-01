@@ -475,7 +475,7 @@ const Clients = () => {
 
 
 <div>
-    {(user?.role === "admin" || user?.role === "operationmanager" || user?.role === "team") && (
+    {(user?.role === "admin" || user?.role === "operationmanager") && (
           <button
             onClick={() => {
               setFormData(initialForm);
@@ -517,7 +517,8 @@ const Clients = () => {
                 <tr className="bg-slate-50/50 dark:bg-slate-900/60 text-slate-705 dark:text-slate-300 font-bold uppercase tracking-wider text-[10px]">
                   <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">Client Details</th>
                   <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">Contact Info</th>
-                  <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">Service & Plan</th>
+                  <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">Service & Members</th>
+                  {user?.role === "team" && <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">Assigned By</th>}
                   {user?.role !== "team" && <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">Budget (INR)</th>}
                   {(user?.role === "admin" || user?.role === "operationmanager") && <th className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 text-center w-28">Actions</th>}
                 </tr>
@@ -645,6 +646,30 @@ const Clients = () => {
                             </div>
                           </td>
 
+                          {/* Assigned By */}
+                          {user?.role === "team" && (
+                            <td className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
+                              <div className="flex items-center gap-1">
+                                {client.createdBy ? (
+                                  (() => {
+                                    const uCol = getUserColor(client.createdBy._id || client.createdBy);
+                                    return (
+                                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${uCol.bg} ${uCol.text} border ${uCol.border} font-semibold text-[9.5px] md:text-[11px]`}>
+                                        <FiUser size={9} />
+                                        <span>{client.createdBy.name || client.createdBy.email}</span>
+                                      </span>
+                                    );
+                                  })()
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10 text-slate-450 dark:text-slate-500 italic text-[9.5px]">
+                                    <FiUser size={9} />
+                                    <span>System / Admin</span>
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          )}
+
                           {/* Budget Info */}
                           {user?.role !== "team" && (
                             <td className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
@@ -688,7 +713,7 @@ const Clients = () => {
                     })
                   ) : (
                     <tr>
-                      <td colSpan={(user?.role === "admin" || user?.role === "operationmanager") ? 5 : (user?.role === "team" ? 3 : 4)} className="px-5 py-16 border-b border-slate-200 dark:border-slate-800">
+                      <td colSpan={(user?.role === "admin" || user?.role === "operationmanager") ? 5 : 4} className="px-5 py-16 border-b border-slate-200 dark:border-slate-800">
                         <div className="flex flex-col items-center justify-center text-center">
                           <div className="w-14 h-14 rounded-full theme-bg-main flex items-center justify-center mb-3">
                             <FiUsers className="text-blue-500 animate-pulse" size={22} />

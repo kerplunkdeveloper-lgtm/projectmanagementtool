@@ -11,6 +11,7 @@ import {
   FiTrash2,
   FiInbox,
   FiMail,
+  FiUser,
 } from "react-icons/fi";
 import {
   useGetNotificationsQuery,
@@ -48,7 +49,15 @@ const Notifications = () => {
     return true;
   });
 
-  const getNotificationDetails = (type) => {
+  const getNotificationDetails = (n) => {
+    const type = n?.type;
+    const message = n?.message || "";
+    if (type === "client_assigned" || message.toLowerCase().includes("client:")) {
+      return {
+        icon: FiUser,
+        bgColor: "bg-indigo-50 text-indigo-650 border-indigo-100",
+      };
+    }
     switch (type) {
       case "project_assigned":
         return {
@@ -156,7 +165,7 @@ const Notifications = () => {
         <div className="space-y-3">
           <AnimatePresence initial={false}>
             {filteredNotifications.map((n) => {
-              const details = getNotificationDetails(n.type);
+              const details = getNotificationDetails(n);
               const Icon = details.icon;
               return (
                 <motion.div
@@ -172,6 +181,8 @@ const Notifications = () => {
                       navigate(`/${user?.role}/chat?id=${n.chatRoomId}`);
                     } else if (n.type === "task_assigned") {
                       navigate(`/${user?.role}/tasks`);
+                    } else if (n.type === "client_assigned" || (n.message && n.message.toLowerCase().includes("client:"))) {
+                      navigate(`/${user?.role}/clients`);
                     } else if (n.project) {
                       navigate(`/${user?.role}/projects?id=${n.project}`);
                     } else {
