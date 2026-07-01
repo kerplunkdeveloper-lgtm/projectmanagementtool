@@ -159,93 +159,22 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         {/* MENU */}
         <nav className="flex-1 overflow-y-auto px-3.5 py-3 space-y-1.5 sidebar-scrollbar">
           {(() => {
-            let hasRenderedProjectsList = false;
             let hasRenderedPortfoliosList = false;
-
-            const renderProjectsList = () => (
-              <div className="space-y-1 pt-1.5 pb-1 px-1.5 ml-2 border-l border-slate-100 dark:border-white/5">
-                {/* Dropdown Header Toggle */}
-                <button
-                  onClick={() => setIsProjectsListOpen(!isProjectsListOpen)}
-                  className="w-full flex items-center justify-between py-2 px-1 text-left theme-text-accent hover:opacity-85 transition-opacity"
-                >
-                  <div className="flex items-center gap-2">
-                    <FiList
-                      size={15}
-                      className="shrink-0 theme-text-accent"
-                    />
-                    <span className="text-[12px] font-medium tracking-wider">
-                      List of Projects
-                    </span>
-                  </div>
-                  <svg
-                    className={`w-3 h-3 transform transition-transform duration-200 theme-text-accent ${
-                      isProjectsListOpen ? "rotate-180" : ""
-                    }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2.5}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-
-                {/* Submenu List */}
-                {isProjectsListOpen && (
-                  <div className="pl-1 space-y-1 overflow-y-auto max-h-[160px] sidebar-scrollbar transition-all">
-                    {projects.map((project, index) => {
-                      const isActive = activeProjectId === project._id;
-                      return (
-                        <button
-                          key={project._id}
-                          onClick={() => {
-                            if (window.innerWidth < 1024) {
-                              setSidebarOpen(false);
-                            }
-                            navigate(`/${role}/projects?id=${project._id}`);
-                          }}
-                          className={`w-full flex items-center gap-2 text-left text-[11px] font-bold py-1.5 rounded-lg px-2 transition-colors group ${
-                            isActive
-                              ? "theme-text-accent"
-                              : "text-slate-600 dark:text-slate-250"
-                          }`}
-                          title={project.name}
-                        >
-                          <ProjectIcon
-                            name={project.name}
-                            size="sm"
-                            className="group-hover:scale-110 transition-transform"
-                          />
-                          <span className="truncate">{project.name}</span>
-                          {isActive && (
-                            <span className="ml-auto w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
 
             const renderPortfoliosList = () => (
               <div className="space-y-1 pt-1.5 pb-1 px-1.5 ml-2 border-l border-slate-100 dark:border-white/5">
                 {/* Dropdown Header Toggle */}
                 <button
+                  type="button"
                   onClick={() => setIsPortfoliosListOpen(!isPortfoliosListOpen)}
-                  className="w-full flex items-center justify-between py-2 px-1 text-left theme-text-accent hover:opacity-85 transition-opacity"
+                  className="w-full flex items-center justify-between py-2 px-1 text-left theme-text-accent hover:opacity-85 transition-opacity cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
                     <FiLayers
                       size={15}
                       className="shrink-0 theme-text-accent"
                     />
-                    <span className="text-[12px] font-medium  tracking-wider">
+                    <span className="text-[12px] font-medium tracking-wider">
                       List of Portfolio
                     </span>
                   </div>
@@ -268,37 +197,100 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
                 {/* Submenu List */}
                 {isPortfoliosListOpen && (
-                  <div className="pl-1 space-y-1 overflow-y-auto max-h-[160px] sidebar-scrollbar transition-all">
+                  <div className="pl-1 space-y-2 overflow-y-auto max-h-[300px] sidebar-scrollbar transition-all">
                     {portfolios.map((portfolio, index) => {
                       const isActive = activePortfolioId === portfolio._id;
+                      // Resolve project IDs safely by checking both string IDs and populated objects
+                      const portfolioProjects = (projects || []).filter((proj) => {
+                        const ids = (portfolio.projectIds || []).map(pId =>
+                          typeof pId === 'object' && pId !== null ? pId._id : pId
+                        );
+                        return ids.includes(proj._id);
+                      });
+
                       return (
-                        <button
-                          key={portfolio._id}
-                          onClick={() => {
-                            if (window.innerWidth < 1024) {
-                              setSidebarOpen(false);
-                            }
-                            navigate(`/${role}/portfolio?id=${portfolio._id}`);
-                          }}
-                          className={`w-full flex items-center gap-2 text-left text-[11px] font-bold py-1.5 rounded-lg px-2 transition-colors group ${
-                            isActive
-                              ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent"
-                              : "text-slate-600 dark:text-slate-350 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5"
-                          }`}
-                          title={portfolio.name}
-                        >
-                          <svg
-                            viewBox="0 0 240 180"
-                            className="w-[20px] h-[16px] shrink-0 transition-transform duration-350 group-hover:scale-110"
-                            style={{ fill: portfolio.color || "#ff80bf" }}
+                        <div key={portfolio._id} className="space-y-0.5">
+                          {/* Portfolio Row */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.innerWidth < 1024) {
+                                setSidebarOpen(false);
+                              }
+                              navigate(
+                                `/${role}/portfolio?id=${portfolio._id}`,
+                              );
+                            }}
+                            className={`w-full flex items-center gap-2 text-left text-[11px] font-bold py-1.5 rounded-lg px-2 transition-colors group ${
+                              isActive
+                                ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent"
+                                : "text-slate-600 dark:text-slate-355 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5"
+                            }`}
+                            title={portfolio.name}
                           >
-                            <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
-                          </svg>
-                          <span className="truncate">{portfolio.name}</span>
-                          {isActive && (
-                            <span className="ml-auto w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
+                            <svg
+                              viewBox="0 0 240 180"
+                              className="w-[20px] h-[16px] shrink-0 transition-transform duration-350 group-hover:scale-110"
+                              style={{ fill: portfolio.color || "#ff80bf" }}
+                            >
+                              <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
+                            </svg>
+                            <span className="truncate">{portfolio.name}</span>
+                            {isActive && (
+                              <span className="ml-auto w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
+                            )}
+                          </button>
+
+                          {/* Projects in this Portfolio */}
+                          {portfolioProjects.length > 0 && (
+                            <div className="relative pl-[18px] mt-0.5 space-y-0.5">
+                              {portfolioProjects.map((project, projIndex) => {
+                                const isProjectActive = activeProjectId === project._id;
+                                const isLast = projIndex === portfolioProjects.length - 1;
+                                return (
+                                  <div key={project._id} className="relative flex items-center h-7 pl-4">
+                                    {/* Vertical line segment coming down from the top edge of this container */}
+                                    <div 
+                                      className={`absolute left-0 top-0 w-[1.5px] bg-slate-200 dark:bg-white/10 ${
+                                        isLast ? 'h-[14px]' : 'h-full'
+                                      }`}
+                                    />
+                                    {/* Horizontal elbow branching to the right to connect to the project item */}
+                                    <div 
+                                      className="absolute left-0 top-[14px] w-3 h-[1.5px] bg-slate-200 dark:bg-white/10"
+                                    />
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (window.innerWidth < 1024) {
+                                          setSidebarOpen(false);
+                                        }
+                                        navigate(`/${role}/projects?id=${project._id}`);
+                                      }}
+                                      className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1 rounded-md px-2 transition-all group ${
+                                        isProjectActive
+                                          ? "bg-slate-50 dark:bg-white/5 theme-text-accent font-bold"
+                                          : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-50/50 dark:hover:bg-white/5"
+                                      }`}
+                                      title={project.name}
+                                    >
+                                      <ProjectIcon
+                                        name={project.name}
+                                        size="xs"
+                                        className="group-hover:scale-110 transition-transform shrink-0"
+                                      />
+                                      <span className="truncate">{project.name}</span>
+                                      {isProjectActive && (
+                                        <span className="ml-auto w-1 h-1 rounded-full theme-bg-accent shrink-0" />
+                                      )}
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           )}
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -310,10 +302,6 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
               <>
                 {menuItems.map((item) => {
                   const Icon = item.icon;
-                  const isProjectsItem =
-                    item.name === "Projects" ||
-                    item.name === "Projects management" ||
-                    item.name === "Projects Overview";
                   const isPortfoliosItem = item.name === "Portfolio";
 
                   return (
@@ -399,13 +387,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           return renderPortfoliosList();
                         })()}
 
-                      {isProjectsItem &&
-                        projects &&
-                        projects.length > 0 &&
-                        (() => {
-                          hasRenderedProjectsList = true;
-                          return renderProjectsList();
-                        })()}
+                      {/* Projects item list is removed */}
                     </React.Fragment>
                   );
                 })}
@@ -415,10 +397,6 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   portfolios &&
                   portfolios.length > 0 &&
                   renderPortfoliosList()}
-                {!hasRenderedProjectsList &&
-                  projects &&
-                  projects.length > 0 &&
-                  renderProjectsList()}
               </>
             );
           })()}
