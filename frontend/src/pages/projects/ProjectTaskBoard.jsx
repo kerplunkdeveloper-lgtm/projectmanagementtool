@@ -2292,14 +2292,20 @@ const ProjectTaskBoard = ({
                       return (
                         <React.Fragment key={`${sectionName}-${sectionIndex}`}>
                           {/* SECTION HEADER ROW */}
-                          <tr className="theme-bg-accent-ultrasubtle border-b border-slate-200 dark:border-slate-800 select-none group/secrow transition-colors">
+                          <tr className={`theme-bg-accent-ultrasubtle border-b border-slate-200 dark:border-slate-800 select-none group/secrow transition-colors ${
+                            openSectionMenu === sectionName ? "relative z-50" : ""
+                          }`}>
                             <td
                               colSpan={showSelectionColumn ? 11 : 10}
-                              className="p-0 border-b border-slate-200 dark:border-slate-800 relative theme-bg-accent-ultrasubtle"
+                              className={`p-0 border-b border-slate-200 dark:border-slate-800 relative theme-bg-accent-ultrasubtle ${
+                                openSectionMenu === sectionName ? "z-50" : "z-10"
+                              }`}
                             >
                               <div className="flex items-center justify-between w-full min-w-full theme-bg-accent-ultrasubtle transition-colors">
                                 {/* Left Sticky Container */}
-                                <div className="md:sticky md:left-0 flex items-center gap-3 px-3 py-2.5 theme-bg-accent-ultrasubtle backdrop-blur-sm shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] dark:shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)] z-20 transition-colors">
+                                <div className={`md:sticky md:left-0 flex items-center gap-3 px-3 py-2.5 theme-bg-accent-ultrasubtle backdrop-blur-sm shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] dark:shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)] transition-colors ${
+                                  openSectionMenu === sectionName ? "z-50" : "z-20"
+                                }`}>
                                   {/* Play/triangle icon that rotates */}
                                   <button
                                     type="button"
@@ -2355,121 +2361,156 @@ const ProjectTaskBoard = ({
                                       />
                                     </form>
                                   ) : (
-                                    <h3
-                                      className="font-bold text-xs uppercase tracking-wider text-slate-705 dark:text-slate-355 hover:text-blue-600 dark:hover:text-[#e5ff00] transition-colors cursor-pointer inline-flex items-center gap-2"
-                                      onClick={() => toggleSection(sectionName)}
-                                    >
-                                      {sectionName}
-                                      <span className="bg-blue-100/60 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200/40 dark:border-blue-800/30 font-bold px-2 py-0.5 rounded-full text-[10px]">
-                                        {sectionTasks.length}
-                                      </span>
-                                    </h3>
+                                    <div className="flex items-center gap-2.5">
+                                      <h3
+                                        className="font-bold text-xs uppercase tracking-wider text-slate-705 dark:text-slate-355 hover:text-blue-600 dark:hover:text-[#e5ff00] transition-colors cursor-pointer inline-flex items-center gap-2"
+                                        onClick={() => toggleSection(sectionName)}
+                                      >
+                                        {sectionName}
+                                        <span className="bg-blue-100/60 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200/40 dark:border-blue-800/30 font-bold px-2 py-0.5 rounded-full text-[10px]">
+                                          {sectionTasks.length}
+                                        </span>
+                                      </h3>
+
+                                      {/* Add Task Plus Icon next to section name */}
+                                      {isAdminOrManager && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleAddTask(sectionName);
+                                          }}
+                                          title="Add Task to this Section"
+                                          className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-white/5 dark:hover:bg-white/10 text-blue-600 dark:text-[#e5ff00] hover:scale-110 active:scale-90 transition-all cursor-pointer border border-blue-100/50 dark:border-white/5"
+                                        >
+                                          <FiPlus size={11} className="stroke-[3]" />
+                                        </button>
+                                      )}
+                                      {/* Section Options Dropdown next to plus icon */}
+                                      {isAdminOrManager && (
+                                        <div className="relative">
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setOpenSectionMenu(openSectionMenu === sectionName ? null : sectionName);
+                                            }}
+                                            className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 hover:bg-slate-205 dark:bg-white/5 dark:hover:bg-white/10 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-205 transition-colors cursor-pointer border border-slate-200/50 dark:border-white/5"
+                                          >
+                                            <FiMoreHorizontal size={11} />
+                                          </button>
+
+                                          {/* Dropdown Menu */}
+                                          {openSectionMenu === sectionName && (
+                                            <div className="absolute left-0 top-full mt-2 w-48 bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-xl rounded-xl p-2 z-50 flex flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                              {/* Selection Mode / Cancel */}
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  setSelectionModeSections((prev) => ({
+                                                    ...prev,
+                                                    [sectionName]: !prev[sectionName],
+                                                  }));
+                                                  if (selectionModeSections[sectionName]) {
+                                                    setSelectedTasks((prev) => {
+                                                      const next = { ...prev };
+                                                      sectionTasks.forEach((t) => {
+                                                        delete next[t._id];
+                                                      });
+                                                      return next;
+                                                    });
+                                                  }
+                                                  setOpenSectionMenu(null);
+                                                }}
+                                                className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-[#F1F5F9] hover:bg-[#E2E8F0] dark:bg-[#1E293B] dark:hover:bg-[#334155] text-[#334155] dark:text-[#CBD5E1] rounded-full transition-all cursor-pointer border border-[#E2E8F0] dark:border-[#334155]"
+                                              >
+                                                {selectionModeSections[sectionName] ? (
+                                                  <><FiX size={13} /> Cancel Select</>
+                                                ) : (
+                                                  <><FiCheckCircle size={13} /> Select Tasks</>
+                                                )}
+                                              </button>
+
+                                              {/* Rename */}
+                                              {sectionName !== "Recent assignment" && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    setEditingSection(sectionName);
+                                                    setEditSectionValue(sectionName);
+                                                    setOpenSectionMenu(null);
+                                                  }}
+                                                  className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-[#FFF7ED] hover:bg-[#FFEDD5] dark:bg-[#431407] dark:hover:bg-[#78350F] text-[#EA580C] dark:text-[#FDBA74] rounded-full transition-all cursor-pointer border border-[#FED7AA] dark:border-[#9A3412]"
+                                                >
+                                                  <FiEdit2 size={13} /> Rename
+                                                </button>
+                                              )}
+
+                                              {/* Delete Section */}
+                                              {sectionName !== "Recent assignment" && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    handleDeleteSection(sectionName);
+                                                    setOpenSectionMenu(null);
+                                                  }}
+                                                  className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-[#FFF1F2] hover:bg-[#FFE4E6] dark:bg-[#4C0519] dark:hover:bg-[#881337] text-[#E11D48] dark:text-[#FDA4AF] rounded-full transition-all cursor-pointer border border-[#FECDD3] dark:border-[#9F1239]"
+                                                >
+                                                  <FiTrash2 size={13} /> Delete
+                                                </button>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
                                   )}
                                 </div>
 
                                 {/* Right Sticky Container */}
                                 {isAdminOrManager && (
                                   <div className="sticky right-0 flex items-center gap-2 px-3 py-2.5 theme-bg-accent-ultrasubtle backdrop-blur-sm shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] dark:shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.5)] z-20 section-menu-container transition-colors">
-                                    {/* Add Task button (Keep accessible) */}
-                                    <button
-                                      type="button"
-                                      onClick={() => handleAddTask(sectionName)}
-                                      className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-extrabold bg-[#EFF6FF] hover:bg-[#DBEAFE] dark:bg-[#172554] dark:hover:bg-[#1E3A8A] text-[#2563EB] dark:text-[#93C5FD] rounded-full transition-all cursor-pointer shadow-sm border border-[#BFDBFE] dark:border-[#1E3A8A]"
-                                    >
-                                      <FiPlus size={11} /> Add Task
-                                    </button>
+                                    {selectionModeSections[sectionName] && (
+                                      <>
+                                        {/* Cancel Select Button displayed outside */}
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectionModeSections((prev) => ({
+                                              ...prev,
+                                              [sectionName]: false,
+                                            }));
+                                            setSelectedTasks((prev) => {
+                                              const next = { ...prev };
+                                              sectionTasks.forEach((t) => {
+                                                delete next[t._id];
+                                              });
+                                              return next;
+                                            });
+                                          }}
+                                          className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-extrabold bg-slate-100 hover:bg-slate-205 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full transition-all cursor-pointer border border-slate-200 dark:border-slate-700 shadow-sm"
+                                        >
+                                          <FiX size={11} className="stroke-[3]" /> Cancel Select
+                                        </button>
 
-                                    {/* Options Dropdown Trigger */}
-                                    <div className="relative">
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setOpenSectionMenu(openSectionMenu === sectionName ? null : sectionName);
-                                        }}
-                                        className="flex items-center justify-center w-7 h-7 rounded-full bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 text-slate-600 dark:text-slate-300 transition-colors"
-                                      >
-                                        <FiMoreHorizontal size={14} />
-                                      </button>
-
-                                      {/* Dropdown Menu */}
-                                      {openSectionMenu === sectionName && (
-                                        <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-xl rounded-xl p-2 z-50 flex flex-col gap-1.5">
-                                          {/* Selection Mode / Cancel */}
+                                        {/* Delete Selected Button displayed outside */}
+                                        {Object.keys(selectedTasks).some(
+                                          (id) => selectedTasks[id] && sectionTasks.some((t) => t._id === id),
+                                        ) && (
                                           <button
                                             type="button"
-                                            onClick={() => {
-                                              setSelectionModeSections((prev) => ({
-                                                ...prev,
-                                                [sectionName]: !prev[sectionName],
-                                              }));
-                                              if (selectionModeSections[sectionName]) {
-                                                setSelectedTasks((prev) => {
-                                                  const next = { ...prev };
-                                                  sectionTasks.forEach((t) => {
-                                                    delete next[t._id];
-                                                  });
-                                                  return next;
-                                                });
-                                              }
-                                              setOpenSectionMenu(null);
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleBulkDelete(sectionTasks);
                                             }}
-                                            className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-[#F1F5F9] hover:bg-[#E2E8F0] dark:bg-[#1E293B] dark:hover:bg-[#334155] text-[#334155] dark:text-[#CBD5E1] rounded-full transition-all cursor-pointer border border-[#E2E8F0] dark:border-[#334155]"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-extrabold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-955/40 text-rose-600 dark:text-rose-455 rounded-full transition-all cursor-pointer border border-rose-200/30 dark:border-rose-900/20 shadow-sm"
                                           >
-                                            {selectionModeSections[sectionName] ? (
-                                              <><FiX size={13} /> Cancel Select</>
-                                            ) : (
-                                              <><FiCheckCircle size={13} /> Select Tasks</>
-                                            )}
+                                            <FiTrash2 size={11} /> Delete Selected ({Object.keys(selectedTasks).filter((id) => selectedTasks[id] && sectionTasks.some((t) => t._id === id)).length})
                                           </button>
-
-                                          {/* Bulk Delete Button */}
-                                          {Object.keys(selectedTasks).some(
-                                            (id) => selectedTasks[id] && sectionTasks.some((t) => t._id === id),
-                                          ) && (
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                handleBulkDelete(sectionTasks);
-                                                setOpenSectionMenu(null);
-                                              }}
-                                              className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-[#FFF1F2] hover:bg-[#FFE4E6] dark:bg-[#4C0519] dark:hover:bg-[#881337] text-[#E11D48] dark:text-[#FDA4AF] rounded-full transition-all cursor-pointer border border-[#FECDD3] dark:border-[#9F1239]"
-                                            >
-                                              <FiTrash2 size={13} /> Delete Selected ({Object.keys(selectedTasks).filter((id) => selectedTasks[id] && sectionTasks.some((t) => t._id === id)).length})
-                                            </button>
-                                          )}
-
-                                          {/* Rename */}
-                                          {sectionName !== "Recent assignment" && (
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                setEditingSection(sectionName);
-                                                setEditSectionValue(sectionName);
-                                                setOpenSectionMenu(null);
-                                              }}
-                                              className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-[#FFF7ED] hover:bg-[#FFEDD5] dark:bg-[#431407] dark:hover:bg-[#78350F] text-[#EA580C] dark:text-[#FDBA74] rounded-full transition-all cursor-pointer border border-[#FED7AA] dark:border-[#9A3412]"
-                                            >
-                                              <FiEdit2 size={13} /> Rename
-                                            </button>
-                                          )}
-
-                                          {/* Delete Section */}
-                                          {sectionName !== "Recent assignment" && (
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                handleDeleteSection(sectionName);
-                                                setOpenSectionMenu(null);
-                                              }}
-                                              className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-[#FFF1F2] hover:bg-[#FFE4E6] dark:bg-[#4C0519] dark:hover:bg-[#881337] text-[#E11D48] dark:text-[#FDA4AF] rounded-full transition-all cursor-pointer border border-[#FECDD3] dark:border-[#9F1239]"
-                                            >
-                                              <FiTrash2 size={13} /> Delete
-                                            </button>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
+                                        )}
+                                      </>
+                                    )}
                                   </div>
                                 )}
                               </div>

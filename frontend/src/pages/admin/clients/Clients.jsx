@@ -108,6 +108,20 @@ const MultiSelect = ({ label, options, selectedValues, onChange, placeholder, ic
     }
   };
 
+  // Group options if 'group' property exists
+  const hasGrouping = options.some((o) => o.group);
+
+  const groupedOptions = useMemo(() => {
+    if (!hasGrouping) return { "": options };
+
+    return options.reduce((acc, opt) => {
+      const g = opt.group || "Others";
+      if (!acc[g]) acc[g] = [];
+      acc[g].push(opt);
+      return acc;
+    }, {});
+  }, [options, hasGrouping]);
+
   return (
     <div className="relative">
       <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1 flex items-center gap-1.5">
@@ -154,29 +168,45 @@ const MultiSelect = ({ label, options, selectedValues, onChange, placeholder, ic
       {isOpen && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto p-1.5 space-y-0.5">
-            {options.map((opt) => {
-              const isSelected = selectedValues.includes(opt.value);
-              return (
-                <div
-                  key={opt.value}
-                  onClick={() => toggleOption(opt.value)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
-                    isSelected
-                      ? "bg-blue-50/50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400"
-                      : "hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-705 dark:text-slate-300"
-                  }`}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => {}}
-                    className="rounded text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 border-slate-350 dark:border-slate-700 bg-transparent"
-                  />
-                  <span>{opt.label}</span>
-                </div>
-              );
-            })}
+          <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-20 max-h-60 overflow-y-auto p-1.5 space-y-1">
+            {Object.entries(groupedOptions).map(([groupName, items]) => (
+              <div key={groupName} className="space-y-0.5">
+                {groupName && (
+                  <div className="px-3 py-1 text-[9px] font-black text-indigo-600 dark:text-[#e5ff00] uppercase tracking-wider bg-indigo-50/40 dark:bg-white/[0.02] rounded-md mb-1 mt-1 font-bold">
+                    {groupName}
+                  </div>
+                )}
+                {items.map((opt) => {
+                  const isSelected = selectedValues.includes(opt.value);
+                  return (
+                    <div
+                      key={opt.value}
+                      onClick={() => toggleOption(opt.value)}
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+                        isSelected
+                          ? "bg-indigo-500/5 text-indigo-600 dark:bg-[#e5ff00]/5 dark:text-[#e5ff00]"
+                          : "hover:bg-slate-50 dark:hover:bg-slate-800/50 text-slate-705 dark:text-slate-300"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {}}
+                        className="rounded text-indigo-600 dark:text-[#e5ff00] focus:ring-indigo-500 w-3.5 h-3.5 border-slate-350 dark:border-slate-700 bg-transparent cursor-pointer"
+                      />
+                      <div className="flex flex-col">
+                        <span className="font-bold text-[11px]">{opt.label}</span>
+                        {opt.subLabel && (
+                          <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium">
+                            {opt.subLabel}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </>
       )}
@@ -758,7 +788,7 @@ const Clients = () => {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
               transition={{ duration: 0.2 }}
-              className="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl border border-slate-200/50 dark:border-slate-800 max-h-[90vh] flex flex-col"
+              className="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl border border-slate-200/50 dark:border-slate-800 h-[85vh] sm:h-auto min-h-[500px] sm:min-h-[560px] md:min-h-[600px] max-h-[90vh] flex flex-col"
             >
               
               {/* MODAL HEADER */}
@@ -804,7 +834,7 @@ const Clients = () => {
                   <motion.div 
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="space-y-4"
+                    className="space-y-4 min-h-[280px] sm:min-h-[340px]"
                   >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -876,7 +906,7 @@ const Clients = () => {
                   <motion.div 
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="space-y-4"
+                    className="space-y-4 min-h-[280px] sm:min-h-[340px] pb-32"
                   >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <MultiSelect
@@ -900,7 +930,9 @@ const Clients = () => {
                         placeholder="Select members"
                         options={allUsers.map((u) => ({
                           value: u._id,
-                          label: `${u.name} (${u.email})`,
+                          label: u.name,
+                          subLabel: u.email,
+                          group: u.department ? u.department.toUpperCase() : "UNASSIGNED",
                         }))}
                         selectedValues={formData.assignedTo || []}
                         onChange={handleAssignedChange}
@@ -1128,7 +1160,7 @@ const Clients = () => {
                   <motion.div 
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="space-y-4"
+                    className="space-y-4 min-h-[280px] sm:min-h-[340px]"
                   >
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
