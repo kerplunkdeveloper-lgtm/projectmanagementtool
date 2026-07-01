@@ -2290,7 +2290,7 @@ const ProjectTaskBoard = ({
                                   <button
                                     type="button"
                                     onClick={() => toggleSection(sectionName)}
-                                    className="text-slate-400 hover:text-slate-655 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-0.5 rounded cursor-pointer shrink-0"
+                                    className="text-slate-400 hover:text-slate-655 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-0.5 rounded cursor-pointer"
                                   >
                                     <svg
                                       viewBox="0 0 24 24"
@@ -2300,91 +2300,57 @@ const ProjectTaskBoard = ({
                                       <path d="M8 5v14l11-7z" />
                                     </svg>
                                   </button>
-
-                                  {/* Selection Checkbox (Always Visible) */}
-                                  <input
-                                    type="checkbox"
-                                    className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer mr-0.5 shrink-0"
-                                    checked={
-                                      sectionTasks.length > 0 &&
-                                      sectionTasks.every((t) => selectedTasks[t._id])
-                                    }
-                                    onChange={(e) => {
-                                      const checked = e.target.checked;
-                                      setSelectedTasks((prev) => {
-                                        const next = { ...prev };
-                                        sectionTasks.forEach((t) => {
-                                          next[t._id] = checked;
+                                  {selectionModeSections[sectionName] && (
+                                    <input
+                                      type="checkbox"
+                                      className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer mr-2"
+                                      checked={
+                                        sectionTasks.length > 0 &&
+                                        sectionTasks.every((t) => selectedTasks[t._id])
+                                      }
+                                      onChange={(e) => {
+                                        const checked = e.target.checked;
+                                        setSelectedTasks((prev) => {
+                                          const next = { ...prev };
+                                          sectionTasks.forEach((t) => {
+                                            next[t._id] = checked;
+                                          });
+                                          return next;
                                         });
-                                        return next;
-                                      });
-                                    }}
-                                    title="Select all tasks in this section"
-                                  />
-
-                                  {/* Section Name & Controls */}
-                                  <div className="flex items-center gap-2 group/sectitle">
-                                    <h3 className="font-bold text-xs uppercase tracking-wider text-slate-705 dark:text-slate-355 flex items-center gap-2">
-                                      {/* ContentEditable Section Name */}
-                                      <span
-                                        contentEditable={isAdminOrManager}
-                                        suppressContentEditableWarning={true}
-                                        onBlur={async (e) => {
-                                          const val = e.target.innerText.trim();
-                                          if (val && val !== sectionName) {
-                                            const currentSections = activeProject.sections?.length > 0 ? activeProject.sections : ["Recent assignment"];
-                                            const updatedSections = currentSections.map((s) => s === sectionName ? val : s);
-                                            try {
-                                              await dispatch(updateProject({ projectId: activeProject._id, projectData: { sections: updatedSections } })).unwrap();
-                                              await Promise.all(
-                                                sectionTasks.map((t) => dispatch(updateTask({ taskId: t._id, taskData: { section: val } })).unwrap())
-                                              );
-                                              dispatch(getProjectTasks(activeProject._id));
-                                            } catch (err) {
-                                              console.error(err);
-                                              e.target.innerText = sectionName;
-                                            }
-                                          } else {
-                                            e.target.innerText = sectionName;
-                                          }
-                                        }}
-                                        onKeyDown={(e) => {
-                                          if (e.key === "Enter") {
-                                            e.preventDefault();
-                                            e.target.blur();
-                                          }
-                                        }}
-                                        className={`outline-none transition-colors min-w-[50px] inline-block ${isAdminOrManager ? "hover:text-blue-600 dark:hover:text-[#e5ff00] cursor-text" : ""}`}
-                                        title={isAdminOrManager ? "Click to edit section name" : ""}
-                                      >
-                                        {sectionName}
-                                      </span>
-                                      
-                                      {/* Task Count Badge */}
-                                      <span 
-                                        className="bg-blue-100/60 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200/40 dark:border-blue-800/30 font-bold px-2 py-0.5 rounded-full text-[10px] cursor-pointer"
-                                        onClick={() => toggleSection(sectionName)}
-                                        title="Toggle collapse"
-                                      >
+                                      }}
+                                    />
+                                  )}
+                                  {editingSection === sectionName ? (
+                                    <form
+                                      onSubmit={(e) =>
+                                        handleRenameSectionSubmit(e, sectionName)
+                                      }
+                                      className="inline-block"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <input
+                                        autoFocus
+                                        value={editSectionValue}
+                                        onChange={(e) =>
+                                          setEditSectionValue(e.target.value)
+                                        }
+                                        onBlur={(e) =>
+                                          handleRenameSectionSubmit(e, sectionName)
+                                        }
+                                        className="text-xs font-semibold bg-white dark:bg-slate-800 border border-blue-400 rounded px-2 py-1 outline-none text-slate-800 dark:text-white"
+                                      />
+                                    </form>
+                                  ) : (
+                                    <h3
+                                      className="font-bold text-xs uppercase tracking-wider text-slate-705 dark:text-slate-355 hover:text-blue-600 dark:hover:text-[#e5ff00] transition-colors cursor-pointer inline-flex items-center gap-2"
+                                      onClick={() => toggleSection(sectionName)}
+                                    >
+                                      {sectionName}
+                                      <span className="bg-blue-100/60 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200/40 dark:border-blue-800/30 font-bold px-2 py-0.5 rounded-full text-[10px]">
                                         {sectionTasks.length}
                                       </span>
                                     </h3>
-
-                                    {/* Delete Section Icon */}
-                                    {isAdminOrManager && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleDeleteSection(sectionName);
-                                        }}
-                                        className="text-slate-400 hover:text-red-500 transition-colors cursor-pointer p-1 rounded hover:bg-slate-100/50 dark:hover:bg-slate-800 ml-1 opacity-0 group-hover/sectitle:opacity-100"
-                                        title="Delete Section"
-                                      >
-                                        <FiTrash2 size={13} />
-                                      </button>
-                                    )}
-                                  </div>
+                                  )}
                                 </div>
 
                                 {/* Right Sticky Container */}
