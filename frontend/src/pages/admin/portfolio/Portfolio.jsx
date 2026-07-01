@@ -964,24 +964,21 @@ const Portfolio = () => {
                   </label>
 
                   {/* Swatches Grid */}
-                  <div className="grid grid-cols-5 gap-3">
+                  <div className="grid grid-cols-3  gap-4">
                     {[
-                      { name: "Pink", value: "#ff80bf" },
-                      { name: "Orange", value: "#f5a623" },
-                      { name: "Blue", value: "#4a90e2" },
-                      { name: "Green", value: "#7ed321" },
-                      { name: "Purple", value: "#9013fe" },
-                      { name: "Red", value: "#d0021b" },
-                      { name: "Teal", value: "#50e3c2" },
-                      { name: "Yellow", value: "#f8e71c" },
-                      { name: "Lavender", value: "#bd10e0" },
-                      { name: "Slate", value: "#9b9b9b" },
+                      { name: "Periwinkle Blue", value: "#5281CE" },
+                      { name: "Teacup Lilac", value: "#998CEB" },
+                      { name: "Dijon Yellow", value: "#E9D787" },
+                      { name: "Raspberry Cream Red", value: "#ff9a9e" },
+                      { name: "Iciice Teal", value: "#9EF5FF" },
+                      { name: "Pistachie Green", value: "#BAE8AC" },
+                     
                     ].map((col) => (
                       <button
                         key={col.value}
                         type="button"
                         onClick={() => setPortfolioColor(col.value)}
-                        className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-800 transition-all flex items-center justify-center shadow-inner relative hover:scale-110 active:scale-95"
+                        className="w-30 h-20 mt-5 border border-slate-200 dark:border-slate-800 transition-all flex items-center justify-center shadow-inner relative hover:scale-110 active:scale-95"
                         style={{ backgroundColor: col.value }}
                         title={col.name}
                       >
