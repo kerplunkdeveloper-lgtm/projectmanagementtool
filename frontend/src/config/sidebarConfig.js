@@ -14,12 +14,12 @@ import { FiBarChart2, FiUser, FiHome, FiBell, FiSettings } from "react-icons/fi"
 export const sidebarConfig = {
   admin: [
     { name: "Dashboard", path: "/admin", icon: FiHome },
-    { name: "Clients", path: "/admin/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
+    { name: "Clients Management", path: "/admin/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
     { name: "Portfolio", path: "/admin/portfolio", icon: LuFolderOpen, permissionKey: "manage_settings" },
-    { name: "Projects Overview", path: "/admin/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
-    { name: "Tasks", path: "/admin/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
+    { name: "Projects Management", path: "/admin/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
+    { name: "MyTasks", path: "/admin/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
     // { name: "Template Library", path: "/admin/template-library", icon: LuLayoutTemplate, permissionKey: "manage_settings" },
-    { name: "Users", path: "/admin/users", icon: LuUsers, permissionKey: "manage_users" },
+    { name: "Users Management", path: "/admin/users", icon: LuUsers, permissionKey: "manage_users" },
     { name: "EOD Reports", path: "/admin/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
     { name: "Calendar", path: "/admin/calendar", icon: LuCalendarDays },
     { name: "PartnerHub", path: "/admin/partnerhub", icon: LuHandshake, permissionKey: "manage_settings" },
@@ -30,12 +30,12 @@ export const sidebarConfig = {
 
   operationmanager: [
     { name: "Dashboard", path: "/operationmanager", icon: FiHome },
-    { name: "Clients", path: "/operationmanager/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
+    { name: "Clients Management", path: "/operationmanager/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
     { name: "Portfolio", path: "/operationmanager/portfolio", icon: LuFolderOpen, permissionKey: "manage_settings" },
-    { name: "Projects Overview", path: "/operationmanager/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
-    { name: "Tasks", path: "/operationmanager/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
+    { name: "Projects Management", path: "/operationmanager/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
+    { name: "MyTasks", path: "/operationmanager/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
     { name: "Calendar", path: "/operationmanager/calendar", icon: LuCalendarDays },
-    { name: "Users", path: "/operationmanager/users", icon: LuUsers, permissionKey: "manage_users" },
+    { name: "Users Management", path: "/operationmanager/users", icon: LuUsers, permissionKey: "manage_users" },
     { name: "EOD Reports", path: "/operationmanager/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
     { name: "Profile", path: "/operationmanager/profile", icon: FiUser },
     { name: "Chat", path: "/operationmanager/chat", icon: LuMessagesSquare },
@@ -44,9 +44,9 @@ export const sidebarConfig = {
 
   team: [
     { name: "Dashboard", path: "/team", icon: FiHome },
-    { name: "Clients", path: "/team/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
+    { name: "Assigned Clients", path: "/team/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
     { name: "Portfolio", path: "/team/portfolio", icon: LuFolderOpen, permissionKey: "manage_settings" },
-    { name: "Projects Overview", path: "/team/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
+    { name: "Projects Management", path: "/team/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
     { name: "My Tasks", path: "/team/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
     { name: "Reports", path: "/team/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
     { name: "Users", path: "/team/users", icon: LuUsers, permissionKey: "manage_users" },

@@ -64,7 +64,13 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif !important;
   background-color: var(--color-slate-50) !important;
   color: var(--color-slate-950) !important;
-  @apply transition-colors duration-300;
+}
+
+/* Silky smooth global transitions for theme changes (bg & text colors) */
+body, aside, header, nav, main, section, .theme-card-gradient, .theme-bg-main, .theme-bg-card, table, th, td, tr, input, select, textarea, div, span, p, h1, h2, h3, h4, h5, h6, a {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
 }
 
 aside {
@@ -267,7 +273,7 @@ button.bg-slate-900,
   color: #ffffff !important;
   border: none !important;
   box-shadow: 0 4px 14px var(--accent-hover-shadow) !important;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, color 0.2s ease-in-out, box-shadow 0.2s ease-in-out !important;
   cursor: pointer;
 }
 
@@ -292,7 +298,7 @@ button.bg-slate-900 *,
   background: var(--color-brand-gradient) !important;
   color: #000000 !important;
   box-shadow: 0 4px 14px var(--accent-hover-shadow-dark) !important;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 0.2s ease-in-out, border-color 0.2s ease-in-out, color 0.2s ease-in-out, box-shadow 0.2s ease-in-out !important;
 }
 
 .dark button.bg-\[\#7c5ff0\] *,

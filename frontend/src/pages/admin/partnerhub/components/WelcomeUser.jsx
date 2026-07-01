@@ -55,11 +55,53 @@ const WelcomeUser = () => {
   const avatarUrl = profile?.profileImage?.url;
   const initials = user?.name ? user.name.charAt(0).toUpperCase() : "U";
 
+  const getDepartmentBgImage = (dept, role) => {
+    const d = (dept || "").toLowerCase();
+    const r = (role || "").toLowerCase();
+    
+    if (r === "admin" || r === "superadmin") {
+      return "https://images.unsplash.com/photo-1497215728101-856f4ea42174?auto=format&fit=crop&w=800&q=80";
+    }
+    if (d.includes("social") || d.includes("media") || d.includes("marketing") || d.includes("instagram")) {
+      return "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=800&q=80";
+    }
+    if (d.includes("web") || d.includes("dev") || d.includes("software") || d.includes("code") || d.includes("tech") || d.includes("programmer")) {
+      return "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80";
+    }
+    if (d.includes("design") || d.includes("creative") || d.includes("ui") || d.includes("ux") || d.includes("art") || d.includes("graphic") || d.includes("designer")) {
+      return "https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?auto=format&fit=crop&w=800&q=80";
+    }
+    if (d.includes("seo") || d.includes("search") || d.includes("analytics") || d.includes("expert")) {
+      return "https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?auto=format&fit=crop&w=800&q=80";
+    }
+    if (d.includes("video") || d.includes("editor") || d.includes("editing") || d.includes("production") || d.includes("film")) {
+      return "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?auto=format&fit=crop&w=800&q=80";
+    }
+    if (d.includes("content") || d.includes("writer") || d.includes("writing") || d.includes("copywriter") || d.includes("blog")) {
+      return "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=800&q=80";
+    }
+    if (d.includes("operation") || d.includes("manage") || d.includes("admin") || d.includes("lead") || d.includes("project") || d.includes("account")) {
+      return "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80";
+    }
+    
+    return "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80";
+  };
+
   return (
     <>
       <div 
         className="relative overflow-hidden p-4 sm:p-5 mb-4 rounded-2xl border-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fadeIn shadow-lg transition-colors duration-300 theme-bg-accent"
       >
+        {/* Background Image overlay with mix-blend-overlay */}
+        <div className="absolute inset-0 z-0 select-none pointer-events-none">
+          <img
+            src={getDepartmentBgImage(user?.department || profile?.department, user?.role || profile?.role)}
+            alt=""
+            className="w-full h-full object-cover opacity-20 mix-blend-overlay dark:opacity-10 transition-all duration-500"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-black/5 to-transparent dark:from-white/10 dark:via-white/2 dark:to-transparent" />
+        </div>
+
         {/* Left Side: Greeting & User Profile Card */}
         <div className="flex items-center gap-4 min-w-0 relative z-10">
           {/* Avatar initials / Image */}
@@ -68,7 +110,7 @@ const WelcomeUser = () => {
             className="relative shrink-0 cursor-pointer hover:scale-105 active:scale-98 transition-all duration-300 group"
             title="Click to view profile details"
           >
-            <div className="w-20 h-20 md:w-[120px] md:h-[120px] rounded-full bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 dark:from-[#e5ff00] dark:to-emerald-500 p-[2px] shadow-sm">
+            <div className="w-20 h-20 md:w-[200px] md:h-[200px] rounded-full  shadow-sm">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}

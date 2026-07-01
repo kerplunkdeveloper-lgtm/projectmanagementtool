@@ -120,7 +120,7 @@ const Navbar = ({ setSidebarOpen }) => {
 
     if (path.includes("projects")) {
       const searchParams = new URLSearchParams(location.search);
-      return searchParams.get("id") ? "Project task assign" : "Projects";
+      return searchParams.get("id") ? "Project task assign" : "Projects Management";
     }
     if (path.includes("tasks")) return "Tasks";
     if (path.includes("partnerhub")) return "PartnerHub";
