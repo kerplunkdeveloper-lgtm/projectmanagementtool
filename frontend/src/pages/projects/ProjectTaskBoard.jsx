@@ -1132,20 +1132,94 @@ const ProjectTaskBoard = ({
   // Live selected task from localTasks state
   const selectedTask = localTasks.find((t) => t._id === selectedTaskId);
 
-  const handleAddSectionSubmit = (e) => {
+  const handleAddSectionSubmit = async (e) => {
     e.preventDefault();
     if (!newSectionName.trim()) return;
+    const nameToCreate = newSectionName.trim();
     const currentSections =
       activeProject.sections?.length > 0
         ? activeProject.sections
         : ["Recent assignment"];
-    const updatedSections = [...currentSections, newSectionName.trim()];
-    dispatch(
-      updateProject({
-        id: activeProjectId,
-        data: { sections: updatedSections },
-      }),
-    );
+    const updatedSections = [...currentSections, nameToCreate];
+
+    try {
+      await dispatch(
+        updateProject({
+          id: activeProjectId,
+          data: { sections: updatedSections },
+        }),
+      ).unwrap();
+
+      // Create 2 empty tasks for the new section
+      const tempId1 = "temp-" + Date.now() + "-1";
+      const tempTask1 = {
+        _id: tempId1,
+        title: "",
+        project: activeProjectId,
+        section: nameToCreate,
+        assignedTo: null,
+        dueDate: null,
+        priority: "Medium",
+        status: "Pending",
+        createdAt: new Date().toISOString(),
+        subtasks: [],
+        comments: [],
+        attachments: [],
+        createdBy: currentUser,
+      };
+
+      const tempId2 = "temp-" + Date.now() + "-2";
+      const tempTask2 = {
+        _id: tempId2,
+        title: "",
+        project: activeProjectId,
+        section: nameToCreate,
+        assignedTo: null,
+        dueDate: null,
+        priority: "Medium",
+        status: "Pending",
+        createdAt: new Date().toISOString(),
+        subtasks: [],
+        comments: [],
+        attachments: [],
+        createdBy: currentUser,
+      };
+
+      setLocalTasks((prev) => [...prev, tempTask1, tempTask2]);
+
+      const p1 = createTaskMutation({
+        title: "",
+        project: activeProjectId,
+        section: nameToCreate,
+        assignedTo: null,
+        dueDate: null,
+        priority: "Medium",
+        status: "Pending",
+      }).unwrap();
+
+      const p2 = createTaskMutation({
+        title: "",
+        project: activeProjectId,
+        section: nameToCreate,
+        assignedTo: null,
+        dueDate: null,
+        priority: "Medium",
+        status: "Pending",
+      }).unwrap();
+
+      const [res1, res2] = await Promise.all([p1, p2]);
+
+      setLocalTasks((prev) =>
+        prev.map((t) => {
+          if (t._id === tempId1 && res1?.data) return res1.data;
+          if (t._id === tempId2 && res2?.data) return res2.data;
+          return t;
+        }),
+      );
+    } catch (err) {
+      console.error("Failed to add section and tasks:", err);
+    }
+
     setIsAddingSection(false);
     setNewSectionName("");
   };
@@ -1599,7 +1673,7 @@ const ProjectTaskBoard = ({
   };
 
   // Bulk Delete Tasks in a Section
-  const handleBulkDelete = async (sectionTasks) => {
+  const handleBulkDelete = async (sectionTasks, sectionName) => {
     const idsToDelete = Object.keys(selectedTasks).filter(
       (id) => selectedTasks[id] && sectionTasks.some((t) => t._id === id),
     );
@@ -1620,6 +1694,12 @@ const ProjectTaskBoard = ({
           idsToDelete.forEach((id) => delete next[id]);
           return next;
         });
+        if (sectionName) {
+          setSelectionModeSections((prev) => ({
+            ...prev,
+            [sectionName]: false,
+          }));
+        }
       } catch (err) {
         console.error("Failed to delete selected tasks:", err);
       }
@@ -2395,14 +2475,19 @@ const ProjectTaskBoard = ({
                                               e.stopPropagation();
                                               setOpenSectionMenu(openSectionMenu === sectionName ? null : sectionName);
                                             }}
-                                            className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 hover:bg-slate-205 dark:bg-white/5 dark:hover:bg-white/10 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-205 transition-colors cursor-pointer border border-slate-200/50 dark:border-white/5"
+                                            onMouseDown={(e) => e.stopPropagation()}
+                                            className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 hover:bg-slate-205 dark:bg-white/5 dark:hover:bg-white/10 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-205 transition-colors cursor-pointer border border-slate-200/50 dark:border-white/5 section-menu-container"
                                           >
                                             <FiMoreHorizontal size={11} />
                                           </button>
 
                                           {/* Dropdown Menu */}
                                           {openSectionMenu === sectionName && (
-                                            <div className="absolute left-0 top-full mt-2 w-48 bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-xl rounded-xl p-2 z-50 flex flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                            <div 
+                                              className="absolute left-0 top-full mt-2 w-48 bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-xl rounded-xl p-2 z-50 flex flex-col gap-1.5 section-menu-container" 
+                                              onClick={(e) => e.stopPropagation()}
+                                              onMouseDown={(e) => e.stopPropagation()}
+                                            >
                                               {/* Selection Mode / Cancel */}
                                               <button
                                                 type="button"
@@ -2502,7 +2587,7 @@ const ProjectTaskBoard = ({
                                             type="button"
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              handleBulkDelete(sectionTasks);
+                                              handleBulkDelete(sectionTasks, sectionName);
                                             }}
                                             className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-extrabold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-955/40 text-rose-600 dark:text-rose-455 rounded-full transition-all cursor-pointer border border-rose-200/30 dark:border-rose-900/20 shadow-sm"
                                           >
@@ -3678,6 +3763,14 @@ const ProjectTaskBoard = ({
 
                             </>
                           )}
+
+                          {/* Spacer row between sections */}
+                          <tr className="h-10 pointer-events-none">
+                            <td
+                              colSpan={showSelectionColumn ? 11 : 10}
+                              className="h-10 p-0 border-0 bg-transparent"
+                            />
+                          </tr>
                         </React.Fragment>
                       );
                     })}
