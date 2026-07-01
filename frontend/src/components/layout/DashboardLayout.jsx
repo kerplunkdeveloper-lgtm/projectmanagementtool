@@ -14,7 +14,7 @@ const DashboardLayout = ({ role }) => {
   const location = useLocation();
   const isChatPage =
     location.pathname.endsWith("/chat") || location.pathname.includes("/chat");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
   const { user, originalAdminUser } = useSelector((state) => state.auth);
 
   const handleSwitchBack = () => {
@@ -36,7 +36,7 @@ const DashboardLayout = ({ role }) => {
       />
 
       {/* RIGHT SIDE */}
-      <div className="lg:ml-48 xl:ml-52 h-screen flex flex-col relative z-10">
+      <div className={`h-screen flex flex-col relative z-10 transition-all duration-300 ease-in-out ${sidebarOpen ? "lg:ml-48 xl:ml-52" : "lg:ml-0"}`}>
         {/* IMPERSONATION BANNER */}
         {originalAdminUser && (
           <div className="bg-blue-500 dark:bg-[#e5ff00]  px-4 py-2 text-[10px] flex items-center justify-between gap-5 shadow-md z-50">

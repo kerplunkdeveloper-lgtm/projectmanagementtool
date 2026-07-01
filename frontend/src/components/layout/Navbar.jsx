@@ -192,18 +192,20 @@ const Navbar = ({ setSidebarOpen }) => {
     >
       {/* LEFT */}
       <div className="flex items-center gap-2.5">
-        {/* MOBILE MENU */}
+        {/* SIDEBAR TOGGLE BUTTON */}
         <button
-          onClick={() => setSidebarOpen(true)}
+          onClick={() => setSidebarOpen((prev) => !prev)}
           className="
-            lg:hidden w-8 h-8
+            w-8 h-8
             rounded-lg border theme-border theme-bg-main
-            theme-text-secondary
+            theme-text-secondary hover:theme-text-primary
             flex items-center justify-center
-            hover:opacity-90 transition-all cursor-pointer
+            hover:bg-slate-50 dark:hover:bg-white/5
+            transition-all duration-200 cursor-pointer
           "
+          title="Toggle Sidebar"
         >
-          <HiOutlineMenuAlt3 className="text-lg" />
+          <HiOutlineMenuAlt3 className="text-[17px] transform hover:scale-110 transition-transform duration-200" />
         </button>
 
         {/* PAGE TITLE */}

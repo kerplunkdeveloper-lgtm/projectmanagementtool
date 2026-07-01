@@ -134,7 +134,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           shadow-[0_8px_32px_0_rgba(0,0,0,0.02)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.25)]
           flex flex-col
           transition-all duration-300 ease-in-out
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
         {/* HEADER */}
@@ -204,7 +204,9 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         <button
                           key={project._id}
                           onClick={() => {
-                            setSidebarOpen(false);
+                            if (window.innerWidth < 1024) {
+                              setSidebarOpen(false);
+                            }
                             navigate(`/${role}/projects?id=${project._id}`);
                           }}
                           className={`w-full flex items-center gap-2 text-left text-[11px] font-bold py-1.5 rounded-lg px-2 transition-colors group ${
@@ -273,7 +275,9 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         <button
                           key={portfolio._id}
                           onClick={() => {
-                            setSidebarOpen(false);
+                            if (window.innerWidth < 1024) {
+                              setSidebarOpen(false);
+                            }
                             navigate(`/${role}/portfolio?id=${portfolio._id}`);
                           }}
                           className={`w-full flex items-center gap-2 text-left text-[11px] font-bold py-1.5 rounded-lg px-2 transition-colors group ${
@@ -316,7 +320,11 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                     <React.Fragment key={item.path}>
                       <NavLink
                         to={item.path}
-                        onClick={() => setSidebarOpen(false)}
+                        onClick={() => {
+                          if (window.innerWidth < 1024) {
+                            setSidebarOpen(false);
+                          }
+                        }}
                         end={
                           item.path === "/admin" ||
                           item.path === "/operationmanager" ||
