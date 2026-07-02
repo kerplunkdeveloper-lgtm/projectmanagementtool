@@ -74,7 +74,7 @@ const userSchema = new mongoose.Schema({
 
   accentColor: {
     type: String,
-    default: 'default',
+    default: 'emerald',
   },
 
   themePreference: {

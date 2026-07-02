@@ -13,7 +13,7 @@ export const ThemeProvider = ({ children }) => {
   });
 
   const [accentColor, setAccentColorState] = useState(() => {
-    return localStorage.getItem("accentColor") || "default";
+    return localStorage.getItem("accentColor") || "emerald";
   });
 
   const [soundEnabled, setSoundEnabledState] = useState(() => {
