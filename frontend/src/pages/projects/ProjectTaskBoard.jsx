@@ -67,7 +67,7 @@ const TimeTracker = ({ startTime, endTime, status }) => {
 
   useEffect(() => {
     if (!startTime) return;
-    
+
     const calculateElapsed = () => {
       const start = new Date(startTime).getTime();
       const end = endTime ? new Date(endTime).getTime() : Date.now();
@@ -85,25 +85,28 @@ const TimeTracker = ({ startTime, endTime, status }) => {
   }, [startTime, endTime, status]);
 
   if (!startTime && status !== "In Progress") return null;
-  if (!startTime && status === "In Progress") return (
-    <div className="inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold tracking-wider bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30 shadow-sm w-full">
-      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#e5ff00] animate-pulse"></span>
-      Starting...
-    </div>
-  );
+  if (!startTime && status === "In Progress")
+    return (
+      <div className="inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold tracking-wider bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30 shadow-sm w-full">
+        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#e5ff00] animate-pulse"></span>
+        Starting...
+      </div>
+    );
 
   const hours = Math.floor(elapsed / 3600);
   const minutes = Math.floor((elapsed % 3600) / 60);
   const seconds = elapsed % 60;
 
-  const timeString = `${hours > 0 ? `${hours}h ` : ''}${minutes}m ${seconds}s`;
+  const timeString = `${hours > 0 ? `${hours}h ` : ""}${minutes}m ${seconds}s`;
 
   return (
-    <div className={`inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold tracking-wider w-full ${
-      status === "In Progress" && !endTime
-        ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30 shadow-sm" 
-        : "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
-    }`}>
+    <div
+      className={`inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold tracking-wider w-full ${
+        status === "In Progress" && !endTime
+          ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30 shadow-sm"
+          : "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
+      }`}
+    >
       {status === "In Progress" && !endTime ? (
         <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#e5ff00] animate-pulse"></span>
       ) : (
@@ -556,11 +559,19 @@ const AssigneeDropdown = ({
   };
 
   const getAvatarUrl = (userObj) => {
-    return userObj?.profile?.profileImage?.url || userObj?.profileImage?.url || userObj?.profile?.avatar || userObj?.avatar || "";
+    return (
+      userObj?.profile?.profileImage?.url ||
+      userObj?.profileImage?.url ||
+      userObj?.profile?.avatar ||
+      userObj?.avatar ||
+      ""
+    );
   };
 
   const getDepartment = (userObj) => {
-    return userObj?.department || userObj?.profile?.department || userObj?.role || "";
+    return (
+      userObj?.department || userObj?.profile?.department || userObj?.role || ""
+    );
   };
 
   const renderTrigger = () => {
@@ -657,17 +668,17 @@ const AssigneeDropdown = ({
           onClick={() => isAdminOrManager && setIsOpen(!isOpen)}
           className={`group/assigned relative flex items-center gap-2 bg-slate-50/40 dark:bg-white/5 hover:bg-slate-100/50 dark:hover:bg-white/10 px-2 py-1 rounded-xl border border-slate-200/60 dark:border-white/10 transition-all ${
             isAdminOrManager ? "cursor-pointer" : "cursor-not-allowed"
-          } w-[130px] h-[34px] shadow-sm`}
+          } w-[170px] h-[36px] shadow-sm`}
         >
           {avatarUrl ? (
             <img
               src={avatarUrl}
               alt={selectedUserObj.name}
-              className="w-6.5 h-6.5 rounded-full object-cover border border-slate-250 dark:border-white/10 shrink-0"
+              className="w-7 h-7 rounded-full object-cover border border-slate-250 dark:border-white/10 shrink-0"
             />
           ) : (
             <div
-              className={`w-6.5 h-6.5 rounded-full flex items-center justify-center text-white font-black text-[9px] bg-gradient-to-br shrink-0 ${getAvatarColor(
+              className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-black text-[10px] bg-gradient-to-br shrink-0 ${getAvatarColor(
                 selectedUserObj.name || "Unknown",
               )}`}
             >
@@ -675,11 +686,11 @@ const AssigneeDropdown = ({
             </div>
           )}
           <div className="flex-1 min-w-0 flex flex-col text-left">
-            <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 truncate leading-tight">
+            <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate leading-tight">
               {selectedUserObj.name}
             </span>
             {dept && (
-              <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 truncate leading-none mt-0.5">
+              <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 truncate leading-none mt-0.5">
                 {dept}
               </span>
             )}
@@ -694,7 +705,7 @@ const AssigneeDropdown = ({
               className="relative z-20 p-0.5 text-slate-400 hover:text-rose-500 rounded transition-colors hover:bg-slate-200/60 dark:hover:bg-white/10 shrink-0"
               title="Clear Assignee"
             >
-              <FiX size={10.5} />
+              <FiX size={11} />
             </button>
           )}
         </div>
@@ -708,20 +719,20 @@ const AssigneeDropdown = ({
         onClick={() => setIsOpen(!isOpen)}
         className={`group/assign relative flex items-center gap-2 bg-slate-50/20 dark:bg-white/5 hover:bg-slate-100/40 dark:hover:bg-white/10 px-2 py-1 rounded-xl border border-dashed border-slate-300 dark:border-white/10 transition-all ${
           isAdminOrManager ? "cursor-pointer" : "cursor-not-allowed"
-        } w-[130px] h-[34px] text-left`}
+        } w-[170px] h-[36px] text-left`}
       >
-        <div className="w-6.5 h-6.5 rounded-full border border-dashed border-slate-300 dark:border-white/20 flex items-center justify-center text-slate-400 dark:text-slate-500 shrink-0 bg-white dark:bg-[#111111]">
-          <FiUser size={11} className="group-hover/assign:hidden" />
+        <div className="w-7 h-7 rounded-full border border-dashed border-slate-300 dark:border-white/20 flex items-center justify-center text-slate-400 dark:text-slate-500 shrink-0 bg-white dark:bg-[#111111]">
+          <FiUser size={12} className="group-hover/assign:hidden" />
           <FiPlus
-            size={11}
+            size={12}
             className="hidden group-hover/assign:block text-blue-500 dark:text-[#e5ff00]"
           />
         </div>
         <div className="flex-1 min-w-0 flex flex-col text-left">
-          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-550 truncate leading-tight">
+          <span className="text-[11px] font-bold text-slate-400 dark:text-slate-550 truncate leading-tight">
             Unassigned
           </span>
-          <span className="text-[8px] font-medium text-slate-400/80 dark:text-slate-550/80 truncate leading-none mt-0.5">
+          <span className="text-[9px] font-medium text-slate-400/80 dark:text-slate-550/80 truncate leading-none mt-0.5">
             Assign Task
           </span>
         </div>
@@ -768,55 +779,61 @@ const AssigneeDropdown = ({
               <span>Unassigned</span>
             </button>
 
-            {users.filter(u => !searchTerm || u.name?.toLowerCase().includes(searchTerm.toLowerCase())).map((u) => {
-              const isSelected = selectedUserObj?._id === u._id;
-              const uAvatar = getAvatarUrl(u);
-              const uDept = getDepartment(u);
-              return (
-                <button
-                  key={u._id}
-                  type="button"
-                  onClick={() => handleSelect(u)}
-                  className={`w-full text-left px-3 py-2 text-xs font-semibold flex items-center justify-between hover:bg-slate-50 dark:hover:bg-white/5 transition-colors ${
-                    isSelected
-                      ? "text-blue-600 dark:text-[#e5ff00] bg-blue-50/30 dark:bg-[#e5ff00]/5"
-                      : "text-slate-700 dark:text-slate-200"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    {uAvatar ? (
-                      <img
-                        src={uAvatar}
-                        alt={u.name}
-                        className="w-5 h-5 rounded-full object-cover shrink-0 border border-slate-100 dark:border-white/5"
-                      />
-                    ) : (
-                      <div
-                        className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
-                          u.name || "U",
-                        )}`}
-                      >
-                        {getInitials(u.name)}
-                      </div>
-                    )}
-                    <div className="flex flex-col truncate">
-                      <span className="truncate">{u.name}</span>
-                      {uDept && (
-                        <span className="text-[9px] text-slate-400 dark:text-slate-550 font-normal truncate">
-                          {uDept}
-                        </span>
+            {users
+              .filter(
+                (u) =>
+                  !searchTerm ||
+                  u.name?.toLowerCase().includes(searchTerm.toLowerCase()),
+              )
+              .map((u) => {
+                const isSelected = selectedUserObj?._id === u._id;
+                const uAvatar = getAvatarUrl(u);
+                const uDept = getDepartment(u);
+                return (
+                  <button
+                    key={u._id}
+                    type="button"
+                    onClick={() => handleSelect(u)}
+                    className={`w-full text-left px-3 py-2 text-xs font-semibold flex items-center justify-between hover:bg-slate-50 dark:hover:bg-white/5 transition-colors ${
+                      isSelected
+                        ? "text-blue-600 dark:text-[#e5ff00] bg-blue-50/30 dark:bg-[#e5ff00]/5"
+                        : "text-slate-700 dark:text-slate-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      {uAvatar ? (
+                        <img
+                          src={uAvatar}
+                          alt={u.name}
+                          className="w-5 h-5 rounded-full object-cover shrink-0 border border-slate-100 dark:border-white/5"
+                        />
+                      ) : (
+                        <div
+                          className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
+                            u.name || "U",
+                          )}`}
+                        >
+                          {getInitials(u.name)}
+                        </div>
                       )}
+                      <div className="flex flex-col truncate">
+                        <span className="truncate">{u.name}</span>
+                        {uDept && (
+                          <span className="text-[9px] text-slate-400 dark:text-slate-550 font-normal truncate">
+                            {uDept}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  {isSelected && (
-                    <FiCheck
-                      size={12}
-                      className="text-blue-600 dark:text-[#e5ff00] shrink-0"
-                    />
-                  )}
-                </button>
-              );
-            })}
+                    {isSelected && (
+                      <FiCheck
+                        size={12}
+                        className="text-blue-600 dark:text-[#e5ff00] shrink-0"
+                      />
+                    )}
+                  </button>
+                );
+              })}
           </div>,
           document.body,
         )}
@@ -957,7 +974,7 @@ const ProjectTaskBoard = ({
       ) {
         setIsSortOpen(false);
       }
-      if (!event.target.closest('.section-menu-container')) {
+      if (!event.target.closest(".section-menu-container")) {
         setOpenSectionMenu(null);
       }
     };
@@ -2325,1546 +2342,1902 @@ const ProjectTaskBoard = ({
 
       {/* TAB CONTENT */}
       <div className="min-h-[400px]">
-        {activeTab === "List" && (() => {
-          const showSelectionColumn = Object.values(selectionModeSections).some(Boolean);
-          return (
-            <div className="pt-3 w-full">
-              {/* Mobile Horizontal Scroll Indicator Cue */}
-              <div className="flex md:hidden items-center justify-between gap-1.5 py-1.5 px-3 mb-2 rounded-lg bg-indigo-50/50 dark:bg-white/[0.02] border border-indigo-100/30 dark:border-white/5 text-[9px] text-slate-500 dark:text-slate-400 font-medium">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-[#e5ff00] animate-pulse" />
-                  <span>Scroll horizontally to view columns</span>
+        {activeTab === "List" &&
+          (() => {
+            const showSelectionColumn = Object.values(
+              selectionModeSections,
+            ).some(Boolean);
+            return (
+              <div className="pt-3 w-full">
+                {/* Mobile Horizontal Scroll Indicator Cue */}
+                <div className="flex md:hidden items-center justify-between gap-1.5 py-1.5 px-3 mb-2 rounded-lg bg-indigo-50/50 dark:bg-white/[0.02] border border-indigo-100/30 dark:border-white/5 text-[9px] text-slate-500 dark:text-slate-400 font-medium">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-[#e5ff00] animate-pulse" />
+                    <span>Scroll horizontally to view columns</span>
+                  </div>
+                  <div className="flex items-center gap-0.5 opacity-80">
+                    <span>← Swipe</span>
+                    <svg
+                      className="w-2.5 h-2.5 animate-bounce-horizontal"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.5}
+                        d="M17 8l4 4m0 0l-4 4m4-4H3"
+                      />
+                    </svg>
+                  </div>
                 </div>
-                <div className="flex items-center gap-0.5 opacity-80">
-                  <span>← Swipe</span>
-                  <svg className="w-2.5 h-2.5 animate-bounce-horizontal" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
-                </div>
-              </div>
 
-              <div className="overflow-x-auto w-full bg-white dark:bg-[#111115]">
-                <table className="w-full text-left border-spacing-0 text-[11px]">
-                  <thead>
-                    <tr className="bg-slate-50/50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 tracking-wider text-[12px]">
-                      {showSelectionColumn && (
-                        <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 text-center w-10">
-                          {/* Selection column header */}
+                <div className="overflow-x-auto w-full bg-white dark:bg-[#111115]">
+                  <table className="w-full text-left border-spacing-0 text-[11px]">
+                    <thead>
+                      <tr className="bg-slate-50/50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 tracking-wider text-[12px]">
+                        {showSelectionColumn && (
+                          <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 text-center w-10">
+                            {/* Selection column header */}
+                          </th>
+                        )}
+                        <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[250px] md:min-w-[400px] md:sticky md:left-0 z-30 bg-slate-50/50 dark:bg-slate-900/60">
+                          Name
                         </th>
-                      )}
-                      <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[250px] md:min-w-[400px] md:sticky md:left-0 z-30 bg-slate-50/50 dark:bg-slate-900/60">
-                        Name
-                      </th>
-                      <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[140px]">
-                        Client
-                      </th>
-                      <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[140px]">
-                        Assignee
-                      </th>
-                      <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[130px]">
-                        Content Type
-                      </th>
-                      <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
-                        Start Date
-                      </th>
-                      <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
-                        End Date
-                      </th>
-                      <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
-                        Priority
-                      </th>
-                      <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
-                        Status
-                      </th>
-                      <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
-                        Total Hours
-                      </th>
-                      <th className="px-3 py-2.5 border-b border-slate-200 dark:border-slate-800 text-center whitespace-nowrap min-w-[80px]">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-[11px]">
-                    {Array.from(
-                      new Set(
-                        activeProject.sections?.length > 0
-                          ? activeProject.sections
-                          : ["Recent assignment"],
-                      ),
-                    ).map((sectionName, sectionIndex) => {
-                      const sectionTasks = sortedTasks.filter(
-                        (t) =>
-                          t.section === sectionName ||
-                          (!t.section && sectionName === "Recent assignment"),
-                      );
-                      const isSectionCollapsed = !!collapsedSections[sectionName];
+                        <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[140px]">
+                          Client
+                        </th>
+                        <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[190px]">
+                          Assignee
+                        </th>
+                        <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[130px]">
+                          Content Type
+                        </th>
+                        <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                          Start Date
+                        </th>
+                        <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                          End Date
+                        </th>
+                        <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                          Priority
+                        </th>
+                        <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                          Status
+                        </th>
+                        <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                          Total Hours
+                        </th>
+                        <th className="px-3 py-2.5 border-b border-slate-200 dark:border-slate-800 text-center whitespace-nowrap min-w-[80px]">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-[11px]">
+                      {Array.from(
+                        new Set(
+                          activeProject.sections?.length > 0
+                            ? activeProject.sections
+                            : ["Recent assignment"],
+                        ),
+                      ).map((sectionName, sectionIndex) => {
+                        const sectionTasks = sortedTasks.filter(
+                          (t) =>
+                            t.section === sectionName ||
+                            (!t.section && sectionName === "Recent assignment"),
+                        );
+                        const isSectionCollapsed =
+                          !!collapsedSections[sectionName];
 
-                      return (
-                        <React.Fragment key={`${sectionName}-${sectionIndex}`}>
-                          {/* SECTION HEADER ROW */}
-                          <tr className={`theme-bg-accent-ultrasubtle border-b border-slate-200 dark:border-slate-800 select-none group/secrow transition-colors ${
-                            openSectionMenu === sectionName ? "relative z-50" : ""
-                          }`}>
-                            <td
-                              colSpan={showSelectionColumn ? 11 : 10}
-                              className={`p-0 border-b border-slate-200 dark:border-slate-800 relative theme-bg-accent-ultrasubtle ${
-                                openSectionMenu === sectionName ? "z-50" : "z-10"
+                        return (
+                          <React.Fragment
+                            key={`${sectionName}-${sectionIndex}`}
+                          >
+                            {/* SECTION HEADER ROW */}
+                            <tr
+                              className={`theme-bg-accent-ultrasubtle border-b border-slate-200 dark:border-slate-800 select-none group/secrow transition-colors ${
+                                openSectionMenu === sectionName
+                                  ? "relative z-50"
+                                  : ""
                               }`}
                             >
-                              <div className="flex items-center justify-between w-full min-w-full theme-bg-accent-ultrasubtle transition-colors">
-                                {/* Left Sticky Container */}
-                                <div className={`md:sticky md:left-0 flex items-center gap-3 px-3 py-2.5 theme-bg-accent-ultrasubtle backdrop-blur-sm shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] dark:shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)] transition-colors ${
-                                  openSectionMenu === sectionName ? "z-50" : "z-20"
-                                }`}>
-                                  {/* Play/triangle icon that rotates */}
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleSection(sectionName)}
-                                    className="text-slate-400 hover:text-slate-655 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-0.5 rounded cursor-pointer"
+                              <td
+                                colSpan={showSelectionColumn ? 11 : 10}
+                                className={`p-0 border-b border-slate-200 dark:border-slate-800 relative theme-bg-accent-ultrasubtle ${
+                                  openSectionMenu === sectionName
+                                    ? "z-50"
+                                    : "z-10"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between w-full min-w-full theme-bg-accent-ultrasubtle transition-colors">
+                                  {/* Left Sticky Container */}
+                                  <div
+                                    className={`md:sticky md:left-0 flex items-center gap-3 px-3 py-2.5 theme-bg-accent-ultrasubtle backdrop-blur-sm shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] dark:shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)] transition-colors ${
+                                      openSectionMenu === sectionName
+                                        ? "z-50"
+                                        : "z-20"
+                                    }`}
                                   >
-                                    <svg
-                                      viewBox="0 0 24 24"
-                                      className={`w-3.5 h-3.5 text-slate-550 transition-transform duration-200 ${isSectionCollapsed ? "" : "rotate-90"}`}
-                                      fill="currentColor"
+                                    {/* Play/triangle icon that rotates */}
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleSection(sectionName)}
+                                      className="text-slate-400 hover:text-slate-655 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-0.5 rounded cursor-pointer"
                                     >
-                                      <path d="M8 5v14l11-7z" />
-                                    </svg>
-                                  </button>
-                                  {selectionModeSections[sectionName] && (
-                                    <input
-                                      type="checkbox"
-                                      className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer mr-2"
-                                      checked={
-                                        sectionTasks.length > 0 &&
-                                        sectionTasks.every((t) => selectedTasks[t._id])
-                                      }
-                                      onChange={(e) => {
-                                        const checked = e.target.checked;
-                                        setSelectedTasks((prev) => {
-                                          const next = { ...prev };
-                                          sectionTasks.forEach((t) => {
-                                            next[t._id] = checked;
-                                          });
-                                          return next;
-                                        });
-                                      }}
-                                    />
-                                  )}
-                                  {editingSection === sectionName ? (
-                                    <form
-                                      onSubmit={(e) =>
-                                        handleRenameSectionSubmit(e, sectionName)
-                                      }
-                                      className="inline-block"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <input
-                                        autoFocus
-                                        value={editSectionValue}
-                                        onChange={(e) =>
-                                          setEditSectionValue(e.target.value)
-                                        }
-                                        onBlur={(e) =>
-                                          handleRenameSectionSubmit(e, sectionName)
-                                        }
-                                        className="text-xs font-semibold bg-white dark:bg-slate-800 border border-blue-400 rounded px-2 py-1 outline-none text-slate-800 dark:text-white"
-                                      />
-                                    </form>
-                                  ) : (
-                                    <div className="flex items-center gap-2.5">
-                                      <h3
-                                        className="font-bold text-xs uppercase tracking-wider text-slate-705 dark:text-slate-355 hover:text-blue-600 dark:hover:text-[#e5ff00] transition-colors cursor-pointer inline-flex items-center gap-2"
-                                        onClick={() => toggleSection(sectionName)}
+                                      <svg
+                                        viewBox="0 0 24 24"
+                                        className={`w-3.5 h-3.5 text-slate-550 transition-transform duration-200 ${isSectionCollapsed ? "" : "rotate-90"}`}
+                                        fill="currentColor"
                                       >
-                                        {sectionName}
-                                        <span className="bg-blue-100/60 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200/40 dark:border-blue-800/30 font-bold px-2 py-0.5 rounded-full text-[10px]">
-                                          {sectionTasks.length}
-                                        </span>
-                                      </h3>
-
-                                      {/* Add Task Plus Icon next to section name */}
-                                      {isAdminOrManager && (
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleAddTask(sectionName);
-                                          }}
-                                          title="Add Task to this Section"
-                                          className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-white/5 dark:hover:bg-white/10 text-blue-600 dark:text-[#e5ff00] hover:scale-110 active:scale-90 transition-all cursor-pointer border border-blue-100/50 dark:border-white/5"
-                                        >
-                                          <FiPlus size={11} className="stroke-[3]" />
-                                        </button>
-                                      )}
-                                      {/* Section Options Dropdown next to plus icon */}
-                                      {isAdminOrManager && (
-                                        <div className="relative">
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setOpenSectionMenu(openSectionMenu === sectionName ? null : sectionName);
-                                            }}
-                                            onMouseDown={(e) => e.stopPropagation()}
-                                            className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 hover:bg-slate-205 dark:bg-white/5 dark:hover:bg-white/10 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-205 transition-colors cursor-pointer border border-slate-200/50 dark:border-white/5 section-menu-container"
-                                          >
-                                            <FiMoreHorizontal size={11} />
-                                          </button>
-
-                                          {/* Dropdown Menu */}
-                                          {openSectionMenu === sectionName && (
-                                            <div 
-                                              className="absolute left-0 top-full mt-2 w-48 bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-xl rounded-xl p-2 z-50 flex flex-col gap-1.5 section-menu-container" 
-                                              onClick={(e) => e.stopPropagation()}
-                                              onMouseDown={(e) => e.stopPropagation()}
-                                            >
-                                              {/* Selection Mode / Cancel */}
-                                              <button
-                                                type="button"
-                                                onClick={() => {
-                                                  setSelectionModeSections((prev) => ({
-                                                    ...prev,
-                                                    [sectionName]: !prev[sectionName],
-                                                  }));
-                                                  if (selectionModeSections[sectionName]) {
-                                                    setSelectedTasks((prev) => {
-                                                      const next = { ...prev };
-                                                      sectionTasks.forEach((t) => {
-                                                        delete next[t._id];
-                                                      });
-                                                      return next;
-                                                    });
-                                                  }
-                                                  setOpenSectionMenu(null);
-                                                }}
-                                                className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-[#F1F5F9] hover:bg-[#E2E8F0] dark:bg-[#1E293B] dark:hover:bg-[#334155] text-[#334155] dark:text-[#CBD5E1] rounded-full transition-all cursor-pointer border border-[#E2E8F0] dark:border-[#334155]"
-                                              >
-                                                {selectionModeSections[sectionName] ? (
-                                                  <><FiX size={13} /> Cancel Select</>
-                                                ) : (
-                                                  <><FiCheckCircle size={13} /> Select Tasks</>
-                                                )}
-                                              </button>
-
-                                              {/* Rename */}
-                                              {sectionName !== "Recent assignment" && (
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    setEditingSection(sectionName);
-                                                    setEditSectionValue(sectionName);
-                                                    setOpenSectionMenu(null);
-                                                  }}
-                                                  className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-[#FFF7ED] hover:bg-[#FFEDD5] dark:bg-[#431407] dark:hover:bg-[#78350F] text-[#EA580C] dark:text-[#FDBA74] rounded-full transition-all cursor-pointer border border-[#FED7AA] dark:border-[#9A3412]"
-                                                >
-                                                  <FiEdit2 size={13} /> Rename
-                                                </button>
-                                              )}
-
-                                              {/* Delete Section */}
-                                              {sectionName !== "Recent assignment" && (
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    handleDeleteSection(sectionName);
-                                                    setOpenSectionMenu(null);
-                                                  }}
-                                                  className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-[#FFF1F2] hover:bg-[#FFE4E6] dark:bg-[#4C0519] dark:hover:bg-[#881337] text-[#E11D48] dark:text-[#FDA4AF] rounded-full transition-all cursor-pointer border border-[#FECDD3] dark:border-[#9F1239]"
-                                                >
-                                                  <FiTrash2 size={13} /> Delete
-                                                </button>
-                                              )}
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Right Sticky Container */}
-                                {isAdminOrManager && (
-                                  <div className="sticky right-0 flex items-center gap-2 px-3 py-2.5 theme-bg-accent-ultrasubtle backdrop-blur-sm shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] dark:shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.5)] z-20 section-menu-container transition-colors">
+                                        <path d="M8 5v14l11-7z" />
+                                      </svg>
+                                    </button>
                                     {selectionModeSections[sectionName] && (
-                                      <>
-                                        {/* Cancel Select Button displayed outside */}
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setSelectionModeSections((prev) => ({
-                                              ...prev,
-                                              [sectionName]: false,
-                                            }));
-                                            setSelectedTasks((prev) => {
-                                              const next = { ...prev };
-                                              sectionTasks.forEach((t) => {
-                                                delete next[t._id];
-                                              });
-                                              return next;
+                                      <input
+                                        type="checkbox"
+                                        className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer mr-2"
+                                        checked={
+                                          sectionTasks.length > 0 &&
+                                          sectionTasks.every(
+                                            (t) => selectedTasks[t._id],
+                                          )
+                                        }
+                                        onChange={(e) => {
+                                          const checked = e.target.checked;
+                                          setSelectedTasks((prev) => {
+                                            const next = { ...prev };
+                                            sectionTasks.forEach((t) => {
+                                              next[t._id] = checked;
                                             });
-                                          }}
-                                          className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-extrabold bg-slate-100 hover:bg-slate-205 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full transition-all cursor-pointer border border-slate-200 dark:border-slate-700 shadow-sm"
+                                            return next;
+                                          });
+                                        }}
+                                      />
+                                    )}
+                                    {editingSection === sectionName ? (
+                                      <form
+                                        onSubmit={(e) =>
+                                          handleRenameSectionSubmit(
+                                            e,
+                                            sectionName,
+                                          )
+                                        }
+                                        className="inline-block"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <input
+                                          autoFocus
+                                          value={editSectionValue}
+                                          onChange={(e) =>
+                                            setEditSectionValue(e.target.value)
+                                          }
+                                          onBlur={(e) =>
+                                            handleRenameSectionSubmit(
+                                              e,
+                                              sectionName,
+                                            )
+                                          }
+                                          className="text-xs font-semibold bg-white dark:bg-slate-800 border border-blue-400 rounded px-2 py-1 outline-none text-slate-800 dark:text-white"
+                                        />
+                                      </form>
+                                    ) : (
+                                      <div className="flex items-center gap-2.5">
+                                        <h3
+                                          className="font-bold text-xs uppercase tracking-wider text-slate-705 dark:text-slate-355 hover:text-blue-600 dark:hover:text-[#e5ff00] transition-colors cursor-pointer inline-flex items-center gap-2"
+                                          onClick={() =>
+                                            toggleSection(sectionName)
+                                          }
                                         >
-                                          <FiX size={11} className="stroke-[3]" /> Cancel Select
-                                        </button>
+                                          {sectionName}
+                                          <span className="bg-blue-100/60 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200/40 dark:border-blue-800/30 font-bold px-2 py-0.5 rounded-full text-[10px]">
+                                            {sectionTasks.length}
+                                          </span>
+                                        </h3>
 
-                                        {/* Delete Selected Button displayed outside */}
-                                        {Object.keys(selectedTasks).some(
-                                          (id) => selectedTasks[id] && sectionTasks.some((t) => t._id === id),
-                                        ) && (
+                                        {/* Add Task Plus Icon next to section name */}
+                                        {isAdminOrManager && (
                                           <button
                                             type="button"
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              handleBulkDelete(sectionTasks, sectionName);
+                                              handleAddTask(sectionName);
                                             }}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-extrabold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-955/40 text-rose-600 dark:text-rose-455 rounded-full transition-all cursor-pointer border border-rose-200/30 dark:border-rose-900/20 shadow-sm"
+                                            title="Add Task to this Section"
+                                            className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-white/5 dark:hover:bg-white/10 text-blue-600 dark:text-[#e5ff00] hover:scale-110 active:scale-90 transition-all cursor-pointer border border-blue-100/50 dark:border-white/5"
                                           >
-                                            <FiTrash2 size={11} /> Delete Selected ({Object.keys(selectedTasks).filter((id) => selectedTasks[id] && sectionTasks.some((t) => t._id === id)).length})
+                                            <FiPlus
+                                              size={11}
+                                              className="stroke-[3]"
+                                            />
                                           </button>
                                         )}
-                                      </>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-
-                          {/* SECTION TASKS */}
-                          {!isSectionCollapsed && (
-                            <>
-                              {sectionTasks.map((task, taskIndex) => {
-                                const isExpanded = !!expandedTasks[task._id];
-                                const isCompleted = task.status === "Completed";
-                                const canToggle =
-                                  isAdminOrManager ||
-                                  task.assignedTo?._id === currentUser?._id ||
-                                  task.assignedTo === currentUser?._id;
-
-                                const isSelected = selectedTaskId === task._id;
-                                const rowBg = isSelected
-                                  ? "bg-blue-50/40 dark:bg-[#e5ff00]/10"
-                                  : isCompleted
-                                    ? "bg-slate-50/30 text-slate-400 dark:text-slate-550"
-                                    : taskIndex % 2 === 0
-                                      ? "bg-white dark:bg-slate-800/40 text-slate-800 dark:text-slate-100"
-                                      : "bg-slate-50/40 dark:bg-slate-900/10 text-slate-800 dark:text-slate-100";
-
-                                return (
-                                  <React.Fragment key={task._id}>
-                                    {/* Parent Task Row */}
-                                    <tr
-                                      onClick={() => setSelectedTaskId(task._id)}
-                                      className={`group cursor-pointer transition-colors ${rowBg} `}
-                                    >
-                                      {showSelectionColumn && (
-                                        <td
-                                          onClick={(e) => e.stopPropagation()}
-                                          className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 text-center w-10"
-                                        >
-                                          {selectionModeSections[sectionName] && (
-                                            <input
-                                              type="checkbox"
-                                              className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                              checked={!!selectedTasks[task._id]}
-                                              onChange={(e) => {
-                                                const checked = e.target.checked;
-                                                setSelectedTasks((prev) => ({
-                                                  ...prev,
-                                                  [task._id]: checked,
-                                                }));
-                                              }}
-                                            />
-                                          )}
-                                        </td>
-                                      )}
-                                      {/* Name Field with Circle Checkbox */}
-                                      <td
-                                        onClick={(e) => e.stopPropagation()}
-                                        className={`px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 font-semibold md:sticky md:left-0 z-10 min-w-[250px] md:min-w-[400px] ${rowBg}`}
-                                      >
-                                        <div className="flex items-center gap-2.5 w-full">
-                                          {/* Expand/Collapse Chevron (only if subtasks exist) */}
-                                          {task.subtasks?.length > 0 ? (
+                                        {/* Section Options Dropdown next to plus icon */}
+                                        {isAdminOrManager && (
+                                          <div className="relative">
                                             <button
                                               type="button"
                                               onClick={(e) => {
                                                 e.stopPropagation();
-                                                toggleTaskExpanded(task._id);
+                                                setOpenSectionMenu(
+                                                  openSectionMenu ===
+                                                    sectionName
+                                                    ? null
+                                                    : sectionName,
+                                                );
                                               }}
-                                              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded shrink-0 cursor-pointer"
-                                              title={
-                                                isExpanded
-                                                  ? "Collapse Subtasks"
-                                                  : "Expand Subtasks"
+                                              onMouseDown={(e) =>
+                                                e.stopPropagation()
                                               }
+                                              className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 hover:bg-slate-205 dark:bg-white/5 dark:hover:bg-white/10 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-205 transition-colors cursor-pointer border border-slate-200/50 dark:border-white/5 section-menu-container"
                                             >
-                                              <svg
-                                                viewBox="0 0 24 24"
-                                                className={`w-3.5 h-3.5 text-slate-550 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
-                                                fill="currentColor"
-                                              >
-                                                <path d="M8 5v14l11-7z" />
-                                              </svg>
+                                              <FiMoreHorizontal size={11} />
                                             </button>
-                                          ) : (
-                                            <span className="w-4.5 h-4.5 shrink-0" />
-                                          )}
 
-                                          {/* Circular Complete Checkbox */}
+                                            {/* Dropdown Menu */}
+                                            {openSectionMenu ===
+                                              sectionName && (
+                                              <div
+                                                className="absolute left-0 top-full mt-2 w-48 bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-xl rounded-xl p-2 z-50 flex flex-col gap-1.5 section-menu-container"
+                                                onClick={(e) =>
+                                                  e.stopPropagation()
+                                                }
+                                                onMouseDown={(e) =>
+                                                  e.stopPropagation()
+                                                }
+                                              >
+                                                {/* Selection Mode / Cancel */}
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    setSelectionModeSections(
+                                                      (prev) => ({
+                                                        ...prev,
+                                                        [sectionName]:
+                                                          !prev[sectionName],
+                                                      }),
+                                                    );
+                                                    if (
+                                                      selectionModeSections[
+                                                        sectionName
+                                                      ]
+                                                    ) {
+                                                      setSelectedTasks(
+                                                        (prev) => {
+                                                          const next = {
+                                                            ...prev,
+                                                          };
+                                                          sectionTasks.forEach(
+                                                            (t) => {
+                                                              delete next[
+                                                                t._id
+                                                              ];
+                                                            },
+                                                          );
+                                                          return next;
+                                                        },
+                                                      );
+                                                    }
+                                                    setOpenSectionMenu(null);
+                                                  }}
+                                                  className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-[#F1F5F9] hover:bg-[#E2E8F0] dark:bg-[#1E293B] dark:hover:bg-[#334155] text-[#334155] dark:text-[#CBD5E1] rounded-full transition-all cursor-pointer border border-[#E2E8F0] dark:border-[#334155]"
+                                                >
+                                                  {selectionModeSections[
+                                                    sectionName
+                                                  ] ? (
+                                                    <>
+                                                      <FiX size={13} /> Cancel
+                                                      Select
+                                                    </>
+                                                  ) : (
+                                                    <>
+                                                      <FiCheckCircle
+                                                        size={13}
+                                                      />{" "}
+                                                      Select Tasks
+                                                    </>
+                                                  )}
+                                                </button>
+
+                                                {/* Rename */}
+                                                {sectionName !==
+                                                  "Recent assignment" && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      setEditingSection(
+                                                        sectionName,
+                                                      );
+                                                      setEditSectionValue(
+                                                        sectionName,
+                                                      );
+                                                      setOpenSectionMenu(null);
+                                                    }}
+                                                    className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-[#FFF7ED] hover:bg-[#FFEDD5] dark:bg-[#431407] dark:hover:bg-[#78350F] text-[#EA580C] dark:text-[#FDBA74] rounded-full transition-all cursor-pointer border border-[#FED7AA] dark:border-[#9A3412]"
+                                                  >
+                                                    <FiEdit2 size={13} /> Rename
+                                                  </button>
+                                                )}
+
+                                                {/* Delete Section */}
+                                                {sectionName !==
+                                                  "Recent assignment" && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                      handleDeleteSection(
+                                                        sectionName,
+                                                      );
+                                                      setOpenSectionMenu(null);
+                                                    }}
+                                                    className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-[#FFF1F2] hover:bg-[#FFE4E6] dark:bg-[#4C0519] dark:hover:bg-[#881337] text-[#E11D48] dark:text-[#FDA4AF] rounded-full transition-all cursor-pointer border border-[#FECDD3] dark:border-[#9F1239]"
+                                                  >
+                                                    <FiTrash2 size={13} />{" "}
+                                                    Delete
+                                                  </button>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Right Sticky Container */}
+                                  {isAdminOrManager && (
+                                    <div className="sticky right-0 flex items-center gap-2 px-3 py-2.5 theme-bg-accent-ultrasubtle backdrop-blur-sm shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] dark:shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.5)] z-20 section-menu-container transition-colors">
+                                      {selectionModeSections[sectionName] && (
+                                        <>
+                                          {/* Cancel Select Button displayed outside */}
                                           <button
                                             type="button"
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              if (canToggle) {
-                                                handleTaskFieldChange(task._id, {
-                                                  status: isCompleted
-                                                    ? "Pending"
-                                                    : "Completed",
+                                              setSelectionModeSections(
+                                                (prev) => ({
+                                                  ...prev,
+                                                  [sectionName]: false,
+                                                }),
+                                              );
+                                              setSelectedTasks((prev) => {
+                                                const next = { ...prev };
+                                                sectionTasks.forEach((t) => {
+                                                  delete next[t._id];
                                                 });
-                                              }
+                                                return next;
+                                              });
                                             }}
-                                            disabled={!canToggle}
-                                            className={`w-[18px] h-[18px] rounded-full border flex items-center justify-center transition-all shrink-0 ${
-                                              !canToggle
-                                                ? "cursor-not-allowed opacity-50"
-                                                : "cursor-pointer"
-                                            } ${
-                                              isCompleted
-                                                ? "bg-emerald-500 border-emerald-500 text-white"
-                                                : "border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
-                                            }`}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-extrabold bg-slate-100 hover:bg-slate-205 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full transition-all cursor-pointer border border-slate-200 dark:border-slate-700 shadow-sm"
                                           >
-                                            <FiCheck size={9} />
+                                            <FiX
+                                              size={11}
+                                              className="stroke-[3]"
+                                            />{" "}
+                                            Cancel Select
                                           </button>
 
-                                          {/* Task Title contentEditable Span */}
-                                          <div className="flex-grow min-w-0">
-                                            <span
-                                              ref={(el) => {
-                                                if (
-                                                  el &&
-                                                  focusedTaskId === task._id
-                                                ) {
-                                                  el.focus();
-                                                  setFocusedTaskId(null);
-                                                }
+                                          {/* Delete Selected Button displayed outside */}
+                                          {Object.keys(selectedTasks).some(
+                                            (id) =>
+                                              selectedTasks[id] &&
+                                              sectionTasks.some(
+                                                (t) => t._id === id,
+                                              ),
+                                          ) && (
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleBulkDelete(
+                                                  sectionTasks,
+                                                  sectionName,
+                                                );
                                               }}
-                                              contentEditable={canToggle}
-                                              suppressContentEditableWarning={
-                                                true
+                                              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-extrabold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-955/40 text-rose-600 dark:text-rose-455 rounded-full transition-all cursor-pointer border border-rose-200/30 dark:border-rose-900/20 shadow-sm"
+                                            >
+                                              <FiTrash2 size={11} /> Delete
+                                              Selected (
+                                              {
+                                                Object.keys(
+                                                  selectedTasks,
+                                                ).filter(
+                                                  (id) =>
+                                                    selectedTasks[id] &&
+                                                    sectionTasks.some(
+                                                      (t) => t._id === id,
+                                                    ),
+                                                ).length
                                               }
-                                              placeholder="Write a task here..."
-                                              onBlur={(e) => {
-                                                const val =
-                                                  e.target.innerText.trim();
-                                                if (val !== task.title) {
+                                              )
+                                            </button>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+
+                            {/* SECTION TASKS */}
+                            {!isSectionCollapsed && (
+                              <>
+                                {sectionTasks.map((task, taskIndex) => {
+                                  const isExpanded = !!expandedTasks[task._id];
+                                  const isCompleted =
+                                    task.status === "Completed";
+                                  const canToggle =
+                                    isAdminOrManager ||
+                                    task.assignedTo?._id === currentUser?._id ||
+                                    task.assignedTo === currentUser?._id;
+
+                                  const isSelected =
+                                    selectedTaskId === task._id;
+                                  const rowBg = isSelected
+                                    ? "bg-blue-50/40 dark:bg-[#e5ff00]/10"
+                                    : isCompleted
+                                      ? "bg-slate-50/30 text-slate-400 dark:text-slate-550"
+                                      : taskIndex % 2 === 0
+                                        ? "bg-white dark:bg-slate-800/40 text-slate-800 dark:text-slate-100"
+                                        : "bg-slate-50/40 dark:bg-slate-900/10 text-slate-800 dark:text-slate-100";
+
+                                  return (
+                                    <React.Fragment key={task._id}>
+                                      {/* Parent Task Row */}
+                                      <tr
+                                        onClick={() =>
+                                          setSelectedTaskId(task._id)
+                                        }
+                                        className={`group cursor-pointer transition-colors ${rowBg} `}
+                                      >
+                                        {showSelectionColumn && (
+                                          <td
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 text-center w-10"
+                                          >
+                                            {selectionModeSections[
+                                              sectionName
+                                            ] && (
+                                              <input
+                                                type="checkbox"
+                                                className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                checked={
+                                                  !!selectedTasks[task._id]
+                                                }
+                                                onChange={(e) => {
+                                                  const checked =
+                                                    e.target.checked;
+                                                  setSelectedTasks((prev) => ({
+                                                    ...prev,
+                                                    [task._id]: checked,
+                                                  }));
+                                                }}
+                                              />
+                                            )}
+                                          </td>
+                                        )}
+                                        {/* Name Field with Circle Checkbox */}
+                                        <td
+                                          onClick={(e) => e.stopPropagation()}
+                                          className={`px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 font-semibold md:sticky md:left-0 z-10 min-w-[250px] md:min-w-[400px] ${rowBg}`}
+                                        >
+                                          <div className="flex items-center gap-2.5 w-full">
+                                            {/* Expand/Collapse Chevron (only if subtasks exist) */}
+                                            {task.subtasks?.length > 0 ? (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  toggleTaskExpanded(task._id);
+                                                }}
+                                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 rounded shrink-0 cursor-pointer"
+                                                title={
+                                                  isExpanded
+                                                    ? "Collapse Subtasks"
+                                                    : "Expand Subtasks"
+                                                }
+                                              >
+                                                <svg
+                                                  viewBox="0 0 24 24"
+                                                  className={`w-3.5 h-3.5 text-slate-550 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
+                                                  fill="currentColor"
+                                                >
+                                                  <path d="M8 5v14l11-7z" />
+                                                </svg>
+                                              </button>
+                                            ) : (
+                                              <span className="w-4.5 h-4.5 shrink-0" />
+                                            )}
+
+                                            {/* Circular Complete Checkbox */}
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (canToggle) {
                                                   handleTaskFieldChange(
                                                     task._id,
-                                                    { title: val },
+                                                    {
+                                                      status: isCompleted
+                                                        ? "Pending"
+                                                        : "Completed",
+                                                    },
                                                   );
                                                 }
                                               }}
-                                              onKeyDown={(e) => {
-                                                if (e.key === "Enter") {
-                                                  e.preventDefault();
-                                                  e.target.blur();
-                                                  handleAddTask(
-                                                    task.section ||
-                                                      "Recent assignment",
-                                                  );
-                                                }
-                                              }}
-                                              className={`font-semibold text-slate-800 dark:text-white text-[11px] cursor-text outline-none block min-h-[16px] w-full ${
+                                              disabled={!canToggle}
+                                              className={`w-[18px] h-[18px] rounded-full border flex items-center justify-center transition-all shrink-0 ${
+                                                !canToggle
+                                                  ? "cursor-not-allowed opacity-50"
+                                                  : "cursor-pointer"
+                                              } ${
                                                 isCompleted
-                                                  ? "line-through text-slate-450 dark:text-slate-555 font-bold"
-                                                  : ""
+                                                  ? "bg-emerald-500 border-emerald-500 text-white"
+                                                  : "border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
                                               }`}
                                             >
-                                              {task.title}
-                                            </span>
-                                          </div>
+                                              <FiCheck size={9} />
+                                            </button>
 
-                                          {/* Subtask Count Badge (static, click opens drawer) */}
-                                          {task.subtasks?.length > 0 && (
+                                            {/* Task Title contentEditable Span */}
+                                            <div className="flex-grow min-w-0">
+                                              <span
+                                                ref={(el) => {
+                                                  if (
+                                                    el &&
+                                                    focusedTaskId === task._id
+                                                  ) {
+                                                    el.focus();
+                                                    setFocusedTaskId(null);
+                                                  }
+                                                }}
+                                                contentEditable={canToggle}
+                                                suppressContentEditableWarning={
+                                                  true
+                                                }
+                                                placeholder="Write a task here..."
+                                                onBlur={(e) => {
+                                                  const val =
+                                                    e.target.innerText.trim();
+                                                  if (val !== task.title) {
+                                                    handleTaskFieldChange(
+                                                      task._id,
+                                                      { title: val },
+                                                    );
+                                                  }
+                                                }}
+                                                onKeyDown={(e) => {
+                                                  if (e.key === "Enter") {
+                                                    e.preventDefault();
+                                                    e.target.blur();
+                                                    handleAddTask(
+                                                      task.section ||
+                                                        "Recent assignment",
+                                                    );
+                                                  }
+                                                }}
+                                                className={`font-semibold text-slate-800 dark:text-white text-[11px] cursor-text outline-none block min-h-[16px] w-full ${
+                                                  isCompleted
+                                                    ? "line-through text-slate-450 dark:text-slate-555 font-bold"
+                                                    : ""
+                                                }`}
+                                              >
+                                                {task.title}
+                                              </span>
+                                            </div>
+
+                                            {/* Subtask Count Badge (static, click opens drawer) */}
+                                            {task.subtasks?.length > 0 && (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setSelectedTaskId(task._id);
+                                                }}
+                                                title={`${task.subtasks.length} subtask${task.subtasks.length !== 1 ? "s" : ""} — open details`}
+                                                className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-slate-550 dark:text-slate-400 border border-slate-200 dark:border-white/5 text-[8.5px] font-bold shrink-0 bg-blue-50 bg-[#e5ff00]/10 hover:text-blue-600 dark:hover:text-[#e5ff00] hover:border-blue-200 dark:hover:border-[#e5ff00]/20 transition-all cursor-pointer"
+                                              >
+                                                <FiCornerDownRight size={8} />
+                                                {task.subtasks.length}
+                                              </button>
+                                            )}
+
+                                            {/* Detail Drawer Open Arrow */}
                                             <button
                                               type="button"
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 setSelectedTaskId(task._id);
                                               }}
-                                              title={`${task.subtasks.length} subtask${task.subtasks.length !== 1 ? "s" : ""} — open details`}
-                                              className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-slate-550 dark:text-slate-400 border border-slate-200 dark:border-white/5 text-[8.5px] font-bold shrink-0 bg-blue-50 bg-[#e5ff00]/10 hover:text-blue-600 dark:hover:text-[#e5ff00] hover:border-blue-200 dark:hover:border-[#e5ff00]/20 transition-all cursor-pointer"
+                                              className="ml-auto shrink-0 text-slate-300 dark:text-slate-600 hover:text-blue-500 dark:hover:text-[#e5ff00] p-0.5 rounded hover:bg-slate-100/50 dark:hover:bg-white/5 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                                              title="Open Task Details"
                                             >
-                                              <FiCornerDownRight size={8} />
-                                              {task.subtasks.length}
+                                              <FiChevronRight size={14} />
                                             </button>
-                                          )}
+                                          </div>
+                                        </td>
 
-                                          {/* Detail Drawer Open Arrow */}
-                                          <button
-                                            type="button"
+                                        {/* Client Column */}
+                                        <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 font-medium">
+                                          {activeProject?.client
+                                            ?.companyName ? (
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50/70 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30">
+                                              {activeProject.client.companyName}
+                                            </span>
+                                          ) : (
+                                            <span className="text-slate-400 dark:text-slate-500 text-[10px] font-normal">
+                                              N/A
+                                            </span>
+                                          )}
+                                        </td>
+
+                                        {/* Assignee Selection */}
+                                        <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                          <div
+                                            className="flex items-center gap-1.5"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <AssigneeDropdown
+                                              selectedUser={task.assignedTo}
+                                              users={users}
+                                              onChange={(userId) =>
+                                                handleTaskFieldChange(
+                                                  task._id,
+                                                  {
+                                                    assignedTo: userId,
+                                                  },
+                                                )
+                                              }
+                                              isAdminOrManager={
+                                                isAdminOrManager
+                                              }
+                                              getAvatarColor={getAvatarColor}
+                                              size="md"
+                                            />
+                                          </div>
+                                        </td>
+
+                                        {/* Content Type Column */}
+                                        <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                          <div
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {isAdminOrManager ? (
+                                              <select
+                                                value={task.contentType || ""}
+                                                onChange={(e) =>
+                                                  handleTaskFieldChange(
+                                                    task._id,
+                                                    {
+                                                      contentType:
+                                                        e.target.value,
+                                                    },
+                                                  )
+                                                }
+                                                className={`badge-select ${
+                                                  task.contentType === "VIDEO"
+                                                    ? "badge-type-video"
+                                                    : task.contentType ===
+                                                        "IMAGE"
+                                                      ? "badge-type-image"
+                                                      : task.contentType ===
+                                                          "CAROUSEL"
+                                                        ? "badge-type-carousel"
+                                                        : task.contentType ===
+                                                            "REEL"
+                                                          ? "badge-type-reel"
+                                                          : task.contentType ===
+                                                              "POST"
+                                                            ? "badge-type-post"
+                                                            : task.contentType ===
+                                                                "STORY"
+                                                              ? "badge-type-story"
+                                                              : task.contentType ===
+                                                                  "Website"
+                                                                ? "badge-type-video"
+                                                                : task.contentType ===
+                                                                    "SEO"
+                                                                  ? "badge-type-image"
+                                                                  : task.contentType ===
+                                                                      "Video shoot"
+                                                                    ? "badge-type-carousel"
+                                                                    : "badge-type-none"
+                                                }`}
+                                              >
+                                                <option value="">NONE</option>
+                                                <option value="VIDEO">
+                                                  VIDEO
+                                                </option>
+                                                <option value="IMAGE">
+                                                  IMAGE
+                                                </option>
+                                                <option value="CAROUSEL">
+                                                  CAROUSEL
+                                                </option>
+                                                <option value="REEL">
+                                                  REEL
+                                                </option>
+                                                <option value="POST">
+                                                  POST
+                                                </option>
+                                                <option value="STORY">
+                                                  STORY
+                                                </option>
+                                                <option value="Website">
+                                                  Website
+                                                </option>
+                                                <option value="SEO">SEO</option>
+                                                <option value="Video shoot">
+                                                  Video shoot
+                                                </option>
+                                              </select>
+                                            ) : (
+                                              <span
+                                                className={`badge-span ${
+                                                  task.contentType === "VIDEO"
+                                                    ? "badge-type-video"
+                                                    : task.contentType ===
+                                                        "IMAGE"
+                                                      ? "badge-type-image"
+                                                      : task.contentType ===
+                                                          "CAROUSEL"
+                                                        ? "badge-type-carousel"
+                                                        : task.contentType ===
+                                                            "REEL"
+                                                          ? "badge-type-reel"
+                                                          : task.contentType ===
+                                                              "POST"
+                                                            ? "badge-type-post"
+                                                            : task.contentType ===
+                                                                "STORY"
+                                                              ? "badge-type-story"
+                                                              : task.contentType ===
+                                                                  "Website"
+                                                                ? "badge-type-video"
+                                                                : task.contentType ===
+                                                                    "SEO"
+                                                                  ? "badge-type-image"
+                                                                  : task.contentType ===
+                                                                      "Video shoot"
+                                                                    ? "badge-type-carousel"
+                                                                    : "badge-type-none"
+                                                }`}
+                                              >
+                                                {task.contentType || "NONE"}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </td>
+
+                                        {/* Start Date */}
+                                        <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                          <div
+                                            className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              setSelectedTaskId(task._id);
+                                              const input =
+                                                e.currentTarget.querySelector(
+                                                  'input[type="date"]',
+                                                );
+                                              if (
+                                                input &&
+                                                typeof input.showPicker ===
+                                                  "function"
+                                              ) {
+                                                input.showPicker();
+                                              }
                                             }}
-                                            className="ml-auto shrink-0 text-slate-300 dark:text-slate-600 hover:text-blue-500 dark:hover:text-[#e5ff00] p-0.5 rounded hover:bg-slate-100/50 dark:hover:bg-white/5 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
-                                            title="Open Task Details"
                                           >
-                                            <FiChevronRight size={14} />
-                                          </button>
-                                        </div>
-                                      </td>
-
-                                      {/* Client Column */}
-                                      <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 font-medium">
-                                        {activeProject?.client?.companyName ? (
-                                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50/70 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30">
-                                            {activeProject.client.companyName}
-                                          </span>
-                                        ) : (
-                                          <span className="text-slate-400 dark:text-slate-500 text-[10px] font-normal">N/A</span>
-                                        )}
-                                      </td>
-
-                                      {/* Assignee Selection */}
-                                      <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
-                                        <div
-                                          className="flex items-center gap-1.5"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <AssigneeDropdown
-                                            selectedUser={task.assignedTo}
-                                            users={users}
-                                            onChange={(userId) =>
-                                              handleTaskFieldChange(task._id, {
-                                                assignedTo: userId,
-                                              })
-                                            }
-                                            isAdminOrManager={isAdminOrManager}
-                                            getAvatarColor={getAvatarColor}
-                                            size="md"
-                                          />
-                                        </div>
-                                      </td>
-
-                                      {/* Content Type Column */}
-                                      <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
-                                        <div onClick={(e) => e.stopPropagation()}>
-                                          {isAdminOrManager ? (
-                                            <select
-                                              value={task.contentType || ""}
-                                              onChange={(e) =>
-                                                handleTaskFieldChange(task._id, {
-                                                  contentType: e.target.value,
-                                                })
-                                              }
-                                              className={`badge-select ${
-                                                task.contentType === "VIDEO" ? "badge-type-video"
-                                                : task.contentType === "IMAGE" ? "badge-type-image"
-                                                : task.contentType === "CAROUSEL" ? "badge-type-carousel"
-                                                : task.contentType === "REEL" ? "badge-type-reel"
-                                                : task.contentType === "POST" ? "badge-type-post"
-                                                : task.contentType === "STORY" ? "badge-type-story"
-                                                : task.contentType === "Website" ? "badge-type-video"
-                                                : task.contentType === "SEO" ? "badge-type-image"
-                                                : task.contentType === "Video shoot" ? "badge-type-carousel"
-                                                : "badge-type-none"
-                                              }`}
-                                            >
-                                              <option value="">NONE</option>
-                                              <option value="VIDEO">VIDEO</option>
-                                              <option value="IMAGE">IMAGE</option>
-                                              <option value="CAROUSEL">CAROUSEL</option>
-                                              <option value="REEL">REEL</option>
-                                              <option value="POST">POST</option>
-                                              <option value="STORY">STORY</option>
-                                              <option value="Website">Website</option>
-                                              <option value="SEO">SEO</option>
-                                              <option value="Video shoot">Video shoot</option>
-                                            </select>
-                                          ) : (
-                                            <span
-                                              className={`badge-span ${
-                                                task.contentType === "VIDEO" ? "badge-type-video"
-                                                : task.contentType === "IMAGE" ? "badge-type-image"
-                                                : task.contentType === "CAROUSEL" ? "badge-type-carousel"
-                                                : task.contentType === "REEL" ? "badge-type-reel"
-                                                : task.contentType === "POST" ? "badge-type-post"
-                                                : task.contentType === "STORY" ? "badge-type-story"
-                                                : task.contentType === "Website" ? "badge-type-video"
-                                                : task.contentType === "SEO" ? "badge-type-image"
-                                                : task.contentType === "Video shoot" ? "badge-type-carousel"
-                                                : "badge-type-none"
-                                              }`}
-                                            >
-                                              {task.contentType || "NONE"}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </td>
-
-                                      {/* Start Date */}
-                                      <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
-                                        <div
-                                          className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            const input =
-                                              e.currentTarget.querySelector(
-                                                'input[type="date"]',
-                                              );
-                                            if (
-                                              input &&
-                                              typeof input.showPicker ===
-                                                "function"
-                                            ) {
-                                              input.showPicker();
-                                            }
-                                          }}
-                                        >
-                                          {task.startDate ? (
-                                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-blue-300 dark:border-blue-800/85 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-850 dark:text-blue-300 text-[9px] font-bold bg-blue-100/90 dark:bg-blue-955/70 transition-all shadow-sm">
-                                              <FiCalendar
-                                                size={10.5}
-                                                className="text-blue-600 dark:text-blue-400"
-                                              />
-                                              <span>
-                                                {new Date(
-                                                  task.startDate,
-                                                ).toLocaleDateString(undefined, {
-                                                  month: "short",
-                                                  day: "numeric",
-                                                })}
-                                              </span>
-                                              {isAdminOrManager && (
-                                                <button
-                                                  type="button"
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleTaskFieldChange(
-                                                      task._id,
-                                                      { startDate: null },
-                                                    );
-                                                  }}
-                                                  className="ml-1 text-blue-505 hover:text-rose-600 dark:text-blue-450 dark:hover:text-rose-455 relative z-10 transition-colors cursor-pointer"
-                                                >
-                                                  <FiX size={10} />
-                                                </button>
-                                              )}
-                                            </div>
-                                          ) : (
-                                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-blue-600 dark:border-blue-800/80 text-blue-605 dark:text-blue-400/90 hover:border-blue-400 hover:text-blue-750 dark:hover:text-blue-300 dark:hover:border-blue-600/80 bg-blue-50/50 dark:bg-blue-955/20 hover:bg-blue-100 dark:hover:bg-blue-955/50 transition-all text-[9px] font-bold">
-                                              <FiCalendar size={10.5} />
-                                              <span>+ Start Date</span>
-                                            </div>
-                                          )}
-                                          {isAdminOrManager && (
-                                            <input
-                                              type="date"
-                                              value={
-                                                task.startDate
-                                                  ? new Date(task.startDate)
-                                                      .toISOString()
-                                                      .split("T")[0]
-                                                  : ""
-                                              }
-                                              onChange={(e) =>
-                                                handleTaskFieldChange(task._id, {
-                                                  startDate:
-                                                    e.target.value || null,
-                                                })
-                                              }
-                                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                            />
-                                          )}
-                                        </div>
-                                      </td>
-
-                                      {/* End Date */}
-                                      <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
-                                        <div
-                                          className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            const input =
-                                              e.currentTarget.querySelector(
-                                                'input[type="date"]',
-                                              );
-                                            if (
-                                              input &&
-                                              typeof input.showPicker ===
-                                                "function"
-                                            ) {
-                                              input.showPicker();
-                                            }
-                                          }}
-                                        >
-                                          {task.dueDate ? (
-                                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-700/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-850 dark:text-rose-300 text-[10px] font-bold bg-rose-100/90 dark:bg-rose-955/70 transition-all shadow-sm">
-                                              <FiCalendar
-                                                size={10.5}
-                                                className="text-rose-600 dark:text-rose-400"
-                                              />
-                                              <span>
-                                                {new Date(
-                                                  task.dueDate,
-                                                ).toLocaleDateString(undefined, {
-                                                  month: "short",
-                                                  day: "numeric",
-                                                })}
-                                              </span>
-                                              {isAdminOrManager && (
-                                                <button
-                                                  type="button"
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleTaskFieldChange(
-                                                      task._id,
-                                                      { dueDate: null },
-                                                    );
-                                                  }}
-                                                  className="ml-1 text-rose-505 hover:text-rose-755 dark:text-rose-400 dark:hover:text-rose-300 relative z-10 transition-colors cursor-pointer"
-                                                >
-                                                  <FiX size={10} />
-                                                </button>
-                                              )}
-                                            </div>
-                                          ) : (
-                                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-rose-300 dark:border-rose-800/80 text-rose-605 dark:text-rose-400/90 hover:border-rose-400 hover:text-rose-750 dark:hover:text-rose-300 dark:hover:border-rose-600/85 bg-rose-50/50 dark:bg-rose-955/20 hover:bg-rose-100 dark:hover:bg-rose-955/50 transition-all text-[9.5px] font-bold">
-                                              <FiCalendar size={10.5} />
-                                              <span>+ End Date</span>
-                                            </div>
-                                          )}
-                                          {isAdminOrManager && (
-                                            <input
-                                              type="date"
-                                              value={
-                                                task.dueDate
-                                                  ? new Date(task.dueDate)
-                                                      .toISOString()
-                                                      .split("T")[0]
-                                                  : ""
-                                              }
-                                              min={
-                                                task.startDate
-                                                  ? new Date(task.startDate)
-                                                      .toISOString()
-                                                      .split("T")[0]
-                                                  : ""
-                                              }
-                                              onChange={(e) =>
-                                                handleTaskFieldChange(task._id, {
-                                                  dueDate: e.target.value || null,
-                                                })
-                                              }
-                                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                            />
-                                          )}
-                                        </div>
-                                      </td>
-
-                                      {/* Priority */}
-                                      <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
-                                        <div onClick={(e) => e.stopPropagation()}>
-                                          {isAdminOrManager ? (
-                                            <select
-                                              value={task.priority || "Medium"}
-                                              onChange={(e) =>
-                                                handleTaskFieldChange(task._id, {
-                                                  priority: e.target.value,
-                                                })
-                                              }
-                                              className={`badge-select ${
-                                                task.priority === "High"
-                                                  ? "badge-priority-high"
-                                                  : task.priority === "Medium"
-                                                    ? "badge-priority-medium"
-                                                    : "badge-priority-low"
-                                              }`}
-                                            >
-                                              <option value="Low">Low</option>
-                                              <option value="Medium">Medium</option>
-                                              <option value="High">High</option>
-                                            </select>
-                                          ) : (
-                                            <span
-                                              className={`badge-span ${
-                                                task.priority === "High"
-                                                  ? "badge-priority-high"
-                                                  : task.priority === "Medium"
-                                                    ? "badge-priority-medium"
-                                                    : "badge-priority-low"
-                                              }`}
-                                            >
-                                              {task.priority || "Medium"}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </td>
-
-                                      {/* Status */}
-                                      <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
-                                        <div onClick={(e) => e.stopPropagation()}>
-                                          {isAdminOrManager ? (
-                                            <select
-                                              value={task.status || "Pending"}
-                                              onChange={(e) =>
-                                                handleTaskFieldChange(task._id, {
-                                                  status: e.target.value,
-                                                })
-                                              }
-                                              className={`badge-select ${
-                                                task.status === "Completed"
-                                                  ? "badge-status-completed"
-                                                  : task.status === "In Progress"
-                                                    ? "badge-status-in-progress"
-                                                    : task.status === "On Hold"
-                                                      ? "badge-status-on-hold"
-                                                      : "badge-status-pending"
-                                              }`}
-                                            >
-                                              <option value="Pending">Pending</option>
-                                              <option value="In Progress">In Progress</option>
-                                              <option value="Completed">Completed</option>
-                                              <option value="On Hold">On Hold</option>
-                                            </select>
-                                          ) : (
-                                            <span
-                                              className={`badge-span ${
-                                                task.status === "Completed"
-                                                  ? "badge-status-completed"
-                                                  : task.status === "In Progress"
-                                                    ? "badge-status-in-progress"
-                                                    : task.status === "On Hold"
-                                                      ? "badge-status-on-hold"
-                                                      : "badge-status-pending"
-                                              }`}
-                                            >
-                                              {task.status || "Pending"}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </td>
-
-                                      {/* Total Hours */}
-                                      <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
-                                        <TimeTracker 
-                                          startTime={task.actualStartTime} 
-                                          endTime={task.actualEndTime} 
-                                          status={task.status} 
-                                        />
-                                      </td>
-
-                                      {/* Action Controls */}
-                                      <td className="px-3 py-2 border-b border-t border-slate-200 dark:border-slate-800 text-center">
-                                        <div
-                                          className="flex items-center justify-center gap-2.5"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          {isAdminOrManager && (
-                                            <>
-                                              <button
-                                                type="button"
-                                                onClick={() =>
-                                                  handleAddSubtaskViaButton(task)
-                                                }
-                                                className="text-slate-455 hover:text-blue-500 dark:hover:text-[#e5ff00] transition-colors p-1 flex items-center gap-0.5 text-[9px] font-bold cursor-pointer"
-                                                title="Add Subtask"
-                                              >
-                                                <FiPlus size={11} />
-                                                <span>Subtask</span>
-                                              </button>
-
-                                              <button
-                                                type="button"
-                                                onClick={() =>
-                                                  handleParentTaskDelete(task._id)
-                                                }
-                                                className="text-slate-455 hover:text-red-505 transition-colors p-1 cursor-pointer"
-                                                title="Delete Task"
-                                              >
-                                                <FiTrash2 size={12} />
-                                              </button>
-                                            </>
-                                          )}
-                                        </div>
-                                      </td>
-                                    </tr>
-
-                                    {isExpanded && (
-                                      <>
-                                        {(task.subtasks || []).map(
-                                          (sub, subIdx) => {
-                                            const isSubCompleted =
-                                              sub.status === "Completed";
-                                            const canToggleSub =
-                                              isAdminOrManager ||
-                                              sub.assignedTo?._id ===
-                                                currentUser?._id ||
-                                              sub.assignedTo === currentUser?._id;
-                                            const rowBgSub = isSubCompleted
-                                              ? "bg-slate-105/40 text-slate-405 dark:text-slate-550/80 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
-                                              : "bg-slate-50/70 dark:bg-slate-900/45 text-slate-855 dark:text-slate-100 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]";
-
-                                            return (
-                                              <tr
-                                                key={sub._id || subIdx}
-                                                className={`group/subrow transition-colors ${rowBgSub} hover:bg-blue-50/10 dark:hover:bg-[#e5ff00]/5`}
-                                              >
-                                                {showSelectionColumn && (
-                                                  <td className={`px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 ${rowBgSub}`} />
-                                                )}
-                                                {/* 1. Name Column */}
-                                                <td
-                                                  className={`px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 font-semibold pl-10 md:sticky md:left-0 z-10 min-w-[250px] md:min-w-[400px] ${rowBgSub}`}
-                                                  onClick={(e) =>
-                                                    e.stopPropagation()
-                                                  }
-                                                >
-                                                  <div className="flex items-center gap-2 w-full pl-4 border-l border-slate-150 dark:border-slate-850">
-                                                    <FiCornerDownRight
-                                                      className="text-slate-450 shrink-0"
-                                                      size={11}
-                                                    />
-
-                                                    {/* Subtask Checkbox */}
-                                                    <button
-                                                      type="button"
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (canToggleSub) {
-                                                          handleSubtaskFieldChange(
-                                                            task,
-                                                            sub._id,
-                                                            {
-                                                              status:
-                                                                isSubCompleted
-                                                                  ? "Pending"
-                                                                  : "Completed",
-                                                            },
-                                                          );
-                                                        }
-                                                      }}
-                                                      disabled={!canToggleSub}
-                                                      className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center transition-all shrink-0 ${
-                                                        !canToggleSub
-                                                          ? "cursor-not-allowed opacity-50"
-                                                          : "cursor-pointer"
-                                                      } ${
-                                                        isSubCompleted
-                                                          ? "bg-emerald-500 border-emerald-500 text-white"
-                                                          : "border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
-                                                      }`}
-                                                    >
-                                                      <FiCheck size={8} />
-                                                    </button>
-
-                                                    {/* Subtask Title Input */}
-                                                    <span
-                                                      ref={(el) => {
-                                                        if (
-                                                          autoFocusSubtaskIdx ===
-                                                            subIdx &&
-                                                          el
-                                                        ) {
-                                                          el.focus();
-                                                          const range =
-                                                            document.createRange();
-                                                          range.selectNodeContents(
-                                                            el,
-                                                          );
-                                                          const sel =
-                                                            window.getSelection();
-                                                          sel.removeAllRanges();
-                                                          sel.addRange(range);
-                                                          setAutoFocusSubtaskIdx(
-                                                            null,
-                                                          );
-                                                        }
-                                                      }}
-                                                      contentEditable={
-                                                        canToggleSub
-                                                      }
-                                                      suppressContentEditableWarning={
-                                                        true
-                                                      }
-                                                      placeholder="Write a subtask..."
-                                                      onBlur={(e) => {
-                                                        const val =
-                                                          e.target.innerText.trim();
-                                                        if (val !== sub.title) {
-                                                          handleSubtaskFieldChange(
-                                                            task,
-                                                            sub._id,
-                                                            {
-                                                              title: val,
-                                                            },
-                                                          );
-                                                        }
-                                                      }}
-                                                      onKeyDown={(e) => {
-                                                        if (e.key === "Enter") {
-                                                          e.preventDefault();
-                                                          handleSubtaskEnterKey(
-                                                            task,
-                                                            subIdx,
-                                                            e.target.innerText,
-                                                            false,
-                                                          );
-                                                        }
-                                                      }}
-                                                      className={`outline-none w-full font-bold text-slate-705 dark:text-white text-[11px] block min-h-[16px] cursor-text ${
-                                                        isSubCompleted
-                                                          ? "line-through text-slate-450 dark:text-slate-550"
-                                                          : ""
-                                                      }`}
-                                                    >
-                                                      {sub.title}
-                                                    </span>
-                                                    <button
-                                                      type="button"
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setSelectedTaskId(
-                                                          task._id,
-                                                        );
-                                                        setTimeout(() => {
-                                                          const el =
-                                                            document.getElementById(
-                                                              "drawer-subtasks-section",
-                                                            );
-                                                          if (el) {
-                                                            el.scrollIntoView({
-                                                              behavior: "smooth",
-                                                              block: "start",
-                                                            });
-                                                          }
-                                                        }, 350);
-                                                      }}
-                                                      className="shrink-0 text-slate-400 dark:text-slate-555 hover:text-blue-500 dark:hover:text-[#e5ff00] p-0.5 rounded hover:bg-slate-100 dark:hover:bg-white/5 transition-all opacity-0 group-hover/subrow:opacity-100 cursor-pointer ml-auto"
-                                                      title="Open Details & View Subtasks"
-                                                    >
-                                                      <FiChevronRight size={12} />
-                                                    </button>
-                                                  </div>
-                                                </td>
-
-                                                {/* 2. Client Column */}
-                                                <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 text-slate-450 opacity-60">
-                                                  {activeProject?.client?.companyName ? (
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-50/70 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30">
-                                                      {activeProject.client.companyName}
-                                                    </span>
-                                                  ) : (
-                                                    <span className="text-slate-400 dark:text-slate-550 text-[9px] font-normal">N/A</span>
+                                            {task.startDate ? (
+                                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-blue-300 dark:border-blue-800/85 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-850 dark:text-blue-300 text-[9px] font-bold bg-blue-100/90 dark:bg-blue-955/70 transition-all shadow-sm">
+                                                <FiCalendar
+                                                  size={10.5}
+                                                  className="text-blue-600 dark:text-blue-400"
+                                                />
+                                                <span>
+                                                  {new Date(
+                                                    task.startDate,
+                                                  ).toLocaleDateString(
+                                                    undefined,
+                                                    {
+                                                      month: "short",
+                                                      day: "numeric",
+                                                    },
                                                   )}
-                                                </td>
-
-                                                {/* 3. Assignee Column */}
-                                                <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
-                                                  <div
-                                                    className="flex items-center gap-1.5"
-                                                    onClick={(e) =>
-                                                      e.stopPropagation()
-                                                    }
+                                                </span>
+                                                {isAdminOrManager && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      handleTaskFieldChange(
+                                                        task._id,
+                                                        { startDate: null },
+                                                      );
+                                                    }}
+                                                    className="ml-1 text-blue-505 hover:text-rose-600 dark:text-blue-450 dark:hover:text-rose-455 relative z-10 transition-colors cursor-pointer"
                                                   >
-                                                    <AssigneeDropdown
-                                                      selectedUser={
-                                                        sub.assignedTo
-                                                      }
-                                                      users={users}
-                                                      onChange={(userId) =>
-                                                        handleSubtaskFieldChange(
-                                                          task,
-                                                          sub._id,
-                                                          {
-                                                            assignedTo: userId,
-                                                          },
-                                                        )
-                                                      }
-                                                      isAdminOrManager={
-                                                        isAdminOrManager
-                                                      }
-                                                      getAvatarColor={
-                                                        getAvatarColor
-                                                      }
-                                                      size="md"
+                                                    <FiX size={10} />
+                                                  </button>
+                                                )}
+                                              </div>
+                                            ) : (
+                                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-blue-600 dark:border-blue-800/80 text-white  dark:text-blue-400/90   bg-blue-400 dark:bg-blue-400 transition-all text-[9px] font-bold">
+                                                <FiCalendar size={10.5} />
+                                                <span>+ Start Date</span>
+                                              </div>
+                                            )}
+                                            {isAdminOrManager && (
+                                              <input
+                                                type="date"
+                                                value={
+                                                  task.startDate
+                                                    ? new Date(task.startDate)
+                                                        .toISOString()
+                                                        .split("T")[0]
+                                                    : ""
+                                                }
+                                                onChange={(e) =>
+                                                  handleTaskFieldChange(
+                                                    task._id,
+                                                    {
+                                                      startDate:
+                                                        e.target.value || null,
+                                                    },
+                                                  )
+                                                }
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                              />
+                                            )}
+                                          </div>
+                                        </td>
+
+                                        {/* End Date */}
+                                        <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                          <div
+                                            className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              const input =
+                                                e.currentTarget.querySelector(
+                                                  'input[type="date"]',
+                                                );
+                                              if (
+                                                input &&
+                                                typeof input.showPicker ===
+                                                  "function"
+                                              ) {
+                                                input.showPicker();
+                                              }
+                                            }}
+                                          >
+                                            {task.dueDate ? (
+                                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-700/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-850 dark:text-rose-300 text-[10px] font-bold bg-rose-100/90 dark:bg-rose-955/70 transition-all shadow-sm">
+                                                <FiCalendar
+                                                  size={10.5}
+                                                  className="text-rose-600 dark:text-rose-400"
+                                                />
+                                                <span>
+                                                  {new Date(
+                                                    task.dueDate,
+                                                  ).toLocaleDateString(
+                                                    undefined,
+                                                    {
+                                                      month: "short",
+                                                      day: "numeric",
+                                                    },
+                                                  )}
+                                                </span>
+                                                {isAdminOrManager && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      handleTaskFieldChange(
+                                                        task._id,
+                                                        { dueDate: null },
+                                                      );
+                                                    }}
+                                                    className="ml-1 text-rose-505 hover:text-rose-755 dark:text-rose-400 dark:hover:text-rose-300 relative z-10 transition-colors cursor-pointer"
+                                                  >
+                                                    <FiX size={10} />
+                                                  </button>
+                                                )}
+                                              </div>
+                                            ) : (
+                                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-rose-300 dark:border-rose-800/80 text-rose-605 dark:text-rose-400/90 hover:border-rose-400 hover:text-rose-750 dark:hover:text-rose-300 dark:hover:border-rose-600/85 bg-rose-50/50 dark:bg-rose-955/20 hover:bg-rose-100 dark:hover:bg-rose-955/50 transition-all text-[9.5px] font-bold">
+                                                <FiCalendar size={10.5} />
+                                                <span>+ End Date</span>
+                                              </div>
+                                            )}
+                                            {isAdminOrManager && (
+                                              <input
+                                                type="date"
+                                                value={
+                                                  task.dueDate
+                                                    ? new Date(task.dueDate)
+                                                        .toISOString()
+                                                        .split("T")[0]
+                                                    : ""
+                                                }
+                                                min={
+                                                  task.startDate
+                                                    ? new Date(task.startDate)
+                                                        .toISOString()
+                                                        .split("T")[0]
+                                                    : ""
+                                                }
+                                                onChange={(e) =>
+                                                  handleTaskFieldChange(
+                                                    task._id,
+                                                    {
+                                                      dueDate:
+                                                        e.target.value || null,
+                                                    },
+                                                  )
+                                                }
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                              />
+                                            )}
+                                          </div>
+                                        </td>
+
+                                        {/* Priority */}
+                                        <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                          <div
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {isAdminOrManager ? (
+                                              <select
+                                                value={
+                                                  task.priority || "Medium"
+                                                }
+                                                onChange={(e) =>
+                                                  handleTaskFieldChange(
+                                                    task._id,
+                                                    {
+                                                      priority: e.target.value,
+                                                    },
+                                                  )
+                                                }
+                                                className={`badge-select ${
+                                                  task.priority === "High"
+                                                    ? "badge-priority-high"
+                                                    : task.priority === "Medium"
+                                                      ? "badge-priority-medium"
+                                                      : "badge-priority-low"
+                                                }`}
+                                              >
+                                                <option value="Low">Low</option>
+                                                <option value="Medium">
+                                                  Medium
+                                                </option>
+                                                <option value="High">
+                                                  High
+                                                </option>
+                                              </select>
+                                            ) : (
+                                              <span
+                                                className={`badge-span ${
+                                                  task.priority === "High"
+                                                    ? "badge-priority-high"
+                                                    : task.priority === "Medium"
+                                                      ? "badge-priority-medium"
+                                                      : "badge-priority-low"
+                                                }`}
+                                              >
+                                                {task.priority || "Medium"}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </td>
+
+                                        {/* Status */}
+                                        <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                          <div
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {isAdminOrManager ? (
+                                              <select
+                                                value={task.status || "Pending"}
+                                                onChange={(e) =>
+                                                  handleTaskFieldChange(
+                                                    task._id,
+                                                    {
+                                                      status: e.target.value,
+                                                    },
+                                                  )
+                                                }
+                                                className={`badge-select ${
+                                                  task.status === "Completed"
+                                                    ? "badge-status-completed"
+                                                    : task.status ===
+                                                        "In Progress"
+                                                      ? "badge-status-in-progress"
+                                                      : task.status ===
+                                                          "On Hold"
+                                                        ? "badge-status-on-hold"
+                                                        : "badge-status-pending"
+                                                }`}
+                                              >
+                                                <option value="Pending">
+                                                  Pending
+                                                </option>
+                                                <option value="In Progress">
+                                                  In Progress
+                                                </option>
+                                                <option value="Completed">
+                                                  Completed
+                                                </option>
+                                                <option value="On Hold">
+                                                  On Hold
+                                                </option>
+                                              </select>
+                                            ) : (
+                                              <span
+                                                className={`badge-span ${
+                                                  task.status === "Completed"
+                                                    ? "badge-status-completed"
+                                                    : task.status ===
+                                                        "In Progress"
+                                                      ? "badge-status-in-progress"
+                                                      : task.status ===
+                                                          "On Hold"
+                                                        ? "badge-status-on-hold"
+                                                        : "badge-status-pending"
+                                                }`}
+                                              >
+                                                {task.status || "Pending"}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </td>
+
+                                        {/* Total Hours */}
+                                        <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                          <TimeTracker
+                                            startTime={task.actualStartTime}
+                                            endTime={task.actualEndTime}
+                                            status={task.status}
+                                          />
+                                        </td>
+
+                                        {/* Action Controls */}
+                                        <td className="px-3 py-2 border-b border-t border-slate-200 dark:border-slate-800 text-center">
+                                          <div
+                                            className="flex items-center justify-center gap-2.5"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            {isAdminOrManager && (
+                                              <>
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    handleAddSubtaskViaButton(
+                                                      task,
+                                                    )
+                                                  }
+                                                  className="text-slate-455 hover:text-blue-500 dark:hover:text-[#e5ff00] transition-colors p-1 flex items-center gap-0.5 text-[9px] font-bold cursor-pointer"
+                                                  title="Add Subtask"
+                                                >
+                                                  <FiPlus size={11} />
+                                                  <span>Subtask</span>
+                                                </button>
+
+                                                <button
+                                                  type="button"
+                                                  onClick={() =>
+                                                    handleParentTaskDelete(
+                                                      task._id,
+                                                    )
+                                                  }
+                                                  className="text-slate-455 hover:text-red-505 transition-colors p-1 cursor-pointer"
+                                                  title="Delete Task"
+                                                >
+                                                  <FiTrash2 size={12} />
+                                                </button>
+                                              </>
+                                            )}
+                                          </div>
+                                        </td>
+                                      </tr>
+
+                                      {isExpanded && (
+                                        <>
+                                          {(task.subtasks || []).map(
+                                            (sub, subIdx) => {
+                                              const isSubCompleted =
+                                                sub.status === "Completed";
+                                              const canToggleSub =
+                                                isAdminOrManager ||
+                                                sub.assignedTo?._id ===
+                                                  currentUser?._id ||
+                                                sub.assignedTo ===
+                                                  currentUser?._id;
+                                              const rowBgSub = isSubCompleted
+                                                ? "bg-slate-105/40 text-slate-405 dark:text-slate-550/80 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                                                : "bg-slate-50/70 dark:bg-slate-900/45 text-slate-855 dark:text-slate-100 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]";
+
+                                              return (
+                                                <tr
+                                                  key={sub._id || subIdx}
+                                                  className={`group/subrow transition-colors ${rowBgSub} hover:bg-blue-50/10 dark:hover:bg-[#e5ff00]/5`}
+                                                >
+                                                  {showSelectionColumn && (
+                                                    <td
+                                                      className={`px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 ${rowBgSub}`}
                                                     />
-                                                  </div>
-                                                </td>
-
-                                                {/* 4. Content Type Column */}
-                                                <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
-                                                  <div
+                                                  )}
+                                                  {/* 1. Name Column */}
+                                                  <td
+                                                    className={`px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 font-semibold pl-10 md:sticky md:left-0 z-10 min-w-[250px] md:min-w-[400px] ${rowBgSub}`}
                                                     onClick={(e) =>
                                                       e.stopPropagation()
                                                     }
                                                   >
-                                                    {isAdminOrManager ? (
-                                                      <select
-                                                        value={
-                                                          sub.contentType || ""
-                                                        }
-                                                        onChange={(e) =>
-                                                          handleSubtaskFieldChange(
-                                                            task,
-                                                            sub._id,
-                                                            {
-                                                              contentType:
-                                                                e.target.value,
-                                                            },
-                                                          )
-                                                        }
-                                                        className={`badge-select ${
-                                                          sub.contentType === "VIDEO" ? "badge-type-video"
-                                                          : sub.contentType === "IMAGE" ? "badge-type-image"
-                                                          : sub.contentType === "CAROUSEL" ? "badge-type-carousel"
-                                                          : sub.contentType === "REEL" ? "badge-type-reel"
-                                                          : sub.contentType === "POST" ? "badge-type-post"
-                                                          : sub.contentType === "STORY" ? "badge-type-story"
-                                                          : sub.contentType === "Website" ? "badge-type-video"
-                                                          : sub.contentType === "SEO" ? "badge-type-image"
-                                                          : sub.contentType === "Video shoot" ? "badge-type-carousel"
-                                                          : "badge-type-none"
-                                                        }`}
-                                                      >
-                                                        <option value="">NONE</option>
-                                                        <option value="VIDEO">VIDEO</option>
-                                                        <option value="IMAGE">IMAGE</option>
-                                                        <option value="CAROUSEL">CAROUSEL</option>
-                                                        <option value="REEL">REEL</option>
-                                                        <option value="POST">POST</option>
-                                                        <option value="STORY">STORY</option>
-                                                        <option value="Website">Website</option>
-                                                        <option value="SEO">SEO</option>
-                                                        <option value="Video shoot">Video shoot</option>
-                                                      </select>
-                                                    ) : (
-                                                      <span
-                                                        className={`badge-span ${
-                                                          sub.contentType === "VIDEO" ? "badge-type-video"
-                                                          : sub.contentType === "IMAGE" ? "badge-type-image"
-                                                          : sub.contentType === "CAROUSEL" ? "badge-type-carousel"
-                                                          : sub.contentType === "REEL" ? "badge-type-reel"
-                                                          : sub.contentType === "POST" ? "badge-type-post"
-                                                          : sub.contentType === "STORY" ? "badge-type-story"
-                                                          : sub.contentType === "Website" ? "badge-type-video"
-                                                          : sub.contentType === "SEO" ? "badge-type-image"
-                                                          : sub.contentType === "Video shoot" ? "badge-type-carousel"
-                                                          : "badge-type-none"
-                                                        }`}
-                                                      >
-                                                        {sub.contentType || "NONE"}
-                                                      </span>
-                                                    )}
-                                                  </div>
-                                                </td>
-
-                                                {/* 5. Start Date Column */}
-                                                <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
-                                                  <div
-                                                    className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      const input =
-                                                        e.currentTarget.querySelector(
-                                                          'input[type="date"]',
-                                                        );
-                                                      if (
-                                                        input &&
-                                                        typeof input.showPicker ===
-                                                          "function"
-                                                      ) {
-                                                        input.showPicker();
-                                                      }
-                                                    }}
-                                                  >
-                                                    {sub.startDate ? (
-                                                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-blue-300 dark:border-blue-800/80 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-855 dark:text-blue-200 text-[10px] font-bold bg-blue-100/90 dark:bg-blue-955/75 transition-all shadow-sm">
-                                                        <FiCalendar
-                                                          size={10.5}
-                                                          className="text-blue-600 dark:text-blue-450"
-                                                        />
-                                                        <span>
-                                                          {new Date(
-                                                            sub.startDate,
-                                                          ).toLocaleDateString(
-                                                            undefined,
-                                                            {
-                                                              month: "short",
-                                                              day: "numeric",
-                                                            },
-                                                          )}
-                                                        </span>
-                                                        {isAdminOrManager && (
-                                                          <button
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                              e.stopPropagation();
-                                                              handleSubtaskFieldChange(
-                                                                task,
-                                                                sub._id,
-                                                                {
-                                                                  startDate: null,
-                                                                },
-                                                              );
-                                                            }}
-                                                            className="ml-1 text-blue-505 hover:text-rose-600 dark:text-blue-450 dark:hover:text-rose-455 relative z-10 transition-colors cursor-pointer"
-                                                          >
-                                                            <FiX size={10} />
-                                                          </button>
-                                                        )}
-                                                      </div>
-                                                    ) : (
-                                                      <div className="flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-blue-300 dark:border-blue-800/80 text-blue-605 dark:text-blue-400/90 hover:border-blue-400 hover:text-blue-755 dark:hover:text-blue-305 dark:hover:border-blue-600/80 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-955/50 transition-all text-[8px] font-bold">
-                                                        <FiCalendar size={10.5} />
-                                                        <span>+ Start Date</span>
-                                                      </div>
-                                                    )}
-                                                    {isAdminOrManager && (
-                                                      <input
-                                                        type="date"
-                                                        value={
-                                                          sub.startDate
-                                                            ? new Date(
-                                                                sub.startDate,
-                                                              )
-                                                                .toISOString()
-                                                                .split("T")[0]
-                                                            : ""
-                                                        }
-                                                        onChange={(e) =>
-                                                          handleSubtaskFieldChange(
-                                                            task,
-                                                            sub._id,
-                                                            {
-                                                              startDate:
-                                                                e.target.value ||
-                                                                null,
-                                                            },
-                                                          )
-                                                        }
-                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                    <div className="flex items-center gap-2 w-full pl-4 border-l border-slate-150 dark:border-slate-850">
+                                                      <FiCornerDownRight
+                                                        className="text-slate-450 shrink-0"
+                                                        size={11}
                                                       />
-                                                    )}
-                                                  </div>
-                                                </td>
 
-                                                {/* 6. End Date Column */}
-                                                <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
-                                                  <div
-                                                    className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      const input =
-                                                        e.currentTarget.querySelector(
-                                                          'input[type="date"]',
-                                                        );
-                                                      if (
-                                                        input &&
-                                                        typeof input.showPicker ===
-                                                          "function"
-                                                      ) {
-                                                        input.showPicker();
-                                                      }
-                                                    }}
-                                                  >
-                                                    {sub.dueDate ? (
-                                                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-750/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-850 dark:text-rose-200 text-[10px] font-bold bg-rose-100/90 dark:bg-rose-955/75 transition-all shadow-sm">
-                                                        <FiCalendar
-                                                          size={10.5}
-                                                          className="text-rose-600 dark:text-rose-400"
-                                                        />
-                                                        <span>
-                                                          {new Date(
-                                                            sub.dueDate,
-                                                          ).toLocaleDateString(
-                                                            undefined,
-                                                            {
-                                                              month: "short",
-                                                              day: "numeric",
-                                                            },
-                                                          )}
-                                                        </span>
-                                                        {isAdminOrManager && (
-                                                          <button
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                              e.stopPropagation();
-                                                              handleSubtaskFieldChange(
-                                                                task,
-                                                                sub._id,
-                                                                {
-                                                                  dueDate: null,
-                                                                },
-                                                              );
-                                                            }}
-                                                            className="ml-1 text-rose-505 hover:text-rose-650 dark:text-rose-455 dark:hover:text-rose-455 relative z-10 transition-colors cursor-pointer"
-                                                          >
-                                                            <FiX size={10} />
-                                                          </button>
-                                                        )}
-                                                      </div>
-                                                    ) : (
-                                                      <div className="flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-rose-300 dark:border-rose-800/80 text-rose-605 dark:text-rose-400/90 hover:border-rose-400 hover:text-rose-750 dark:hover:text-rose-300 dark:hover:border-rose-600/80 bg-rose-50/50 dark:bg-rose-955/20 hover:bg-rose-100 dark:hover:bg-rose-955/50 transition-all text-[8px] font-bold">
-                                                        <FiCalendar size={10.5} />
-                                                        <span>+ End Date</span>
-                                                      </div>
-                                                    )}
-                                                    {isAdminOrManager && (
-                                                      <input
-                                                        type="date"
-                                                        value={
-                                                          sub.dueDate
-                                                            ? new Date(
-                                                                sub.dueDate,
-                                                              )
-                                                                .toISOString()
-                                                                .split("T")[0]
-                                                            : ""
-                                                        }
-                                                        min={
-                                                          sub.startDate
-                                                            ? new Date(
-                                                                sub.startDate,
-                                                              )
-                                                                .toISOString()
-                                                                .split("T")[0]
-                                                            : ""
-                                                        }
-                                                        onChange={(e) =>
-                                                          handleSubtaskFieldChange(
-                                                            task,
-                                                            sub._id,
-                                                            {
-                                                              dueDate:
-                                                                e.target.value ||
-                                                                null,
-                                                            },
-                                                          )
-                                                        }
-                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                      />
-                                                    )}
-                                                  </div>
-                                                </td>
-
-                                                {/* 7. Priority Column */}
-                                                <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
-                                                  <div
-                                                    onClick={(e) =>
-                                                      e.stopPropagation()
-                                                    }
-                                                  >
-                                                    {isAdminOrManager ? (
-                                                      <select
-                                                        value={
-                                                          sub.priority || "Medium"
-                                                        }
-                                                        onChange={(e) =>
-                                                          handleSubtaskFieldChange(
-                                                            task,
-                                                            sub._id,
-                                                            {
-                                                              priority:
-                                                                e.target.value,
-                                                            },
-                                                          )
-                                                        }
-                                                        className={`badge-select ${
-                                                          sub.priority === "High"
-                                                            ? "badge-priority-high"
-                                                            : sub.priority === "Medium"
-                                                              ? "badge-priority-medium"
-                                                              : "badge-priority-low"
-                                                        }`}
-                                                      >
-                                                        <option value="Low">Low</option>
-                                                        <option value="Medium">Medium</option>
-                                                        <option value="High">High</option>
-                                                      </select>
-                                                    ) : (
-                                                      <span
-                                                        className={`badge-span ${
-                                                          sub.priority === "High"
-                                                            ? "badge-priority-high"
-                                                            : sub.priority === "Medium"
-                                                              ? "badge-priority-medium"
-                                                              : "badge-priority-low"
-                                                        }`}
-                                                      >
-                                                        {sub.priority || "Medium"}
-                                                      </span>
-                                                    )}
-                                                  </div>
-                                                </td>
-
-                                                {/* 8. Status Column */}
-                                                <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
-                                                  <div
-                                                    onClick={(e) =>
-                                                      e.stopPropagation()
-                                                    }
-                                                  >
-                                                    {isAdminOrManager ? (
-                                                      <select
-                                                        value={
-                                                          sub.status || "Pending"
-                                                        }
-                                                        onChange={(e) =>
-                                                          handleSubtaskFieldChange(
-                                                            task,
-                                                            sub._id,
-                                                            {
-                                                              status:
-                                                                e.target.value,
-                                                            },
-                                                          )
-                                                        }
-                                                        className={`badge-select ${
-                                                          sub.status === "Completed"
-                                                            ? "badge-status-completed"
-                                                            : sub.status === "In Progress"
-                                                              ? "badge-status-in-progress"
-                                                              : sub.status === "On Hold"
-                                                                ? "badge-status-on-hold"
-                                                                : "badge-status-pending"
-                                                        }`}
-                                                      >
-                                                        <option value="Pending">Pending</option>
-                                                        <option value="In Progress">In Progress</option>
-                                                        <option value="Completed">Completed</option>
-                                                        <option value="On Hold">On Hold</option>
-                                                      </select>
-                                                    ) : (
-                                                      <span
-                                                        className={`badge-span ${
-                                                          sub.status === "Completed"
-                                                            ? "badge-status-completed"
-                                                            : sub.status === "In Progress"
-                                                              ? "badge-status-in-progress"
-                                                              : sub.status === "On Hold"
-                                                                ? "badge-status-on-hold"
-                                                                : "badge-status-pending"
-                                                        }`}
-                                                      >
-                                                        {sub.status || "Pending"}
-                                                      </span>
-                                                    )}
-                                                  </div>
-                                                </td>
-
-                                                {/* Total Hours Column */}
-                                                <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
-                                                  <TimeTracker 
-                                                    startTime={sub.actualStartTime} 
-                                                    endTime={sub.actualEndTime} 
-                                                    status={sub.status} 
-                                                  />
-                                                </td>
-
-                                                {/* 9. Actions Column */}
-                                                <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-slate-800 text-center">
-                                                  <div
-                                                    className="flex items-center justify-center gap-2.5 opacity-0 group-hover/subrow:opacity-100 transition-opacity"
-                                                    onClick={(e) =>
-                                                      e.stopPropagation()
-                                                    }
-                                                  >
-                                                    {isAdminOrManager && (
+                                                      {/* Subtask Checkbox */}
                                                       <button
                                                         type="button"
-                                                        onClick={() =>
-                                                          handleDeleteSubtask(
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          if (canToggleSub) {
+                                                            handleSubtaskFieldChange(
+                                                              task,
+                                                              sub._id,
+                                                              {
+                                                                status:
+                                                                  isSubCompleted
+                                                                    ? "Pending"
+                                                                    : "Completed",
+                                                              },
+                                                            );
+                                                          }
+                                                        }}
+                                                        disabled={!canToggleSub}
+                                                        className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center transition-all shrink-0 ${
+                                                          !canToggleSub
+                                                            ? "cursor-not-allowed opacity-50"
+                                                            : "cursor-pointer"
+                                                        } ${
+                                                          isSubCompleted
+                                                            ? "bg-emerald-500 border-emerald-500 text-white"
+                                                            : "border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
+                                                        }`}
+                                                      >
+                                                        <FiCheck size={8} />
+                                                      </button>
+
+                                                      {/* Subtask Title Input */}
+                                                      <span
+                                                        ref={(el) => {
+                                                          if (
+                                                            autoFocusSubtaskIdx ===
+                                                              subIdx &&
+                                                            el
+                                                          ) {
+                                                            el.focus();
+                                                            const range =
+                                                              document.createRange();
+                                                            range.selectNodeContents(
+                                                              el,
+                                                            );
+                                                            const sel =
+                                                              window.getSelection();
+                                                            sel.removeAllRanges();
+                                                            sel.addRange(range);
+                                                            setAutoFocusSubtaskIdx(
+                                                              null,
+                                                            );
+                                                          }
+                                                        }}
+                                                        contentEditable={
+                                                          canToggleSub
+                                                        }
+                                                        suppressContentEditableWarning={
+                                                          true
+                                                        }
+                                                        placeholder="Write a subtask..."
+                                                        onBlur={(e) => {
+                                                          const val =
+                                                            e.target.innerText.trim();
+                                                          if (
+                                                            val !== sub.title
+                                                          ) {
+                                                            handleSubtaskFieldChange(
+                                                              task,
+                                                              sub._id,
+                                                              {
+                                                                title: val,
+                                                              },
+                                                            );
+                                                          }
+                                                        }}
+                                                        onKeyDown={(e) => {
+                                                          if (
+                                                            e.key === "Enter"
+                                                          ) {
+                                                            e.preventDefault();
+                                                            handleSubtaskEnterKey(
+                                                              task,
+                                                              subIdx,
+                                                              e.target
+                                                                .innerText,
+                                                              false,
+                                                            );
+                                                          }
+                                                        }}
+                                                        className={`outline-none w-full font-bold text-slate-705 dark:text-white text-[11px] block min-h-[16px] cursor-text ${
+                                                          isSubCompleted
+                                                            ? "line-through text-slate-450 dark:text-slate-550"
+                                                            : ""
+                                                        }`}
+                                                      >
+                                                        {sub.title}
+                                                      </span>
+                                                      <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          setSelectedTaskId(
+                                                            task._id,
+                                                          );
+                                                          setTimeout(() => {
+                                                            const el =
+                                                              document.getElementById(
+                                                                "drawer-subtasks-section",
+                                                              );
+                                                            if (el) {
+                                                              el.scrollIntoView(
+                                                                {
+                                                                  behavior:
+                                                                    "smooth",
+                                                                  block:
+                                                                    "start",
+                                                                },
+                                                              );
+                                                            }
+                                                          }, 350);
+                                                        }}
+                                                        className="shrink-0 text-slate-400 dark:text-slate-555 hover:text-blue-500 dark:hover:text-[#e5ff00] p-0.5 rounded hover:bg-slate-100 dark:hover:bg-white/5 transition-all opacity-0 group-hover/subrow:opacity-100 cursor-pointer ml-auto"
+                                                        title="Open Details & View Subtasks"
+                                                      >
+                                                        <FiChevronRight
+                                                          size={12}
+                                                        />
+                                                      </button>
+                                                    </div>
+                                                  </td>
+
+                                                  {/* 2. Client Column */}
+                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 text-slate-450 opacity-60">
+                                                    {activeProject?.client
+                                                      ?.companyName ? (
+                                                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-50/70 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30">
+                                                        {
+                                                          activeProject.client
+                                                            .companyName
+                                                        }
+                                                      </span>
+                                                    ) : (
+                                                      <span className="text-slate-400 dark:text-slate-550 text-[9px] font-normal">
+                                                        N/A
+                                                      </span>
+                                                    )}
+                                                  </td>
+
+                                                  {/* 3. Assignee Column */}
+                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                                    <div
+                                                      className="flex items-center gap-1.5"
+                                                      onClick={(e) =>
+                                                        e.stopPropagation()
+                                                      }
+                                                    >
+                                                      <AssigneeDropdown
+                                                        selectedUser={
+                                                          sub.assignedTo
+                                                        }
+                                                        users={users}
+                                                        onChange={(userId) =>
+                                                          handleSubtaskFieldChange(
                                                             task,
                                                             sub._id,
+                                                            {
+                                                              assignedTo:
+                                                                userId,
+                                                            },
                                                           )
                                                         }
-                                                        className="text-slate-455 hover:text-red-500 transition-colors p-1 cursor-pointer"
-                                                        title="Delete Subtask"
-                                                      >
-                                                        <FiTrash2 size={12} />
-                                                      </button>
-                                                    )}
-                                                  </div>
-                                                </td>
-                                              </tr>
-                                            );
-                                          },
-                                        )}
-                                      </>
-                                    )}
-                                  </React.Fragment>
-                                );
-                              })}
+                                                        isAdminOrManager={
+                                                          isAdminOrManager
+                                                        }
+                                                        getAvatarColor={
+                                                          getAvatarColor
+                                                        }
+                                                        size="md"
+                                                      />
+                                                    </div>
+                                                  </td>
 
+                                                  {/* 4. Content Type Column */}
+                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                                    <div
+                                                      onClick={(e) =>
+                                                        e.stopPropagation()
+                                                      }
+                                                    >
+                                                      {isAdminOrManager ? (
+                                                        <select
+                                                          value={
+                                                            sub.contentType ||
+                                                            ""
+                                                          }
+                                                          onChange={(e) =>
+                                                            handleSubtaskFieldChange(
+                                                              task,
+                                                              sub._id,
+                                                              {
+                                                                contentType:
+                                                                  e.target
+                                                                    .value,
+                                                              },
+                                                            )
+                                                          }
+                                                          className={`badge-select ${
+                                                            sub.contentType ===
+                                                            "VIDEO"
+                                                              ? "badge-type-video"
+                                                              : sub.contentType ===
+                                                                  "IMAGE"
+                                                                ? "badge-type-image"
+                                                                : sub.contentType ===
+                                                                    "CAROUSEL"
+                                                                  ? "badge-type-carousel"
+                                                                  : sub.contentType ===
+                                                                      "REEL"
+                                                                    ? "badge-type-reel"
+                                                                    : sub.contentType ===
+                                                                        "POST"
+                                                                      ? "badge-type-post"
+                                                                      : sub.contentType ===
+                                                                          "STORY"
+                                                                        ? "badge-type-story"
+                                                                        : sub.contentType ===
+                                                                            "Website"
+                                                                          ? "badge-type-video"
+                                                                          : sub.contentType ===
+                                                                              "SEO"
+                                                                            ? "badge-type-image"
+                                                                            : sub.contentType ===
+                                                                                "Video shoot"
+                                                                              ? "badge-type-carousel"
+                                                                              : "badge-type-none"
+                                                          }`}
+                                                        >
+                                                          <option value="">
+                                                            NONE
+                                                          </option>
+                                                          <option value="VIDEO">
+                                                            VIDEO
+                                                          </option>
+                                                          <option value="IMAGE">
+                                                            IMAGE
+                                                          </option>
+                                                          <option value="CAROUSEL">
+                                                            CAROUSEL
+                                                          </option>
+                                                          <option value="REEL">
+                                                            REEL
+                                                          </option>
+                                                          <option value="POST">
+                                                            POST
+                                                          </option>
+                                                          <option value="STORY">
+                                                            STORY
+                                                          </option>
+                                                          <option value="Website">
+                                                            Website
+                                                          </option>
+                                                          <option value="SEO">
+                                                            SEO
+                                                          </option>
+                                                          <option value="Video shoot">
+                                                            Video shoot
+                                                          </option>
+                                                        </select>
+                                                      ) : (
+                                                        <span
+                                                          className={`badge-span ${
+                                                            sub.contentType ===
+                                                            "VIDEO"
+                                                              ? "badge-type-video"
+                                                              : sub.contentType ===
+                                                                  "IMAGE"
+                                                                ? "badge-type-image"
+                                                                : sub.contentType ===
+                                                                    "CAROUSEL"
+                                                                  ? "badge-type-carousel"
+                                                                  : sub.contentType ===
+                                                                      "REEL"
+                                                                    ? "badge-type-reel"
+                                                                    : sub.contentType ===
+                                                                        "POST"
+                                                                      ? "badge-type-post"
+                                                                      : sub.contentType ===
+                                                                          "STORY"
+                                                                        ? "badge-type-story"
+                                                                        : sub.contentType ===
+                                                                            "Website"
+                                                                          ? "badge-type-video"
+                                                                          : sub.contentType ===
+                                                                              "SEO"
+                                                                            ? "badge-type-image"
+                                                                            : sub.contentType ===
+                                                                                "Video shoot"
+                                                                              ? "badge-type-carousel"
+                                                                              : "badge-type-none"
+                                                          }`}
+                                                        >
+                                                          {sub.contentType ||
+                                                            "NONE"}
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                  </td>
 
-                            </>
-                          )}
+                                                  {/* 5. Start Date Column */}
+                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                                    <div
+                                                      className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const input =
+                                                          e.currentTarget.querySelector(
+                                                            'input[type="date"]',
+                                                          );
+                                                        if (
+                                                          input &&
+                                                          typeof input.showPicker ===
+                                                            "function"
+                                                        ) {
+                                                          input.showPicker();
+                                                        }
+                                                      }}
+                                                    >
+                                                      {sub.startDate ? (
+                                                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-blue-300 dark:border-blue-800/80 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-855 dark:text-blue-200 text-[10px] font-bold bg-blue-100/90 dark:bg-blue-955/75 transition-all shadow-sm">
+                                                          <FiCalendar
+                                                            size={10.5}
+                                                            className="text-blue-600 dark:text-blue-450"
+                                                          />
+                                                          <span>
+                                                            {new Date(
+                                                              sub.startDate,
+                                                            ).toLocaleDateString(
+                                                              undefined,
+                                                              {
+                                                                month: "short",
+                                                                day: "numeric",
+                                                              },
+                                                            )}
+                                                          </span>
+                                                          {isAdminOrManager && (
+                                                            <button
+                                                              type="button"
+                                                              onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleSubtaskFieldChange(
+                                                                  task,
+                                                                  sub._id,
+                                                                  {
+                                                                    startDate:
+                                                                      null,
+                                                                  },
+                                                                );
+                                                              }}
+                                                              className="ml-1 text-blue-505 hover:text-rose-600 dark:text-blue-450 dark:hover:text-rose-455 relative z-10 transition-colors cursor-pointer"
+                                                            >
+                                                              <FiX size={10} />
+                                                            </button>
+                                                          )}
+                                                        </div>
+                                                      ) : (
+                                                        <div className="flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-blue-300 dark:border-blue-800/80 text-blue-605 dark:text-blue-400/90 hover:border-blue-400 hover:text-blue-755 dark:hover:text-blue-305 dark:hover:border-blue-600/80 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-955/50 transition-all text-[8px] font-bold">
+                                                          <FiCalendar
+                                                            size={10.5}
+                                                          />
+                                                          <span>
+                                                            + Start Date
+                                                          </span>
+                                                        </div>
+                                                      )}
+                                                      {isAdminOrManager && (
+                                                        <input
+                                                          type="date"
+                                                          value={
+                                                            sub.startDate
+                                                              ? new Date(
+                                                                  sub.startDate,
+                                                                )
+                                                                  .toISOString()
+                                                                  .split("T")[0]
+                                                              : ""
+                                                          }
+                                                          onChange={(e) =>
+                                                            handleSubtaskFieldChange(
+                                                              task,
+                                                              sub._id,
+                                                              {
+                                                                startDate:
+                                                                  e.target
+                                                                    .value ||
+                                                                  null,
+                                                              },
+                                                            )
+                                                          }
+                                                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                        />
+                                                      )}
+                                                    </div>
+                                                  </td>
 
-                          {/* Spacer row between sections */}
-                          <tr className="h-20 pointer-events-none">
-                            <td
-                              colSpan={showSelectionColumn ? 11 : 10}
-                              className="h-20 p-10 border-0 bg-transparent"
-                            />
-                          </tr>
-                        </React.Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                                                  {/* 6. End Date Column */}
+                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                                    <div
+                                                      className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const input =
+                                                          e.currentTarget.querySelector(
+                                                            'input[type="date"]',
+                                                          );
+                                                        if (
+                                                          input &&
+                                                          typeof input.showPicker ===
+                                                            "function"
+                                                        ) {
+                                                          input.showPicker();
+                                                        }
+                                                      }}
+                                                    >
+                                                      {sub.dueDate ? (
+                                                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-750/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-850 dark:text-rose-200 text-[10px] font-bold bg-rose-100/90 dark:bg-rose-955/75 transition-all shadow-sm">
+                                                          <FiCalendar
+                                                            size={10.5}
+                                                            className="text-rose-600 dark:text-rose-400"
+                                                          />
+                                                          <span>
+                                                            {new Date(
+                                                              sub.dueDate,
+                                                            ).toLocaleDateString(
+                                                              undefined,
+                                                              {
+                                                                month: "short",
+                                                                day: "numeric",
+                                                              },
+                                                            )}
+                                                          </span>
+                                                          {isAdminOrManager && (
+                                                            <button
+                                                              type="button"
+                                                              onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleSubtaskFieldChange(
+                                                                  task,
+                                                                  sub._id,
+                                                                  {
+                                                                    dueDate:
+                                                                      null,
+                                                                  },
+                                                                );
+                                                              }}
+                                                              className="ml-1 text-rose-505 hover:text-rose-650 dark:text-rose-455 dark:hover:text-rose-455 relative z-10 transition-colors cursor-pointer"
+                                                            >
+                                                              <FiX size={10} />
+                                                            </button>
+                                                          )}
+                                                        </div>
+                                                      ) : (
+                                                        <div className="flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-rose-300 dark:border-rose-800/80 text-rose-605 dark:text-rose-400/90 hover:border-rose-400 hover:text-rose-750 dark:hover:text-rose-300 dark:hover:border-rose-600/80 bg-rose-50/50 dark:bg-rose-955/20 hover:bg-rose-100 dark:hover:bg-rose-955/50 transition-all text-[8px] font-bold">
+                                                          <FiCalendar
+                                                            size={10.5}
+                                                          />
+                                                          <span>
+                                                            + End Date
+                                                          </span>
+                                                        </div>
+                                                      )}
+                                                      {isAdminOrManager && (
+                                                        <input
+                                                          type="date"
+                                                          value={
+                                                            sub.dueDate
+                                                              ? new Date(
+                                                                  sub.dueDate,
+                                                                )
+                                                                  .toISOString()
+                                                                  .split("T")[0]
+                                                              : ""
+                                                          }
+                                                          min={
+                                                            sub.startDate
+                                                              ? new Date(
+                                                                  sub.startDate,
+                                                                )
+                                                                  .toISOString()
+                                                                  .split("T")[0]
+                                                              : ""
+                                                          }
+                                                          onChange={(e) =>
+                                                            handleSubtaskFieldChange(
+                                                              task,
+                                                              sub._id,
+                                                              {
+                                                                dueDate:
+                                                                  e.target
+                                                                    .value ||
+                                                                  null,
+                                                              },
+                                                            )
+                                                          }
+                                                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                        />
+                                                      )}
+                                                    </div>
+                                                  </td>
 
-              {/* ADD SECTION AT THE BOTTOM */}
-              {isAdminOrManager && (
-                <div className="bg-slate-50/40 dark:bg-white/5 border border-dashed border-slate-200 dark:border-white/10 rounded-2xl p-4 flex items-center justify-start mt-4">
-                  {isAddingSection ? (
-                    <form
-                      onSubmit={handleAddSectionSubmit}
-                      className="flex items-center gap-2"
-                    >
-                      <input
-                        type="text"
-                        autoFocus
-                        value={newSectionName}
-                        onChange={(e) => setNewSectionName(e.target.value)}
-                        placeholder="New section name..."
-                        className="px-3 py-1.5 text-xs font-bold border border-slate-200 dark:border-white/10 rounded-lg bg-transparent focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00] text-slate-705 dark:text-white"
-                      />
-                      <button
-                        type="submit"
-                        className="px-3 py-1.5 bg-blue-600 dark:bg-[#e5ff00] hover:bg-blue-700 dark:hover:bg-[#ccff00] text-white dark:text-black font-bold text-[10px] rounded-lg cursor-pointer"
-                      >
-                        Save
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsAddingSection(false);
-                          setNewSectionName("");
-                        }}
-                        className="px-3 py-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 font-bold text-[10px] rounded-lg cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                    </form>
-                  ) : (
-                    <button
-                      onClick={() => setIsAddingSection(true)}
-                      className="flex items-center gap-1.5 text-slate-550 dark:text-slate-400 hover:text-slate-800 dark:hover:text-[#e5ff00] font-bold text-[11px] transition-colors cursor-pointer"
-                    >
-                      <FiPlus size={14} /> Add Section
-                    </button>
-                  )}
+                                                  {/* 7. Priority Column */}
+                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                                    <div
+                                                      onClick={(e) =>
+                                                        e.stopPropagation()
+                                                      }
+                                                    >
+                                                      {isAdminOrManager ? (
+                                                        <select
+                                                          value={
+                                                            sub.priority ||
+                                                            "Medium"
+                                                          }
+                                                          onChange={(e) =>
+                                                            handleSubtaskFieldChange(
+                                                              task,
+                                                              sub._id,
+                                                              {
+                                                                priority:
+                                                                  e.target
+                                                                    .value,
+                                                              },
+                                                            )
+                                                          }
+                                                          className={`badge-select ${
+                                                            sub.priority ===
+                                                            "High"
+                                                              ? "badge-priority-high"
+                                                              : sub.priority ===
+                                                                  "Medium"
+                                                                ? "badge-priority-medium"
+                                                                : "badge-priority-low"
+                                                          }`}
+                                                        >
+                                                          <option value="Low">
+                                                            Low
+                                                          </option>
+                                                          <option value="Medium">
+                                                            Medium
+                                                          </option>
+                                                          <option value="High">
+                                                            High
+                                                          </option>
+                                                        </select>
+                                                      ) : (
+                                                        <span
+                                                          className={`badge-span ${
+                                                            sub.priority ===
+                                                            "High"
+                                                              ? "badge-priority-high"
+                                                              : sub.priority ===
+                                                                  "Medium"
+                                                                ? "badge-priority-medium"
+                                                                : "badge-priority-low"
+                                                          }`}
+                                                        >
+                                                          {sub.priority ||
+                                                            "Medium"}
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                  </td>
+
+                                                  {/* 8. Status Column */}
+                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                                    <div
+                                                      onClick={(e) =>
+                                                        e.stopPropagation()
+                                                      }
+                                                    >
+                                                      {isAdminOrManager ? (
+                                                        <select
+                                                          value={
+                                                            sub.status ||
+                                                            "Pending"
+                                                          }
+                                                          onChange={(e) =>
+                                                            handleSubtaskFieldChange(
+                                                              task,
+                                                              sub._id,
+                                                              {
+                                                                status:
+                                                                  e.target
+                                                                    .value,
+                                                              },
+                                                            )
+                                                          }
+                                                          className={`badge-select ${
+                                                            sub.status ===
+                                                            "Completed"
+                                                              ? "badge-status-completed"
+                                                              : sub.status ===
+                                                                  "In Progress"
+                                                                ? "badge-status-in-progress"
+                                                                : sub.status ===
+                                                                    "On Hold"
+                                                                  ? "badge-status-on-hold"
+                                                                  : "badge-status-pending"
+                                                          }`}
+                                                        >
+                                                          <option value="Pending">
+                                                            Pending
+                                                          </option>
+                                                          <option value="In Progress">
+                                                            In Progress
+                                                          </option>
+                                                          <option value="Completed">
+                                                            Completed
+                                                          </option>
+                                                          <option value="On Hold">
+                                                            On Hold
+                                                          </option>
+                                                        </select>
+                                                      ) : (
+                                                        <span
+                                                          className={`badge-span ${
+                                                            sub.status ===
+                                                            "Completed"
+                                                              ? "badge-status-completed"
+                                                              : sub.status ===
+                                                                  "In Progress"
+                                                                ? "badge-status-in-progress"
+                                                                : sub.status ===
+                                                                    "On Hold"
+                                                                  ? "badge-status-on-hold"
+                                                                  : "badge-status-pending"
+                                                          }`}
+                                                        >
+                                                          {sub.status ||
+                                                            "Pending"}
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                  </td>
+
+                                                  {/* Total Hours Column */}
+                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                                    <TimeTracker
+                                                      startTime={
+                                                        sub.actualStartTime
+                                                      }
+                                                      endTime={
+                                                        sub.actualEndTime
+                                                      }
+                                                      status={sub.status}
+                                                    />
+                                                  </td>
+
+                                                  {/* 9. Actions Column */}
+                                                  <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-slate-800 text-center">
+                                                    <div
+                                                      className="flex items-center justify-center gap-2.5 opacity-0 group-hover/subrow:opacity-100 transition-opacity"
+                                                      onClick={(e) =>
+                                                        e.stopPropagation()
+                                                      }
+                                                    >
+                                                      {isAdminOrManager && (
+                                                        <button
+                                                          type="button"
+                                                          onClick={() =>
+                                                            handleDeleteSubtask(
+                                                              task,
+                                                              sub._id,
+                                                            )
+                                                          }
+                                                          className="text-slate-455 hover:text-red-500 transition-colors p-1 cursor-pointer"
+                                                          title="Delete Subtask"
+                                                        >
+                                                          <FiTrash2 size={12} />
+                                                        </button>
+                                                      )}
+                                                    </div>
+                                                  </td>
+                                                </tr>
+                                              );
+                                            },
+                                          )}
+                                        </>
+                                      )}
+                                    </React.Fragment>
+                                  );
+                                })}
+                              </>
+                            )}
+
+                            {/* Spacer row between sections */}
+                            <tr className="h-20 pointer-events-none">
+                              <td
+                                colSpan={showSelectionColumn ? 11 : 10}
+                                className="h-20 p-10 border-0 bg-transparent"
+                              />
+                            </tr>
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-              )}
-            </div>
-          );
-        })()}
+
+                {/* ADD SECTION AT THE BOTTOM */}
+                {isAdminOrManager && (
+                  <div className="bg-slate-50/40 dark:bg-white/5 border border-dashed border-slate-200 dark:border-white/10 rounded-2xl p-4 flex items-center justify-start mt-4">
+                    {isAddingSection ? (
+                      <form
+                        onSubmit={handleAddSectionSubmit}
+                        className="flex items-center gap-2"
+                      >
+                        <input
+                          type="text"
+                          autoFocus
+                          value={newSectionName}
+                          onChange={(e) => setNewSectionName(e.target.value)}
+                          placeholder="New section name..."
+                          className="px-3 py-1.5 text-xs font-bold border border-slate-200 dark:border-white/10 rounded-lg bg-transparent focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00] text-slate-705 dark:text-white"
+                        />
+                        <button
+                          type="submit"
+                          className="px-3 py-1.5 bg-blue-600 dark:bg-[#e5ff00] hover:bg-blue-700 dark:hover:bg-[#ccff00] text-white dark:text-black font-bold text-[10px] rounded-lg cursor-pointer"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsAddingSection(false);
+                            setNewSectionName("");
+                          }}
+                          className="px-3 py-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 font-bold text-[10px] rounded-lg cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </form>
+                    ) : (
+                      <button
+                        onClick={() => setIsAddingSection(true)}
+                        className="flex items-center gap-1.5 text-slate-550 dark:text-slate-400 hover:text-slate-800 dark:hover:text-[#e5ff00] font-bold text-[11px] transition-colors cursor-pointer"
+                      >
+                        <FiPlus size={14} /> Add Section
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
         {activeTab === "Board" && (
           <DragDropContext onDragEnd={handleDragEnd}>

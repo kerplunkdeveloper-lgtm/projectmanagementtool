@@ -75,6 +75,16 @@ const Dashboardmain = () => {
   const { clients } = useSelector((state) => state.clients);
   const { users } = useSelector((state) => state.users);
 
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // Process chart data for departments
   const departmentCounts = users?.reduce((acc, user) => {
     if (user.department) {
@@ -119,16 +129,16 @@ const Dashboardmain = () => {
   const chartOptions = {
     plugins: {
       legend: {
-        position: 'right',
+        position: isMobile ? 'bottom' : 'right',
         labels: {
           color: legendColor,
           font: {
             family: "'Inter', sans-serif",
-            size: 11,
+            size: isMobile ? 9 : 11,
             weight: 600
           },
           usePointStyle: true,
-          padding: 16
+          padding: isMobile ? 8 : 16
         }
       },
       tooltip: {
@@ -393,7 +403,9 @@ const Dashboardmain = () => {
             
             {/* Center Label inside Doughnut */}
             {Object.keys(departmentCounts).length > 0 && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none md:pr-[120px]">
+              <div className={`absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-all duration-300 ${
+                isMobile ? "pb-[30px]" : "pr-[120px]"
+              }`}>
                 <span className="text-3xl font-black theme-text-primary">{users?.filter(u => u.department).length || 0}</span>
                 <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Assigned</span>
               </div>
