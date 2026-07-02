@@ -37,6 +37,12 @@ const colors = [
     darkGradient: "linear-gradient(135deg, #fb7185, #fda4af)",
   },
   {
+    id: "cyan",
+    name: "Electric Cyan",
+    lightGradient: "linear-gradient(135deg, #06b6d4, #22d3ee)",
+    darkGradient: "linear-gradient(135deg, #22d3ee, #67e8f9)",
+  },
+  {
     id: "lime",
     name: "Neon Lime",
     lightGradient: "linear-gradient(135deg, #84cc16, #a3e635)",
