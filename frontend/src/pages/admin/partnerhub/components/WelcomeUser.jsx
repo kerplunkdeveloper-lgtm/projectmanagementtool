@@ -297,23 +297,23 @@ const WelcomeUser = () => {
             <div className="flex items-center justify-between px-1 mb-1.5">
               <button 
                 onClick={handlePrevMonth}
-                className="w-5 h-5 flex items-center justify-center text-[12px] font-bold text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-[#e5ff00] hover:bg-slate-100 dark:hover:bg-white/5 rounded transition-all"
+                className="w-5 h-5 flex items-center justify-center text-[12px] font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-[#e5ff00] hover:bg-slate-100 dark:hover:bg-white/5 rounded transition-all"
               >
                 ‹
               </button>
-              <span className="text-[11px] font-black text-slate-800 dark:text-slate-200">
+              <span className="text-[11px] font-black text-slate-800 dark:text-white">
                 {activeViewDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
               </span>
               <button 
                 onClick={handleNextMonth}
-                className="w-5 h-5 flex items-center justify-center text-[12px] font-bold text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-[#e5ff00] hover:bg-slate-100 dark:hover:bg-white/5 rounded transition-all"
+                className="w-5 h-5 flex items-center justify-center text-[12px] font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-[#e5ff00] hover:bg-slate-100 dark:hover:bg-white/5 rounded transition-all"
               >
                 ›
               </button>
             </div>
 
             {/* Weekdays */}
-            <div className="grid grid-cols-7 text-center text-[7px] font-black text-slate-400 dark:text-slate-500 mb-1.5 tracking-wider">
+            <div className="grid grid-cols-7 text-center text-[7px] font-black text-slate-900 dark:text-white mb-1.5 tracking-wider">
               <span>SUN</span>
               <span>MON</span>
               <span>TUE</span>
@@ -373,14 +373,14 @@ const WelcomeUser = () => {
             {/* Digital Clock Display */}
             <div className="w-[110px] h-[110px] rounded-2xl theme-bg-accent opacity-90 border border-slate-200/80 dark:border-slate-800/80 flex flex-col items-center justify-center shadow-inner">
               {/* Digital Display: HH : MM */}
-              <div className="flex items-center text-2xl font-bold my-0.5 tracking-tight leading-none">
+              <div className="flex items-center text-white text-3xl font-bold my-0.5 tracking-tight leading-none">
                 <span>{String(currentTime.getHours() % 12 || 12).padStart(2, '0')}</span>
-                <span className="mx-1 text-red-500 animate-pulse font-normal">:</span>
+                <span className="mx-1 text-white  animate-pulse font-normal">:</span>
                 <span>{String(currentTime.getMinutes()).padStart(2, '0')}</span>
               </div>
 
               {/* AM/PM Pill */}
-              <div className="text-[14px] font-black uppercase px-2.5 py-0.5 rounded mt-2 tracking-wider">
+              <div className="text-white text-[15px] font-black uppercase px-2.5 py-0.5 rounded mt-2 tracking-wider">
                 {currentTime.getHours() >= 12 ? "PM" : "AM"}
               </div>
             </div>

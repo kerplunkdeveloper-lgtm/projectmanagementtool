@@ -1,6 +1,4 @@
 import React, { useState, useEffect } from "react";
-import logo from "../../assets/light.png";
-import logoDark from "../../assets/logodark.png";
 import { useTheme } from "../../context/ThemeContext";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { FiX, FiLogOut, FiFolder, FiList, FiLayers } from "react-icons/fi";
@@ -39,7 +37,6 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     theme === "dark" ||
     (theme === "system" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
-  const activeLogo = isDark ? logoDark : logo;
 
   const { notifications } = useSelector((state) => state.notifications);
   const unreadCount = notifications
@@ -138,14 +135,26 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         `}
       >
         {/* HEADER */}
-        <div className="flex items-center justify-between px-4 py-4">
+        <div className="flex items-center justify-between px-4 py-4 ">
           {/* LOGO */}
-          <div className="overflow-hidden">
-            <img
-              src={activeLogo}
-              alt="logo"
-              className="w-[110px] lg:w-[130px]  object-contain dark:brightness-100"
-            />
+          <div
+            onClick={() => navigate(`/${role}`)}
+            className="logo-container group"
+            title="Kerplunk Media"
+          >
+            <div className="logo-border-wrapper">
+              <div className="logo-spinning-border" />
+            </div>
+            <div className="logo-inner">
+              <span className="logo-text-kerplunk">
+                {"KERPLUNK".split("").map((char, index) => (
+                  <span key={index} className="logo-char">
+                    {char}
+                  </span>
+                ))}
+              </span>
+            </div>
+            <span className="logo-text-media">MEDIA</span>
           </div>
 
           <button

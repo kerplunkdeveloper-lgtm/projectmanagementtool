@@ -221,7 +221,7 @@ const Navbar = ({ setSidebarOpen }) => {
         </button>
 
         {/* PAGE TITLE */}
-        <h1 className="text-[12px] md:text-[20px] theme-text-accent font-bold ">
+        <h1 className="text-[12px] md:text-[17px] uppercase theme-text-accent font-bold ">
           {pageTitle}
         </h1>
       </div>

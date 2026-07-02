@@ -1545,8 +1545,299 @@ td:first-child {
   animation: bounceHorizontal 1s infinite;
 }
 
+/* Custom spinning border logo container */
+.logo-container {
+  position: relative;
+  width: 145px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: transparent;
+  user-select: none;
+}
 
+/* Border wrapper that clips the rotating background */
+.logo-border-wrapper {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  z-index: 1;
+}
 
+/* The spinning gradient border element */
+.logo-spinning-border {
+  position: absolute;
+  top: -150%;
+  left: -150%;
+  width: 400%;
+  height: 400%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 15%,
+    var(--accent-color) 35%,
+    var(--accent-color) 65%,
+    transparent 85%
+  );
+  animation: logo-spin 4s linear infinite;
+}
 
+.dark .logo-spinning-border {
+  background: conic-gradient(
+    from 0deg,
+    transparent 15%,
+    var(--accent-color-dark) 35%,
+    var(--accent-color-dark) 65%,
+    transparent 85%
+  );
+}
 
+@keyframes logo-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
 
+/* Inner content area of the logo */
+.logo-inner {
+  position: absolute;
+  inset: 1.5px; /* Border thickness */
+  background-color: #ffffff;
+  border-radius: 10.5px; /* rounded-xl (12px) - inset (1.5px) */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .logo-inner {
+  background-color: #0b0c10;
+}
+
+/* KERPLUNK Text Styles */
+.logo-text-kerplunk {
+  font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: #0f172a;
+  text-transform: uppercase;
+  display: flex;
+  margin-right: -0.16em;
+  transition: color 0.3s ease;
+  z-index: 3;
+}
+
+.dark .logo-text-kerplunk {
+  color: #ffffff;
+}
+
+/* Individual character animation with hover effect */
+.logo-char {
+  display: inline-block;
+  animation: logo-text-glow 4s ease-in-out infinite;
+}
+
+/* Delay for each character to create a waving effect */
+.logo-char:nth-child(1) { animation-delay: 0s; }
+.logo-char:nth-child(2) { animation-delay: 0.15s; }
+.logo-char:nth-child(3) { animation-delay: 0.3s; }
+.logo-char:nth-child(4) { animation-delay: 0.45s; }
+.logo-char:nth-child(5) { animation-delay: 0.6s; }
+.logo-char:nth-child(6) { animation-delay: 0.75s; }
+.logo-char:nth-child(7) { animation-delay: 0.9s; }
+.logo-char:nth-child(8) { animation-delay: 1.05s; }
+
+@keyframes logo-text-glow {
+  0%, 100% {
+    color: inherit;
+    text-shadow: 0 0 0px transparent;
+    transform: translateY(0);
+  }
+  50% {
+    color: var(--accent-color);
+    text-shadow: 0 0 8px rgba(59, 130, 246, 0.35);
+    transform: translateY(-1.5px);
+  }
+}
+
+.dark .logo-char {
+  animation: logo-text-glow-dark 4s ease-in-out infinite;
+}
+
+@keyframes logo-text-glow-dark {
+  0%, 100% {
+    color: inherit;
+    text-shadow: 0 0 0px transparent;
+    transform: translateY(0);
+  }
+  50% {
+    color: var(--accent-color-dark);
+    text-shadow: 0 0 10px rgba(229, 255, 0, 0.5);
+    transform: translateY(-1.5px);
+  }
+}
+
+/* MEDIA Text Styles - Outside the clipping wrapper, can overflow now */
+.logo-text-media {
+  position: absolute;
+  bottom: -5.5px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: 0.3em;
+  color: #64748b;
+  text-transform: uppercase;
+  background-color: #ffffff;
+  padding: 0 8px;
+  z-index: 4;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-right: -0.3em;
+}
+
+.dark .logo-text-media {
+  color: #94a3b8;
+  background-color: #0b0c10;
+}
+
+/* Container Hover Animations */
+.logo-container:hover .logo-spinning-border {
+  animation-duration: 1.8s; /* Spins faster on hover */
+}
+
+.logo-container:hover .logo-inner {
+  background-color: #f8fafc;
+}
+
+.dark .logo-container:hover .logo-inner {
+  background-color: #11131a;
+}
+
+.logo-container:hover .logo-text-media {
+  color: var(--accent-color);
+  letter-spacing: 0.4em;
+  margin-right: -0.4em;
+}
+
+.dark .logo-container:hover .logo-text-media {
+  color: var(--accent-color-dark);
+}
+
+/* Premium Animated Gradient Background for Login page */
+.login-gradient-bg {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent-color) 40%, #000) 0%, 
+    color-mix(in srgb, var(--accent-color) 20%, #000) 50%,
+    #020617 100%
+  );
+  overflow: hidden;
+}
+
+.dark .login-gradient-bg {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--accent-color-dark) 10%, #020710) 0%, 
+    #020710 100%
+  );
+}
+
+/* Floating animated glowing blobs */
+.login-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.45;
+  mix-blend-mode: plus-lighter;
+  animation: float-blob 20s infinite alternate ease-in-out;
+}
+
+.login-blob-1 {
+  width: 350px;
+  height: 350px;
+  top: -10%;
+  left: -10%;
+  background: var(--accent-color);
+  animation-duration: 25s;
+}
+
+.dark .login-blob-1 {
+  background: var(--accent-color-dark);
+  opacity: 0.25;
+}
+
+.login-blob-2 {
+  width: 400px;
+  height: 400px;
+  bottom: -10%;
+  right: -10%;
+  background: color-mix(in srgb, var(--accent-color) 60%, #fff);
+  animation-duration: 30s;
+  animation-delay: -5s;
+}
+
+.dark .login-blob-2 {
+  background: color-mix(in srgb, var(--accent-color-dark) 40%, #000);
+  opacity: 0.2;
+}
+
+.login-blob-3 {
+  width: 250px;
+  height: 250px;
+  top: 40%;
+  left: 30%;
+  background: #3b82f6; /* Soft blue highlight */
+  animation-duration: 20s;
+  animation-delay: -10s;
+}
+
+.dark .login-blob-3 {
+  background: #0284c7;
+  opacity: 0.15;
+}
+
+@keyframes float-blob {
+  0% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1) rotate(120deg);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.95) rotate(240deg);
+  }
+  100% {
+    transform: translate(0, 0) scale(1) rotate(360deg);
+  }
+}
+
+/* Diagonal glass lines / grid overlay for high-tech premium feel */
+.login-grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0),
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 0.85;
+  z-index: 1;
+}
+
+.dark .login-grid-overlay {
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.03) 1px, transparent 0),
+    linear-gradient(to right, rgba(255, 255, 255, 0.01) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.01) 1px, transparent 1px);
+  opacity: 0.6;
+}
