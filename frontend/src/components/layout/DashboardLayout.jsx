@@ -14,7 +14,9 @@ const DashboardLayout = ({ role }) => {
   const location = useLocation();
   const isChatPage =
     location.pathname.endsWith("/chat") || location.pathname.includes("/chat");
-  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 1024);
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => window.innerWidth >= 1024,
+  );
   const { user, originalAdminUser } = useSelector((state) => state.auth);
 
   const handleSwitchBack = () => {
@@ -26,7 +28,7 @@ const DashboardLayout = ({ role }) => {
   return (
     <div className="h-screen overflow-hidden theme-bg-main relative">
       {/* Glassmorphic Background Blobs */}
-      <div className="fixed top-[-10%] left-[-10%] w-[350px] h-[350px] rounded-full bg-gradient-to-br from-blue-400/20 to-indigo-500/20 blur-[80px] pointer-events-none z-0 dark:from-indigo-500/10 dark:to-[#e5ff00]/5" />
+      <div className="fixed top-[-10%] left-[-10%] w-[350px] h-[350px] rounded-full bg-gradient-to-br from-blue-400/20 to-indigo-500/20 blur-[80px] pointer-events-none z-0 dark:from-indigo-500/10 dark:to-[#3b82f6]/5" />
       <div className="fixed bottom-[20%] left-[-5%] w-[250px] h-[250px] rounded-full bg-gradient-to-br from-pink-400/10 to-purple-500/15 blur-[60px] pointer-events-none z-0 dark:from-purple-500/5 dark:to-blue-500/5" />
       {/* SIDEBAR */}
       <Sidebar
@@ -36,10 +38,12 @@ const DashboardLayout = ({ role }) => {
       />
 
       {/* RIGHT SIDE */}
-      <div className={`h-screen flex flex-col relative z-10 transition-all duration-300 ease-in-out ${sidebarOpen ? "lg:ml-48 xl:ml-52" : "lg:ml-0"}`}>
+      <div
+        className={`h-screen flex flex-col relative z-10 transition-all duration-300 ease-in-out ${sidebarOpen ? "lg:ml-48 xl:ml-52" : "lg:ml-0"}`}
+      >
         {/* IMPERSONATION BANNER */}
         {originalAdminUser && (
-          <div className="bg-blue-500 dark:bg-[#e5ff00]  px-4 py-2 text-[10px] flex items-center justify-between gap-5 shadow-md z-50">
+          <div className="bg-blue-500 dark:bg-[#3b82f6]  px-4 py-2 text-[10px] flex items-center justify-between gap-5 shadow-md z-50">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 dark:bg-red-500   animate-pulse" />
               <span className="dark:text-black">

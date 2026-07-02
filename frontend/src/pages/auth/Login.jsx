@@ -10,8 +10,8 @@ import { useNavigate } from "react-router-dom";
 
 import toast from "react-hot-toast";
 
-import lightlogin from "../../assets/newlogo.png";
-import darklogin from "../../assets/newlogo.png";
+import lightlogin from "../../assets/logo.png";
+import darklogin from "../../assets/logo.png";
 
 
 const Login = () => {
@@ -68,16 +68,16 @@ const Login = () => {
   return (
     <div className="min-h-screen theme-bg-main flex flex-col md:flex-row overflow-hidden">
       {/* TOP / LEFT SIDE IMAGE SECTION */}
-      <div id="login-image-section" className="relative w-full h-[39vh] sm:h-[45vh] md:h-screen md:w-[55%] xl:w-[60%] overflow-hidden flex items-center justify-center shrink-0 z-0" style={{ background: 'var(--color-brand-gradient)' }}>
+      <div id="login-image-section" className=" relative w-full h-[39vh] sm:h-[45vh] md:h-screen md:w-[55%] xl:w-[60%] overflow-hidden flex items-center justify-center shrink-0 z-0" style={{ background: 'var(--color-brand-gradient)' }}>
         <img
           src={lightlogin}
           alt="Project Management Light"
-          className="w-[600px] md:w-[900px] h-auto object-contain block dark:hidden hover:scale-105 transition-transform duration-[2s] ease-out"
+          className="w-[600px] md:w-auto md:h-full mt-0 md:mt-30 h-auto object-contain block dark:hidden"
         />
         <img
           src={darklogin}
           alt="Project Management Dark"
-          className="w-[600px] md:w-[900px] h-auto object-contain hidden dark:block hover:scale-105 transition-transform duration-[2s] ease-out opacity-90"
+          className="w-[600px] md:w-auto md:h-full h-auto object-contain hidden dark:block"
         />
       </div>
 

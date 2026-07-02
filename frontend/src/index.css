@@ -42,11 +42,11 @@ html {
   --accent-gradient: linear-gradient(180deg, #92d1ef 0%, #69afe2 50%, #408ed8 100%);
   --accent-color: #3b82f6;
   --accent-hover-shadow: rgba(64, 142, 216, 0.25);
-  --accent-gradient-dark: #e5ff00;
-  --accent-color-dark: #e5ff00;
-  --accent-hover-shadow-dark: rgba(229, 255, 0, 0.25);
+  --accent-gradient-dark: linear-gradient(135deg, #3b82f6, #60a5fa);
+  --accent-color-dark: #60a5fa;
+  --accent-hover-shadow-dark: rgba(96, 165, 250, 0.25);
   --accent-light-bg-subtle: rgba(59, 130, 246, 0.1);
-  --accent-dark-bg-subtle: rgba(229, 255, 0, 0.1);
+  --accent-dark-bg-subtle: rgba(96, 165, 250, 0.1);
 
   /* Theme-specific variables */
   --color-brand-primary: var(--accent-color); /* Dynamically mapped */
@@ -637,7 +637,7 @@ select.badge-select:hover, span.badge-span:hover {
 }
 .dark .badge-status-in-progress {
   background: linear-gradient(135deg, rgba(229, 255, 0, 0.12) 0%, rgba(229, 255, 0, 0.22) 100%) !important;
-  color: #e5ff00 !important;
+  color: #3b82f6 !important;
   border-color: rgba(229, 255, 0, 0.35) !important;
   box-shadow: 0 0 10px rgba(229, 255, 0, 0.2) !important;
 }
@@ -852,7 +852,7 @@ select.badge-select:hover, span.badge-span:hover {
 
 .dark .chat-sidebar-item-active {
   background-color: rgba(229, 255, 0, 0.07) !important;
-  border-left-color: #e5ff00 !important;
+  border-left-color: #3b82f6 !important;
 }
 
 /* Sidebar item text contrast control */
@@ -886,7 +886,7 @@ select.badge-select:hover, span.badge-span:hover {
 
 /* When active in dark mode */
 .dark .chat-sidebar-item-active .item-title {
-  color: #e5ff00 !important; /* Neon Yellow Accent */
+  color: #3b82f6 !important; /* Neon Yellow Accent */
 }
 .dark .chat-sidebar-item-active .item-subtitle {
   color: #cbd5e1 !important;
@@ -901,9 +901,9 @@ select.badge-select:hover, span.badge-span:hover {
 
 .dark .chat-bubble-me {
   background-image: none !important;
-  background-color: #e5ff00 !important;
+  background-color: #3b82f6 !important;
   color: #000000 !important;
-  border-color: #e5ff00 !important;
+  border-color: #3b82f6 !important;
   font-weight: 700 !important;
 }
 
@@ -935,7 +935,7 @@ select.badge-select:hover, span.badge-span:hover {
   --accent-gradient: linear-gradient(180deg, #a7f3d0 0%, #34d399 50%, #059669 100%);
   --accent-color: #059669;
   --accent-hover-shadow: rgba(5, 150, 105, 0.25);
-  --accent-gradient-dark: #10b981;
+  --accent-gradient-dark: linear-gradient(135deg, #10b981, #34d399);
   --accent-color-dark: #10b981;
   --accent-hover-shadow-dark: rgba(16, 185, 129, 0.25);
   --accent-light-bg-subtle: rgba(5, 150, 105, 0.1);
@@ -945,7 +945,7 @@ select.badge-select:hover, span.badge-span:hover {
   --accent-gradient: linear-gradient(180deg, #ddd6fe 0%, #a78bfa 50%, #7c3aed 100%);
   --accent-color: #7c3aed;
   --accent-hover-shadow: rgba(124, 58, 237, 0.25);
-  --accent-gradient-dark: #8b5cf6;
+  --accent-gradient-dark: linear-gradient(135deg, #7c3aed, #a78bfa);
   --accent-color-dark: #8b5cf6;
   --accent-hover-shadow-dark: rgba(139, 92, 246, 0.25);
   --accent-light-bg-subtle: rgba(124, 58, 237, 0.1);
@@ -955,7 +955,7 @@ select.badge-select:hover, span.badge-span:hover {
   --accent-gradient: linear-gradient(180deg, #fef3c7 0%, #fbbf24 50%, #d97706 100%);
   --accent-color: #d97706;
   --accent-hover-shadow: rgba(217, 119, 6, 0.25);
-  --accent-gradient-dark: #f59e0b;
+  --accent-gradient-dark: linear-gradient(135deg, #d97706, #fbbf24);
   --accent-color-dark: #f59e0b;
   --accent-hover-shadow-dark: rgba(245, 158, 11, 0.25);
   --accent-light-bg-subtle: rgba(217, 119, 6, 0.1);
@@ -965,7 +965,7 @@ select.badge-select:hover, span.badge-span:hover {
   --accent-gradient: linear-gradient(180deg, #ffe4e6 0%, #f43f5e 50%, #e11d48 100%);
   --accent-color: #e11d48;
   --accent-hover-shadow: rgba(225, 29, 72, 0.25);
-  --accent-gradient-dark: #f43f5e;
+  --accent-gradient-dark: linear-gradient(135deg, #e11d48, #fb7185);
   --accent-color-dark: #f43f5e;
   --accent-hover-shadow-dark: rgba(244, 63, 94, 0.25);
   --accent-light-bg-subtle: rgba(225, 29, 72, 0.1);
@@ -982,9 +982,11 @@ select.badge-select:hover, span.badge-span:hover {
 
 .theme-bg-accent {
   background-color: var(--accent-color) !important;
+  background-image: var(--accent-gradient) !important;
 }
 .dark .theme-bg-accent {
   background-color: var(--accent-color-dark) !important;
+  background-image: var(--accent-gradient-dark) !important;
 }
 
 .theme-border-accent {
@@ -992,6 +994,53 @@ select.badge-select:hover, span.badge-span:hover {
 }
 .dark .theme-border-accent {
   border-color: var(--accent-color-dark) !important;
+}
+
+/* Premium Button Gradient and Glow Effects */
+button.theme-bg-accent,
+button.bg-brand-primary,
+button.bg-blue-600,
+button.bg-blue-500,
+button[type="submit"] {
+  background-image: var(--accent-gradient) !important;
+  background-color: var(--accent-color) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+.dark button.theme-bg-accent,
+.dark button.bg-brand-primary,
+.dark button.bg-blue-600,
+.dark button.bg-blue-500,
+.dark button[type="submit"] {
+  background-image: var(--accent-gradient-dark) !important;
+  background-color: var(--accent-color-dark) !important;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+button.theme-bg-accent:hover,
+button.bg-brand-primary:hover,
+button.bg-blue-600:hover,
+button.bg-blue-500:hover,
+button[type="submit"]:hover {
+  opacity: 0.95 !important;
+  box-shadow: 0 4px 15px var(--accent-hover-shadow) !important;
+  transform: translateY(-1px);
+}
+.dark button.theme-bg-accent:hover,
+.dark button.bg-brand-primary:hover,
+.dark button.bg-blue-600:hover,
+.dark button.bg-blue-500:hover,
+.dark button[type="submit"]:hover {
+  opacity: 0.95 !important;
+  box-shadow: 0 4px 15px var(--accent-hover-shadow-dark) !important;
+  transform: translateY(-1px);
+}
+
+button.theme-bg-accent:active,
+button.bg-brand-primary:active,
+button.bg-blue-600:active,
+button.bg-blue-500:active,
+button[type="submit"]:active {
+  transform: translateY(1px);
 }
 
 .chat-sidebar-item-active {
@@ -1017,238 +1066,93 @@ select.badge-select:hover, span.badge-span:hover {
 }
 
 /* GLOBAL ACCENT COLOR OVERRIDES FOR TEXT */
-:root[data-accent="emerald"] .text-blue-600,
-:root[data-accent="emerald"] .text-blue-500,
-:root[data-accent="emerald"] .text-indigo-600,
-:root[data-accent="emerald"] .text-indigo-500,
-:root[data-accent="emerald"] .text-blue-900,
-:root[data-accent="emerald"] .text-indigo-900,
-
-:root[data-accent="violet"] .text-blue-600,
-:root[data-accent="violet"] .text-blue-500,
-:root[data-accent="violet"] .text-indigo-600,
-:root[data-accent="violet"] .text-indigo-500,
-:root[data-accent="violet"] .text-blue-900,
-:root[data-accent="violet"] .text-indigo-900,
-
-:root[data-accent="amber"] .text-blue-600,
-:root[data-accent="amber"] .text-blue-500,
-:root[data-accent="amber"] .text-indigo-600,
-:root[data-accent="amber"] .text-indigo-500,
-:root[data-accent="amber"] .text-blue-900,
-:root[data-accent="amber"] .text-indigo-900,
-
-:root[data-accent="rose"] .text-blue-600,
-:root[data-accent="rose"] .text-blue-500,
-:root[data-accent="rose"] .text-indigo-600,
-:root[data-accent="rose"] .text-indigo-500,
-:root[data-accent="rose"] .text-blue-900,
-:root[data-accent="rose"] .text-indigo-900 {
+.text-blue-600,
+.text-blue-500,
+.text-indigo-600,
+.text-indigo-500,
+.text-blue-900,
+.text-indigo-900 {
   color: var(--accent-color) !important;
 }
 
 /* Dark mode text overrides */
-:root[data-accent="emerald"] .dark .dark\:text-\[\#e5ff00\],
-:root[data-accent="emerald"] .dark .text-blue-500,
-:root[data-accent="emerald"] .dark .text-blue-600,
-:root[data-accent="emerald"] .dark .text-indigo-500,
-:root[data-accent="emerald"] .dark .text-indigo-600,
-:root[data-accent="emerald"] .dark .text-blue-900,
-:root[data-accent="emerald"] .dark .text-indigo-900,
-
-:root[data-accent="violet"] .dark .dark\:text-\[\#e5ff00\],
-:root[data-accent="violet"] .dark .text-blue-500,
-:root[data-accent="violet"] .dark .text-blue-600,
-:root[data-accent="violet"] .dark .text-indigo-500,
-:root[data-accent="violet"] .dark .text-indigo-600,
-:root[data-accent="violet"] .dark .text-blue-900,
-:root[data-accent="violet"] .dark .text-indigo-900,
-
-:root[data-accent="amber"] .dark .dark\:text-\[\#e5ff00\],
-:root[data-accent="amber"] .dark .text-blue-500,
-:root[data-accent="amber"] .dark .text-blue-600,
-:root[data-accent="amber"] .dark .text-indigo-500,
-:root[data-accent="amber"] .dark .text-indigo-600,
-:root[data-accent="amber"] .dark .text-blue-900,
-:root[data-accent="amber"] .dark .text-indigo-900,
-
-:root[data-accent="rose"] .dark .dark\:text-\[\#e5ff00\],
-:root[data-accent="rose"] .dark .text-blue-500,
-:root[data-accent="rose"] .dark .text-blue-600,
-:root[data-accent="rose"] .dark .text-indigo-500,
-:root[data-accent="rose"] .dark .text-indigo-600,
-:root[data-accent="rose"] .dark .text-blue-900,
-:root[data-accent="rose"] .dark .text-indigo-900 {
+.dark .dark\:text-\[\#3b82f6\],
+.dark .dark\:text-\[\#e5ff00\],
+.dark .text-blue-500,
+.dark .text-blue-600,
+.dark .text-indigo-500,
+.dark .text-indigo-600,
+.dark .text-blue-900,
+.dark .text-indigo-900 {
   color: var(--accent-color-dark) !important;
 }
 
 /* GLOBAL ACCENT BACKGROUND OVERRIDES */
-:root[data-accent="emerald"] .bg-blue-600,
-:root[data-accent="emerald"] .bg-blue-505,
-:root[data-accent="emerald"] .bg-blue-500,
-:root[data-accent="emerald"] .bg-indigo-650,
-:root[data-accent="emerald"] .bg-indigo-600,
-:root[data-accent="emerald"] .bg-indigo-500,
-
-:root[data-accent="violet"] .bg-blue-600,
-:root[data-accent="violet"] .bg-blue-505,
-:root[data-accent="violet"] .bg-blue-500,
-:root[data-accent="violet"] .bg-indigo-650,
-:root[data-accent="violet"] .bg-indigo-600,
-:root[data-accent="violet"] .bg-indigo-500,
-
-:root[data-accent="amber"] .bg-blue-600,
-:root[data-accent="amber"] .bg-blue-505,
-:root[data-accent="amber"] .bg-blue-500,
-:root[data-accent="amber"] .bg-indigo-650,
-:root[data-accent="amber"] .bg-indigo-600,
-:root[data-accent="amber"] .bg-indigo-500,
-
-:root[data-accent="rose"] .bg-blue-600,
-:root[data-accent="rose"] .bg-blue-505,
-:root[data-accent="rose"] .bg-blue-500,
-:root[data-accent="rose"] .bg-indigo-650,
-:root[data-accent="rose"] .bg-indigo-600,
-:root[data-accent="rose"] .bg-indigo-500 {
+.bg-blue-600,
+.bg-blue-505,
+.bg-blue-500,
+.bg-indigo-650,
+.bg-indigo-600,
+.bg-indigo-500 {
   background-color: var(--accent-color) !important;
   background-image: var(--accent-gradient) !important;
 }
 
 /* Subtle background overrides */
-:root[data-accent="emerald"] .bg-blue-50,
-:root[data-accent="emerald"] .bg-indigo-50,
-:root[data-accent="emerald"] .bg-blue-600\/10,
-:root[data-accent="emerald"] .bg-indigo-600\/10,
-
-:root[data-accent="violet"] .bg-blue-50,
-:root[data-accent="violet"] .bg-indigo-50,
-:root[data-accent="violet"] .bg-blue-600\/10,
-:root[data-accent="violet"] .bg-indigo-600\/10,
-
-:root[data-accent="amber"] .bg-blue-50,
-:root[data-accent="amber"] .bg-indigo-50,
-:root[data-accent="amber"] .bg-blue-600\/10,
-:root[data-accent="amber"] .bg-indigo-600\/10,
-
-:root[data-accent="rose"] .bg-blue-50,
-:root[data-accent="rose"] .bg-indigo-50,
-:root[data-accent="rose"] .bg-blue-600\/10,
-:root[data-accent="rose"] .bg-indigo-600\/10 {
+.bg-blue-50,
+.bg-indigo-50,
+.bg-blue-600\/10,
+.bg-indigo-600\/10 {
   background-color: var(--accent-light-bg-subtle) !important;
   background-image: none !important;
 }
 
 /* Dark mode background overrides */
-:root[data-accent="emerald"] .dark .dark\:bg-\[\#e5ff00\],
-:root[data-accent="emerald"] .dark .bg-blue-600,
-:root[data-accent="emerald"] .dark .bg-blue-505,
-:root[data-accent="emerald"] .dark .bg-blue-500,
-:root[data-accent="emerald"] .dark .bg-indigo-650,
-:root[data-accent="emerald"] .dark .bg-indigo-600,
-:root[data-accent="emerald"] .dark .bg-[#e5ff00],
-
-:root[data-accent="violet"] .dark .dark\:bg-\[\#e5ff00\],
-:root[data-accent="violet"] .dark .bg-blue-600,
-:root[data-accent="violet"] .dark .bg-blue-505,
-:root[data-accent="violet"] .dark .bg-blue-500,
-:root[data-accent="violet"] .dark .bg-indigo-650,
-:root[data-accent="violet"] .dark .bg-indigo-600,
-:root[data-accent="violet"] .dark .bg-[#e5ff00],
-
-:root[data-accent="amber"] .dark .dark\:bg-\[\#e5ff00\],
-:root[data-accent="amber"] .dark .bg-blue-600,
-:root[data-accent="amber"] .dark .bg-blue-505,
-:root[data-accent="amber"] .dark .bg-blue-500,
-:root[data-accent="amber"] .dark .bg-indigo-650,
-:root[data-accent="amber"] .dark .bg-indigo-600,
-:root[data-accent="amber"] .dark .bg-[#e5ff00],
-
-:root[data-accent="rose"] .dark .dark\:bg-\[\#e5ff00\],
-:root[data-accent="rose"] .dark .bg-blue-600,
-:root[data-accent="rose"] .dark .bg-blue-505,
-:root[data-accent="rose"] .dark .bg-blue-500,
-:root[data-accent="rose"] .dark .bg-indigo-650,
-:root[data-accent="rose"] .dark .bg-indigo-600,
-:root[data-accent="rose"] .dark .bg-[#e5ff00] {
+.dark .dark\:bg-\[\#3b82f6\],
+.dark .dark\:bg-\[\#e5ff00\],
+.dark .bg-blue-600,
+.dark .bg-blue-505,
+.dark .bg-blue-500,
+.dark .bg-indigo-650,
+.dark .bg-indigo-600,
+.dark .bg-\[\#3b82f6\],
+.dark .bg-\[\#e5ff00\] {
   background-color: var(--accent-color-dark) !important;
-  background-image: none !important;
+  background-image: var(--accent-gradient-dark) !important;
 }
 
 /* Dark mode subtle background overrides */
-:root[data-accent="emerald"] .dark .dark\:bg-\[\#e5ff00\]\/10,
-:root[data-accent="emerald"] .dark .bg-blue-600\/10,
-:root[data-accent="emerald"] .dark .bg-blue-500\/10,
-:root[data-accent="emerald"] .dark .bg-indigo-600\/10,
-:root[data-accent="emerald"] .dark .bg-indigo-500\/10,
-
-:root[data-accent="violet"] .dark .dark\:bg-\[\#e5ff00\]\/10,
-:root[data-accent="violet"] .dark .bg-blue-600\/10,
-:root[data-accent="violet"] .dark .bg-blue-500\/10,
-:root[data-accent="violet"] .dark .bg-indigo-600\/10,
-:root[data-accent="violet"] .dark .bg-indigo-500\/10,
-
-:root[data-accent="amber"] .dark .dark\:bg-\[\#e5ff00\]\/10,
-:root[data-accent="amber"] .dark .bg-blue-600\/10,
-:root[data-accent="amber"] .dark .bg-blue-500\/10,
-:root[data-accent="amber"] .dark .bg-indigo-600\/10,
-:root[data-accent="amber"] .dark .bg-indigo-500\/10,
-
-:root[data-accent="rose"] .dark .dark\:bg-\[\#e5ff00\]\/10,
-:root[data-accent="rose"] .dark .bg-blue-600\/10,
-:root[data-accent="rose"] .dark .bg-blue-500\/10,
-:root[data-accent="rose"] .dark .bg-indigo-600\/10,
-:root[data-accent="rose"] .dark .bg-indigo-500\/10 {
+.dark .dark\:bg-\[\#3b82f6\]\/10,
+.dark .dark\:bg-\[\#e5ff00\]\/10,
+.dark .dark\:bg-\[\#e5ff00\]\/20,
+.dark .bg-blue-600\/10,
+.dark .bg-blue-500\/10,
+.dark .bg-indigo-600\/10,
+.dark .bg-indigo-500\/10 {
   background-color: var(--accent-dark-bg-subtle) !important;
   background-image: none !important;
 }
 
 /* Border overrides */
-:root[data-accent="emerald"] .border-blue-500,
-:root[data-accent="emerald"] .border-indigo-500,
-:root[data-accent="emerald"] .border-blue-600,
-:root[data-accent="emerald"] .border-indigo-600,
-
-:root[data-accent="violet"] .border-blue-500,
-:root[data-accent="violet"] .border-indigo-500,
-:root[data-accent="violet"] .border-blue-600,
-:root[data-accent="violet"] .border-indigo-600,
-
-:root[data-accent="amber"] .border-blue-500,
-:root[data-accent="amber"] .border-indigo-500,
-:root[data-accent="amber"] .border-blue-600,
-:root[data-accent="amber"] .border-indigo-600,
-
-:root[data-accent="rose"] .border-blue-500,
-:root[data-accent="rose"] .border-indigo-500,
-:root[data-accent="rose"] .border-blue-600,
-:root[data-accent="rose"] .border-indigo-600 {
+.border-blue-500,
+.border-indigo-500,
+.border-blue-600,
+.border-indigo-600 {
   border-color: var(--accent-color) !important;
 }
 
 /* Dark mode border overrides */
-:root[data-accent="emerald"] .dark .border-blue-500,
-:root[data-accent="emerald"] .dark .border-indigo-500,
-:root[data-accent="emerald"] .dark .border-blue-600,
-:root[data-accent="emerald"] .dark .border-indigo-600,
-:root[data-accent="emerald"] .dark .dark\:border-\[\#e5ff00\]\/25,
-
-:root[data-accent="violet"] .dark .border-blue-500,
-:root[data-accent="violet"] .dark .border-indigo-500,
-:root[data-accent="violet"] .dark .border-blue-600,
-:root[data-accent="violet"] .dark .border-indigo-600,
-:root[data-accent="violet"] .dark .dark\:border-\[\#e5ff00\]\/25,
-
-:root[data-accent="amber"] .dark .border-blue-500,
-:root[data-accent="amber"] .dark .border-indigo-500,
-:root[data-accent="amber"] .dark .border-blue-600,
-:root[data-accent="amber"] .dark .border-indigo-600,
-:root[data-accent="amber"] .dark .dark\:border-\[\#e5ff00\]\/25,
-
-:root[data-accent="rose"] .dark .border-blue-500,
-:root[data-accent="rose"] .dark .border-indigo-500,
-:root[data-accent="rose"] .dark .border-blue-600,
-:root[data-accent="rose"] .dark .border-indigo-600,
-:root[data-accent="rose"] .dark .dark\:border-\[\#e5ff00\]\/25 {
+.dark .border-blue-500,
+.dark .border-indigo-500,
+.dark .border-blue-600,
+.dark .border-indigo-600,
+.dark .dark\:border-\[\#3b82f6\]\/25,
+.dark .dark\:border-\[\#e5ff00\],
+.dark .dark\:border-\[\#e5ff00\]\/20,
+.dark .dark\:border-\[\#e5ff00\]\/25,
+.dark .dark\:border-\[\#e5ff00\]\/30,
+.dark .dark\:hover\:border-\[\#e5ff00\],
+.dark .dark\:focus\:border-\[\#e5ff00\] {
   border-color: var(--accent-color-dark) !important;
 }
 
@@ -1366,12 +1270,24 @@ td:first-child {
    so all theme-bg-accent, theme-text-accent, etc. work
 =================================================== */
 
+/* DEFAULT (OCEAN BLUE) */
+:root[data-accent="default"] {
+  --accent-color: #3b82f6;
+  --accent-color-dark: #60a5fa;
+  --accent-gradient: linear-gradient(180deg, #92d1ef 0%, #69afe2 50%, #408ed8 100%);
+  --accent-gradient-dark: linear-gradient(135deg, #3b82f6, #60a5fa);
+  --accent-hover-shadow: rgba(64, 142, 216, 0.25);
+  --accent-hover-shadow-dark: rgba(96, 165, 250, 0.25);
+  --accent-light-bg-subtle: rgba(59, 130, 246, 0.1);
+  --accent-dark-bg-subtle: rgba(96, 165, 250, 0.1);
+}
+
 /* CYAN */
 :root[data-accent="cyan"] {
   --accent-color: #06b6d4;
   --accent-color-dark: #22d3ee;
   --accent-gradient: linear-gradient(135deg, #06b6d4, #22d3ee);
-  --accent-gradient-dark: #22d3ee;
+  --accent-gradient-dark: linear-gradient(135deg, #06b6d4, #22d3ee);
   --accent-hover-shadow: rgba(6, 182, 212, 0.3);
   --accent-hover-shadow-dark: rgba(34, 211, 238, 0.3);
   --accent-light-bg-subtle: rgba(6, 182, 212, 0.1);
@@ -1381,9 +1297,9 @@ td:first-child {
 /* LIME */
 :root[data-accent="lime"] {
   --accent-color: #84cc16;
-  --accent-color-dark: #e5ff00;
+  --accent-color-dark: #3b82f6;
   --accent-gradient: linear-gradient(135deg, #84cc16, #a3e635);
-  --accent-gradient-dark: #e5ff00;
+  --accent-gradient-dark: linear-gradient(135deg, #3b82f6, #60a5fa);
   --accent-hover-shadow: rgba(132, 204, 22, 0.3);
   --accent-hover-shadow-dark: rgba(229, 255, 0, 0.3);
   --accent-light-bg-subtle: rgba(132, 204, 22, 0.1);
@@ -1395,7 +1311,7 @@ td:first-child {
   --accent-color: #d946ef;
   --accent-color-dark: #e879f9;
   --accent-gradient: linear-gradient(135deg, #d946ef, #e879f9);
-  --accent-gradient-dark: #e879f9;
+  --accent-gradient-dark: linear-gradient(135deg, #d946ef, #e879f9);
   --accent-hover-shadow: rgba(217, 70, 239, 0.3);
   --accent-hover-shadow-dark: rgba(232, 121, 249, 0.3);
   --accent-light-bg-subtle: rgba(217, 70, 239, 0.1);
@@ -1407,7 +1323,7 @@ td:first-child {
   --accent-color: #0d9488;
   --accent-color-dark: #2dd4bf;
   --accent-gradient: linear-gradient(135deg, #0d9488, #2dd4bf);
-  --accent-gradient-dark: #2dd4bf;
+  --accent-gradient-dark: linear-gradient(135deg, #0d9488, #2dd4bf);
   --accent-hover-shadow: rgba(13, 148, 136, 0.3);
   --accent-hover-shadow-dark: rgba(45, 212, 191, 0.3);
   --accent-light-bg-subtle: rgba(13, 148, 136, 0.1);
@@ -1419,7 +1335,7 @@ td:first-child {
   --accent-color: #dc2626;
   --accent-color-dark: #f87171;
   --accent-gradient: linear-gradient(135deg, #dc2626, #f87171);
-  --accent-gradient-dark: #f87171;
+  --accent-gradient-dark: linear-gradient(135deg, #dc2626, #f87171);
   --accent-hover-shadow: rgba(220, 38, 38, 0.3);
   --accent-hover-shadow-dark: rgba(248, 113, 113, 0.3);
   --accent-light-bg-subtle: rgba(220, 38, 38, 0.1);
@@ -1431,7 +1347,7 @@ td:first-child {
   --accent-color: #4f46e5;
   --accent-color-dark: #818cf8;
   --accent-gradient: linear-gradient(135deg, #4f46e5, #818cf8);
-  --accent-gradient-dark: #818cf8;
+  --accent-gradient-dark: linear-gradient(135deg, #4f46e5, #818cf8);
   --accent-hover-shadow: rgba(79, 70, 229, 0.3);
   --accent-hover-shadow-dark: rgba(129, 140, 248, 0.3);
   --accent-light-bg-subtle: rgba(79, 70, 229, 0.1);
@@ -1443,7 +1359,7 @@ td:first-child {
   --accent-color: #b45309;
   --accent-color-dark: #f59e0b;
   --accent-gradient: linear-gradient(135deg, #b45309, #d97706);
-  --accent-gradient-dark: #f59e0b;
+  --accent-gradient-dark: linear-gradient(135deg, #b45309, #f59e0b);
   --accent-hover-shadow: rgba(180, 83, 9, 0.3);
   --accent-hover-shadow-dark: rgba(245, 158, 11, 0.3);
   --accent-light-bg-subtle: rgba(180, 83, 9, 0.1);

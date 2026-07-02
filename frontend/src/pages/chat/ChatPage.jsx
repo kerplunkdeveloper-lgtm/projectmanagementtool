@@ -369,7 +369,9 @@ const ChatPage = () => {
 
   // Load chat history on activeChat change ONLY (not on rooms change)
   useEffect(() => {
-    const isGroupType = activeChat === "group" || roomsRef.current.some((r) => r._id === activeChat);
+    const isGroupType =
+      activeChat === "group" ||
+      roomsRef.current.some((r) => r._id === activeChat);
     if (isGroupType) {
       dispatch(fetchGroupMessages(activeChat));
     } else {
@@ -400,7 +402,7 @@ const ChatPage = () => {
       performJoin();
     }
 
-    socketRef.current.on('connect', performJoin);
+    socketRef.current.on("connect", performJoin);
 
     socketRef.current.on("direct_message", (msg) => {
       dispatch(
@@ -740,7 +742,12 @@ const ChatPage = () => {
 
   // Clear Direct Message conversation
   const handleClearChat = async (targetUserId, targetUserName) => {
-    if (!window.confirm(`Are you sure you want to delete all messages with ${targetUserName}?`)) return;
+    if (
+      !window.confirm(
+        `Are you sure you want to delete all messages with ${targetUserName}?`,
+      )
+    )
+      return;
 
     try {
       await dispatch(clearChatAction(targetUserId)).unwrap();
@@ -798,16 +805,18 @@ const ChatPage = () => {
 
   const filteredUsers = users?.filter((u) => {
     if (u._id === currentUserId) return false;
-    
+
     // Search Term Filter
-    const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = u.name
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
     if (!matchesSearch) return false;
-    
+
     // Department Filter
     if (selectedDept !== "All") {
       return u.department === selectedDept;
     }
-    
+
     return true;
   });
 
@@ -855,7 +864,7 @@ const ChatPage = () => {
             </h2>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="w-7 h-7 rounded-lg bg-blue-600 text-white hover:bg-blue-700 dark:bg-[#e5ff00] dark:text-gray-900 flex items-center justify-center transition-all cursor-pointer shadow-sm"
+              className="w-7 h-7 rounded-lg bg-blue-600 text-white hover:bg-blue-700 dark:bg-[#3b82f6] dark:text-gray-900 flex items-center justify-center transition-all cursor-pointer shadow-sm"
               title="Create Custom Group"
             >
               <FiPlus size={16} />
@@ -868,7 +877,7 @@ const ChatPage = () => {
               placeholder="Search team member..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs outline-none focus:border-blue-600 dark:focus:border-[#e5ff00] focus:ring-2 focus:ring-blue-600/20 dark:focus:ring-[#e5ff00]/20 transition-all theme-text-primary placeholder:theme-text-secondary"
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs outline-none focus:border-blue-600 dark:focus:border-[#3b82f6] focus:ring-2 focus:ring-blue-600/20 dark:focus:ring-[#3b82f6]/20 transition-all theme-text-primary placeholder:theme-text-secondary"
             />
           </div>
         </div>
@@ -890,15 +899,13 @@ const ChatPage = () => {
               }`}
             >
               <div
-                className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${activeChat === "group" ? "bg-blue-600/10 text-blue-600 dark:bg-[#e5ff00]/10 dark:text-[#e5ff00]" : "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black shadow-sm"}`}
+                className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${activeChat === "group" ? "bg-blue-600/10 text-blue-600 dark:bg-[#3b82f6]/10 dark:text-[#3b82f6]" : "bg-blue-600 text-white dark:bg-[#3b82f6] dark:text-black shadow-sm"}`}
               >
                 <FiLayers size={16} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <span className="item-title truncate">
-                    Common group Chat
-                  </span>
+                  <span className="item-title truncate">Common group Chat</span>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {unreadCounts["group"] > 0 && (
                       <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shrink-0 min-w-[16px] text-center shadow-sm">
@@ -939,15 +946,13 @@ const ChatPage = () => {
                   }`}
                 >
                   <div
-                    className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${activeChat === r._id ? "bg-blue-600/10 text-blue-600 dark:bg-[#e5ff00]/10 dark:text-[#e5ff00]" : "bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black shadow-sm"}`}
+                    className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${activeChat === r._id ? "bg-blue-600/10 text-blue-600 dark:bg-[#3b82f6]/10 dark:text-[#3b82f6]" : "bg-blue-600 text-white dark:bg-[#3b82f6] dark:text-black shadow-sm"}`}
                   >
                     <FiUsers size={16} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="item-title truncate">
-                        {r.name}
-                      </span>
+                      <span className="item-title truncate">{r.name}</span>
                       <div className="flex items-center gap-1.5 shrink-0">
                         {unreadCounts[r._id] > 0 && (
                           <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shrink-0 min-w-[16px] text-center shadow-sm">
@@ -1027,11 +1032,11 @@ const ChatPage = () => {
                     <img
                       src={u.profile.profileImage.url}
                       alt="profile"
-                      className={`w-10 h-10 rounded-2xl object-cover border ${activeChat === u._id ? "border-blue-600/30 dark:border-[#e5ff00]/30" : "theme-border"}`}
+                      className={`w-10 h-10 rounded-2xl object-cover border ${activeChat === u._id ? "border-blue-600/30 dark:border-[#3b82f6]/30" : "theme-border"}`}
                     />
                   ) : (
                     <div
-                      className={`w-10 h-10 rounded-2xl border flex items-center justify-center font-bold text-xs ${activeChat === u._id ? "bg-blue-600/10 border-blue-600/20 text-blue-600 dark:bg-[#e5ff00]/10 dark:border-[#e5ff00]/20 dark:text-[#e5ff00] font-bold" : "bg-indigo-100 dark:bg-indigo-900/40 border-indigo-200/80 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400"}`}
+                      className={`w-10 h-10 rounded-2xl border flex items-center justify-center font-bold text-xs ${activeChat === u._id ? "bg-blue-600/10 border-blue-600/20 text-blue-600 dark:bg-[#3b82f6]/10 dark:border-[#3b82f6]/20 dark:text-[#3b82f6] font-bold" : "bg-indigo-100 dark:bg-indigo-900/40 border-indigo-200/80 dark:border-indigo-800/60 text-indigo-600 dark:text-indigo-400"}`}
                     >
                       {u.name.charAt(0)}
                     </div>
@@ -1041,9 +1046,7 @@ const ChatPage = () => {
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <span className="item-title truncate block">
-                    {u.name}
-                  </span>
+                  <span className="item-title truncate block">{u.name}</span>
                   <p className="item-subtitle truncate mt-0.5">
                     {lastMessages[u._id]
                       ? formatLastMessageText(lastMessages[u._id])
@@ -1057,7 +1060,7 @@ const ChatPage = () => {
                       {unreadCounts[u._id]}
                     </span>
                   )}
-                  
+
                   {/* Action Group */}
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100 transition-all duration-200 origin-right">
                     <button
@@ -1065,7 +1068,7 @@ const ChatPage = () => {
                         e.stopPropagation();
                         setProfileModalUser(u);
                       }}
-                      className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-650 dark:hover:text-[#e5ff00] transition-colors cursor-pointer"
+                      className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-indigo-650 dark:hover:text-[#3b82f6] transition-colors cursor-pointer"
                       title="View Profile"
                     >
                       <FiEye size={13} />
@@ -1106,7 +1109,7 @@ const ChatPage = () => {
 
             {activeChat === "group" ? (
               <>
-                <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black flex items-center justify-center font-bold shadow-md shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white dark:bg-[#3b82f6] dark:text-black flex items-center justify-center font-bold shadow-md shrink-0">
                   <FiLayers size={16} />
                 </div>
                 <div className="min-w-0">
@@ -1146,7 +1149,7 @@ const ChatPage = () => {
                     onClick={() => setProfileModalUser(activeChatUser)}
                   />
                 ) : (
-                  <div 
+                  <div
                     className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-900/40 border border-indigo-100 dark:border-indigo-800/60 flex items-center justify-center font-black text-indigo-600 dark:text-indigo-400 text-xs shrink-0 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
                     onClick={() => setProfileModalUser(activeChatUser)}
                   >
@@ -1173,7 +1176,11 @@ const ChatPage = () => {
             {activeChatUser && (
               <button
                 onClick={() => {
-                  if (window.confirm("Are you sure you want to clear this conversation history? This cannot be undone.")) {
+                  if (
+                    window.confirm(
+                      "Are you sure you want to clear this conversation history? This cannot be undone.",
+                    )
+                  ) {
                     dispatch(clearChatAction(activeChatUser._id));
                   }
                 }}
@@ -1185,14 +1192,14 @@ const ChatPage = () => {
             )}
             <button
               onClick={() => startCall("voice")}
-              className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white dark:bg-[#e5ff00] dark:text-black flex items-center justify-center font-bold transition-all cursor-pointer shadow-sm"
+              className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white dark:bg-[#3b82f6] dark:text-black flex items-center justify-center font-bold transition-all cursor-pointer shadow-sm"
               title="Voice Call"
             >
               <FiPhone size={14} />
             </button>
             <button
               onClick={() => startCall("video")}
-              className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white dark:bg-[#e5ff00] dark:text-black flex items-center justify-center font-bold transition-all cursor-pointer shadow-sm"
+              className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white dark:bg-[#3b82f6] dark:text-black flex items-center justify-center font-bold transition-all cursor-pointer shadow-sm"
               title="Video Call"
             >
               <FiVideo size={14} />
@@ -1238,11 +1245,13 @@ const ChatPage = () => {
                   >
                     ↩ Replying to {replyTo.sender?.name || "User"}
                   </div>
-                  <div className={`truncate font-semibold text-[10px] ${
-                    isMe
-                      ? "text-white/70 dark:text-white/60"
-                      : "text-slate-600 dark:text-slate-300"
-                  }`}>
+                  <div
+                    className={`truncate font-semibold text-[10px] ${
+                      isMe
+                        ? "text-white/70 dark:text-white/60"
+                        : "text-slate-600 dark:text-slate-300"
+                    }`}
+                  >
                     {replyTo.messageType === "file"
                       ? `📁 ${replyTo.file?.filename || "Attachment"}`
                       : replyTo.messageType === "sticker"
@@ -1290,8 +1299,8 @@ const ChatPage = () => {
                         }}
                       />
                     ) : (
-                      <div 
-                        className="w-7 h-7 rounded-lg bg-blue-300 dark:bg-[#e5ff00] text-[10px] font-black text-slate-900 dark:text-slate-900 flex items-center justify-center shrink-0 cursor-pointer hover:scale-110 active:scale-90 transition-transform duration-200"
+                      <div
+                        className="w-7 h-7 rounded-lg bg-blue-300 dark:bg-[#3b82f6] text-[10px] font-black text-slate-900 dark:text-slate-900 flex items-center justify-center shrink-0 cursor-pointer hover:scale-110 active:scale-90 transition-transform duration-200"
                         onClick={(e) => {
                           e.stopPropagation();
                           setProfileModalUser(m.sender);
@@ -1324,7 +1333,11 @@ const ChatPage = () => {
                             : "theme-bg-card theme-text-primary theme-border rounded-tl-none"
                         }`}
                       >
-                        {m.replyTo && <div className="p-2 pb-1">{renderReplyPreview(m.replyTo)}</div>}
+                        {m.replyTo && (
+                          <div className="p-2 pb-1">
+                            {renderReplyPreview(m.replyTo)}
+                          </div>
+                        )}
                         {m.file.fileType === "image" ? (
                           <a
                             href={m.file.url}
@@ -1443,7 +1456,7 @@ const ChatPage = () => {
                               className={`w-full py-1.5 px-3 rounded-lg text-[10px] font-black uppercase tracking-wider text-center cursor-pointer transition-all ${
                                 isMe
                                   ? "bg-white text-indigo-600 hover:bg-white/95 dark:bg-red-500 dark:text-white dark:font-bold"
-                                  : "bg-blue-600 text-white hover:bg-blue-700 dark:bg-[#e5ff00] dark:text-black dark:font-bold dark:hover:bg-[#d4ec00] shadow shadow-blue-600/20 dark:shadow-[#e5ff00]/20"
+                                  : "bg-blue-600 text-white hover:bg-blue-700 dark:bg-[#3b82f6] dark:text-black dark:font-bold dark:hover:bg-[#d4ec00] shadow shadow-blue-600/20 dark:shadow-[#3b82f6]/20"
                               }`}
                             >
                               Join Call Meeting
@@ -1678,13 +1691,13 @@ const ChatPage = () => {
               placeholder="Type message or reply..."
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              className="flex-1 theme-bg-main border theme-border rounded-xl px-4 py-2 text-xs outline-none focus:border-blue-600 dark:focus:border-[#e5ff00] focus:ring-2 focus:ring-blue-600/20 dark:focus:ring-[#e5ff00]/20 transition-all theme-text-primary placeholder:theme-text-secondary"
+              className="flex-1 theme-bg-main border theme-border rounded-xl px-4 py-2 text-xs outline-none focus:border-blue-600 dark:focus:border-[#3b82f6] focus:ring-2 focus:ring-blue-600/20 dark:focus:ring-[#3b82f6]/20 transition-all theme-text-primary placeholder:theme-text-secondary"
             />
 
             <button
               type="submit"
               disabled={!inputText.trim()}
-              className="w-9 h-9 bg-blue-600 text-white dark:bg-[#e5ff00] dark:text-black rounded-xl flex items-center justify-center hover:bg-blue-700 dark:hover:bg-[#d4ec00] transition-all shadow-md shadow-blue-100 dark:shadow-[#e5ff00]/10 active:scale-95 disabled:opacity-50 disabled:shadow-none shrink-0 cursor-pointer"
+              className="w-9 h-9 bg-blue-600 text-white dark:bg-[#3b82f6] dark:text-black rounded-xl flex items-center justify-center hover:bg-blue-700 dark:hover:bg-[#d4ec00] transition-all shadow-md shadow-blue-100 dark:shadow-[#3b82f6]/10 active:scale-95 disabled:opacity-50 disabled:shadow-none shrink-0 cursor-pointer"
             >
               <FiSend size={14} />
             </button>
@@ -1778,12 +1791,11 @@ const ChatPage = () => {
                   Direct Contacts
                 </p>
                 <div className="space-y-1.5">
-                                  {filteredUsers
-                    .filter(
-                      (u) =>
-                        u.name
-                          .toLowerCase()
-                          .includes(forwardSearchTerm.toLowerCase()),
+                  {filteredUsers
+                    .filter((u) =>
+                      u.name
+                        .toLowerCase()
+                        .includes(forwardSearchTerm.toLowerCase()),
                     )
                     .map((u) => (
                       <div
@@ -2124,7 +2136,7 @@ const ChatPage = () => {
                     <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-black/50 md:from-black/30 via-transparent to-transparent" />
                   </>
                 ) : (
-                  <div className="w-full h-full min-h-[220px] md:min-h-[380px] bg-gradient-to-tr from-indigo-500 to-purple-600 dark:from-[#e5ff00]/20 dark:to-emerald-500/20 flex items-center justify-center text-white dark:text-[#e5ff00] text-6xl font-black shadow-inner">
+                  <div className="w-full h-full min-h-[220px] md:min-h-[380px] bg-gradient-to-tr from-indigo-500 to-purple-600 dark:from-[#3b82f6]/20 dark:to-emerald-500/20 flex items-center justify-center text-white dark:text-[#3b82f6] text-6xl font-black shadow-inner">
                     {profileModalUser.name.charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -2142,7 +2154,7 @@ const ChatPage = () => {
 
                 <div>
                   {/* Header Badge */}
-                  <span className="inline-block text-[9px] font-extrabold tracking-widest text-indigo-600 dark:text-[#e5ff00] uppercase bg-indigo-50 dark:bg-[#e5ff00]/10 px-2.5 py-1 rounded-full mb-4">
+                  <span className="inline-block text-[9px] font-extrabold tracking-widest text-indigo-600 dark:text-[#3b82f6] uppercase bg-indigo-50 dark:bg-[#3b82f6]/10 px-2.5 py-1 rounded-full mb-4">
                     Member Profile
                   </span>
 
@@ -2155,7 +2167,7 @@ const ChatPage = () => {
                       {profileModalUser.role}
                     </span>
                     {profileModalUser.department && (
-                      <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-650 dark:text-[#e5ff00] bg-indigo-50 dark:bg-[#e5ff00]/10 px-2.5 py-0.5 rounded-md">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-indigo-650 dark:text-[#3b82f6] bg-indigo-50 dark:bg-[#3b82f6]/10 px-2.5 py-0.5 rounded-md">
                         {profileModalUser.department}
                       </span>
                     )}
@@ -2166,7 +2178,10 @@ const ChatPage = () => {
                     {/* Email */}
                     <div className="flex items-start gap-3">
                       <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-slate-450 shrink-0">
-                        <FiMail size={14} className="text-indigo-600 dark:text-[#e5ff00]" />
+                        <FiMail
+                          size={14}
+                          className="text-indigo-600 dark:text-[#3b82f6]"
+                        />
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-[8px] font-extrabold uppercase tracking-wider text-slate-500">
@@ -2182,7 +2197,10 @@ const ChatPage = () => {
                     {profileModalUser.profile?.phone ? (
                       <div className="flex items-start gap-3">
                         <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-slate-450 shrink-0">
-                          <FiPhone size={14} className="text-indigo-600 dark:text-[#e5ff00]" />
+                          <FiPhone
+                            size={14}
+                            className="text-indigo-600 dark:text-[#3b82f6]"
+                          />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-[8px] font-extrabold uppercase tracking-wider text-slate-500">
@@ -2199,7 +2217,10 @@ const ChatPage = () => {
                     {profileModalUser.profile?.bio ? (
                       <div className="flex items-start gap-3">
                         <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 text-slate-450 shrink-0">
-                          <FiInfo size={14} className="text-indigo-600 dark:text-[#e5ff00]" />
+                          <FiInfo
+                            size={14}
+                            className="text-indigo-600 dark:text-[#3b82f6]"
+                          />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-[8px] font-extrabold uppercase tracking-wider text-slate-500">

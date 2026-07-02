@@ -93,8 +93,8 @@ const TimeTracker = ({ startTime, endTime, status }) => {
   if (!startTime && status !== "In Progress") return null;
   if (!startTime && status === "In Progress")
     return (
-      <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded border text-[9px] font-bold tracking-wider bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30 shadow-sm">
-        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#e5ff00] animate-pulse"></span>
+      <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded border text-[9px] font-bold tracking-wider bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30 shadow-sm">
+        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#3b82f6] animate-pulse"></span>
         Starting...
       </div>
     );
@@ -109,12 +109,12 @@ const TimeTracker = ({ startTime, endTime, status }) => {
     <div
       className={`mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded border text-[9px] font-bold tracking-wider ${
         status === "In Progress" && !endTime
-          ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30 shadow-sm"
+          ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30 shadow-sm"
           : "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
       }`}
     >
       {status === "In Progress" && !endTime ? (
-        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#e5ff00] animate-pulse"></span>
+        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#3b82f6] animate-pulse"></span>
       ) : (
         <FiClock size={10} />
       )}
@@ -732,13 +732,13 @@ const Task = () => {
         <div className="flex bg-slate-50 dark:bg-black p-1 rounded-xl shrink-0 w-full xl:w-auto mx-auto justify-center">
           <button
             onClick={() => setViewType("list")}
-            className={`flex items-center justify-center gap-2 px-6 py-1.5 rounded-lg text-xs font-bold transition-all ${viewType === "list" ? "bg-white dark:bg-[#0f172a] text-blue-600 dark:text-[#e5ff00] shadow-sm border theme-border-accent" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+            className={`flex items-center justify-center gap-2 px-6 py-1.5 rounded-lg text-xs font-bold transition-all ${viewType === "list" ? "bg-white dark:bg-[#0f172a] text-blue-600 dark:text-[#3b82f6] shadow-sm border theme-border-accent" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
           >
             <FiList size={14} /> List
           </button>
           <button
             onClick={() => setViewType("kanban")}
-            className={`flex items-center justify-center gap-2 px-6 py-1.5 rounded-lg text-xs font-bold transition-all ${viewType === "kanban" ? "bg-white dark:bg-[#0f172a] text-blue-600 dark:text-[#e5ff00] shadow-sm border theme-border-accent" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+            className={`flex items-center justify-center gap-2 px-6 py-1.5 rounded-lg text-xs font-bold transition-all ${viewType === "kanban" ? "bg-white dark:bg-[#0f172a] text-blue-600 dark:text-[#3b82f6] shadow-sm border theme-border-accent" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
           >
             <FiGrid size={14} /> Kanban
           </button>
@@ -759,14 +759,14 @@ const Task = () => {
                 openDropdown === "filter" ||
                 priorityFilter !== "All" ||
                 projectFilter !== "All"
-                  ? "bg-blue-50 dark:bg-[#e5ff00]/10 border-blue-200 dark:border-transparent text-blue-700 dark:text-[#e5ff00]"
+                  ? "bg-blue-50 dark:bg-[#3b82f6]/10 border-blue-200 dark:border-transparent text-blue-700 dark:text-[#3b82f6]"
                   : "bg-white dark:bg-black border-slate-200 dark:border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
               }`}
             >
               <FiFilter size={14} />
               Filter
               {(priorityFilter !== "All" || projectFilter !== "All") && (
-                <span className="flex items-center justify-center bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black text-[9px] w-4 h-4 rounded-full ml-1 font-black">
+                <span className="flex items-center justify-center bg-blue-600 dark:bg-[#3b82f6] text-white dark:text-black text-[9px] w-4 h-4 rounded-full ml-1 font-black">
                   {
                     [priorityFilter, projectFilter].filter((f) => f !== "All")
                       .length
@@ -788,7 +788,7 @@ const Task = () => {
                   {/* Dropdown Header */}
                   <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-3">
                     <div className="flex items-center gap-1.5">
-                      <div className="w-5 h-5 rounded-md bg-blue-500/10 dark:bg-[#e5ff00]/10 flex items-center justify-center">
+                      <div className="w-5 h-5 rounded-md bg-blue-500/10 dark:bg-[#3b82f6]/10 flex items-center justify-center">
                         <svg
                           width="11"
                           height="11"
@@ -796,7 +796,7 @@ const Task = () => {
                           fill="none"
                           stroke="currentColor"
                           strokeWidth="3"
-                          className="text-blue-600 dark:text-[#e5ff00]"
+                          className="text-blue-600 dark:text-[#3b82f6]"
                         >
                           <line x1="4" y1="6" x2="20" y2="6" />
                           <line x1="6" y1="12" x2="18" y2="12" />
@@ -855,7 +855,7 @@ const Task = () => {
                           onClick={() => setPriorityFilter(priority.name)}
                           className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-bold rounded-xl transition-all cursor-pointer border ${
                             priorityFilter === priority.name
-                              ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#e5ff00]/10"
+                              ? "bg-blue-600 border-blue-600 text-white dark:bg-[#3b82f6] dark:border-[#3b82f6] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#3b82f6]/10"
                               : "bg-slate-50/50 border-slate-200/60 dark:bg-white/[0.02] dark:border-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                           }`}
                         >
@@ -880,7 +880,7 @@ const Task = () => {
                         onClick={() => setProjectFilter("All")}
                         className={`px-2.5 py-1.5 text-[10px] font-bold rounded-xl transition-all cursor-pointer border ${
                           projectFilter === "All"
-                            ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#e5ff00]/10"
+                            ? "bg-blue-600 border-blue-600 text-white dark:bg-[#3b82f6] dark:border-[#3b82f6] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#3b82f6]/10"
                             : "bg-slate-50/50 border-slate-200/60 dark:bg-white/[0.02] dark:border-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                         }`}
                       >
@@ -892,11 +892,11 @@ const Task = () => {
                           onClick={() => setProjectFilter(p.id)}
                           className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-bold rounded-xl transition-all cursor-pointer border ${
                             projectFilter === p.id
-                              ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#e5ff00]/10"
+                              ? "bg-blue-600 border-blue-600 text-white dark:bg-[#3b82f6] dark:border-[#3b82f6] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#3b82f6]/10"
                               : "bg-slate-50/50 border-slate-200/60 dark:bg-white/[0.02] dark:border-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                           }`}
                         >
-                          <span className="w-3.5 h-3.5 rounded-full bg-blue-500/20 text-blue-600 dark:bg-[#e5ff00]/20 dark:text-[#e5ff00] flex items-center justify-center text-[7px] font-extrabold shrink-0">
+                          <span className="w-3.5 h-3.5 rounded-full bg-blue-500/20 text-blue-600 dark:bg-[#3b82f6]/20 dark:text-[#3b82f6] flex items-center justify-center text-[7px] font-extrabold shrink-0">
                             {p.name.charAt(0).toUpperCase()}
                           </span>
                           <span>{p.name}</span>
@@ -917,7 +917,7 @@ const Task = () => {
               }
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border dark:border-0 ${
                 openDropdown === "sort"
-                  ? "bg-blue-50 dark:bg-[#e5ff00]/10 border-blue-200 dark:border-transparent text-blue-700 dark:text-[#e5ff00]"
+                  ? "bg-blue-50 dark:bg-[#3b82f6]/10 border-blue-200 dark:border-transparent text-blue-700 dark:text-[#3b82f6]"
                   : "bg-white dark:bg-black border-slate-200 dark:border-transparent text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
               }`}
             >
@@ -952,7 +952,7 @@ const Task = () => {
                       }}
                       className={`flex items-center justify-between w-full text-left px-4 py-2.5 rounded-2xl text-xs font-bold transition-colors ${
                         sortBy === option.value
-                          ? "bg-blue-50 dark:bg-slate-800 text-blue-700 dark:text-[#e5ff00]"
+                          ? "bg-blue-50 dark:bg-slate-800 text-blue-700 dark:text-[#3b82f6]"
                           : "text-slate-650 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900"
                       }`}
                     >
@@ -1639,7 +1639,7 @@ const Task = () => {
                                                             className={`flex items-center gap-1.5 w-full text-left px-2 py-1 rounded-lg text-[9px] font-extrabold hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors ${
                                                               sub.status ===
                                                               opt.name
-                                                                ? "text-blue-600 dark:text-[#e5ff00]"
+                                                                ? "text-blue-600 dark:text-[#3b82f6]"
                                                                 : "text-slate-700 dark:text-slate-350"
                                                             }`}
                                                           >
@@ -1792,7 +1792,7 @@ const Task = () => {
                     className={`h-8 w-8 rounded-xl border text-[10px] font-bold flex items-center justify-center transition-all ${
                       currentPage === 1
                         ? "border-slate-205 dark:border-slate-800/80 text-slate-350 dark:text-slate-700 cursor-not-allowed"
-                        : "border-slate-205 dark:border-slate-800 hover:bg-blue-50/50 dark:hover:bg-[#e5ff00]/5 text-slate-700 dark:text-slate-400 hover:border-blue-400 dark:hover:border-[#e5ff00] hover:text-blue-600 dark:hover:text-[#e5ff00] active:scale-90 cursor-pointer shadow-sm"
+                        : "border-slate-205 dark:border-slate-800 hover:bg-blue-50/50 dark:hover:bg-[#3b82f6]/5 text-slate-700 dark:text-slate-400 hover:border-blue-400 dark:hover:border-[#3b82f6] hover:text-blue-600 dark:hover:text-[#3b82f6] active:scale-90 cursor-pointer shadow-sm"
                     }`}
                   >
                     <FiChevronLeft size={14} className="stroke-[2.5]" />
@@ -1807,8 +1807,8 @@ const Task = () => {
                           onClick={() => setCurrentPage(page)}
                           className={`h-8 w-8 rounded-xl border text-[10px] font-extrabold flex items-center justify-center transition-all ${
                             isSelected
-                              ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-md"
-                              : "border-slate-205 dark:border-slate-805 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-400 hover:bg-blue-50/50 dark:hover:bg-[#e5ff00]/5 hover:border-blue-400 dark:hover:border-[#e5ff00] hover:text-blue-600 dark:hover:text-[#e5ff00] active:scale-90 cursor-pointer shadow-sm"
+                              ? "bg-blue-600 border-blue-600 text-white dark:bg-[#3b82f6] dark:border-[#3b82f6] dark:text-black shadow-md"
+                              : "border-slate-205 dark:border-slate-805 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-400 hover:bg-blue-50/50 dark:hover:bg-[#3b82f6]/5 hover:border-blue-400 dark:hover:border-[#3b82f6] hover:text-blue-600 dark:hover:text-[#3b82f6] active:scale-90 cursor-pointer shadow-sm"
                           }`}
                         >
                           {page}
@@ -1825,7 +1825,7 @@ const Task = () => {
                     className={`h-8 w-8 rounded-xl border text-[10px] font-bold flex items-center justify-center transition-all ${
                       currentPage === totalPages
                         ? "border-slate-205 dark:border-slate-800/80 text-slate-350 dark:text-slate-700 cursor-not-allowed"
-                        : "border-slate-205 dark:border-slate-800 hover:bg-blue-50/50 dark:hover:bg-[#e5ff00]/5 text-slate-700 dark:text-slate-400 hover:border-blue-400 dark:hover:border-[#e5ff00] hover:text-blue-600 dark:hover:text-[#e5ff00] active:scale-90 cursor-pointer shadow-sm"
+                        : "border-slate-205 dark:border-slate-800 hover:bg-blue-50/50 dark:hover:bg-[#3b82f6]/5 text-slate-700 dark:text-slate-400 hover:border-blue-400 dark:hover:border-[#3b82f6] hover:text-blue-600 dark:hover:text-[#3b82f6] active:scale-90 cursor-pointer shadow-sm"
                     }`}
                   >
                     <FiChevronRight size={14} className="stroke-[2.5]" />

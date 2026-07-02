@@ -18,18 +18,50 @@ import {
   FiArrowRight,
   FiFolder,
 } from "react-icons/fi";
-import { LuPlus, LuFolderOpen, LuRocket, LuListTodo, LuBriefcase, LuFolder, LuLaptop, LuCalendarDays } from "react-icons/lu";
+import {
+  LuPlus,
+  LuFolderOpen,
+  LuRocket,
+  LuListTodo,
+  LuBriefcase,
+  LuFolder,
+  LuLaptop,
+  LuCalendarDays,
+} from "react-icons/lu";
 
 const getProjectIcon = (projectName, projectId) => {
-  const hash = (projectId || projectName || "").split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const hash = (projectId || projectName || "")
+    .split("")
+    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const icons = [
-    { icon: LuRocket, bg: "bg-blue-500/10 dark:bg-blue-500/20 text-blue-500 dark:text-blue-400" },
-    { icon: LuListTodo, bg: "bg-pink-500/10 dark:bg-pink-500/20 text-pink-500 dark:text-pink-400" },
-    { icon: LuBriefcase, bg: "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-500 dark:text-emerald-400" },
-    { icon: LuFolder, bg: "bg-amber-500/10 dark:bg-amber-500/20 text-amber-500 dark:text-amber-400" },
-    { icon: LuLaptop, bg: "bg-purple-500/10 dark:bg-purple-500/20 text-purple-500 dark:text-purple-400" },
-    { icon: LuCalendarDays, bg: "bg-cyan-500/10 dark:bg-cyan-500/20 text-cyan-500 dark:text-cyan-400" },
-    { icon: LuFolderOpen, bg: "bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-500 dark:text-indigo-400" },
+    {
+      icon: LuRocket,
+      bg: "bg-blue-500/10 dark:bg-blue-500/20 text-blue-500 dark:text-blue-400",
+    },
+    {
+      icon: LuListTodo,
+      bg: "bg-pink-500/10 dark:bg-pink-500/20 text-pink-500 dark:text-pink-400",
+    },
+    {
+      icon: LuBriefcase,
+      bg: "bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-500 dark:text-emerald-400",
+    },
+    {
+      icon: LuFolder,
+      bg: "bg-amber-500/10 dark:bg-amber-500/20 text-amber-500 dark:text-amber-400",
+    },
+    {
+      icon: LuLaptop,
+      bg: "bg-purple-500/10 dark:bg-purple-500/20 text-purple-500 dark:text-purple-400",
+    },
+    {
+      icon: LuCalendarDays,
+      bg: "bg-cyan-500/10 dark:bg-cyan-500/20 text-cyan-500 dark:text-cyan-400",
+    },
+    {
+      icon: LuFolderOpen,
+      bg: "bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-500 dark:text-indigo-400",
+    },
   ];
   return icons[hash % icons.length];
 };
@@ -79,13 +111,15 @@ const getAvatarColor = (name) => {
     "bg-emerald-500",
     "bg-purple-500",
   ];
-  const hash = (name || "").split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const hash = (name || "")
+    .split("")
+    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return colors[hash % colors.length];
 };
 
 const getStatusPill = (project, timeTick) => {
   const relativeTime = getRelativeTime(project.updatedAt);
-  
+
   switch (project.status) {
     case "Active":
       return (
@@ -95,7 +129,9 @@ const getStatusPill = (project, timeTick) => {
             On track
           </span>
           {relativeTime && (
-            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{relativeTime}</span>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+              {relativeTime}
+            </span>
           )}
         </div>
       );
@@ -107,7 +143,9 @@ const getStatusPill = (project, timeTick) => {
             At risk
           </span>
           {relativeTime && (
-            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{relativeTime}</span>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+              {relativeTime}
+            </span>
           )}
         </div>
       );
@@ -119,7 +157,9 @@ const getStatusPill = (project, timeTick) => {
             Completed
           </span>
           {relativeTime && (
-            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{relativeTime}</span>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+              {relativeTime}
+            </span>
           )}
         </div>
       );
@@ -131,7 +171,9 @@ const getStatusPill = (project, timeTick) => {
             No recent updates
           </span>
           {relativeTime && (
-            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{relativeTime}</span>
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+              {relativeTime}
+            </span>
           )}
         </div>
       );
@@ -163,14 +205,18 @@ const Portfolio = () => {
   const { tasks } = useSelector((state) => state.tasks);
   const { users } = useSelector((state) => state.users);
   const { clients } = useSelector((state) => state.clients);
-  const { portfolios: rawPortfolios, loading: portfolioLoading } = useSelector((state) => state.portfolios);
+  const { portfolios: rawPortfolios, loading: portfolioLoading } = useSelector(
+    (state) => state.portfolios,
+  );
   const { user } = useSelector((state) => state.auth);
 
   // Normalize projectIds into a list of strings to handle backend populate
   const portfolios = useMemo(() => {
-    return rawPortfolios.map(p => ({
+    return rawPortfolios.map((p) => ({
       ...p,
-      projectIdsList: (p.projectIds || []).map(proj => typeof proj === 'object' && proj !== null ? proj._id : proj)
+      projectIdsList: (p.projectIds || []).map((proj) =>
+        typeof proj === "object" && proj !== null ? proj._id : proj,
+      ),
     }));
   }, [rawPortfolios]);
 
@@ -181,7 +227,7 @@ const Portfolio = () => {
   const [showAddProjectDropdown, setShowAddProjectDropdown] = useState(false);
   const [projectSearchQuery, setProjectSearchQuery] = useState("");
   const [selectedAddProjects, setSelectedAddProjects] = useState([]);
-  
+
   // Real-time ticking state for relative time updates
   const [timeTick, setTimeTick] = useState(0);
   useEffect(() => {
@@ -249,9 +295,16 @@ const Portfolio = () => {
     e.preventDefault();
     if (!portfolioName.trim()) return;
     if (isEditMode) {
-      dispatch(updatePortfolio({ id: portfolioId, data: { name: portfolioName.trim(), color: portfolioColor } }));
+      dispatch(
+        updatePortfolio({
+          id: portfolioId,
+          data: { name: portfolioName.trim(), color: portfolioColor },
+        }),
+      );
     } else {
-      dispatch(createPortfolio({ name: portfolioName.trim(), color: portfolioColor }));
+      dispatch(
+        createPortfolio({ name: portfolioName.trim(), color: portfolioColor }),
+      );
     }
     setIsModalOpen(false);
   };
@@ -259,7 +312,9 @@ const Portfolio = () => {
   // Delete portfolio
   const handleDeletePortfolio = (e, id) => {
     e.stopPropagation();
-    if (window.confirm("Are you sure you want to delete this portfolio folder?")) {
+    if (
+      window.confirm("Are you sure you want to delete this portfolio folder?")
+    ) {
       dispatch(deletePortfolio(id));
       if (selectedPortfolioId === id) navigate(`/${role}/portfolio`);
     }
@@ -268,13 +323,23 @@ const Portfolio = () => {
   // Toggle favorite
   const handleToggleFavorite = (e, portfolio) => {
     e.stopPropagation();
-    dispatch(updatePortfolio({ id: portfolio._id, data: { isFavorite: !portfolio.isFavorite } }));
+    dispatch(
+      updatePortfolio({
+        id: portfolio._id,
+        data: { isFavorite: !portfolio.isFavorite },
+      }),
+    );
   };
 
   // Batch add selected projects to portfolio
   const handleBatchAddProjects = () => {
     if (!selectedAddProjects.length || !activePortfolio) return;
-    dispatch(addProjectsToPortfolio({ id: activePortfolio._id, projectIds: selectedAddProjects }));
+    dispatch(
+      addProjectsToPortfolio({
+        id: activePortfolio._id,
+        projectIds: selectedAddProjects,
+      }),
+    );
     setSelectedAddProjects([]);
     setShowAddProjectDropdown(false);
     setProjectSearchQuery("");
@@ -283,7 +348,9 @@ const Portfolio = () => {
   // Remove project from current portfolio
   const handleRemoveProject = (projectId) => {
     if (!activePortfolio) return;
-    dispatch(removeProjectFromPortfolio({ id: activePortfolio._id, projectId }));
+    dispatch(
+      removeProjectFromPortfolio({ id: activePortfolio._id, projectId }),
+    );
   };
 
   // Create a brand-new project and immediately add it to this portfolio
@@ -292,15 +359,20 @@ const Portfolio = () => {
     setCreatingProject(true);
     try {
       const result = await dispatch(
-        createProject({ 
-          name: newProjectName.trim(), 
-          client: newProjectClientId, 
-          status: newProjectStatus 
+        createProject({
+          name: newProjectName.trim(),
+          client: newProjectClientId,
+          status: newProjectStatus,
         }),
       );
       const newProj = result?.payload?.data;
       if (newProj?._id && activePortfolio) {
-        dispatch(addProjectsToPortfolio({ id: activePortfolio._id, projectIds: [newProj._id] }));
+        dispatch(
+          addProjectsToPortfolio({
+            id: activePortfolio._id,
+            projectIds: [newProj._id],
+          }),
+        );
       }
     } finally {
       setCreatingProject(false);
@@ -427,7 +499,9 @@ const Portfolio = () => {
                         <button
                           onClick={() =>
                             setMenuOpenId(
-                              menuOpenId === portfolio._id ? null : portfolio._id,
+                              menuOpenId === portfolio._id
+                                ? null
+                                : portfolio._id,
                             )
                           }
                           className="text-white/85 hover:text-white transition-colors cursor-pointer flex items-center justify-center p-0.5"
@@ -470,13 +544,23 @@ const Portfolio = () => {
 
                     {/* Project count — only count IDs that still exist in Redux */}
                     <p className="text-[10px] text-slate-400 dark:text-slate-550 font-bold uppercase mt-1">
-                      {(portfolio.projectIdsList || []).filter(id => projects.some(p => p._id === id)).length} Project
-                      {(portfolio.projectIdsList || []).filter(id => projects.some(p => p._id === id)).length !== 1 ? "s" : ""}
+                      {
+                        (portfolio.projectIdsList || []).filter((id) =>
+                          projects.some((p) => p._id === id),
+                        ).length
+                      }{" "}
+                      Project
+                      {(portfolio.projectIdsList || []).filter((id) =>
+                        projects.some((p) => p._id === id),
+                      ).length !== 1
+                        ? "s"
+                        : ""}
                     </p>
 
                     {/* Created by info */}
                     <p className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold uppercase mt-0.5">
-                      {portfolio.createdBy?.name || "N/A"} ({portfolio.createdBy?.department || "N/A"})
+                      {portfolio.createdBy?.name || "N/A"} (
+                      {portfolio.createdBy?.department || "N/A"})
                     </p>
                   </div>
                 );
@@ -506,7 +590,7 @@ const Portfolio = () => {
                     <FiChevronLeft size={16} />
                   </button>
                 </div>
-                
+
                 <div
                   className="w-11 h-11 rounded-2xl text-white flex items-center justify-center shadow-sm shrink-0"
                   style={{
@@ -522,7 +606,8 @@ const Portfolio = () => {
                     </h1>
                   </div>
                   <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase mt-0.5">
-                    Created By: {activePortfolio.createdBy?.name || "N/A"} ({activePortfolio.createdBy?.department || "N/A"})
+                    Created By: {activePortfolio.createdBy?.name || "N/A"} (
+                    {activePortfolio.createdBy?.department || "N/A"})
                   </p>
                 </div>
               </div>
@@ -549,9 +634,9 @@ const Portfolio = () => {
                     {showAddProjectDropdown && (
                       <>
                         {/* Backdrop to close click outside */}
-                        <div 
-                          className="fixed inset-0 z-10" 
-                          onClick={() => setShowAddProjectDropdown(false)} 
+                        <div
+                          className="fixed inset-0 z-10"
+                          onClick={() => setShowAddProjectDropdown(false)}
                         />
                         {/* Dropdown Card */}
                         <motion.div
@@ -567,8 +652,10 @@ const Portfolio = () => {
                               autoFocus
                               placeholder="Search projects..."
                               value={projectSearchQuery}
-                              onChange={(e) => setProjectSearchQuery(e.target.value)}
-                              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl pl-4 pr-4 py-2.5 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 dark:focus:border-[#e5ff00]/50 transition-all placeholder:text-slate-455"
+                              onChange={(e) =>
+                                setProjectSearchQuery(e.target.value)
+                              }
+                              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl pl-4 pr-4 py-2.5 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 dark:focus:border-[#3b82f6]/50 transition-all placeholder:text-slate-455"
                             />
                           </div>
 
@@ -599,7 +686,10 @@ const Portfolio = () => {
                                     if (allSelected) {
                                       setSelectedAddProjects((prev) =>
                                         prev.filter(
-                                          (id) => !available.some((a) => a._id === id),
+                                          (id) =>
+                                            !available.some(
+                                              (a) => a._id === id,
+                                            ),
                                         ),
                                       );
                                     } else {
@@ -613,7 +703,7 @@ const Portfolio = () => {
                                       );
                                     }
                                   }}
-                                  className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-[#e5ff00] hover:underline cursor-pointer transition-colors"
+                                  className="text-[10px] font-black uppercase tracking-wider text-blue-600 dark:text-[#3b82f6] hover:underline cursor-pointer transition-colors"
                                 >
                                   {allSelected ? "Deselect All" : "Select All"}
                                 </button>
@@ -622,12 +712,12 @@ const Portfolio = () => {
                           })()}
 
                           {/* Project list */}
-                          <div
-                            className="overflow-y-auto space-y-1.5 pr-1 max-h-[240px]"
-                          >
+                          <div className="overflow-y-auto space-y-1.5 pr-1 max-h-[240px]">
                             {(() => {
                               const projectsInPortfolios = new Set(
-                                portfolios.flatMap((p) => p.projectIdsList || []),
+                                portfolios.flatMap(
+                                  (p) => p.projectIdsList || [],
+                                ),
                               );
                               const available = projects
                                 .filter((p) => !projectsInPortfolios.has(p._id))
@@ -658,7 +748,9 @@ const Portfolio = () => {
                               }
 
                               return available.map((proj) => {
-                                const isChecked = selectedAddProjects.includes(proj._id);
+                                const isChecked = selectedAddProjects.includes(
+                                  proj._id,
+                                );
                                 return (
                                   <div
                                     key={proj._id}
@@ -671,7 +763,7 @@ const Portfolio = () => {
                                     }}
                                     className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer select-none ${
                                       isChecked
-                                        ? "bg-blue-50/60 border-blue-200 dark:bg-[#e5ff00]/10 dark:border-[#e5ff00]/40"
+                                        ? "bg-blue-50/60 border-blue-200 dark:bg-[#3b82f6]/10 dark:border-[#3b82f6]/40"
                                         : "bg-slate-50/40 border-slate-100 dark:bg-slate-950/40 dark:border-slate-855 hover:bg-slate-100/60 dark:hover:bg-slate-800/40"
                                     }`}
                                   >
@@ -679,7 +771,7 @@ const Portfolio = () => {
                                     <div
                                       className={`w-4 h-4 rounded flex items-center justify-center shrink-0 border transition-all ${
                                         isChecked
-                                          ? "bg-blue-600 border-blue-600 dark:bg-[#e5ff00] dark:border-[#e5ff00]"
+                                          ? "bg-blue-600 border-blue-600 dark:bg-[#3b82f6] dark:border-[#3b82f6]"
                                           : "border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900"
                                       }`}
                                     >
@@ -734,7 +826,7 @@ const Portfolio = () => {
                                 disabled={selectedAddProjects.length === 0}
                                 className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-md active:scale-95 ${
                                   selectedAddProjects.length > 0
-                                    ? "bg-gradient-to-b from-[#92d1ef] via-[#69afe2] to-[#408ed8] text-white dark:bg-none dark:bg-[#e5ff00] dark:text-black cursor-pointer hover:opacity-95"
+                                    ? "bg-gradient-to-b from-[#92d1ef] via-[#69afe2] to-[#408ed8] text-white dark:bg-none dark:bg-[#3b82f6] dark:text-black cursor-pointer hover:opacity-95"
                                     : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-650 cursor-not-allowed opacity-50 shadow-none"
                                 }`}
                               >
@@ -762,7 +854,7 @@ const Portfolio = () => {
                   Create New Project
                 </button>
               </div>
-            </div>            
+            </div>
             <div className="min-h-[350px] space-y-4">
               {/* Grouped Projects Table (Image 2) */}
               {(() => {
@@ -773,8 +865,8 @@ const Portfolio = () => {
                 if (validProjects.length === 0) {
                   return (
                     <div className="px-6 py-12 text-center text-slate-400 dark:text-slate-505 italic bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-850  shadow-sm">
-                      No projects added. Choose "+ Add work" or search below
-                      to group projects inside this portfolio.
+                      No projects added. Choose "+ Add work" or search below to
+                      group projects inside this portfolio.
                     </div>
                   );
                 }
@@ -784,19 +876,33 @@ const Portfolio = () => {
                     <table className="w-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-slate-50/50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider text-[10px]">
-                          <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Project Name</th>
-                          <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">User Name</th>
-                          <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Department</th>
-                          <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Status</th>
-                          <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Task progress</th>
-                          <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">Due date</th>
-                          <th className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-center w-20">Actions</th>
+                          <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                            Project Name
+                          </th>
+                          <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                            User Name
+                          </th>
+                          <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                            Department
+                          </th>
+                          <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                            Status
+                          </th>
+                          <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                            Task progress
+                          </th>
+                          <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                            Due date
+                          </th>
+                          <th className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-center w-20">
+                            Actions
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {validProjects.map((project, index) => {
                           const projId = project._id;
-                          
+
                           // Calculate progress percentage
                           const projectTasks = tasks.filter(
                             (t) =>
@@ -816,18 +922,36 @@ const Portfolio = () => {
                             .map((t) => t.dueDate)
                             .filter(Boolean)
                             .map((d) => new Date(d).getTime());
-                          const minDueDate = dueDates.length > 0 ? new Date(Math.min(...dueDates)) : null;
-                          const maxDueDate = dueDates.length > 0 ? new Date(Math.max(...dueDates)) : null;
+                          const minDueDate =
+                            dueDates.length > 0
+                              ? new Date(Math.min(...dueDates))
+                              : null;
+                          const maxDueDate =
+                            dueDates.length > 0
+                              ? new Date(Math.max(...dueDates))
+                              : null;
 
                           let formattedDueDateRange = "";
                           if (minDueDate && maxDueDate) {
                             const opt = { month: "short", day: "numeric" };
-                            const startStr = minDueDate.toLocaleDateString("en-US", opt);
-                            const endStr = maxDueDate.toLocaleDateString("en-US", opt);
-                            formattedDueDateRange = startStr === endStr ? startStr : `${startStr} – ${endStr}`;
+                            const startStr = minDueDate.toLocaleDateString(
+                              "en-US",
+                              opt,
+                            );
+                            const endStr = maxDueDate.toLocaleDateString(
+                              "en-US",
+                              opt,
+                            );
+                            formattedDueDateRange =
+                              startStr === endStr
+                                ? startStr
+                                : `${startStr} – ${endStr}`;
                           }
 
-                          const projectIcon = getProjectIcon(project.name, project._id);
+                          const projectIcon = getProjectIcon(
+                            project.name,
+                            project._id,
+                          );
                           const IconComponent = projectIcon.icon;
 
                           return (
@@ -837,18 +961,31 @@ const Portfolio = () => {
                                 index % 2 === 0
                                   ? "bg-white dark:bg-slate-800/40"
                                   : "bg-slate-50/40 dark:bg-slate-900/10"
-                              } hover:bg-blue-50/20 dark:hover:bg-[#e5ff00]/5`}
+                              } hover:bg-blue-50/20 dark:hover:bg-[#3b82f6]/5`}
                             >
                               {/* Name */}
-                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800 cursor-pointer" onClick={() => navigate(`/${user?.role || "admin"}/projects?id=${project._id}`)}>
+                              <td
+                                className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800 cursor-pointer"
+                                onClick={() =>
+                                  navigate(
+                                    `/${user?.role || "admin"}/projects?id=${project._id}`,
+                                  )
+                                }
+                              >
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
-                                    <ProjectIcon name={project.name} size="sm" />
-                                    <span className="font-semibold text-slate-800 dark:text-slate-600 hover:text-blue-600 dark:hover:text-[#e5ff00] transition-colors">
+                                    <ProjectIcon
+                                      name={project.name}
+                                      size="sm"
+                                    />
+                                    <span className="font-semibold text-slate-800 dark:text-slate-600 hover:text-blue-600 dark:hover:text-[#3b82f6] transition-colors">
                                       {project.name}
                                     </span>
                                   </div>
-                                  <FiChevronRight size={12} className="text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-all duration-200" />
+                                  <FiChevronRight
+                                    size={12}
+                                    className="text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                                  />
                                 </div>
                               </td>
 
@@ -876,7 +1013,7 @@ const Portfolio = () => {
                                 <div className="flex items-center gap-2 max-w-[120px]">
                                   <div className="w-16 bg-slate-100 dark:bg-slate-700 h-1.5 rounded overflow-hidden shrink-0">
                                     <div
-                                      className="bg-blue-600 dark:bg-[#e5ff00] h-full rounded transition-all duration-350"
+                                      className="bg-blue-600 dark:bg-[#3b82f6] h-full rounded transition-all duration-350"
                                       style={{ width: `${progressPercent}%` }}
                                     />
                                   </div>
@@ -972,7 +1109,6 @@ const Portfolio = () => {
                       { name: "Raspberry Cream Red", value: "#ff9a9e" },
                       { name: "Iciice Teal", value: "#9EF5FF" },
                       { name: "Pistachie Green", value: "#BAE8AC" },
-                     
                     ].map((col) => (
                       <button
                         key={col.value}
@@ -1024,7 +1160,7 @@ const Portfolio = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-wider text-white dark:text-black transition-all shadow-md bg-gradient-to-b from-[#92d1ef] via-[#69afe2] to-[#408ed8] dark:bg-[#e5ff00] dark:bg-none hover:opacity-95 active:scale-95"
+                    className="px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-wider text-white dark:text-black transition-all shadow-md bg-gradient-to-b from-[#92d1ef] via-[#69afe2] to-[#408ed8] dark:bg-[#3b82f6] dark:bg-none hover:opacity-95 active:scale-95"
                   >
                     {isEditMode ? "Save Changes" : "Create Portfolio"}
                   </button>
@@ -1059,12 +1195,16 @@ const Portfolio = () => {
               {/* Header */}
               <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-[#e5ff00]/10 border border-blue-100 dark:border-[#e5ff00]/20 flex items-center justify-center text-blue-600 dark:text-[#e5ff00]">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-[#3b82f6]/10 border border-blue-100 dark:border-[#3b82f6]/20 flex items-center justify-center text-blue-600 dark:text-[#3b82f6]">
                     <LuBriefcase size={20} />
                   </div>
                   <div>
-                    <h2 className="text-base font-black text-slate-800 dark:text-white">Add New Project</h2>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Project Details</p>
+                    <h2 className="text-base font-black text-slate-800 dark:text-white">
+                      Add New Project
+                    </h2>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                      Project Details
+                    </p>
                   </div>
                 </div>
                 <button
@@ -1112,7 +1252,11 @@ const Portfolio = () => {
                         className="w-full bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 pr-10 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500 transition-all appearance-none cursor-pointer focus:shadow-sm"
                       >
                         {clients.map((c) => (
-                          <option key={c._id} value={c._id} className="dark:bg-slate-900">
+                          <option
+                            key={c._id}
+                            value={c._id}
+                            className="dark:bg-slate-900"
+                          >
                             {c.companyName}
                           </option>
                         ))}
@@ -1134,10 +1278,18 @@ const Portfolio = () => {
                         onChange={(e) => setNewProjectStatus(e.target.value)}
                         className="w-full bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 pr-10 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500 transition-all appearance-none cursor-pointer focus:shadow-sm"
                       >
-                        <option value="Active" className="dark:bg-slate-900">Active</option>
-                        <option value="On Hold" className="dark:bg-slate-900">On Hold</option>
-                        <option value="Completed" className="dark:bg-slate-900">Completed</option>
-                        <option value="Inactive" className="dark:bg-slate-900">Inactive</option>
+                        <option value="Active" className="dark:bg-slate-900">
+                          Active
+                        </option>
+                        <option value="On Hold" className="dark:bg-slate-900">
+                          On Hold
+                        </option>
+                        <option value="Completed" className="dark:bg-slate-900">
+                          Completed
+                        </option>
+                        <option value="Inactive" className="dark:bg-slate-900">
+                          Inactive
+                        </option>
                       </select>
                       <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                         <FiChevronRight size={14} className="rotate-90" />
@@ -1157,9 +1309,15 @@ const Portfolio = () => {
                   </button>
                   <button
                     type="submit"
-                    disabled={creatingProject || !newProjectName.trim() || !newProjectClientId}
-                    className={`px-5 py-3 rounded-2xl text-sm font-bold shadow-md transition-all active:scale-95 bg-blue-600 dark:bg-[#e5ff00] hover:bg-blue-500 dark:hover:bg-[#ccff00] text-white dark:text-black shadow-blue-500/10 dark:shadow-[#e5ff00]/20 ${
-                      creatingProject || !newProjectName.trim() || !newProjectClientId
+                    disabled={
+                      creatingProject ||
+                      !newProjectName.trim() ||
+                      !newProjectClientId
+                    }
+                    className={`px-5 py-3 rounded-2xl text-sm font-bold shadow-md transition-all active:scale-95 bg-blue-600 dark:bg-[#3b82f6] hover:bg-blue-500 dark:hover:bg-[#ccff00] text-white dark:text-black shadow-blue-500/10 dark:shadow-[#3b82f6]/20 ${
+                      creatingProject ||
+                      !newProjectName.trim() ||
+                      !newProjectClientId
                         ? "opacity-50 cursor-not-allowed shadow-none"
                         : "cursor-pointer"
                     }`}

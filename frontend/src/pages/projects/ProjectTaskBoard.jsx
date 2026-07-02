@@ -87,8 +87,8 @@ const TimeTracker = ({ startTime, endTime, status }) => {
   if (!startTime && status !== "In Progress") return null;
   if (!startTime && status === "In Progress")
     return (
-      <div className="inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold tracking-wider bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30 shadow-sm w-full">
-        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#e5ff00] animate-pulse"></span>
+      <div className="inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold tracking-wider bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30 shadow-sm w-full">
+        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#3b82f6] animate-pulse"></span>
         Starting...
       </div>
     );
@@ -103,12 +103,12 @@ const TimeTracker = ({ startTime, endTime, status }) => {
     <div
       className={`inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold tracking-wider w-full ${
         status === "In Progress" && !endTime
-          ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30 shadow-sm"
+          ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30 shadow-sm"
           : "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
       }`}
     >
       {status === "In Progress" && !endTime ? (
-        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#e5ff00] animate-pulse"></span>
+        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#3b82f6] animate-pulse"></span>
       ) : (
         <FiClock size={10} />
       )}
@@ -196,7 +196,7 @@ const ContentTypeInput = ({
         }
       }}
       placeholder={placeholder}
-      className="bg-transparent border border-slate-200 dark:border-white/10 rounded px-2 py-0.5 outline-none text-slate-800 dark:text-white w-full max-w-[120px] text-[11px] font-semibold text-center focus:border-blue-500 dark:focus:border-[#e5ff00]"
+      className="bg-transparent border border-slate-200 dark:border-white/10 rounded px-2 py-0.5 outline-none text-slate-800 dark:text-white w-full max-w-[120px] text-[11px] font-semibold text-center focus:border-blue-500 dark:focus:border-[#3b82f6]"
     />
   );
 };
@@ -246,7 +246,7 @@ const SubtaskRow = ({
           } ${
             isSubCompleted
               ? "bg-emerald-500 border-emerald-500 text-white"
-              : "border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
+              : "border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-[#3b82f6] text-transparent hover:text-slate-400 dark:hover:text-[#3b82f6]"
           }`}
         >
           <FiCheck size={9} />
@@ -582,7 +582,7 @@ const AssigneeDropdown = ({
       return (
         <div
           onClick={() => isAdminOrManager && setIsOpen(!isOpen)}
-          className={`relative w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-indigo-900 flex items-center justify-center text-slate-400 dark:text-indigo-400/75 hover:border-indigo-400 hover:text-indigo-700 dark:hover:text-[#e5ff00] dark:hover:border-[#e5ff00]/40 bg-white dark:bg-[#111111] transition-all ${
+          className={`relative w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-indigo-900 flex items-center justify-center text-slate-400 dark:text-indigo-400/75 hover:border-indigo-400 hover:text-indigo-700 dark:hover:text-[#3b82f6] dark:hover:border-[#3b82f6]/40 bg-white dark:bg-[#111111] transition-all ${
             isAdminOrManager ? "cursor-pointer" : "cursor-not-allowed"
           } overflow-hidden`}
         >
@@ -619,7 +619,7 @@ const AssigneeDropdown = ({
             isAdminOrManager
               ? "cursor-pointer hover:border-slate-350 dark:hover:border-white/20"
               : "cursor-not-allowed"
-          } focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00]`}
+          } focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3b82f6]`}
         >
           <div className="flex items-center gap-2 truncate">
             {selectedUserObj ? (
@@ -725,7 +725,7 @@ const AssigneeDropdown = ({
           <FiUser size={12} className="group-hover/assign:hidden" />
           <FiPlus
             size={12}
-            className="hidden group-hover/assign:block text-blue-500 dark:text-[#e5ff00]"
+            className="hidden group-hover/assign:block text-blue-500 dark:text-[#3b82f6]"
           />
         </div>
         <div className="flex-1 min-w-0 flex flex-col text-left">
@@ -796,7 +796,7 @@ const AssigneeDropdown = ({
                     onClick={() => handleSelect(u)}
                     className={`w-full text-left px-3 py-2 text-xs font-semibold flex items-center justify-between hover:bg-slate-50 dark:hover:bg-white/5 transition-colors ${
                       isSelected
-                        ? "text-blue-600 dark:text-[#e5ff00] bg-blue-50/30 dark:bg-[#e5ff00]/5"
+                        ? "text-blue-600 dark:text-[#3b82f6] bg-blue-50/30 dark:bg-[#3b82f6]/5"
                         : "text-slate-700 dark:text-slate-200"
                     }`}
                   >
@@ -828,7 +828,7 @@ const AssigneeDropdown = ({
                     {isSelected && (
                       <FiCheck
                         size={12}
-                        className="text-blue-600 dark:text-[#e5ff00] shrink-0"
+                        className="text-blue-600 dark:text-[#3b82f6] shrink-0"
                       />
                     )}
                   </button>
@@ -1842,13 +1842,13 @@ const ProjectTaskBoard = ({
                   className={`relative px-2 sm:px-4 py-1.5 text-[9px] sm:text-[11px] font-bold  tracking-wider transition-all duration-300 rounded-full shrink-0 cursor-pointer ${
                     isActive
                       ? "text-[var(--color-active-tab-text)]"
-                      : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-[#e5ff00]"
+                      : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-[#3b82f6]"
                   }`}
                 >
                   {isActive && (
                     <motion.div
                       layoutId="activeWorkspaceTabPill"
-                      className="absolute inset-0 bg-blue-600 dark:bg-[#e5ff00] rounded-full shadow-lg"
+                      className="absolute inset-0 bg-blue-600 dark:bg-[#3b82f6] rounded-full shadow-lg"
                       style={{ zIndex: 0 }}
                       transition={{
                         type: "spring",
@@ -1928,7 +1928,7 @@ const ProjectTaskBoard = ({
                     filterPriority !== "all" ||
                     filterStartDate ||
                     filterEndDate
-                      ? "bg-blue-50 dark:bg-[#e5ff00]/10 border-blue-200 dark:border-transparent text-blue-600 dark:text-[#e5ff00]"
+                      ? "bg-blue-50 dark:bg-[#3b82f6]/10 border-blue-200 dark:border-transparent text-blue-600 dark:text-[#3b82f6]"
                       : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
                   }`}
                 >
@@ -1954,7 +1954,7 @@ const ProjectTaskBoard = ({
                     filterPriority !== "all" ||
                     filterStartDate ||
                     filterEndDate) && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-[#e5ff00]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-[#3b82f6]" />
                   )}
                 </button>
 
@@ -1970,7 +1970,7 @@ const ProjectTaskBoard = ({
                       {/* Dropdown Header */}
                       <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-3">
                         <div className="flex items-center gap-1.5">
-                          <div className="w-5 h-5 rounded-md bg-blue-500/10 dark:bg-[#e5ff00]/10 flex items-center justify-center">
+                          <div className="w-5 h-5 rounded-md bg-blue-500/10 dark:bg-[#3b82f6]/10 flex items-center justify-center">
                             <svg
                               width="11"
                               height="11"
@@ -1978,7 +1978,7 @@ const ProjectTaskBoard = ({
                               fill="none"
                               stroke="currentColor"
                               strokeWidth="3"
-                              className="text-blue-600 dark:text-[#e5ff00]"
+                              className="text-blue-600 dark:text-[#3b82f6]"
                             >
                               <line x1="4" y1="6" x2="20" y2="6" />
                               <line x1="6" y1="12" x2="18" y2="12" />
@@ -2036,7 +2036,7 @@ const ProjectTaskBoard = ({
                             placeholder="Type to search tasks..."
                             value={filterSearch}
                             onChange={(e) => setFilterSearch(e.target.value)}
-                            className="w-full pl-9 pr-3 py-2 text-xs font-semibold rounded-xl bg-slate-50/50 dark:bg-[#18181b]/50 border border-slate-200/60 dark:border-white/10 focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00] text-slate-800 dark:text-slate-200 transition-all placeholder-slate-450 dark:placeholder-slate-550"
+                            className="w-full pl-9 pr-3 py-2 text-xs font-semibold rounded-xl bg-slate-50/50 dark:bg-[#18181b]/50 border border-slate-200/60 dark:border-white/10 focus:outline-none focus:border-blue-500 dark:focus:border-[#3b82f6] text-slate-800 dark:text-slate-200 transition-all placeholder-slate-450 dark:placeholder-slate-550"
                           />
                         </div>
                       </div>
@@ -2079,7 +2079,7 @@ const ProjectTaskBoard = ({
                               onClick={() => setFilterStatus(status.name)}
                               className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-bold rounded-xl transition-all cursor-pointer border ${
                                 filterStatus === status.name
-                                  ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#e5ff00]/10"
+                                  ? "bg-blue-600 border-blue-600 text-white dark:bg-[#3b82f6] dark:border-[#3b82f6] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#3b82f6]/10"
                                   : "bg-slate-50/50 border-slate-200/60 dark:bg-white/[0.02] dark:border-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                               }`}
                             >
@@ -2127,7 +2127,7 @@ const ProjectTaskBoard = ({
                               onClick={() => setFilterPriority(priority.name)}
                               className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-bold rounded-xl transition-all cursor-pointer border ${
                                 filterPriority === priority.name
-                                  ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#e5ff00]/10"
+                                  ? "bg-blue-600 border-blue-600 text-white dark:bg-[#3b82f6] dark:border-[#3b82f6] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#3b82f6]/10"
                                   : "bg-slate-50/50 border-slate-200/60 dark:bg-white/[0.02] dark:border-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                               }`}
                             >
@@ -2152,7 +2152,7 @@ const ProjectTaskBoard = ({
                             onClick={() => setFilterAssignee("all")}
                             className={`px-2.5 py-1.5 text-[10px] font-bold rounded-xl transition-all cursor-pointer border ${
                               filterAssignee === "all"
-                                ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#e5ff00]/10"
+                                ? "bg-blue-600 border-blue-600 text-white dark:bg-[#3b82f6] dark:border-[#3b82f6] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#3b82f6]/10"
                                 : "bg-slate-50/50 border-slate-200/60 dark:bg-white/[0.02] dark:border-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                             }`}
                           >
@@ -2162,7 +2162,7 @@ const ProjectTaskBoard = ({
                             onClick={() => setFilterAssignee("unassigned")}
                             className={`px-2.5 py-1.5 text-[10px] font-bold rounded-xl transition-all cursor-pointer border ${
                               filterAssignee === "unassigned"
-                                ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#e5ff00]/10"
+                                ? "bg-blue-600 border-blue-600 text-white dark:bg-[#3b82f6] dark:border-[#3b82f6] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#3b82f6]/10"
                                 : "bg-slate-50/50 border-slate-200/60 dark:bg-white/[0.02] dark:border-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                             }`}
                           >
@@ -2174,11 +2174,11 @@ const ProjectTaskBoard = ({
                               onClick={() => setFilterAssignee(u._id)}
                               className={`flex items-center gap-1.5 px-2.5 py-1.5 text-[10px] font-bold rounded-xl transition-all cursor-pointer border ${
                                 filterAssignee === u._id
-                                  ? "bg-blue-600 border-blue-600 text-white dark:bg-[#e5ff00] dark:border-[#e5ff00] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#e5ff00]/10"
+                                  ? "bg-blue-600 border-blue-600 text-white dark:bg-[#3b82f6] dark:border-[#3b82f6] dark:text-black shadow-md shadow-blue-500/10 dark:shadow-[#3b82f6]/10"
                                   : "bg-slate-50/50 border-slate-200/60 dark:bg-white/[0.02] dark:border-white/5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
                               }`}
                             >
-                              <span className="w-3.5 h-3.5 rounded-full bg-blue-500/20 text-blue-600 dark:bg-[#e5ff00]/20 dark:text-[#e5ff00] flex items-center justify-center text-[7px] font-extrabold shrink-0">
+                              <span className="w-3.5 h-3.5 rounded-full bg-blue-500/20 text-blue-600 dark:bg-[#3b82f6]/20 dark:text-[#3b82f6] flex items-center justify-center text-[7px] font-extrabold shrink-0">
                                 {u.name.charAt(0).toUpperCase()}
                               </span>
                               <span>{u.name}</span>
@@ -2193,7 +2193,7 @@ const ProjectTaskBoard = ({
                           Date Range
                         </label>
                         <div className="grid grid-cols-2 gap-2">
-                          <div className="flex items-center gap-1.5 bg-slate-50/50 dark:bg-[#18181b]/50 border border-slate-200/60 dark:border-white/10 rounded-xl px-2.5 py-1.5 text-slate-500 transition-all focus-within:border-blue-550 dark:focus-within:border-[#e5ff00]">
+                          <div className="flex items-center gap-1.5 bg-slate-50/50 dark:bg-[#18181b]/50 border border-slate-200/60 dark:border-white/10 rounded-xl px-2.5 py-1.5 text-slate-500 transition-all focus-within:border-blue-550 dark:focus-within:border-[#3b82f6]">
                             <FiCalendar
                               size={11}
                               className="shrink-0 text-slate-400 dark:text-slate-550"
@@ -2208,7 +2208,7 @@ const ProjectTaskBoard = ({
                               title="Start Date"
                             />
                           </div>
-                          <div className="flex items-center gap-1.5 bg-slate-50/50 dark:bg-[#18181b]/50 border border-slate-200/60 dark:border-white/10 rounded-xl px-2.5 py-1.5 text-slate-500 transition-all focus-within:border-blue-550 dark:focus-within:border-[#e5ff00]">
+                          <div className="flex items-center gap-1.5 bg-slate-50/50 dark:bg-[#18181b]/50 border border-slate-200/60 dark:border-white/10 rounded-xl px-2.5 py-1.5 text-slate-500 transition-all focus-within:border-blue-550 dark:focus-within:border-[#3b82f6]">
                             <FiCalendar
                               size={11}
                               className="shrink-0 text-slate-400 dark:text-slate-550"
@@ -2237,7 +2237,7 @@ const ProjectTaskBoard = ({
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 ${
                     isSortOpen || sortBy !== "none"
-                      ? "bg-blue-50 dark:bg-[#e5ff00]/10 border-blue-200 dark:border-transparent text-blue-600 dark:text-[#e5ff00]"
+                      ? "bg-blue-50 dark:bg-[#3b82f6]/10 border-blue-200 dark:border-transparent text-blue-600 dark:text-[#3b82f6]"
                       : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
                   }`}
                 >
@@ -2259,7 +2259,7 @@ const ProjectTaskBoard = ({
                   </svg>
                   <span>Sort</span>
                   {sortBy !== "none" && (
-                    <span className="text-[10px] font-bold text-blue-600 dark:text-[#e5ff00] ml-0.5">
+                    <span className="text-[10px] font-bold text-blue-600 dark:text-[#3b82f6] ml-0.5">
                       ({sortOrder === "asc" ? "▲" : "▼"})
                     </span>
                   )}
@@ -2317,7 +2317,7 @@ const ProjectTaskBoard = ({
                               }}
                               className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
                                 isSelected
-                                  ? "bg-blue-50 dark:bg-[#e5ff00]/10 text-blue-600 dark:text-[#e5ff00]"
+                                  ? "bg-blue-50 dark:bg-[#3b82f6]/10 text-blue-600 dark:text-[#3b82f6]"
                                   : "text-slate-650 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-white/5"
                               }`}
                             >
@@ -2352,7 +2352,7 @@ const ProjectTaskBoard = ({
                 {/* Mobile Horizontal Scroll Indicator Cue */}
                 <div className="flex md:hidden items-center justify-between gap-1.5 py-1.5 px-3 mb-2 rounded-lg bg-indigo-50/50 dark:bg-white/[0.02] border border-indigo-100/30 dark:border-white/5 text-[9px] text-slate-500 dark:text-slate-400 font-medium">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-[#e5ff00] animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-[#3b82f6] animate-pulse" />
                     <span>Scroll horizontally to view columns</span>
                   </div>
                   <div className="flex items-center gap-0.5 opacity-80">
@@ -2524,7 +2524,7 @@ const ProjectTaskBoard = ({
                                     ) : (
                                       <div className="flex items-center gap-2.5">
                                         <h3
-                                          className="font-bold text-xs uppercase tracking-wider text-slate-705 dark:text-slate-355 hover:text-blue-600 dark:hover:text-[#e5ff00] transition-colors cursor-pointer inline-flex items-center gap-2"
+                                          className="font-bold text-xs uppercase tracking-wider text-slate-705 dark:text-slate-355 hover:text-blue-600 dark:hover:text-[#3b82f6] transition-colors cursor-pointer inline-flex items-center gap-2"
                                           onClick={() =>
                                             toggleSection(sectionName)
                                           }
@@ -2544,7 +2544,7 @@ const ProjectTaskBoard = ({
                                               handleAddTask(sectionName);
                                             }}
                                             title="Add Task to this Section"
-                                            className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-white/5 dark:hover:bg-white/10 text-blue-600 dark:text-[#e5ff00] hover:scale-110 active:scale-90 transition-all cursor-pointer border border-blue-100/50 dark:border-white/5"
+                                            className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-white/5 dark:hover:bg-white/10 text-blue-600 dark:text-[#3b82f6] hover:scale-110 active:scale-90 transition-all cursor-pointer border border-blue-100/50 dark:border-white/5"
                                           >
                                             <FiPlus
                                               size={11}
@@ -2775,7 +2775,7 @@ const ProjectTaskBoard = ({
                                   const isSelected =
                                     selectedTaskId === task._id;
                                   const rowBg = isSelected
-                                    ? "bg-blue-50/40 dark:bg-[#e5ff00]/10"
+                                    ? "bg-blue-50/40 dark:bg-[#3b82f6]/10"
                                     : isCompleted
                                       ? "bg-slate-50/30 text-slate-400 dark:text-slate-550"
                                       : taskIndex % 2 === 0
@@ -2874,7 +2874,7 @@ const ProjectTaskBoard = ({
                                               } ${
                                                 isCompleted
                                                   ? "bg-emerald-500 border-emerald-500 text-white"
-                                                  : "border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
+                                                  : "border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-[#3b82f6] text-transparent hover:text-slate-400 dark:hover:text-[#3b82f6]"
                                               }`}
                                             >
                                               <FiCheck size={9} />
@@ -2936,7 +2936,7 @@ const ProjectTaskBoard = ({
                                                   setSelectedTaskId(task._id);
                                                 }}
                                                 title={`${task.subtasks.length} subtask${task.subtasks.length !== 1 ? "s" : ""} — open details`}
-                                                className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-slate-550 dark:text-slate-400 border border-slate-200 dark:border-white/5 text-[8.5px] font-bold shrink-0 bg-blue-50 bg-[#e5ff00]/10 hover:text-blue-600 dark:hover:text-[#e5ff00] hover:border-blue-200 dark:hover:border-[#e5ff00]/20 transition-all cursor-pointer"
+                                                className="flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-slate-550 dark:text-slate-400 border border-slate-200 dark:border-white/5 text-[8.5px] font-bold shrink-0 bg-blue-50 bg-[#3b82f6]/10 hover:text-blue-600 dark:hover:text-[#3b82f6] hover:border-blue-200 dark:hover:border-[#3b82f6]/20 transition-all cursor-pointer"
                                               >
                                                 <FiCornerDownRight size={8} />
                                                 {task.subtasks.length}
@@ -2950,7 +2950,7 @@ const ProjectTaskBoard = ({
                                                 e.stopPropagation();
                                                 setSelectedTaskId(task._id);
                                               }}
-                                              className="ml-auto shrink-0 text-slate-300 dark:text-slate-600 hover:text-blue-500 dark:hover:text-[#e5ff00] p-0.5 rounded hover:bg-slate-100/50 dark:hover:bg-white/5 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
+                                              className="ml-auto shrink-0 text-slate-300 dark:text-slate-600 hover:text-blue-500 dark:hover:text-[#3b82f6] p-0.5 rounded hover:bg-slate-100/50 dark:hover:bg-white/5 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
                                               title="Open Task Details"
                                             >
                                               <FiChevronRight size={14} />
@@ -3418,7 +3418,7 @@ const ProjectTaskBoard = ({
                                                       task,
                                                     )
                                                   }
-                                                  className="text-slate-455 hover:text-blue-500 dark:hover:text-[#e5ff00] transition-colors p-1 flex items-center gap-0.5 text-[9px] font-bold cursor-pointer"
+                                                  className="text-slate-455 hover:text-blue-500 dark:hover:text-[#3b82f6] transition-colors p-1 flex items-center gap-0.5 text-[9px] font-bold cursor-pointer"
                                                   title="Add Subtask"
                                                 >
                                                   <FiPlus size={11} />
@@ -3462,7 +3462,7 @@ const ProjectTaskBoard = ({
                                               return (
                                                 <tr
                                                   key={sub._id || subIdx}
-                                                  className={`group/subrow transition-colors ${rowBgSub} hover:bg-blue-50/10 dark:hover:bg-[#e5ff00]/5`}
+                                                  className={`group/subrow transition-colors ${rowBgSub} hover:bg-blue-50/10 dark:hover:bg-[#3b82f6]/5`}
                                                 >
                                                   {showSelectionColumn && (
                                                     <td
@@ -3508,7 +3508,7 @@ const ProjectTaskBoard = ({
                                                         } ${
                                                           isSubCompleted
                                                             ? "bg-emerald-500 border-emerald-500 text-white"
-                                                            : "border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
+                                                            : "border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-[#3b82f6] text-transparent hover:text-slate-400 dark:hover:text-[#3b82f6]"
                                                         }`}
                                                       >
                                                         <FiCheck size={8} />
@@ -3605,7 +3605,7 @@ const ProjectTaskBoard = ({
                                                             }
                                                           }, 350);
                                                         }}
-                                                        className="shrink-0 text-slate-400 dark:text-slate-555 hover:text-blue-500 dark:hover:text-[#e5ff00] p-0.5 rounded hover:bg-slate-100 dark:hover:bg-white/5 transition-all opacity-0 group-hover/subrow:opacity-100 cursor-pointer ml-auto"
+                                                        className="shrink-0 text-slate-400 dark:text-slate-555 hover:text-blue-500 dark:hover:text-[#3b82f6] p-0.5 rounded hover:bg-slate-100 dark:hover:bg-white/5 transition-all opacity-0 group-hover/subrow:opacity-100 cursor-pointer ml-auto"
                                                         title="Open Details & View Subtasks"
                                                       >
                                                         <FiChevronRight
@@ -4206,11 +4206,11 @@ const ProjectTaskBoard = ({
                           value={newSectionName}
                           onChange={(e) => setNewSectionName(e.target.value)}
                           placeholder="New section name..."
-                          className="px-3 py-1.5 text-xs font-bold border border-slate-200 dark:border-white/10 rounded-lg bg-transparent focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00] text-slate-705 dark:text-white"
+                          className="px-3 py-1.5 text-xs font-bold border border-slate-200 dark:border-white/10 rounded-lg bg-transparent focus:outline-none focus:border-blue-500 dark:focus:border-[#3b82f6] text-slate-705 dark:text-white"
                         />
                         <button
                           type="submit"
-                          className="px-3 py-1.5 bg-blue-600 dark:bg-[#e5ff00] hover:bg-blue-700 dark:hover:bg-[#ccff00] text-white dark:text-black font-bold text-[10px] rounded-lg cursor-pointer"
+                          className="px-3 py-1.5 bg-blue-600 dark:bg-[#3b82f6] hover:bg-blue-700 dark:hover:bg-[#ccff00] text-white dark:text-black font-bold text-[10px] rounded-lg cursor-pointer"
                         >
                           Save
                         </button>
@@ -4228,7 +4228,7 @@ const ProjectTaskBoard = ({
                     ) : (
                       <button
                         onClick={() => setIsAddingSection(true)}
-                        className="flex items-center gap-1.5 text-slate-550 dark:text-slate-400 hover:text-slate-800 dark:hover:text-[#e5ff00] font-bold text-[11px] transition-colors cursor-pointer"
+                        className="flex items-center gap-1.5 text-slate-550 dark:text-slate-400 hover:text-slate-800 dark:hover:text-[#3b82f6] font-bold text-[11px] transition-colors cursor-pointer"
                       >
                         <FiPlus size={14} /> Add Section
                       </button>
@@ -4282,7 +4282,7 @@ const ProjectTaskBoard = ({
                             {...provided.droppableProps}
                             className={`flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin rounded-xl p-1 transition-colors ${
                               snapshot.isDraggingOver
-                                ? "bg-slate-100/50 dark:bg-white/5 ring-1 ring-blue-400/30 dark:ring-[#e5ff00]/30"
+                                ? "bg-slate-100/50 dark:bg-white/5 ring-1 ring-blue-400/30 dark:ring-[#3b82f6]/30"
                                 : ""
                             }`}
                           >
@@ -4305,8 +4305,8 @@ const ProjectTaskBoard = ({
                                       }
                                       className={`bg-white dark:bg-[#111111] p-2.5 rounded-xl border cursor-pointer space-y-2 relative group select-none ${
                                         snapshot.isDragging
-                                          ? "shadow-2xl ring-2 ring-blue-500 dark:ring-[#e5ff00] scale-[1.03] z-50 border-blue-300 dark:border-[#e5ff00]"
-                                          : "border-slate-150 dark:border-white/5 hover:shadow-md hover:border-slate-200 dark:hover:border-[#e5ff00]/50 transition-shadow transition-colors"
+                                          ? "shadow-2xl ring-2 ring-blue-500 dark:ring-[#3b82f6] scale-[1.03] z-50 border-blue-300 dark:border-[#3b82f6]"
+                                          : "border-slate-150 dark:border-white/5 hover:shadow-md hover:border-slate-200 dark:hover:border-[#3b82f6]/50 transition-shadow transition-colors"
                                       }`}
                                     >
                                       <div className="flex items-start gap-2">
@@ -4323,7 +4323,7 @@ const ProjectTaskBoard = ({
                                           className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
                                             isCompleted
                                               ? "bg-emerald-500 border-emerald-500 text-white"
-                                              : "border-slate-350 dark:border-slate-650 hover:border-blue-500 dark:hover:border-[#e5ff00] text-transparent hover:text-slate-400 dark:hover:text-[#e5ff00]"
+                                              : "border-slate-350 dark:border-slate-650 hover:border-blue-500 dark:hover:border-[#3b82f6] text-transparent hover:text-slate-400 dark:hover:text-[#3b82f6]"
                                           }`}
                                         >
                                           <FiCheck size={9} />
@@ -4349,7 +4349,7 @@ const ProjectTaskBoard = ({
                                             task.status === "Completed"
                                               ? "bg-emerald-55/10 text-emerald-600 border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/40"
                                               : task.status === "In Progress"
-                                                ? "bg-blue-50 text-blue-600 border-blue-100 dark:bg-[#e5ff00]/10 dark:text-[#e5ff00] dark:border-[#e5ff00]/30"
+                                                ? "bg-blue-50 text-blue-600 border-blue-100 dark:bg-[#3b82f6]/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30"
                                                 : task.status === "On Hold"
                                                   ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/30 dark:border-amber-900/40"
                                                   : "bg-slate-100 text-slate-500 border-slate-200 dark:bg-white/5 dark:text-slate-400 dark:border-white/10"
@@ -4436,7 +4436,7 @@ const ProjectTaskBoard = ({
                       {isAdminOrManager && (
                         <button
                           onClick={() => handleAddTask(sectionName)}
-                          className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-[#e5ff00] hover:bg-white dark:hover:bg-white/5 transition-colors font-bold text-xs"
+                          className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-[#3b82f6] hover:bg-white dark:hover:bg-white/5 transition-colors font-bold text-xs"
                         >
                           <FiPlus size={14} />
                           Add task
@@ -4460,12 +4460,12 @@ const ProjectTaskBoard = ({
                           value={newSectionName}
                           onChange={(e) => setNewSectionName(e.target.value)}
                           placeholder="New section name..."
-                          className="w-full px-3 py-1.5 text-xs font-bold border border-slate-200 dark:border-white/10 rounded-lg bg-white dark:bg-[#111111] text-slate-700 dark:text-white focus:outline-none focus:border-blue-500 dark:focus:border-[#e5ff00]"
+                          className="w-full px-3 py-1.5 text-xs font-bold border border-slate-200 dark:border-white/10 rounded-lg bg-white dark:bg-[#111111] text-slate-700 dark:text-white focus:outline-none focus:border-blue-500 dark:focus:border-[#3b82f6]"
                         />
                         <div className="flex gap-2">
                           <button
                             type="submit"
-                            className="w-full py-1.5 bg-blue-600 dark:bg-[#e5ff00] hover:bg-blue-700 dark:hover:bg-[#ccff00] text-white dark:text-black font-bold text-[10px] rounded-lg"
+                            className="w-full py-1.5 bg-blue-600 dark:bg-[#3b82f6] hover:bg-blue-700 dark:hover:bg-[#ccff00] text-white dark:text-black font-bold text-[10px] rounded-lg"
                           >
                             Save
                           </button>
@@ -4484,7 +4484,7 @@ const ProjectTaskBoard = ({
                     ) : (
                       <button
                         onClick={() => setIsAddingSection(true)}
-                        className="flex items-center justify-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-[#e5ff00] font-bold text-[13px] transition-colors w-full h-[60px] border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5"
+                        className="flex items-center justify-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-[#3b82f6] font-bold text-[13px] transition-colors w-full h-[60px] border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5"
                       >
                         <FiPlus size={16} /> Add Section
                       </button>
@@ -4599,7 +4599,7 @@ const ProjectTaskBoard = ({
                                 e.stopPropagation();
                                 handleAddTask(sectionName);
                               }}
-                              className="p-1 hover:bg-slate-200 dark:hover:bg-white/10 dark:hover:text-[#e5ff00] rounded text-slate-400 transition-colors cursor-pointer"
+                              className="p-1 hover:bg-slate-200 dark:hover:bg-white/10 dark:hover:text-[#3b82f6] rounded text-slate-400 transition-colors cursor-pointer"
                             >
                               <FiPlus size={11} />
                             </button>
@@ -4624,7 +4624,7 @@ const ProjectTaskBoard = ({
                                   task.status === "Completed"
                                     ? "bg-emerald-500"
                                     : task.status === "In Progress"
-                                      ? "bg-blue-500 dark:bg-[#e5ff00]"
+                                      ? "bg-blue-500 dark:bg-[#3b82f6]"
                                       : task.status === "On Hold"
                                         ? "bg-amber-500"
                                         : "bg-slate-400"
@@ -4641,7 +4641,7 @@ const ProjectTaskBoard = ({
                       <div className="py-3 px-3 h-10 flex items-center">
                         <button
                           onClick={() => setIsAddingSection(true)}
-                          className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 hover:text-slate-800 dark:hover:text-[#e5ff00] transition-colors cursor-pointer"
+                          className="flex items-center gap-1.5 text-[10px] font-bold text-slate-500 hover:text-slate-800 dark:hover:text-[#3b82f6] transition-colors cursor-pointer"
                         >
                           <FiPlus size={11} /> Add section
                         </button>
@@ -4692,7 +4692,7 @@ const ProjectTaskBoard = ({
                                 isWeekend
                                   ? "bg-slate-50/[0.15] dark:bg-white/[0.02]"
                                   : ""
-                              } ${isTodayCell ? "bg-blue-50/10 dark:bg-[#e5ff00]/5" : ""}`}
+                              } ${isTodayCell ? "bg-blue-50/10 dark:bg-[#3b82f6]/5" : ""}`}
                             />
                           );
                         })}
@@ -4778,7 +4778,7 @@ const ProjectTaskBoard = ({
                                           task.status === "Completed"
                                             ? "bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-100 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400"
                                             : task.status === "In Progress"
-                                              ? "bg-blue-50 dark:bg-[#e5ff00]/10 border border-blue-100 dark:border-[#e5ff00]/20 text-blue-700 dark:text-[#e5ff00]"
+                                              ? "bg-blue-50 dark:bg-[#3b82f6]/10 border border-blue-100 dark:border-[#3b82f6]/20 text-blue-700 dark:text-[#3b82f6]"
                                               : task.status === "On Hold"
                                                 ? "bg-amber-55 dark:bg-amber-550/15 border border-amber-100 dark:border-amber-500/20 text-amber-700 dark:text-amber-400"
                                                 : "bg-slate-50 dark:bg-slate-500/15 border border-slate-200 dark:border-slate-500/20 text-slate-600 dark:text-slate-400"
@@ -4811,8 +4811,8 @@ const ProjectTaskBoard = ({
                       {/* Today Line */}
                       {timelineOffsetWeeks === 0 && (
                         <>
-                          <div className="absolute top-0 bottom-0 left-[25%] w-px bg-blue-500 dark:bg-[#e5ff00]/60 z-10 pointer-events-none" />
-                          <div className="absolute -top-1 left-[25%] -translate-x-1/2 w-2 h-2 rounded-full bg-blue-500 dark:bg-[#e5ff00] z-10 pointer-events-none" />
+                          <div className="absolute top-0 bottom-0 left-[25%] w-px bg-blue-500 dark:bg-[#3b82f6]/60 z-10 pointer-events-none" />
+                          <div className="absolute -top-1 left-[25%] -translate-x-1/2 w-2 h-2 rounded-full bg-blue-500 dark:bg-[#3b82f6] z-10 pointer-events-none" />
                         </>
                       )}
                     </div>
@@ -4852,16 +4852,16 @@ const ProjectTaskBoard = ({
 
               {/* Card 2: Total Incomplete */}
               <div className="relative overflow-hidden p-5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-[#070b13] border-slate-200/60 dark:border-white/5 shadow-lg shadow-slate-100/40 dark:shadow-none hover:shadow-xl group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 dark:bg-[#e5ff00] rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-20 pointer-events-none" />
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 dark:bg-[#3b82f6] rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-20 pointer-events-none" />
                 <FiClock
                   size={24}
-                  className="text-blue-550/40 dark:text-[#e5ff00]/25 absolute top-5 right-5 pointer-events-none"
+                  className="text-blue-550/40 dark:text-[#3b82f6]/25 absolute top-5 right-5 pointer-events-none"
                 />
                 <div className="relative z-10">
                   <h4 className="text-[10px] font-bold  tracking-wider text-slate-500 dark:text-slate-400">
                     Incomplete tasks
                   </h4>
-                  <div className="text-4xl font-bold mt-4 drop-shadow-sm text-blue-500 dark:text-[#e5ff00]">
+                  <div className="text-4xl font-bold mt-4 drop-shadow-sm text-blue-500 dark:text-[#3b82f6]">
                     {incompleteTasks}
                   </div>
                 </div>
@@ -4914,7 +4914,7 @@ const ProjectTaskBoard = ({
             {/* Reports Charts Area */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               {/* Chart 1: Total incomplete tasks by section (Status Breakdown) */}
-              <div className="bg-white dark:bg-[#070b13] p-6 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none flex flex-col transition-all duration-300 hover:shadow-2xl hover:border-slate-300 dark:hover:border-[#e5ff00]/30">
+              <div className="bg-white dark:bg-[#070b13] p-6 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none flex flex-col transition-all duration-300 hover:shadow-2xl hover:border-slate-300 dark:hover:border-[#3b82f6]/30">
                 <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100  tracking-wider mb-8">
                   Total incomplete tasks by section
                 </h4>
@@ -4958,7 +4958,7 @@ const ProjectTaskBoard = ({
                             height: `${totalTasks > 0 ? Math.max((sectionIncompleteCount / totalTasks) * 140, 2) : 2}px`,
                           }}
                           transition={{ delay: index * 0.1 }}
-                          className="w-10 rounded-t-xl bg-gradient-to-t from-blue-600 to-cyan-400 dark:from-[#99cc00] dark:to-[#e5ff00] shadow-[0_0_15px_rgba(56,189,248,0.3)] dark:shadow-[0_0_15px_rgba(229,255,0,0.3)] transition-all duration-300 group-hover:brightness-125"
+                          className="w-10 rounded-t-xl bg-gradient-to-t from-blue-600 to-cyan-400 dark:from-[#99cc00] dark:to-[#3b82f6] shadow-[0_0_15px_rgba(56,189,248,0.3)] dark:shadow-[0_0_15px_rgba(229,255,0,0.3)] transition-all duration-300 group-hover:brightness-125"
                         />
                         <span
                           className="text-[9px] font-bold  tracking-wider text-slate-500 dark:text-slate-400 mt-2 text-center w-full truncate"
@@ -4973,14 +4973,14 @@ const ProjectTaskBoard = ({
 
                 <div className="text-[9px] font-bold text-slate-400 dark:text-slate-550  tracking-wider pt-4 flex items-center justify-between">
                   <span>2 Filters Active</span>
-                  <button className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#1a1a1a] text-blue-600 dark:text-[#e5ff00] hover:bg-slate-200 dark:hover:bg-white/10 transition-all shadow-sm">
+                  <button className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#1a1a1a] text-blue-600 dark:text-[#3b82f6] hover:bg-slate-200 dark:hover:bg-white/10 transition-all shadow-sm">
                     View Details
                   </button>
                 </div>
               </div>
 
               {/* Chart 2: Total tasks by completion status (Donut Chart) */}
-              <div className="bg-white dark:bg-[#070b13] p-6 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none flex flex-col transition-all duration-300 hover:shadow-2xl hover:border-slate-300 dark:hover:border-[#e5ff00]/30">
+              <div className="bg-white dark:bg-[#070b13] p-6 rounded-2xl border border-slate-200/60 dark:border-white/5 shadow-xl shadow-slate-200/40 dark:shadow-none flex flex-col transition-all duration-300 hover:shadow-2xl hover:border-slate-300 dark:hover:border-[#3b82f6]/30">
                 <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100  tracking-wider mb-6">
                   Total tasks by completion status
                 </h4>
@@ -5098,7 +5098,7 @@ const ProjectTaskBoard = ({
                       transition={{ delay: 0.5, type: "spring" }}
                       className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
                     >
-                      <span className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-violet-600 to-pink-500 dark:from-[#99cc00] dark:to-[#e5ff00] drop-shadow-sm">
+                      <span className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-violet-600 to-pink-500 dark:from-[#99cc00] dark:to-[#3b82f6] drop-shadow-sm">
                         {incompleteTasks}
                       </span>
                       <span className="text-[8px] font-bold  text-slate-400 mt-1">
@@ -5110,7 +5110,7 @@ const ProjectTaskBoard = ({
                   {/* Legend details */}
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full bg-gradient-to-br from-violet-550 to-pink-500 dark:from-[#99cc00] dark:to-[#e5ff00] shadow-sm shadow-violet-500/40 dark:shadow-[#e5ff00]/40 shrink-0" />
+                      <div className="w-4 h-4 rounded-full bg-gradient-to-br from-violet-550 to-pink-500 dark:from-[#99cc00] dark:to-[#3b82f6] shadow-sm shadow-violet-500/40 dark:shadow-[#3b82f6]/40 shrink-0" />
                       <div>
                         <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400  tracking-wider block">
                           Incomplete
@@ -5136,7 +5136,7 @@ const ProjectTaskBoard = ({
 
                 <div className="text-[9px] font-bold text-slate-400 dark:text-slate-550  tracking-wider pt-4 flex items-center justify-between">
                   <span>1 Filter Active</span>
-                  <button className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#1a1a1a] text-blue-600 dark:text-[#e5ff00] hover:bg-slate-200 dark:hover:bg-white/10 transition-all shadow-sm">
+                  <button className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-[#1a1a1a] text-blue-600 dark:text-[#3b82f6] hover:bg-slate-200 dark:hover:bg-white/10 transition-all shadow-sm">
                     View Details
                   </button>
                 </div>
@@ -5170,7 +5170,7 @@ const ProjectTaskBoard = ({
               {/* Drawer Header */}
               <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-[#1a1a1a]">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-[#e5ff00]/10 border border-blue-100 dark:border-[#e5ff00]/20 flex items-center justify-center text-blue-600 dark:text-[#e5ff00] shadow-sm shrink-0">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-[#3b82f6]/10 border border-blue-100 dark:border-[#3b82f6]/20 flex items-center justify-center text-blue-600 dark:text-[#3b82f6] shadow-sm shrink-0">
                     <FiBriefcase size={20} />
                   </div>
                   <div>
@@ -5197,7 +5197,7 @@ const ProjectTaskBoard = ({
                   <label className="text-[10px] font-bold text-slate-400  tracking-wider">
                     Task Title
                   </label>
-                  <div className="p-3 bg-slate-50 dark:bg-[#0a0a0a]/50 border border-slate-150 dark:border-white/10 rounded-xl focus-within:bg-white dark:focus-within:bg-[#111111] focus-within:ring-1 focus-within:ring-blue-500 dark:focus-within:ring-[#e5ff00] transition-all">
+                  <div className="p-3 bg-slate-50 dark:bg-[#0a0a0a]/50 border border-slate-150 dark:border-white/10 rounded-xl focus-within:bg-white dark:focus-within:bg-[#111111] focus-within:ring-1 focus-within:ring-blue-500 dark:focus-within:ring-[#3b82f6] transition-all">
                     <TaskTitleInput
                       task={selectedTask}
                       canToggle={
@@ -5228,7 +5228,7 @@ const ProjectTaskBoard = ({
                             status: e.target.value,
                           })
                         }
-                        className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00]"
+                        className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3b82f6]"
                       >
                         <option
                           value="Pending"
@@ -5305,7 +5305,7 @@ const ProjectTaskBoard = ({
                             startDate: e.target.value,
                           })
                         }
-                        className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00]"
+                        className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3b82f6]"
                       />
                     ) : (
                       <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-955/30 border border-blue-200 dark:border-blue-900/60 rounded-xl text-xs font-semibold text-blue-700 dark:text-blue-300">
@@ -5349,7 +5349,7 @@ const ProjectTaskBoard = ({
                             dueDate: e.target.value,
                           })
                         }
-                        className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00]"
+                        className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3b82f6]"
                       />
                     ) : (
                       <div className="flex items-center gap-2 px-3 py-2 bg-rose-50 dark:bg-rose-955/30 border border-rose-200 dark:border-rose-900/60 rounded-xl text-xs font-semibold text-rose-700 dark:text-rose-305">
@@ -5377,7 +5377,7 @@ const ProjectTaskBoard = ({
                             priority: e.target.value,
                           })
                         }
-                        className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00]"
+                        className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3b82f6]"
                       >
                         <option
                           value="Low"
@@ -5458,7 +5458,7 @@ const ProjectTaskBoard = ({
                               console.error("Failed to add subtask:", err);
                             }
                           }}
-                          className="p-1 hover:bg-slate-150 dark:hover:bg-white/5 rounded text-slate-500 hover:text-slate-850 dark:text-slate-400 dark:hover:text-[#e5ff00] transition-colors cursor-pointer"
+                          className="p-1 hover:bg-slate-150 dark:hover:bg-white/5 rounded text-slate-500 hover:text-slate-850 dark:text-slate-400 dark:hover:text-[#3b82f6] transition-colors cursor-pointer"
                           title="Add subtask"
                         >
                           <FiPlus size={16} />
@@ -5541,7 +5541,7 @@ const ProjectTaskBoard = ({
                             console.error("Failed to add subtask:", err);
                           }
                         }}
-                        className="w-full text-left px-3.5 py-2 text-[11px] font-bold text-slate-500 hover:text-slate-850 dark:text-slate-400 dark:hover:text-[#e5ff00] hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-all flex items-center gap-1.5 cursor-pointer border-t border-slate-100 dark:border-white/5"
+                        className="w-full text-left px-3.5 py-2 text-[11px] font-bold text-slate-500 hover:text-slate-850 dark:text-slate-400 dark:hover:text-[#3b82f6] hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-all flex items-center gap-1.5 cursor-pointer border-t border-slate-100 dark:border-white/5"
                       >
                         <FiPlus size={12} />
                         Add subtask
@@ -5565,7 +5565,7 @@ const ProjectTaskBoard = ({
                           href={att.url}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex items-center gap-2 px-3 py-1.5 bg-slate-55 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-[10px] font-bold text-blue-600 dark:text-[#e5ff00] hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                          className="flex items-center gap-2 px-3 py-1.5 bg-slate-55 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-[10px] font-bold text-blue-600 dark:text-[#3b82f6] hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
                         >
                           <FiFile size={12} /> {att.filename}
                         </a>
@@ -5577,7 +5577,7 @@ const ProjectTaskBoard = ({
                   <div className="space-y-3 max-h-40 overflow-y-auto pr-1">
                     {selectedTask.comments?.map((comment, idx) => (
                       <div key={idx} className="flex gap-2.5">
-                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-[#e5ff00]/20 flex items-center justify-center shrink-0 text-[10px] font-bold text-blue-700 dark:text-[#e5ff00]">
+                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-[#3b82f6]/20 flex items-center justify-center shrink-0 text-[10px] font-bold text-blue-700 dark:text-[#3b82f6]">
                           {comment.user?.name?.charAt(0) || "U"}
                         </div>
                         <div className="flex-1">
@@ -5621,7 +5621,7 @@ const ProjectTaskBoard = ({
                               value={newComment}
                               onChange={(e) => setNewComment(e.target.value)}
                               placeholder="Add a comment..."
-                              className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#e5ff00] resize-none min-h-[40px]"
+                              className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3b82f6] resize-none min-h-[40px]"
                               rows={1}
                             />
                           </div>
@@ -5635,14 +5635,14 @@ const ProjectTaskBoard = ({
                             />
                             <label
                               htmlFor="task-attachment"
-                              className={`p-2 text-slate-400 hover:text-blue-600 dark:hover:text-[#e5ff00] cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors ${isUploading ? "opacity-55 cursor-not-allowed" : ""}`}
+                              className={`p-2 text-slate-400 hover:text-blue-600 dark:hover:text-[#3b82f6] cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors ${isUploading ? "opacity-55 cursor-not-allowed" : ""}`}
                             >
                               <FiPaperclip size={14} />
                             </label>
                             <button
                               onClick={handleAddComment}
                               disabled={!newComment.trim() || isUploading}
-                              className="p-2 bg-blue-600 dark:bg-[#e5ff00] text-white dark:text-black rounded-lg disabled:opacity-50 hover:bg-blue-700 dark:hover:bg-[#ccff00] transition-colors"
+                              className="p-2 bg-blue-600 dark:bg-[#3b82f6] text-white dark:text-black rounded-lg disabled:opacity-50 hover:bg-blue-700 dark:hover:bg-[#ccff00] transition-colors"
                             >
                               <FiSend size={14} />
                             </button>

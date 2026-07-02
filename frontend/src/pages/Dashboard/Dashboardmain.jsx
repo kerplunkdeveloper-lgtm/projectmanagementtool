@@ -10,8 +10,8 @@ import {
 } from "../../features/projects/projectSlice";
 import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
-import { Doughnut } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import { Doughnut } from "react-chartjs-2";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -69,7 +69,7 @@ const Dashboardmain = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  const isDark = theme === "dark";
   const { events, loading } = useSelector((state) => state.events);
   const { projects } = useSelector((state) => state.projects);
   const { clients } = useSelector((state) => state.clients);
@@ -86,12 +86,13 @@ const Dashboardmain = () => {
   }, []);
 
   // Process chart data for departments
-  const departmentCounts = users?.reduce((acc, user) => {
-    if (user.department) {
-      acc[user.department] = (acc[user.department] || 0) + 1;
-    }
-    return acc;
-  }, {}) || {};
+  const departmentCounts =
+    users?.reduce((acc, user) => {
+      if (user.department) {
+        acc[user.department] = (acc[user.department] || 0) + 1;
+      }
+      return acc;
+    }, {}) || {};
 
   const chartData = {
     labels: Object.keys(departmentCounts),
@@ -109,14 +110,14 @@ const Dashboardmain = () => {
           "rgba(249, 115, 22, 0.8)", // orange-500
         ],
         borderColor: [
-          "#3b82f6", 
-          "#10b981", 
-          "#f59e0b", 
-          "#ef4444", 
-          "#8b5cf6", 
-          "#ec4899", 
-          "#06b6d4", 
-          "#f97316", 
+          "#3b82f6",
+          "#10b981",
+          "#f59e0b",
+          "#ef4444",
+          "#8b5cf6",
+          "#ec4899",
+          "#06b6d4",
+          "#f97316",
         ],
         borderWidth: 1,
         hoverOffset: 6,
@@ -124,41 +125,43 @@ const Dashboardmain = () => {
     ],
   };
 
-  const legendColor = isDark ? '#94a3b8' : '#475569';
+  const legendColor = isDark ? "#94a3b8" : "#475569";
 
   const chartOptions = {
     plugins: {
       legend: {
-        position: isMobile ? 'bottom' : 'right',
+        position: isMobile ? "bottom" : "right",
         labels: {
           color: legendColor,
           font: {
             family: "'Inter', sans-serif",
             size: isMobile ? 9 : 11,
-            weight: 600
+            weight: 600,
           },
           usePointStyle: true,
-          padding: isMobile ? 8 : 16
-        }
+          padding: isMobile ? 8 : 16,
+        },
       },
       tooltip: {
-        backgroundColor: isDark ? 'rgba(15, 23, 42, 0.97)' : 'rgba(30, 41, 59, 0.95)',
-        titleColor: '#f1f5f9',
-        bodyColor: '#cbd5e1',
+        backgroundColor: isDark
+          ? "rgba(15, 23, 42, 0.97)"
+          : "rgba(30, 41, 59, 0.95)",
+        titleColor: "#f1f5f9",
+        bodyColor: "#cbd5e1",
         padding: 12,
         cornerRadius: 8,
         displayColors: true,
         usePointStyle: true,
-        borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.12)',
+        borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.12)",
         borderWidth: 1,
-      }
+      },
     },
-    cutout: '72%',
+    cutout: "72%",
     maintainAspectRatio: false,
     animation: {
       animateScale: true,
-      animateRotate: true
-    }
+      animateRotate: true,
+    },
   };
 
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -170,7 +173,11 @@ const Dashboardmain = () => {
     dispatch(getEvents());
     dispatch(getProjects());
     dispatch(getUsers());
-    if (user?.role === "admin" || user?.role === "operationmanager" || user?.role === "team") {
+    if (
+      user?.role === "admin" ||
+      user?.role === "operationmanager" ||
+      user?.role === "team"
+    ) {
       dispatch(getClients());
     }
   }, [dispatch, user]);
@@ -260,13 +267,15 @@ const Dashboardmain = () => {
         </div>
 
         <div className="col-span-1 theme-bg-card border theme-border rounded-xl p-4 shadow-xl">
-          <h1 className="text-[20px] text-blue-500 dark:text-[#e5ff00] font-medium tracking-wider mb-8">
+          <h1 className="text-[20px] text-blue-500 dark:text-[#3b82f6] font-medium tracking-wider mb-8">
             Projects OverView
           </h1>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
             {/* CREATE PROJECT BUTTON */}
-            {(user?.role === "admin" || user?.role === "operationmanager" || user?.role === "team") && (
+            {(user?.role === "admin" ||
+              user?.role === "operationmanager" ||
+              user?.role === "team") && (
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="flex items-center gap-2 group text-left"
@@ -308,18 +317,18 @@ const Dashboardmain = () => {
       )} */}
       </div>
 
-
-
       {/* user details list name and email */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-        
         {/* Left Side: Users List */}
         <div className="theme-bg-card theme-border border rounded-2xl p-5 shadow-sm flex flex-col h-[400px]">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-[14px] font-bold theme-text-primary flex items-center gap-2">
               <span className="w-6 h-6 rounded-lg bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] flex items-center justify-center">
-                <FiUser size={12} className="text-[var(--accent-color)] dark:text-[var(--accent-color-dark)]" />
+                <FiUser
+                  size={12}
+                  className="text-[var(--accent-color)] dark:text-[var(--accent-color-dark)]"
+                />
               </span>
               Team Members
             </h3>
@@ -331,7 +340,8 @@ const Dashboardmain = () => {
           {/* Scrollable List */}
           <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin space-y-2">
             {users?.map((u) => {
-              const avatarUrl = u.profile?.profileImage?.url || u.profileImage?.url;
+              const avatarUrl =
+                u.profile?.profileImage?.url || u.profileImage?.url;
               const initial = u.name?.charAt(0).toUpperCase() || "?";
               return (
                 <div
@@ -347,7 +357,7 @@ const Dashboardmain = () => {
                         className="w-11 h-11 rounded-full object-cover shadow-sm ring-2 ring-white dark:ring-slate-700 group-hover:ring-[var(--accent-color)]/40 dark:group-hover:ring-[var(--accent-color-dark)]/30 transition-all"
                       />
                     ) : (
-                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 dark:from-[#e5ff00] dark:to-emerald-400 flex items-center justify-center text-white dark:text-black font-black text-base shadow-sm ring-2 ring-white dark:ring-slate-700">
+                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 dark:from-[#3b82f6] dark:to-emerald-400 flex items-center justify-center text-white dark:text-black font-black text-base shadow-sm ring-2 ring-white dark:ring-slate-700">
                         {initial}
                       </div>
                     )}
@@ -400,49 +410,28 @@ const Dashboardmain = () => {
                 <p className="text-xs font-semibold">No department data</p>
               </div>
             )}
-            
+
             {/* Center Label inside Doughnut */}
             {Object.keys(departmentCounts).length > 0 && (
-              <div className={`absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-all duration-300 ${
-                isMobile ? "pb-[30px]" : "pr-[120px]"
-              }`}>
-                <span className="text-3xl font-black theme-text-primary">{users?.filter(u => u.department).length || 0}</span>
-                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Assigned</span>
+              <div
+                className={`absolute inset-0 flex flex-col items-center justify-center pointer-events-none transition-all duration-300 ${
+                  isMobile ? "pb-[30px]" : "pr-[120px]"
+                }`}
+              >
+                <span className="text-3xl font-black theme-text-primary">
+                  {users?.filter((u) => u.department).length || 0}
+                </span>
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                  Assigned
+                </span>
               </div>
             )}
           </div>
         </div>
-
       </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
       {/* TWO-COLUMN LOWER DASHBOARD SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 max-w-7xl">
-        
         {/* UPCOMING EVENTS SECTION */}
         <div className="lg:col-span-2 theme-bg-card border theme-border rounded-xl p-4 shadow-sm">
           <div className="flex items-center justify-between mb-4 border-b theme-border pb-3">
@@ -639,11 +628,6 @@ const Dashboardmain = () => {
             </div>
           </div>
         </div>
-
-
-
-
-
       </div>
 
       {/* CREATE PROJECT OFFCANVAS DRAWER */}
