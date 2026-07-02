@@ -12,6 +12,8 @@ import { getProjects } from "../../../features/projects/projectSlice";
 const DashboardCards = () => {
   const dispatch = useDispatch();
 
+  const { user } = useSelector((state) => state.auth);
+
   const { clients } = useSelector((state) => state.clients);
 
   const { users } = useSelector((state) => state.users);
@@ -44,13 +46,15 @@ const DashboardCards = () => {
     : 0;
   const totalProjectsCount = projects ? projects.length : 0;
 
+  const isAdminOrOpManager = user?.role === "admin" || user?.role === "operationmanager";
+
   // ============================================
   // CARD DATA
   // ============================================
 
   const cards = [
     {
-      title: "No.of Active Clients",
+      title: isAdminOrOpManager ? "Total Overall No.of Active Clients" : "No.of Active Clients",
       value: activeClientsCount,
       icon: FiBriefcase,
       gradient:
@@ -63,7 +67,7 @@ const DashboardCards = () => {
       subtitle: "Total managed client accounts",
     },
     {
-      title: "No.of Projects",
+      title: isAdminOrOpManager ? "Total Overall No.of Projects" : "No.of Projects",
       value: activeProjectsCount,
       icon: FiBriefcase,
       gradient:
@@ -76,7 +80,7 @@ const DashboardCards = () => {
       subtitle: `Active: ${completedProjectsCount} • On Hold: ${onHoldProjectsCount} • Inactive: ${inactiveProjectsCount} • Active: ${totalProjectsCount}`,
     },
     {
-      title: "Total Strength",
+      title: isAdminOrOpManager ? "total team Strength" : "Total Strength",
       value: teamStrengthCount,
       icon: FiUsers,
       gradient:

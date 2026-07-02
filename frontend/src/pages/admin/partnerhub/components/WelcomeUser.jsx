@@ -221,14 +221,14 @@ const WelcomeUser = () => {
   return (
     <>
       <div 
-        className="relative overflow-hidden p-4 sm:p-5 mb-4 rounded-2xl border-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fadeIn shadow-lg transition-colors duration-300 theme-bg-accent"
+        className="relative overflow-hidden p-4 sm:p-2 mb-4 rounded-xl border-none flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fadeIn shadow-lg transition-colors duration-300 theme-bg-accent"
       >
         {/* Background Image overlay with mix-blend-overlay */}
         <div className="absolute inset-0 z-0 select-none pointer-events-none">
           <img
             src={getDepartmentBgImage(user?.department || profile?.department, user?.role || profile?.role)}
             alt=""
-            className="w-full h-full object-cover opacity-20 mix-blend-overlay dark:opacity-10 transition-all duration-500"
+            className="w-full h-full object-cover opacity-30 mix-blend-overlay dark:opacity-10 transition-all duration-500"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-black/5 to-transparent dark:from-white/10 dark:via-white/2 dark:to-transparent" />
         </div>
@@ -241,7 +241,7 @@ const WelcomeUser = () => {
             className="relative shrink-0 cursor-pointer hover:scale-105 active:scale-98 transition-all duration-300 group"
             title="Click to view profile details"
           >
-            <div className="w-20 h-20 md:w-[180px] md:h-[180px] rounded-full  shadow-sm">
+            <div className="w-20 h-20 md:w-[210px] md:h-[210px] rounded-full  shadow-sm">
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
@@ -266,8 +266,8 @@ const WelcomeUser = () => {
             </p>
             
             {/* Name & Badges */}
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-xl sm:text-3xl font-medium text-black leading-tight tracking-tight">
+            <div className="flex flex-wrap items-center gap-4">
+              <h1 className="text-xl sm:text-4xl font-bold text-white leading-tight tracking-tight">
                 {user?.name || "User"}
               </h1>
               <div className="flex items-center gap-1">
@@ -364,23 +364,23 @@ const WelcomeUser = () => {
           <div className="block sm:hidden h-px w-full bg-slate-200/80 dark:bg-slate-800/85 my-1" />
 
           {/* Right Side: Current Time Widget */}
-          <div className="flex-1 flex flex-col items-center justify-center">
+          <div className="flex-1 flex flex-col items-center  justify-center">
             {/* Header */}
-            <div className="text-[10px] font-black text-slate-850 dark:text-slate-100 mb-2.5 flex items-center gap-1.5">
+            <div className="text-[10px] font-black  mb-2.5 flex items-center gap-1.5">
               Current Time
             </div>
 
             {/* Digital Clock Display */}
-            <div className="w-[110px] h-[110px] rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800/80 flex flex-col items-center justify-center shadow-inner">
+            <div className="w-[110px] h-[110px] rounded-2xl theme-bg-accent opacity-90 border border-slate-200/80 dark:border-slate-800/80 flex flex-col items-center justify-center shadow-inner">
               {/* Digital Display: HH : MM */}
-              <div className="flex items-center text-xl font-black text-slate-800 dark:text-slate-100 my-0.5 tracking-tight leading-none">
+              <div className="flex items-center text-2xl font-bold my-0.5 tracking-tight leading-none">
                 <span>{String(currentTime.getHours() % 12 || 12).padStart(2, '0')}</span>
-                <span className="mx-1 text-blue-500/80 animate-pulse font-normal">:</span>
+                <span className="mx-1 text-red-500 animate-pulse font-normal">:</span>
                 <span>{String(currentTime.getMinutes()).padStart(2, '0')}</span>
               </div>
 
               {/* AM/PM Pill */}
-              <div className="text-[7.5px] font-black uppercase px-2.5 py-0.5 rounded bg-slate-200/60 dark:bg-slate-900 text-slate-700 dark:text-slate-400 mt-2 tracking-wider">
+              <div className="text-[14px] font-black uppercase px-2.5 py-0.5 rounded mt-2 tracking-wider">
                 {currentTime.getHours() >= 12 ? "PM" : "AM"}
               </div>
             </div>
