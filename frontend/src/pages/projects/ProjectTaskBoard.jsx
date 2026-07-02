@@ -1818,7 +1818,7 @@ const ProjectTaskBoard = ({
                 </h1>
                 {activeProject?.client?.companyName && (
                   <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-800/30 shrink-0">
-                    {activeProject.client.companyName}
+                   Client : {activeProject.client.companyName}
                   </span>
                 )}
               </div>
