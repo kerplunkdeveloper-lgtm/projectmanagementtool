@@ -123,7 +123,18 @@ const Navbar = ({ setSidebarOpen }) => {
       );
     };
 
-    if (path.includes("dashboard") || path === "/admin" || path === "/admin/" || path === "/operationmanager" || path === "/operationmanager/" || path === "/team" || path === "/team/") return renderDashboardTitle();
+    if (
+      path.endsWith("/dashboard") ||
+      path === "/admin" ||
+      path === "/admin/" ||
+      path === "/operationmanager" ||
+      path === "/operationmanager/" ||
+      path === "/team" ||
+      path === "/team/"
+    ) {
+      return renderDashboardTitle();
+    }
+    
     if (path.includes("clients")) return "Clients Management";
     if (path.includes("portfolio")) return "Portfolio Groups";
 
@@ -134,13 +145,18 @@ const Navbar = ({ setSidebarOpen }) => {
     if (path.includes("tasks")) return "Tasks";
     if (path.includes("partnerhub")) return "PartnerHub";
     if (path.includes("profile")) return "Profile";
-    if (path.includes("team")) return "Team";
+    
+    if (path.includes("/team-members") || path.endsWith("/team-members") || path.endsWith("/team")) {
+      return "Team";
+    }
+    
     if (path.includes("users")) return "Users Management";
-    if (path.includes("template")) return "Template";
-    if (path.includes("chat")) return "Chat";
+    if (path.includes("workload")) return "Workload";
+    if (path.includes("chat")) return "Chat"; 
     if (path.includes("notifications")) return "Notifications";
+    if (path.includes("settings")) return "Settings";
 
-    if (path.includes("report") || path.includes("eod")) return "EOD";
+    if (path.includes("report") || path.includes("eod")) return "EOD Reports";
     if (path.includes("calendar") || path.includes("calendor"))
       return "Calendar";
     return renderDashboardTitle();

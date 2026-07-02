@@ -34,6 +34,7 @@ import Notifications from "../pages/notifications/Notifications.jsx";
 import Task from "../pages/tasks/Task.jsx";
 import ChatPage from "../pages/chat/ChatPage.jsx";
 import Portfolio from "../pages/admin/portfolio/Portfolio.jsx";
+import Workload from "../pages/workload/Workload.jsx";
 
 const AppRoutes = () => {
   return (
@@ -125,6 +126,11 @@ const AppRoutes = () => {
           path="chat"
           element={<ChatPage />}
         />
+
+        <Route
+          path="workload"
+          element={<Workload />}
+        />
         
       
         
@@ -201,6 +207,11 @@ const AppRoutes = () => {
         <Route
           path="chat"
           element={<ChatPage />}
+        />
+
+        <Route
+          path="workload"
+          element={<Workload />}
         />
 
 
