@@ -23,6 +23,7 @@ import {
   FiPlusCircle,
   FiHelpCircle,
 } from "react-icons/fi";
+import { FaRegBuilding } from "react-icons/fa";
 
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
@@ -535,7 +536,10 @@ const Clients = () => {
               <thead>
                 <tr className="bg-slate-50/50 dark:bg-slate-900/60 text-slate-705 dark:text-slate-300 font-bold uppercase tracking-wider text-[10px]">
                   <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
-                    Client Details
+                    <div className="flex items-center gap-1.5">
+                      <FaRegBuilding size={12} className="text-slate-400" />
+                      Client Details
+                    </div>
                   </th>
                   <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
                     Contact Info
@@ -588,8 +592,9 @@ const Clients = () => {
                           <td className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
                             <div className="flex items-center gap-2.5">
                               <div className="min-w-[120px]">
-                                <h2 className=" theme-text-accent  transition-colors text-md md:text-xl truncate">
-                                  {client.companyName}
+                                <h2 className="flex items-center gap-2 theme-text-accent transition-colors text-md md:text-xl truncate">
+                                  <FaRegBuilding size={16} className="shrink-0 opacity-80" />
+                                  <span>{client.companyName}</span>
                                 </h2>
                                 <p className="text-[13px] text-slate-400 dark:text-slate-700 font-medium flex items-center gap-1 mt-0.5 truncate">
                                   <FiBriefcase size={9} />
@@ -992,7 +997,8 @@ const Clients = () => {
                   >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1">
+                        <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+                          <FaRegBuilding size={11} className="opacity-80" />
                           Company Name
                         </label>
                         <input
@@ -1582,7 +1588,8 @@ const Clients = () => {
               <p className="text-xs text-slate-600 dark:text-slate-350 mt-3 leading-relaxed font-semibold">
                 Are you sure you want to permanently delete the client record
                 for{" "}
-                <span className="text-rose-600 dark:text-rose-400 font-extrabold">
+                <span className="text-rose-600 dark:text-rose-400 font-extrabold inline-flex items-center gap-1 mx-1 translate-y-0.5">
+                  <FaRegBuilding size={11} />
                   "{clientToDelete.companyName}"
                 </span>
                 ?

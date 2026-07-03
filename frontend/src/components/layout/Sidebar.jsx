@@ -63,6 +63,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   const { portfolios = [] } = useSelector((state) => state.portfolios || {});
   const { users } = useSelector((state) => state.users);
   const { user: currentUser } = useSelector((state) => state.auth);
+  const { profile } = useSelector((state) => state.profile);
   const { unreadCounts = {} } = useSelector((state) => state.chat);
   const totalUnreadChatCount = Object.values(unreadCounts).reduce(
     (sum, val) => sum + (val || 0),
@@ -142,12 +143,12 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         className={`
           fixed top-0 left-0 z-[100] h-screen
           w-64 lg:w-48 xl:w-52
-          bg-white/60 dark:bg-[#0b0c10]/65
+          sidebar-bg
           backdrop-blur-xl
           border-r border-slate-200/40 dark:border-white/5
           shadow-[0_8px_32px_0_rgba(0,0,0,0.02)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.25)]
           flex flex-col
-          transition-all duration-300 ease-in-out
+          transition-transform duration-300 ease-in-out
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
@@ -454,9 +455,13 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                 className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0f172a] border border-slate-200/50 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10 hover:bg-slate-100/50 dark:hover:bg-[#131d35] transition-all cursor-pointer shadow-sm text-left relative z-50"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  {/* Initials Avatar */}
-                  <div className="w-6 h-6 rounded-lg bg-indigo-500/10 dark:bg-indigo-400/10 border border-indigo-500/20 dark:border-indigo-400/20 text-indigo-600 dark:text-indigo-400 text-[9px] font-black flex items-center justify-center shrink-0">
-                    {getInitials(currentUser?.name)}
+                  {/* Avatar */}
+                  <div className="w-6 h-6 rounded-lg overflow-hidden border border-indigo-500/20 dark:border-indigo-400/20 shrink-0 relative flex items-center justify-center bg-indigo-500/10 dark:bg-indigo-400/10 text-indigo-600 dark:text-indigo-400">
+                    {profile?.profileImage?.url ? (
+                      <img src={profile.profileImage.url} alt={currentUser?.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[9px] font-black">{getInitials(currentUser?.name)}</span>
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="text-[10px] font-bold theme-text-primary truncate leading-tight">
@@ -500,7 +505,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.95 }}
                     transition={{ type: "spring", stiffness: 350, damping: 24 }}
-                    className="absolute bottom-full left-1.5 right-1.5 mb-2 z-50 bg-white dark:bg-[#0f172a] border border-slate-200/60 dark:border-white/5 rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-black/60 overflow-hidden flex flex-col p-1.5 max-h-[260px] overflow-y-auto sidebar-scrollbar"
+                    className="absolute bottom-full left-1.5 right-1.5 mb-3 z-50 bg-white/95 dark:bg-[#0b1120]/95 backdrop-blur-xl border border-white/50 dark:border-white/10 rounded-2xl shadow-2xl shadow-indigo-500/10 dark:shadow-black/50 overflow-hidden flex flex-col p-2 max-h-[280px] overflow-y-auto sidebar-scrollbar"
                   >
                     {users.map((u) => {
                       const isCurrent =
@@ -515,37 +520,44 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                               handleSwitchUser(u._id);
                             }
                           }}
-                          className={`w-full flex items-center justify-between gap-2.5 px-2 py-1.5 rounded-xl text-left transition-all cursor-pointer group ${
+                          className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-300 cursor-pointer group mb-1 last:mb-0 ${
                             isCurrent
-                              ? "bg-indigo-50/50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 font-bold"
-                              : "hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300"
+                              ? "bg-gradient-to-r from-indigo-50/80 to-blue-50/80 dark:from-indigo-500/10 dark:to-blue-500/5 border border-indigo-100 dark:border-indigo-500/20 shadow-sm"
+                              : "border border-transparent hover:bg-slate-50/80 dark:hover:bg-white/5 hover:border-slate-200/50 dark:hover:border-white/5 hover:shadow-sm"
                           }`}
                         >
-                          <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
                             {/* Avatar */}
-                            <div
-                              className={`w-5.5 h-5.5 rounded-lg text-[8px] font-black flex items-center justify-center shrink-0 border transition-colors ${
+                            <div className={`w-8 h-8 rounded-full shrink-0 overflow-hidden shadow-sm flex items-center justify-center transition-transform duration-300 group-hover:scale-105 ${
                                 isCurrent
-                                  ? "bg-indigo-100 dark:bg-indigo-900/35 border-indigo-200 dark:border-indigo-800/40 text-indigo-600 dark:text-indigo-400"
-                                  : "bg-slate-100 dark:bg-slate-800 border-slate-200/40 dark:border-white/5 text-slate-500 dark:text-slate-400 group-hover:bg-slate-200 dark:group-hover:bg-slate-700/50"
+                                  ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30"
+                                  : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50"
                               }`}
                             >
-                              {getInitials(u.name)}
+                              {u.profile?.profileImage?.url ? (
+                                <img src={u.profile.profileImage.url} alt={u.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <span className="text-[10px] font-black">{getInitials(u.name)}</span>
+                              )}
                             </div>
-                            <div className="min-w-0">
-                              <p className="text-[9.5px] font-semibold truncate leading-snug">
+                            <div className="min-w-0 flex-1">
+                              <p className={`text-[11px] font-bold truncate leading-tight transition-colors ${
+                                isCurrent ? "text-indigo-700 dark:text-indigo-300" : "text-slate-700 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
+                              }`}>
                                 {u.name}
                               </p>
-                              <p className="text-[7.5px] font-black opacity-80 uppercase tracking-wider leading-none mt-0.5">
+                              <p className="text-[9px] font-black opacity-70 uppercase tracking-widest mt-0.5 theme-text-secondary truncate">
                                 {displayRole(u.role)}
                                 {u.role === "team" && u.department
-                                  ? ` - ${u.department}`
+                                  ? ` • ${u.department}`
                                   : ""}
                               </p>
                             </div>
                           </div>
+                          
+                          {/* Active Indicator */}
                           {isCurrent && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 shrink-0" />
+                            <div className="shrink-0 w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)] animate-pulse" />
                           )}
                         </button>
                       );

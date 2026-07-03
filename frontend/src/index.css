@@ -95,10 +95,15 @@ body, aside, header, nav, main, section, .theme-card-gradient, .theme-bg-main, .
   transition-duration: 200ms;
 }
 
-aside {
-  background-color: var(--color-white) !important;
-  color: var(--color-slate-900) !important;
-  border-right: 1px solid var(--color-slate-100) !important;
+
+
+.sidebar-bg {
+  background-color: color-mix(in srgb, var(--accent-color) 3%, rgba(255, 255, 255, 0.8));
+  transition: background-color 300ms cubic-bezier(0.4, 0, 0.2, 1), border-color 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dark .sidebar-bg {
+  background-color: color-mix(in srgb, var(--accent-color) 3%, rgba(11, 12, 16, 0.7));
 }
 
 .dark {
