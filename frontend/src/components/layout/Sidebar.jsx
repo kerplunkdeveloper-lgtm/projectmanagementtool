@@ -184,29 +184,27 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         </div>
 
         {/* MENU */}
-        <nav className="flex-1 overflow-y-auto px-3.5 py-3 space-y-1.5 sidebar-scrollbar">
+        <nav className="flex-1 overflow-y-auto px-2.5 py-2 space-y-0.5 sidebar-scrollbar">
           {(() => {
             let hasRenderedPortfoliosList = false;
 
             const renderPortfoliosList = () => (
-              <div className="space-y-1 pt-1.5 pb-1 px-1.5 ml-2 border-l border-slate-100 dark:border-white/5">
+              <div className="mt-0.5 mb-1">
                 {/* Dropdown Header Toggle */}
                 <button
                   type="button"
                   onClick={() => setIsPortfoliosListOpen(!isPortfoliosListOpen)}
-                  className="w-full flex items-center justify-between py-2 px-1 text-left theme-text-accent hover:opacity-85 transition-opacity cursor-pointer"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-left rounded-xl border border-transparent hover:bg-slate-100/60 dark:hover:bg-white/5 transition-all duration-200 cursor-pointer group"
                 >
-                  <div className="flex items-center gap-2">
-                    <FiLayers
-                      size={15}
-                      className="shrink-0 theme-text-accent"
-                    />
-                    <span className="text-[12px] font-medium tracking-wider">
-                      List of Portfolio
-                    </span>
-                  </div>
+                  <FiLayers
+                    size={13}
+                    className="shrink-0 text-slate-400 dark:text-slate-500"
+                  />
+                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex-1 text-left">
+                    Portfolios
+                  </span>
                   <svg
-                    className={`w-3 h-3 transform transition-transform duration-200 theme-text-accent ${
+                    className={`w-3 h-3 shrink-0 transform transition-transform duration-200 text-slate-400 dark:text-slate-500 ${
                       isPortfoliosListOpen ? "rotate-180" : ""
                     }`}
                     fill="none"
@@ -222,12 +220,11 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   </svg>
                 </button>
 
-                {/* Submenu List */}
+                {/* Portfolio List */}
                 {isPortfoliosListOpen && (
-                  <div className="pl-1 space-y-2 overflow-y-auto max-h-[300px] sidebar-scrollbar transition-all">
-                    {portfolios.map((portfolio, index) => {
+                  <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-white/8 space-y-0.5 overflow-y-auto max-h-[300px] sidebar-scrollbar mt-0.5">
+                    {portfolios.map((portfolio) => {
                       const isActive = activePortfolioId === portfolio._id;
-                      // Resolve project IDs safely by checking both string IDs and populated objects
                       const portfolioProjects = (projects || []).filter(
                         (proj) => {
                           const ids = (portfolio.projectIds || []).map((pId) =>
@@ -240,90 +237,75 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       );
 
                       return (
-                        <div key={portfolio._id} className="space-y-0.5">
+                        <div key={portfolio._id}>
                           {/* Portfolio Row */}
                           <button
                             type="button"
                             onClick={() => {
-                              if (window.innerWidth < 1024) {
+                              if (window.innerWidth < 1024)
                                 setSidebarOpen(false);
-                              }
                               navigate(
                                 `/${role}/portfolio?id=${portfolio._id}`,
                               );
                             }}
-                            className={`w-full flex items-center gap-2 text-left text-[11px] font-bold py-1.5 rounded-lg px-2 transition-colors group ${
+                            className={`w-full flex items-center gap-2 text-left text-[11px] font-semibold py-1.5 rounded-lg px-2.5 transition-all duration-150 group ${
                               isActive
                                 ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent"
-                                : "text-slate-600 dark:text-slate-600 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800"
+                                : "text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-white/5"
                             }`}
                             title={portfolio.name}
                           >
                             <svg
                               viewBox="0 0 240 180"
-                              className="w-[20px] h-[16px] shrink-0 transition-transform duration-350 group-hover:scale-110"
+                              className="w-[16px] h-[13px] shrink-0"
                               style={{ fill: portfolio.color || "#ff80bf" }}
                             >
                               <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
                             </svg>
-                            <span className="truncate">{portfolio.name}</span>
+                            <span className="truncate flex-1 text-left">
+                              {portfolio.name}
+                            </span>
                             {isActive && (
-                              <span className="ml-auto w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
+                              <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
                             )}
                           </button>
 
-                          {/* Projects in this Portfolio */}
+                          {/* Projects inside this Portfolio */}
                           {portfolioProjects.length > 0 && (
-                            <div className="relative pl-[18px] mt-0.5 space-y-0.5">
-                              {portfolioProjects.map((project, projIndex) => {
+                            <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-white/8 space-y-0.5 mt-0.5 mb-0.5">
+                              {portfolioProjects.map((project) => {
                                 const isProjectActive =
                                   activeProjectId === project._id;
-                                const isLast =
-                                  projIndex === portfolioProjects.length - 1;
                                 return (
-                                  <div
+                                  <button
                                     key={project._id}
-                                    className="relative flex items-center h-7 pl-4"
+                                    type="button"
+                                    onClick={() => {
+                                      if (window.innerWidth < 1024)
+                                        setSidebarOpen(false);
+                                      navigate(
+                                        `/${role}/projects?id=${project._id}`,
+                                      );
+                                    }}
+                                    className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1 rounded-md px-2 transition-all duration-150 ${
+                                      isProjectActive
+                                        ? "bg-slate-50 dark:bg-slate-800/60 theme-text-accent font-bold"
+                                        : "text-slate-500 dark:text-slate-600 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100/40 dark:hover:bg-white/5"
+                                    }`}
+                                    title={project.name}
                                   >
-                                    {/* Vertical line segment coming down from the top edge of this container */}
-                                    <div
-                                      className={`absolute left-0 top-0 w-[1.5px] bg-slate-200 dark:bg-white/10 ${
-                                        isLast ? "h-[14px]" : "h-full"
-                                      }`}
+                                    <ProjectIcon
+                                      name={project.name}
+                                      size="sm"
+                                      className="shrink-0"
                                     />
-                                    {/* Horizontal elbow branching to the right to connect to the project item */}
-                                    <div className="absolute left-0 top-[14px] w-3 h-[1.5px] bg-slate-200 dark:bg-white/10" />
-
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        if (window.innerWidth < 1024) {
-                                          setSidebarOpen(false);
-                                        }
-                                        navigate(
-                                          `/${role}/projects?id=${project._id}`,
-                                        );
-                                      }}
-                                      className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1 rounded-md px-2 transition-all group ${
-                                        isProjectActive
-                                          ? "bg-slate-50 dark:bg-slate-800 theme-text-accent font-bold"
-                                          : "text-slate-500 dark:text-slate-600 hover:text-slate-800 dark:hover:text-white hover:bg-slate-50/50 dark:hover:bg-slate-800"
-                                      }`}
-                                      title={project.name}
-                                    >
-                                      <ProjectIcon
-                                        name={project.name}
-                                        size="sm"
-                                        className="group-hover:scale-110 transition-transform shrink-0"
-                                      />
-                                      <span className="truncate">
-                                        {project.name}
-                                      </span>
-                                      {isProjectActive && (
-                                        <span className="ml-auto w-1 h-1 rounded-full theme-bg-accent shrink-0" />
-                                      )}
-                                    </button>
-                                  </div>
+                                    <span className="truncate flex-1 text-left">
+                                      {project.name}
+                                    </span>
+                                    {isProjectActive && (
+                                      <span className="w-1 h-1 rounded-full theme-bg-accent shrink-0" />
+                                    )}
+                                  </button>
                                 );
                               })}
                             </div>
@@ -347,9 +329,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       <NavLink
                         to={item.path}
                         onClick={() => {
-                          if (window.innerWidth < 1024) {
-                            setSidebarOpen(false);
-                          }
+                          if (window.innerWidth < 1024) setSidebarOpen(false);
                         }}
                         end={
                           item.path === "/admin" ||
@@ -360,37 +340,37 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           const activeClass = isActive
                             ? `bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent border-[var(--accent-color)]/20 dark:border-[var(--accent-color-dark)]/25 shadow-sm`
                             : `text-slate-600 dark:text-slate-400 border-transparent hover:bg-slate-100/60 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white`;
-
                           return `block rounded-xl border transition-all duration-200 ${activeClass}`;
                         }}
                       >
                         {({ isActive }) => (
-                          <div className="flex items-center gap-3 px-3 py-2 w-full">
-                            <div className={`shrink-0 transition-colors ${isActive ? "theme-text-accent" : ""}`}>
-                              <Icon size={15} />
+                          <div className="flex items-center gap-2.5 px-3 py-2 w-full">
+                            <div
+                              className={`shrink-0 ${isActive ? "theme-text-accent" : ""}`}
+                            >
+                              <Icon size={14} />
                             </div>
-
-                            <span className="text-xs lg:text-[11px] xl:text-[12px] font-semibold truncate flex-1 text-left">
+                            <span className="text-[11px] font-semibold truncate flex-1 text-left">
                               {item.name}
                             </span>
-
                             {item.name === "Notifications" &&
                               unreadCount > 0 && (
-                                <span className="ml-auto min-w-[16px] h-[16px] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse shrink-0">
+                                <span className="min-w-[16px] h-[16px] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse shrink-0">
                                   {unreadCount}
                                 </span>
                               )}
-
                             {item.name === "Chat" &&
                               totalUnreadChatCount > 0 && (
-                                <span className="ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-red-600 px-1 text-[9px] font-black text-white shadow-[0_4px_10px_rgba(244,63,94,0.3)] animate-pulse border border-white/25 shrink-0">
+                                <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-red-600 px-1 text-[9px] font-black text-white animate-pulse shrink-0">
                                   {totalUnreadChatCount}
                                 </span>
                               )}
-
-                            {isActive && !unreadCount && item.name !== "Notifications" && item.name !== "Chat" && (
-                              <span className="ml-auto w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
-                            )}
+                            {isActive &&
+                              !unreadCount &&
+                              item.name !== "Notifications" &&
+                              item.name !== "Chat" && (
+                                <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
+                              )}
                           </div>
                         )}
                       </NavLink>
@@ -436,9 +416,15 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   {/* Avatar */}
                   <div className="w-6 h-6 rounded-lg overflow-hidden border border-indigo-500/20 dark:border-indigo-400/20 shrink-0 relative flex items-center justify-center bg-indigo-500/10 dark:bg-indigo-400/10 text-indigo-600 dark:text-indigo-400">
                     {profile?.profileImage?.url ? (
-                      <img src={profile.profileImage.url} alt={currentUser?.name} className="w-full h-full object-cover" />
+                      <img
+                        src={profile.profileImage.url}
+                        alt={currentUser?.name}
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
-                      <span className="text-[9px] font-black">{getInitials(currentUser?.name)}</span>
+                      <span className="text-[9px] font-black">
+                        {getInitials(currentUser?.name)}
+                      </span>
                     )}
                   </div>
                   <div className="min-w-0">
@@ -506,22 +492,33 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         >
                           <div className="flex items-center gap-3 min-w-0 flex-1">
                             {/* Avatar */}
-                            <div className={`w-8 h-8 rounded-full shrink-0 overflow-hidden shadow-sm flex items-center justify-center transition-transform duration-300 group-hover:scale-105 ${
+                            <div
+                              className={`w-8 h-8 rounded-full shrink-0 overflow-hidden shadow-sm flex items-center justify-center transition-transform duration-300 group-hover:scale-105 ${
                                 isCurrent
                                   ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30"
                                   : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50"
                               }`}
                             >
                               {u.profile?.profileImage?.url ? (
-                                <img src={u.profile.profileImage.url} alt={u.name} className="w-full h-full object-cover" />
+                                <img
+                                  src={u.profile.profileImage.url}
+                                  alt={u.name}
+                                  className="w-full h-full object-cover"
+                                />
                               ) : (
-                                <span className="text-[10px] font-black">{getInitials(u.name)}</span>
+                                <span className="text-[10px] font-black">
+                                  {getInitials(u.name)}
+                                </span>
                               )}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className={`text-[11px] font-bold truncate leading-tight transition-colors ${
-                                isCurrent ? "text-indigo-700 dark:text-indigo-300" : "text-slate-700 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
-                              }`}>
+                              <p
+                                className={`text-[11px] font-bold truncate leading-tight transition-colors ${
+                                  isCurrent
+                                    ? "text-indigo-700 dark:text-indigo-300"
+                                    : "text-slate-700 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
+                                }`}
+                              >
                                 {u.name}
                               </p>
                               <p className="text-[9px] font-black opacity-70 uppercase tracking-widest mt-0.5 theme-text-secondary truncate">
@@ -532,7 +529,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                               </p>
                             </div>
                           </div>
-                          
+
                           {/* Active Indicator */}
                           {isCurrent && (
                             <div className="shrink-0 w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)] animate-pulse" />

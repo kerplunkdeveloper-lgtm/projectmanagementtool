@@ -227,24 +227,7 @@ const Project = () => {
   // VIEW 2: DEFAULT PROJECT DIRECTORY TABLE
   return (
     <div className=" space-y-6 ">
-      {/* HEADER SECTION */}
-      <div className="flex justify-between items-center gap-4">
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-800 dark:text-white">
-            All Projects
-          </h1>
-        </div>
-        {isAdmin && (
-          <button
-            onClick={handleOpenCreate}
-            className="flex items-center gap-1.5 px-4 py-2.5 text-[10px] rounded-xl bg-blue-600 dark:bg-[#3b82f6] text-white dark:text-black shadow-lg shadow-blue-500/20 dark:shadow-[#3b82f6]/20 hover:-translate-y-0.5 active:scale-95 transition-all duration-200 font-black uppercase tracking-wider shrink-0"
-          >
-            <FiPlus size={14} />
-            Create Project
-          </button>
-        )}
-      </div>
-
+      
       {/* FILTER AND SEARCH BAR */}
       <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
         <div className="flex-1 relative">
@@ -346,14 +329,9 @@ const Project = () => {
                 <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
                   Progress
                 </th>
-                <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800 text-center">
+                <th className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-center">
                   View
                 </th>
-                {isAdmin && (
-                  <th className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-center w-36">
-                    Actions
-                  </th>
-                )}
               </tr>
             </thead>
             <tbody className="text-xs bg-white dark:bg-slate-950/20">
@@ -437,7 +415,7 @@ const Project = () => {
                         );
                       })()}
                     </td>
-                    <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800 text-center">
+                    <td className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-center">
                       <button
                         onClick={() =>
                           navigate(
@@ -449,26 +427,6 @@ const Project = () => {
                         View Tasks
                       </button>
                     </td>
-                    {isAdmin && (
-                      <td className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-center">
-                        <div className="flex justify-center items-center gap-3">
-                          <button
-                            onClick={(e) => handleOpenEdit(e, project)}
-                            className="text-slate-400 hover:text-blue-600 dark:hover:text-[#3b82f6] transition-colors p-1"
-                            title="Edit Project"
-                          >
-                            <FiEdit2 size={12} />
-                          </button>
-                          <button
-                            onClick={(e) => handleProjectDelete(e, project._id)}
-                            className="text-slate-400 hover:text-red-500 transition-colors p-1"
-                            title="Delete Project"
-                          >
-                            <FiTrash2 size={12} />
-                          </button>
-                        </div>
-                      </td>
-                    )}
                   </tr>
                 );
               })}
