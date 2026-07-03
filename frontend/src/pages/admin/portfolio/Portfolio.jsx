@@ -248,6 +248,7 @@ const Portfolio = () => {
   const [portfolioName, setPortfolioName] = useState("");
   const [portfolioColor, setPortfolioColor] = useState("#ff80bf");
   const [portfolioId, setPortfolioId] = useState(null);
+  const [selectedClientId, setSelectedClientId] = useState("");
   const [menuOpenId, setMenuOpenId] = useState(null);
 
   // Close menus on click outside
@@ -275,8 +276,9 @@ const Portfolio = () => {
 
   // Open create modal
   const handleOpenCreateModal = () => {
-    setPortfolioName("New Portfolio");
+    setPortfolioName("");
     setPortfolioColor("#ff80bf");
+    setSelectedClientId(clients && clients.length > 0 ? clients[0]._id : "");
     setIsEditMode(false);
     setIsModalOpen(true);
   };
@@ -286,6 +288,7 @@ const Portfolio = () => {
     setPortfolioId(p._id);
     setPortfolioName(p.name);
     setPortfolioColor(p.color || "#ff80bf");
+    setSelectedClientId(p.client?._id || p.client || "");
     setIsEditMode(true);
     setIsModalOpen(true);
   };
@@ -293,17 +296,28 @@ const Portfolio = () => {
   // Save portfolio from modal (create or update)
   const handleSavePortfolio = (e) => {
     e.preventDefault();
-    if (!portfolioName.trim()) return;
+    if (!selectedClientId) return;
+    const clientObj = clients.find((c) => c._id === selectedClientId);
+    const finalName = clientObj ? clientObj.companyName : "Portfolio";
+
     if (isEditMode) {
       dispatch(
         updatePortfolio({
           id: portfolioId,
-          data: { name: portfolioName.trim(), color: portfolioColor },
+          data: {
+            name: finalName,
+            client: selectedClientId,
+            color: portfolioColor,
+          },
         }),
       );
     } else {
       dispatch(
-        createPortfolio({ name: portfolioName.trim(), color: portfolioColor }),
+        createPortfolio({
+          name: finalName,
+          client: selectedClientId,
+          color: portfolioColor,
+        }),
       );
     }
     setIsModalOpen(false);
@@ -1072,19 +1086,33 @@ const Portfolio = () => {
               </h2>
 
               <form onSubmit={handleSavePortfolio} className="space-y-6">
-                {/* Name Field */}
+                {/* Client Select Field */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                    Portfolio Name
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
+                    Client Name
                   </label>
-                  <input
-                    type="text"
-                    required
-                    value={portfolioName}
-                    onChange={(e) => setPortfolioName(e.target.value)}
-                    placeholder="e.g. WEB DEVELOPER"
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500 transition-all placeholder:text-slate-400"
-                  />
+                  <div className="relative">
+                    <select
+                      required
+                      value={selectedClientId}
+                      onChange={(e) => setSelectedClientId(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 pr-10 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500 transition-all appearance-none cursor-pointer"
+                    >
+                      <option value="" disabled>Select Client...</option>
+                      {clients.map((c) => (
+                        <option
+                          key={c._id}
+                          value={c._id}
+                          className="dark:bg-slate-900"
+                        >
+                          {c.companyName}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                      <FiChevronRight size={14} className="rotate-90" />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Color Selection Field */}

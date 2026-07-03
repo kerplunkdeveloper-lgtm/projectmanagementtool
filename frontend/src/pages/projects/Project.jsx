@@ -44,6 +44,7 @@ const Project = () => {
   // Local State
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [clientFilter, setClientFilter] = useState("All");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
 
@@ -92,7 +93,11 @@ const Project = () => {
         .includes(searchTerm.toLowerCase());
     const matchesStatus =
       statusFilter === "All" || project.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const projectClientId = project.client?._id || project.client;
+    const matchesClient =
+      clientFilter === "All" ||
+      (projectClientId && projectClientId.toString() === clientFilter);
+    return matchesSearch && matchesStatus && matchesClient;
   });
 
   // Handle modal trigger
@@ -165,6 +170,27 @@ const Project = () => {
     return colors[index];
   };
 
+  const getClientBadgeStyle = (companyName) => {
+    const styles = [
+      "text-blue-600 dark:text-blue-400 bg-blue-50/70 dark:bg-blue-950/20 border-blue-100/60 dark:border-blue-900/30",
+      "text-purple-600 dark:text-purple-400 bg-purple-50/70 dark:bg-purple-950/20 border-purple-100/60 dark:border-purple-900/30",
+      "text-emerald-600 dark:text-emerald-400 bg-emerald-50/70 dark:bg-emerald-950/20 border-emerald-100/60 dark:border-emerald-500/20",
+      "text-rose-600 dark:text-rose-400 bg-rose-50/70 dark:bg-rose-950/20 border-rose-100/60 dark:border-rose-900/30",
+      "text-amber-600 dark:text-amber-400 bg-amber-50/70 dark:bg-amber-950/20 border-amber-100/60 dark:border-amber-900/30",
+      "text-cyan-600 dark:text-cyan-400 bg-cyan-50/70 dark:bg-cyan-950/20 border-cyan-100/60 dark:border-cyan-900/30",
+      "text-indigo-600 dark:text-indigo-400 bg-indigo-50/70 dark:bg-indigo-950/20 border-indigo-100/60 dark:border-indigo-900/30",
+      "text-orange-600 dark:text-orange-400 bg-orange-50/70 dark:bg-orange-950/20 border-orange-100/60 dark:border-orange-900/30",
+      "text-pink-600 dark:text-pink-400 bg-pink-50/70 dark:bg-pink-950/20 border-pink-100/60 dark:border-pink-900/30",
+    ];
+    if (!companyName) return styles[0];
+    let hash = 0;
+    for (let i = 0; i < companyName.length; i++) {
+      hash = companyName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % styles.length;
+    return styles[index];
+  };
+
   const getStatusBadge = (status) => {
     switch (status) {
       case "Active":
@@ -230,6 +256,7 @@ const Project = () => {
             className="w-full pl-11 pr-4 py-3 rounded-2xl bg-slate-50 dark:bg-[#111111] border border-slate-100 dark:border-white/5 focus:outline-none focus:border-blue-500 dark:focus:border-[#3b82f6] focus:bg-white dark:focus:bg-[#1a1a1a] text-sm text-slate-700 dark:text-white transition-all"
           />
         </div>
+        {/* Status Filter Dropdown */}
         <div className="relative shrink-0 w-full md:w-auto">
           <select
             value={statusFilter}
@@ -251,6 +278,27 @@ const Project = () => {
             <option value="Inactive" className="dark:bg-[#111111]">
               Inactive
             </option>
+          </select>
+          <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+            <FiChevronDown size={14} />
+          </div>
+        </div>
+
+        {/* Client Filter Dropdown */}
+        <div className="relative shrink-0 w-full md:w-auto">
+          <select
+            value={clientFilter}
+            onChange={(e) => setClientFilter(e.target.value)}
+            className="w-full appearance-none px-5 py-3 pr-11 rounded-2xl bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/5 text-xs font-bold text-slate-700 dark:text-white hover:border-slate-300 dark:hover:border-white/10 focus:outline-none focus:border-blue-500 dark:focus:border-[#3b82f6] cursor-pointer shadow-sm md:min-w-[160px] transition-all"
+          >
+            <option value="All" className="dark:bg-[#111111]">
+              All Clients
+            </option>
+            {clients.map((c) => (
+              <option key={c._id} value={c._id} className="dark:bg-[#111111]">
+                {c.companyName}
+              </option>
+            ))}
           </select>
           <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
             <FiChevronDown size={14} />
@@ -343,7 +391,7 @@ const Project = () => {
                       </div>
                     </td>
                     <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
-                      <span className="font-bold text-blue-600 dark:text-[#3b82f6] px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-[#3b82f6]/10 border border-blue-100 dark:border-[#3b82f6]/20">
+                      <span className={`font-bold px-2 py-0.5 rounded-lg border uppercase tracking-wider text-[10px] ${getClientBadgeStyle(project.client?.companyName)}`}>
                         {project.client?.companyName || "No Client"}
                       </span>
                     </td>
