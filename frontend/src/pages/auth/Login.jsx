@@ -91,33 +91,11 @@ const Login = () => {
       >
         <div className="w-full max-w-[490px] mx-auto relative z-10">
           <form onSubmit={handleSubmit} className="w-full">
-            {/* LOGO IN LOGIN FORM */}
-            <div className="flex justify-center mb-6">
-              <div
-                className="logo-container group"
-                title="Kerplunk Media"
-              >
-                <div className="logo-border-wrapper">
-                  <div className="logo-spinning-border" />
-                </div>
-                <div className="logo-inner">
-                  <span className="logo-text-kerplunk">
-                    {"KERPLUNK".split("").map((char, index) => (
-                      <span key={index} className="logo-char">
-                        {char}
-                      </span>
-                    ))}
-                  </span>
-                </div>
-                <span className="logo-text-media">MEDIA</span>
-              </div>
-            </div>
-
-            <div className="mb-10 hidden md:block md:mb-12 text-center">
-              <h2 className="text-xl md:text-2xl font-black mb-3 mt-5 text-slate-800 dark:text-white tracking-tight">
+            <div className="mb-10 md:mb-12 text-center md:text-left">
+              <h2 className="text-3xl md:text-4xl font-black mb-3 text-slate-800 dark:text-white tracking-tight">
                 Welcome Back
               </h2>
-              <p className="text-sm md:text-xs font-medium  italic theme-text-secondary">
+              <p className="text-[13px] md:text-[15px] font-medium theme-text-secondary">
                 Login to continue managing your projects
               </p>
             </div>
