@@ -79,13 +79,13 @@ const DashboardLayout = ({ role }) => {
 
         {/* SCROLLABLE CONTENT */}
         <main
-          className={`flex-1 ${isChatPage ? "overflow-hidden p-0" : "overflow-y-auto p-1.5 sm:p-3 md:p-4"} theme-bg-main`}
+          className={`flex-1 ${isChatPage ? "overflow-hidden p-0" : "overflow-y-auto "} theme-bg-main`}
         >
           <div
             className={
               isChatPage
                 ? "h-full theme-bg-card"
-                : "min-h-full rounded-xl sm:rounded-2xl theme-bg-card border theme-border dark:shadow-none shadow-sm p-2 sm:p-3 md:p-4"
+                : "min-h-full  theme-bg-card border theme-border dark:shadow-none shadow-sm p-2 sm:p-3 md:p-4"
             }
           >
             <Outlet />
