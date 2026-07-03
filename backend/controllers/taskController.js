@@ -9,14 +9,27 @@ const Project = require("../models/Project");
 exports.getTasks = async (req, res) => {
   try {
     let query = {};
-    if (req.user.role !== "admin") {
-      let projectIds = [];
+    if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
+      const Client = require("../models/Client");
+      const assignedClients = await Client.find({ assignedTo: req.user._id }).select("_id");
+      const clientIds = assignedClients.map(c => c._id);
+
+      // Projects of assigned clients
+      const assignedProjects = await Project.find({ client: { $in: clientIds } }).select("_id");
+      let projectIds = assignedProjects.map(p => p._id);
+
+      // Add projects in department
       if (req.user.department) {
         const usersInSameDept = await User.find({ department: req.user.department }).select("_id");
         const userIds = usersInSameDept.map(u => u._id);
         const projectsInDept = await Project.find({ createdBy: { $in: userIds } }).select("_id");
-        projectIds = projectsInDept.map(p => p._id);
+        const deptProjIds = projectsInDept.map(p => p._id.toString());
+        
+        // Merge projectIds avoiding duplicates
+        const projectIdsSet = new Set([...projectIds.map(id => id.toString()), ...deptProjIds]);
+        projectIds = Array.from(projectIdsSet);
       }
+
       query.$or = [
         { createdBy: req.user._id },
         { assignedTo: req.user._id },

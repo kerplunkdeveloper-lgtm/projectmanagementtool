@@ -7,14 +7,31 @@ const User = require("../models/User");
 exports.getPortfolios = async (req, res) => {
   try {
     let query = {};
-    if (req.user.role !== "admin") {
+    if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
+      const Client = require("../models/Client");
+      const Project = require("../models/Project");
+
+      // Find clients assigned to this user
+      const assignedClients = await Client.find({ assignedTo: req.user._id }).select("_id");
+      const clientIds = assignedClients.map(c => c._id);
+
+      // Find projects of those clients
+      const assignedProjects = await Project.find({ client: { $in: clientIds } }).select("_id");
+      const projectIds = assignedProjects.map(p => p._id);
+
+      const orConditions = [
+        { projectIds: { $in: projectIds } }
+      ];
+
       if (req.user.department) {
         const usersInSameDept = await User.find({ department: req.user.department }).select("_id");
         const userIds = usersInSameDept.map(u => u._id);
-        query.createdBy = { $in: userIds };
+        orConditions.push({ createdBy: { $in: userIds } });
       } else {
-        query.createdBy = req.user._id;
+        orConditions.push({ createdBy: req.user._id });
       }
+
+      query = { $or: orConditions };
     }
     const portfolios = await Portfolio.find(query)
       .populate("projectIds", "name status client")

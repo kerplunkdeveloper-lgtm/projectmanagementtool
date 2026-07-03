@@ -7,14 +7,24 @@ const User = require("../models/User");
 exports.getProjects = async (req, res) => {
   try {
     let query = {};
-    if (req.user.role !== "admin") {
+    if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
+      const Client = require("../models/Client");
+      const assignedClients = await Client.find({ assignedTo: req.user._id }).select("_id");
+      const clientIds = assignedClients.map(c => c._id);
+
+      const orConditions = [
+        { client: { $in: clientIds } }
+      ];
+
       if (req.user.department) {
         const usersInSameDept = await User.find({ department: req.user.department }).select("_id");
         const userIds = usersInSameDept.map(u => u._id);
-        query.createdBy = { $in: userIds };
+        orConditions.push({ createdBy: { $in: userIds } });
       } else {
-        query.createdBy = req.user._id;
+        orConditions.push({ createdBy: req.user._id });
       }
+
+      query = { $or: orConditions };
     }
     const projects = await Project.find(query)
       .populate("client", "companyName industry primaryContact")
@@ -64,7 +74,7 @@ exports.updateProject = async (req, res) => {
       return res.status(404).json({ success: false, message: "Project not found" });
     }
 
-    if (req.user.role !== "admin") {
+    if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
       const creator = await User.findById(project.createdBy);
       if (!creator || creator.department !== req.user.department) {
         return res.status(403).json({ success: false, message: "You are not authorized to edit projects outside your department" });
@@ -98,7 +108,7 @@ exports.deleteProject = async (req, res) => {
       return res.status(404).json({ success: false, message: "Project not found" });
     }
 
-    if (req.user.role !== "admin") {
+    if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
       const creator = await User.findById(project.createdBy);
       if (!creator || creator.department !== req.user.department) {
         return res.status(403).json({ success: false, message: "You are not authorized to delete projects outside your department" });
