@@ -30,6 +30,7 @@ const DashboardLayout = ({ role }) => {
       {/* Glassmorphic Background Blobs */}
       <div className="fixed top-[-10%] left-[-10%] w-[350px] h-[350px] rounded-full bg-gradient-to-br from-blue-400/20 to-indigo-500/20 blur-[80px] pointer-events-none z-0 dark:from-indigo-500/10 dark:to-[#3b82f6]/5" />
       <div className="fixed bottom-[20%] left-[-5%] w-[250px] h-[250px] rounded-full bg-gradient-to-br from-pink-400/10 to-purple-500/15 blur-[60px] pointer-events-none z-0 dark:from-purple-500/5 dark:to-blue-500/5" />
+      
       {/* SIDEBAR */}
       <Sidebar
         role={role}
@@ -37,9 +38,11 @@ const DashboardLayout = ({ role }) => {
         setSidebarOpen={setSidebarOpen}
       />
 
-      {/* RIGHT SIDE */}
+      {/* RIGHT SIDE / MAIN CONTENT */}
       <div
-        className={`h-screen flex flex-col relative z-10 transition-all duration-300 ease-in-out ${sidebarOpen ? "lg:ml-48 xl:ml-52" : "lg:ml-0"}`}
+        className={`flex-1 h-screen flex flex-col relative z-10 transition-all duration-300 ease-in-out ${
+          sidebarOpen ? "lg:ml-48 xl:ml-52" : "lg:ml-0"
+        }`}
       >
         {/* IMPERSONATION BANNER */}
         {originalAdminUser && (

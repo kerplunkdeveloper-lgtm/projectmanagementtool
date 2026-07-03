@@ -21,6 +21,14 @@ export const ThemeProvider = ({ children }) => {
     return saved !== null ? saved === "true" : true;
   });
 
+  const [fontFamily, setFontFamilyState] = useState(() => {
+    return localStorage.getItem("fontFamily") || "inter";
+  });
+
+  const [sidebarLayout, setSidebarLayoutState] = useState(() => {
+    return localStorage.getItem("sidebarLayout") || "vertical";
+  });
+
   // Sync state from logged-in user if available
   useEffect(() => {
     if (user) {
@@ -35,6 +43,14 @@ export const ThemeProvider = ({ children }) => {
       if (user.soundEnabled !== undefined && user.soundEnabled !== soundEnabled) {
         setSoundEnabledState(user.soundEnabled);
         localStorage.setItem("soundEnabled", user.soundEnabled ? "true" : "false");
+      }
+      if (user.fontFamily && user.fontFamily !== fontFamily) {
+        setFontFamilyState(user.fontFamily);
+        localStorage.setItem("fontFamily", user.fontFamily);
+      }
+      if (user.sidebarLayout && user.sidebarLayout !== sidebarLayout) {
+        setSidebarLayoutState(user.sidebarLayout);
+        localStorage.setItem("sidebarLayout", user.sidebarLayout);
       }
     }
   }, [user]);
@@ -66,6 +82,22 @@ export const ThemeProvider = ({ children }) => {
     setSoundEnabledState(enabled);
     if (user && user.soundEnabled !== enabled) {
       updateUserPreferences({ soundEnabled: enabled });
+    }
+  };
+
+  const setFontFamily = (newFont) => {
+    localStorage.setItem("fontFamily", newFont);
+    setFontFamilyState(newFont);
+    if (user && user.fontFamily !== newFont) {
+      updateUserPreferences({ fontFamily: newFont });
+    }
+  };
+
+  const setSidebarLayout = (newLayout) => {
+    localStorage.setItem("sidebarLayout", newLayout);
+    setSidebarLayoutState(newLayout);
+    if (user && user.sidebarLayout !== newLayout) {
+      updateUserPreferences({ sidebarLayout: newLayout });
     }
   };
 
@@ -105,6 +137,17 @@ export const ThemeProvider = ({ children }) => {
     root.setAttribute("data-accent", accentColor);
   }, [accentColor]);
 
+  // Apply font family attribute on root html node
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.setAttribute("data-font", fontFamily);
+    // Also add class for immediate tailwind matching if configured
+    root.className = root.className.replace(/\bfont-\S+/g, "");
+    if (fontFamily === "inter") root.classList.add("font-inter");
+    if (fontFamily === "roboto") root.classList.add("font-roboto");
+    if (fontFamily === "outfit") root.classList.add("font-outfit");
+  }, [fontFamily]);
+
   return (
     <ThemeContext.Provider
       value={{
@@ -114,6 +157,10 @@ export const ThemeProvider = ({ children }) => {
         setAccentColor,
         soundEnabled,
         setSoundEnabled,
+        fontFamily,
+        setFontFamily,
+        sidebarLayout,
+        setSidebarLayout,
       }}
     >
       {children}
