@@ -22,6 +22,7 @@ import {
   FiVideo,
   FiPlusCircle,
   FiHelpCircle,
+  FiCalendar,
 } from "react-icons/fi";
 import { FaRegBuilding } from "react-icons/fa";
 
@@ -259,6 +260,7 @@ const Clients = () => {
   const initialForm = {
     companyName: "",
     industry: "",
+    onboardingDate: new Date().toISOString().split("T")[0],
     phoneNumber: "",
     email: "",
     budget: "",
@@ -267,7 +269,7 @@ const Clients = () => {
     service: [],
     reels: "",
     posts: "",
-    videos: "",
+    shoot: "",
     needDslr: "",
     pages: "",
     onpage: false,
@@ -318,7 +320,7 @@ const Clients = () => {
       gst: formData.gst === "" ? 18 : Number(formData.gst),
       reels: formData.reels === "" ? 0 : Number(formData.reels),
       posts: formData.posts === "" ? 0 : Number(formData.posts),
-      videos: formData.videos === "" ? 0 : Number(formData.videos),
+      shoot: formData.shoot === "" ? 0 : Number(formData.shoot),
       pages: formData.pages === "" ? 0 : Number(formData.pages),
       totalBudget: calculateTotal(),
     };
@@ -341,6 +343,9 @@ const Clients = () => {
   const handleEdit = (client) => {
     setFormData({
       ...client,
+      onboardingDate: client.onboardingDate 
+        ? new Date(client.onboardingDate).toISOString().split('T')[0] 
+        : "",
       service: Array.isArray(client.service)
         ? client.service
         : client.service
@@ -532,36 +537,27 @@ const Clients = () => {
           className=" overflow-hidden bg-white dark:bg-slate-900/30 shadow-sm"
         >
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse whitespace-nowrap min-w-[900px] text-xs">
+            <table className="w-full text-left border-separate border-spacing-y-2 whitespace-nowrap min-w-[1100px] text-xs">
               <thead>
-                <tr className="bg-slate-50/50 dark:bg-slate-900/60 text-slate-705 dark:text-slate-300 font-bold uppercase tracking-wider text-[10px]">
-                  <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
+                <tr className="text-slate-500 dark:text-slate-400 font-extrabold uppercase tracking-widest text-[9.5px]">
+                  <th className="px-4 py-2 font-extrabold">
                     <div className="flex items-center gap-1.5">
-                      <FaRegBuilding size={12} className="text-slate-400" />
-                      Client Details
+                      <FaRegBuilding size={11} className="opacity-70" />
+                      Client Profile
                     </div>
                   </th>
-                  <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
-                    Contact Info
-                  </th>
-                  <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
-                    Service & Members
-                  </th>
+                  <th className="px-4 py-2 font-extrabold">Contact Info</th>
+                  <th className="px-4 py-2 font-extrabold">Service & Members</th>
+                  <th className="px-4 py-2 font-extrabold w-48">Deliverables</th>
                   {user?.role === "team" && (
-                    <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
-                      Assigned By
-                    </th>
+                    <th className="px-4 py-2 font-extrabold">Assigned By</th>
                   )}
                   {user?.role !== "team" && (
-                    <th className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
-                      Budget (INR)
-                    </th>
+                    <th className="px-4 py-2 font-extrabold">Financials (INR)</th>
                   )}
                   {(user?.role === "admin" ||
                     user?.role === "operationmanager") && (
-                    <th className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 text-center w-28">
-                      Actions
-                    </th>
+                    <th className="px-4 py-2 font-extrabold text-center w-24">Actions</th>
                   )}
                 </tr>
               </thead>
@@ -574,162 +570,261 @@ const Clients = () => {
                         : client.service || "";
                       const conf = getServiceStyles(primaryService);
                       const ServiceIcon = conf.icon;
+                      
+                      const cellClass = "px-4 py-3.5 border-y border-transparent bg-white dark:bg-slate-800/80 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 transition-colors first:rounded-l-2xl last:rounded-r-2xl";
+                      
+                      const nameColors = [
+                        "text-blue-900 dark:text-blue-400",
+                        "text-purple-700 dark:text-purple-400",
+                        "text-emerald-600 dark:text-emerald-400",
+                        "text-rose-600 dark:text-rose-400",
+                        "text-amber-600 dark:text-amber-400",
+                        "text-cyan-600 dark:text-cyan-400",
+                        "text-indigo-600 dark:text-indigo-400",
+                        "text-pink-600 dark:text-pink-400",
+                        "text-yellow-500 dark:text-yellow-400",
+
+                      ];
+                      
+                      // Create a simple hash based on company name length and char codes
+                      let hash = 0;
+                      if (client.companyName) {
+                        for (let i = 0; i < client.companyName.length; i++) {
+                          hash = client.companyName.charCodeAt(i) + ((hash << 5) - hash);
+                        }
+                      }
+                      const colorIndex = Math.abs(hash) % nameColors.length;
+                      const nameColor = nameColors[colorIndex];
+                      
                       return (
                         <motion.tr
                           layout
                           initial={{ opacity: 0, y: 15 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95 }}
-                          transition={{ duration: 0.2 }}
+                          transition={{ duration: 0.2, delay: index * 0.02 }}
                           key={client._id}
-                          className={`group transition-colors ${
-                            index % 2 === 0
-                              ? "bg-white dark:bg-slate-800/40"
-                              : "bg-slate-50/40 dark:bg-slate-900/10"
-                          } hover:bg-[var(--accent-light-bg-subtle)] dark:hover:bg-[var(--accent-dark-bg-subtle)]`}
+                          className="group shadow-[0_2px_12px_rgba(0,0,0,0.03)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.15)] transition-colors"
                         >
                           {/* Client Info */}
-                          <td className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
-                            <div className="flex items-center gap-2.5">
+                          <td className={`${cellClass} relative overflow-hidden`}>
+                            {/* Decorative Left Border based on Accent */}
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--accent-color)] opacity-70 rounded-l-2xl" />
+                            
+                            <div className="flex items-center gap-3 pl-1">
+                              <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-900 flex items-center justify-center shrink-0 shadow-inner border border-slate-200/50 dark:border-white/5">
+                                <FaRegBuilding size={18} className={`${nameColor} opacity-80`} />
+                              </div>
                               <div className="min-w-[120px]">
-                                <h2 className="flex items-center gap-2 theme-text-accent transition-colors text-md md:text-xl truncate">
-                                  <FaRegBuilding size={16} className="shrink-0 opacity-80" />
-                                  <span>{client.companyName}</span>
+                                <h2 className={`${nameColor} font-bold transition-colors text-[14px] md:text-[15px] truncate max-w-[200px]`}>
+                                  {client.companyName}
                                 </h2>
-                                <p className="text-[13px] text-slate-400 dark:text-slate-700 font-medium flex items-center gap-1 mt-0.5 truncate">
-                                  <FiBriefcase size={9} />
-                                  {client.industry}
-                                </p>
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-0.5">
+                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1 truncate max-w-[150px]">
+                                    <FiBriefcase size={10} />
+                                    {client.industry}
+                                  </p>
+                                  {client.onboardingDate && (
+                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold flex items-center gap-1 truncate sm:border-l sm:border-slate-200 dark:sm:border-slate-700 sm:pl-3">
+                                      <FiCalendar size={10} />
+                                      {new Date(client.onboardingDate).toLocaleDateString("en-IN", {
+                                        day: "2-digit",
+                                        month: "short",
+                                        year: "numeric"
+                                      })}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </td>
 
                           {/* Contact Info */}
-                          <td className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
-                            <div className="space-y-1">
+                          <td className={cellClass}>
+                            <div className="space-y-1.5">
                               {client.phoneNumber ? (
                                 <a
                                   href={`tel:${client.phoneNumber}`}
-                                  className="flex items-center gap-1 text-[11px] md:text-[14px] text-slate-650 dark:text-white hover:theme-text-accent font-medium"
+                                  className="flex items-center gap-1.5 text-[12px] text-slate-650 dark:text-slate-300 hover:theme-text-accent font-semibold transition-colors"
                                 >
-                                  <FiPhone
-                                    size={11}
-                                    md:size={14}
-                                    className="text-slate-400 dark:text-slate-500"
-                                  />
+                                  <div className="w-5 h-5 rounded-md bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center">
+                                    <FiPhone size={10} className="text-slate-450 dark:text-slate-500" />
+                                  </div>
                                   {client.phoneNumber}
                                 </a>
                               ) : (
-                                <span className="text-[10px] text-slate-405 dark:text-slate-505 italic">
-                                  No Phone
-                                </span>
+                                <span className="text-[11px] text-slate-400 italic">No Phone</span>
                               )}
 
                               {client.email ? (
                                 <a
                                   href={`mailto:${client.email}`}
-                                  className="flex items-center gap-1 text-[11px] md:text-[14px] text-slate-655 dark:text-white hover:theme-text-accent font-medium"
+                                  className="flex items-center gap-1.5 text-[12px] text-slate-650 dark:text-slate-300 hover:theme-text-accent font-semibold transition-colors"
                                 >
-                                  <FiMail
-                                    size={11}
-                                    md:size={14}
-                                    className="text-slate-400 dark:text-slate-500"
-                                  />
+                                  <div className="w-5 h-5 rounded-md bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center">
+                                    <FiMail size={10} className="text-slate-450 dark:text-slate-500" />
+                                  </div>
                                   {client.email}
                                 </a>
                               ) : (
-                                <span className="text-[10px] text-slate-405 dark:text-slate-550 italic">
-                                  No Email
-                                </span>
+                                <span className="text-[11px] text-slate-400 italic">No Email</span>
                               )}
                             </div>
                           </td>
 
                           {/* Service Info */}
-                          <td className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
-                            <div className="flex flex-wrap gap-1 max-w-[200px]">
-                              {Array.isArray(client.service)
-                                ? client.service.map((srv) => {
-                                    const sConf = getServiceStyles(srv);
-                                    const SIcon = sConf.icon;
-                                    return (
-                                      <span
-                                        key={srv}
-                                        className={`inline-flex px-2 py-0.5 rounded-full text-[9px] md:text-[11px] font-bold tracking-wider uppercase border ${sConf.pill} items-center gap-1`}
-                                      >
-                                        <SIcon size={9} />
-                                        {srv}
-                                      </span>
-                                    );
-                                  })
-                                : (() => {
-                                    const sConf = getServiceStyles(
-                                      client.service || "",
-                                    );
-                                    const SIcon = sConf.icon;
-                                    return (
-                                      <span
-                                        className={`inline-flex px-2 py-0.5 rounded-full text-[9px] md:text-[11px] font-bold tracking-wider uppercase border ${sConf.pill} items-center gap-1`}
-                                      >
-                                        <SIcon size={9} />
-                                        {client.service || "Contract"}
-                                      </span>
-                                    );
-                                  })()}
-                            </div>
-                            <div className="pt-1.5 flex flex-wrap gap-1 max-w-[200px]">
-                              {client.assignedTo &&
-                              (Array.isArray(client.assignedTo)
-                                ? client.assignedTo.length > 0
-                                : true) ? (
-                                Array.isArray(client.assignedTo) ? (
-                                  client.assignedTo.map((member) => {
-                                    const uCol = getUserColor(
-                                      member._id || member,
-                                    );
-                                    return (
-                                      <span
-                                        key={member._id || member}
-                                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${uCol.bg} ${uCol.text} border ${uCol.border} font-semibold text-[9.5px] md:text-[11px]`}
-                                      >
-                                        <FiUser size={9} />
-                                        <span>
-                                          {member.name || member.email}
+                          <td className={cellClass}>
+                            <div className="flex flex-col gap-2">
+                              <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                {Array.isArray(client.service)
+                                  ? client.service.map((srv) => {
+                                      const sConf = getServiceStyles(srv);
+                                      const SIcon = sConf.icon;
+                                      return (
+                                        <span
+                                          key={srv}
+                                          className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase border ${sConf.pill} items-center gap-1 shadow-sm`}
+                                        >
+                                          <SIcon size={9} />
+                                          {srv}
                                         </span>
-                                      </span>
-                                    );
-                                  })
+                                      );
+                                    })
+                                  : (() => {
+                                      const sConf = getServiceStyles(
+                                        client.service || "",
+                                      );
+                                      const SIcon = sConf.icon;
+                                      return (
+                                        <span
+                                          className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase border ${sConf.pill} items-center gap-1 shadow-sm`}
+                                        >
+                                          <SIcon size={9} />
+                                          {client.service || "Contract"}
+                                        </span>
+                                      );
+                                    })()}
+                              </div>
+                              
+                              <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                {client.assignedTo &&
+                                (Array.isArray(client.assignedTo)
+                                  ? client.assignedTo.length > 0
+                                  : true) ? (
+                                  Array.isArray(client.assignedTo) ? (
+                                    client.assignedTo.map((member) => {
+                                      const uCol = getUserColor(
+                                        member._id || member,
+                                      );
+                                      return (
+                                        <span
+                                          key={member._id || member}
+                                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${uCol.bg} ${uCol.text} border ${uCol.border} font-semibold text-[10.5px] shadow-sm`}
+                                        >
+                                          <FiUser size={9} />
+                                          <span>
+                                            {member.name || member.email}
+                                          </span>
+                                        </span>
+                                      );
+                                    })
+                                  ) : (
+                                    (() => {
+                                      const uCol = getUserColor(
+                                        client.assignedTo._id ||
+                                          client.assignedTo,
+                                      );
+                                      return (
+                                        <span
+                                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${uCol.bg} ${uCol.text} border ${uCol.border} font-semibold text-[10.5px] shadow-sm`}
+                                        >
+                                          <FiUser size={9} />
+                                          <span>
+                                            {client.assignedTo.name ||
+                                              client.assignedTo.email}
+                                          </span>
+                                        </span>
+                                      );
+                                    })()
+                                  )
                                 ) : (
-                                  (() => {
-                                    const uCol = getUserColor(
-                                      client.assignedTo._id ||
-                                        client.assignedTo,
-                                    );
-                                    return (
-                                      <span
-                                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${uCol.bg} ${uCol.text} border ${uCol.border} font-semibold text-[9.5px] md:text-[11px]`}
-                                      >
-                                        <FiUser size={9} />
-                                        <span>
-                                          {client.assignedTo.name ||
-                                            client.assignedTo.email}
-                                        </span>
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10 text-slate-400 dark:text-slate-500 italic text-[10.5px]">
+                                    <FiUser size={9} />
+                                    <span>Unassigned</span>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Deliverables Info (NEW) */}
+                          <td className={cellClass}>
+                            <div className="flex flex-col gap-2.5 max-w-[260px]">
+                              {/* Digital Marketing & Video */}
+                              {(client.posts > 0 || client.reels > 0 || client.shoot > 0) && (
+                                <div className="space-y-1">
+                                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Digital Marketing</span>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {client.posts > 0 && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-900/40 font-semibold text-[10px]">
+                                        <FiLayers size={9} /> {client.posts} Posts
                                       </span>
-                                    );
-                                  })()
-                                )
-                              ) : (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10 text-slate-400 dark:text-slate-500 italic text-[9.5px]">
-                                  <FiUser size={9} />
-                                  <span>Unassigned</span>
-                                </span>
+                                    )}
+                                    {client.reels > 0 && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 border border-purple-200/50 dark:border-purple-900/40 font-semibold text-[10px]">
+                                        <FiVideo size={9} /> {client.reels} Reels
+                                      </span>
+                                    )}
+                                    {client.shoot > 0 && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-200/50 dark:border-rose-900/40 font-semibold text-[10px]">
+                                        <FiVideo size={9} /> {client.shoot} Shoot(s)
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Website */}
+                              {(client.pages > 0) && (
+                                <div className="space-y-1">
+                                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Website</span>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-900/40 font-semibold text-[10px]">
+                                      <FiGlobe size={9} /> {client.pages} Pages
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* SEO */}
+                              {(client.onpage || client.offpage) && (
+                                <div className="space-y-1">
+                                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">SEO</span>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {client.onpage && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/40 font-semibold text-[10px]">
+                                        <FiSearch size={9} /> On-Page
+                                      </span>
+                                    )}
+                                    {client.offpage && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/40 font-semibold text-[10px]">
+                                        <FiSearch size={9} /> Off-Page
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Empty State Fallback */}
+                              {!client.posts && !client.reels && !client.shoot && !client.pages && !client.onpage && !client.offpage && (
+                                <span className="text-[10px] text-slate-400 italic">No deliverables set.</span>
                               )}
                             </div>
                           </td>
 
                           {/* Assigned By */}
                           {user?.role === "team" && (
-                            <td className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
+                            <td className={cellClass}>
                               <div className="flex items-center gap-1">
                                 {client.createdBy ? (
                                   (() => {
@@ -738,9 +833,9 @@ const Clients = () => {
                                     );
                                     return (
                                       <span
-                                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${uCol.bg} ${uCol.text} border ${uCol.border} font-semibold text-[9.5px] md:text-[11px]`}
+                                        className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md ${uCol.bg} ${uCol.text} border ${uCol.border} font-bold text-[10.5px]`}
                                       >
-                                        <FiUser size={9} />
+                                        <FiUser size={10} />
                                         <span>
                                           {client.createdBy.name ||
                                             client.createdBy.email}
@@ -749,8 +844,8 @@ const Clients = () => {
                                     );
                                   })()
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10 text-slate-450 dark:text-slate-500 italic text-[9.5px]">
-                                    <FiUser size={9} />
+                                  <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10 text-slate-450 dark:text-slate-500 italic text-[10.5px]">
+                                    <FiUser size={10} />
                                     <span>System / Admin</span>
                                   </span>
                                 )}
@@ -760,28 +855,26 @@ const Clients = () => {
 
                           {/* Budget Info */}
                           {user?.role !== "team" && (
-                            <td className="px-4 py-2.5 border-r border-b border-slate-200 dark:border-slate-800">
-                              <div className="space-y-0.5">
-                                <p className="text-[10px] md:text-[13px] text-slate-500 dark:text-slate-400 font-medium">
-                                  Base:{" "}
-                                  <span className="font-semibold text-slate-700 dark:text-slate-300">
-                                    ₹
-                                    {Number(client.budget || 0).toLocaleString(
-                                      "en-IN",
-                                    )}
+                            <td className={cellClass}>
+                              <div className="space-y-1">
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold flex justify-between items-center w-28">
+                                  <span>Base:</span>
+                                  <span className="text-slate-700 dark:text-slate-300">
+                                    ₹{Number(client.budget || 0).toLocaleString("en-IN")}
                                   </span>
                                 </p>
-                                <p className="text-[11px] md:text-[13px] text-slate-605 dark:text-slate-400 font-medium">
-                                  Total:{" "}
-                                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                                    ₹
-                                    {Number(
-                                      client.totalBudget || 0,
-                                    ).toLocaleString("en-IN")}
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold flex justify-between items-center w-28">
+                                  <span>GST:</span>
+                                  <span className="text-amber-600 dark:text-amber-500">
+                                    {client.gst}%
                                   </span>
                                 </p>
-                                <p className="text-[9.5px] md:text-[11px] text-amber-600 dark:text-amber-500 font-semibold uppercase tracking-wider">
-                                  GST: {client.gst}%
+                                <div className="border-t border-slate-200/50 dark:border-slate-700/50 pt-1" />
+                                <p className="text-[12px] font-bold flex justify-between items-center w-28">
+                                  <span className="text-slate-600 dark:text-slate-300">Total:</span>
+                                  <span className="text-emerald-600 dark:text-emerald-400">
+                                    ₹{Number(client.totalBudget || 0).toLocaleString("en-IN")}
+                                  </span>
                                 </p>
                               </div>
                             </td>
@@ -790,29 +883,21 @@ const Clients = () => {
                           {/* Actions */}
                           {(user?.role === "admin" ||
                             user?.role === "operationmanager") && (
-                            <td className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 text-center">
-                              <div className="flex items-center justify-center gap-1.5">
+                            <td className={`${cellClass} text-center`}>
+                              <div className="flex items-center justify-center gap-2">
                                 <button
                                   onClick={() => handleEdit(client)}
-                                  className="p-1 bg-amber-50 hover:bg-amber-100 border border-amber-200/40 dark:bg-amber-950/20 dark:hover:bg-amber-950/40 dark:border-amber-900/30 text-amber-600 dark:text-amber-455 rounded transition-all"
+                                  className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-amber-50 hover:border-amber-200 dark:hover:bg-amber-950/30 dark:hover:border-amber-900 text-slate-400 hover:text-amber-600 dark:hover:text-amber-500 rounded-lg transition-all shadow-sm"
                                   title="Edit Record"
                                 >
-                                  <FiEdit
-                                    size={12}
-                                    md:size={14}
-                                    className="stroke-[2.5]"
-                                  />
+                                  <FiEdit size={13} className="stroke-[2.5]" />
                                 </button>
                                 <button
                                   onClick={() => setClientToDelete(client)}
-                                  className="p-1 bg-rose-50 hover:bg-rose-100 border border-rose-200/40 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 dark:border-rose-900/30 text-rose-600 dark:text-rose-455 rounded transition-all"
+                                  className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-rose-50 hover:border-rose-200 dark:hover:bg-rose-950/30 dark:hover:border-rose-900 text-slate-400 hover:text-rose-600 dark:hover:text-rose-500 rounded-lg transition-all shadow-sm"
                                   title="Delete Record"
                                 >
-                                  <FiTrash2
-                                    size={12}
-                                    md:size={14}
-                                    className="stroke-[2.5]"
-                                  />
+                                  <FiTrash2 size={13} className="stroke-[2.5]" />
                                 </button>
                               </div>
                             </td>
@@ -826,10 +911,10 @@ const Clients = () => {
                         colSpan={
                           user?.role === "admin" ||
                           user?.role === "operationmanager"
-                            ? 5
-                            : 4
+                            ? 6
+                            : 5
                         }
-                        className="px-5 py-16 border-b border-slate-200 dark:border-slate-800"
+                        className="px-5 py-24 text-center"
                       >
                         <div className="flex flex-col items-center justify-center text-center">
                           <div className="w-14 h-14 rounded-full theme-bg-main flex items-center justify-center mb-3">
@@ -1028,6 +1113,21 @@ const Clients = () => {
                       </div>
 
                       <div>
+                        <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1 flex items-center gap-1.5">
+                          <FiCalendar size={11} className="opacity-80" />
+                          Onboarding Date
+                        </label>
+                        <input
+                          type="date"
+                          name="onboardingDate"
+                          value={formData.onboardingDate}
+                          onChange={handleChange}
+                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all font-semibold"
+                          required
+                        />
+                      </div>
+
+                      <div>
                         <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1">
                           Phone Number
                         </label>
@@ -1162,12 +1262,12 @@ const Clients = () => {
 
                                 <div>
                                   <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                    Videos
+                                    Shoot
                                   </label>
                                   <input
                                     type="number"
-                                    name="videos"
-                                    value={formData.videos}
+                                    name="shoot"
+                                    value={formData.shoot}
                                     onChange={handleChange}
                                     placeholder="Count"
                                     className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold"
@@ -1266,12 +1366,12 @@ const Clients = () => {
                               <div className="grid grid-cols-2 gap-3">
                                 <div>
                                   <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                    Videos Count
+                                    Shoot Count
                                   </label>
                                   <input
                                     type="number"
-                                    name="videos"
-                                    value={formData.videos}
+                                    name="shoot"
+                                    value={formData.shoot}
                                     onChange={handleChange}
                                     placeholder="Count"
                                     className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold"

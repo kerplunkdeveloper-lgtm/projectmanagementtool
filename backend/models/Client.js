@@ -14,6 +14,11 @@ const clientSchema = new mongoose.Schema(
       trim: true,
     },
 
+    onboardingDate: {
+      type: Date,
+      default: Date.now,
+    },
+
     phoneNumber: {
       type: String,
       required: true,
@@ -67,7 +72,7 @@ const clientSchema = new mongoose.Schema(
       default: 0,
     },
 
-    videos: {
+    shoot: {
       type: Number,
       default: 0,
     },

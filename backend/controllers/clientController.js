@@ -12,6 +12,7 @@ exports.createClient = async (req, res) => {
     const {
       companyName,
       industry,
+      onboardingDate,
       phoneNumber,
       email,
       budget,
@@ -19,7 +20,7 @@ exports.createClient = async (req, res) => {
       service,
       reels,
       posts,
-      videos,
+      shoot,
       needDslr,
       pages,
       onpage,
@@ -34,6 +35,7 @@ exports.createClient = async (req, res) => {
     const client = await Client.create({
       companyName,
       industry,
+      onboardingDate,
       phoneNumber,
       email,
       budget,
@@ -42,7 +44,7 @@ exports.createClient = async (req, res) => {
       service,
       reels,
       posts,
-      videos,
+      shoot,
       needDslr,
       pages,
       onpage,

@@ -1818,7 +1818,7 @@ const ProjectTaskBoard = ({
                 </h1>
                 {activeProject?.client?.companyName && (
                   <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-800/30 shrink-0">
-                   Client : {activeProject.client.companyName}
+                    Client : {activeProject.client.companyName}
                   </span>
                 )}
               </div>
@@ -4179,10 +4179,10 @@ const ProjectTaskBoard = ({
                             )}
 
                             {/* Spacer row between sections */}
-                            <tr className="h-20 pointer-events-none">
+                            <tr className="h-4 pointer-events-none">
                               <td
                                 colSpan={showSelectionColumn ? 11 : 10}
-                                className="h-20 p-10 border-0 bg-transparent"
+                                className="h-4 p-0 border-0 bg-transparent"
                               />
                             </tr>
                           </React.Fragment>
