@@ -139,7 +139,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           {/* LOGO */}
           <div
             onClick={() => navigate(`/${role}`)}
-            className="logo-container group"
+            className="logo-container group mb-2"
             title="Kerplunk Media"
           >
             <div className="logo-border-wrapper">

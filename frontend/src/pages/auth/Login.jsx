@@ -13,7 +13,6 @@ import toast from "react-hot-toast";
 import lightlogin from "../../assets/logo.png";
 import darklogin from "../../assets/logo.png";
 
-
 const Login = () => {
   const dispatch = useDispatch();
 
@@ -68,7 +67,11 @@ const Login = () => {
   return (
     <div className="min-h-screen theme-bg-main flex flex-col md:flex-row overflow-hidden">
       {/* TOP / LEFT SIDE IMAGE SECTION */}
-      <div id="login-image-section" className=" relative w-full h-[39vh] sm:h-[45vh] md:h-screen md:w-[55%] xl:w-[60%] overflow-hidden flex items-center justify-center shrink-0 z-0" style={{ background: 'var(--color-brand-gradient)' }}>
+      <div
+        id="login-image-section"
+        className=" relative w-full h-[39vh] sm:h-[45vh] md:h-screen md:w-[55%] xl:w-[60%] overflow-hidden flex items-center justify-center shrink-0 z-0"
+        style={{ background: "var(--color-brand-gradient)" }}
+      >
         <img
           src={lightlogin}
           alt="Project Management Light"
@@ -77,23 +80,40 @@ const Login = () => {
         <img
           src={darklogin}
           alt="Project Management Dark"
-          className="w-[600px] md:w-auto md:h-full h-auto object-contain hidden dark:block"
+          className="w-[600px] md:w-auto md:h-full h-auto mt-0 md:mt-30 object-contain hidden dark:block"
         />
       </div>
 
       {/* BOTTOM / RIGHT SIDE LOGIN FORM */}
-      <div id="login-form-section" className="w-full md:w-[45%] xl:w-[40%] md:h-screen flex flex-col justify-center p-6 sm:p-12 md:px-10 lg:px-16 xl:px-24  relative rounded-t-[40px] md:rounded-none -mt-8 md:mt-0 z-10 backdrop-blur-xl">
+      <div
+        id="login-form-section"
+        className="w-full md:w-[45%] xl:w-[40%] md:h-screen flex flex-col justify-center p-6 sm:p-12 md:px-10 lg:px-16 xl:px-24  relative rounded-t-[40px] md:rounded-none -mt-8 md:mt-0 z-10 backdrop-blur-xl"
+      >
         <div className="w-full max-w-[490px] mx-auto relative z-10">
           <form onSubmit={handleSubmit} className="w-full">
-            <div className="mb-10 md:mb-12 text-center md:text-left">
-              <h2 className="text-3xl md:text-4xl font-black mb-3 text-slate-800 dark:text-white tracking-tight">
-                Welcome Back
-              </h2>
-              <p className="text-[13px] md:text-[15px] font-medium theme-text-secondary">
-                Login to continue managing your projects
-              </p>
+            {/* LOGO IN LOGIN FORM */}
+            <div className="flex justify-center mb-6">
+              <div
+                className="logo-container group"
+                title="Kerplunk Media"
+              >
+                <div className="logo-border-wrapper">
+                  <div className="logo-spinning-border" />
+                </div>
+                <div className="logo-inner">
+                  <span className="logo-text-kerplunk">
+                    {"KERPLUNK".split("").map((char, index) => (
+                      <span key={index} className="logo-char">
+                        {char}
+                      </span>
+                    ))}
+                  </span>
+                </div>
+                <span className="logo-text-media">MEDIA</span>
+              </div>
             </div>
 
+           
             {/* EMAIL */}
             <div className="mb-5">
               <div className="flex items-center border theme-border rounded-2xl mt-2 px-5 py-4 bg-slate-50/50 dark:bg-black/20 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all shadow-sm">

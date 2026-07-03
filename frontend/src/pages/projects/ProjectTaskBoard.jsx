@@ -308,12 +308,12 @@ const SubtaskRow = ({
           }}
         >
           {sub.startDate ? (
-            <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-blue-200 dark:border-blue-900/60 hover:border-blue-350 dark:hover:border-blue-500/40 text-blue-700 dark:text-blue-300 text-[9px] font-semibold bg-blue-50 dark:bg-blue-950/30 transition-all">
+            <div className="flex items-center flex-nowrap gap-1 px-1.5 py-2 rounded-md border border-blue-200 dark:border-blue-900/60 hover:border-blue-350 dark:hover:border-blue-500/40 text-blue-700 dark:text-blue-300 text-[9px] font-semibold bg-blue-50 dark:bg-blue-950/30 transition-all">
               <FiCalendar
                 size={8}
-                className="text-blue-500 dark:text-blue-400 mr-1"
+                className="text-blue-500 dark:text-blue-400 mr-1 shrink-0"
               />
-              <span>
+              <span className="whitespace-nowrap">
                 S:{" "}
                 {new Date(sub.startDate).toLocaleDateString(undefined, {
                   month: "short",
@@ -371,12 +371,12 @@ const SubtaskRow = ({
           }}
         >
           {sub.dueDate ? (
-            <div className="flex items-center gap-1 px-1.5 py-2 rounded-md border border-rose-200 dark:border-rose-900/60 hover:border-rose-350 dark:hover:border-rose-500/40 text-rose-700 dark:text-rose-305 text-[9px] font-semibold bg-rose-50 dark:bg-rose-950/30 transition-all">
+            <div className="flex items-center flex-nowrap gap-1 px-1.5 py-2 rounded-md border border-rose-200 dark:border-rose-900/60 hover:border-rose-350 dark:hover:border-rose-500/40 text-rose-700 dark:text-rose-305 text-[9px] font-semibold bg-rose-50 dark:bg-rose-950/30 transition-all">
               <FiCalendar
                 size={8}
-                className="text-rose-555 dark:text-rose-400 mr-1"
+                className="text-rose-555 dark:text-rose-400 mr-1 shrink-0"
               />
-              <span>
+              <span className="whitespace-nowrap">
                 E:{" "}
                 {new Date(sub.dueDate).toLocaleDateString(undefined, {
                   month: "short",
@@ -3130,12 +3130,12 @@ const ProjectTaskBoard = ({
                                             }}
                                           >
                                             {task.startDate ? (
-                                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-blue-300 dark:border-blue-800/85 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-850 dark:text-blue-300 text-[14px] font-bold bg-blue-100 dark:bg-blue-900 transition-all shadow-sm">
+                                              <div className="flex items-center flex-nowrap gap-1.5 px-2.5 py-1 rounded-md border border-blue-300 dark:border-blue-800/85 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-855 dark:text-blue-300 text-[14px] font-bold bg-blue-100 dark:bg-blue-900 transition-all shadow-sm">
                                                 <FiCalendar
                                                   size={10.5}
-                                                  className="text-blue-900 dark:text-blue-900"
+                                                  className="text-blue-900 dark:text-blue-900 shrink-0"
                                                 />
-                                                <span>
+                                                <span className="whitespace-nowrap">
                                                   {new Date(
                                                     task.startDate,
                                                   ).toLocaleDateString(
@@ -3213,12 +3213,12 @@ const ProjectTaskBoard = ({
                                             }}
                                           >
                                             {task.dueDate ? (
-                                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-700/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-850 dark:text-rose-100 text-[14px] font-bold bg-rose-100 dark:bg-rose-800 transition-all shadow-sm">
+                                              <div className="flex items-center flex-nowrap gap-1.5 px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-700/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-855 dark:text-rose-100 text-[14px] font-bold bg-rose-100 dark:bg-rose-800 transition-all shadow-sm">
                                                 <FiCalendar
                                                   size={10.5}
-                                                  className="text-rose-600 dark:text-rose-400"
+                                                  className="text-rose-600 dark:text-rose-400 shrink-0"
                                                 />
-                                                <span>
+                                                <span className="whitespace-nowrap">
                                                   {new Date(
                                                     task.dueDate,
                                                   ).toLocaleDateString(
@@ -3812,12 +3812,12 @@ const ProjectTaskBoard = ({
                                                       }}
                                                     >
                                                       {sub.startDate ? (
-                                                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-blue-300 dark:border-blue-800/80 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-855 dark:text-blue-200 text-[10px] font-bold bg-blue-100/90 dark:bg-blue-955/75 transition-all shadow-sm">
+                                                        <div className="flex items-center flex-nowrap gap-1.5 px-2.5 py-1 rounded-md border border-blue-300 dark:border-blue-800/80 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-855 dark:text-blue-200 text-[10px] font-bold bg-blue-100/90 dark:bg-blue-955/75 transition-all shadow-sm">
                                                           <FiCalendar
                                                             size={10.5}
-                                                            className="text-blue-600 dark:text-blue-450"
+                                                            className="text-blue-600 dark:text-blue-450 shrink-0"
                                                           />
-                                                          <span>
+                                                          <span className="whitespace-nowrap">
                                                             {new Date(
                                                               sub.startDate,
                                                             ).toLocaleDateString(
@@ -3908,12 +3908,12 @@ const ProjectTaskBoard = ({
                                                       }}
                                                     >
                                                       {sub.dueDate ? (
-                                                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-750/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-850 dark:text-rose-200 text-[10px] font-bold bg-rose-100/90 dark:bg-rose-955/75 transition-all shadow-sm">
+                                                        <div className="flex items-center flex-nowrap gap-1.5 px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-750/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-850 dark:text-rose-200 text-[10px] font-bold bg-rose-100/90 dark:bg-rose-955/75 transition-all shadow-sm">
                                                           <FiCalendar
                                                             size={10.5}
-                                                            className="text-rose-600 dark:text-rose-400"
+                                                            className="text-rose-600 dark:text-rose-400 shrink-0"
                                                           />
-                                                          <span>
+                                                          <span className="whitespace-nowrap">
                                                             {new Date(
                                                               sub.dueDate,
                                                             ).toLocaleDateString(
