@@ -176,9 +176,6 @@ const Navbar = ({ setSidebarOpen }) => {
       return "Calendar";
     return renderDashboardTitle();
   };
-
-  console.log(user.department);
-
   const pageTitle = getPageTitle();
 
   useEffect(() => {
