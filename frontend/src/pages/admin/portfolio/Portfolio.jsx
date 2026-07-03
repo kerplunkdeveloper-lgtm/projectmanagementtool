@@ -880,11 +880,9 @@ const Portfolio = () => {
                             Project Name
                           </th>
                           <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
-                            User Name
+                           Portfolio created by
                           </th>
-                          <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
-                            Department
-                          </th>
+                         
                           <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
                             Status
                           </th>
@@ -996,12 +994,7 @@ const Portfolio = () => {
                                 </span>
                               </td>
 
-                              {/* Department */}
-                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
-                                <span className="font-semibold text-slate-705 dark:text-slate-400">
-                                  {project.createdBy?.department || "N/A"}
-                                </span>
-                              </td>
+                             
 
                               {/* Status */}
                               <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">

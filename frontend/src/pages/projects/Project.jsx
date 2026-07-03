@@ -287,15 +287,11 @@ const Project = () => {
                 <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
                   Client Name
                 </th>
+
                 <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
-                  Portfolio
+                  Project created by
                 </th>
-                <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
-                  User Name
-                </th>
-                <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
-                  Department
-                </th>
+
                 <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
                   Status
                 </th>
@@ -351,34 +347,13 @@ const Project = () => {
                         {project.client?.companyName || "No Client"}
                       </span>
                     </td>
-                    <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
-                      {projectPortfolio ? (
-                        <span
-                          className="font-bold text-[10px] px-2 py-0.5 rounded-lg border uppercase tracking-wider"
-                          style={{
-                            backgroundColor: `${projectPortfolio.color}15`,
-                            borderColor: `${projectPortfolio.color}40`,
-                            color: projectPortfolio.color,
-                          }}
-                        >
-                          {projectPortfolio.name}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 dark:text-slate-600 text-[10px] italic uppercase tracking-wider font-bold">
-                          None
-                        </span>
-                      )}
-                    </td>
+                    
                     <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
                       <span className="font-semibold text-slate-700 dark:text-slate-350">
                         {project.createdBy?.name || "N/A"}
                       </span>
                     </td>
-                    <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
-                      <span className="font-semibold text-slate-700 dark:text-slate-350">
-                        {project.createdBy?.department || "N/A"}
-                      </span>
-                    </td>
+                   
                     <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
                       <span
                         className={`text-[9px] font-extrabold px-2 py-0.5 rounded-lg border uppercase tracking-wider ${getStatusBadge(project.status)}`}
