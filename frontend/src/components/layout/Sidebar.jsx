@@ -359,61 +359,39 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         className={({ isActive }) => {
                           const activeClass = isActive
                             ? `bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent border-[var(--accent-color)]/20 dark:border-[var(--accent-color-dark)]/25 shadow-sm`
-                            : `text-slate-600 dark:text-slate-350 border-transparent hover:bg-slate-100/40  hover:text-slate-900 `;
+                            : `text-slate-600 dark:text-slate-400 border-transparent hover:bg-slate-100/60 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white`;
 
                           return `block rounded-xl border transition-all duration-200 ${activeClass}`;
                         }}
                       >
                         {({ isActive }) => (
-                          <motion.div
-                            className="flex items-center gap-2 px-2.5 py-1.5 w-full"
-                            initial="initial"
-                            whileHover="hover"
-                            whileTap="tap"
-                            variants={{
-                              hover: { x: 4 },
-                              tap: { scale: 0.98 },
-                            }}
-                            transition={{
-                              type: "spring",
-                              stiffness: 400,
-                              damping: 18,
-                            }}
-                          >
-                            <motion.div
-                              variants={{
-                                hover: {
-                                  rotate: 10,
-                                  scale: 1.25,
-                                },
-                                initial: {
-                                  rotate: 0,
-                                  scale: 1,
-                                },
-                              }}
-                              className="shrink-0"
-                            >
-                              <Icon size={16} />
-                            </motion.div>
+                          <div className="flex items-center gap-3 px-3 py-2 w-full">
+                            <div className={`shrink-0 transition-colors ${isActive ? "theme-text-accent" : ""}`}>
+                              <Icon size={15} />
+                            </div>
 
-                            <span className="text-xs lg:text-[11px] xl:text-xs font-semibold truncate">
+                            <span className="text-xs lg:text-[11px] xl:text-[12px] font-semibold truncate flex-1 text-left">
                               {item.name}
                             </span>
 
                             {item.name === "Notifications" &&
                               unreadCount > 0 && (
-                                <span className="ml-auto min-w-[16px] h-[16px] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse">
+                                <span className="ml-auto min-w-[16px] h-[16px] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse shrink-0">
                                   {unreadCount}
                                 </span>
                               )}
 
                             {item.name === "Chat" &&
                               totalUnreadChatCount > 0 && (
-                                <span className="ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-red-600 px-1 text-[9px] font-black text-white shadow-[0_4px_10px_rgba(244,63,94,0.3)] animate-pulse border border-white/25">
+                                <span className="ml-auto flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-red-600 px-1 text-[9px] font-black text-white shadow-[0_4px_10px_rgba(244,63,94,0.3)] animate-pulse border border-white/25 shrink-0">
                                   {totalUnreadChatCount}
                                 </span>
                               )}
-                          </motion.div>
+
+                            {isActive && !unreadCount && item.name !== "Notifications" && item.name !== "Chat" && (
+                              <span className="ml-auto w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
+                            )}
+                          </div>
                         )}
                       </NavLink>
 
@@ -573,16 +551,16 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             whileHover="hover"
             whileTap="tap"
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 text-white text-xs font-bold transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md"
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 text-white text-xs font-bold transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md"
           >
             <motion.div
               variants={{
-                hover: { x: -3, scale: 1.15 },
+                hover: { x: -2, scale: 1.1 },
                 initial: { x: 0, scale: 1 },
               }}
               className="shrink-0"
             >
-              <FiLogOut size={15} />
+              <FiLogOut size={14} />
             </motion.div>
             <span>Logout</span>
           </motion.button>

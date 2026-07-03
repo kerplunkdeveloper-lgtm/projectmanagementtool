@@ -550,20 +550,27 @@ select.badge-select option {
   background: transparent !important;
 }
 
-/* Dedicated Sidebar Scrollbar Styling - Also Hidden */
+/* Dedicated Sidebar Scrollbar Styling - Visible but Subtle */
 .sidebar-scrollbar::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
+  display: block !important;
+  width: 3px !important;
+  height: 3px !important;
 }
 .sidebar-scrollbar::-webkit-scrollbar-track {
   background: transparent !important;
 }
 .sidebar-scrollbar::-webkit-scrollbar-thumb {
-  background: transparent !important;
+  background: rgba(156, 163, 175, 0.35) !important;
+  border-radius: 9999px !important;
+}
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.6) !important;
 }
 .dark .sidebar-scrollbar::-webkit-scrollbar-thumb {
-  background: transparent !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+.dark .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
 }
 
 /* Placeholder for contentEditable elements */
