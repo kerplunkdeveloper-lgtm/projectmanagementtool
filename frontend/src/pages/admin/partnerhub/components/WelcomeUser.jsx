@@ -8,6 +8,8 @@ import {
   FiUser,
   FiMail,
 } from "react-icons/fi";
+import { Link } from "react-router-dom";
+import { MdOutlineEdit as MdPencilEdit } from "react-icons/md";
 import { getProfile } from "../../../../features/profile/profileSlice";
 
 const WelcomeUser = () => {
@@ -292,7 +294,7 @@ const WelcomeUser = () => {
               user?.role || profile?.role,
             )}
             alt=""
-            className="w-full h-full object-cover opacity-30 mix-blend-overlay dark:opacity-10 transition-all duration-500"
+            className="w-full h-full object-cover opacity-10 mix-blend-overlay dark:opacity-10 transition-all duration-500"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-black/20 via-black/5 to-transparent dark:from-white/10 dark:via-white/2 dark:to-transparent" />
         </div>
@@ -472,6 +474,15 @@ const WelcomeUser = () => {
             className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[24px] w-full max-w-2xl overflow-hidden shadow-2xl relative flex flex-col md:flex-row transform transition-all animate-scaleIn"
             onClick={(e) => e.stopPropagation()}
           >
+
+            <Link 
+              to={`/${user.role}/profile`} 
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-4 right-14 w-8 h-8 rounded-full bg-black/10 hover:bg-black/20 dark:bg-white/10 dark:hover:bg-white/20 flex items-center justify-center text-slate-700 dark:text-slate-300 transition-colors z-20 cursor-pointer"
+            >
+              <MdPencilEdit className="h-4 w-4 text-slate-500" />
+            </Link>
+            
             {/* Close Button */}
             <button
               onClick={() => setIsModalOpen(false)}

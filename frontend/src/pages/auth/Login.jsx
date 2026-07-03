@@ -113,7 +113,15 @@ const Login = () => {
               </div>
             </div>
 
-           
+            <div className="mb-10 hidden md:block md:mb-12 text-center">
+              <h2 className="text-xl md:text-2xl font-black mb-3 mt-5 text-slate-800 dark:text-white tracking-tight">
+                Welcome Back
+              </h2>
+              <p className="text-sm md:text-xs font-medium  italic theme-text-secondary">
+                Login to continue managing your projects
+              </p>
+            </div>
+
             {/* EMAIL */}
             <div className="mb-5">
               <div className="flex items-center border theme-border rounded-2xl mt-2 px-5 py-4 bg-slate-50/50 dark:bg-black/20 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all shadow-sm">

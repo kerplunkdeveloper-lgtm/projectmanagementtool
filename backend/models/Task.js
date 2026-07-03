@@ -133,4 +133,8 @@ const TaskSchema = new mongoose.Schema(
   }
 );
 
+// Indexes to optimize task queries by project and by assigned team member
+TaskSchema.index({ project: 1 });
+TaskSchema.index({ assignedTo: 1 });
+
 module.exports = mongoose.model("Task", TaskSchema);

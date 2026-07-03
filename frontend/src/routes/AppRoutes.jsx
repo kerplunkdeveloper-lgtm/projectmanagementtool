@@ -1,44 +1,49 @@
-import React from "react";
+import React, { Suspense } from "react";
+import { Routes, Route } from "react-router-dom";
 
-import {
-  Routes,
-  Route,
-} from "react-router-dom";
-
-import Login from "../pages/auth/Login.jsx";
-
-import DashboardLayout from "../components/layout/DashboardLayout.jsx";
-
-import Dashboardmain from "../pages/Dashboard/Dashboardmain.jsx";
-import Project from "../pages/projects/Project.jsx";
-import AdminUsers from "../pages/admin/AdminUsers.jsx";
-import PartnerHub from "../pages/admin/partnerhub/PartnerHub.jsx";
-
-
-import Profile from "../pages/profile/Profile.jsx";
-import Settings from "../pages/settings/Settings.jsx";
-
-import OperationHome from "../pages/OperationMananger/OperationHome.jsx";
-import OperationProjects from "../pages/OperationMananger/OperationProjects.jsx";
-
-
-import TeamHome from "../pages/team/TeamHome.jsx";
-import EodReports from "../pages/team/EodReports.jsx";
-import AdminEodReports from "../pages/admin/AdminEodReports.jsx";
-
+// Synchronous core wrappers
 import ProtectedRoute from "../components/common/ProtectedRoute.jsx";
-import Templatelib from "../pages/admin/templatelibrary/Templatelib.jsx";
-import Clients from "../pages/admin/clients/Clients.jsx";
-import CalendarPage from "../pages/calendar/CalendarPage.jsx";
-import Notifications from "../pages/notifications/Notifications.jsx";
-import Task from "../pages/tasks/Task.jsx";
-import ChatPage from "../pages/chat/ChatPage.jsx";
-import Portfolio from "../pages/admin/portfolio/Portfolio.jsx";
-import Workload from "../pages/workload/Workload.jsx";
+
+// Lazy Loaded Pages & Layouts
+const Login = React.lazy(() => import("../pages/auth/Login.jsx"));
+const DashboardLayout = React.lazy(() => import("../components/layout/DashboardLayout.jsx"));
+const Dashboardmain = React.lazy(() => import("../pages/Dashboard/Dashboardmain.jsx"));
+const Project = React.lazy(() => import("../pages/projects/Project.jsx"));
+const AdminUsers = React.lazy(() => import("../pages/admin/AdminUsers.jsx"));
+const PartnerHub = React.lazy(() => import("../pages/admin/partnerhub/PartnerHub.jsx"));
+const Profile = React.lazy(() => import("../pages/profile/Profile.jsx"));
+const Settings = React.lazy(() => import("../pages/settings/Settings.jsx"));
+const OperationHome = React.lazy(() => import("../pages/OperationMananger/OperationHome.jsx"));
+const OperationProjects = React.lazy(() => import("../pages/OperationMananger/OperationProjects.jsx"));
+const TeamHome = React.lazy(() => import("../pages/team/TeamHome.jsx"));
+const EodReports = React.lazy(() => import("../pages/team/EodReports.jsx"));
+const AdminEodReports = React.lazy(() => import("../pages/admin/AdminEodReports.jsx"));
+const Templatelib = React.lazy(() => import("../pages/admin/templatelibrary/Templatelib.jsx"));
+const Clients = React.lazy(() => import("../pages/admin/clients/Clients.jsx"));
+const CalendarPage = React.lazy(() => import("../pages/calendar/CalendarPage.jsx"));
+const Notifications = React.lazy(() => import("../pages/notifications/Notifications.jsx"));
+const Task = React.lazy(() => import("../pages/tasks/Task.jsx"));
+const ChatPage = React.lazy(() => import("../pages/chat/ChatPage.jsx"));
+const Portfolio = React.lazy(() => import("../pages/admin/portfolio/Portfolio.jsx"));
+const Workload = React.lazy(() => import("../pages/workload/Workload.jsx"));
+
+// Elegant, premium animated page loader
+const PageLoader = () => (
+  <div className="fixed inset-0 bg-slate-50 dark:bg-[#020710] flex flex-col items-center justify-center z-[9999]">
+    <div className="relative w-12 h-12 flex items-center justify-center">
+      <div className="absolute inset-0 rounded-full border-[3px] border-slate-200 dark:border-slate-800/80" />
+      <div className="absolute inset-0 rounded-full border-[3px] border-indigo-500 dark:border-indigo-400 border-t-transparent animate-spin" />
+    </div>
+    <span className="mt-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-widest uppercase animate-pulse select-none">
+      Loading...
+    </span>
+  </div>
+);
 
 const AppRoutes = () => {
   return (
-    <Routes>
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
 
       {/* LOGIN */}
       <Route
@@ -291,7 +296,8 @@ const AppRoutes = () => {
       </Route>
      
 
-    </Routes>
+      </Routes>
+    </Suspense>
   );
 };
 

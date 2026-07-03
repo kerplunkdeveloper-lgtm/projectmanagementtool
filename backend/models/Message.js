@@ -50,4 +50,8 @@ const MessageSchema = new mongoose.Schema(
   }
 );
 
+// Indexes to speed up direct/group message loading and sorting by date
+MessageSchema.index({ sender: 1, recipient: 1 });
+MessageSchema.index({ createdAt: 1 });
+
 module.exports = mongoose.model("Message", MessageSchema);

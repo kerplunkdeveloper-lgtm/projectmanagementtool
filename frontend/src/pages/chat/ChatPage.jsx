@@ -886,9 +886,7 @@ const ChatPage = () => {
         <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 scrollbar-thin">
           {/* 1. Global Group Chat */}
           <div>
-            <h3 className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-wider mb-2 px-1">
-              Global Group
-            </h3>
+           
             <button
               onClick={() => {
                 setActiveChat("group");
@@ -905,7 +903,7 @@ const ChatPage = () => {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <span className="item-title truncate">Common group Chat</span>
+                  <span className="item-title truncate">Kerplunk Group Team chat</span>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {unreadCounts["group"] > 0 && (
                       <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shrink-0 min-w-[16px] text-center shadow-sm">
@@ -1114,7 +1112,7 @@ const ChatPage = () => {
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-xs font-black theme-text-primary leading-tight truncate max-w-[120px] sm:max-w-xs">
-                    General Group Chat
+                    Kerplunk Group Chat
                   </h3>
                   <p className="text-[9px] text-emerald-500 font-black uppercase tracking-wider leading-none mt-1 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />{" "}

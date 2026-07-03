@@ -31,4 +31,7 @@ const ProjectSchema = new mongoose.Schema(
   }
 );
 
+// Index to optimize project queries by client
+ProjectSchema.index({ client: 1 });
+
 module.exports = mongoose.model("Project", ProjectSchema);
