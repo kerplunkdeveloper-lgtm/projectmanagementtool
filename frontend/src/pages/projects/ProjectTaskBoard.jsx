@@ -3130,10 +3130,10 @@ const ProjectTaskBoard = ({
                                             }}
                                           >
                                             {task.startDate ? (
-                                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-blue-300 dark:border-blue-800/85 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-850 dark:text-blue-300 text-[9px] font-bold bg-blue-100/90 dark:bg-blue-955/70 transition-all shadow-sm">
+                                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-blue-300 dark:border-blue-800/85 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-850 dark:text-blue-300 text-[14px] font-bold bg-blue-100 dark:bg-blue-900 transition-all shadow-sm">
                                                 <FiCalendar
                                                   size={10.5}
-                                                  className="text-blue-600 dark:text-blue-400"
+                                                  className="text-blue-900 dark:text-blue-900"
                                                 />
                                                 <span>
                                                   {new Date(
@@ -3213,7 +3213,7 @@ const ProjectTaskBoard = ({
                                             }}
                                           >
                                             {task.dueDate ? (
-                                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-700/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-850 dark:text-rose-300 text-[10px] font-bold bg-rose-100/90 dark:bg-rose-955/70 transition-all shadow-sm">
+                                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-700/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-850 dark:text-rose-100 text-[14px] font-bold bg-rose-100 dark:bg-rose-800 transition-all shadow-sm">
                                                 <FiCalendar
                                                   size={10.5}
                                                   className="text-rose-600 dark:text-rose-400"
@@ -3849,7 +3849,7 @@ const ProjectTaskBoard = ({
                                                           )}
                                                         </div>
                                                       ) : (
-                                                        <div className="flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-blue-300 dark:border-blue-800/80 text-blue-605 dark:text-blue-400/90 hover:border-blue-400 hover:text-blue-755 dark:hover:text-blue-305 dark:hover:border-blue-600/80 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-955/50 transition-all text-[8px] font-bold">
+                                                        <div className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-md border border-dashed border-blue-300 dark:border-blue-800/80 text-blue-605 dark:text-blue-400/90 hover:border-blue-400 hover:text-blue-755 dark:hover:text-blue-305 dark:hover:border-blue-600/80 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-955/50 transition-all text-[8px] font-bold">
                                                           <FiCalendar
                                                             size={10.5}
                                                           />

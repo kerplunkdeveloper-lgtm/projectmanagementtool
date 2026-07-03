@@ -553,14 +553,14 @@ select.badge-select option {
 
 /* Premium Status and Priority Badge Styles - Upgraded */
 select.badge-select, span.badge-span {
-  padding: 4px 10px !important;
-  font-size: 9.5px !important;
-  font-weight: 800 !important;
+  padding: 1px 10px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.06em !important;
   border-radius: 6px !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  height: 24px !important;
+  height: 30px !important;
   cursor: pointer !important;
   width: auto !important;
   display: inline-flex !important;
@@ -579,12 +579,12 @@ select.badge-select:hover, span.badge-span:hover {
 
 /* Priority: High */
 .badge-priority-high {
-  background: linear-gradient(135deg, #9f1239 0%, #be123c 100%) !important;
+  background: linear-gradient(135deg, #f10145 0%, #ff0040 100%) !important;
   color: #ffffff !important;
   border-color: #881337 !important;
 }
 .dark .badge-priority-high {
-  background: linear-gradient(135deg, #9f1239 0%, #be123c 100%) !important;
+  background: linear-gradient(135deg, #ef0145 0%, #400115 100%) !important;
   color: #ffffff !important;
   border-color: #881337 !important;
   box-shadow: 0 4px 12px rgba(159, 18, 57, 0.4) !important;
@@ -592,12 +592,12 @@ select.badge-select:hover, span.badge-span:hover {
 
 /* Priority: Medium */
 .badge-priority-medium {
-  background: linear-gradient(135deg, #b45309 0%, #d97706 100%) !important;
+  background: linear-gradient(135deg, #ffb909 0%, #f5f107 100%) !important;
   color: #ffffff !important;
   border-color: #78350f !important;
 }
 .dark .badge-priority-medium {
-  background: linear-gradient(135deg, #b45309 0%, #d97706 100%) !important;
+  background: linear-gradient(135deg, #f7b202 0%, #f5f107 100%) !important;
   color: #ffffff !important;
   border-color: #78350f !important;
   box-shadow: 0 4px 12px rgba(180, 83, 9, 0.4) !important;
