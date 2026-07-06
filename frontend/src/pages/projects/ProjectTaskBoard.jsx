@@ -2523,23 +2523,23 @@ const ProjectTaskBoard = ({
                 <div className="overflow-x-auto w-full bg-white dark:bg-[#111115]">
                   <table className="w-full text-left border-spacing-0 text-[11px]">
                     <thead>
-                      <tr className="bg-slate-50/50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 tracking-wider text-[12px]">
+                      <tr className="bg-slate-50 dark:bg-[#16161b] text-slate-700 dark:text-slate-300 tracking-wider text-[12px]">
                         {showSelectionColumn && (
                           <th 
-                            className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 text-center w-10 md:sticky md:left-0 z-30 bg-slate-50/50 dark:bg-slate-900/60"
+                            className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 text-center w-10 md:sticky md:left-0 z-40 bg-slate-50 dark:bg-[#16161b]"
                             style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}
                           >
                             {/* Selection column header */}
                           </th>
                         )}
                         <th 
-                          className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[80px] max-w-[80px] w-[80px] md:sticky z-30 bg-slate-50/50 dark:bg-slate-900/60"
+                          className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[80px] max-w-[80px] w-[80px] md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
                           style={{ left: showSelectionColumn ? '40px' : '0px' }}
                         >
                           ID
                         </th>
                         <th 
-                          className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[250px] md:min-w-[400px] md:sticky z-30 bg-slate-50/50 dark:bg-slate-900/60"
+                          className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[250px] md:min-w-[400px] md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
                           style={{ left: showSelectionColumn ? '120px' : '80px' }}
                         >
                          Task Name
@@ -2935,12 +2935,12 @@ const ProjectTaskBoard = ({
                                   const isSelected =
                                     selectedTaskId === task._id;
                                   const rowBg = isSelected
-                                    ? "bg-blue-50/40 dark:bg-[#3b82f6]/10"
+                                    ? "bg-blue-50 dark:bg-[#1e293b]"
                                     : isCompleted
-                                      ? "bg-slate-50/30 text-slate-400 dark:text-slate-550"
+                                      ? "bg-slate-50 text-slate-400 dark:bg-[#18181f] dark:text-slate-550"
                                       : taskIndex % 2 === 0
-                                        ? "bg-white dark:bg-slate-800/40 text-slate-800 dark:text-slate-100"
-                                        : "bg-slate-50/40 dark:bg-slate-900/10 text-slate-800 dark:text-slate-100";
+                                        ? "bg-white dark:bg-[#111115] text-slate-800 dark:text-slate-100"
+                                        : "bg-slate-50 dark:bg-[#16161b] text-slate-800 dark:text-slate-100";
 
                                   return (
                                     <React.Fragment key={task._id}>
@@ -2954,8 +2954,8 @@ const ProjectTaskBoard = ({
                                         {showSelectionColumn && (
                                           <td
                                             onClick={(e) => e.stopPropagation()}
-                                            className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 text-center w-10 md:sticky md:left-0 z-10"
-                                            style={{ width: '40px', minWidth: '40px', maxWidth: '40px', backgroundColor: 'inherit' }}
+                                            className={`px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 text-center w-10 md:sticky md:left-0 z-30 ${rowBg}`}
+                                            style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}
                                           >
                                             {selectionModeSections[
                                               sectionName
@@ -2980,16 +2980,16 @@ const ProjectTaskBoard = ({
                                         )}
                                         {/* ID Column */}
                                         <td 
-                                          className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap md:sticky z-10"
-                                          style={{ left: showSelectionColumn ? '40px' : '0px', backgroundColor: 'inherit', minWidth: '80px', maxWidth: '80px', width: '80px' }}
+                                          className={`px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap md:sticky z-30 ${rowBg}`}
+                                          style={{ left: showSelectionColumn ? '40px' : '0px', minWidth: '80px', maxWidth: '80px', width: '80px' }}
                                         >
                                           {getTaskDisplayId(task)}
                                         </td>
                                         {/* Name Field with Circle Checkbox */}
                                         <td
                                           onClick={(e) => e.stopPropagation()}
-                                          className={`px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 font-semibold md:sticky z-10 min-w-[250px] md:min-w-[400px] ${rowBg}`}
-                                          style={{ left: showSelectionColumn ? '120px' : '80px', backgroundColor: 'inherit' }}
+                                          className={`px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 font-semibold md:sticky z-30 min-w-[250px] md:min-w-[400px] ${rowBg}`}
+                                          style={{ left: showSelectionColumn ? '120px' : '80px' }}
                                         >
                                           <div className="flex items-center gap-2.5 w-full">
                                             {/* Expand/Collapse Chevron (only if subtasks exist) */}
@@ -3625,8 +3625,8 @@ const ProjectTaskBoard = ({
                                                 sub.assignedTo ===
                                                   currentUser?._id;
                                               const rowBgSub = isSubCompleted
-                                                ? "bg-slate-105/40 text-slate-405 dark:text-slate-550/80 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
-                                                : "bg-slate-50/70 dark:bg-slate-900/45 text-slate-855 dark:text-slate-100 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]";
+                                                ? "bg-slate-50 text-slate-405 dark:bg-[#18181f] dark:text-slate-550 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                                                : "bg-slate-100 dark:bg-[#16161b] text-slate-855 dark:text-slate-100 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]";
 
                                               return (
                                                 <tr
@@ -3635,12 +3635,21 @@ const ProjectTaskBoard = ({
                                                 >
                                                   {showSelectionColumn && (
                                                     <td
-                                                      className={`px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 ${rowBgSub}`}
+                                                      className={`px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 text-center w-10 md:sticky md:left-0 z-30 ${rowBgSub}`}
+                                                      style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}
                                                     />
                                                   )}
+                                                  {/* Subtask ID Column */}
+                                                  <td 
+                                                    className={`px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 font-bold text-slate-500 dark:text-slate-500 whitespace-nowrap md:sticky z-30 ${rowBgSub}`}
+                                                    style={{ left: showSelectionColumn ? '40px' : '0px', minWidth: '80px', maxWidth: '80px', width: '80px' }}
+                                                  >
+                                                    {getTaskDisplayId(task)}.{subIdx + 1}
+                                                  </td>
                                                   {/* 1. Name Column */}
                                                   <td
-                                                    className={`px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 font-semibold pl-10 md:sticky md:left-0 z-10 min-w-[250px] md:min-w-[400px] ${rowBgSub}`}
+                                                    className={`px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 font-semibold md:sticky z-30 min-w-[250px] md:min-w-[400px] ${rowBgSub}`}
+                                                    style={{ left: showSelectionColumn ? '120px' : '80px' }}
                                                     onClick={(e) =>
                                                       e.stopPropagation()
                                                     }
