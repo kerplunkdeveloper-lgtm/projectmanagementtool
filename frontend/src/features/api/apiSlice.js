@@ -51,6 +51,7 @@ export const apiSlice = createApi({
         method: "PUT",
         body: taskData,
       }),
+      invalidatesTags: ["Task"],
       async onQueryStarted({ id, taskData }, { dispatch, queryFulfilled }) {
         const patchResult = dispatch(
           apiSlice.util.updateQueryData("getTasks", undefined, (draft) => {
@@ -80,6 +81,7 @@ export const apiSlice = createApi({
         url: `/tasks/${id}`,
         method: "DELETE",
       }),
+      invalidatesTags: ["Task"],
       async onQueryStarted(id, { dispatch, queryFulfilled }) {
         const patchResult = dispatch(
           apiSlice.util.updateQueryData("getTasks", undefined, (draft) => {

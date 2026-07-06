@@ -1101,6 +1101,21 @@ const ProjectTaskBoard = ({
     }));
   };
 
+  const toggleAllSections = () => {
+    const projectSections = activeProject?.sections || [];
+    const sectionsToRender = projectSections.length > 0 ? projectSections : ["General"];
+    const allSections = Array.from(new Set(sectionsToRender));
+    const areAllCollapsed = allSections.every(sec => collapsedSections[sec]);
+    
+    if (areAllCollapsed) {
+      setCollapsedSections({}); // open all
+    } else {
+      const newState = {};
+      allSections.forEach(sec => newState[sec] = true);
+      setCollapsedSections(newState); // collapse all
+    }
+  };
+
   // Add optimistic tasks state for dragging
   const [localTasks, setLocalTasks] = useState([]);
 
@@ -2371,20 +2386,26 @@ const ProjectTaskBoard = ({
               const isSectionInputActive = inlineAddingSectionUnder === sectionName;
               const rowBg = "bg-white dark:bg-[#111115] hover:bg-slate-50/50 dark:hover:bg-white/[0.02]";
               return (
-                <tr className={`border-b border-slate-200 dark:border-slate-800 ${rowBg}`}>
+                <tr className={`border-b border-slate-300 dark:border-slate-700 ${rowBg}`}>
                   {showSelectionColumn && (
                     <td 
-                      className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 w-10 md:sticky md:left-0 z-10 bg-transparent" 
+                      className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700 w-10 md:sticky md:left-0 z-10 bg-transparent" 
                       style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}
                     />
                   )}
+                  {/* Chevron column spacer */}
                   <td 
-                    className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 md:sticky z-10" 
-                    style={{ left: showSelectionColumn ? '40px' : '0px', backgroundColor: 'inherit', minWidth: '80px', maxWidth: '80px', width: '80px' }}
+                    className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-10 bg-transparent" 
+                    style={{ left: showSelectionColumn ? '40px' : '0px', width: '40px', minWidth: '40px', maxWidth: '40px' }}
+                  />
+                  {/* ID column spacer */}
+                  <td 
+                    className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-10" 
+                    style={{ left: showSelectionColumn ? '80px' : '40px', backgroundColor: 'inherit', minWidth: '60px', maxWidth: '60px', width: '60px' }}
                   />
                   <td
-                    className="px-3 py-2.5 border-r border-b border-slate-200 dark:border-slate-800 md:sticky z-10 min-w-[250px] md:min-w-[400px]"
-                    style={{ left: showSelectionColumn ? '120px' : '80px', backgroundColor: "inherit" }}
+                    className="px-3 py-2.5 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-10 min-w-[250px] md:min-w-[400px]"
+                    style={{ left: showSelectionColumn ? '140px' : '100px', backgroundColor: "inherit" }}
                   >
                     <div className="flex items-center gap-2 w-full pl-6">
                       {isTaskInputActive ? (
@@ -2481,15 +2502,15 @@ const ProjectTaskBoard = ({
                       )}
                     </div>
                   </td>
-                  <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800" />
-                  <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800" />
-                  <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800" />
-                  <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800" />
-                  <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800" />
-                  <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800" />
-                  <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800" />
-                  <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800" />
-                  <td className="px-3 py-2 border-b border-slate-200 dark:border-slate-800" />
+                  <td className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700" />
+                  <td className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700" />
+                  <td className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700" />
+                  <td className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700" />
+                  <td className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700" />
+                  <td className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700" />
+                  <td className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700" />
+                  <td className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700" />
+                  <td className="px-3 py-2 border-b border-slate-300 dark:border-slate-700" />
                 </tr>
               );
             };
@@ -2526,49 +2547,70 @@ const ProjectTaskBoard = ({
                       <tr className="bg-slate-50 dark:bg-[#16161b] text-slate-700 dark:text-slate-300 tracking-wider text-[12px]">
                         {showSelectionColumn && (
                           <th 
-                            className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 text-center w-10 md:sticky md:left-0 z-40 bg-slate-50 dark:bg-[#16161b]"
+                            className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 z-40 bg-slate-50 dark:bg-[#16161b]"
                             style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}
                           >
                             {/* Selection column header */}
                           </th>
                         )}
                         <th 
-                          className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[80px] max-w-[80px] w-[80px] md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
-                          style={{ left: showSelectionColumn ? '40px' : '0px' }}
+                          className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 text-center whitespace-nowrap w-10 md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
+                          style={{ left: showSelectionColumn ? '40px' : '0px', width: '40px', minWidth: '40px', maxWidth: '40px' }}
+                        >
+                          <div className="flex justify-center items-center">
+                            <button
+                              type="button"
+                              onClick={toggleAllSections}
+                              className="text-slate-400 hover:text-slate-655 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-0.5 rounded cursor-pointer"
+                              title="Toggle all sections"
+                            >
+                              <svg
+                                viewBox="0 0 24 24"
+                                className={`w-3.5 h-3.5 text-slate-550 transition-transform duration-200 ${(activeProject?.sections?.length > 0 ? activeProject.sections : ["General"]).every(sec => collapsedSections[sec]) ? "" : "rotate-90"}`}
+                                fill="currentColor"
+                              >
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                            </button>
+                          </div>
+                        </th>
+                        <th 
+                          className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[60px] max-w-[60px] w-[60px] md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
+                          style={{ left: showSelectionColumn ? '80px' : '40px' }}
                         >
                           ID
                         </th>
                         <th 
-                          className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[250px] md:min-w-[400px] md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
-                          style={{ left: showSelectionColumn ? '120px' : '80px' }}
+                          className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[250px] md:min-w-[400px] md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
+                          style={{ left: showSelectionColumn ? '140px' : '100px' }}
                         >
                          Task Name
                         </th>
-                        <th className="px-3 py-2 border-b  border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[140px]">
+                        <th className="px-3 py-2 border-b  border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[140px]">
                           Client
                         </th>
-                        <th className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[190px]">
+                        <th className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[190px]">
                           Assignee
                         </th>
-                        <th className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[130px]">
+                        <th className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[130px]">
                           Content Type
                         </th>
-                        <th className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                        <th className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
                           Start Date
                         </th>
-                        <th className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                        <th className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
                           End Date
                         </th>
-                        <th className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                        <th className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
                           Priority
                         </th>
-                        <th className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                        <th className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
                           Status
                         </th>
-                        <th className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                        <th className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
                           Total Hours
                         </th>
-                        <th className="px-3 py-2 border-b border-slate-200 dark:border-slate-800 text-center whitespace-nowrap min-w-[80px]">
+                        <th className="px-3 py-2 border-b border-slate-300 dark:border-slate-700 text-center whitespace-nowrap min-w-[80px]">
                           Actions
                         </th>
                       </tr>
@@ -2598,65 +2640,71 @@ const ProjectTaskBoard = ({
                           >
                             {/* SECTION HEADER ROW */}
                             <tr
-                              className={`theme-bg-accent-ultrasubtle border-b border-slate-200 dark:border-slate-800 select-none group/secrow transition-colors ${
+                              className={`theme-bg-accent-ultrasubtle border-b border-slate-300 dark:border-slate-700 select-none group/secrow transition-colors ${
                                 openSectionMenu === sectionName
                                   ? "relative z-50"
                                   : ""
                               }`}
                             >
                               <td
-                                colSpan={showSelectionColumn ? 12 : 11}
-                                className={`p-0 border-b border-slate-200 dark:border-slate-800 relative theme-bg-accent-ultrasubtle ${
+                                colSpan={showSelectionColumn ? 13 : 12}
+                                className={`p-0 border-b border-slate-300 dark:border-slate-700 relative bg-slate-50 dark:bg-[#16161b] ${
                                   openSectionMenu === sectionName
                                     ? "z-50"
                                     : "z-10"
                                 }`}
                               >
-                                <div className="flex items-center justify-between w-full min-w-full theme-bg-accent-ultrasubtle transition-colors">
+                                <div className="flex items-center justify-between w-full min-w-full bg-slate-50 dark:bg-[#16161b] transition-colors">
                                   {/* Left Sticky Container */}
                                   <div
-                                    className={`md:sticky md:left-0 flex items-center gap-3 px-3 py-2.5 theme-bg-accent-ultrasubtle backdrop-blur-sm shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] dark:shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)] transition-colors ${
+                                    className={`md:sticky md:left-0 flex items-center py-2.5 bg-slate-50 dark:bg-[#16161b] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] dark:shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)] transition-colors ${
                                       openSectionMenu === sectionName
                                         ? "z-50"
                                         : "z-20"
                                     }`}
                                   >
-                                    {/* Play/triangle icon that rotates */}
-                                    <button
-                                      type="button"
-                                      onClick={() => toggleSection(sectionName)}
-                                      className="text-slate-400 hover:text-slate-655 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-0.5 rounded cursor-pointer"
-                                    >
-                                      <svg
-                                        viewBox="0 0 24 24"
-                                        className={`w-3.5 h-3.5 text-slate-550 transition-transform duration-200 ${isSectionCollapsed ? "" : "rotate-90"}`}
-                                        fill="currentColor"
-                                      >
-                                        <path d="M8 5v14l11-7z" />
-                                      </svg>
-                                    </button>
-                                    {selectionModeSections[sectionName] && (
-                                      <input
-                                        type="checkbox"
-                                        className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer mr-2"
-                                        checked={
-                                          sectionTasks.length > 0 &&
-                                          sectionTasks.every(
-                                            (t) => selectedTasks[t._id],
-                                          )
-                                        }
-                                        onChange={(e) => {
-                                          const checked = e.target.checked;
-                                          setSelectedTasks((prev) => {
-                                            const next = { ...prev };
-                                            sectionTasks.forEach((t) => {
-                                              next[t._id] = checked;
-                                            });
-                                            return next;
-                                          });
-                                        }}
-                                      />
+                                    {showSelectionColumn && (
+                                      <div className="w-[40px] flex items-center justify-center shrink-0">
+                                        {selectionModeSections[sectionName] && (
+                                          <input
+                                            type="checkbox"
+                                            className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                            checked={
+                                              sectionTasks.length > 0 &&
+                                              sectionTasks.every(
+                                                (t) => selectedTasks[t._id],
+                                              )
+                                            }
+                                            onChange={(e) => {
+                                              const checked = e.target.checked;
+                                              setSelectedTasks((prev) => {
+                                                const next = { ...prev };
+                                                sectionTasks.forEach((t) => {
+                                                  next[t._id] = checked;
+                                                });
+                                                return next;
+                                              });
+                                            }}
+                                          />
+                                        )}
+                                      </div>
                                     )}
+                                    {/* Play/triangle icon that rotates */}
+                                    <div className="w-[40px] flex items-center justify-center shrink-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleSection(sectionName)}
+                                        className="text-slate-400 hover:text-slate-655 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-0.5 rounded cursor-pointer"
+                                      >
+                                        <svg
+                                          viewBox="0 0 24 24"
+                                          className={`w-3.5 h-3.5 text-slate-550 transition-transform duration-200 ${isSectionCollapsed ? "" : "rotate-90"}`}
+                                          fill="currentColor"
+                                        >
+                                          <path d="M8 5v14l11-7z" />
+                                        </svg>
+                                      </button>
+                                    </div>
                                     {editingSection === sectionName ? (
                                       <form
                                         onSubmit={(e) =>
@@ -2665,7 +2713,7 @@ const ProjectTaskBoard = ({
                                             sectionName,
                                           )
                                         }
-                                        className="inline-block"
+                                        className="inline-block ml-[60px] pl-3"
                                         onClick={(e) => e.stopPropagation()}
                                       >
                                         <input
@@ -2684,13 +2732,31 @@ const ProjectTaskBoard = ({
                                         />
                                       </form>
                                     ) : (
-                                      <div className="flex items-center gap-2.5">
+                                      <div className="flex items-center gap-2.5 ml-[60px] pl-3">
                                         <h3
                                           className="font-bold text-xs uppercase tracking-wider text-slate-705 dark:text-slate-355 hover:text-blue-600 dark:hover:text-[#3b82f6] transition-colors cursor-pointer inline-flex items-center gap-2"
                                           onClick={() =>
                                             toggleSection(sectionName)
                                           }
                                         >
+                                          <svg 
+                                            viewBox="0 0 24 24" 
+                                            className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 shrink-0" 
+                                            fill="none" 
+                                            stroke="currentColor" 
+                                            strokeWidth="2.5" 
+                                            strokeLinecap="round" 
+                                            strokeLinejoin="round"
+                                          >
+                                            {/* Checkmark */}
+                                            <path d="M3 7l3 3 5-5" className="stroke-blue-500 dark:stroke-blue-400" />
+                                            {/* Top short line */}
+                                            <line x1="14" y1="8" x2="20" y2="8" className="stroke-slate-450 dark:stroke-slate-500" strokeWidth="2" />
+                                            {/* Middle line */}
+                                            <line x1="3" y1="14" x2="20" y2="14" className="stroke-slate-700 dark:stroke-slate-300" strokeWidth="2" />
+                                            {/* Bottom line */}
+                                            <line x1="3" y1="20" x2="20" y2="20" className="stroke-slate-700 dark:stroke-slate-300" strokeWidth="2" />
+                                          </svg>
                                           {sectionName}
                                           <span className="bg-blue-100/60 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200/40 dark:border-blue-800/30 font-bold px-2 py-0.5 rounded-full text-[10px]">
                                             {sectionTasks.length}
@@ -2954,7 +3020,7 @@ const ProjectTaskBoard = ({
                                         {showSelectionColumn && (
                                           <td
                                             onClick={(e) => e.stopPropagation()}
-                                            className={`px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 text-center w-10 md:sticky md:left-0 z-30 ${rowBg}`}
+                                            className={`px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 z-30 ${rowBg}`}
                                             style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}
                                           >
                                             {selectionModeSections[
@@ -2978,22 +3044,13 @@ const ProjectTaskBoard = ({
                                             )}
                                           </td>
                                         )}
-                                        {/* ID Column */}
+                                        {/* Dropdown Chevron Column */}
                                         <td 
-                                          className={`px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap md:sticky z-30 ${rowBg}`}
-                                          style={{ left: showSelectionColumn ? '40px' : '0px', minWidth: '80px', maxWidth: '80px', width: '80px' }}
+                                          className={`px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center w-10 md:sticky z-30 ${rowBg}`}
+                                          style={{ left: showSelectionColumn ? '40px' : '0px', width: '40px', minWidth: '40px', maxWidth: '40px' }}
                                         >
-                                          {getTaskDisplayId(task)}
-                                        </td>
-                                        {/* Name Field with Circle Checkbox */}
-                                        <td
-                                          onClick={(e) => e.stopPropagation()}
-                                          className={`px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 font-semibold md:sticky z-30 min-w-[250px] md:min-w-[400px] ${rowBg}`}
-                                          style={{ left: showSelectionColumn ? '120px' : '80px' }}
-                                        >
-                                          <div className="flex items-center gap-2.5 w-full">
-                                            {/* Expand/Collapse Chevron (only if subtasks exist) */}
-                                            {task.subtasks?.length > 0 ? (
+                                          <div className="flex items-center justify-center">
+                                            {task.subtasks?.length > 0 && (
                                               <button
                                                 type="button"
                                                 onClick={(e) => {
@@ -3015,10 +3072,23 @@ const ProjectTaskBoard = ({
                                                   <path d="M8 5v14l11-7z" />
                                                 </svg>
                                               </button>
-                                            ) : (
-                                              <span className="w-4.5 h-4.5 shrink-0" />
                                             )}
-
+                                          </div>
+                                        </td>
+                                        {/* ID Column */}
+                                        <td 
+                                          className={`px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700 font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap md:sticky z-30 ${rowBg}`}
+                                          style={{ left: showSelectionColumn ? '80px' : '40px', minWidth: '60px', maxWidth: '60px', width: '60px' }}
+                                        >
+                                          {getTaskDisplayId(task)}
+                                        </td>
+                                        {/* Name Field with Circle Checkbox */}
+                                        <td
+                                          onClick={(e) => e.stopPropagation()}
+                                          className={`px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700 font-semibold md:sticky z-30 min-w-[250px] md:min-w-[400px] ${rowBg}`}
+                                          style={{ left: showSelectionColumn ? '140px' : '100px' }}
+                                        >
+                                          <div className="flex items-center gap-2.5 w-full">
                                             {/* Circular Complete Checkbox */}
                                             <button
                                               type="button"
@@ -3128,7 +3198,7 @@ const ProjectTaskBoard = ({
                                         </td>
 
                                         {/* Client Column */}
-                                        <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 font-medium">
+                                        <td className="px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700 font-medium">
                                           {activeProject?.client
                                             ?.companyName ? (
                                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50/70 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30">
@@ -3142,7 +3212,7 @@ const ProjectTaskBoard = ({
                                         </td>
 
                                         {/* Assignee Selection */}
-                                        <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                        <td className="px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                           <div
                                             className="flex items-center gap-1.5"
                                             onClick={(e) => e.stopPropagation()}
@@ -3168,7 +3238,7 @@ const ProjectTaskBoard = ({
                                         </td>
 
                                         {/* Content Type Column */}
-                                        <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                        <td className="px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                           <div
                                             onClick={(e) => e.stopPropagation()}
                                           >
@@ -3280,7 +3350,7 @@ const ProjectTaskBoard = ({
                                         </td>
 
                                         {/* Start Date */}
-                                        <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                        <td className="px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                           <div
                                             className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
                                             onClick={(e) => {
@@ -3363,7 +3433,7 @@ const ProjectTaskBoard = ({
                                         </td>
 
                                         {/* End Date */}
-                                        <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                        <td className="px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                           <div
                                             className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
                                             onClick={(e) => {
@@ -3453,7 +3523,7 @@ const ProjectTaskBoard = ({
                                         </td>
 
                                         {/* Priority */}
-                                        <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                        <td className="px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                           <div
                                             onClick={(e) => e.stopPropagation()}
                                           >
@@ -3503,7 +3573,7 @@ const ProjectTaskBoard = ({
                                         </td>
 
                                         {/* Status */}
-                                        <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                        <td className="px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                           <div
                                             onClick={(e) => e.stopPropagation()}
                                           >
@@ -3564,7 +3634,7 @@ const ProjectTaskBoard = ({
                                         </td>
 
                                         {/* Total Hours */}
-                                        <td className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                        <td className="px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                           <TimeTracker
                                             startTime={task.actualStartTime}
                                             endTime={task.actualEndTime}
@@ -3573,7 +3643,7 @@ const ProjectTaskBoard = ({
                                         </td>
 
                                         {/* Action Controls */}
-                                        <td className="px-3 py-2 border-b border-t border-slate-200 dark:border-slate-800 text-center">
+                                        <td className="px-3 py-2 border-b border-t border-slate-300 dark:border-slate-700 text-center">
                                           <div
                                             className="flex items-center justify-center gap-2.5"
                                             onClick={(e) => e.stopPropagation()}
@@ -3635,21 +3705,26 @@ const ProjectTaskBoard = ({
                                                 >
                                                   {showSelectionColumn && (
                                                     <td
-                                                      className={`px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 text-center w-10 md:sticky md:left-0 z-30 ${rowBgSub}`}
+                                                      className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 z-30 ${rowBgSub}`}
                                                       style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}
                                                     />
                                                   )}
+                                                  {/* Empty Chevron Column for Subtask */}
+                                                  <td 
+                                                    className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 md:sticky z-30 ${rowBgSub}`}
+                                                    style={{ left: showSelectionColumn ? '40px' : '0px', width: '40px', minWidth: '40px', maxWidth: '40px' }}
+                                                  />
                                                   {/* Subtask ID Column */}
                                                   <td 
-                                                    className={`px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 font-bold text-slate-500 dark:text-slate-500 whitespace-nowrap md:sticky z-30 ${rowBgSub}`}
-                                                    style={{ left: showSelectionColumn ? '40px' : '0px', minWidth: '80px', maxWidth: '80px', width: '80px' }}
+                                                    className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-bold text-slate-500 dark:text-slate-500 whitespace-nowrap md:sticky z-30 ${rowBgSub}`}
+                                                    style={{ left: showSelectionColumn ? '80px' : '40px', minWidth: '60px', maxWidth: '60px', width: '60px' }}
                                                   >
                                                     {getTaskDisplayId(task)}.{subIdx + 1}
                                                   </td>
                                                   {/* 1. Name Column */}
                                                   <td
-                                                    className={`px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 font-semibold md:sticky z-30 min-w-[250px] md:min-w-[400px] ${rowBgSub}`}
-                                                    style={{ left: showSelectionColumn ? '120px' : '80px' }}
+                                                    className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-semibold md:sticky z-30 min-w-[250px] md:min-w-[400px] ${rowBgSub}`}
+                                                    style={{ left: showSelectionColumn ? '140px' : '100px' }}
                                                     onClick={(e) =>
                                                       e.stopPropagation()
                                                     }
@@ -3794,7 +3869,7 @@ const ProjectTaskBoard = ({
                                                   </td>
 
                                                   {/* 2. Client Column */}
-                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800 text-slate-450 opacity-60">
+                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-slate-450 opacity-60">
                                                     {activeProject?.client
                                                       ?.companyName ? (
                                                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-50/70 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30">
@@ -3811,7 +3886,7 @@ const ProjectTaskBoard = ({
                                                   </td>
 
                                                   {/* 3. Assignee Column */}
-                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                                     <div
                                                       className="flex items-center gap-1.5"
                                                       onClick={(e) =>
@@ -3845,7 +3920,7 @@ const ProjectTaskBoard = ({
                                                   </td>
 
                                                   {/* 4. Content Type Column */}
-                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                                     <div
                                                       onClick={(e) =>
                                                         e.stopPropagation()
@@ -3971,7 +4046,7 @@ const ProjectTaskBoard = ({
                                                   </td>
 
                                                   {/* 5. Start Date Column */}
-                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                                     <div
                                                       className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
                                                       onClick={(e) => {
@@ -4067,7 +4142,7 @@ const ProjectTaskBoard = ({
                                                   </td>
 
                                                   {/* 6. End Date Column */}
-                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                                     <div
                                                       className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
                                                       onClick={(e) => {
@@ -4172,7 +4247,7 @@ const ProjectTaskBoard = ({
                                                   </td>
 
                                                   {/* 7. Priority Column */}
-                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                                     <div
                                                       onClick={(e) =>
                                                         e.stopPropagation()
@@ -4235,7 +4310,7 @@ const ProjectTaskBoard = ({
                                                   </td>
 
                                                   {/* 8. Status Column */}
-                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                                     <div
                                                       onClick={(e) =>
                                                         e.stopPropagation()
@@ -4307,7 +4382,7 @@ const ProjectTaskBoard = ({
                                                   </td>
 
                                                   {/* Total Hours Column */}
-                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-200 dark:border-slate-800">
+                                                  <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                                     <TimeTracker
                                                       startTime={
                                                         sub.actualStartTime
@@ -4320,7 +4395,7 @@ const ProjectTaskBoard = ({
                                                   </td>
 
                                                   {/* 9. Actions Column */}
-                                                  <td className="px-3 py-1 border-b border-t border-slate-200 dark:border-slate-800 text-center">
+                                                  <td className="px-3 py-1 border-b border-t border-slate-300 dark:border-slate-700 text-center">
                                                     <div
                                                       className="flex items-center justify-center gap-2.5 opacity-0 group-hover/subrow:opacity-100 transition-opacity"
                                                       onClick={(e) =>
@@ -4358,10 +4433,10 @@ const ProjectTaskBoard = ({
                             )}
 
                             {/* Spacer row between sections */}
-                            <tr className="h-4 pointer-events-none">
+                            <tr className=" pointer-events-none">
                               <td
-                                colSpan={showSelectionColumn ? 12 : 11}
-                                className="h-4 p-0 border-0 bg-transparent"
+                                colSpan={showSelectionColumn ? 13 : 12}
+                                className=" p-0 border-0 bg-transparent"
                               />
                             </tr>
                           </React.Fragment>
