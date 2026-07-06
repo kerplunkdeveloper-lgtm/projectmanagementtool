@@ -931,6 +931,29 @@ const ProjectTaskBoard = ({
     return days;
   };
 
+  const getTaskDisplayId = (task) => {
+    if (!task || !task._id) return "";
+    const clientName = activeProject?.client?.companyName || "TSK";
+    const prefix = clientName.substring(0, 3).toUpperCase().padEnd(3, "X");
+
+    // Get all tasks for this project
+    const projectTasks = tasks.filter(
+      (t) => t.project?._id === activeProjectId || t.project === activeProjectId
+    );
+
+    // Sort stably by createdAt or _id
+    const sortedByCreation = [...projectTasks].sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (timeA !== timeB) return timeA - timeB;
+      return (a._id || "").localeCompare(b._id || "");
+    });
+
+    const idx = sortedByCreation.findIndex((t) => t._id === task._id);
+    const num = idx !== -1 ? idx + 1 : 1;
+    return `${prefix}T${num}`;
+  };
+
   const [inlineSubtaskTitle, setInlineSubtaskTitle] = useState({}); // taskId -> string
   const [selectedTaskId, setSelectedTaskId] = useState(null); // Live task ID for Drawer preview
   const [isAddingSection, setIsAddingSection] = useState(false);
@@ -944,6 +967,15 @@ const ProjectTaskBoard = ({
   const [autoFocusSubtaskIdx, setAutoFocusSubtaskIdx] = useState(null);
   const [autoFocusDrawerSubtaskIdx, setAutoFocusDrawerSubtaskIdx] =
     useState(null);
+
+  // Inline Task / Section creation states
+  const [inlineAddingTaskSection, setInlineAddingTaskSection] = useState(null); // string (sectionName) or "__root__"
+  const [inlineAddingSectionUnder, setInlineAddingSectionUnder] = useState(null); // string (sectionName) or "__root__"
+  const [inlineTaskTitle, setInlineTaskTitle] = useState("");
+  const [inlineSectionName, setInlineSectionName] = useState("");
+
+  const inlineTaskInputRef = useRef(null);
+  const inlineSectionInputRef = useRef(null);
 
   // Filter & Sort State
   const [filterSearch, setFilterSearch] = useState("");
@@ -992,7 +1024,7 @@ const ProjectTaskBoard = ({
     const currentSections =
       activeProject.sections?.length > 0
         ? activeProject.sections
-        : ["Recent assignment"];
+        : ["General"];
     const updatedSections = currentSections.map((s) =>
       s === oldName ? newName : s,
     );
@@ -1010,7 +1042,7 @@ const ProjectTaskBoard = ({
       const tasksToUpdate = tasks.filter(
         (t) =>
           t.section === oldName ||
-          (!t.section && oldName === "Recent assignment"),
+          (!t.section && oldName === "General"),
       );
       await Promise.all(
         tasksToUpdate.map((t) =>
@@ -1036,7 +1068,7 @@ const ProjectTaskBoard = ({
       const currentSections =
         activeProject.sections?.length > 0
           ? activeProject.sections
-          : ["Recent assignment"];
+          : ["General"];
       const updatedSections = currentSections.filter((s) => s !== sectionName);
 
       try {
@@ -1050,7 +1082,7 @@ const ProjectTaskBoard = ({
         const tasksToDelete = tasks.filter(
           (t) =>
             t.section === sectionName ||
-            (!t.section && sectionName === "Recent assignment"),
+            (!t.section && sectionName === "General"),
         );
         await Promise.all(
           tasksToDelete.map((t) => deleteTaskMutation(t._id).unwrap()),
@@ -1075,6 +1107,18 @@ const ProjectTaskBoard = ({
   useEffect(() => {
     setLocalTasks(tasks);
   }, [tasks]);
+
+  useEffect(() => {
+    if (inlineAddingTaskSection && inlineTaskInputRef.current) {
+      inlineTaskInputRef.current.focus();
+    }
+  }, [inlineAddingTaskSection, localTasks.length]);
+
+  useEffect(() => {
+    if (inlineAddingSectionUnder && inlineSectionInputRef.current) {
+      inlineSectionInputRef.current.focus();
+    }
+  }, [inlineAddingSectionUnder]);
 
   // Filter tasks for this project using localTasks for optimistic UI
   const activeProjectTasks = localTasks.filter(
@@ -1186,7 +1230,7 @@ const ProjectTaskBoard = ({
     const currentSections =
       activeProject.sections?.length > 0
         ? activeProject.sections
-        : ["Recent assignment"];
+        : ["General"];
     const updatedSections = [...currentSections, nameToCreate];
 
     try {
@@ -1196,79 +1240,80 @@ const ProjectTaskBoard = ({
           data: { sections: updatedSections },
         }),
       ).unwrap();
-
-      // Create 2 empty tasks for the new section
-      const tempId1 = "temp-" + Date.now() + "-1";
-      const tempTask1 = {
-        _id: tempId1,
-        title: "",
-        project: activeProjectId,
-        section: nameToCreate,
-        assignedTo: null,
-        dueDate: null,
-        priority: "Medium",
-        status: "Pending",
-        createdAt: new Date().toISOString(),
-        subtasks: [],
-        comments: [],
-        attachments: [],
-        createdBy: currentUser,
-      };
-
-      const tempId2 = "temp-" + Date.now() + "-2";
-      const tempTask2 = {
-        _id: tempId2,
-        title: "",
-        project: activeProjectId,
-        section: nameToCreate,
-        assignedTo: null,
-        dueDate: null,
-        priority: "Medium",
-        status: "Pending",
-        createdAt: new Date().toISOString(),
-        subtasks: [],
-        comments: [],
-        attachments: [],
-        createdBy: currentUser,
-      };
-
-      setLocalTasks((prev) => [...prev, tempTask1, tempTask2]);
-
-      const p1 = createTaskMutation({
-        title: "",
-        project: activeProjectId,
-        section: nameToCreate,
-        assignedTo: null,
-        dueDate: null,
-        priority: "Medium",
-        status: "Pending",
-      }).unwrap();
-
-      const p2 = createTaskMutation({
-        title: "",
-        project: activeProjectId,
-        section: nameToCreate,
-        assignedTo: null,
-        dueDate: null,
-        priority: "Medium",
-        status: "Pending",
-      }).unwrap();
-
-      const [res1, res2] = await Promise.all([p1, p2]);
-
-      setLocalTasks((prev) =>
-        prev.map((t) => {
-          if (t._id === tempId1 && res1?.data) return res1.data;
-          if (t._id === tempId2 && res2?.data) return res2.data;
-          return t;
-        }),
-      );
     } catch (err) {
-      console.error("Failed to add section and tasks:", err);
+      console.error("Failed to add section:", err);
     }
 
     setIsAddingSection(false);
     setNewSectionName("");
+  };
+
+  const handleInlineAddSection = async (nameToCreate) => {
+    if (!nameToCreate || !nameToCreate.trim()) return;
+    const trimmedName = nameToCreate.trim();
+    const currentSections = activeProject.sections || [];
+    if (currentSections.includes(trimmedName)) {
+      toast.error("Section already exists");
+      return;
+    }
+    const updatedSections = [...currentSections, trimmedName];
+
+    try {
+      await dispatch(
+        updateProject({
+          id: activeProjectId,
+          data: { sections: updatedSections },
+        }),
+      ).unwrap();
+      toast.success(`Section "${trimmedName}" created`);
+    } catch (err) {
+      console.error("Failed to add section:", err);
+      toast.error("Failed to create section");
+    }
+  };
+
+  const handleInlineAddTaskSubmit = async (e, sectionName) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!inlineTaskTitle.trim()) return;
+
+    let targetSection = sectionName === "__root__" ? "General" : sectionName;
+    const titleToCreate = inlineTaskTitle.trim();
+
+    try {
+      // If no sections exist yet in the project, create "General" section first
+      const currentSections = activeProject.sections || [];
+      if (currentSections.length === 0) {
+        targetSection = "General";
+        await dispatch(
+          updateProject({
+            id: activeProjectId,
+            data: { sections: [targetSection] },
+          }),
+        ).unwrap();
+      }
+
+      // Create task via mutation
+      const response = await createTaskMutation({
+        title: titleToCreate,
+        project: activeProjectId,
+        section: targetSection,
+        assignedTo: null,
+        dueDate: null,
+        priority: "Medium",
+        status: "Pending",
+      }).unwrap();
+
+      if (response && response.data) {
+        setLocalTasks((prev) => [...prev, response.data]);
+      }
+
+      // Reset inline task input but KEEP it active under targetSection and auto-focused!
+      setInlineTaskTitle("");
+      setInlineAddingTaskSection(targetSection);
+    } catch (err) {
+      console.error("Failed to add task inline:", err);
+      toast.error("Failed to create task");
+    }
   };
 
   // Add Task directly to DB (autosave pattern)
@@ -1277,7 +1322,7 @@ const ProjectTaskBoard = ({
       sectionName ||
       (activeProject?.sections?.length > 0
         ? activeProject.sections[0]
-        : "Recent assignment");
+        : "General");
     const tempId = "temp-" + Date.now();
     const tempTask = {
       _id: tempId,
@@ -1320,34 +1365,7 @@ const ProjectTaskBoard = ({
     }
   };
 
-  // Auto-create a default task if the project has 0 tasks
-  useEffect(() => {
-    if (!activeProjectId || !isAdminOrManager || tasksLoading) return;
-
-    if (checkedProjects[activeProjectId]) return;
-
-    const projectTasksCount = tasks.filter(
-      (t) =>
-        t.project?._id === activeProjectId || t.project === activeProjectId,
-    ).length;
-
-    if (projectTasksCount === 0) {
-      const defaultSection =
-        activeProject?.sections?.length > 0
-          ? activeProject.sections[0]
-          : "Recent assignment";
-      handleAddTask(defaultSection);
-    }
-
-    setCheckedProjects((prev) => ({ ...prev, [activeProjectId]: true }));
-  }, [
-    activeProjectId,
-    tasks,
-    tasksLoading,
-    activeProject,
-    isAdminOrManager,
-    checkedProjects,
-  ]);
+  // Auto-create a default task logic is removed per user request for empty starting table.
 
   // Add Task directly to DB with preselected status (Board view helper)
   const handleAddTaskWithStatus = async (status) => {
@@ -1355,7 +1373,7 @@ const ProjectTaskBoard = ({
     const defaultSection =
       activeProject?.sections?.length > 0
         ? activeProject.sections[0]
-        : "Recent assignment";
+        : "General";
 
     const tempTask = {
       _id: tempId,
@@ -2347,6 +2365,135 @@ const ProjectTaskBoard = ({
             const showSelectionColumn = Object.values(
               selectionModeSections,
             ).some(Boolean);
+
+            const renderInlineCreateRow = (sectionName) => {
+              const isTaskInputActive = inlineAddingTaskSection === sectionName;
+              const isSectionInputActive = inlineAddingSectionUnder === sectionName;
+              const rowBg = "bg-white dark:bg-[#111115] hover:bg-slate-50/50 dark:hover:bg-white/[0.02]";
+              return (
+                <tr className={`border-b border-slate-200 dark:border-slate-800 ${rowBg}`}>
+                  {showSelectionColumn && (
+                    <td 
+                      className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 w-10 md:sticky md:left-0 z-10 bg-transparent" 
+                      style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}
+                    />
+                  )}
+                  <td 
+                    className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800 md:sticky z-10" 
+                    style={{ left: showSelectionColumn ? '40px' : '0px', backgroundColor: 'inherit', minWidth: '80px', maxWidth: '80px', width: '80px' }}
+                  />
+                  <td
+                    className="px-3 py-2.5 border-r border-b border-slate-200 dark:border-slate-800 md:sticky z-10 min-w-[250px] md:min-w-[400px]"
+                    style={{ left: showSelectionColumn ? '120px' : '80px', backgroundColor: "inherit" }}
+                  >
+                    <div className="flex items-center gap-2 w-full pl-6">
+                      {isTaskInputActive ? (
+                        <form
+                          onSubmit={(e) => handleInlineAddTaskSubmit(e, sectionName)}
+                          className="w-full"
+                        >
+                          <input
+                            ref={inlineTaskInputRef}
+                            type="text"
+                            placeholder="Type task name and press Enter..."
+                            value={inlineTaskTitle}
+                            onChange={(e) => setInlineTaskTitle(e.target.value)}
+                            onBlur={() => {
+                              setTimeout(() => {
+                                if (inlineTaskTitle.trim()) {
+                                  handleInlineAddTaskSubmit({ preventDefault: () => {} }, sectionName);
+                                } else {
+                                  setInlineAddingTaskSection(null);
+                                }
+                              }, 150);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Escape") {
+                                setInlineTaskTitle("");
+                                setInlineAddingTaskSection(null);
+                              }
+                            }}
+                            className="w-full bg-transparent text-[11px] font-semibold text-slate-800 dark:text-white outline-none border-b-2 border-blue-500 dark:border-[#3b82f6] pb-1 placeholder-slate-450 dark:placeholder-slate-550 transition-all focus:border-blue-600 dark:focus:border-blue-400"
+                          />
+                        </form>
+                      ) : isSectionInputActive ? (
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleInlineAddSection(inlineSectionName);
+                            setInlineSectionName("");
+                            setInlineAddingSectionUnder(null);
+                          }}
+                          className="w-full"
+                        >
+                          <input
+                            ref={inlineSectionInputRef}
+                            type="text"
+                            placeholder="Add Task List (Type section name & Enter)..."
+                            value={inlineSectionName}
+                            onChange={(e) => setInlineSectionName(e.target.value)}
+                            onBlur={() => {
+                              setTimeout(() => {
+                                if (inlineSectionName.trim()) {
+                                  handleInlineAddSection(inlineSectionName);
+                                }
+                                setInlineSectionName("");
+                                setInlineAddingSectionUnder(null);
+                              }, 150);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Escape") {
+                                setInlineSectionName("");
+                                setInlineAddingSectionUnder(null);
+                              }
+                            }}
+                            className="w-full bg-transparent text-[11px] font-semibold text-slate-800 dark:text-white outline-none border-b-2 border-indigo-500 dark:border-indigo-400 pb-1 placeholder-slate-450 dark:placeholder-slate-555 transition-all focus:border-indigo-650"
+                          />
+                        </form>
+                      ) : (
+                        <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 dark:text-slate-500 select-none">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setInlineAddingTaskSection(sectionName);
+                              setInlineAddingSectionUnder(null);
+                              setInlineTaskTitle("");
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-[#3b82f6] transition-all cursor-pointer font-bold"
+                          >
+                            <FiPlus size={13} className="stroke-[3]" />
+                            <span>Add Task</span>
+                          </button>
+                          <span className="mx-2 text-slate-350 dark:text-slate-700">|</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setInlineAddingSectionUnder(sectionName);
+                              setInlineAddingTaskSection(null);
+                              setInlineSectionName("");
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/30 text-slate-500 dark:text-slate-400 hover:text-indigo-650 dark:hover:text-indigo-400 transition-all cursor-pointer font-bold"
+                          >
+                            <FiPlus size={13} className="stroke-[3]" />
+                            <span>Add Task List</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800" />
+                  <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800" />
+                  <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800" />
+                  <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800" />
+                  <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800" />
+                  <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800" />
+                  <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800" />
+                  <td className="px-3 py-2 border-r border-b border-slate-200 dark:border-slate-800" />
+                  <td className="px-3 py-2 border-b border-slate-200 dark:border-slate-800" />
+                </tr>
+              );
+            };
+
             return (
               <div className="pt-3 w-full">
                 {/* Mobile Horizontal Scroll Indicator Cue */}
@@ -2378,55 +2525,70 @@ const ProjectTaskBoard = ({
                     <thead>
                       <tr className="bg-slate-50/50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 tracking-wider text-[12px]">
                         {showSelectionColumn && (
-                          <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 text-center w-10">
+                          <th 
+                            className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 text-center w-10 md:sticky md:left-0 z-30 bg-slate-50/50 dark:bg-slate-900/60"
+                            style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}
+                          >
                             {/* Selection column header */}
                           </th>
                         )}
-                        <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[250px] md:min-w-[400px] md:sticky md:left-0 z-30 bg-slate-50/50 dark:bg-slate-900/60">
-                          Name
+                        <th 
+                          className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[80px] max-w-[80px] w-[80px] md:sticky z-30 bg-slate-50/50 dark:bg-slate-900/60"
+                          style={{ left: showSelectionColumn ? '40px' : '0px' }}
+                        >
+                          ID
                         </th>
-                        <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[140px]">
+                        <th 
+                          className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[250px] md:min-w-[400px] md:sticky z-30 bg-slate-50/50 dark:bg-slate-900/60"
+                          style={{ left: showSelectionColumn ? '120px' : '80px' }}
+                        >
+                         Task Name
+                        </th>
+                        <th className="px-3 py-2 border-b  border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[140px]">
                           Client
                         </th>
-                        <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[190px]">
+                        <th className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[190px]">
                           Assignee
                         </th>
-                        <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[130px]">
+                        <th className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[130px]">
                           Content Type
                         </th>
-                        <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                        <th className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
                           Start Date
                         </th>
-                        <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                        <th className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
                           End Date
                         </th>
-                        <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                        <th className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
                           Priority
                         </th>
-                        <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                        <th className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
                           Status
                         </th>
-                        <th className="px-3 py-2.5 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
+                        <th className="px-3 py-2 border-b border-r border-slate-200 dark:border-slate-800 whitespace-nowrap min-w-[120px]">
                           Total Hours
                         </th>
-                        <th className="px-3 py-2.5 border-b border-slate-200 dark:border-slate-800 text-center whitespace-nowrap min-w-[80px]">
+                        <th className="px-3 py-2 border-b border-slate-200 dark:border-slate-800 text-center whitespace-nowrap min-w-[80px]">
                           Actions
                         </th>
                       </tr>
                     </thead>
                     <tbody className="text-[11px]">
-                      {Array.from(
-                        new Set(
-                          activeProject.sections?.length > 0
-                            ? activeProject.sections
-                            : ["Recent assignment"],
-                        ),
-                      ).map((sectionName, sectionIndex) => {
-                        const sectionTasks = sortedTasks.filter(
-                          (t) =>
-                            t.section === sectionName ||
-                            (!t.section && sectionName === "Recent assignment"),
-                        );
+                      {(() => {
+                        const projectSections = activeProject.sections || [];
+                        const hasNoSectionsAndNoTasks = projectSections.length === 0 && sortedTasks.length === 0;
+                        if (hasNoSectionsAndNoTasks) {
+                          return renderInlineCreateRow("__root__");
+                        }
+                        const sectionsToRender = projectSections.length > 0
+                          ? projectSections
+                          : ["General"];
+                        return Array.from(new Set(sectionsToRender)).map((sectionName, sectionIndex) => {
+                          const sectionTasks = sortedTasks.filter(
+                            (t) =>
+                              t.section === sectionName ||
+                              (!t.section && sectionName === "General"),
+                          );
                         const isSectionCollapsed =
                           !!collapsedSections[sectionName];
 
@@ -2443,7 +2605,7 @@ const ProjectTaskBoard = ({
                               }`}
                             >
                               <td
-                                colSpan={showSelectionColumn ? 11 : 10}
+                                colSpan={showSelectionColumn ? 12 : 11}
                                 className={`p-0 border-b border-slate-200 dark:border-slate-800 relative theme-bg-accent-ultrasubtle ${
                                   openSectionMenu === sectionName
                                     ? "z-50"
@@ -2640,8 +2802,7 @@ const ProjectTaskBoard = ({
                                                 </button>
 
                                                 {/* Rename */}
-                                                {sectionName !==
-                                                  "Recent assignment" && (
+                                                {sectionName !== "General" && (
                                                   <button
                                                     type="button"
                                                     onClick={() => {
@@ -2660,8 +2821,7 @@ const ProjectTaskBoard = ({
                                                 )}
 
                                                 {/* Delete Section */}
-                                                {sectionName !==
-                                                  "Recent assignment" && (
+                                                {sectionName !== "General" && (
                                                   <button
                                                     type="button"
                                                     onClick={() => {
@@ -2794,7 +2954,8 @@ const ProjectTaskBoard = ({
                                         {showSelectionColumn && (
                                           <td
                                             onClick={(e) => e.stopPropagation()}
-                                            className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 text-center w-10"
+                                            className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 text-center w-10 md:sticky md:left-0 z-10"
+                                            style={{ width: '40px', minWidth: '40px', maxWidth: '40px', backgroundColor: 'inherit' }}
                                           >
                                             {selectionModeSections[
                                               sectionName
@@ -2817,10 +2978,18 @@ const ProjectTaskBoard = ({
                                             )}
                                           </td>
                                         )}
+                                        {/* ID Column */}
+                                        <td 
+                                          className="px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap md:sticky z-10"
+                                          style={{ left: showSelectionColumn ? '40px' : '0px', backgroundColor: 'inherit', minWidth: '80px', maxWidth: '80px', width: '80px' }}
+                                        >
+                                          {getTaskDisplayId(task)}
+                                        </td>
                                         {/* Name Field with Circle Checkbox */}
                                         <td
                                           onClick={(e) => e.stopPropagation()}
-                                          className={`px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 font-semibold md:sticky md:left-0 z-10 min-w-[250px] md:min-w-[400px] ${rowBg}`}
+                                          className={`px-3 py-2 border-r border-b border-t border-slate-200 dark:border-slate-800 font-semibold md:sticky z-10 min-w-[250px] md:min-w-[400px] ${rowBg}`}
+                                          style={{ left: showSelectionColumn ? '120px' : '80px', backgroundColor: 'inherit' }}
                                         >
                                           <div className="flex items-center gap-2.5 w-full">
                                             {/* Expand/Collapse Chevron (only if subtasks exist) */}
@@ -2911,10 +3080,10 @@ const ProjectTaskBoard = ({
                                                   if (e.key === "Enter") {
                                                     e.preventDefault();
                                                     e.target.blur();
-                                                    handleAddTask(
-                                                      task.section ||
-                                                        "Recent assignment",
+                                                    setInlineAddingTaskSection(
+                                                      task.section || "General",
                                                     );
+                                                    setInlineTaskTitle("");
                                                   }
                                                 }}
                                                 className={`font-semibold text-slate-800 dark:text-white text-[11px] cursor-text outline-none block min-h-[16px] w-full ${
@@ -4175,66 +4344,26 @@ const ProjectTaskBoard = ({
                                     </React.Fragment>
                                   );
                                 })}
+                                {renderInlineCreateRow(sectionName)}
                               </>
                             )}
 
                             {/* Spacer row between sections */}
                             <tr className="h-4 pointer-events-none">
                               <td
-                                colSpan={showSelectionColumn ? 11 : 10}
+                                colSpan={showSelectionColumn ? 12 : 11}
                                 className="h-4 p-0 border-0 bg-transparent"
                               />
                             </tr>
                           </React.Fragment>
-                        );
-                      })}
+                         );
+                       })
+                     })()}
                     </tbody>
                   </table>
                 </div>
 
-                {/* ADD SECTION AT THE BOTTOM */}
-                {isAdminOrManager && (
-                  <div className="bg-slate-50/40 dark:bg-white/5 border border-dashed border-slate-200 dark:border-white/10 rounded-2xl p-4 flex items-center justify-start mt-4">
-                    {isAddingSection ? (
-                      <form
-                        onSubmit={handleAddSectionSubmit}
-                        className="flex items-center gap-2"
-                      >
-                        <input
-                          type="text"
-                          autoFocus
-                          value={newSectionName}
-                          onChange={(e) => setNewSectionName(e.target.value)}
-                          placeholder="New section name..."
-                          className="px-3 py-1.5 text-xs font-bold border border-slate-200 dark:border-white/10 rounded-lg bg-transparent focus:outline-none focus:border-blue-500 dark:focus:border-[#3b82f6] text-slate-705 dark:text-white"
-                        />
-                        <button
-                          type="submit"
-                          className="px-3 py-1.5 bg-blue-600 dark:bg-[#3b82f6] hover:bg-blue-700 dark:hover:bg-[#ccff00] text-white dark:text-black font-bold text-[10px] rounded-lg cursor-pointer"
-                        >
-                          Save
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsAddingSection(false);
-                            setNewSectionName("");
-                          }}
-                          className="px-3 py-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 font-bold text-[10px] rounded-lg cursor-pointer"
-                        >
-                          Cancel
-                        </button>
-                      </form>
-                    ) : (
-                      <button
-                        onClick={() => setIsAddingSection(true)}
-                        className="flex items-center gap-1.5 text-slate-550 dark:text-slate-400 hover:text-slate-800 dark:hover:text-[#3b82f6] font-bold text-[11px] transition-colors cursor-pointer"
-                      >
-                        <FiPlus size={14} /> Add Section
-                      </button>
-                    )}
-                  </div>
-                )}
+               
               </div>
             );
           })()}

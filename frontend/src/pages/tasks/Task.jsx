@@ -618,6 +618,7 @@ const Task = () => {
   const getSectionStyle = (name) => {
     switch (name) {
       case "Recent assignment":
+      case "General":
         return {
           dot: "bg-blue-500 dark:bg-blue-400",
           text: "text-blue-700 dark:text-blue-400",
