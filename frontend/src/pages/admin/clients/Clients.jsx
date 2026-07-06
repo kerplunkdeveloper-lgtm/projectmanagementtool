@@ -17,8 +17,6 @@ import {
   FiAlertTriangle,
   FiBookOpen,
   FiSearch,
-  FiChevronLeft,
-  FiChevronRight,
   FiVideo,
   FiPlusCircle,
   FiHelpCircle,
@@ -472,36 +470,51 @@ const Clients = () => {
   return (
     <div className="min-h-screen pb-12 transition-colors duration-300">
       {/* SEARCH + FILTER CONTROLS */}
-      <div className="bg-white dark:bg-slate-800 p-4 mb-6 flex flex-col md:flex-row items-center justify-between gap-4">
-        {/* SEARCH BOX */}
-        <div className="relative w-full md:w-80">
-          <input
-            type="text"
-            placeholder="Search company or industry..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-205 dark:border-slate-800 bg-slate-50 dark:bg-black text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
-          />
+      <div className="theme-bg-card theme-border border rounded-2xl p-4 md:p-5 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
+        {/* LEFT: Search & Filter */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          {/* SEARCH BOX */}
+          <div className="relative w-full sm:w-72">
+            <input
+              type="text"
+              placeholder="Search company or industry..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-250 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+            />
+           
+          </div>
+
+          {/* SERVICE FILTER */}
+          <div className="relative w-full sm:w-52">
+            <select
+              value={serviceFilter}
+              onChange={(e) => setServiceFilter(e.target.value)}
+              className="w-full h-10 pl-3.5 pr-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold cursor-pointer appearance-none"
+            >
+              <option value="All">All Services</option>
+              <option value="Digital Marketing">Digital Marketing</option>
+              <option value="Website">Website Development</option>
+              <option value="SEO">SEO Strategy</option>
+              <option value="Additional work">Additional work</option>
+              <option value="Video Production">Video Production</option>
+              <option value="Others">Others</option>
+            </select>
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
         </div>
 
-        {/* SERVICE FILTER */}
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider hidden sm:inline"></span>
-          <select
-            value={serviceFilter}
-            onChange={(e) => setServiceFilter(e.target.value)}
-            className="h-10 px-3.5 py-0 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-black text-xs text-slate-850 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold cursor-pointer w-full md:w-52 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em] pr-8"
-          >
-            <option value="All">All Services</option>
-            <option value="Digital Marketing">Digital Marketing</option>
-            <option value="Website">Website Development</option>
-            <option value="SEO">SEO Strategy</option>
-            <option value="Additional work">Additional work</option>
-            <option value="Video Production">Video Production</option>
-            <option value="Others">Others</option>
-          </select>
-        </div>
-
+        {/* RIGHT: Add Button */}
         <div>
           {(user?.role === "admin" || user?.role === "operationmanager") && (
             <button
@@ -511,7 +524,7 @@ const Clients = () => {
                 setActiveTab("profile");
                 setShowModal(true);
               }}
-              className="dashboard-btn-primary dark:dashboard-btn-primary   px-5 py-3 rounded-xl flex items-center  justify-center gap-2.5 shadow-md hover:shadow-lg text-xs font-medium active:scale-[0.98] transition-all cursor-pointer"
+              className="dashboard-btn-primary px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-md hover:shadow-lg text-xs font-semibold active:scale-[0.98] transition-all cursor-pointer"
             >
               <FiPlus size={15} className="stroke-[3]" />
               Add New Client
@@ -523,7 +536,7 @@ const Clients = () => {
       {/* LOADING LOADER */}
       {loading && (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
-          <div className="w-10 h-10 border-[3.5px]  rounded-full animate-spin"></div>
+          <div className="w-10 h-10 border-[3.5px] border-slate-205 border-t-[var(--accent-color)] rounded-full animate-spin"></div>
           <span className="text-xs text-slate-400 font-semibold animate-pulse">
             Syncing client details...
           </span>
@@ -534,34 +547,34 @@ const Clients = () => {
       {!loading && (
         <motion.div
           layout
-          className=" overflow-hidden bg-white dark:bg-slate-900/30 shadow-sm"
+          className="overflow-hidden theme-bg-card theme-border border rounded-2xl shadow-sm"
         >
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-separate border-spacing-y-2 whitespace-nowrap min-w-[1100px] text-xs">
+            <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1100px] text-xs">
               <thead>
-                <tr className="text-slate-500 dark:text-slate-400 font-extrabold uppercase tracking-widest text-[9.5px]">
-                  <th className="px-4 py-2 font-extrabold">
+                <tr className="border-b theme-border text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-widest text-[9.5px]">
+                  <th className="px-5 py-4 font-extrabold bg-transparent">
                     <div className="flex items-center gap-1.5">
                       <FaRegBuilding size={11} className="opacity-70" />
                       Client Profile
                     </div>
                   </th>
-                  <th className="px-4 py-2 font-extrabold">Contact Info</th>
-                  <th className="px-4 py-2 font-extrabold">Service & Members</th>
-                  <th className="px-4 py-2 font-extrabold w-48">Deliverables</th>
+                  <th className="px-5 py-4 font-extrabold bg-transparent">Contact Info</th>
+                  <th className="px-5 py-4 font-extrabold bg-transparent">Service & Members</th>
+                  <th className="px-5 py-4 font-extrabold bg-transparent w-48">Deliverables</th>
                   {user?.role === "team" && (
-                    <th className="px-4 py-2 font-extrabold">Assigned By</th>
+                    <th className="px-5 py-4 font-extrabold bg-transparent">Assigned By</th>
                   )}
                   {user?.role !== "team" && (
-                    <th className="px-4 py-2 font-extrabold">Financials (INR)</th>
+                    <th className="px-5 py-4 font-extrabold bg-transparent">Financials (INR)</th>
                   )}
                   {(user?.role === "admin" ||
                     user?.role === "operationmanager") && (
-                    <th className="px-4 py-2 font-extrabold text-center w-24">Actions</th>
+                    <th className="px-5 py-4 font-extrabold bg-transparent text-center w-24">Actions</th>
                   )}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y theme-border">
                 <AnimatePresence>
                   {filteredClients.length > 0 ? (
                     paginatedClients.map((client, index) => {
@@ -571,19 +584,18 @@ const Clients = () => {
                       const conf = getServiceStyles(primaryService);
                       const ServiceIcon = conf.icon;
                       
-                      const cellClass = "px-4 py-3.5 border-y border-transparent bg-white dark:bg-slate-800/80 group-hover:bg-slate-50 dark:group-hover:bg-slate-800 transition-colors first:rounded-l-2xl last:rounded-r-2xl";
+                      const cellClass = "px-5 py-4 bg-transparent transition-colors";
                       
                       const nameColors = [
                         "text-blue-900 dark:text-blue-400",
                         "text-purple-700 dark:text-purple-400",
                         "text-emerald-600 dark:text-emerald-400",
                         "text-rose-600 dark:text-rose-400",
-                        "text-amber-600 dark:text-amber-400",
+                        "text-amber-650 dark:text-amber-400",
                         "text-cyan-600 dark:text-cyan-400",
                         "text-indigo-600 dark:text-indigo-400",
                         "text-pink-600 dark:text-pink-400",
                         "text-yellow-500 dark:text-yellow-400",
-
                       ];
                       
                       // Create a simple hash based on company name length and char codes
@@ -604,35 +616,31 @@ const Clients = () => {
                           exit={{ opacity: 0, scale: 0.95 }}
                           transition={{ duration: 0.2, delay: index * 0.02 }}
                           key={client._id}
-                          className="group shadow-[0_2px_12px_rgba(0,0,0,0.03)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.15)] transition-colors"
+                          className="group transition-colors hover:bg-slate-50/40 dark:hover:bg-slate-800/20"
                         >
                           {/* Client Info */}
-                          <td className={`${cellClass} relative overflow-hidden`}>
-                            {/* Decorative Left Border based on Accent */}
-                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--accent-color)] opacity-70 rounded-l-2xl" />
-                            
-                            <div className="flex items-center gap-3 pl-1">
-                              <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-900 flex items-center justify-center shrink-0 shadow-inner border border-slate-200/50 dark:border-white/5">
-                                <FaRegBuilding size={18} className={`${nameColor} opacity-80`} />
+                          <td className={`${cellClass} relative`}>
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900/60 flex items-center justify-center shrink-0 border theme-border shadow-sm">
+                                <FaRegBuilding size={16} className={`${nameColor} opacity-90`} />
                               </div>
                               <div className="min-w-[120px]">
-                                <h2 className={`${nameColor} font-bold transition-colors text-[14px] md:text-[15px] truncate max-w-[200px]`}>
+                                <h2 className={`${nameColor} font-extrabold transition-colors text-[14px] truncate max-w-[200px]`}>
                                   {client.companyName}
                                 </h2>
-                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mt-0.5">
-                                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1 truncate max-w-[150px]">
-                                    <FiBriefcase size={10} />
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
                                     {client.industry}
-                                  </p>
+                                  </span>
                                   {client.onboardingDate && (
-                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold flex items-center gap-1 truncate sm:border-l sm:border-slate-200 dark:sm:border-slate-700 sm:pl-3">
-                                      <FiCalendar size={10} />
+                                    <span className="text-[9.5px] text-slate-400 dark:text-slate-500 font-medium flex items-center gap-1">
+                                      <FiCalendar size={9} />
                                       {new Date(client.onboardingDate).toLocaleDateString("en-IN", {
                                         day: "2-digit",
                                         month: "short",
-                                        year: "numeric"
+                                        year: "2-digit"
                                       })}
-                                    </p>
+                                    </span>
                                   )}
                                 </div>
                               </div>
@@ -641,33 +649,29 @@ const Clients = () => {
 
                           {/* Contact Info */}
                           <td className={cellClass}>
-                            <div className="space-y-1.5">
+                            <div className="flex flex-col gap-1.5">
                               {client.phoneNumber ? (
                                 <a
                                   href={`tel:${client.phoneNumber}`}
-                                  className="flex items-center gap-1.5 text-[12px] text-slate-650 dark:text-slate-300 hover:theme-text-accent font-semibold transition-colors"
+                                  className="inline-flex items-center gap-1.5 text-[11.5px] text-slate-650 dark:text-slate-300 hover:theme-text-accent font-semibold transition-colors group/link"
                                 >
-                                  <div className="w-5 h-5 rounded-md bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center">
-                                    <FiPhone size={10} className="text-slate-450 dark:text-slate-500" />
-                                  </div>
-                                  {client.phoneNumber}
+                                  <FiPhone size={11} className="text-slate-400 group-hover/link:theme-text-accent transition-colors" />
+                                  <span>{client.phoneNumber}</span>
                                 </a>
                               ) : (
-                                <span className="text-[11px] text-slate-400 italic">No Phone</span>
+                                <span className="text-[10.5px] text-slate-450 dark:text-slate-600 italic">No Phone</span>
                               )}
 
                               {client.email ? (
                                 <a
                                   href={`mailto:${client.email}`}
-                                  className="flex items-center gap-1.5 text-[12px] text-slate-650 dark:text-slate-300 hover:theme-text-accent font-semibold transition-colors"
+                                  className="inline-flex items-center gap-1.5 text-[11.5px] text-slate-655 dark:text-slate-300 hover:theme-text-accent font-semibold transition-colors group/link"
                                 >
-                                  <div className="w-5 h-5 rounded-md bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center">
-                                    <FiMail size={10} className="text-slate-450 dark:text-slate-500" />
-                                  </div>
-                                  {client.email}
+                                  <FiMail size={11} className="text-slate-400 group-hover/link:theme-text-accent transition-colors" />
+                                  <span className="truncate max-w-[150px]">{client.email}</span>
                                 </a>
                               ) : (
-                                <span className="text-[11px] text-slate-400 italic">No Email</span>
+                                <span className="text-[10.5px] text-slate-450 dark:text-slate-600 italic">No Email</span>
                               )}
                             </div>
                           </td>
@@ -675,7 +679,7 @@ const Clients = () => {
                           {/* Service Info */}
                           <td className={cellClass}>
                             <div className="flex flex-col gap-2">
-                              <div className="flex flex-wrap gap-1 max-w-[200px]">
+                              <div className="flex flex-wrap gap-1 max-w-[220px]">
                                 {Array.isArray(client.service)
                                   ? client.service.map((srv) => {
                                       const sConf = getServiceStyles(srv);
@@ -683,7 +687,7 @@ const Clients = () => {
                                       return (
                                         <span
                                           key={srv}
-                                          className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase border ${sConf.pill} items-center gap-1 shadow-sm`}
+                                          className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase border ${sConf.pill} items-center gap-1 shadow-sm`}
                                         >
                                           <SIcon size={9} />
                                           {srv}
@@ -697,7 +701,7 @@ const Clients = () => {
                                       const SIcon = sConf.icon;
                                       return (
                                         <span
-                                          className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase border ${sConf.pill} items-center gap-1 shadow-sm`}
+                                          className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase border ${sConf.pill} items-center gap-1 shadow-sm`}
                                         >
                                           <SIcon size={9} />
                                           {client.service || "Contract"}
@@ -706,7 +710,7 @@ const Clients = () => {
                                     })()}
                               </div>
                               
-                              <div className="flex flex-wrap gap-1 max-w-[200px]">
+                              <div className="flex flex-wrap gap-1 max-w-[220px]">
                                 {client.assignedTo &&
                                 (Array.isArray(client.assignedTo)
                                   ? client.assignedTo.length > 0
@@ -716,13 +720,17 @@ const Clients = () => {
                                       const uCol = getUserColor(
                                         member._id || member,
                                       );
+                                      const initial = member.name ? member.name.charAt(0).toUpperCase() : "?";
                                       return (
                                         <span
                                           key={member._id || member}
-                                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${uCol.bg} ${uCol.text} border ${uCol.border} font-semibold text-[10.5px] shadow-sm`}
+                                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${uCol.bg} ${uCol.text} border ${uCol.border} font-bold text-[9.5px] shadow-sm`}
+                                          title={member.name || member.email}
                                         >
-                                          <FiUser size={9} />
-                                          <span>
+                                          <span className="w-3.5 h-3.5 rounded-full bg-white/40 dark:bg-black/25 flex items-center justify-center text-[7.5px] font-black shrink-0">
+                                            {initial}
+                                          </span>
+                                          <span className="max-w-[70px] truncate">
                                             {member.name || member.email}
                                           </span>
                                         </span>
@@ -734,12 +742,16 @@ const Clients = () => {
                                         client.assignedTo._id ||
                                           client.assignedTo,
                                       );
+                                      const initial = client.assignedTo.name ? client.assignedTo.name.charAt(0).toUpperCase() : "?";
                                       return (
                                         <span
-                                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${uCol.bg} ${uCol.text} border ${uCol.border} font-semibold text-[10.5px] shadow-sm`}
+                                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${uCol.bg} ${uCol.text} border ${uCol.border} font-bold text-[9.5px] shadow-sm`}
+                                          title={client.assignedTo.name || client.assignedTo.email}
                                         >
-                                          <FiUser size={9} />
-                                          <span>
+                                          <span className="w-3.5 h-3.5 rounded-full bg-white/40 dark:bg-black/25 flex items-center justify-center text-[7.5px] font-black shrink-0">
+                                            {initial}
+                                          </span>
+                                          <span className="max-w-[70px] truncate">
                                             {client.assignedTo.name ||
                                               client.assignedTo.email}
                                           </span>
@@ -748,7 +760,7 @@ const Clients = () => {
                                     })()
                                   )
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10 text-slate-400 dark:text-slate-500 italic text-[10.5px]">
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10 text-slate-400 dark:text-slate-500 italic text-[9.5px]">
                                     <FiUser size={9} />
                                     <span>Unassigned</span>
                                   </span>
@@ -759,65 +771,52 @@ const Clients = () => {
 
                           {/* Deliverables Info (NEW) */}
                           <td className={cellClass}>
-                            <div className="flex flex-col gap-2.5 max-w-[260px]">
+                            <div className="flex flex-col gap-1.5 max-w-[260px]">
                               {/* Digital Marketing & Video */}
                               {(client.posts > 0 || client.reels > 0 || client.shoot > 0) && (
-                                <div className="space-y-1">
-                                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Digital Marketing</span>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {client.posts > 0 && (
-                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-900/40 font-semibold text-[10px]">
-                                        <FiLayers size={9} /> {client.posts} Posts
-                                      </span>
-                                    )}
-                                    {client.reels > 0 && (
-                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 border border-purple-200/50 dark:border-purple-900/40 font-semibold text-[10px]">
-                                        <FiVideo size={9} /> {client.reels} Reels
-                                      </span>
-                                    )}
-                                    {client.shoot > 0 && (
-                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-200/50 dark:border-rose-900/40 font-semibold text-[10px]">
-                                        <FiVideo size={9} /> {client.shoot} Shoot(s)
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Website */}
-                              {(client.pages > 0) && (
-                                <div className="space-y-1">
-                                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Website</span>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-900/40 font-semibold text-[10px]">
-                                      <FiGlobe size={9} /> {client.pages} Pages
+                                <div className="flex flex-wrap gap-1">
+                                  {client.posts > 0 && (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30 font-bold text-[9.5px]">
+                                      <FiLayers size={9.5} /> {client.posts} Posts
                                     </span>
-                                  </div>
+                                  )}
+                                  {client.reels > 0 && (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900/30 font-bold text-[9.5px]">
+                                      <FiVideo size={9.5} /> {client.reels} Reels
+                                    </span>
+                                  )}
+                                  {client.shoot > 0 && (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30 font-bold text-[9.5px]">
+                                      <FiVideo size={9.5} /> {client.shoot} Shoots
+                                    </span>
+                                  )}
                                 </div>
                               )}
 
-                              {/* SEO */}
-                              {(client.onpage || client.offpage) && (
-                                <div className="space-y-1">
-                                  <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">SEO</span>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {client.onpage && (
-                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/40 font-semibold text-[10px]">
-                                        <FiSearch size={9} /> On-Page
-                                      </span>
-                                    )}
-                                    {client.offpage && (
-                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-900/40 font-semibold text-[10px]">
-                                        <FiSearch size={9} /> Off-Page
-                                      </span>
-                                    )}
-                                  </div>
+                              {/* Website & SEO */}
+                              {(client.pages > 0 || client.onpage || client.offpage) && (
+                                <div className="flex flex-wrap gap-1">
+                                  {client.pages > 0 && (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30 font-bold text-[9.5px]">
+                                      <FiGlobe size={9.5} /> {client.pages} Pages
+                                    </span>
+                                  )}
+                                  {client.onpage && (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30 font-bold text-[9.5px]">
+                                      <FiSearch size={9.5} /> On-Page
+                                    </span>
+                                  )}
+                                  {client.offpage && (
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30 font-bold text-[9.5px]">
+                                      <FiSearch size={9.5} /> Off-Page
+                                    </span>
+                                  )}
                                 </div>
                               )}
-                              
+
                               {/* Empty State Fallback */}
                               {!client.posts && !client.reels && !client.shoot && !client.pages && !client.onpage && !client.offpage && (
-                                <span className="text-[10px] text-slate-400 italic">No deliverables set.</span>
+                                <span className="text-[10px] text-slate-400 dark:text-slate-500 italic">No deliverables set.</span>
                               )}
                             </div>
                           </td>
@@ -844,7 +843,7 @@ const Clients = () => {
                                     );
                                   })()
                                 ) : (
-                                  <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10 text-slate-450 dark:text-slate-500 italic text-[10.5px]">
+                                  <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md border border-dashed border-slate-205 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10 text-slate-450 dark:text-slate-500 italic text-[10.5px]">
                                     <FiUser size={10} />
                                     <span>System / Admin</span>
                                   </span>
@@ -856,26 +855,15 @@ const Clients = () => {
                           {/* Budget Info */}
                           {user?.role !== "team" && (
                             <td className={cellClass}>
-                              <div className="space-y-1">
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold flex justify-between items-center w-28">
-                                  <span>Base:</span>
-                                  <span className="text-slate-700 dark:text-slate-300">
-                                    ₹{Number(client.budget || 0).toLocaleString("en-IN")}
-                                  </span>
-                                </p>
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold flex justify-between items-center w-28">
-                                  <span>GST:</span>
-                                  <span className="text-amber-600 dark:text-amber-500">
-                                    {client.gst}%
-                                  </span>
-                                </p>
-                                <div className="border-t border-slate-200/50 dark:border-slate-700/50 pt-1" />
-                                <p className="text-[12px] font-bold flex justify-between items-center w-28">
-                                  <span className="text-slate-600 dark:text-slate-300">Total:</span>
-                                  <span className="text-emerald-600 dark:text-emerald-400">
-                                    ₹{Number(client.totalBudget || 0).toLocaleString("en-IN")}
-                                  </span>
-                                </p>
+                              <div className="space-y-0.5">
+                                <div className="text-[11.5px] font-extrabold text-slate-800 dark:text-slate-200">
+                                  ₹{Number(client.totalBudget || 0).toLocaleString("en-IN")}
+                                </div>
+                                <div className="text-[9.5px] font-bold text-slate-400 dark:text-slate-500 flex items-center gap-1">
+                                  <span>Base: ₹{Number(client.budget || 0).toLocaleString("en-IN")}</span>
+                                  <span>•</span>
+                                  <span>GST: {client.gst}%</span>
+                                </div>
                               </div>
                             </td>
                           )}
@@ -884,20 +872,20 @@ const Clients = () => {
                           {(user?.role === "admin" ||
                             user?.role === "operationmanager") && (
                             <td className={`${cellClass} text-center`}>
-                              <div className="flex items-center justify-center gap-2">
+                              <div className="flex items-center justify-center gap-1.5">
                                 <button
                                   onClick={() => handleEdit(client)}
-                                  className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-amber-50 hover:border-amber-200 dark:hover:bg-amber-950/30 dark:hover:border-amber-900 text-slate-400 hover:text-amber-600 dark:hover:text-amber-500 rounded-lg transition-all shadow-sm"
+                                  className="w-7 h-7 flex items-center justify-center bg-slate-50 hover:bg-amber-50 dark:bg-slate-900 dark:hover:bg-amber-955/20 text-slate-450 hover:text-amber-600 dark:hover:text-amber-400 border theme-border hover:border-amber-200 dark:hover:border-amber-900 rounded-lg transition-all active:scale-95"
                                   title="Edit Record"
                                 >
-                                  <FiEdit size={13} className="stroke-[2.5]" />
+                                  <FiEdit size={12} className="stroke-[2.5]" />
                                 </button>
                                 <button
                                   onClick={() => setClientToDelete(client)}
-                                  className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:bg-rose-50 hover:border-rose-200 dark:hover:bg-rose-950/30 dark:hover:border-rose-900 text-slate-400 hover:text-rose-600 dark:hover:text-rose-500 rounded-lg transition-all shadow-sm"
+                                  className="w-7 h-7 flex items-center justify-center bg-slate-50 hover:bg-rose-50 dark:bg-slate-900 dark:hover:bg-rose-955/20 text-slate-450 hover:text-rose-600 dark:hover:text-rose-400 border theme-border hover:border-rose-200 dark:hover:border-rose-900 rounded-lg transition-all active:scale-95"
                                   title="Delete Record"
                                 >
-                                  <FiTrash2 size={13} className="stroke-[2.5]" />
+                                  <FiTrash2 size={12} className="stroke-[2.5]" />
                                 </button>
                               </div>
                             </td>
@@ -941,73 +929,58 @@ const Clients = () => {
 
           {/* Premium Pagination Controls */}
           {totalItems > itemsPerPage && (
-            <div className="px-5 py-4 bg-slate-50/50 dark:bg-[#111111]/30  flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="px-5 py-4 border-t theme-border flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/20 dark:bg-[#111111]/10">
               {/* Left Side: Info */}
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
+              <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                 Showing{" "}
-                <span className="font-extrabold text-slate-800 dark:text-white">
+                <span className="font-extrabold text-slate-700 dark:text-slate-350">
                   {Math.min((currentPage - 1) * itemsPerPage + 1, totalItems)}
                 </span>{" "}
                 to{" "}
-                <span className="font-extrabold text-slate-800 dark:text-white">
+                <span className="font-extrabold text-slate-700 dark:text-slate-350">
                   {Math.min(currentPage * itemsPerPage, totalItems)}
                 </span>{" "}
                 of{" "}
-                <span className="font-extrabold text-slate-800 dark:text-white">
+                <span className="font-extrabold text-slate-700 dark:text-slate-350">
                   {totalItems}
                 </span>{" "}
                 clients
               </div>
 
               {/* Right Side: Page buttons */}
-              <div className="flex flex-wrap items-center gap-4">
-                {/* Page numbers */}
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                    disabled={currentPage === 1}
-                    className={`h-8 w-8 rounded-xl border text-[10px] font-bold flex items-center justify-center transition-all ${
-                      currentPage === 1
-                        ? "border-slate-200 dark:border-slate-800/80 text-slate-300 dark:text-slate-700 cursor-not-allowed"
-                        : "border-slate-200 dark:border-slate-800 hover:bg-[var(--accent-light-bg-subtle)] dark:hover:bg-[var(--accent-dark-bg-subtle)] text-slate-705 dark:text-slate-400 hover:border-[var(--accent-color)] dark:hover:border-[var(--accent-color-dark)] hover:theme-text-accent active:scale-90 cursor-pointer shadow-sm"
-                    }`}
-                  >
-                    <FiChevronLeft size={14} className="stroke-[2.5]" />
-                  </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-2.5 py-1 rounded-lg border border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 text-[10px] font-bold theme-text-primary disabled:opacity-40 disabled:pointer-events-none transition-all active:scale-95 cursor-pointer"
+                >
+                  Previous
+                </button>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                  const isSelected = page === currentPage;
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`h-6 w-6 rounded-md text-[10px] font-extrabold flex items-center justify-center transition-all ${
+                        isSelected
+                          ? "theme-bg-accent text-white dark:text-black font-black"
+                          : "bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
 
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                    (page) => {
-                      const isSelected = page === currentPage;
-                      return (
-                        <button
-                          key={page}
-                          onClick={() => setCurrentPage(page)}
-                          className={`h-8 w-8 rounded-xl border text-[10px] font-extrabold flex items-center justify-center transition-all ${
-                            isSelected
-                              ? "theme-bg-accent border-[var(--accent-color)] dark:border-[var(--accent-color-dark)] text-white dark:text-black shadow-md"
-                              : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-705 dark:text-slate-400 hover:bg-[var(--accent-light-bg-subtle)] dark:hover:bg-[var(--accent-dark-bg-subtle)] hover:border-[var(--accent-color)] dark:hover:border-[var(--accent-color-dark)] hover:theme-text-accent active:scale-90 cursor-pointer shadow-sm"
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      );
-                    },
-                  )}
-
-                  <button
-                    onClick={() =>
-                      setCurrentPage((p) => Math.min(p + 1, totalPages))
-                    }
-                    disabled={currentPage === totalPages}
-                    className={`h-8 w-8 rounded-xl border text-[10px] font-bold flex items-center justify-center transition-all ${
-                      currentPage === totalPages
-                        ? "border-slate-200 dark:border-slate-800/80 text-slate-300 dark:text-slate-700 cursor-not-allowed"
-                        : "border-slate-200 dark:border-slate-805 hover:bg-[var(--accent-light-bg-subtle)] dark:hover:bg-[var(--accent-dark-bg-subtle)] text-slate-705 dark:text-slate-400 hover:border-[var(--accent-color)] dark:hover:border-[var(--accent-color-dark)] hover:theme-text-accent active:scale-90 cursor-pointer shadow-sm"
-                    }`}
-                  >
-                    <FiChevronRight size={14} className="stroke-[2.5]" />
-                  </button>
-                </div>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-2.5 py-1 rounded-lg border border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 text-[10px] font-bold theme-text-primary disabled:opacity-40 disabled:pointer-events-none transition-all active:scale-95 cursor-pointer"
+                >
+                  Next
+                </button>
               </div>
             </div>
           )}

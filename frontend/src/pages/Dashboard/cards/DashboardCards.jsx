@@ -46,7 +46,8 @@ const DashboardCards = () => {
     : 0;
   const totalProjectsCount = projects ? projects.length : 0;
 
-  const isAdminOrOpManager = user?.role === "admin" || user?.role === "operationmanager";
+  const isAdminOrOpManager =
+    user?.role === "admin" || user?.role === "operationmanager";
 
   // ============================================
   // CARD DATA
@@ -54,26 +55,28 @@ const DashboardCards = () => {
 
   const cards = [
     {
-      title: isAdminOrOpManager ? "Total Overall No.of Active Clients" : "No.of Active Clients",
+      title: isAdminOrOpManager
+        ? "Total Overall No.of Active Clients"
+        : "No.of Active Clients",
       value: activeClientsCount,
       icon: FiBriefcase,
-      gradient:
-        "bg-gradient-to-br from-amber-300 to-orange-400 ",
+      gradient: "bg-gradient-to-br from-amber-300 to-orange-400 ",
       border: "border-white/30 ",
-     
+
       valueColor: "text-white",
       glowColor: "rgba(245, 158, 11, 0.4)",
       subtitleColor: "text-white/80 ",
       subtitle: "Total managed client accounts",
     },
     {
-      title: isAdminOrOpManager ? "Total Overall No.of Projects" : "No.of Projects",
+      title: isAdminOrOpManager
+        ? "Total Overall No.of Projects"
+        : "No.of Projects",
       value: activeProjectsCount,
       icon: FiBriefcase,
-      gradient:
-        "bg-gradient-to-br from-blue-400 to-indigo-400 ",
+      gradient: "bg-gradient-to-br from-blue-400 to-indigo-400 ",
       border: "border-white/30 ",
-     
+
       valueColor: "text-white",
       glowColor: "rgba(59, 130, 246, 0.4)",
       subtitleColor: "text-white/80 ",
@@ -83,10 +86,9 @@ const DashboardCards = () => {
       title: isAdminOrOpManager ? "total team Strength" : "Total Strength",
       value: teamStrengthCount,
       icon: FiUsers,
-      gradient:
-        "bg-gradient-to-br from-emerald-300 to-teal-400",
+      gradient: "bg-gradient-to-br from-emerald-300 to-teal-400",
       border: "border-white/30 ",
-    
+
       valueColor: "text-white",
       glowColor: "rgba(16, 185, 129, 0.4)",
       subtitleColor: "text-white/80 ",
@@ -125,9 +127,7 @@ const DashboardCards = () => {
                 </p>
 
                 <div className="flex flex-col items-end">
-                  <h2
-                    className={`text-base md:text-sm font-bold`}
-                  >
+                  <h2 className={`text-base md:text-sm font-bold`}>
                     {card.value}
                   </h2>
                 </div>

@@ -228,11 +228,11 @@ const Navbar = ({ setSidebarOpen }) => {
 
     // 3. Tasks
     (tasks || []).forEach(t => {
-      if (!searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+      if (!searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase()) || (t.taskId && t.taskId.toLowerCase().includes(searchQuery.toLowerCase()))) {
         items.push({
           id: t._id,
           category: "Tasks",
-          title: t.title,
+          title: t.taskId ? `[${t.taskId}] ${t.title}` : t.title,
           subtitle: `Status: ${t.status || "To Do"}`,
           path: t.project ? `/${user?.role}/projects?id=${t.project}` : `/${user?.role}/tasks`,
           type: "task"
@@ -340,9 +340,11 @@ const Navbar = ({ setSidebarOpen }) => {
         h-14
         px-3 md:px-5
         flex items-center justify-between
-        theme-bg-card
-        border-b theme-border
-        shadow-sm transition-all duration-300
+           sidebar-bg
+          backdrop-blur-xl
+          border-r border-slate-200/40 dark:border-white/5
+          shadow-[0_8px_32px_0_rgba(0,0,0,0.02)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.25)]
+           transition-all duration-300
       "
     >
       {/* LEFT */}
@@ -364,7 +366,7 @@ const Navbar = ({ setSidebarOpen }) => {
         </button>
 
         {/* PAGE TITLE */}
-        <h1 className="text-[12px] md:text-[20px] theme-text-accent font-bold shrink-0">
+        <h1 className="text-[12px] md:text-[20px] theme-text-accent font-medium shrink-0">
           {pageTitle}
         </h1>
       </div>
@@ -378,7 +380,7 @@ const Navbar = ({ setSidebarOpen }) => {
         }}
         className="
           hidden sm:flex items-center gap-2 px-3 py-3
-          w-48 sm:w-56 md:w-72 lg:w-96 rounded-full border theme-border theme-bg-card
+          w-48 sm:w-56 md:w-72 lg:w-120 rounded-full border theme-border theme-bg-card
           theme-text-secondary hover:theme-text-primary hover:theme-bg-main
           cursor-pointer transition-all duration-200 shadow-sm select-none
           absolute left-1/2 transform -translate-x-1/2
@@ -394,11 +396,11 @@ const Navbar = ({ setSidebarOpen }) => {
       <div className="flex items-center gap-2 shrink-0">
         {/* USER LOCATION */}
         <div 
-          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border theme-border theme-bg-card text-[11px] font-bold theme-text-secondary shadow-sm hover:theme-text-primary hover:theme-bg-main transition-all duration-200"
+          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border theme-border theme-bg-card text-[12px] font-bold theme-text-secondary shadow-sm hover:theme-text-primary hover:theme-bg-main transition-all duration-200"
           title={profile?.address || "No location set"}
         >
-          <FiMapPin className="text-[13px] text-indigo-500 dark:text-indigo-400 shrink-0" />
-          <span className="truncate max-w-[120px]">
+          <FiMapPin className="text-[13px] text-red-600 shrink-0" />
+          <span className="truncate max-w-[120px] text-indigo-500 dark:text-indigo-400">
             {profile?.address || "No Location"}
           </span>
         </div>

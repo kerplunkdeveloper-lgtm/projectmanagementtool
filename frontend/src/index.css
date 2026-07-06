@@ -89,8 +89,13 @@ body {
 }
 
 /* Silky smooth global transitions for theme changes (bg & text colors) */
-body, aside, header, nav, main, section, .theme-card-gradient, .theme-bg-main, .theme-bg-card, table, th, td, tr, input, select, textarea, div, span, p, h1, h2, h3, h4, h5, h6, a {
-  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+body, aside, header, nav, main, section, article, footer,
+.theme-card-gradient, .theme-bg-main, .theme-bg-card,
+table, thead, tbody, th, td, tr,
+input, select, textarea, button, label,
+div, span, p, h1, h2, h3, h4, h5, h6,
+a, li, ul, ol, svg, img, figure, figcaption {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, box-shadow, opacity;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 200ms;
 }
@@ -99,7 +104,7 @@ body, aside, header, nav, main, section, .theme-card-gradient, .theme-bg-main, .
 
 .sidebar-bg {
   background-color: color-mix(in srgb, var(--accent-color) 3%, rgba(255, 255, 255, 0.8));
-  transition: background-color 300ms cubic-bezier(0.4, 0, 0.2, 1), border-color 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 300ms cubic-bezier(0.4, 0, 0.2, 1), border-color 300ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1), color 300ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dark .sidebar-bg {
@@ -1014,6 +1019,30 @@ select.badge-select:hover, span.badge-span:hover {
   color: var(--accent-color-dark) !important;
 }
 
+/* Hover variant for theme-text-accent (Tailwind can't auto-generate this for custom classes) */
+.hover\:theme-text-accent:hover {
+  color: var(--accent-color) !important;
+}
+.dark .hover\:theme-text-accent:hover {
+  color: var(--accent-color-dark) !important;
+}
+
+/* Group-hover variant for theme-text-accent */
+.group:hover .group-hover\:theme-text-accent {
+  color: var(--accent-color) !important;
+}
+.dark .group:hover .group-hover\:theme-text-accent {
+  color: var(--accent-color-dark) !important;
+}
+
+/* Group/link nested hover variant */
+.group\/link:hover .group-hover\/link\:theme-text-accent {
+  color: var(--accent-color) !important;
+}
+.dark .group\/link:hover .group-hover\/link\:theme-text-accent {
+  color: var(--accent-color-dark) !important;
+}
+
 .theme-bg-accent {
   background-color: var(--accent-color) !important;
   background-image: var(--accent-gradient) !important;
@@ -1331,13 +1360,13 @@ td:first-child {
 /* LIME */
 :root[data-accent="lime"] {
   --accent-color: #84cc16;
-  --accent-color-dark: #3b82f6;
+  --accent-color-dark: #a3e635;
   --accent-gradient: linear-gradient(135deg, #84cc16, #a3e635);
-  --accent-gradient-dark: linear-gradient(135deg, #3b82f6, #60a5fa);
+  --accent-gradient-dark: linear-gradient(135deg, #84cc16, #a3e635);
   --accent-hover-shadow: rgba(132, 204, 22, 0.3);
-  --accent-hover-shadow-dark: rgba(229, 255, 0, 0.3);
+  --accent-hover-shadow-dark: rgba(163, 230, 53, 0.25);
   --accent-light-bg-subtle: rgba(132, 204, 22, 0.1);
-  --accent-dark-bg-subtle: rgba(229, 255, 0, 0.1);
+  --accent-dark-bg-subtle: rgba(163, 230, 53, 0.15);
 }
 
 /* FUCHSIA */

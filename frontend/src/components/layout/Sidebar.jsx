@@ -194,17 +194,17 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                 <button
                   type="button"
                   onClick={() => setIsPortfoliosListOpen(!isPortfoliosListOpen)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-left rounded-xl border border-transparent hover:bg-slate-100/60 dark:hover:bg-white/5 transition-all duration-200 cursor-pointer group"
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-left rounded-xl border border-transparent hover:bg-slate-100/60 dark:hover:bg-white/5 transition-all duration-200 cursor-pointer group text-slate-500 dark:text-slate-400 hover:theme-text-accent"
                 >
                   <FiLayers
                     size={13}
-                    className="shrink-0 text-slate-400 dark:text-slate-500"
+                    className="shrink-0 transition-colors"
                   />
-                  <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex-1 text-left">
+                  <span className="text-[11px] font-semibold uppercase tracking-widest flex-1 text-left transition-colors">
                     Portfolios
                   </span>
                   <svg
-                    className={`w-3 h-3 shrink-0 transform transition-transform duration-200 text-slate-400 dark:text-slate-500 ${
+                    className={`w-3 h-3 shrink-0 transform transition-transform duration-200 transition-colors ${
                       isPortfoliosListOpen ? "rotate-180" : ""
                     }`}
                     fill="none"
@@ -251,7 +251,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                             className={`w-full flex items-center gap-2 text-left text-[11px] font-semibold py-1.5 rounded-lg px-2.5 transition-all duration-150 group ${
                               isActive
                                 ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent"
-                                : "text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/60 dark:hover:bg-white/5"
+                                : "text-slate-600 dark:text-slate-500 hover:theme-text-accent hover:bg-slate-100/60 dark:hover:bg-white/5"
                             }`}
                             title={portfolio.name}
                           >
@@ -290,7 +290,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                     className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1 rounded-md px-2 transition-all duration-150 ${
                                       isProjectActive
                                         ? "bg-slate-50 dark:bg-slate-800/60 theme-text-accent font-bold"
-                                        : "text-slate-500 dark:text-slate-600 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100/40 dark:hover:bg-white/5"
+                                        : "text-slate-500 dark:text-slate-600 hover:theme-text-accent hover:bg-slate-100/40 dark:hover:bg-white/5"
                                     }`}
                                     title={project.name}
                                   >
@@ -339,18 +339,18 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         className={({ isActive }) => {
                           const activeClass = isActive
                             ? `bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent border-[var(--accent-color)]/20 dark:border-[var(--accent-color-dark)]/25 shadow-sm`
-                            : `text-slate-600 dark:text-slate-400 border-transparent hover:bg-slate-100/60 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white`;
+                            : `text-slate-600 dark:text-slate-400 border-transparent hover:bg-slate-100/60 dark:hover:bg-white/5 hover:theme-text-accent`;
                           return `block rounded-xl border transition-all duration-200 ${activeClass}`;
                         }}
                       >
                         {({ isActive }) => (
                           <div className="flex items-center gap-2.5 px-3 py-2 w-full">
                             <div
-                              className={`shrink-0 ${isActive ? "theme-text-accent" : ""}`}
+                              className={`shrink-0 transition-colors ${isActive ? "theme-text-accent" : ""}`}
                             >
                               <Icon size={14} />
                             </div>
-                            <span className="text-[11px] font-semibold truncate flex-1 text-left">
+                            <span className="text-[11px] font-semibold truncate flex-1 text-left transition-colors">
                               {item.name}
                             </span>
                             {item.name === "Notifications" &&

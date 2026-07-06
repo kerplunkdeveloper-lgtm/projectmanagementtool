@@ -55,7 +55,7 @@ const colors = [
     id: "lime",
     name: "Neon Lime",
     lightGradient: "linear-gradient(135deg, #84cc16, #a3e635)",
-    darkGradient: "linear-gradient(135deg, #3b82f6, #d9f99d)",
+    darkGradient: "linear-gradient(135deg, #84cc16, #a3e635)",
   },
   {
     id: "fuchsia",

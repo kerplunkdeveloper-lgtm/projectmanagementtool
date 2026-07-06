@@ -168,6 +168,35 @@ const Dashboardmain = () => {
   const [name, setName] = useState("");
   const [clientId, setClientId] = useState("");
   const [status, setStatus] = useState("Active");
+  const [filterClientId, setFilterClientId] = useState("all");
+
+  const filterClients = React.useMemo(() => {
+    const uniqueClientsMap = new Map();
+    projects?.forEach((p) => {
+      if (p.client && p.client._id) {
+        uniqueClientsMap.set(p.client._id, p.client);
+      } else if (p.client && typeof p.client === "string") {
+        // Fallback if client is only ID
+        const matched = clients?.find((c) => c._id === p.client);
+        if (matched) uniqueClientsMap.set(matched._id, matched);
+      }
+    });
+    clients?.forEach((c) => {
+      if (c && c._id) {
+        uniqueClientsMap.set(c._id, c);
+      }
+    });
+    return Array.from(uniqueClientsMap.values());
+  }, [projects, clients]);
+
+  const filteredProjects = React.useMemo(() => {
+    if (!projects) return [];
+    if (filterClientId === "all") return projects;
+    return projects.filter(
+      (p) =>
+        (p.client?._id || p.client) === filterClientId
+    );
+  }, [projects, filterClientId]);
 
   useEffect(() => {
     dispatch(getEvents());
@@ -266,49 +295,111 @@ const Dashboardmain = () => {
           <DashboardCards />
         </div>
 
-        <div className="col-span-1 theme-bg-card border theme-border rounded-xl p-4 shadow-xl">
-          <h1 className="text-[20px] text-blue-500 dark:text-[#3b82f6] font-medium tracking-wider mb-8">
-            Projects OverView
-          </h1>
+        <div className="col-span-1 theme-bg-card border theme-border rounded-xl p-4 shadow-xl flex flex-col justify-between">
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+              <h1 className="text-[20px] text-blue-500 dark:text-[#3b82f6] font-medium tracking-wider">
+                Projects OverView
+              </h1>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-            {/* CREATE PROJECT BUTTON */}
-            {(user?.role === "admin" ||
-              user?.role === "operationmanager" ||
-              user?.role === "team") && (
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="flex items-center gap-2 group text-left"
-              >
-                <div className="w-10 h-10 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover:border-slate-400 dark:group-hover:border-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-400 transition-colors shrink-0">
-                  <FiPlus size={18} />
+              {/* CLIENT FILTER SELECT */}
+              {filterClients && filterClients.length > 0 && (
+                <div className="relative shrink-0 min-w-[150px]">
+                  <select
+                    value={filterClientId}
+                    onChange={(e) => setFilterClientId(e.target.value)}
+                    className="w-full pl-3 pr-8 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 focus:outline-none focus:border-blue-500 text-xs font-semibold theme-text-primary cursor-pointer appearance-none transition-all shadow-sm"
+                  >
+                    <option value="all">All Clients</option>
+                    {filterClients.map((c) => (
+                      <option key={c._id} value={c._id}>
+                        {c.companyName}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-slate-500">
+                    <FiChevronDown size={14} />
+                  </div>
                 </div>
-                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-300 transition-colors">
-                  Create project
-                </span>
-              </button>
-            )}
+              )}
+            </div>
 
-            {/* PROJECTS LIST */}
-            {projects &&
-              projects.map((project, index) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5">
+              {/* CREATE PROJECT BUTTON */}
+              {/* {(user?.role === "admin" ||
+                user?.role === "operationmanager" ||
+                user?.role === "team") && (
                 <button
-                  key={project._id}
-                  onClick={() =>
-                    navigate(`/${user?.role}/projects?id=${project._id}`)
-                  }
+                  onClick={() => setShowCreateModal(true)}
                   className="flex items-center gap-2 group text-left"
                 >
-                  <ProjectIcon
-                    name={project.name}
-                    size="xl"
-                    className="transition-transform   group-hover:scale-[1.03]"
-                  />
-                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-700 line-clamp-2">
-                    {project.name}
+                  <div className="w-10 h-10 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover:border-slate-400 dark:group-hover:border-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-400 transition-colors shrink-0">
+                    <FiPlus size={18} />
+                  </div>
+                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-300 transition-colors">
+                    Create project
                   </span>
                 </button>
-              ))}
+              )} */}
+
+              {/* PROJECTS LIST */}
+              {filteredProjects && filteredProjects.length > 0 ? (
+                filteredProjects.map((project, index) => (
+                  <button
+                    key={project._id}
+                    onClick={() =>
+                      navigate(`/${user?.role}/projects?id=${project._id}`)
+                    }
+                    className="flex flex-col justify-between p-3.5 rounded-xl border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-800/40 hover:border-[var(--accent-color)]/30 dark:hover:border-[var(--accent-color-dark)]/30 hover:shadow-md dark:hover:bg-slate-800/70 transition-all duration-200 group text-left w-full h-[125px]"
+                  >
+                    <div className="flex items-start justify-between w-full min-w-0">
+                      <div className="flex items-center gap-2.5 min-w-0 w-full">
+                        <ProjectIcon
+                          name={project.name}
+                          size="md"
+                          className="transition-transform group-hover:scale-[1.05]"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200 line-clamp-1 group-hover:text-[var(--accent-color)] dark:group-hover:text-[var(--accent-color-dark)] transition-colors">
+                            {project.name}
+                          </span>
+                          <div className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            <FiUser size={10} className="shrink-0 text-slate-400" />
+                            <span className="truncate">
+                              {project.client?.companyName || "No Client"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between w-full mt-2.5 pt-2 border-t border-slate-100 dark:border-white/5">
+                      <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                        Status
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider ${
+                        project.status === "Active"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
+                          : project.status === "Completed"
+                          ? "bg-blue-50 text-blue-700 border-blue-200/60 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20"
+                          : project.status === "On Hold"
+                          ? "bg-amber-50 text-amber-700 border-amber-200/60 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20"
+                          : "bg-slate-50 text-slate-700 border-slate-200/60 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20"
+                      }`}>
+                        {project.status || "Active"}
+                      </span>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="col-span-full py-12 flex flex-col items-center justify-center text-center opacity-60">
+                  <FiBriefcase size={28} className="text-slate-400 dark:text-slate-500 mb-2" />
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    No projects found for this client
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
