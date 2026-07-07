@@ -350,7 +350,7 @@ const Dashboardmain = () => {
 
               {/* PROJECTS LIST */}
               {(() => {
-                const itemsPerPage = 6;
+                const itemsPerPage = 3;
                 const totalPages = Math.ceil(
                   (filteredProjects?.length || 0) / itemsPerPage
                 );
@@ -370,7 +370,7 @@ const Dashboardmain = () => {
                           onClick={() =>
                             navigate(`/${user?.role}/projects?id=${project._id}`)
                           }
-                          className="flex flex-col justify-between p-3.5 rounded-xl border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-800/40 hover:border-[var(--accent-color)]/30 dark:hover:border-[var(--accent-color-dark)]/30 hover:shadow-md dark:hover:bg-slate-800/70 transition-all duration-200 group text-left w-full h-[125px]"
+                          className="flex flex-col justify-between p-3.5 rounded-xl border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-800/40 hover:border-[var(--accent-color)]/30 dark:hover:border-[var(--accent-color-dark)]/30  dark:hover:bg-slate-800/70 transition-all duration-200 group text-left w-full "
                         >
                           <div className="flex items-start justify-between w-full min-w-0">
                             <div className="flex items-center gap-2.5 min-w-0 w-full">

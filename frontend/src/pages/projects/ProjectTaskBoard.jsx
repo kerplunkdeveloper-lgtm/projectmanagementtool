@@ -2409,22 +2409,22 @@ const ProjectTaskBoard = ({
                 <tr className={`border-b border-slate-300 dark:border-slate-700 ${rowBg}`}>
                   {showSelectionColumn && (
                     <td 
-                      className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700 w-10 md:sticky md:left-0 z-10 bg-transparent" 
+                      className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 w-10 md:sticky md:left-0 z-10 bg-transparent" 
                       style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}
                     />
                   )}
                   {/* Chevron column spacer */}
                   <td 
-                    className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-10 bg-transparent" 
+                    className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-10 bg-transparent" 
                     style={{ left: showSelectionColumn ? '40px' : '0px', width: '40px', minWidth: '40px', maxWidth: '40px' }}
                   />
                   {/* ID column spacer */}
                   <td 
-                    className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-10" 
+                    className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-10" 
                     style={{ left: showSelectionColumn ? '80px' : '40px', backgroundColor: 'inherit', minWidth: '60px', maxWidth: '60px', width: '60px' }}
                   />
                   <td
-                    className="px-3 py-2.5 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-10 min-w-[250px] md:min-w-[400px]"
+                    className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-10 min-w-[250px] md:min-w-[400px]"
                     style={{ left: showSelectionColumn ? '140px' : '100px', backgroundColor: "inherit" }}
                   >
                     <div className="flex items-center gap-2 w-full pl-6">
@@ -2522,15 +2522,15 @@ const ProjectTaskBoard = ({
                       )}
                     </div>
                   </td>
-                  <td className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700" />
-                  <td className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700" />
-                  <td className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700" />
-                  <td className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700" />
-                  <td className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700" />
-                  <td className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700" />
-                  <td className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700" />
-                  <td className="px-3 py-2 border-r border-b border-slate-300 dark:border-slate-700" />
-                  <td className="px-3 py-2 border-b border-slate-300 dark:border-slate-700" />
+                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" />
+                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" />
+                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" />
+                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" />
+                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" />
+                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" />
+                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" />
+                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" />
+                  <td className="px-3 py-1 border-b border-slate-300 dark:border-slate-700" />
                 </tr>
               );
             };
@@ -2567,14 +2567,14 @@ const ProjectTaskBoard = ({
                       <tr className="bg-slate-50 dark:bg-[#16161b] text-slate-700 dark:text-slate-300 tracking-wider text-[12px]">
                         {showSelectionColumn && (
                           <th 
-                            className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 z-40 bg-slate-50 dark:bg-[#16161b]"
+                            className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 z-40 bg-slate-50 dark:bg-[#16161b]"
                             style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}
                           >
                             {/* Selection column header */}
                           </th>
                         )}
                         <th 
-                          className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 text-center whitespace-nowrap w-10 md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
+                          className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 text-center whitespace-nowrap w-10 md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
                           style={{ left: showSelectionColumn ? '40px' : '0px', width: '40px', minWidth: '40px', maxWidth: '40px' }}
                         >
                           <div className="flex justify-center items-center">
@@ -2595,42 +2595,42 @@ const ProjectTaskBoard = ({
                           </div>
                         </th>
                         <th 
-                          className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[60px] max-w-[60px] w-[60px] md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
+                          className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[60px] max-w-[60px] w-[60px] md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
                           style={{ left: showSelectionColumn ? '80px' : '40px' }}
                         >
                           ID
                         </th>
                         <th 
-                          className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[250px] md:min-w-[400px] md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
+                          className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[250px] md:min-w-[400px] md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
                           style={{ left: showSelectionColumn ? '140px' : '100px' }}
                         >
                          Task Name
                         </th>
-                        <th className="px-3 py-2 border-b  border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[140px]">
+                        <th className="px-3 py-1 border-b  border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[140px]">
                           Client
                         </th>
-                        <th className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[190px]">
+                        <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[190px]">
                           Assignee
                         </th>
-                        <th className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[130px]">
+                        <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[130px]">
                           Content Type
                         </th>
-                        <th className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
+                        <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
                           Start Date
                         </th>
-                        <th className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
+                        <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
                           End Date
                         </th>
-                        <th className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
+                        <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
                           Priority
                         </th>
-                        <th className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
+                        <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
                           Status
                         </th>
-                        <th className="px-3 py-2 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
+                        <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
                           Total Hours
                         </th>
-                        <th className="px-3 py-2 border-b border-slate-300 dark:border-slate-700 text-center whitespace-nowrap min-w-[80px]">
+                        <th className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 text-center whitespace-nowrap min-w-[80px]">
                           Actions
                         </th>
                       </tr>
@@ -3040,7 +3040,7 @@ const ProjectTaskBoard = ({
                                         {showSelectionColumn && (
                                           <td
                                             onClick={(e) => e.stopPropagation()}
-                                            className={`px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 z-30 ${rowBg}`}
+                                            className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 z-30 ${rowBg}`}
                                             style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}
                                           >
                                             {selectionModeSections[
@@ -3066,7 +3066,7 @@ const ProjectTaskBoard = ({
                                         )}
                                         {/* Dropdown Chevron Column */}
                                         <td 
-                                          className={`px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center w-10 md:sticky z-30 ${rowBg}`}
+                                          className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center w-10 md:sticky z-30 ${rowBg}`}
                                           style={{ left: showSelectionColumn ? '40px' : '0px', width: '40px', minWidth: '40px', maxWidth: '40px' }}
                                         >
                                           <div className="flex items-center justify-center">
@@ -3097,7 +3097,7 @@ const ProjectTaskBoard = ({
                                         </td>
                                         {/* ID Column */}
                                         <td 
-                                          className={`px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700 font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap md:sticky z-30 ${rowBg}`}
+                                          className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap md:sticky z-30 ${rowBg}`}
                                           style={{ left: showSelectionColumn ? '80px' : '40px', minWidth: '60px', maxWidth: '60px', width: '60px' }}
                                         >
                                           {getTaskDisplayId(task)}
@@ -3105,7 +3105,7 @@ const ProjectTaskBoard = ({
                                         {/* Name Field with Circle Checkbox */}
                                         <td
                                           onClick={(e) => e.stopPropagation()}
-                                          className={`px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700 font-semibold md:sticky z-30 min-w-[250px] md:min-w-[400px] ${rowBg}`}
+                                          className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-semibold md:sticky z-30 min-w-[250px] md:min-w-[400px] ${rowBg}`}
                                           style={{ left: showSelectionColumn ? '140px' : '100px' }}
                                         >
                                           <div className="flex items-center gap-2.5 w-full">
@@ -3218,7 +3218,7 @@ const ProjectTaskBoard = ({
                                         </td>
 
                                         {/* Client Column */}
-                                        <td className="px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700 font-medium">
+                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-medium">
                                           {activeProject?.client ? (
                                             <ClientBadge client={activeProject.client} size="md" />
                                           ) : (
@@ -3229,7 +3229,7 @@ const ProjectTaskBoard = ({
                                         </td>
 
                                         {/* Assignee Selection */}
-                                        <td className="px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                           <div
                                             className="flex items-center gap-1.5"
                                             onClick={(e) => e.stopPropagation()}
@@ -3255,7 +3255,7 @@ const ProjectTaskBoard = ({
                                         </td>
 
                                         {/* Content Type Column */}
-                                        <td className="px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                           <div
                                             onClick={(e) => e.stopPropagation()}
                                           >
@@ -3367,9 +3367,9 @@ const ProjectTaskBoard = ({
                                         </td>
 
                                         {/* Start Date */}
-                                        <td className="px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                           <div
-                                            className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
+                                            className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               const input =
@@ -3450,9 +3450,9 @@ const ProjectTaskBoard = ({
                                         </td>
 
                                         {/* End Date */}
-                                        <td className="px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                           <div
-                                            className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
+                                            className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               const input =
@@ -3540,7 +3540,7 @@ const ProjectTaskBoard = ({
                                         </td>
 
                                         {/* Priority */}
-                                        <td className="px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                           <div
                                             onClick={(e) => e.stopPropagation()}
                                           >
@@ -3590,7 +3590,7 @@ const ProjectTaskBoard = ({
                                         </td>
 
                                         {/* Status */}
-                                        <td className="px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                           <div
                                             onClick={(e) => e.stopPropagation()}
                                           >
@@ -3651,7 +3651,7 @@ const ProjectTaskBoard = ({
                                         </td>
 
                                         {/* Total Hours */}
-                                        <td className="px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                           <TimeTracker
                                             startTime={task.actualStartTime}
                                             endTime={task.actualEndTime}
@@ -3660,7 +3660,7 @@ const ProjectTaskBoard = ({
                                         </td>
 
                                         {/* Action Controls */}
-                                        <td className="px-3 py-2 border-b border-t border-slate-300 dark:border-slate-700 text-center">
+                                        <td className="px-3 py-1 border-b border-t border-slate-300 dark:border-slate-700 text-center">
                                           <div
                                             className="flex items-center justify-center gap-2.5"
                                             onClick={(e) => e.stopPropagation()}
