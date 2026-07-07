@@ -1156,10 +1156,10 @@ const Task = () => {
                 <thead>
                   <tr className="bg-slate-50/20 dark:bg-[#0f172a]/30 text-slate-500 dark:text-slate-400 text-[10px] font-bold tracking-wider border-b border-slate-200/60 dark:border-[#1e293b]/50">
                     <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-24">
-                      Priority
+                      ID 
                     </th>
                     <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-28">
-                      ID
+                     Priority
                     </th>
                     <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 min-w-[180px] w-[220px]">
                       Task Name
@@ -1211,6 +1211,14 @@ const Task = () => {
                             }`}
                             onClick={() => setSelectedTaskId(task._id)}
                           >
+
+
+                             {/* ID */}
+                            <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 font-mono font-bold text-[10.5px] text-slate-500 dark:text-slate-400">
+                              {getTaskDisplayId(task)}
+                            </td>
+
+
                             {/* Priority Badge */}
                             <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40">
                               <span
@@ -1220,10 +1228,7 @@ const Task = () => {
                               </span>
                             </td>
 
-                            {/* ID */}
-                            <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 font-mono font-bold text-[10.5px] text-slate-500 dark:text-slate-400">
-                              {getTaskDisplayId(task)}
-                            </td>
+                           
 
                             {/* Title & Subtasks Dropdown */}
                             <td className="px-6 py-2 font-bold border-r border-b border-slate-200/60 dark:border-[#1e293b]/40">
