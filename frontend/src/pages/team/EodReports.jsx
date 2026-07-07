@@ -295,9 +295,16 @@ const EodReports = () => {
                 <tr className="bg-slate-50/50 dark:bg-[#0f172a]/50 border-b border-slate-200 dark:border-slate-800">
                   <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Date</th>
                   <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Projects Worked On</th>
+                  <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Design Count</th>
+                  <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Files Submitted</th>
                   <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tasks Completed</th>
                   <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Overall Status</th>
-                  <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Attachments</th>
+                  <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Pending Tasks</th>
+                  <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Reason for Pending</th>
+                    <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">challengesFaced</th>
+                    <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">tomorrowPlan</th>
+
+
                   <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
@@ -337,40 +344,75 @@ const EodReports = () => {
                       </td>
                       <td className="px-5 py-3.5 max-w-[300px]">
                         <p className="text-slate-600 dark:text-slate-400 text-[13px] leading-relaxed truncate" title={report.tasksCompleted || report.description}>
-                          {report.tasksCompleted || report.description}
+                          {report.designCount}
                         </p>
                       </td>
+
+  
+
+                     <td className="px-5 py-3.5 max-w-[300px]">
+                        {report.filesSubmitted || "-"}
+                      </td>
+
+                      <td className="px-5 py-3.5 max-w-[300px]">
+ {report.tasksCompleted || report.description}
+                      </td>
+
+
+
                       <td className="px-5 py-3.5 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${getStatusBadgeStyle(report.overallStatus || report.status)}`}>
                           <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${getStatusDotStyle(report.overallStatus || report.status)}`}></span>
                           {report.overallStatus || report.status || "Completed"}
                         </span>
                       </td>
+
+
+
+
+
+
+
+
+
+
+
+
                       <td className="px-5 py-3.5">
-                        {report.attachments?.length > 0 ? (
-                          <div className="flex -space-x-1.5">
-                            {report.attachments.map((att, i) => (
-                              <a 
-                                key={i} 
-                                href={att.fileType === "image" ? "#" : att.url} 
-                                target={att.fileType === "image" ? "_self" : "_blank"} 
-                                rel="noopener noreferrer" 
-                                title={att.filename}
-                                onClick={(e) => {
-                                  if (att.fileType === "image") {
-                                    e.preventDefault();
-                                    setImagePreview(att.url);
-                                  }
-                                }}
-                                className="w-7 h-7 rounded-full border-2 border-white dark:border-[#111827] bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:z-10 hover:scale-110 hover:shadow-sm transition-all">
-                                {att.fileType === "image" ? <FiImage size={12} /> : <FiFile size={12} />}
-                              </a>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 dark:text-slate-500 text-[11px] font-medium italic">None</span>
-                        )}
+                       
+                         {report.pendingTasks || "-"}
+                        
+                          
                       </td>
+
+                         <td className="px-5 py-3.5">
+                       
+                         {report.reasonForPending || "-"}
+                        
+                          
+                      </td>
+
+
+                    <td className="px-5 py-3.5">
+                       
+                         {report.challengesFaced || "-"}
+                        
+                          
+                      </td>
+
+                       <td className="px-5 py-3.5">
+                       
+                         {report.
+tomorrowPlan || "-"}
+                        
+                          
+                      </td>
+
+
+
+
+
+
                       <td className="px-5 py-3.5 text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
