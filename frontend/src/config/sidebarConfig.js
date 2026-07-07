@@ -16,7 +16,7 @@ export const sidebarConfig = {
   admin: [
     { name: "Dashboard", path: "/admin", icon: FiHome },
     { name: "Clients Management", path: "/admin/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
-    { name: "Portfolio", path: "/admin/portfolio", icon: LuFolderOpen, permissionKey: "manage_settings" },
+    { name: "Portfolio", path: "/admin/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
     { name: "Projects Overview", path: "/admin/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
     { name: "MyTasks", path: "/admin/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
     // { name: "Template Library", path: "/admin/template-library", icon: LuLayoutTemplate, permissionKey: "manage_settings" },
@@ -35,7 +35,7 @@ export const sidebarConfig = {
   operationmanager: [
     { name: "Dashboard", path: "/operationmanager", icon: FiHome },
     { name: "Clients Management", path: "/operationmanager/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
-    { name: "Portfolio", path: "/operationmanager/portfolio", icon: LuFolderOpen, permissionKey: "manage_settings" },
+    { name: "Portfolio", path: "/operationmanager/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
     { name: "Projects Overview", path: "/operationmanager/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
     { name: "MyTasks", path: "/operationmanager/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
     { name: "Calendar", path: "/operationmanager/calendar", icon: LuCalendarDays },
@@ -51,7 +51,7 @@ export const sidebarConfig = {
   team: [
     { name: "Dashboard", path: "/team", icon: FiHome },
     { name: "Assigned Clients", path: "/team/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
-    { name: "Portfolio", path: "/team/portfolio", icon: LuFolderOpen, permissionKey: "manage_settings" },
+    { name: "Portfolio", path: "/team/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
     { name: "Projects Overview", path: "/team/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
     { name: "My Tasks", path: "/team/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
     { name: "Reports", path: "/team/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },

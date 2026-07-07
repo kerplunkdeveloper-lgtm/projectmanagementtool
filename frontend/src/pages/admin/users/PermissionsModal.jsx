@@ -40,6 +40,11 @@ const PERMISSION_MODULES = [
     desc: "Add and edit client details",
   },
   {
+    id: "manage_portfolios",
+    label: "Manage Portfolios",
+    desc: "Create and edit portfolios",
+  },
+  {
     id: "manage_settings",
     label: "System Settings",
     desc: "Configure global application settings",

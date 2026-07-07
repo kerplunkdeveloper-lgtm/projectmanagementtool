@@ -81,7 +81,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
   const [isWorkOpen, setIsWorkOpen] = useState(false);
   const [isProjectsListOpen, setIsProjectsListOpen] = useState(true);
-  const [isPortfoliosListOpen, setIsPortfoliosListOpen] = useState(true);
+  const [isPortfoliosListOpen, setIsPortfoliosListOpen] = useState(false);
   const [isPortfolioDropdownOpen, setIsPortfolioDropdownOpen] = useState(
     location.pathname.includes("/portfolio"),
   );
@@ -459,6 +459,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                 {!hasRenderedPortfoliosList &&
                   portfolios &&
                   portfolios.length > 0 &&
+                  (role === "admin" || currentUser?.permissions?.manage_portfolios?.read || currentUser?.permissions?.manage_portfolios === true) &&
                   renderPortfoliosList()}
               </>
             );

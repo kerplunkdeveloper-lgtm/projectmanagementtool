@@ -44,7 +44,7 @@ const Preloader = () => {
       
       {/* Email / Status Text */}
       <div className="flex flex-col items-center overflow-hidden">
-        <h2 className="text-[16px] font-black tracking-wide text-slate-800 dark:text-slate-100 animate-pulse transition-colors duration-300">
+        <h2 className="text-[18px] md:text-[25px] font-black tracking-wide text-slate-800 dark:text-slate-900 animate-pulse transition-colors duration-300">
           {user?.email || "Loading Workspace..."}
         </h2>
         <div className="flex items-center gap-2 mt-3">
