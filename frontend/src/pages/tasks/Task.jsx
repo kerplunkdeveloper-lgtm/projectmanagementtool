@@ -400,8 +400,13 @@ const Task = () => {
   }, [filteredTasksWithoutStatus]);
 
   const filteredTasks = React.useMemo(() => {
-    return filteredTasksWithoutStatus.filter((task) => {
+    const list = filteredTasksWithoutStatus.filter((task) => {
       return statusFilter === "All" || task.status === statusFilter;
+    });
+    return [...list].sort((a, b) => {
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return timeB - timeA;
     });
   }, [filteredTasksWithoutStatus, statusFilter]);
 
@@ -730,6 +735,8 @@ const Task = () => {
 
   const getPriorityStyle = (priority) => {
     switch (priority) {
+      case "Top High":
+        return "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900 dark:text-purple-300 dark:border-purple-600";
       case "High":
         return "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-900 dark:text-rose-300 dark:border-rose-600";
       case "Medium":
@@ -877,6 +884,7 @@ const Task = () => {
                       { name: "Low", label: "Low", color: "bg-slate-400" },
                       { name: "Medium", label: "Medium", color: "bg-amber-500" },
                       { name: "High", label: "High", color: "bg-rose-500" },
+                      { name: "Top High", label: "Top High", color: "bg-purple-600" },
                     ].map((priority) => (
                       <button
                         key={priority.name}
@@ -1151,10 +1159,10 @@ const Task = () => {
       ) : (
         <div className="space-y-4">
           <div className="bg-white dark:bg-[#070b13] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)] overflow-hidden border border-slate-200/60 dark:border-[#1e293b]/50 transition-all">
-            <div className="overflow-x-auto w-full">
+            <div className="overflow-x-auto overflow-y-auto h-[calc(100vh-260px)] min-h-[400px] w-full scrollbar-thin">
               <table className="w-full min-w-[1300px] text-left border-collapse table-auto border-0">
                 <thead>
-                  <tr className="bg-slate-50/20 dark:bg-[#0f172a]/30 text-slate-500 dark:text-slate-400 text-[10px] font-bold tracking-wider border-b border-slate-200/60 dark:border-[#1e293b]/50">
+                  <tr className="sticky top-0 z-20 bg-slate-50 dark:bg-[#0f172a] text-slate-500 dark:text-slate-400 text-[10px] font-bold tracking-wider border-b border-slate-200/60 dark:border-[#1e293b]/50 shadow-sm">
                     <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-24">
                       ID 
                     </th>
@@ -1207,7 +1215,9 @@ const Task = () => {
                             className={`hover:bg-slate-50/40 dark:hover:bg-[#1e293b]/20 transition-colors group cursor-pointer ${
                               isCompleted
                                 ? "bg-slate-50/20 text-slate-400 dark:text-slate-500"
-                                : "text-slate-700 dark:text-slate-200"
+                                : task.priority === "Top High"
+                                  ? "row-priority-top-high text-slate-700 dark:text-slate-200"
+                                  : "text-slate-700 dark:text-slate-200"
                             }`}
                             onClick={() => setSelectedTaskId(task._id)}
                           >
@@ -1900,6 +1910,7 @@ const Task = () => {
                       <option value="Low">Low</option>
                       <option value="Medium">Medium</option>
                       <option value="High">High</option>
+                      <option value="Top High">Top High</option>
                     </select>
                   </div>
 
@@ -2197,16 +2208,19 @@ const Task = () => {
                                     )
                                   }
                                   className={`w-full px-2 py-1 text-[9px] font-extrabold rounded-lg border focus:outline-none cursor-pointer ${
-                                    sub.priority === "High"
-                                      ? "bg-rose-50 text-rose-700 border-rose-200/50"
-                                      : sub.priority === "Medium"
-                                        ? "bg-amber-50 text-amber-700 border-amber-200/50"
-                                        : "bg-slate-50 text-slate-600 border-slate-200"
+                                    sub.priority === "Top High"
+                                      ? "bg-purple-50 text-purple-700 border-purple-200/50"
+                                      : sub.priority === "High"
+                                        ? "bg-rose-50 text-rose-700 border-rose-200/50"
+                                        : sub.priority === "Medium"
+                                          ? "bg-amber-50 text-amber-700 border-amber-200/50"
+                                          : "bg-slate-50 text-slate-600 border-slate-200"
                                   }`}
                                 >
                                   <option value="Low">Low</option>
                                   <option value="Medium">Medium</option>
                                   <option value="High">High</option>
+                                  <option value="Top High">Top High</option>
                                 </select>
                               </div>
 

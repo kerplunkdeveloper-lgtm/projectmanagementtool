@@ -987,7 +987,7 @@ const ProjectTaskBoard = ({
   const [filterSearch, setFilterSearch] = useState("");
   const [filterAssignee, setFilterAssignee] = useState("all"); // "all" | "unassigned" | userId
   const [filterStatus, setFilterStatus] = useState("all"); // "all" | "Pending" | "In Progress" | "Completed" | "On Hold"
-  const [filterPriority, setFilterPriority] = useState("all"); // "all" | "Low" | "Medium" | "High"
+  const [filterPriority, setFilterPriority] = useState("all"); // "all" | "Low" | "Medium" | "High" | "Top High"
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
   const [sortBy, setSortBy] = useState("none"); // "none" | "name" | "startDate" | "dueDate" | "priority" | "status"
@@ -1216,13 +1216,37 @@ const ProjectTaskBoard = ({
   });
 
   const handleDragEnd = async (result) => {
-    const { destination, source, draggableId } = result;
+    const { destination, source, draggableId, type } = result;
     if (!destination) return;
     if (
       destination.droppableId === source.droppableId &&
       destination.index === source.index
     )
       return;
+
+    if (type === "SECTION") {
+      const projectSections = activeProject.sections || [];
+      const sectionsToRender = projectSections.length > 0 ? projectSections : ["General"];
+      const uniqueSections = Array.from(new Set(sectionsToRender));
+
+      const newSections = Array.from(uniqueSections);
+      const [removed] = newSections.splice(source.index, 1);
+      newSections.splice(destination.index, 0, removed);
+
+      try {
+        await dispatch(
+          updateProject({
+            id: activeProjectId,
+            data: { sections: newSections },
+          }),
+        ).unwrap();
+        toast.success("Section reordered successfully");
+      } catch (err) {
+        console.error("Failed to reorder sections:", err);
+        toast.error("Failed to reorder sections");
+      }
+      return;
+    }
 
     if (activeTab === "Kanban") {
       // Optimistically update local UI for status
@@ -2174,6 +2198,11 @@ const ProjectTaskBoard = ({
                               label: "High",
                               color: "bg-rose-500",
                             },
+                            {
+                              name: "Top High",
+                              label: "Top High",
+                              color: "bg-red-700",
+                            },
                           ].map((priority) => (
                             <button
                               key={priority.name}
@@ -2395,37 +2424,65 @@ const ProjectTaskBoard = ({
 
       {/* TAB CONTENT */}
       <div className="min-h-[400px]">
-        {activeTab === "List" &&
-          (() => {
+        {activeTab === "List" && (
+          <DragDropContext onDragEnd={handleDragEnd}>
+            {(() => {
             const showSelectionColumn = Object.values(
               selectionModeSections,
             ).some(Boolean);
 
-            const renderInlineCreateRow = (sectionName) => {
+            const renderInlineCreateRow = (sectionName, sColor = null) => {
               const isTaskInputActive = inlineAddingTaskSection === sectionName;
               const isSectionInputActive = inlineAddingSectionUnder === sectionName;
               const rowBg = "bg-white dark:bg-[#111115] hover:bg-slate-50/50 dark:hover:bg-white/[0.02]";
+              const bBottom = sColor ? { borderBottom: `2.5px solid ${sColor.hex}` } : {};
+              const bLeft = sColor ? { borderLeft: `2.5px solid ${sColor.hex}` } : {};
+              const bRight = sColor ? { borderRight: `2.5px solid ${sColor.hex}` } : {};
               return (
                 <tr className={`border-b border-slate-300 dark:border-slate-700 ${rowBg}`}>
                   {showSelectionColumn && (
                     <td 
                       className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 w-10 md:sticky md:left-0 z-10 bg-transparent" 
-                      style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}
+                      style={{
+                        width: '40px',
+                        minWidth: '40px',
+                        maxWidth: '40px',
+                        ...bBottom,
+                        ...bLeft
+                      }}
                     />
                   )}
                   {/* Chevron column spacer */}
                   <td 
                     className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-10 bg-transparent" 
-                    style={{ left: showSelectionColumn ? '40px' : '0px', width: '40px', minWidth: '40px', maxWidth: '40px' }}
+                    style={{
+                      left: showSelectionColumn ? '40px' : '0px',
+                      width: '40px',
+                      minWidth: '40px',
+                      maxWidth: '40px',
+                      ...bBottom,
+                      ...(!showSelectionColumn ? bLeft : {})
+                    }}
                   />
                   {/* ID column spacer */}
                   <td 
                     className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-10" 
-                    style={{ left: showSelectionColumn ? '80px' : '40px', backgroundColor: 'inherit', minWidth: '60px', maxWidth: '60px', width: '60px' }}
+                    style={{
+                      left: showSelectionColumn ? '80px' : '40px',
+                      backgroundColor: 'inherit',
+                      minWidth: '60px',
+                      maxWidth: '60px',
+                      width: '60px',
+                      ...bBottom
+                    }}
                   />
                   <td
                     className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-10 min-w-[250px] md:min-w-[400px]"
-                    style={{ left: showSelectionColumn ? '140px' : '100px', backgroundColor: "inherit" }}
+                    style={{
+                      left: showSelectionColumn ? '140px' : '100px',
+                      backgroundColor: "inherit",
+                      ...bBottom
+                    }}
                   >
                     <div className="flex items-center gap-2 w-full pl-6">
                       {isTaskInputActive ? (
@@ -2450,8 +2507,8 @@ const ProjectTaskBoard = ({
                             }}
                             onKeyDown={(e) => {
                               if (e.key === "Escape") {
-                                setInlineTaskTitle("");
-                                setInlineAddingTaskSection(null);
+                                  setInlineTaskTitle("");
+                                  setInlineAddingTaskSection(null);
                               }
                             }}
                             className="w-full bg-transparent text-[11px] font-semibold text-slate-800 dark:text-white outline-none border-b-2 border-blue-500 dark:border-[#3b82f6] pb-1 placeholder-slate-450 dark:placeholder-slate-550 transition-all focus:border-blue-600 dark:focus:border-blue-400"
@@ -2509,9 +2566,9 @@ const ProjectTaskBoard = ({
                           <button
                             type="button"
                             onClick={() => {
-                              setInlineAddingSectionUnder(sectionName);
-                              setInlineAddingTaskSection(null);
-                              setInlineSectionName("");
+                               setInlineAddingSectionUnder(sectionName);
+                               setInlineAddingTaskSection(null);
+                               setInlineSectionName("");
                             }}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/30 text-slate-500 dark:text-slate-400 hover:text-indigo-650 dark:hover:text-indigo-400 transition-all cursor-pointer font-bold"
                           >
@@ -2522,15 +2579,15 @@ const ProjectTaskBoard = ({
                       )}
                     </div>
                   </td>
-                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" />
-                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" />
-                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" />
-                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" />
-                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" />
-                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" />
-                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" />
-                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" />
-                  <td className="px-3 py-1 border-b border-slate-300 dark:border-slate-700" />
+                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" style={bBottom} />
+                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" style={bBottom} />
+                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" style={bBottom} />
+                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" style={bBottom} />
+                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" style={bBottom} />
+                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" style={bBottom} />
+                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" style={bBottom} />
+                  <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700" style={bBottom} />
+                  <td className="px-3 py-1 border-b border-slate-300 dark:border-slate-700" style={{ ...bBottom, ...bRight }} />
                 </tr>
               );
             };
@@ -2561,10 +2618,16 @@ const ProjectTaskBoard = ({
                   </div>
                 </div>
 
-                <div className="overflow-x-auto w-full bg-white dark:bg-[#111115]">
-                  <table className="w-full text-left border-spacing-0 text-[11px]">
-                    <thead>
-                      <tr className="bg-slate-50 dark:bg-[#16161b] text-slate-700 dark:text-slate-300 tracking-wider text-[12px]">
+                <div className="overflow-x-auto overflow-y-auto h-[calc(100vh-220px)] min-h-[400px] w-full bg-white dark:bg-[#111115] border border-slate-200 dark:border-slate-800 rounded-xl relative scrollbar-thin">
+                  <StrictModeDroppable droppableId="sections-list" type="SECTION">
+                    {(provided) => (
+                      <table
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                        className="w-full text-left border-collapse text-[11px] project-task-table"
+                      >
+                        <thead>
+                          <tr className="bg-slate-50 dark:bg-[#16161b] text-slate-700 dark:text-slate-300 tracking-wider text-[12px]">
                         {showSelectionColumn && (
                           <th 
                             className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 z-40 bg-slate-50 dark:bg-[#16161b]"
@@ -2635,29 +2698,50 @@ const ProjectTaskBoard = ({
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="text-[11px]">
-                      {(() => {
-                        const projectSections = activeProject.sections || [];
-                        const hasNoSectionsAndNoTasks = projectSections.length === 0 && sortedTasks.length === 0;
-                        if (hasNoSectionsAndNoTasks) {
-                          return renderInlineCreateRow("__root__");
-                        }
-                        const sectionsToRender = projectSections.length > 0
-                          ? projectSections
-                          : ["General"];
-                        return Array.from(new Set(sectionsToRender)).map((sectionName, sectionIndex) => {
-                          const sectionTasks = sortedTasks.filter(
-                            (t) =>
-                              t.section === sectionName ||
-                              (!t.section && sectionName === "General"),
-                          );
+                    {(() => {
+                      const projectSections = activeProject.sections || [];
+                      const hasNoSectionsAndNoTasks = projectSections.length === 0 && sortedTasks.length === 0;
+                      if (hasNoSectionsAndNoTasks) {
+                        return (
+                          <tbody className="text-[11px]">
+                            {renderInlineCreateRow("__root__")}
+                          </tbody>
+                        );
+                      }
+                      const sectionsToRender = projectSections.length > 0
+                        ? projectSections
+                        : ["General"];
+                      return Array.from(new Set(sectionsToRender)).map((sectionName, sectionIndex) => {
+                        const sectionTasks = sortedTasks.filter(
+                          (t) =>
+                            t.section === sectionName ||
+                            (!t.section && sectionName === "General"),
+                        );
                         const isSectionCollapsed =
                           !!collapsedSections[sectionName];
 
+                        const sectionColors = [
+                          { hex: "#6366f1", borderClass: "border-indigo-500 dark:border-indigo-400" }, // Indigo
+                          { hex: "#0ea5e9", borderClass: "border-sky-500 dark:border-sky-400" }, // Sky
+                          { hex: "#10b981", borderClass: "border-emerald-500 dark:border-emerald-400" }, // Emerald
+                          { hex: "#f59e0b", borderClass: "border-amber-500 dark:border-amber-400" }, // Amber
+                          { hex: "#f43f5e", borderClass: "border-rose-500 dark:border-rose-400" }, // Rose
+                          { hex: "#a855f7", borderClass: "border-purple-500 dark:border-purple-400" }, // Purple
+                        ];
+                        const sColor = sectionColors[sectionIndex % sectionColors.length];
+
                         return (
-                          <React.Fragment
-                            key={`${sectionName}-${sectionIndex}`}
+                          <Draggable
+                            key={sectionName}
+                            draggableId={sectionName}
+                            index={sectionIndex}
                           >
+                            {(provided) => (
+                              <tbody
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className="text-[11px]"
+                              >
                             {/* SECTION HEADER ROW */}
                             <tr
                               className={`theme-bg-accent-ultrasubtle border-b border-slate-300 dark:border-slate-700 select-none group/secrow transition-colors ${
@@ -2666,344 +2750,304 @@ const ProjectTaskBoard = ({
                                   : ""
                               }`}
                             >
+                              {showSelectionColumn && (
+                                <td
+                                  className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 z-30 bg-slate-50 dark:bg-[#16161b]"
+                                  style={{
+                                    width: '40px',
+                                    minWidth: '40px',
+                                    maxWidth: '40px',
+                                    borderLeft: `2.5px solid ${sColor.hex}`
+                                  }}
+                                >
+                                  {selectionModeSections[sectionName] && (
+                                    <input
+                                      type="checkbox"
+                                      className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                      checked={
+                                        sectionTasks.length > 0 &&
+                                        sectionTasks.every((t) => selectedTasks[t._id])
+                                      }
+                                      onChange={(e) => {
+                                        const checked = e.target.checked;
+                                        setSelectedTasks((prev) => {
+                                          const next = { ...prev };
+                                          sectionTasks.forEach((t) => {
+                                            next[t._id] = checked;
+                                          });
+                                          return next;
+                                        });
+                                      }}
+                                    />
+                                  )}
+                                </td>
+                              )}
+                              {/* Chevron Arrow Column */}
                               <td
-                                colSpan={showSelectionColumn ? 13 : 12}
-                                className={`p-0 border-b border-slate-300 dark:border-slate-700 relative bg-slate-50 dark:bg-[#16161b] ${
-                                  openSectionMenu === sectionName
-                                    ? "z-50"
-                                    : "z-10"
-                                }`}
+                                className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 text-center w-10 md:sticky z-30 bg-slate-50 dark:bg-[#16161b]"
+                                style={{
+                                  left: showSelectionColumn ? '40px' : '0px',
+                                  width: '40px',
+                                  minWidth: '40px',
+                                  maxWidth: '40px',
+                                  borderLeft: !showSelectionColumn ? `2.5px solid ${sColor.hex}` : undefined
+                                }}
                               >
-                                <div className="flex items-center justify-between w-full min-w-full bg-slate-50 dark:bg-[#16161b] transition-colors">
-                                  {/* Left Sticky Container */}
-                                  <div
-                                    className={`md:sticky md:left-0 flex items-center py-2.5 bg-slate-50 dark:bg-[#16161b] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] dark:shadow-[2px_0_5px_-2px_rgba(0,0,0,0.5)] transition-colors ${
-                                      openSectionMenu === sectionName
-                                        ? "z-50"
-                                        : "z-20"
-                                    }`}
+                                <button
+                                  type="button"
+                                  onClick={() => toggleSection(sectionName)}
+                                  className="text-slate-400 hover:text-slate-655 dark:hover:text-slate-205 transition-colors flex items-center justify-center p-0.5 rounded cursor-pointer mx-auto"
+                                >
+                                  <svg
+                                    viewBox="0 0 24 24"
+                                    className={`w-3.5 h-3.5 text-slate-550 transition-transform duration-200 ${isSectionCollapsed ? "" : "rotate-90"}`}
+                                    fill="currentColor"
                                   >
-                                    {showSelectionColumn && (
-                                      <div className="w-[40px] flex items-center justify-center shrink-0">
-                                        {selectionModeSections[sectionName] && (
-                                          <input
-                                            type="checkbox"
-                                            className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                            checked={
-                                              sectionTasks.length > 0 &&
-                                              sectionTasks.every(
-                                                (t) => selectedTasks[t._id],
-                                              )
-                                            }
-                                            onChange={(e) => {
-                                              const checked = e.target.checked;
-                                              setSelectedTasks((prev) => {
-                                                const next = { ...prev };
-                                                sectionTasks.forEach((t) => {
-                                                  next[t._id] = checked;
-                                                });
-                                                return next;
-                                              });
-                                            }}
-                                          />
-                                        )}
-                                      </div>
-                                    )}
-                                    {/* Play/triangle icon that rotates */}
-                                    <div className="w-[40px] flex items-center justify-center shrink-0">
-                                      <button
-                                        type="button"
-                                        onClick={() => toggleSection(sectionName)}
-                                        className="text-slate-400 hover:text-slate-655 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-0.5 rounded cursor-pointer"
-                                      >
-                                        <svg
-                                          viewBox="0 0 24 24"
-                                          className={`w-3.5 h-3.5 text-slate-550 transition-transform duration-200 ${isSectionCollapsed ? "" : "rotate-90"}`}
-                                          fill="currentColor"
-                                        >
-                                          <path d="M8 5v14l11-7z" />
-                                        </svg>
-                                      </button>
-                                    </div>
-                                    {editingSection === sectionName ? (
-                                      <form
-                                        onSubmit={(e) =>
-                                          handleRenameSectionSubmit(
-                                            e,
-                                            sectionName,
-                                          )
-                                        }
-                                        className="inline-block ml-[60px] pl-3"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <input
-                                          autoFocus
-                                          value={editSectionValue}
-                                          onChange={(e) =>
-                                            setEditSectionValue(e.target.value)
-                                          }
-                                          onBlur={(e) =>
-                                            handleRenameSectionSubmit(
-                                              e,
-                                              sectionName,
-                                            )
-                                          }
-                                          className="text-xs font-semibold bg-white dark:bg-slate-800 border border-blue-400 rounded px-2 py-1 outline-none text-slate-800 dark:text-white"
-                                        />
-                                      </form>
-                                    ) : (
-                                      <div className="flex items-center gap-2.5 ml-[60px] pl-3">
-                                        <h3
-                                          className="font-bold text-xs uppercase tracking-wider text-slate-705 dark:text-slate-355 hover:text-blue-600 dark:hover:text-[#3b82f6] transition-colors cursor-pointer inline-flex items-center gap-2"
-                                          onClick={() =>
-                                            toggleSection(sectionName)
-                                          }
-                                        >
-                                          <svg 
-                                            viewBox="0 0 24 24" 
-                                            className="w-3.5 h-3.5 text-blue-500 dark:text-blue-400 shrink-0" 
-                                            fill="none" 
-                                            stroke="currentColor" 
-                                            strokeWidth="2.5" 
-                                            strokeLinecap="round" 
-                                            strokeLinejoin="round"
-                                          >
-                                            {/* Checkmark */}
-                                            <path d="M3 7l3 3 5-5" className="stroke-blue-500 dark:stroke-blue-400" />
-                                            {/* Top short line */}
-                                            <line x1="14" y1="8" x2="20" y2="8" className="stroke-slate-450 dark:stroke-slate-500" strokeWidth="2" />
-                                            {/* Middle line */}
-                                            <line x1="3" y1="14" x2="20" y2="14" className="stroke-slate-700 dark:stroke-slate-300" strokeWidth="2" />
-                                            {/* Bottom line */}
-                                            <line x1="3" y1="20" x2="20" y2="20" className="stroke-slate-700 dark:stroke-slate-300" strokeWidth="2" />
-                                          </svg>
-                                          {sectionName}
-                                          <span className="bg-blue-100/60 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200/40 dark:border-blue-800/30 font-bold px-2 py-0.5 rounded-full text-[10px]">
-                                            {sectionTasks.length}
-                                          </span>
-                                        </h3>
-
-                                        {/* Add Task Plus Icon next to section name */}
-                                        {isAdminOrManager && (
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleAddTask(sectionName);
-                                            }}
-                                            title="Add Task to this Section"
-                                            className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-white/5 dark:hover:bg-white/10 text-blue-600 dark:text-[#3b82f6] hover:scale-110 active:scale-90 transition-all cursor-pointer border border-blue-100/50 dark:border-white/5"
-                                          >
-                                            <FiPlus
-                                              size={11}
-                                              className="stroke-[3]"
-                                            />
-                                          </button>
-                                        )}
-                                        {/* Section Options Dropdown next to plus icon */}
-                                        {isAdminOrManager && (
-                                          <div className="relative">
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setOpenSectionMenu(
-                                                  openSectionMenu ===
-                                                    sectionName
-                                                    ? null
-                                                    : sectionName,
-                                                );
-                                              }}
-                                              onMouseDown={(e) =>
-                                                e.stopPropagation()
-                                              }
-                                              className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 hover:bg-slate-205 dark:bg-white/5 dark:hover:bg-white/10 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-205 transition-colors cursor-pointer border border-slate-200/50 dark:border-white/5 section-menu-container"
-                                            >
-                                              <FiMoreHorizontal size={11} />
-                                            </button>
-
-                                            {/* Dropdown Menu */}
-                                            {openSectionMenu ===
-                                              sectionName && (
-                                              <div
-                                                className="absolute left-0 top-full mt-2 w-48 bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-xl rounded-xl p-2 z-50 flex flex-col gap-1.5 section-menu-container"
-                                                onClick={(e) =>
-                                                  e.stopPropagation()
-                                                }
-                                                onMouseDown={(e) =>
-                                                  e.stopPropagation()
-                                                }
-                                              >
-                                                {/* Selection Mode / Cancel */}
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    setSelectionModeSections(
-                                                      (prev) => ({
-                                                        ...prev,
-                                                        [sectionName]:
-                                                          !prev[sectionName],
-                                                      }),
-                                                    );
-                                                    if (
-                                                      selectionModeSections[
-                                                        sectionName
-                                                      ]
-                                                    ) {
-                                                      setSelectedTasks(
-                                                        (prev) => {
-                                                          const next = {
-                                                            ...prev,
-                                                          };
-                                                          sectionTasks.forEach(
-                                                            (t) => {
-                                                              delete next[
-                                                                t._id
-                                                              ];
-                                                            },
-                                                          );
-                                                          return next;
-                                                        },
-                                                      );
-                                                    }
-                                                    setOpenSectionMenu(null);
-                                                  }}
-                                                  className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-[#F1F5F9] hover:bg-[#E2E8F0] dark:bg-[#1E293B] dark:hover:bg-[#334155] text-[#334155] dark:text-[#CBD5E1] rounded-full transition-all cursor-pointer border border-[#E2E8F0] dark:border-[#334155]"
-                                                >
-                                                  {selectionModeSections[
-                                                    sectionName
-                                                  ] ? (
-                                                    <>
-                                                      <FiX size={13} /> Cancel
-                                                      Select
-                                                    </>
-                                                  ) : (
-                                                    <>
-                                                      <FiCheckCircle
-                                                        size={13}
-                                                      />{" "}
-                                                      Select Tasks
-                                                    </>
-                                                  )}
-                                                </button>
-
-                                                {/* Rename */}
-                                                {sectionName !== "General" && (
-                                                  <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                      setEditingSection(
-                                                        sectionName,
-                                                      );
-                                                      setEditSectionValue(
-                                                        sectionName,
-                                                      );
-                                                      setOpenSectionMenu(null);
-                                                    }}
-                                                    className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-[#FFF7ED] hover:bg-[#FFEDD5] dark:bg-[#431407] dark:hover:bg-[#78350F] text-[#EA580C] dark:text-[#FDBA74] rounded-full transition-all cursor-pointer border border-[#FED7AA] dark:border-[#9A3412]"
-                                                  >
-                                                    <FiEdit2 size={13} /> Rename
-                                                  </button>
-                                                )}
-
-                                                {/* Delete Section */}
-                                                {sectionName !== "General" && (
-                                                  <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                      handleDeleteSection(
-                                                        sectionName,
-                                                      );
-                                                      setOpenSectionMenu(null);
-                                                    }}
-                                                    className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-[#FFF1F2] hover:bg-[#FFE4E6] dark:bg-[#4C0519] dark:hover:bg-[#881337] text-[#E11D48] dark:text-[#FDA4AF] rounded-full transition-all cursor-pointer border border-[#FECDD3] dark:border-[#9F1239]"
-                                                  >
-                                                    <FiTrash2 size={13} />{" "}
-                                                    Delete
-                                                  </button>
-                                                )}
-                                              </div>
-                                            )}
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
+                                    <path d="M8 5v14l11-7z" />
+                                  </svg>
+                                </button>
+                              </td>
+                              {/* ID Column */}
+                              <td
+                                className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[60px] max-w-[60px] w-[60px] md:sticky z-30 bg-slate-50 dark:bg-[#16161b]"
+                                style={{
+                                  left: showSelectionColumn ? '80px' : '40px'
+                                }}
+                              />
+                              {/* Task Name Column */}
+                              <td
+                                className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-30 bg-slate-50 dark:bg-[#16161b]"
+                                style={{
+                                  left: showSelectionColumn ? '140px' : '100px',
+                                  minWidth: '250px'
+                                }}
+                              >
+                                <div className="flex items-center gap-2.5 w-full">
+                                  {/* Drag Handle */}
+                                  <div
+                                    {...provided.dragHandleProps}
+                                    className="cursor-grab active:cursor-grabbing text-slate-400 hover:text-slate-655 dark:hover:text-slate-205 transition-colors flex items-center justify-center shrink-0"
+                                    title="Drag to reorder section"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                      <circle cx="9" cy="12" r="1.5" fill="currentColor" />
+                                      <circle cx="9" cy="6" r="1.5" fill="currentColor" />
+                                      <circle cx="9" cy="18" r="1.5" fill="currentColor" />
+                                      <circle cx="15" cy="12" r="1.5" fill="currentColor" />
+                                      <circle cx="15" cy="6" r="1.5" fill="currentColor" />
+                                      <circle cx="15" cy="18" r="1.5" fill="currentColor" />
+                                    </svg>
                                   </div>
 
-                                  {/* Right Sticky Container */}
+                                  {/* Inline Editable Section Name Input */}
+                                  <input
+                                    id={`section-input-${sectionName}`}
+                                    type="text"
+                                    defaultValue={sectionName}
+                                    onBlur={async (e) => {
+                                      const newName = e.target.value.trim();
+                                      if (!newName || newName === sectionName) {
+                                        e.target.value = sectionName; // revert back
+                                        return;
+                                      }
+
+                                      try {
+                                        const currentSections = activeProject.sections?.length > 0 ? activeProject.sections : ["General"];
+                                        const updatedSections = currentSections.map((s) => s === sectionName ? newName : s);
+
+                                        await dispatch(updateProject({ id: activeProjectId, data: { sections: updatedSections } })).unwrap();
+
+                                        const tasksToUpdate = tasks.filter(t => t.section === sectionName || (!t.section && sectionName === "General"));
+                                        await Promise.all(tasksToUpdate.map(t => updateTaskMutation({ id: t._id, taskData: { section: newName } }).unwrap()));
+
+                                        toast.success("Section renamed successfully");
+                                      } catch (err) {
+                                        console.error("Failed to rename section:", err);
+                                        toast.error("Failed to rename section");
+                                        e.target.value = sectionName; // revert back
+                                      }
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.target.blur();
+                                      }
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="font-bold text-xs uppercase tracking-wider text-slate-705 dark:text-slate-355 hover:bg-slate-100 dark:hover:bg-slate-800 rounded px-1.5 py-0.5 outline-none bg-transparent focus:bg-white dark:focus:bg-slate-800 focus:ring-1 focus:ring-blue-500 max-w-[200px] sm:max-w-[400px] border-none cursor-text truncate transition-all"
+                                  />
+
+                                  <span className="bg-blue-100/60 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200/40 dark:border-blue-800/30 font-bold px-2 py-0.5 rounded-full text-[10px] select-none">
+                                    {sectionTasks.length}
+                                  </span>
+
+                                  {/* Add Task Plus Icon next to section name */}
                                   {isAdminOrManager && (
-                                    <div className="sticky right-0 flex items-center gap-2 px-3 py-2.5 theme-bg-accent-ultrasubtle backdrop-blur-sm shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.05)] dark:shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.5)] z-20 section-menu-container transition-colors">
-                                      {selectionModeSections[sectionName] && (
-                                        <>
-                                          {/* Cancel Select Button displayed outside */}
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleAddTask(sectionName);
+                                      }}
+                                      title="Add Task to this Section"
+                                      className="flex items-center justify-center w-5 h-5 rounded-full bg-blue-50 hover:bg-blue-100 dark:bg-white/5 dark:hover:bg-white/10 text-blue-600 dark:text-[#3b82f6] hover:scale-110 active:scale-90 transition-all cursor-pointer border border-blue-100/50 dark:border-white/5"
+                                    >
+                                      <FiPlus size={11} className="stroke-[3]" />
+                                    </button>
+                                  )}
+
+                                  {/* Section Options Dropdown next to plus icon */}
+                                  {isAdminOrManager && (
+                                    <div className="relative">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setOpenSectionMenu(
+                                            openSectionMenu === sectionName ? null : sectionName
+                                          );
+                                        }}
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                        className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 hover:bg-slate-205 dark:bg-white/5 dark:hover:bg-white/10 text-slate-550 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-205 transition-colors cursor-pointer border border-slate-200/50 dark:border-white/5 section-menu-container"
+                                      >
+                                        <FiMoreHorizontal size={11} />
+                                      </button>
+
+                                      {/* Dropdown Menu */}
+                                      {openSectionMenu === sectionName && (
+                                        <div
+                                          className="absolute left-0 top-full mt-2 w-48 bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-xl rounded-xl p-2 z-50 flex flex-col gap-1.5 section-menu-container"
+                                          onClick={(e) => e.stopPropagation()}
+                                          onMouseDown={(e) => e.stopPropagation()}
+                                        >
+                                          {/* Selection Mode / Cancel */}
                                           <button
                                             type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setSelectionModeSections(
-                                                (prev) => ({
-                                                  ...prev,
-                                                  [sectionName]: false,
-                                                }),
-                                              );
-                                              setSelectedTasks((prev) => {
-                                                const next = { ...prev };
-                                                sectionTasks.forEach((t) => {
-                                                  delete next[t._id];
+                                            onClick={() => {
+                                              setSelectionModeSections((prev) => ({
+                                                ...prev,
+                                                [sectionName]: !prev[sectionName]
+                                              }));
+                                              if (selectionModeSections[sectionName]) {
+                                                setSelectedTasks((prev) => {
+                                                  const next = { ...prev };
+                                                  sectionTasks.forEach((t) => {
+                                                    delete next[t._id];
+                                                  });
+                                                  return next;
                                                 });
-                                                return next;
-                                              });
+                                              }
+                                              setOpenSectionMenu(null);
                                             }}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-extrabold bg-slate-100 hover:bg-slate-205 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full transition-all cursor-pointer border border-slate-200 dark:border-slate-700 shadow-sm"
+                                            className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-[#F1F5F9] hover:bg-[#E2E8F0] dark:bg-[#1E293B] dark:hover:bg-[#334155] text-[#334155] dark:text-[#CBD5E1] rounded-full transition-all cursor-pointer border border-[#E2E8F0] dark:border-[#334155]"
                                           >
-                                            <FiX
-                                              size={11}
-                                              className="stroke-[3]"
-                                            />{" "}
-                                            Cancel Select
+                                            {selectionModeSections[sectionName] ? (
+                                              <>
+                                                <FiX size={13} /> Cancel Select
+                                              </>
+                                            ) : (
+                                              <>
+                                                <FiCheckCircle size={13} /> Select Tasks
+                                              </>
+                                            )}
                                           </button>
 
-                                          {/* Delete Selected Button displayed outside */}
-                                          {Object.keys(selectedTasks).some(
-                                            (id) =>
-                                              selectedTasks[id] &&
-                                              sectionTasks.some(
-                                                (t) => t._id === id,
-                                              ),
-                                          ) && (
+                                          {/* Rename */}
+                                          {sectionName !== "General" && (
                                             <button
                                               type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleBulkDelete(
-                                                  sectionTasks,
-                                                  sectionName,
-                                                );
+                                              onClick={() => {
+                                                const inputEl = document.getElementById(`section-input-${sectionName}`);
+                                                if (inputEl) {
+                                                  inputEl.focus();
+                                                  inputEl.select();
+                                                }
+                                                setOpenSectionMenu(null);
                                               }}
-                                              className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-extrabold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-955/40 text-rose-600 dark:text-rose-455 rounded-full transition-all cursor-pointer border border-rose-200/30 dark:border-rose-900/20 shadow-sm"
+                                              className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-[#FFF7ED] hover:bg-[#FFEDD5] dark:bg-[#431407] dark:hover:bg-[#78350F] text-[#EA580C] dark:text-[#FDBA74] rounded-full transition-all cursor-pointer border border-[#FED7AA] dark:border-[#9A3412]"
                                             >
-                                              <FiTrash2 size={11} /> Delete
-                                              Selected (
-                                              {
-                                                Object.keys(
-                                                  selectedTasks,
-                                                ).filter(
-                                                  (id) =>
-                                                    selectedTasks[id] &&
-                                                    sectionTasks.some(
-                                                      (t) => t._id === id,
-                                                    ),
-                                                ).length
-                                              }
-                                              )
+                                              <FiEdit2 size={13} /> Rename
                                             </button>
                                           )}
-                                        </>
+
+                                          {/* Delete Section */}
+                                          {sectionName !== "General" && (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                handleDeleteSection(sectionName);
+                                                setOpenSectionMenu(null);
+                                              }}
+                                              className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-[#FFF1F2] hover:bg-[#FFE4E6] dark:bg-[#4C0519] dark:hover:bg-[#881337] text-[#E11D48] dark:text-[#FDA4AF] rounded-full transition-all cursor-pointer border border-[#FECDD3] dark:border-[#9F1239]"
+                                            >
+                                              <FiTrash2 size={13} /> Delete
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Bulk Actions Inline */}
+                                  {isAdminOrManager && selectionModeSections[sectionName] && (
+                                    <div className="flex items-center gap-2 ml-4">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSelectionModeSections((prev) => ({
+                                            ...prev,
+                                            [sectionName]: false
+                                          }));
+                                          setSelectedTasks((prev) => {
+                                            const next = { ...prev };
+                                            sectionTasks.forEach((t) => {
+                                              delete next[t._id];
+                                            });
+                                            return next;
+                                          });
+                                        }}
+                                        className="flex items-center gap-1.5 px-3 py-1 text-[10px] font-extrabold bg-slate-100 hover:bg-slate-205 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-full transition-all cursor-pointer border border-slate-200 dark:border-slate-700 shadow-sm"
+                                      >
+                                        <FiX size={11} className="stroke-[3]" /> Cancel Select
+                                      </button>
+
+                                      {Object.keys(selectedTasks).some(
+                                        (id) =>
+                                          selectedTasks[id] &&
+                                          sectionTasks.some((t) => t._id === id)
+                                      ) && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleBulkDelete(sectionTasks, sectionName);
+                                          }}
+                                          className="flex items-center gap-1.5 px-3 py-1 text-[10px] font-extrabold bg-rose-50 hover:bg-rose-100 dark:bg-rose-955/20 dark:hover:bg-rose-955/40 text-rose-600 dark:text-rose-455 rounded-full transition-all cursor-pointer border border-rose-200/30 dark:border-rose-900/20 shadow-sm"
+                                        >
+                                          <FiTrash2 size={11} /> Delete Selected ({
+                                            Object.keys(selectedTasks).filter(
+                                              (id) =>
+                                                selectedTasks[id] &&
+                                                sectionTasks.some((t) => t._id === id)
+                                            ).length
+                                          })
+                                        </button>
                                       )}
                                     </div>
                                   )}
                                 </div>
                               </td>
+                              {/* Empty Column Cells to render vertical gridlines */}
+                              <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b] whitespace-nowrap min-w-[140px]" />
+                              <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b] whitespace-nowrap min-w-[190px]" />
+                              <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b] whitespace-nowrap min-w-[130px]" />
+                              <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b] whitespace-nowrap min-w-[120px]" />
+                              <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b] whitespace-nowrap min-w-[120px]" />
+                              <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b] whitespace-nowrap min-w-[120px]" />
+                              <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b] whitespace-nowrap min-w-[120px]" />
+                              <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b] whitespace-nowrap min-w-[120px]" />
+                              <td className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b] text-center whitespace-nowrap min-w-[80px]" style={{ borderRight: `2.5px solid ${sColor.hex}` }} />
                             </tr>
 
                             {/* SECTION TASKS */}
@@ -3035,13 +3079,22 @@ const ProjectTaskBoard = ({
                                         onClick={() =>
                                           setSelectedTaskId(task._id)
                                         }
-                                        className={`group cursor-pointer transition-colors ${rowBg} `}
+                                        className={`group cursor-pointer transition-colors ${rowBg} ${
+                                          task.priority === "Top High" && task.status !== "Completed"
+                                            ? "row-priority-top-high"
+                                            : ""
+                                        }`}
                                       >
                                         {showSelectionColumn && (
                                           <td
                                             onClick={(e) => e.stopPropagation()}
                                             className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 z-30 ${rowBg}`}
-                                            style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}
+                                            style={{
+                                              width: '40px',
+                                              minWidth: '40px',
+                                              maxWidth: '40px',
+                                              borderLeft: `2.5px solid ${sColor.hex}`
+                                            }}
                                           >
                                             {selectionModeSections[
                                               sectionName
@@ -3067,7 +3120,13 @@ const ProjectTaskBoard = ({
                                         {/* Dropdown Chevron Column */}
                                         <td 
                                           className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center w-10 md:sticky z-30 ${rowBg}`}
-                                          style={{ left: showSelectionColumn ? '40px' : '0px', width: '40px', minWidth: '40px', maxWidth: '40px' }}
+                                          style={{
+                                            left: showSelectionColumn ? '40px' : '0px',
+                                            width: '40px',
+                                            minWidth: '40px',
+                                            maxWidth: '40px',
+                                            borderLeft: !showSelectionColumn ? `2.5px solid ${sColor.hex}` : undefined
+                                          }}
                                         >
                                           <div className="flex items-center justify-center">
                                             {task.subtasks?.length > 0 && (
@@ -3558,11 +3617,13 @@ const ProjectTaskBoard = ({
                                                   )
                                                 }
                                                 className={`badge-select ${
-                                                  task.priority === "High"
-                                                    ? "badge-priority-high"
-                                                    : task.priority === "Medium"
-                                                      ? "badge-priority-medium"
-                                                      : "badge-priority-low"
+                                                  task.priority === "Top High"
+                                                    ? "badge-priority-top-high"
+                                                    : task.priority === "High"
+                                                      ? "badge-priority-high"
+                                                      : task.priority === "Medium"
+                                                        ? "badge-priority-medium"
+                                                        : "badge-priority-low"
                                                 }`}
                                               >
                                                 <option value="Low">Low</option>
@@ -3572,15 +3633,20 @@ const ProjectTaskBoard = ({
                                                 <option value="High">
                                                   High
                                                 </option>
+                                                <option value="Top High">
+                                                  Top High
+                                                </option>
                                               </select>
                                             ) : (
                                               <span
                                                 className={`badge-span ${
-                                                  task.priority === "High"
-                                                    ? "badge-priority-high"
-                                                    : task.priority === "Medium"
-                                                      ? "badge-priority-medium"
-                                                      : "badge-priority-low"
+                                                  task.priority === "Top High"
+                                                    ? "badge-priority-top-high"
+                                                    : task.priority === "High"
+                                                      ? "badge-priority-high"
+                                                      : task.priority === "Medium"
+                                                        ? "badge-priority-medium"
+                                                        : "badge-priority-low"
                                                 }`}
                                               >
                                                 {task.priority || "Medium"}
@@ -3660,7 +3726,10 @@ const ProjectTaskBoard = ({
                                         </td>
 
                                         {/* Action Controls */}
-                                        <td className="px-3 py-1 border-b border-t border-slate-300 dark:border-slate-700 text-center">
+                                        <td
+                                          className="px-3 py-1 border-b border-t border-slate-300 dark:border-slate-700 text-center"
+                                          style={{ borderRight: `2.5px solid ${sColor.hex}` }}
+                                        >
                                           <div
                                             className="flex items-center justify-center gap-2.5"
                                             onClick={(e) => e.stopPropagation()}
@@ -3723,13 +3792,24 @@ const ProjectTaskBoard = ({
                                                   {showSelectionColumn && (
                                                     <td
                                                       className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 z-30 ${rowBgSub}`}
-                                                      style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}
+                                                      style={{
+                                                        width: '40px',
+                                                        minWidth: '40px',
+                                                        maxWidth: '40px',
+                                                        borderLeft: `2.5px solid ${sColor.hex}`
+                                                      }}
                                                     />
                                                   )}
                                                   {/* Empty Chevron Column for Subtask */}
                                                   <td 
                                                     className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 md:sticky z-30 ${rowBgSub}`}
-                                                    style={{ left: showSelectionColumn ? '40px' : '0px', width: '40px', minWidth: '40px', maxWidth: '40px' }}
+                                                    style={{
+                                                      left: showSelectionColumn ? '40px' : '0px',
+                                                      width: '40px',
+                                                      minWidth: '40px',
+                                                      maxWidth: '40px',
+                                                      borderLeft: !showSelectionColumn ? `2.5px solid ${sColor.hex}` : undefined
+                                                    }}
                                                   />
                                                   {/* Subtask ID Column */}
                                                   <td 
@@ -4289,12 +4369,15 @@ const ProjectTaskBoard = ({
                                                           }
                                                           className={`badge-select ${
                                                             sub.priority ===
-                                                            "High"
-                                                              ? "badge-priority-high"
+                                                            "Top High"
+                                                              ? "badge-priority-top-high"
                                                               : sub.priority ===
-                                                                  "Medium"
-                                                                ? "badge-priority-medium"
-                                                                : "badge-priority-low"
+                                                                  "High"
+                                                                ? "badge-priority-high"
+                                                                : sub.priority ===
+                                                                    "Medium"
+                                                                  ? "badge-priority-medium"
+                                                                  : "badge-priority-low"
                                                           }`}
                                                         >
                                                           <option value="Low">
@@ -4306,17 +4389,20 @@ const ProjectTaskBoard = ({
                                                           <option value="High">
                                                             High
                                                           </option>
+                                                          <option value="Top High">
+                                                            Top High
+                                                          </option>
                                                         </select>
                                                       ) : (
                                                         <span
                                                           className={`badge-span ${
-                                                            sub.priority ===
-                                                            "High"
-                                                              ? "badge-priority-high"
-                                                              : sub.priority ===
-                                                                  "Medium"
-                                                                ? "badge-priority-medium"
-                                                                : "badge-priority-low"
+                                                            sub.priority === "Top High"
+                                                              ? "badge-priority-top-high"
+                                                              : sub.priority === "High"
+                                                                ? "badge-priority-high"
+                                                                : sub.priority === "Medium"
+                                                                  ? "badge-priority-medium"
+                                                                  : "badge-priority-low"
                                                           }`}
                                                         >
                                                           {sub.priority ||
@@ -4412,7 +4498,9 @@ const ProjectTaskBoard = ({
                                                   </td>
 
                                                   {/* 9. Actions Column */}
-                                                  <td className="px-3 py-1 border-b border-t border-slate-300 dark:border-slate-700 text-center">
+                                                  <td
+                                                    className="px-3 py-1 border-b border-t border-slate-300 dark:border-slate-700 text-center"
+                                                    style={{ borderRight: `2.5px solid ${sColor.hex}` }}>
                                                     <div
                                                       className="flex items-center justify-center gap-2.5 opacity-0 group-hover/subrow:opacity-100 transition-opacity"
                                                       onClick={(e) =>
@@ -4445,7 +4533,7 @@ const ProjectTaskBoard = ({
                                     </React.Fragment>
                                   );
                                 })}
-                                {renderInlineCreateRow(sectionName)}
+                                {renderInlineCreateRow(sectionName, sColor)}
                               </>
                             )}
 
@@ -4456,18 +4544,24 @@ const ProjectTaskBoard = ({
                                 className=" p-0 border-0 bg-transparent"
                               />
                             </tr>
-                          </React.Fragment>
+                              </tbody>
+                            )}
+                          </Draggable>
                          );
                        })
                      })()}
-                    </tbody>
-                  </table>
+                      {provided.placeholder}
+                    </table>
+                  )}
+                </StrictModeDroppable>
                 </div>
 
                
               </div>
             );
           })()}
+          </DragDropContext>
+        )}
 
         {activeTab === "Kanban" && (
           <DragDropContext onDragEnd={handleDragEnd}>
@@ -4583,11 +4677,13 @@ const ProjectTaskBoard = ({
                                         {/* Priority Badge */}
                                         <span
                                           className={`text-[8px] font-bold  tracking-wider px-1 py-2 rounded-md border ${
-                                            task.priority === "High"
-                                              ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-955/20 dark:border-rose-900/40"
-                                              : task.priority === "Medium"
-                                                ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-955/20 dark:border-amber-900/40"
-                                                : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-[#1a1a1a] dark:text-slate-400 dark:border-white/5"
+                                            task.priority === "Top High"
+                                              ? "bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-955/20 dark:border-purple-900/40"
+                                              : task.priority === "High"
+                                                ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-955/20 dark:border-rose-900/40"
+                                                : task.priority === "Medium"
+                                                  ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-955/20 dark:border-amber-900/40"
+                                                  : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-[#1a1a1a] dark:text-slate-400 dark:border-white/5"
                                           }`}
                                         >
                                           {task.priority || "Medium"}
@@ -5563,15 +5659,23 @@ const ProjectTaskBoard = ({
                         >
                           High
                         </option>
+                        <option
+                          value="Top High"
+                          className="dark:bg-purple-955 dark:text-slate-200"
+                        >
+                          Top High
+                        </option>
                       </select>
                     ) : (
                       <div
                         className={`px-3 py-2 border rounded-xl text-xs font-semibold w-fit ${
-                          selectedTask.priority === "High"
-                            ? "bg-rose-550/10 text-rose-700 border-rose-200/50"
-                            : selectedTask.priority === "Medium"
-                              ? "bg-amber-550/10 text-amber-700 border-amber-200/50"
-                              : "bg-slate-50 text-slate-605 border-slate-200"
+                          selectedTask.priority === "Top High"
+                            ? "bg-purple-550/10 text-purple-700 border-purple-200/50"
+                            : selectedTask.priority === "High"
+                              ? "bg-rose-550/10 text-rose-700 border-rose-200/50"
+                              : selectedTask.priority === "Medium"
+                                ? "bg-amber-550/10 text-amber-700 border-amber-200/50"
+                                : "bg-slate-50 text-slate-605 border-slate-200"
                         }`}
                       >
                         {selectedTask.priority || "Medium"}

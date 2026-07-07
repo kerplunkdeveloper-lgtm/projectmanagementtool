@@ -23,7 +23,7 @@ const SubtaskSchema = new mongoose.Schema({
   },
   priority: {
     type: String,
-    enum: ["Low", "Medium", "High"],
+    enum: ["Low", "Medium", "High", "Top High"],
     default: "Medium",
   },
   contentType: {
@@ -71,7 +71,7 @@ const TaskSchema = new mongoose.Schema(
     },
     priority: {
       type: String,
-      enum: ["Low", "Medium", "High"],
+      enum: ["Low", "Medium", "High", "Top High"],
       default: "Medium",
     },
     section: {

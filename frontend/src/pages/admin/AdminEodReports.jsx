@@ -58,15 +58,12 @@ const AdminEodReports = () => {
 
   return (
     <div className="min-h-screen  py-6 px-4 sm:px-6 lg:px-6 transition-colors duration-300">
-      <div className="max-w-[1500px] mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* HEADER */}
-        <div className="mb-8 flex flex-col gap-2">
+        <div className=" flex flex-col gap-2">
           <h1 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">
             Team EOD Reports
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
-            Review daily progress, documentation, and blockers from your team.
-          </p>
         </div>
 
         {/* FILTER BAR */}
