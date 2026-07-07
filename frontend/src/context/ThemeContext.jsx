@@ -1,12 +1,38 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { updateUser } from "../features/users/userSlice";
 
 const ThemeContext = createContext();
 
+// Helper: apply preferences object to localStorage + state setters
+const applyPrefs = (prefs, setters) => {
+  const { setThemeState, setAccentColorState, setSoundEnabledState, setFontFamilyState, setSidebarLayoutState } = setters;
+
+  if (prefs.themePreference) {
+    setThemeState(prefs.themePreference);
+    localStorage.setItem("theme", prefs.themePreference);
+  }
+  if (prefs.accentColor) {
+    setAccentColorState(prefs.accentColor);
+    localStorage.setItem("accentColor", prefs.accentColor);
+  }
+  if (prefs.soundEnabled !== undefined) {
+    setSoundEnabledState(prefs.soundEnabled);
+    localStorage.setItem("soundEnabled", prefs.soundEnabled ? "true" : "false");
+  }
+  if (prefs.fontFamily) {
+    setFontFamilyState(prefs.fontFamily);
+    localStorage.setItem("fontFamily", prefs.fontFamily);
+  }
+  if (prefs.sidebarLayout) {
+    setSidebarLayoutState(prefs.sidebarLayout);
+    localStorage.setItem("sidebarLayout", prefs.sidebarLayout);
+  }
+};
+
 export const ThemeProvider = ({ children }) => {
   const dispatch = useDispatch();
-  const { user } = useSelector((s) => s.auth);
+  const { user, originalAdminUser } = useSelector((s) => s.auth);
 
   const [theme, setThemeState] = useState(() => {
     return localStorage.getItem("theme") || "system";
@@ -29,32 +55,44 @@ export const ThemeProvider = ({ children }) => {
     return localStorage.getItem("sidebarLayout") || "vertical";
   });
 
-  // Sync state from logged-in user if available
-  useEffect(() => {
-    if (user) {
-      if (user.themePreference && user.themePreference !== theme) {
-        setThemeState(user.themePreference);
-        localStorage.setItem("theme", user.themePreference);
-      }
-      if (user.accentColor && user.accentColor !== accentColor) {
-        setAccentColorState(user.accentColor);
-        localStorage.setItem("accentColor", user.accentColor);
-      }
-      if (user.soundEnabled !== undefined && user.soundEnabled !== soundEnabled) {
-        setSoundEnabledState(user.soundEnabled);
-        localStorage.setItem("soundEnabled", user.soundEnabled ? "true" : "false");
-      }
-      if (user.fontFamily && user.fontFamily !== fontFamily) {
-        setFontFamilyState(user.fontFamily);
-        localStorage.setItem("fontFamily", user.fontFamily);
-      }
-      if (user.sidebarLayout && user.sidebarLayout !== sidebarLayout) {
-        setSidebarLayoutState(user.sidebarLayout);
-        localStorage.setItem("sidebarLayout", user.sidebarLayout);
-      }
-    }
-  }, [user]);
+  const setters = { setThemeState, setAccentColorState, setSoundEnabledState, setFontFamilyState, setSidebarLayoutState };
 
+  // Track previous user ID to detect user switches
+  const prevUserIdRef = useRef(null);
+  // Track whether we were in impersonation mode previously
+  const wasImpersonatingRef = useRef(!!originalAdminUser);
+
+  // Sync theme when user changes (login, impersonate, exit impersonation)
+  useEffect(() => {
+    if (!user) return;
+
+    const currentUserId = user._id || user.id;
+    const prevUserId = prevUserIdRef.current;
+    const isImpersonating = !!originalAdminUser;
+    const wasImpersonating = wasImpersonatingRef.current;
+
+    const userChanged = prevUserId !== currentUserId;
+    const exitedImpersonation = wasImpersonating && !isImpersonating;
+
+    // Apply user's own preferences when:
+    // 1. User just logged in (new user, no previous)
+    // 2. Switched to a different user (impersonation)
+    // 3. Exiting impersonation → restore original admin's preferences
+    if (!prevUserId || userChanged || exitedImpersonation) {
+      applyPrefs({
+        themePreference: user.themePreference,
+        accentColor: user.accentColor,
+        soundEnabled: user.soundEnabled,
+        fontFamily: user.fontFamily,
+        sidebarLayout: user.sidebarLayout,
+      }, setters);
+    }
+
+    prevUserIdRef.current = currentUserId;
+    wasImpersonatingRef.current = isImpersonating;
+  }, [user, originalAdminUser]);
+
+  // Save preferences back to the CURRENTLY ACTIVE user's account
   const updateUserPreferences = (preferences) => {
     if (user) {
       dispatch(updateUser({ id: "me", userData: preferences }));
@@ -64,49 +102,40 @@ export const ThemeProvider = ({ children }) => {
   const setTheme = (newTheme) => {
     localStorage.setItem("theme", newTheme);
     setThemeState(newTheme);
-    if (user && user.themePreference !== newTheme) {
-      updateUserPreferences({ themePreference: newTheme });
-    }
+    updateUserPreferences({ themePreference: newTheme });
   };
 
   const setAccentColor = (newAccent) => {
     localStorage.setItem("accentColor", newAccent);
     setAccentColorState(newAccent);
-    if (user && user.accentColor !== newAccent) {
-      updateUserPreferences({ accentColor: newAccent });
-    }
+    updateUserPreferences({ accentColor: newAccent });
   };
 
   const setSoundEnabled = (enabled) => {
     localStorage.setItem("soundEnabled", enabled ? "true" : "false");
     setSoundEnabledState(enabled);
-    if (user && user.soundEnabled !== enabled) {
-      updateUserPreferences({ soundEnabled: enabled });
-    }
+    updateUserPreferences({ soundEnabled: enabled });
   };
 
   const setFontFamily = (newFont) => {
     localStorage.setItem("fontFamily", newFont);
     setFontFamilyState(newFont);
-    if (user && user.fontFamily !== newFont) {
-      updateUserPreferences({ fontFamily: newFont });
-    }
+    updateUserPreferences({ fontFamily: newFont });
   };
 
   const setSidebarLayout = (newLayout) => {
     localStorage.setItem("sidebarLayout", newLayout);
     setSidebarLayoutState(newLayout);
-    if (user && user.sidebarLayout !== newLayout) {
-      updateUserPreferences({ sidebarLayout: newLayout });
-    }
+    updateUserPreferences({ sidebarLayout: newLayout });
   };
 
+  // Apply dark/light class to <html>
   useEffect(() => {
     const root = window.document.documentElement;
-    
+
     const applyTheme = () => {
       root.classList.remove("dark");
-      
+
       if (theme === "dark") {
         root.classList.add("dark");
       } else if (theme === "light") {

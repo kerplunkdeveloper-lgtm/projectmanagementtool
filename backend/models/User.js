@@ -87,6 +87,16 @@ const userSchema = new mongoose.Schema({
     default: true,
   },
 
+  fontFamily: {
+    type: String,
+    default: 'inter',
+  },
+
+  sidebarLayout: {
+    type: String,
+    default: 'vertical',
+  },
+
   createdAt: {
     type: Date,
     default: Date.now,
