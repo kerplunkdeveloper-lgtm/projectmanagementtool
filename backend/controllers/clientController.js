@@ -26,6 +26,8 @@ exports.createClient = async (req, res) => {
       onpage,
       offpage,
       assignedTo,
+      color,
+      icon,
     } = req.body;
 
     const totalBudget =
@@ -49,6 +51,8 @@ exports.createClient = async (req, res) => {
       pages,
       onpage,
       offpage,
+      color,
+      icon,
       createdBy: req.user._id,
       assignedTo: (req.user.role !== "admin" && req.user.role !== "operationmanager")
         ? [req.user._id]

@@ -27,6 +27,7 @@ import {
 } from "react-icons/fi";
 import EventModal from "./EventModal";
 import toast from "react-hot-toast";
+import ClientBadge from "../../components/common/ClientBadge";
 
 const locales = { "en-IN": enIN };
 
@@ -223,17 +224,21 @@ const CalendarPage = () => {
     "Birthday Celebration": <FiCalendar />
   };
 
-  const CustomEvent = ({ event }) => (
-    <div className="flex flex-col px-1.5 py-0.5 h-full overflow-hidden text-left">
-      <div className="flex items-center gap-1 font-bold truncate">
-        <span className="text-[9px] opacity-80 shrink-0">{ICONS[event.type]}</span>
-        {event.client?.companyName && (
-          <span className="truncate text-[9px] uppercase tracking-tight">{event.client.companyName}</span>
-        )}
+  const CustomEvent = ({ event }) => {
+    const ClientIcon = event.client ? getClientIconComponent(event.client.icon) : null;
+    const clientColor = event.client?.color || "#3b82f6";
+    return (
+      <div className="flex flex-col px-1.5 py-0.5 h-full overflow-hidden text-left">
+        <div className="flex items-center gap-1.5 font-bold truncate">
+          <span className="text-[9px] opacity-80 shrink-0">{ICONS[event.type]}</span>
+          {event.client && (
+            <ClientBadge client={event.client} size="sm" className="!text-[8px] !px-1.5 !py-0.5" />
+          )}
+        </div>
+        <div className="truncate text-[10px] leading-tight font-semibold mt-0.5">{event.title}</div>
       </div>
-      <div className="truncate text-[10px] leading-tight font-semibold mt-0.5">{event.title}</div>
-    </div>
-  );
+    );
+  };
 
   const CustomToolbar = (toolbar) => {
     const goToBack = () => {

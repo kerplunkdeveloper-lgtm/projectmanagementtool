@@ -42,7 +42,7 @@ exports.getTasks = async (req, res) => {
         select: "name client",
         populate: {
           path: "client",
-          select: "companyName"
+          select: "companyName color icon"
         }
       })
       .populate({
@@ -95,7 +95,7 @@ exports.createTask = async (req, res) => {
         select: "name client",
         populate: {
           path: "client",
-          select: "companyName"
+          select: "companyName color icon"
         }
       })
       .populate({
@@ -207,7 +207,7 @@ exports.updateTask = async (req, res) => {
         select: "name client",
         populate: {
           path: "client",
-          select: "companyName"
+          select: "companyName color icon"
         }
       })
       .populate({

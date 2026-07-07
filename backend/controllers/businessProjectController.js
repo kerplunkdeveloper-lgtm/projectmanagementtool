@@ -7,7 +7,7 @@ exports.getBusinessProjects = async (req, res, next) => {
   try {
     const projects = await BusinessProject.find()
       .populate("employees", "name email department role salary overheadPercent capacity")
-      .populate("client", "companyName industry primaryContact");
+      .populate("client", "companyName industry primaryContact color icon");
 
     res.status(200).json({
       success: true,
@@ -28,7 +28,7 @@ exports.createBusinessProject = async (req, res, next) => {
 
     const populatedProject = await BusinessProject.findById(project._id)
       .populate("employees", "name email department role salary overheadPercent capacity")
-      .populate("client", "companyName industry primaryContact");
+      .populate("client", "companyName industry primaryContact color icon");
 
     res.status(201).json({
       success: true,
@@ -150,7 +150,7 @@ exports.assignEmployee = async (req, res, next) => {
 
     project = await BusinessProject.findById(req.params.id)
       .populate("employees", "name email department role salary overheadPercent capacity")
-      .populate("client", "companyName industry primaryContact");
+      .populate("client", "companyName industry primaryContact color icon");
 
     res.status(200).json({
       success: true,

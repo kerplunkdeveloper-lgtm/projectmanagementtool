@@ -35,6 +35,7 @@ import {
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import ProjectIcon from "../../components/common/ProjectIcon";
+import ClientBadge from "../../components/common/ClientBadge";
 import { useTheme } from "../../context/ThemeContext";
 
 const TYPE_CONFIG = {
@@ -169,6 +170,11 @@ const Dashboardmain = () => {
   const [clientId, setClientId] = useState("");
   const [status, setStatus] = useState("Active");
   const [filterClientId, setFilterClientId] = useState("all");
+  const [projectsCurrentPage, setProjectsCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setProjectsCurrentPage(1);
+  }, [filterClientId]);
 
   const filterClients = React.useMemo(() => {
     const uniqueClientsMap = new Map();
@@ -298,7 +304,7 @@ const Dashboardmain = () => {
         <div className="col-span-1 theme-bg-card border theme-border rounded-xl p-4 shadow-xl flex flex-col justify-between">
           <div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-              <h1 className="text-[20px] text-blue-500 dark:text-[#3b82f6] font-medium tracking-wider">
+              <h1 className="text-[16px] text-blue-500 dark:text-[#3b82f6] font-medium tracking-wider">
                 Projects OverView
               </h1>
 
@@ -343,62 +349,80 @@ const Dashboardmain = () => {
               )} */}
 
               {/* PROJECTS LIST */}
-              {filteredProjects && filteredProjects.length > 0 ? (
-                filteredProjects.map((project, index) => (
-                  <button
-                    key={project._id}
-                    onClick={() =>
-                      navigate(`/${user?.role}/projects?id=${project._id}`)
-                    }
-                    className="flex flex-col justify-between p-3.5 rounded-xl border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-800/40 hover:border-[var(--accent-color)]/30 dark:hover:border-[var(--accent-color-dark)]/30 hover:shadow-md dark:hover:bg-slate-800/70 transition-all duration-200 group text-left w-full h-[125px]"
-                  >
-                    <div className="flex items-start justify-between w-full min-w-0">
-                      <div className="flex items-center gap-2.5 min-w-0 w-full">
-                        <ProjectIcon
-                          name={project.name}
-                          size="md"
-                          className="transition-transform group-hover:scale-[1.05]"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200 line-clamp-1 group-hover:text-[var(--accent-color)] dark:group-hover:text-[var(--accent-color-dark)] transition-colors">
-                            {project.name}
-                          </span>
-                          <div className="flex items-center gap-1 text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                            <FiUser size={10} className="shrink-0 text-slate-400" />
-                            <span className="truncate">
-                              {project.client?.companyName || "No Client"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+              {(() => {
+                const itemsPerPage = 6;
+                const totalPages = Math.ceil(
+                  (filteredProjects?.length || 0) / itemsPerPage
+                );
+                const startIndex = (projectsCurrentPage - 1) * itemsPerPage;
+                const paginatedProjects =
+                  filteredProjects?.slice(
+                    startIndex,
+                    startIndex + itemsPerPage
+                  ) || [];
 
-                    <div className="flex items-center justify-between w-full mt-2.5 pt-2 border-t border-slate-100 dark:border-white/5">
-                      <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                        Status
-                      </span>
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider ${
-                        project.status === "Active"
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
-                          : project.status === "Completed"
-                          ? "bg-blue-50 text-blue-700 border-blue-200/60 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20"
-                          : project.status === "On Hold"
-                          ? "bg-amber-50 text-amber-700 border-amber-200/60 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20"
-                          : "bg-slate-50 text-slate-700 border-slate-200/60 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20"
-                      }`}>
-                        {project.status || "Active"}
-                      </span>
-                    </div>
-                  </button>
-                ))
-              ) : (
-                <div className="col-span-full py-12 flex flex-col items-center justify-center text-center opacity-60">
-                  <FiBriefcase size={28} className="text-slate-400 dark:text-slate-500 mb-2" />
-                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                    No projects found for this client
-                  </p>
-                </div>
-              )}
+                return (
+                  <>
+                    {paginatedProjects.length > 0 ? (
+                      paginatedProjects.map((project, index) => (
+                        <button
+                          key={project._id}
+                          onClick={() =>
+                            navigate(`/${user?.role}/projects?id=${project._id}`)
+                          }
+                          className="flex flex-col justify-between p-3.5 rounded-xl border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-800/40 hover:border-[var(--accent-color)]/30 dark:hover:border-[var(--accent-color-dark)]/30 hover:shadow-md dark:hover:bg-slate-800/70 transition-all duration-200 group text-left w-full h-[125px]"
+                        >
+                          <div className="flex items-start justify-between w-full min-w-0">
+                            <div className="flex items-center gap-2.5 min-w-0 w-full">
+                              <ProjectIcon
+                                name={project.name}
+                                size="md"
+                                className="transition-transform group-hover:scale-[1.05]"
+                              />
+                              <div className="min-w-0 flex-1">
+                                <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200 line-clamp-1 group-hover:text-[var(--accent-color)] dark:group-hover:text-[var(--accent-color-dark)] transition-colors">
+                                  {project.name}
+                                </span>
+                                <div className="mt-1">
+                                  {project.client ? (
+                                    <ClientBadge client={project.client} size="sm" />
+                                  ) : (
+                                    <span className="text-slate-400 text-[9px] italic">No Client</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      ))
+                    ) : (
+                      <div className="col-span-full py-12 flex flex-col items-center justify-center text-center opacity-60">
+                        <FiBriefcase size={28} className="text-slate-400 dark:text-slate-500 mb-2" />
+                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                          No projects found for this client
+                        </p>
+                      </div>
+                    )}
+                    
+                    {totalPages > 1 && (
+                      <div className="col-span-full flex items-center justify-center gap-2 mt-2 pt-4 border-t border-slate-100 dark:border-white/5">
+                        {Array.from({ length: totalPages }).map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setProjectsCurrentPage(i + 1)}
+                            className={`h-1.5 rounded-full transition-all duration-300 ${
+                              projectsCurrentPage === i + 1
+                                ? "w-6 bg-blue-500"
+                                : "w-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600"
+                            }`}
+                            aria-label={`Page ${i + 1}`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -619,9 +643,13 @@ const Dashboardmain = () => {
                       <span className="theme-text-secondary uppercase tracking-wider">
                         Client Account
                       </span>
-                      <span className="theme-text-primary font-extrabold max-w-[150px] truncate">
-                        {event.client?.companyName || "Internal Event"}
-                      </span>
+                      <div className="max-w-[150px] flex justify-end truncate">
+                        {event.client ? (
+                          <ClientBadge client={event.client} size="sm" className="!text-[8px] !px-1.5 !py-0.5" />
+                        ) : (
+                          <span className="theme-text-primary font-extrabold truncate">Internal Event</span>
+                        )}
+                      </div>
                     </div>
                   </motion.div>
                 );

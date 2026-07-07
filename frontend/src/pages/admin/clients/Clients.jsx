@@ -21,8 +21,10 @@ import {
   FiPlusCircle,
   FiHelpCircle,
   FiCalendar,
+  FiCheck,
 } from "react-icons/fi";
 import { FaRegBuilding } from "react-icons/fa";
+import { getClientIconComponent, CLIENT_COLORS, CLIENT_ICONS } from "../../../utils/clientHelpers";
 
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
@@ -273,6 +275,8 @@ const Clients = () => {
     onpage: false,
     offpage: false,
     assignedTo: [],
+    color: "#3b82f6",
+    icon: "FaRegBuilding",
   };
 
   const [formData, setFormData] = useState(initialForm);
@@ -341,6 +345,8 @@ const Clients = () => {
   const handleEdit = (client) => {
     setFormData({
       ...client,
+      color: client.color || "#3b82f6",
+      icon: client.icon || "FaRegBuilding",
       onboardingDate: client.onboardingDate 
         ? new Date(client.onboardingDate).toISOString().split('T')[0] 
         : "",
@@ -470,7 +476,7 @@ const Clients = () => {
   return (
     <div className="min-h-screen pb-12 transition-colors duration-300">
       {/* SEARCH + FILTER CONTROLS */}
-      <div className="theme-bg-card theme-border border rounded-2xl p-4 md:p-5 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
+      <div className=" mb-6 flex flex-col md:flex-row items-center justify-between ">
         {/* LEFT: Search & Filter */}
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
           {/* SEARCH BOX */}
@@ -480,7 +486,7 @@ const Clients = () => {
               placeholder="Search company or industry..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-250 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+              className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-250 dark:border-slate-800 bg-slate-50 dark:bg-white/5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
             />
            
           </div>
@@ -490,7 +496,7 @@ const Clients = () => {
             <select
               value={serviceFilter}
               onChange={(e) => setServiceFilter(e.target.value)}
-              className="w-full h-10 pl-3.5 pr-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold cursor-pointer appearance-none"
+              className="w-full h-10 pl-3.5 pr-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-white/5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold cursor-pointer appearance-none"
             >
               <option value="All">All Services</option>
               <option value="Digital Marketing">Digital Marketing</option>
@@ -553,24 +559,24 @@ const Clients = () => {
             <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1100px] text-xs">
               <thead>
                 <tr className="border-b theme-border text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-widest text-[9.5px]">
-                  <th className="px-5 py-4 font-extrabold bg-transparent">
+                  <th className="px-5 py-4 font-extrabold bg-transparent border-r theme-border">
                     <div className="flex items-center gap-1.5">
                       <FaRegBuilding size={11} className="opacity-70" />
                       Client Profile
                     </div>
                   </th>
-                  <th className="px-5 py-4 font-extrabold bg-transparent">Contact Info</th>
-                  <th className="px-5 py-4 font-extrabold bg-transparent">Service & Members</th>
-                  <th className="px-5 py-4 font-extrabold bg-transparent w-48">Deliverables</th>
+                  <th className="px-5 py-4 font-extrabold bg-transparent border-r theme-border">Contact Info</th>
+                  <th className="px-5 py-4 font-extrabold bg-transparent border-r theme-border">Service & Members</th>
+                  <th className="px-5 py-4 font-extrabold bg-transparent w-48 border-r theme-border">Deliverables</th>
                   {user?.role === "team" && (
-                    <th className="px-5 py-4 font-extrabold bg-transparent">Assigned By</th>
+                    <th className="px-5 py-4 font-extrabold bg-transparent border-r theme-border last:border-r-0">Assigned By</th>
                   )}
                   {user?.role !== "team" && (
-                    <th className="px-5 py-4 font-extrabold bg-transparent">Financials (INR)</th>
+                    <th className="px-5 py-4 font-extrabold bg-transparent border-r theme-border last:border-r-0">Financials (INR)</th>
                   )}
                   {(user?.role === "admin" ||
                     user?.role === "operationmanager") && (
-                    <th className="px-5 py-4 font-extrabold bg-transparent text-center w-24">Actions</th>
+                    <th className="px-5 py-4 font-extrabold bg-transparent text-center w-24 border-r-0">Actions</th>
                   )}
                 </tr>
               </thead>
@@ -584,7 +590,7 @@ const Clients = () => {
                       const conf = getServiceStyles(primaryService);
                       const ServiceIcon = conf.icon;
                       
-                      const cellClass = "px-5 py-4 bg-transparent transition-colors";
+                      const cellClass = "px-5 py-4 bg-transparent transition-colors border-r theme-border last:border-r-0";
                       
                       const nameColors = [
                         "text-blue-900 dark:text-blue-400",
@@ -605,8 +611,22 @@ const Clients = () => {
                           hash = client.companyName.charCodeAt(i) + ((hash << 5) - hash);
                         }
                       }
+                      const nameHexes = [
+                        "#3b82f6", // blue
+                        "#8b5cf6", // violet
+                        "#10b981", // emerald
+                        "#f43f5e", // rose
+                        "#f59e0b", // amber
+                        "#06b6d4", // cyan
+                        "#6366f1", // indigo
+                        "#ec4899", // pink
+                        "#eab308", // yellow
+                      ];
                       const colorIndex = Math.abs(hash) % nameColors.length;
                       const nameColor = nameColors[colorIndex];
+                      const clientColor = client.color && client.color !== "#3b82f6"
+                        ? client.color
+                        : nameHexes[colorIndex];
                       
                       return (
                         <motion.tr
@@ -616,20 +636,35 @@ const Clients = () => {
                           exit={{ opacity: 0, scale: 0.95 }}
                           transition={{ duration: 0.2, delay: index * 0.02 }}
                           key={client._id}
-                          className="group transition-colors hover:bg-slate-50/40 dark:hover:bg-slate-800/20"
+                          className="group transition-colors hover:bg-slate-50/40 dark:hover:bg-[#16223f]/40 border-b theme-border"
                         >
                           {/* Client Info */}
                           <td className={`${cellClass} relative`}>
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-900/60 flex items-center justify-center shrink-0 border theme-border shadow-sm">
-                                <FaRegBuilding size={16} className={`${nameColor} opacity-90`} />
-                              </div>
+                              {(() => {
+                                const ClientIcon = getClientIconComponent(client.icon);
+                                return (
+                                  <div 
+                                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border shadow-sm transition-all duration-300"
+                                    style={{
+                                      backgroundColor: `${clientColor}12`,
+                                      borderColor: `${clientColor}30`,
+                                      color: clientColor
+                                    }}
+                                  >
+                                    <ClientIcon size={18} />
+                                  </div>
+                                );
+                              })()}
                               <div className="min-w-[120px]">
-                                <h2 className={`${nameColor} font-extrabold transition-colors text-[14px] truncate max-w-[200px]`}>
+                                <h2 
+                                  className="font-bold transition-colors text-[14px] truncate max-w-[200px]"
+                                  style={{ color: clientColor }}
+                                >
                                   {client.companyName}
                                 </h2>
                                 <div className="flex items-center gap-2 mt-1">
-                                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold bg-slate-100 dark:bg-[#16223f] px-1.5 py-0.5 rounded">
                                     {client.industry}
                                   </span>
                                   {client.onboardingDate && (
@@ -760,7 +795,7 @@ const Clients = () => {
                                     })()
                                   )
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/10 text-slate-400 dark:text-slate-500 italic text-[9.5px]">
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-white/5 text-slate-400 dark:text-slate-500 italic text-[9.5px]">
                                     <FiUser size={9} />
                                     <span>Unassigned</span>
                                   </span>
@@ -771,46 +806,81 @@ const Clients = () => {
 
                           {/* Deliverables Info (NEW) */}
                           <td className={cellClass}>
-                            <div className="flex flex-col gap-1.5 max-w-[260px]">
-                              {/* Digital Marketing & Video */}
-                              {(client.posts > 0 || client.reels > 0 || client.shoot > 0) && (
-                                <div className="flex flex-wrap gap-1">
-                                  {client.posts > 0 && (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/30 font-bold text-[9.5px]">
-                                      <FiLayers size={9.5} /> {client.posts} Posts
-                                    </span>
-                                  )}
-                                  {client.reels > 0 && (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900/30 font-bold text-[9.5px]">
-                                      <FiVideo size={9.5} /> {client.reels} Reels
-                                    </span>
-                                  )}
-                                  {client.shoot > 0 && (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30 font-bold text-[9.5px]">
-                                      <FiVideo size={9.5} /> {client.shoot} Shoots
-                                    </span>
-                                  )}
+                            <div className="flex flex-col gap-2.5 max-w-[280px] py-1">
+                              {/* Digital Marketing */}
+                              {(client.posts > 0 || client.reels > 0) && (
+                                <div className="space-y-0.5">
+                                  <div className="text-[8px] font-extrabold tracking-wider uppercase text-blue-500/80 dark:text-blue-400/80">
+                                    Digital Marketing
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {client.posts > 0 && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-450 border border-blue-100 dark:border-blue-900/30 font-bold text-[9px]">
+                                        <FiLayers size={8.5} /> {client.posts} Posts
+                                      </span>
+                                    )}
+                                    {client.reels > 0 && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900/30 font-bold text-[9px]">
+                                        <FiVideo size={8.5} /> {client.reels} Reels
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               )}
 
-                              {/* Website & SEO */}
-                              {(client.pages > 0 || client.onpage || client.offpage) && (
-                                <div className="flex flex-wrap gap-1">
-                                  {client.pages > 0 && (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30 font-bold text-[9.5px]">
-                                      <FiGlobe size={9.5} /> {client.pages} Pages
+                              {/* Video Production */}
+                              {(client.shoot > 0 || (client.needDslr && client.needDslr !== "No DSLR")) && (
+                                <div className="space-y-0.5">
+                                  <div className="text-[8px] font-extrabold tracking-wider uppercase text-rose-500/80 dark:text-rose-400/80">
+                                    Video Production
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {client.shoot > 0 && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-405 border border-rose-100 dark:border-rose-900/30 font-bold text-[9px]">
+                                        <FiVideo size={8.5} /> {client.shoot} Shoots
+                                      </span>
+                                    )}
+                                    {client.needDslr && client.needDslr !== "No DSLR" && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30 font-bold text-[9px]">
+                                        <FiVideo size={8.5} /> DSLR: {client.needDslr}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Website */}
+                              {client.pages > 0 && (
+                                <div className="space-y-0.5">
+                                  <div className="text-[8px] font-extrabold tracking-wider uppercase text-emerald-500/80 dark:text-emerald-400/80">
+                                    Website
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30 font-bold text-[9px]">
+                                      <FiGlobe size={8.5} /> {client.pages} Pages
                                     </span>
-                                  )}
-                                  {client.onpage && (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30 font-bold text-[9.5px]">
-                                      <FiSearch size={9.5} /> On-Page
-                                    </span>
-                                  )}
-                                  {client.offpage && (
-                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30 font-bold text-[9.5px]">
-                                      <FiSearch size={9.5} /> Off-Page
-                                    </span>
-                                  )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* SEO */}
+                              {(client.onpage || client.offpage) && (
+                                <div className="space-y-0.5">
+                                  <div className="text-[8px] font-extrabold tracking-wider uppercase text-amber-500/80 dark:text-amber-400/80">
+                                    SEO
+                                  </div>
+                                  <div className="flex flex-wrap gap-1">
+                                    {client.onpage && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30 font-bold text-[9px]">
+                                        <FiSearch size={8.5} /> On-Page
+                                      </span>
+                                    )}
+                                    {client.offpage && (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30 font-bold text-[9px]">
+                                        <FiSearch size={8.5} /> Off-Page
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               )}
 
@@ -875,14 +945,14 @@ const Clients = () => {
                               <div className="flex items-center justify-center gap-1.5">
                                 <button
                                   onClick={() => handleEdit(client)}
-                                  className="w-7 h-7 flex items-center justify-center bg-slate-50 hover:bg-amber-50 dark:bg-slate-900 dark:hover:bg-amber-955/20 text-slate-450 hover:text-amber-600 dark:hover:text-amber-400 border theme-border hover:border-amber-200 dark:hover:border-amber-900 rounded-lg transition-all active:scale-95"
+                                  className="w-7 h-7 flex items-center justify-center bg-slate-50 hover:bg-amber-50 dark:bg-slate-800/50 dark:hover:bg-amber-955/20 text-slate-450 hover:text-amber-600 dark:hover:text-amber-400 border theme-border hover:border-amber-200 dark:hover:border-amber-900 rounded-lg transition-all active:scale-95 cursor-pointer"
                                   title="Edit Record"
                                 >
                                   <FiEdit size={12} className="stroke-[2.5]" />
                                 </button>
                                 <button
                                   onClick={() => setClientToDelete(client)}
-                                  className="w-7 h-7 flex items-center justify-center bg-slate-50 hover:bg-rose-50 dark:bg-slate-900 dark:hover:bg-rose-955/20 text-slate-450 hover:text-rose-600 dark:hover:text-rose-400 border theme-border hover:border-rose-200 dark:hover:border-rose-900 rounded-lg transition-all active:scale-95"
+                                  className="w-7 h-7 flex items-center justify-center bg-slate-50 hover:bg-rose-50 dark:bg-slate-800/50 dark:hover:bg-rose-955/20 text-slate-450 hover:text-rose-600 dark:hover:text-rose-400 border theme-border hover:border-rose-200 dark:hover:border-rose-900 rounded-lg transition-all active:scale-95 cursor-pointer"
                                   title="Delete Record"
                                 >
                                   <FiTrash2 size={12} className="stroke-[2.5]" />
@@ -1129,6 +1199,108 @@ const Clients = () => {
                           className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all font-semibold"
                           required
                         />
+                      </div>
+
+                      {/* Branding Controls */}
+                      <div className="md:col-span-2 pt-6 mt-4 border-t border-slate-100 dark:border-slate-800/60 space-y-5">
+                        {/* Icon Selection */}
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <label className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                              <span className="w-5 h-5 rounded flex items-center justify-center bg-blue-50 dark:bg-blue-500/10 text-blue-500">
+                                <FiBriefcase size={12} />
+                              </span>
+                              Brand Identity Icon
+                            </label>
+                          </div>
+                          <div className="grid grid-cols-5 sm:grid-cols-8 gap-3 bg-slate-50/50 dark:bg-slate-800/30 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                            {Object.entries(CLIENT_ICONS).map(([key, IconComponent]) => {
+                              const isSelected = formData.icon === key;
+                              return (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  onClick={() => setFormData(prev => ({ ...prev, icon: key }))}
+                                  className={`w-12 h-12 rounded-[1.25rem] flex flex-col items-center justify-center transition-all duration-300 cursor-pointer ${
+                                    isSelected 
+                                      ? 'shadow-md scale-110 ring-2 ring-offset-2 dark:ring-offset-slate-900 bg-white dark:bg-slate-800' 
+                                      : 'hover:scale-105 hover:bg-white dark:hover:bg-slate-700/50 hover:shadow-sm'
+                                  }`}
+                                  style={{
+                                    color: isSelected ? formData.color : "rgb(148, 163, 184)",
+                                    ringColor: isSelected ? formData.color : "transparent"
+                                  }}
+                                  title={key.replace("Fa", "").replace("Fi", "")}
+                                >
+                                  <IconComponent size={22} className={isSelected ? 'drop-shadow-sm' : ''} />
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Color Selection */}
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <label className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                              <span className="w-5 h-5 rounded flex items-center justify-center bg-purple-50 dark:bg-purple-500/10 text-purple-500">
+                                <div className="w-2.5 h-2.5 rounded-full bg-current" />
+                              </span>
+                              Brand Theme Color
+                            </label>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3 bg-slate-50/50 dark:bg-slate-800/30 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                            {CLIENT_COLORS.map((colorItem) => {
+                              const c = colorItem.value || colorItem; // Handle both object and string formats
+                              const isSelected = formData.color === c;
+                              return (
+                                <button
+                                  key={c}
+                                  type="button"
+                                  onClick={() => setFormData(prev => ({ ...prev, color: c }))}
+                                  className={`w-8 h-8 rounded-full transition-all duration-300 cursor-pointer flex items-center justify-center ${
+                                    isSelected ? 'scale-110 shadow-lg ring-2 ring-offset-2 dark:ring-offset-slate-900' : 'hover:scale-110 hover:shadow-md'
+                                  }`}
+                                  style={{
+                                    backgroundColor: c,
+                                    ringColor: isSelected ? c : "transparent"
+                                  }}
+                                >
+                                  {isSelected && <FiCheck size={14} className="text-white drop-shadow-md" />}
+                                </button>
+                              );
+                            })}
+                            
+                            <div className="w-px h-8 bg-slate-200 dark:bg-slate-700 mx-2" />
+                            
+                            <label 
+                              className={`relative h-10 px-4 rounded-xl border-2 border-dashed bg-white dark:bg-slate-800 cursor-pointer flex items-center justify-center shadow-sm transition-all duration-300 hover:border-slate-400 dark:hover:border-slate-500 ${
+                                !CLIENT_COLORS.some(colorItem => (colorItem.value || colorItem) === formData.color) ? 'border-solid shadow-md ring-2 ring-offset-2 dark:ring-offset-slate-900 scale-105' : 'border-slate-300 dark:border-slate-600 hover:scale-105'
+                              }`}
+                              style={{
+                                borderColor: !CLIENT_COLORS.some(colorItem => (colorItem.value || colorItem) === formData.color) ? formData.color : undefined,
+                                ringColor: !CLIENT_COLORS.some(colorItem => (colorItem.value || colorItem) === formData.color) ? formData.color : "transparent"
+                              }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-4 h-4 rounded-full shadow-inner border border-black/10 dark:border-white/10" 
+                                  style={{ backgroundColor: formData.color }} 
+                                />
+                                <span className="text-[11px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                                  Custom
+                                </span>
+                              </div>
+                              <input
+                                type="color"
+                                name="color"
+                                value={formData.color}
+                                onChange={handleChange}
+                                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                              />
+                            </label>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </motion.div>

@@ -109,6 +109,16 @@ const clientSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     }],
+
+    color: {
+      type: String,
+      default: "#3b82f6",
+    },
+
+    icon: {
+      type: String,
+      default: "FaRegBuilding",
+    },
   },
   {
     timestamps: true,

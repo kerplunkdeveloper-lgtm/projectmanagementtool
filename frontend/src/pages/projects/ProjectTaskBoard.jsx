@@ -48,6 +48,7 @@ import {
 import { updateProject } from "../../features/projects/projectSlice";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import ProjectIcon from "../../components/common/ProjectIcon";
+import ClientBadge from "../../components/common/ClientBadge";
 
 const StrictModeDroppable = ({ children, ...props }) => {
   const [enabled, setEnabled] = useState(false);
@@ -860,7 +861,7 @@ const ProjectTaskBoard = ({
   const [deleteTaskMutation] = useDeleteTaskMutation();
 
   // Local State
-  const [activeTab, setActiveTab] = useState("List"); // "List" | "Board" | "Timeline" | "Dashboard"
+  const [activeTab, setActiveTab] = useState("List"); // "List" | "Kanban" | "Timeline" | "Dashboard"
   const [focusedTaskId, setFocusedTaskId] = useState(null);
   const [checkedProjects, setCheckedProjects] = useState({});
   const [expandedTasks, setExpandedTasks] = useState({}); // taskId -> boolean
@@ -933,8 +934,13 @@ const ProjectTaskBoard = ({
 
   const getTaskDisplayId = (task) => {
     if (!task || !task._id) return "";
-    const clientName = activeProject?.client?.companyName || "TSK";
-    const prefix = clientName.substring(0, 3).toUpperCase().padEnd(3, "X");
+    
+    // Project Name first character (upper case, fallback to 'P')
+    const projChar = (activeProject?.name || "P").charAt(0).toUpperCase();
+    
+    // Client Name first 2 characters (upper case, fallback to 'XX')
+    const clientName = activeProject?.client?.companyName || "";
+    const clientChars = clientName ? clientName.substring(0, 2).toUpperCase().padEnd(2, "X") : "XX";
 
     // Get all tasks for this project
     const projectTasks = tasks.filter(
@@ -951,7 +957,7 @@ const ProjectTaskBoard = ({
 
     const idx = sortedByCreation.findIndex((t) => t._id === task._id);
     const num = idx !== -1 ? idx + 1 : 1;
-    return `${prefix}T${num}`;
+    return `${projChar}${clientChars}T${num}`;
   };
 
   const [inlineSubtaskTitle, setInlineSubtaskTitle] = useState({}); // taskId -> string
@@ -1218,20 +1224,36 @@ const ProjectTaskBoard = ({
     )
       return;
 
-    // Optimistically update local UI
-    const updatedTasks = localTasks.map((t) =>
-      t._id === draggableId ? { ...t, section: destination.droppableId } : t,
-    );
-    setLocalTasks(updatedTasks);
+    if (activeTab === "Kanban") {
+      // Optimistically update local UI for status
+      const updatedTasks = localTasks.map((t) =>
+        t._id === draggableId ? { ...t, status: destination.droppableId } : t,
+      );
+      setLocalTasks(updatedTasks);
 
-    // Send to backend
-    try {
-      await updateTaskMutation({
-        id: draggableId,
-        taskData: { section: destination.droppableId },
-      }).unwrap();
-    } catch (err) {
-      console.error("Failed to drag and drop task:", err);
+      try {
+        await updateTaskMutation({
+          id: draggableId,
+          taskData: { status: destination.droppableId },
+        }).unwrap();
+      } catch (err) {
+        console.error("Failed to drag and drop task:", err);
+      }
+    } else {
+      // Optimistically update local UI for section
+      const updatedTasks = localTasks.map((t) =>
+        t._id === draggableId ? { ...t, section: destination.droppableId } : t,
+      );
+      setLocalTasks(updatedTasks);
+
+      try {
+        await updateTaskMutation({
+          id: draggableId,
+          taskData: { section: destination.droppableId },
+        }).unwrap();
+      } catch (err) {
+        console.error("Failed to drag and drop task:", err);
+      }
     }
   };
 
@@ -1849,10 +1871,8 @@ const ProjectTaskBoard = ({
                 <h1 className="text-lg sm:text-[15px] font-bold text-slate-800 dark:text-white truncate">
                   {activeProject.name}
                 </h1>
-                {activeProject?.client?.companyName && (
-                  <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-800/30 shrink-0">
-                    Client : {activeProject.client.companyName}
-                  </span>
+                {activeProject?.client && (
+                  <ClientBadge client={activeProject.client} size="sm" />
                 )}
               </div>
             </div>
@@ -1866,7 +1886,7 @@ const ProjectTaskBoard = ({
         {/* Center: Tab Selector - High-end, Premium Design */}
         <div className="flex items-center justify-center w-full lg:w-auto order-2 lg:order-none shrink-0">
           <div className="bg-slate-100/80 dark:bg-[#121212] p-1 rounded-full flex items-center gap-1.5 border border-slate-200/60 dark:border-transparent shadow-inner backdrop-blur-md">
-            {["List", "Board", "Timeline", "Dashboard"].map((tab) => {
+            {["List", "Kanban", "Timeline", "Dashboard"].map((tab) => {
               const isActive = activeTab === tab;
               return (
                 <button
@@ -1901,7 +1921,7 @@ const ProjectTaskBoard = ({
                         }`}
                       />
                     )}
-                    {tab === "Board" && (
+                    {tab === "Kanban" && (
                       <FiGrid
                         size={12.5}
                         className={`shrink-0 transition-colors duration-300 ${
@@ -3199,11 +3219,8 @@ const ProjectTaskBoard = ({
 
                                         {/* Client Column */}
                                         <td className="px-3 py-2 border-r border-b border-t border-slate-300 dark:border-slate-700 font-medium">
-                                          {activeProject?.client
-                                            ?.companyName ? (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50/70 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30">
-                                              {activeProject.client.companyName}
-                                            </span>
+                                          {activeProject?.client ? (
+                                            <ClientBadge client={activeProject.client} size="md" />
                                           ) : (
                                             <span className="text-slate-400 dark:text-slate-500 text-[10px] font-normal">
                                               N/A
@@ -4452,34 +4469,26 @@ const ProjectTaskBoard = ({
             );
           })()}
 
-        {activeTab === "Board" && (
+        {activeTab === "Kanban" && (
           <DragDropContext onDragEnd={handleDragEnd}>
             <div className="space-y-4 ">
               {/* Board Columns Grid */}
               <div className="flex gap-4 items-start overflow-x-auto pb-4 hide-scrollbar snap-x">
-                {Array.from(
-                  new Set(
-                    activeProject.sections?.length > 0
-                      ? activeProject.sections
-                      : ["Recent assignment"],
-                  ),
-                ).map((sectionName) => {
+                {["Pending", "In Progress", "On Hold", "Completed"].map((statusName) => {
                   const columnTasks = activeProjectTasks.filter(
-                    (t) =>
-                      t.section === sectionName ||
-                      (!t.section && sectionName === "Recent assignment"),
+                    (t) => t.status === statusName
                   );
 
                   return (
                     <div
-                      key={sectionName}
+                      key={statusName}
                       className="bg-slate-50/80 dark:bg-[#1a1a1a]/40 p-4 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm flex flex-col min-h-[380px] max-h-[700px] min-w-[280px] sm:min-w-[320px] snap-center shrink-0"
                     >
                       {/* Column Header */}
                       <div className="flex items-center justify-between mb-4 px-1">
                         <div className="flex items-center gap-2">
                           <h4 className="text-sm font-bold text-slate-800 dark:text-white">
-                            {sectionName}
+                            {statusName}
                           </h4>
                         </div>
                         <span className="text-[10px] font-extrabold px-2 py-2 rounded-lg bg-slate-200/50 dark:bg-white/10 text-slate-600 dark:text-slate-300">
@@ -4488,7 +4497,7 @@ const ProjectTaskBoard = ({
                       </div>
 
                       {/* Cards Container */}
-                      <StrictModeDroppable droppableId={sectionName}>
+                      <StrictModeDroppable droppableId={statusName}>
                         {(provided, snapshot) => (
                           <div
                             ref={provided.innerRef}
@@ -4645,65 +4654,9 @@ const ProjectTaskBoard = ({
                         )}
                       </StrictModeDroppable>
 
-                      {/* Column Add Task Button */}
-                      {isAdminOrManager && (
-                        <button
-                          onClick={() => handleAddTask(sectionName)}
-                          className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-[#3b82f6] hover:bg-white dark:hover:bg-white/5 transition-colors font-bold text-xs"
-                        >
-                          <FiPlus size={14} />
-                          Add task
-                        </button>
-                      )}
                     </div>
                   );
                 })}
-
-                {/* Add Section Column */}
-                {isAdminOrManager && (
-                  <div className="min-w-[280px] sm:min-w-[320px] snap-center shrink-0">
-                    {isAddingSection ? (
-                      <form
-                        onSubmit={handleAddSectionSubmit}
-                        className="bg-slate-50/80 dark:bg-[#1a1a1a] p-4 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm flex flex-col gap-2"
-                      >
-                        <input
-                          type="text"
-                          autoFocus
-                          value={newSectionName}
-                          onChange={(e) => setNewSectionName(e.target.value)}
-                          placeholder="New section name..."
-                          className="w-full px-3 py-1.5 text-xs font-bold border border-slate-200 dark:border-white/10 rounded-lg bg-white dark:bg-[#111111] text-slate-700 dark:text-white focus:outline-none focus:border-blue-500 dark:focus:border-[#3b82f6]"
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            type="submit"
-                            className="w-full py-1.5 bg-blue-600 dark:bg-[#3b82f6] hover:bg-blue-700 dark:hover:bg-[#ccff00] text-white dark:text-black font-bold text-[10px] rounded-lg"
-                          >
-                            Save
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsAddingSection(false);
-                              setNewSectionName("");
-                            }}
-                            className="w-full py-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-white/5 font-bold text-[10px] rounded-lg border border-slate-200 dark:border-white/10"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </form>
-                    ) : (
-                      <button
-                        onClick={() => setIsAddingSection(true)}
-                        className="flex items-center justify-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-[#3b82f6] font-bold text-[13px] transition-colors w-full h-[60px] border-2 border-dashed border-slate-200 dark:border-white/10 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/5"
-                      >
-                        <FiPlus size={16} /> Add Section
-                      </button>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           </DragDropContext>
@@ -4793,12 +4746,12 @@ const ProjectTaskBoard = ({
                 </div>
 
                 {/* Main Timeline Card Container */}
-                <div className="flex border border-slate-200/60 dark:border-white/5 bg-white dark:bg-[#070b13] rounded-2xl overflow-hidden min-h-[500px] shadow-sm">
+                <div className="flex border border-slate-200/60 dark:border-white/5 bg-white dark:bg-[#070b13] rounded-3xl overflow-hidden min-h-[500px] shadow-lg ring-1 ring-slate-900/5 dark:ring-white/10">
                   {/* Timeline Left Sidebar (Sections & Tasks list) */}
-                  <div className="w-[180px] sm:w-[220px] border-r border-slate-200 dark:border-white/5 shrink-0 flex flex-col bg-slate-50/50 dark:bg-[#0b101c]/40 z-10 pt-[52px]">
+                  <div className="w-[180px] sm:w-[240px] border-r border-slate-200 dark:border-white/5 shrink-0 flex flex-col bg-slate-50/80 dark:bg-[#121212]/80 backdrop-blur-sm z-10 pt-[52px] shadow-[4px_0_12px_rgba(0,0,0,0.02)] dark:shadow-[4px_0_12px_rgba(0,0,0,0.2)]">
                     {activeSections.map((sectionName) => (
                       <React.Fragment key={sectionName}>
-                        <div className="border-b border-slate-200 dark:border-white/5 h-10 flex items-center justify-between px-3 bg-slate-100/40 dark:bg-[#161616]/30">
+                        <div className="border-b border-slate-200 dark:border-white/5 h-11 flex items-center justify-between px-4 bg-slate-100/60 dark:bg-white/[0.03] backdrop-blur-md sticky top-0 z-20">
                           <div className="flex items-center gap-1.5 text-[10px] font-bold text-slate-700 dark:text-slate-350">
                             <FiChevronDown
                               size={12}
@@ -4830,10 +4783,10 @@ const ProjectTaskBoard = ({
                             <div
                               key={`sidebar-${task._id}`}
                               onClick={() => setSelectedTaskId(task._id)}
-                              className="border-b border-slate-100 dark:border-white/5 h-8 flex items-center px-3 pl-6 hover:bg-blue-50/50 dark:hover:bg-white/5 cursor-pointer transition-colors"
+                              className="border-b border-slate-100 dark:border-white/5 h-10 flex items-center px-4 pl-7 hover:bg-slate-100/50 dark:hover:bg-white/5 cursor-pointer transition-all hover:pl-8 group"
                             >
                               <span
-                                className={`w-1.5 h-1.5 rounded-full shrink-0 mr-1.5 ${
+                                className={`w-2 h-2 rounded-full shrink-0 mr-2 transition-transform group-hover:scale-110 shadow-sm ${
                                   task.status === "Completed"
                                     ? "bg-emerald-500"
                                     : task.status === "In Progress"
@@ -4865,16 +4818,16 @@ const ProjectTaskBoard = ({
                   {/* Timeline Right Grid Area */}
                   <div className="flex-1 overflow-x-auto relative hide-scrollbar">
                     {/* Timeline Header (Months & Weeks) */}
-                    <div className="flex flex-col border-b border-slate-200 dark:border-white/5 min-w-[800px] bg-slate-50 dark:bg-[#090d16] sticky top-0 z-30">
-                      <div className="flex h-13">
+                    <div className="flex flex-col border-b border-slate-200 dark:border-white/5 min-w-[800px] bg-white/90 dark:bg-[#121212]/90 backdrop-blur-md sticky top-0 z-30 shadow-sm">
+                      <div className="flex h-[52px]">
                         {[0, 1, 2, 3].map((weekIdx) => {
                           const weekData = getWeekRange(weekIdx);
                           return (
                             <div
                               key={weekIdx}
-                              className="w-1/4 px-3 flex flex-col justify-center border-r border-slate-200 dark:border-white/5"
+                              className="w-1/4 px-4 flex flex-col justify-center border-r border-slate-200 dark:border-white/5 group hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors"
                             >
-                              <span className="text-[9px] font-bold text-slate-700 dark:text-slate-350">
+                              <span className="text-[11px] font-extrabold text-slate-800 dark:text-slate-200">
                                 {weekData.label}
                               </span>
                               <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500">
@@ -4915,7 +4868,7 @@ const ProjectTaskBoard = ({
                       <div className="relative z-10 w-full flex flex-col pb-20">
                         {activeSections.map((sectionName) => (
                           <React.Fragment key={`grid-${sectionName}`}>
-                            <div className="h-10 border-b border-slate-200 dark:border-white/5 w-full" />
+                            <div className="h-11 border-b border-slate-200 dark:border-white/5 w-full bg-slate-50/10 dark:bg-white/[0.01]" />
                             {activeProjectTasks
                               .filter(
                                 (t) =>
@@ -4976,7 +4929,7 @@ const ProjectTaskBoard = ({
                                 return (
                                   <div
                                     key={`grid-task-${task._id}`}
-                                    className="h-8 border-b border-slate-100 dark:border-white/5 w-full relative group"
+                                    className="h-10 border-b border-slate-100 dark:border-white/5 w-full relative group hover:bg-slate-50/30 dark:hover:bg-white/[0.01] transition-colors"
                                   >
                                     {showOnTimeline && (
                                       <div
@@ -4987,7 +4940,7 @@ const ProjectTaskBoard = ({
                                           left: `${leftPercent}%`,
                                           width: `${widthPercent}%`,
                                         }}
-                                        className={`absolute top-1 h-6 rounded-lg shadow-sm text-[9.5px] font-bold px-2 flex items-center justify-between truncate cursor-pointer transition-all hover:scale-[1.01] hover:brightness-105 ${
+                                        className={`absolute top-1.5 h-7 rounded-lg shadow-md text-[10px] font-extrabold tracking-wide px-3 flex items-center justify-between truncate cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:brightness-110 border ${
                                           task.status === "Completed"
                                             ? "bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-100 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400"
                                             : task.status === "In Progress"

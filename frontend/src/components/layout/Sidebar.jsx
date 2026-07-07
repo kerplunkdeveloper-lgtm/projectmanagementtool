@@ -86,6 +86,29 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     location.pathname.includes("/portfolio"),
   );
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [expandedPortfolios, setExpandedPortfolios] = useState({});
+
+  useEffect(() => {
+    if (activePortfolioId) {
+      setExpandedPortfolios((prev) => ({
+        ...prev,
+        [activePortfolioId]: true,
+      }));
+    } else if (activeProjectId && (projects || []).length > 0 && (portfolios || []).length > 0) {
+      const parentPortfolio = portfolios.find((p) => {
+        const ids = (p.projectIds || []).map((pId) =>
+          typeof pId === "object" && pId !== null ? pId._id : pId,
+        );
+        return ids.includes(activeProjectId);
+      });
+      if (parentPortfolio) {
+        setExpandedPortfolios((prev) => ({
+          ...prev,
+          [parentPortfolio._id]: true,
+        }));
+      }
+    }
+  }, [activePortfolioId, activeProjectId, projects, portfolios]);
 
   useEffect(() => {
     if (location.pathname.includes("/portfolio")) {
@@ -239,39 +262,83 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       return (
                         <div key={portfolio._id}>
                           {/* Portfolio Row */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (window.innerWidth < 1024)
-                                setSidebarOpen(false);
-                              navigate(
-                                `/${role}/portfolio?id=${portfolio._id}`,
-                              );
-                            }}
-                            className={`w-full flex items-center gap-2 text-left text-[11px] font-semibold py-1.5 rounded-lg px-2.5 transition-all duration-150 group ${
-                              isActive
-                                ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent"
-                                : "text-slate-600 dark:text-slate-500 hover:theme-text-accent hover:bg-slate-100/60 dark:hover:bg-white/5"
-                            }`}
-                            title={portfolio.name}
-                          >
-                            <svg
-                              viewBox="0 0 240 180"
-                              className="w-[16px] h-[13px] shrink-0"
-                              style={{ fill: portfolio.color || "#ff80bf" }}
+                          {/* Portfolio Row */}
+                          <div className="flex items-center justify-between group rounded-lg transition-all duration-150 relative">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.innerWidth < 1024)
+                                  setSidebarOpen(false);
+                                navigate(
+                                  `/${role}/portfolio?id=${portfolio._id}`,
+                                );
+                                // If it's already active, toggle it. If not, expand it.
+                                setExpandedPortfolios((prev) => ({
+                                  ...prev,
+                                  [portfolio._id]: isActive ? !prev[portfolio._id] : true,
+                                }));
+                              }}
+                              className={`flex-1 flex items-center gap-2 text-left text-[11px] font-semibold py-1.5 pl-2.5 pr-1.5 transition-all duration-150 ${
+                                portfolioProjects.length > 0 ? "rounded-l-lg" : "rounded-lg pr-2.5"
+                              } ${
+                                isActive
+                                  ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent"
+                                  : "text-slate-600 dark:text-slate-500 hover:theme-text-accent hover:bg-slate-100/60 dark:hover:bg-white/5"
+                              }`}
+                              title={portfolio.name}
                             >
-                              <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
-                            </svg>
-                            <span className="truncate flex-1 text-left">
-                              {portfolio.name}
-                            </span>
-                            {isActive && (
-                              <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
+                              <svg
+                                viewBox="0 0 240 180"
+                                className="w-[16px] h-[13px] shrink-0"
+                                style={{ fill: portfolio.color || "#ff80bf" }}
+                              >
+                                <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
+                              </svg>
+                              <span className="truncate flex-1 text-left">
+                                {portfolio.name}
+                              </span>
+                              {isActive && !portfolioProjects.length && (
+                                <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
+                              )}
+                            </button>
+
+                            {portfolioProjects.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExpandedPortfolios((prev) => ({
+                                    ...prev,
+                                    [portfolio._id]: !prev[portfolio._id],
+                                  }));
+                                }}
+                                className={`py-1.5 px-2 rounded-r-lg transition-all duration-150 flex items-center justify-center self-stretch cursor-pointer ${
+                                  isActive
+                                    ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent"
+                                    : "text-slate-600 dark:text-slate-500 hover:theme-text-accent hover:bg-slate-100/60 dark:hover:bg-white/5"
+                                }`}
+                              >
+                                <svg
+                                  className={`w-3 h-3 shrink-0 transform transition-transform duration-200 ${
+                                    expandedPortfolios[portfolio._id] ? "rotate-180" : ""
+                                  }`}
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2.5}
+                                    d="M19 9l-7 7-7-7"
+                                  />
+                                </svg>
+                              </button>
                             )}
-                          </button>
+                          </div>
 
                           {/* Projects inside this Portfolio */}
-                          {portfolioProjects.length > 0 && (
+                          {portfolioProjects.length > 0 && expandedPortfolios[portfolio._id] && (
                             <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-white/8 space-y-0.5 mt-0.5 mb-0.5">
                               {portfolioProjects.map((project) => {
                                 const isProjectActive =
@@ -287,7 +354,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                         `/${role}/projects?id=${project._id}`,
                                       );
                                     }}
-                                    className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1 rounded-md px-2 transition-all duration-150 ${
+                                    className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1 rounded-md px-2 transition-all duration-150 cursor-pointer ${
                                       isProjectActive
                                         ? "bg-slate-50 dark:bg-slate-800/60 theme-text-accent font-bold"
                                         : "text-slate-500 dark:text-slate-600 hover:theme-text-accent hover:bg-slate-100/40 dark:hover:bg-white/5"
@@ -303,7 +370,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                       {project.name}
                                     </span>
                                     {isProjectActive && (
-                                      <span className="w-1 h-1 rounded-full theme-bg-accent shrink-0" />
+                                      <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
                                     )}
                                   </button>
                                 );

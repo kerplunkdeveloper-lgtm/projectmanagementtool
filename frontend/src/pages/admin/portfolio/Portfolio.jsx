@@ -477,10 +477,6 @@ const Portfolio = () => {
               <h1 className="text-xl font-extrabold text-slate-800 dark:text-white">
                 Portfolios Dashboard
               </h1>
-              <p className="text-slate-500 dark:text-slate-400 text-[10px] mt-1">
-                Group projects into custom folder portfolios for high-level
-                management
-              </p>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">

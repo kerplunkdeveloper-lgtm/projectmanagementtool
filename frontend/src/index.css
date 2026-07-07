@@ -124,20 +124,20 @@ a, li, ul, ol, svg, img, figure, figcaption {
   --color-gray-200: #334155; 
   
   --color-slate-700: #e2e8f0; /* Light text secondary - Slate 200 */
-  --color-gray-700: #e2e8f0; 
+  --color-gray-700: #fafcff; 
   
   --color-slate-800: #f1f5f9; /* Light text primary - Slate 100 */
   --color-slate-900: #f8fafc; /* Headings - Slate 50 */
   --color-slate-950: #f8fafc; /* Primary Text */
   
   /* Text and Icon Colors */
-  --color-slate-600: #cbd5e1; /* Medium Slate Text */
-  --color-gray-600: #cbd5e1;
-  --color-slate-500: #94a3b8; /* Secondary Text - Slate 400 */
-  --color-gray-500: #94a3b8; 
+  --color-slate-600: #edf1f6; /* Medium Slate Text */
+  --color-gray-600: #fdfeff;
+  --color-slate-500: #eff2f6; /* Secondary Text - Slate 400 */
+  --color-gray-500: #e9ecf1; 
   
-  --color-slate-400: #64748b; /* Muted Icon / Text - Slate 500 */
-  --color-gray-400: #64748b; 
+  --color-slate-400: #ffffff; /* Muted Icon / Text - Slate 500 */
+  --color-gray-400: #f4f5f6; 
 
   --color-slate-850: #0f172a;
   --color-gray-850: #0f172a;
@@ -433,7 +433,7 @@ th {
   font-weight: 700 !important;
 }
 td {
-  border-color: var(--color-slate-100) !important;
+  border-bottom: 1px solid var(--color-slate-100) !important;
   color: var(--color-slate-950) !important;
 }
 tr:hover {
@@ -1249,29 +1249,16 @@ table {
 
 /* Header */
 th:first-child {
-  position: sticky;
-  left: 0;
-  z-index: 30;
-  background: #fff;
+  /* Removed sticky positioning as requested */
 }
 
 /* Body */
 td:first-child {
-  position: sticky;
-  left: 0;
-  z-index: 40;
-  background: #fff; 
-  
- 
+  /* Removed sticky positioning as requested */
 }
 
-
 .dark td:first-child {
-  position: sticky;
-  left: 0;
-  z-index: 20;
-  background: #020710;
- 
+  /* Removed sticky positioning as requested */
 }
 
 /* Premium Spinning Border Badge */

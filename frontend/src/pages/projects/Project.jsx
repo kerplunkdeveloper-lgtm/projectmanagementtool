@@ -24,6 +24,7 @@ import { getTasks } from "../../features/tasks/taskSlice";
 import { getPortfolios } from "../../features/portfolio/portfolioSlice";
 import ProjectTaskBoard from "./ProjectTaskBoard";
 import ProjectIcon from "../../components/common/ProjectIcon";
+import ClientBadge from "../../components/common/ClientBadge";
 
 const Project = () => {
   const dispatch = useDispatch();
@@ -369,9 +370,13 @@ const Project = () => {
                       </div>
                     </td>
                     <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
-                      <span className={`font-bold px-2 py-0.5 rounded-lg border uppercase tracking-wider text-[10px] ${getClientBadgeStyle(project.client?.companyName)}`}>
-                        {project.client?.companyName || "No Client"}
-                      </span>
+                      {project.client ? (
+                        (() => {
+                          return <ClientBadge client={project.client} size="md" />;
+                        })()
+                      ) : (
+                        <span className="text-slate-400 italic">No Client</span>
+                      )}
                     </td>
                     
                     <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">

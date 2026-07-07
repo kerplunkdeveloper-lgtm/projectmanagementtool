@@ -35,7 +35,7 @@ exports.getPortfolios = async (req, res) => {
     }
     const portfolios = await Portfolio.find(query)
       .populate("projectIds", "name status client")
-      .populate("client", "companyName")
+      .populate("client", "companyName color icon")
       .populate("createdBy", "name department");
     res.status(200).json({ success: true, data: portfolios });
   } catch (err) {
@@ -54,7 +54,7 @@ exports.createPortfolio = async (req, res) => {
     });
     const populatedPortfolio = await Portfolio.findById(portfolio._id)
       .populate("projectIds", "name status client")
-      .populate("client", "companyName")
+      .populate("client", "companyName color icon")
       .populate("createdBy", "name department");
     res.status(201).json({ success: true, data: populatedPortfolio });
   } catch (err) {
@@ -73,7 +73,7 @@ exports.updatePortfolio = async (req, res) => {
       { new: true, runValidators: true }
     )
       .populate("projectIds", "name status client")
-      .populate("client", "companyName")
+      .populate("client", "companyName color icon")
       .populate("createdBy", "name department");
 
     if (!portfolio) {
@@ -128,7 +128,7 @@ exports.addProjectsToPortfolio = async (req, res) => {
     await portfolio.save();
     const updated = await Portfolio.findById(req.params.id)
       .populate("projectIds", "name status client")
-      .populate("client", "companyName");
+      .populate("client", "companyName color icon");
     res.status(200).json({ success: true, data: updated });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });
@@ -152,7 +152,7 @@ exports.removeProjectFromPortfolio = async (req, res) => {
     await portfolio.save();
     const updated = await Portfolio.findById(req.params.id)
       .populate("projectIds", "name status client")
-      .populate("client", "companyName");
+      .populate("client", "companyName color icon");
     res.status(200).json({ success: true, data: updated });
   } catch (err) {
     res.status(400).json({ success: false, message: err.message });

@@ -27,7 +27,7 @@ exports.getProjects = async (req, res) => {
       query = { $or: orConditions };
     }
     const projects = await Project.find(query)
-      .populate("client", "companyName industry primaryContact")
+      .populate("client", "companyName industry primaryContact color icon")
       .populate("createdBy", "name department");
 
     res.status(200).json({
@@ -51,7 +51,7 @@ exports.createProject = async (req, res) => {
     });
 
     const populatedProject = await Project.findById(project._id)
-      .populate("client", "companyName industry primaryContact")
+      .populate("client", "companyName industry primaryContact color icon")
       .populate("createdBy", "name department");
 
     res.status(201).json({
@@ -85,7 +85,7 @@ exports.updateProject = async (req, res) => {
       new: true,
       runValidators: true,
     })
-      .populate("client", "companyName industry primaryContact")
+      .populate("client", "companyName industry primaryContact color icon")
       .populate("createdBy", "name department");
 
     res.status(200).json({
