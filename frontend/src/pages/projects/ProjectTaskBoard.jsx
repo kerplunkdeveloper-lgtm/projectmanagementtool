@@ -4676,7 +4676,7 @@ const ProjectTaskBoard = ({
 
                                         {/* Priority Badge */}
                                         <span
-                                          className={`text-[8px] font-bold  tracking-wider px-1 py-2 rounded-md border ${
+                                          className={`text-[8px] font-bold tracking-wider px-1 py-2 rounded-md border whitespace-nowrap ${
                                             task.priority === "Top High"
                                               ? "bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-955/20 dark:border-purple-900/40"
                                               : task.priority === "High"

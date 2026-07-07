@@ -7,7 +7,7 @@ import {
 } from "../../features/eodReports/eodReportSlice";
 import { 
   FiPlus, FiEdit, FiX, FiPaperclip, FiTrash2, FiFile, FiImage, 
-  FiSearch, FiCalendar, FiFilter, FiChevronLeft, FiChevronRight 
+  FiSearch, FiCalendar, FiFilter, FiChevronLeft, FiChevronRight, FiEye
 } from "react-icons/fi";
 import axiosInstance from "../../services/axiosInstance";
 import toast from "react-hot-toast";
@@ -17,15 +17,24 @@ const EodReports = () => {
   const { eodReports, loading } = useSelector((state) => state.eodReports);
   
   const [openModal, setOpenModal] = useState(false);
+  const [openViewModal, setOpenViewModal] = useState(false);
+  const [selectedReport, setSelectedReport] = useState(null);
   const [editReport, setEditReport] = useState(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
 
   // Form State
   const [formData, setFormData] = useState({
-    projectName: "",
-    description: "",
-    status: "Completed",
+    projectsWorkedOn: "",
+    tasksCompleted: "",
+    designCount: "",
+    filesSubmitted: "",
+    pendingTasks: "",
+    reasonForPending: "",
+    challengesFaced: "",
+    tomorrowPlan: "",
+    supportNeeded: "",
+    overallStatus: "On Track",
     attachments: [],
   });
 
@@ -99,9 +108,16 @@ const EodReports = () => {
     setOpenModal(false);
     setEditReport(null);
     setFormData({
-      projectName: "",
-      description: "",
-      status: "Completed",
+      projectsWorkedOn: "",
+      tasksCompleted: "",
+      designCount: "",
+      filesSubmitted: "",
+      pendingTasks: "",
+      reasonForPending: "",
+      challengesFaced: "",
+      tomorrowPlan: "",
+      supportNeeded: "",
+      overallStatus: "On Track",
       attachments: [],
     });
   };
@@ -109,12 +125,24 @@ const EodReports = () => {
   const handleEdit = (report) => {
     setEditReport(report);
     setFormData({
-      projectName: report.projectName || "",
-      description: report.description || "",
-      status: report.status || "Completed",
+      projectsWorkedOn: report.projectsWorkedOn || "",
+      tasksCompleted: report.tasksCompleted || "",
+      designCount: report.designCount || "",
+      filesSubmitted: report.filesSubmitted || "",
+      pendingTasks: report.pendingTasks || "",
+      reasonForPending: report.reasonForPending || "",
+      challengesFaced: report.challengesFaced || "",
+      tomorrowPlan: report.tomorrowPlan || "",
+      supportNeeded: report.supportNeeded || "",
+      overallStatus: report.overallStatus || "On Track",
       attachments: report.attachments || [],
     });
     setOpenModal(true);
+  };
+
+  const handleView = (report) => {
+    setSelectedReport(report);
+    setOpenViewModal(true);
   };
 
   const [imagePreview, setImagePreview] = useState(null);
@@ -122,13 +150,14 @@ const EodReports = () => {
   // Filter Logic
   const filteredReports = useMemo(() => {
     return eodReports.filter((report) => {
-      // Search text in projectName or description
+      // Search text in projectsWorkedOn, tasksCompleted or tomorrowPlan
       const matchesSearch = 
-        report.projectName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        report.description?.toLowerCase().includes(searchQuery.toLowerCase());
+        report.projectsWorkedOn?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        report.tasksCompleted?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        report.tomorrowPlan?.toLowerCase().includes(searchQuery.toLowerCase());
       
       // Status Match
-      const matchesStatus = statusFilter === "All" || report.status === statusFilter;
+      const matchesStatus = statusFilter === "All" || report.overallStatus === statusFilter;
       
       // Date Match
       let matchesDate = true;
@@ -153,6 +182,34 @@ const EodReports = () => {
     setCurrentPage(1);
   }, [searchQuery, statusFilter, dateFilter]);
 
+  const getStatusBadgeStyle = (status) => {
+    switch (status) {
+      case "Completed":
+        return "bg-emerald-50 text-emerald-600 border border-emerald-200/50 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20";
+      case "On Track":
+      case "In Progress":
+        return "bg-blue-50 text-blue-650 border border-blue-200/50 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20";
+      case "Delayed":
+        return "bg-rose-50 text-rose-600 border border-rose-200/50 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20";
+      default:
+        return "bg-slate-50 text-slate-655 border border-slate-200/50 dark:bg-slate-500/10 dark:text-slate-450 dark:border-slate-500/20";
+    }
+  };
+
+  const getStatusDotStyle = (status) => {
+    switch (status) {
+      case "Completed":
+        return "bg-emerald-500";
+      case "On Track":
+      case "In Progress":
+        return "bg-blue-500";
+      case "Delayed":
+        return "bg-rose-500";
+      default:
+        return "bg-slate-400";
+    }
+  };
+
   return (
     <div className="min-h-screen transition-colors duration-300">
       <div className="max-w-8xl mx-auto">
@@ -165,7 +222,7 @@ const EodReports = () => {
             <div className="relative w-full sm:max-w-xs">
               <input
                 type="text"
-                placeholder="Search..."
+                placeholder="Search projects or tasks..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] font-medium text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all"
@@ -190,10 +247,11 @@ const EodReports = () => {
                 className="w-full pl-4 pr-8 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg text-[13px] font-medium text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer appearance-none min-w-[140px]"
               >
                 <option value="All">All Statuses</option>
+                <option value="On Track">On Track</option>
                 <option value="Completed">Completed</option>
                 <option value="In Progress">In Progress</option>
+                <option value="Delayed">Delayed</option>
                 <option value="Pending">Pending</option>
-                <option value="On Hold">On Hold</option>
               </select>
               <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
                 <FiChevronRight className="text-slate-400 rotate-90" size={14} />
@@ -208,9 +266,16 @@ const EodReports = () => {
                 setOpenModal(true);
                 setEditReport(null);
                 setFormData({
-                  projectName: "",
-                  description: "",
-                  status: "Completed",
+                  projectsWorkedOn: "",
+                  tasksCompleted: "",
+                  designCount: "",
+                  filesSubmitted: "",
+                  pendingTasks: "",
+                  reasonForPending: "",
+                  challengesFaced: "",
+                  tomorrowPlan: "",
+                  supportNeeded: "",
+                  overallStatus: "On Track",
                   attachments: [],
                 });
               }}
@@ -229,9 +294,9 @@ const EodReports = () => {
               <thead>
                 <tr className="bg-slate-50/50 dark:bg-[#0f172a]/50 border-b border-slate-200 dark:border-slate-800">
                   <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Date</th>
-                  <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Project Name</th>
-                  <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Description</th>
-                  <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Status</th>
+                  <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Projects Worked On</th>
+                  <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tasks Completed</th>
+                  <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Overall Status</th>
                   <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Attachments</th>
                   <th className="px-5 py-3.5 text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center whitespace-nowrap">Actions</th>
                 </tr>
@@ -265,29 +330,20 @@ const EodReports = () => {
                           {new Date(report.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
                         </p>
                       </td>
-                      <td className="px-5 py-3.5">
+                      <td className="px-5 py-3.5 max-w-[200px] truncate">
                         <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200">
-                          {report.projectName}
+                          {report.projectsWorkedOn || report.projectName || "N/A"}
                         </span>
                       </td>
                       <td className="px-5 py-3.5 max-w-[300px]">
-                        <p className="text-slate-600 dark:text-slate-400 text-[13px] leading-relaxed line-clamp-1 group-hover:line-clamp-none transition-all" title={report.description}>
-                          {report.description}
+                        <p className="text-slate-600 dark:text-slate-400 text-[13px] leading-relaxed truncate" title={report.tasksCompleted || report.description}>
+                          {report.tasksCompleted || report.description}
                         </p>
                       </td>
                       <td className="px-5 py-3.5 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${
-                          report.status === "Completed" ? "bg-emerald-50 text-emerald-600 border border-emerald-200/50 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20" :
-                          report.status === "In Progress" ? "bg-blue-50 text-blue-600 border border-blue-200/50 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20" :
-                          report.status === "On Hold" ? "bg-amber-50 text-amber-600 border border-amber-200/50 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20" :
-                          "bg-slate-50 text-slate-600 border border-slate-200/50 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20"
-                        }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
-                            report.status === "Completed" ? "bg-emerald-500" :
-                            report.status === "In Progress" ? "bg-blue-500" :
-                            report.status === "On Hold" ? "bg-amber-500" : "bg-slate-400"
-                          }`}></span>
-                          {report.status}
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${getStatusBadgeStyle(report.overallStatus || report.status)}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${getStatusDotStyle(report.overallStatus || report.status)}`}></span>
+                          {report.overallStatus || report.status || "Completed"}
                         </span>
                       </td>
                       <td className="px-5 py-3.5">
@@ -316,12 +372,22 @@ const EodReports = () => {
                         )}
                       </td>
                       <td className="px-5 py-3.5 text-center">
-                        <button
-                          onClick={() => handleEdit(report)}
-                          className="w-8 h-8 rounded-lg bg-transparent hover:bg-blue-50 dark:hover:bg-blue-500/10 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-center transition-all mx-auto"
-                        >
-                          <FiEdit size={14} />
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => handleView(report)}
+                            title="View Details"
+                            className="w-8 h-8 rounded-lg bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center transition-all"
+                          >
+                            <FiEye size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleEdit(report)}
+                            title="Edit Report"
+                            className="w-8 h-8 rounded-lg bg-transparent hover:bg-blue-50 dark:hover:bg-blue-500/10 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-center transition-all"
+                          >
+                            <FiEdit size={14} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -330,7 +396,7 @@ const EodReports = () => {
             </table>
           </div>
 
-          {/* PAGINATION (Only shows if there are more items than itemsPerPage) */}
+          {/* PAGINATION */}
           {!loading && filteredReports.length > itemsPerPage && (
             <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111827] flex flex-col sm:flex-row items-center justify-between gap-4">
               <p className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
@@ -382,14 +448,14 @@ const EodReports = () => {
           )}
         </div>
 
-        {/* MODAL */}
+        {/* INPUT MODAL */}
         {openModal && (
           <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-white dark:bg-slate-800 w-full max-w-[480px] rounded-2xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white dark:bg-slate-800 w-full max-w-[600px] rounded-2xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
               {/* HEADER */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
                 <h2 className="text-[17px] font-bold text-slate-800 dark:text-slate-100 tracking-tight">
-                  {editReport ? "Update Report" : "Daily Report"}
+                  {editReport ? "Update Report" : "Daily EOD Report"}
                 </h2>
                 <button
                   onClick={() => setOpenModal(false)}
@@ -402,53 +468,152 @@ const EodReports = () => {
               {/* FORM */}
               <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
                 
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Project Name</label>
-                  <input
-                    type="text"
-                    name="projectName"
-                    required
-                    placeholder="E.g. Website Redesign..."
-                    value={formData.projectName}
-                    onChange={handleChange}
-                    className="w-full bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg px-3.5 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[13px] font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Description</label>
-                  <textarea
-                    rows="3"
-                    name="description"
-                    required
-                    placeholder="What did you work on today?"
-                    value={formData.description}
-                    onChange={handleChange}
-                    className="w-full bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg px-3.5 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[13px] font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 resize-none"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Status</label>
-                  <div className="relative">
-                    <select
-                      name="status"
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Projects Worked On */}
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Projects Worked On *</label>
+                    <input
+                      type="text"
+                      name="projectsWorkedOn"
                       required
-                      value={formData.status}
+                      placeholder="E.g. PartnerHub, Admin Portal"
+                      value={formData.projectsWorkedOn}
                       onChange={handleChange}
-                      className="w-full bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg px-3.5 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[13px] font-medium text-slate-800 dark:text-slate-100 cursor-pointer appearance-none"
-                    >
-                      <option value="Completed">Completed</option>
-                      <option value="In Progress">In Progress</option>
-                      <option value="Pending">Pending</option>
-                      <option value="On Hold">On Hold</option>
-                    </select>
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                      <FiChevronRight className="text-slate-400 rotate-90" size={16} />
+                      className="w-full bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg px-3.5 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[13px] font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400"
+                    />
+                  </div>
+
+                  {/* Tasks Completed */}
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Tasks Completed *</label>
+                    <textarea
+                      rows="2"
+                      name="tasksCompleted"
+                      required
+                      placeholder="What tasks did you finish today?"
+                      value={formData.tasksCompleted}
+                      onChange={handleChange}
+                      className="w-full bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg px-3.5 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[13px] font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 resize-none"
+                    />
+                  </div>
+
+                  {/* Design Count */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Design Count</label>
+                    <input
+                      type="text"
+                      name="designCount"
+                      placeholder="E.g. 5 screens, 2 logos"
+                      value={formData.designCount}
+                      onChange={handleChange}
+                      className="w-full bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg px-3.5 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[13px] font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400"
+                    />
+                  </div>
+
+                  {/* Files Submitted */}
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Files Submitted</label>
+                    <input
+                      type="text"
+                      name="filesSubmitted"
+                      placeholder="E.g. Figma links, Git PRs"
+                      value={formData.filesSubmitted}
+                      onChange={handleChange}
+                      className="w-full bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg px-3.5 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[13px] font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400"
+                    />
+                  </div>
+
+                  {/* Pending Tasks */}
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Pending Tasks</label>
+                    <textarea
+                      rows="2"
+                      name="pendingTasks"
+                      placeholder="Are there any tasks left unfinished?"
+                      value={formData.pendingTasks}
+                      onChange={handleChange}
+                      className="w-full bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg px-3.5 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[13px] font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 resize-none"
+                    />
+                  </div>
+
+                  {/* Reason for Pending */}
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Reason for Pending</label>
+                    <input
+                      type="text"
+                      name="reasonForPending"
+                      placeholder="E.g. Awaiting client feedback, blocker in API"
+                      value={formData.reasonForPending}
+                      onChange={handleChange}
+                      className="w-full bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg px-3.5 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[13px] font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400"
+                    />
+                  </div>
+
+                  {/* Challenges Faced */}
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Challenges Faced</label>
+                    <input
+                      type="text"
+                      name="challengesFaced"
+                      placeholder="Any blockers or complex issues encountered today?"
+                      value={formData.challengesFaced}
+                      onChange={handleChange}
+                      className="w-full bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg px-3.5 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[13px] font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400"
+                    />
+                  </div>
+
+                  {/* Tomorrow Plan */}
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Tomorrow Plan *</label>
+                    <textarea
+                      rows="2"
+                      name="tomorrowPlan"
+                      required
+                      placeholder="What is your schedule or plan for tomorrow?"
+                      value={formData.tomorrowPlan}
+                      onChange={handleChange}
+                      className="w-full bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg px-3.5 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[13px] font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 resize-none"
+                    />
+                  </div>
+
+                  {/* Support Needed */}
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Support Needed</label>
+                    <input
+                      type="text"
+                      name="supportNeeded"
+                      placeholder="Do you need assistance from managers or other developers?"
+                      value={formData.supportNeeded}
+                      onChange={handleChange}
+                      className="w-full bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg px-3.5 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[13px] font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400"
+                    />
+                  </div>
+
+                  {/* Overall Status */}
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Overall Status *</label>
+                    <div className="relative">
+                      <select
+                        name="overallStatus"
+                        required
+                        value={formData.overallStatus}
+                        onChange={handleChange}
+                        className="w-full bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg px-3.5 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-[13px] font-medium text-slate-800 dark:text-slate-100 cursor-pointer appearance-none"
+                      >
+                        <option value="On Track">On Track</option>
+                        <option value="Completed">Completed</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Delayed">Delayed</option>
+                        <option value="Pending">Pending</option>
+                      </select>
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <FiChevronRight className="text-slate-400 rotate-90" size={16} />
+                      </div>
                     </div>
                   </div>
                 </div>
 
+                {/* Attachments */}
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Attachments</label>
                   
@@ -495,7 +660,7 @@ const EodReports = () => {
                         <p className="text-[12px] font-semibold text-slate-700 dark:text-slate-300">
                           {uploading ? "Uploading..." : "Click or drag file"}
                         </p>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-500 mt-0.5">
+                        <p className="text-[10px] text-slate-500 dark:text-slate-550 mt-0.5">
                           Max 5MB (Images, PDF, Docs)
                         </p>
                       </div>
@@ -520,6 +685,148 @@ const EodReports = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* DETAILS VIEW MODAL */}
+        {openViewModal && selectedReport && (
+          <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-slate-800 w-full max-w-[640px] rounded-2xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+              
+              {/* HEADER */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
+                <div>
+                  <h2 className="text-[16px] font-bold text-slate-800 dark:text-slate-100 tracking-tight">
+                    EOD Report Details
+                  </h2>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 flex items-center gap-1">
+                    <FiCalendar size={12} />
+                    Submitted on {new Date(selectedReport.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: '2-digit', year: 'numeric' })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setOpenViewModal(false)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                >
+                  <FiX size={18} />
+                </button>
+              </div>
+
+              {/* DETAILS CONTENT */}
+              <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar text-left">
+                
+                {/* 2x2 Grid details */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                  {/* Projects Worked On */}
+                  <div className="space-y-1 md:col-span-2">
+                    <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Projects Worked On</span>
+                    <p className="text-[13.5px] font-bold text-slate-800 dark:text-slate-100">{selectedReport.projectsWorkedOn || selectedReport.projectName || "N/A"}</p>
+                  </div>
+
+                  {/* Tasks Completed */}
+                  <div className="space-y-1 md:col-span-2">
+                    <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Tasks Completed</span>
+                    <p className="text-[13.5px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-line leading-relaxed bg-slate-50/50 dark:bg-slate-900/30 p-3 rounded-lg border border-slate-100 dark:border-slate-800/80">{selectedReport.tasksCompleted || selectedReport.description || "N/A"}</p>
+                  </div>
+
+                  {/* Design Count */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Design Count</span>
+                    <p className="text-[13px] text-slate-700 dark:text-slate-300 font-bold">{selectedReport.designCount || "N/A"}</p>
+                  </div>
+
+                  {/* Files Submitted */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Files Submitted</span>
+                    <p className="text-[13px] text-slate-700 dark:text-slate-300 font-bold truncate">{selectedReport.filesSubmitted || "N/A"}</p>
+                  </div>
+
+                  {/* Pending Tasks */}
+                  <div className="space-y-1 md:col-span-2">
+                    <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Pending Tasks</span>
+                    <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-line leading-relaxed">{selectedReport.pendingTasks || "None"}</p>
+                  </div>
+
+                  {/* Reason for Pending */}
+                  {selectedReport.reasonForPending && (
+                    <div className="space-y-1 md:col-span-2">
+                      <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Reason for Pending</span>
+                      <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium">{selectedReport.reasonForPending}</p>
+                    </div>
+                  )}
+
+                  {/* Challenges Faced */}
+                  {selectedReport.challengesFaced && (
+                    <div className="space-y-1 md:col-span-2">
+                      <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Challenges Faced</span>
+                      <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium">{selectedReport.challengesFaced}</p>
+                    </div>
+                  )}
+
+                  {/* Tomorrow Plan */}
+                  <div className="space-y-1 md:col-span-2">
+                    <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Tomorrow Plan</span>
+                    <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-line leading-relaxed bg-blue-50/20 dark:bg-blue-900/10 p-3 rounded-lg border border-blue-100/30 dark:border-blue-900/20">{selectedReport.tomorrowPlan}</p>
+                  </div>
+
+                  {/* Support Needed */}
+                  {selectedReport.supportNeeded && (
+                    <div className="space-y-1 md:col-span-2">
+                      <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Support Needed</span>
+                      <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium">{selectedReport.supportNeeded}</p>
+                    </div>
+                  )}
+
+                  {/* Overall Status */}
+                  <div className="space-y-1.5 md:col-span-2">
+                    <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Overall Status</span>
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${getStatusBadgeStyle(selectedReport.overallStatus || selectedReport.status)}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${getStatusDotStyle(selectedReport.overallStatus || selectedReport.status)}`}></span>
+                      {selectedReport.overallStatus || selectedReport.status || "Completed"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Attachments Display */}
+                {selectedReport.attachments?.length > 0 && (
+                  <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-700/50">
+                    <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Attachments</span>
+                    <div className="grid grid-cols-2 gap-3">
+                      {selectedReport.attachments.map((att, i) => (
+                        <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg border border-slate-200/60 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 overflow-hidden">
+                          <div className="text-slate-400 dark:text-slate-500 shrink-0">
+                            {att.fileType === "image" ? <FiImage size={18} /> : <FiFile size={18} />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <a 
+                              href={att.url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-[12px] font-bold text-slate-700 dark:text-slate-300 hover:text-blue-600 truncate block"
+                            >
+                              {att.filename}
+                            </a>
+                            <span className="text-[9px] text-slate-400 uppercase tracking-wider block mt-0.5">{att.fileType || "File"}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* FOOTER */}
+              <div className="flex items-center justify-end px-6 py-4 border-t border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
+                <button
+                  type="button"
+                  onClick={() => setOpenViewModal(false)}
+                  className="px-5 py-2 rounded-lg bg-slate-200 dark:bg-slate-750 text-slate-700 dark:text-slate-300 font-bold text-[13px] hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+
             </div>
           </div>
         )}

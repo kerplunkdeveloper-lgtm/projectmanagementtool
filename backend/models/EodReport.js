@@ -8,26 +8,60 @@ const eodReportSchema = new mongoose.Schema(
       required: true,
     },
 
-    projectName: {
-      type: String,
-      required: [true, "Project name is required"],
-    },
-
     date: {
       type: Date,
       default: Date.now,
       required: true,
     },
 
-    description: {
+    projectsWorkedOn: {
       type: String,
-      required: [true, "Please provide a description"],
+      required: [true, "Projects Worked On is required"],
     },
 
-    status: {
+    tasksCompleted: {
       type: String,
-      enum: ["In Progress", "Completed", "On Hold", "Pending"],
-      default: "Completed",
+      required: [true, "Tasks Completed is required"],
+    },
+
+    designCount: {
+      type: String,
+      default: "",
+    },
+
+    filesSubmitted: {
+      type: String,
+      default: "",
+    },
+
+    pendingTasks: {
+      type: String,
+      default: "",
+    },
+
+    reasonForPending: {
+      type: String,
+      default: "",
+    },
+
+    challengesFaced: {
+      type: String,
+      default: "",
+    },
+
+    tomorrowPlan: {
+      type: String,
+      required: [true, "Tomorrow Plan is required"],
+    },
+
+    supportNeeded: {
+      type: String,
+      default: "",
+    },
+
+    overallStatus: {
+      type: String,
+      required: [true, "Overall Status is required"],
     },
 
     attachments: [

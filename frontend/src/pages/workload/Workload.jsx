@@ -263,7 +263,7 @@ const Workload = () => {
   const getPriorityStyle = (priority) => {
     switch (priority) {
       case "Top High":
-        return "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800";
+        return "badge-priority-top-high";
       case "High":
         return "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-300 dark:border-rose-800";
       case "Medium":

@@ -736,7 +736,7 @@ const Task = () => {
   const getPriorityStyle = (priority) => {
     switch (priority) {
       case "Top High":
-        return "bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-900 dark:text-purple-300 dark:border-purple-600";
+        return "badge-priority-top-high";
       case "High":
         return "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-900 dark:text-rose-300 dark:border-rose-600";
       case "Medium":
@@ -1232,7 +1232,7 @@ const Task = () => {
                             {/* Priority Badge */}
                             <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40">
                               <span
-                                className={`px-2 py-0.5  border text-[10px] font-bold tracking-wider uppercase ${getPriorityStyle(task.priority || "Medium")}`}
+                                className={`px-4 py-0.2 border text-[14px] font-extrabold tracking-wider uppercase whitespace-nowrap ${getPriorityStyle(task.priority || "Medium")}`}
                               >
                                 {task.priority || "Medium"}
                               </span>
@@ -1358,7 +1358,7 @@ const Task = () => {
                             {/* Start Date */}
                             <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-32">
                               <span
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold ${
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold whitespace-nowrap ${
                                   task.startDate
                                     ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300 border border-blue-200/50 dark:border-blue-500/20"
                                     : "text-slate-450 dark:text-slate-500 border border-dashed border-slate-200 dark:border-[#1e293b]/40"
@@ -1371,7 +1371,7 @@ const Task = () => {
                             {/* End Date */}
                             <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-32">
                               <span
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold ${
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold whitespace-nowrap ${
                                   task.dueDate
                                     ? "bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300 border border-rose-200/50 dark:border-rose-500/20"
                                     : "text-slate-450 dark:text-slate-500 border border-dashed border-slate-200 dark:border-[#1e293b]/40"

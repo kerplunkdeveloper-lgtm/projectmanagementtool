@@ -597,6 +597,7 @@ select.badge-select, span.badge-span {
   font-weight: 600 !important;
   text-transform: uppercase !important;
   letter-spacing: 0.06em !important;
+  white-space: nowrap !important;
   border-radius: 6px !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
   height: 30px !important;
@@ -1889,5 +1890,20 @@ td:first-child {
 /* Higher z-index for selection, ID, and Name column headers when both top-sticky and left-sticky */
 .project-task-table thead th.md\:sticky {
   z-index: 50 !important;
+}
+
+@keyframes bell-shake {
+  0% { transform: rotate(0); }
+  15% { transform: rotate(15deg); }
+  30% { transform: rotate(-15deg); }
+  45% { transform: rotate(10deg); }
+  60% { transform: rotate(-10deg); }
+  75% { transform: rotate(4deg); }
+  85% { transform: rotate(-4deg); }
+  100% { transform: rotate(0); }
+}
+
+.bell-ringing {
+  animation: bell-shake 0.8s ease-in-out !important;
 }
 
