@@ -598,7 +598,7 @@ const Navbar = ({ setSidebarOpen }) => {
                               navigate(
                                 `/${user?.role}/chat?id=${n.chatRoomId}`,
                               );
-                            } else if (n.type === "task_assigned") {
+                            } else if (n.type?.startsWith("task_")) {
                               navigate(`/${user?.role}/tasks`);
                             } else if (
                               n.type === "client_assigned" ||

@@ -176,6 +176,10 @@ exports.updateTask = async (req, res) => {
       } else if (req.body.status === "Completed" && !task.actualEndTime) {
         req.body.actualEndTime = Date.now();
       }
+
+      if (req.body.status === "Rejected" && previousStatus !== "Rejected") {
+        req.body.revisions = (task.revisions || 0) + 1;
+      }
     }
 
     // Time tracking logic for subtasks

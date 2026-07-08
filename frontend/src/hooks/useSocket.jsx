@@ -250,7 +250,7 @@ const useSocket = () => {
                       notification.message.toLowerCase().includes("client:"))
                   ) {
                     navigate(`/${user?.role}/clients`);
-                  } else if (notification.type === "task_assigned") {
+                  } else if (notification.type?.startsWith("task_")) {
                     navigate(`/${user?.role}/tasks`);
                   }
                 }}

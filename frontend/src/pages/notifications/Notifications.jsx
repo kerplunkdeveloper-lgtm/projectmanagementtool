@@ -179,7 +179,7 @@ const Notifications = () => {
                     }
                     if (n.type === "message_received" || n.chatRoomId) {
                       navigate(`/${user?.role}/chat?id=${n.chatRoomId}`);
-                    } else if (n.type === "task_assigned") {
+                    } else if (n.type?.startsWith("task_")) {
                       navigate(`/${user?.role}/tasks`);
                     } else if (n.type === "client_assigned" || (n.message && n.message.toLowerCase().includes("client:"))) {
                       navigate(`/${user?.role}/clients`);
