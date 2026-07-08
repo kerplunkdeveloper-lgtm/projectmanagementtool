@@ -328,6 +328,7 @@ const AdminUsers = () => {
         }
         editUser={editUser}
         setEditUser={setEditUser}
+        users={users}
       />
 
       {/* DELETE MODAL */}

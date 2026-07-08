@@ -2,15 +2,36 @@ import React, { useEffect, useState } from "react";
 import { FiX, FiUsers, FiEye, FiEyeOff } from "react-icons/fi";
 
 
-const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser, editUser, setEditUser }) => {
+const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser, editUser, setEditUser, users }) => {
   const [formData, setFormData] = useState({ name: "", email: "", password: "", role: "team", department: "" });
   const [showPassword, setShowPassword] = useState(false);
+  const [isCustomDept, setIsCustomDept] = useState(false);
+
+  const defaultDepts = [];
+
+  const uniqueDepts = Array.from(
+    new Set([
+      ...defaultDepts,
+      ...(users || [])
+        .map((u) => u.department)
+        .filter((dept) => typeof dept === "string" && dept.trim() !== ""),
+    ]),
+  ).sort();
 
   useEffect(() => {
-    setFormData(editUser
-      ? { name: editUser.name || "", email: editUser.email || "", password: "", role: editUser.role || "team", department: editUser.department || "" }
-      : { name: "", email: "", password: "", role: "team", department: "" }
-    );
+    if (editUser) {
+      setFormData({
+        name: editUser.name || "",
+        email: editUser.email || "",
+        password: "",
+        role: editUser.role || "team",
+        department: editUser.department || ""
+      });
+      setIsCustomDept(false);
+    } else {
+      setFormData({ name: "", email: "", password: "", role: "team", department: "" });
+      setIsCustomDept(false);
+    }
   }, [editUser]);
 
   const handleChange = (e) => {
@@ -20,7 +41,13 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    editUser ? handleUpdateUser(formData) : handleCreateUser(formData);
+    if (editUser) {
+      const { password, ...rest } = formData;
+      const dataToSubmit = password ? formData : rest;
+      handleUpdateUser(dataToSubmit);
+    } else {
+      handleCreateUser(formData);
+    }
   };
 
   const handleClose = () => {
@@ -70,11 +97,12 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
           </div>
 
           <div>
-            <label className={LABEL}>Password <span className="normal-case text-red-600">*</span> {editUser && <span className="normal-case text-gray-400">(leave blank to keep)</span>}</label>
+            <label className={LABEL}>Password {!editUser && <span className="normal-case text-red-600">*</span>} {editUser && <span className="normal-case text-gray-400">(leave blank to keep)</span>}</label>
             <div className="relative">
               <input 
                 type={showPassword ? "text" : "password"} 
                 name="password" 
+                required={!editUser}
                 value={formData.password} 
                 onChange={handleChange} 
                 placeholder="Enter user password" 
@@ -101,8 +129,51 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
             </div>
 
             <div>
-              <label className={LABEL}>Department <span className="normal-case text-red-600">*</span></label>
-              <input type="text" name="department" value={formData.department} onChange={handleChange} required placeholder="Enter department" className={INPUT} />
+              <label className={LABEL}>Department <span className="normal-case text-red-650">*</span></label>
+              {isCustomDept ? (
+                <div className="space-y-1">
+                  <input 
+                    type="text" 
+                    name="department" 
+                    value={formData.department} 
+                    onChange={handleChange} 
+                    required 
+                    placeholder="Enter custom department" 
+                    className={INPUT} 
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setIsCustomDept(false);
+                      setFormData(p => ({ ...p, department: uniqueDepts[0] || "" }));
+                    }} 
+                    className="text-[9px] text-blue-500 hover:text-blue-600 font-extrabold tracking-wide uppercase transition-colors"
+                  >
+                    ← Choose from existing departments
+                  </button>
+                </div>
+              ) : (
+                <select
+                  name="department"
+                  value={formData.department}
+                  onChange={(e) => {
+                    if (e.target.value === "__custom__") {
+                      setIsCustomDept(true);
+                      setFormData(p => ({ ...p, department: "" }));
+                    } else {
+                      handleChange(e);
+                    }
+                  }}
+                  required
+                  className={SELECT_INPUT}
+                >
+                  <option value="" disabled>Select Department</option>
+                  {uniqueDepts.map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                  <option value="__custom__" className="text-blue-600 font-extrabold bg-blue-50/50">+ Add Custom Department</option>
+                </select>
+              )}
             </div>
           </div>
 
