@@ -109,6 +109,32 @@ const EodReports = () => {
     });
   }, [tasks, user]);
 
+  // Helper to compute tracked time string from a task object
+  const computeTrackedTime = useCallback((task) => {
+    if (!task || !task.actualStartTime) return "";
+    const start = new Date(task.actualStartTime).getTime();
+    const end = task.actualEndTime
+      ? new Date(task.actualEndTime).getTime()
+      : Date.now();
+    const elapsed = Math.max(0, Math.floor((end - start) / 1000));
+    if (elapsed <= 0) return "";
+    const hours = Math.floor(elapsed / 3600);
+    const minutes = Math.floor((elapsed % 3600) / 60);
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+  }, []);
+
+  // Helper to map task status → pending tasks auto-fill text
+  const getPendingFromStatus = useCallback((task) => {
+    if (!task) return "";
+    const status = task.status || "";
+    if (status === "Completed") return "";
+    if (status === "Pending") return task.title ? `${task.title} - Pending` : "Pending";
+    if (status === "In Progress") return task.title ? `${task.title} - In Progress` : "In Progress";
+    if (status === "On Hold") return task.title ? `${task.title} - On Hold` : "On Hold";
+    return "";
+  }, []);
+
   useEffect(() => {
     if (reportsList && myActiveTasks.length > 0) {
       const todayStr = new Date().toDateString();
@@ -120,6 +146,11 @@ const EodReports = () => {
       myActiveTasks.forEach((task) => {
         const taskTitleClean = (task.title || "").toLowerCase().trim();
         if (!submittedTaskNames.includes(taskTitleClean)) {
+          // Auto-compute tracked time from task timers
+          const autoTrackedTime = computeTrackedTime(task);
+          // Auto-derive pending tasks from task status
+          const autoPendingTasks = getPendingFromStatus(task);
+
           prefilled.push({
             tempId: `task-${task._id}`,
             taskSourceId: task._id,
@@ -128,13 +159,13 @@ const EodReports = () => {
             projectsWorkedOn: task.title || "",
             designCount: "",
             filesSubmitted: "",
-            pendingTasks: "",
+            pendingTasks: autoPendingTasks,
             reasonForPending: "",
-            timeSpentToday: "",
+            timeSpentToday: autoTrackedTime,
             challengesFaced: "",
             tomorrowPlan: "",
             supportNeeded: "",
-            overallStatus: "On Track",
+            overallStatus: task.status === "Completed" ? "Completed" : "On Track",
             attachments: [],
             isPreFilled: true,
           });
@@ -152,7 +183,7 @@ const EodReports = () => {
         return [...prev, ...filteredPrefilled];
       });
     }
-  }, [myActiveTasks, reportsList]);
+  }, [myActiveTasks, reportsList, computeTrackedTime, getPendingFromStatus]);
 
   const addBlankRow = () => {
     setUnsavedRows((prev) => [
@@ -497,15 +528,18 @@ const EodReports = () => {
           )}
         </div>
 
-        {/* TABLE 1: UNSUBMITTED / PENDING REPORTS */}
+        {/* UNIFIED EOD TABLE — Unsubmitted rows + Submitted rows with pagination */}
         <div className="bg-white dark:bg-[#111827] shadow-lg rounded-xl border border-slate-200/80 dark:border-slate-800/85 p-5 space-y-4">
+
+          {/* Header bar */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <div className="flex items-center gap-2">
-              <h2 className="text-md font-bold text-slate-800 dark:text-slate-100">
-                Unsubmitted EOD Reports
-              </h2>
-              <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-250/20">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-md font-bold text-slate-800 dark:text-slate-100">EOD Reports</h2>
+              <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-200/40">
                 {unsubmittedRows.length} Pending
+              </span>
+              <span className="bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-indigo-200/40">
+                {submittedRows.length} Submitted
               </span>
             </div>
             {!isDesigner && (
@@ -514,12 +548,12 @@ const EodReports = () => {
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-lg shadow-md transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
               >
                 <FiPlus size={13} className="stroke-[3]" />
-                Add Blank Row
+                Add Row
               </button>
             )}
           </div>
 
-          <div className="overflow-auto custom-scrollbar max-h-[400px] border border-slate-200/60 dark:border-slate-800/60 rounded-lg bg-white dark:bg-black">
+          <div className="overflow-auto custom-scrollbar border border-slate-200/60 dark:border-slate-800/60 rounded-lg bg-white dark:bg-black">
             <table className="eod-grid-table text-left table-auto w-full">
               <thead>
                 <tr className="sticky top-0 z-10 bg-slate-100/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
@@ -577,7 +611,14 @@ const EodReports = () => {
                           </>
                         )}
                         <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
-                          <input type="text" value={row.pendingTasks} onChange={(e) => handleUnsavedChange(row.keyId, "pendingTasks", e.target.value)} placeholder="Pending work" className="eod-grid-input" />
+                          <div className="flex flex-col items-start gap-0.5 p-1">
+                            <input type="text" value={row.pendingTasks} onChange={(e) => handleUnsavedChange(row.keyId, "pendingTasks", e.target.value)} placeholder="Pending work" className="eod-grid-input" />
+                            {row.isPreFilled && row.pendingTasks && (
+                              <span className="inline-flex items-center gap-1 text-[9px] text-amber-600 dark:text-amber-400 font-extrabold bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-900/40 whitespace-nowrap">
+                                ⚡ From MyTask status
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
                           <input type="text" value={row.reasonForPending} onChange={(e) => handleUnsavedChange(row.keyId, "reasonForPending", e.target.value)} placeholder="Reason" className="eod-grid-input" />
@@ -585,11 +626,22 @@ const EodReports = () => {
                         <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
                           <div className="flex flex-col items-start gap-1 p-1">
                             <input type="text" value={row.timeSpentToday} onChange={(e) => handleUnsavedChange(row.keyId, "timeSpentToday", e.target.value)} placeholder="Hours *" className="eod-grid-input font-bold" />
-                            {trackedTime && (
+                            {row.isPreFilled && row.timeSpentToday ? (
+                              <div className="flex items-center gap-1 flex-wrap">
+                                <span className="inline-flex items-center gap-1 text-[9px] text-emerald-600 dark:text-emerald-400 font-extrabold bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-900/40 whitespace-nowrap">
+                                  <FiClock size={9} /> Auto from timer
+                                </span>
+                                {trackedTime && trackedTime !== row.timeSpentToday && (
+                                  <button type="button" onClick={() => handleUnsavedChange(row.keyId, "timeSpentToday", trackedTime)} className="inline-flex items-center gap-1 text-[9px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 font-extrabold bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded border border-indigo-200 dark:border-indigo-900/40 transition-all cursor-pointer whitespace-nowrap">
+                                    ↻ Refresh: {trackedTime}
+                                  </button>
+                                )}
+                              </div>
+                            ) : trackedTime ? (
                               <button type="button" onClick={() => handleUnsavedChange(row.keyId, "timeSpentToday", trackedTime)} className="inline-flex items-center gap-1 text-[9px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-extrabold bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded border border-indigo-150 dark:border-indigo-900/40 transition-all cursor-pointer whitespace-nowrap" title="Click to apply hours tracked in My Tasks">
                                 <FiClock size={10} /> Use Tracked: {trackedTime}
                               </button>
-                            )}
+                            ) : null}
                           </div>
                         </td>
                         <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
@@ -605,7 +657,6 @@ const EodReports = () => {
                           <select value={row.overallStatus} onChange={(e) => handleUnsavedChange(row.keyId, "overallStatus", e.target.value)} className="eod-grid-select">
                             <option value="On Track">On Track</option>
                             <option value="Completed">Completed</option>
-                            <option value="In Progress">In Progress</option>
                             <option value="Delayed">Delayed</option>
                             <option value="Blocked">Blocked</option>
                           </select>
@@ -624,49 +675,17 @@ const EodReports = () => {
                     );
                   })
                 )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                
+                {/* --- DIVIDER ROW --- */}
+                {submittedRows.length > 0 && (
+                  <tr className="bg-indigo-50/80 dark:bg-indigo-950/30 border-y border-indigo-200/60 dark:border-indigo-800/60">
+                    <td colSpan={totalColumnsCount + 2} className="px-4 py-2 text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest text-center">
+                      ✓ Submitted Reports ({submittedRows.length})
+                    </td>
+                  </tr>
+                )}
 
-        {/* TABLE 2: SUBMITTED EOD REPORTS WITH PAGINATION */}
-        <div className="bg-white dark:bg-[#111827] shadow-lg rounded-xl border border-slate-200/80 dark:border-slate-800/85 p-5 space-y-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <h2 className="text-md font-bold text-slate-800 dark:text-slate-100">
-                Submitted EOD Reports
-              </h2>
-              <span className="bg-indigo-100 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-indigo-250/20">
-                {submittedRows.length} Saved
-              </span>
-            </div>
-          </div>
-
-          <div className="overflow-auto custom-scrollbar max-h-[500px] border border-slate-200/60 dark:border-slate-800/60 rounded-lg bg-white dark:bg-black">
-            <table className="eod-grid-table text-left table-auto w-full">
-              <thead>
-                <tr className="sticky top-0 z-10 bg-slate-100/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
-                  <th className="w-[45px] min-w-[45px] text-center bg-slate-100/50 dark:bg-slate-850/50 py-3"></th>
-                  <th className="min-w-[120px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
-                  <th className="min-w-[180px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Client Name *</th>
-                  <th className="min-w-[280px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Projects Worked On *</th>
-                  {isDesigner && (
-                    <>
-                      <th className="min-w-[160px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Designs Completed *</th>
-                      <th className="min-w-[220px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Submitted Links</th>
-                    </>
-                  )}
-                  <th className="min-w-[200px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pending Tasks</th>
-                  <th className="min-w-[200px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Reason for Pending</th>
-                  <th className="min-w-[130px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Time Spent *</th>
-                  <th className="min-w-[200px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Challenges Faced</th>
-                  <th className="min-w-[280px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tomorrow Plan *</th>
-                  <th className="min-w-[180px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Support Needed</th>
-                  <th className="min-w-[160px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Overall Status *</th>
-                  <th className="min-w-[95px] px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                {/* --- SUBMITTED ROWS --- */}
                 {loading ? (
                   <tr>
                     <td colSpan={totalColumnsCount + 2} className="text-center py-12">
@@ -740,7 +759,6 @@ const EodReports = () => {
                             <select name="overallStatus" value={editRow.overallStatus} onChange={handleEditChange} className="eod-grid-select">
                               <option value="On Track">On Track</option>
                               <option value="Completed">Completed</option>
-                              <option value="In Progress">In Progress</option>
                               <option value="Delayed">Delayed</option>
                               <option value="Blocked">Blocked</option>
                             </select>
