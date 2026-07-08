@@ -28,6 +28,7 @@ import {
 import EventModal from "./EventModal";
 import toast from "react-hot-toast";
 import ClientBadge from "../../components/common/ClientBadge";
+import { getClientIconComponent } from "../../utils/clientHelpers";
 
 const locales = { "en-IN": enIN };
 
