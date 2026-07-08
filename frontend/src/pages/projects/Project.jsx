@@ -228,7 +228,6 @@ const Project = () => {
   // VIEW 2: DEFAULT PROJECT DIRECTORY TABLE
   return (
     <div className=" space-y-6 ">
-      
       {/* FILTER AND SEARCH BAR */}
       <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
         <div className="flex-1 relative">
@@ -372,19 +371,21 @@ const Project = () => {
                     <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
                       {project.client ? (
                         (() => {
-                          return <ClientBadge client={project.client} size="md" />;
+                          return (
+                            <ClientBadge client={project.client} size="md" />
+                          );
                         })()
                       ) : (
                         <span className="text-slate-400 italic">No Client</span>
                       )}
                     </td>
-                    
+
                     <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
                       <span className="font-semibold text-slate-700 dark:text-slate-350">
                         {project.createdBy?.name || "N/A"}
                       </span>
                     </td>
-                   
+
                     <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
                       <span
                         className={`text-[9px] font-extrabold px-2 py-0.5 rounded-lg border uppercase tracking-wider ${getStatusBadge(project.status)}`}

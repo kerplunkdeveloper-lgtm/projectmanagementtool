@@ -853,6 +853,16 @@ const ProjectTaskBoard = ({
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  const getInitials = (name) => {
+    return (
+      name
+        ?.split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase() || "U"
+    );
+  };
+
   // RTK Query hooks
   const { data: tasks = [], isLoading: tasksLoading } = useGetTasksQuery();
   const [createTaskMutation] = useCreateTaskMutation();
@@ -2632,6 +2642,10 @@ const ProjectTaskBoard = ({
                       style={bBottom}
                     />
                     <td
+                      className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700"
+                      style={bBottom}
+                    />
+                    <td
                       className="px-3 py-1 border-b border-slate-300 dark:border-slate-700"
                       style={{ ...bBottom, ...bRight }}
                     />
@@ -2734,6 +2748,9 @@ const ProjectTaskBoard = ({
                               </th>
                               <th className="px-3 py-1 border-b  border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[140px]">
                                 Client
+                              </th>
+                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[140px]">
+                                Task Created By
                               </th>
                               <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[190px]">
                                 Assignee
@@ -2934,49 +2951,97 @@ const ProjectTaskBoard = ({
                                                     onClick={(e) => {
                                                       e.stopPropagation();
                                                       setOpenSectionMenu(
-                                                        openSectionMenu === sectionName ? null : sectionName
+                                                        openSectionMenu ===
+                                                          sectionName
+                                                          ? null
+                                                          : sectionName,
                                                       );
                                                     }}
                                                     className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors flex items-center justify-center p-0.5 rounded cursor-pointer"
                                                   >
-                                                    <FiMoreHorizontal size={13} />
+                                                    <FiMoreHorizontal
+                                                      size={13}
+                                                    />
                                                   </button>
-                                                  {openSectionMenu === sectionName && (
+                                                  {openSectionMenu ===
+                                                    sectionName && (
                                                     <div
                                                       className="absolute left-0 top-full mt-1.5 w-48 bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-xl rounded-xl p-2 z-[60] flex flex-col gap-1.5"
-                                                      onClick={(e) => e.stopPropagation()}
+                                                      onClick={(e) =>
+                                                        e.stopPropagation()
+                                                      }
                                                     >
                                                       <button
                                                         type="button"
                                                         onClick={() => {
-                                                          setSelectionModeSections((prev) => ({
-                                                            ...prev,
-                                                            [sectionName]: !prev[sectionName],
-                                                          }));
-                                                          if (selectionModeSections[sectionName]) {
-                                                            setSelectedTasks((prev) => {
-                                                              const next = { ...prev };
-                                                              sectionTasks.forEach((t) => { delete next[t._id]; });
-                                                              return next;
-                                                            });
+                                                          setSelectionModeSections(
+                                                            (prev) => ({
+                                                              ...prev,
+                                                              [sectionName]:
+                                                                !prev[
+                                                                  sectionName
+                                                                ],
+                                                            }),
+                                                          );
+                                                          if (
+                                                            selectionModeSections[
+                                                              sectionName
+                                                            ]
+                                                          ) {
+                                                            setSelectedTasks(
+                                                              (prev) => {
+                                                                const next = {
+                                                                  ...prev,
+                                                                };
+                                                                sectionTasks.forEach(
+                                                                  (t) => {
+                                                                    delete next[
+                                                                      t._id
+                                                                    ];
+                                                                  },
+                                                                );
+                                                                return next;
+                                                              },
+                                                            );
                                                           }
-                                                          setOpenSectionMenu(null);
+                                                          setOpenSectionMenu(
+                                                            null,
+                                                          );
                                                         }}
                                                         className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-slate-100 hover:bg-slate-200 dark:bg-[#1E293B] dark:hover:bg-[#334155] text-slate-700 dark:text-slate-200 rounded-lg transition-all"
                                                       >
-                                                        {selectionModeSections[sectionName] ? (
-                                                          <><FiX size={13} /> Cancel Select</>
+                                                        {selectionModeSections[
+                                                          sectionName
+                                                        ] ? (
+                                                          <>
+                                                            <FiX size={13} />{" "}
+                                                            Cancel Select
+                                                          </>
                                                         ) : (
-                                                          <><FiCheckCircle size={13} /> Select Tasks</>
+                                                          <>
+                                                            <FiCheckCircle
+                                                              size={13}
+                                                            />{" "}
+                                                            Select Tasks
+                                                          </>
                                                         )}
                                                       </button>
-                                                      {sectionName !== "General" && (
+                                                      {sectionName !==
+                                                        "General" && (
                                                         <button
                                                           type="button"
-                                                          onClick={() => { handleDeleteSection(sectionName); setOpenSectionMenu(null); }}
+                                                          onClick={() => {
+                                                            handleDeleteSection(
+                                                              sectionName,
+                                                            );
+                                                            setOpenSectionMenu(
+                                                              null,
+                                                            );
+                                                          }}
                                                           className="flex items-center gap-2 px-3 py-2 w-full text-[11px] font-bold bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 rounded-lg transition-all"
                                                         >
-                                                          <FiTrash2 size={13} /> Delete Section
+                                                          <FiTrash2 size={13} />{" "}
+                                                          Delete Section
                                                         </button>
                                                       )}
                                                     </div>
@@ -3173,39 +3238,86 @@ const ProjectTaskBoard = ({
 
                                               {/* Bulk Actions Inline */}
                                               {isAdminOrManager &&
-                                                selectionModeSections[sectionName] && (
+                                                selectionModeSections[
+                                                  sectionName
+                                                ] && (
                                                   <div className="flex items-center gap-2 ml-3">
                                                     {/* Cancel Select */}
                                                     <button
                                                       type="button"
                                                       onClick={(e) => {
                                                         e.stopPropagation();
-                                                        setSelectionModeSections((prev) => ({ ...prev, [sectionName]: false }));
-                                                        setSelectedTasks((prev) => {
-                                                          const next = { ...prev };
-                                                          sectionTasks.forEach((t) => { delete next[t._id]; });
-                                                          return next;
-                                                        });
+                                                        setSelectionModeSections(
+                                                          (prev) => ({
+                                                            ...prev,
+                                                            [sectionName]: false,
+                                                          }),
+                                                        );
+                                                        setSelectedTasks(
+                                                          (prev) => {
+                                                            const next = {
+                                                              ...prev,
+                                                            };
+                                                            sectionTasks.forEach(
+                                                              (t) => {
+                                                                delete next[
+                                                                  t._id
+                                                                ];
+                                                              },
+                                                            );
+                                                            return next;
+                                                          },
+                                                        );
                                                       }}
                                                       className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-700/60 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600/50 transition-all cursor-pointer shadow-sm whitespace-nowrap"
                                                     >
-                                                      <FiX size={11} className="shrink-0" />
+                                                      <FiX
+                                                        size={11}
+                                                        className="shrink-0"
+                                                      />
                                                       Cancel Select
                                                     </button>
                                                     {/* Delete Selected */}
-                                                    {Object.keys(selectedTasks).some(
-                                                      (id) => selectedTasks[id] && sectionTasks.some((t) => t._id === id)
+                                                    {Object.keys(
+                                                      selectedTasks,
+                                                    ).some(
+                                                      (id) =>
+                                                        selectedTasks[id] &&
+                                                        sectionTasks.some(
+                                                          (t) => t._id === id,
+                                                        ),
                                                     ) && (
                                                       <button
                                                         type="button"
                                                         onClick={(e) => {
                                                           e.stopPropagation();
-                                                          handleBulkDelete(sectionTasks, sectionName);
+                                                          handleBulkDelete(
+                                                            sectionTasks,
+                                                            sectionName,
+                                                          );
                                                         }}
                                                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold rounded-lg bg-rose-500 hover:bg-rose-600 dark:bg-rose-600 dark:hover:bg-rose-500 text-white border border-rose-600 dark:border-rose-500 transition-all cursor-pointer shadow-sm whitespace-nowrap"
                                                       >
-                                                        <FiTrash2 size={11} className="shrink-0" />
-                                                        Delete Selected ({Object.keys(selectedTasks).filter((id) => selectedTasks[id] && sectionTasks.some((t) => t._id === id)).length})
+                                                        <FiTrash2
+                                                          size={11}
+                                                          className="shrink-0"
+                                                        />
+                                                        Delete Selected (
+                                                        {
+                                                          Object.keys(
+                                                            selectedTasks,
+                                                          ).filter(
+                                                            (id) =>
+                                                              selectedTasks[
+                                                                id
+                                                              ] &&
+                                                              sectionTasks.some(
+                                                                (t) =>
+                                                                  t._id === id,
+                                                              ),
+                                                          ).length
+                                                        }
+                                                        )
                                                       </button>
                                                     )}
                                                   </div>
@@ -3540,6 +3652,36 @@ const ProjectTaskBoard = ({
                                                           />
                                                         ) : (
                                                           <span className="text-slate-400 dark:text-slate-500 text-[10px] font-normal">
+                                                            N/A
+                                                          </span>
+                                                        )}
+                                                      </td>
+
+                                                      {/* Created By Column */}
+                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                        {task.createdBy ? (
+                                                          <div className="flex items-center gap-2">
+                                                            {(task.createdBy.profile?.profileImage?.url || task.createdBy.profileImage?.url || task.createdBy.profile?.avatar || task.createdBy.avatar) ? (
+                                                              <img
+                                                                src={task.createdBy.profile?.profileImage?.url || task.createdBy.profileImage?.url || task.createdBy.profile?.avatar || task.createdBy.avatar}
+                                                                alt={task.createdBy.name}
+                                                                className="w-5 h-5 rounded-full object-cover border border-slate-250 dark:border-white/10 shrink-0"
+                                                              />
+                                                            ) : (
+                                                              <div
+                                                                className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
+                                                                  task.createdBy.name || "U"
+                                                                )}`}
+                                                              >
+                                                                {getInitials(task.createdBy.name || "U")}
+                                                              </div>
+                                                            )}
+                                                            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[100px]" title={task.createdBy.name}>
+                                                              {task.createdBy.name}
+                                                            </span>
+                                                          </div>
+                                                        ) : (
+                                                          <span className="text-slate-400 dark:text-slate-550 text-[10px] font-normal">
                                                             N/A
                                                           </span>
                                                         )}
@@ -4013,15 +4155,24 @@ const ProjectTaskBoard = ({
                                                                 )
                                                               }
                                                               className={`badge-select ${
-                                                                task.status === "Completed"
+                                                                task.status ===
+                                                                "Completed"
                                                                   ? "badge-status-completed"
-                                                                  : task.status === "In Progress"
+                                                                  : task.status ===
+                                                                      "In Progress"
                                                                     ? "badge-status-in-progress"
-                                                                    : task.status === "IN-REVIEW" || task.status === "In Review" || task.status === "IN-Review"
+                                                                    : task.status ===
+                                                                          "IN-REVIEW" ||
+                                                                        task.status ===
+                                                                          "In Review" ||
+                                                                        task.status ===
+                                                                          "IN-Review"
                                                                       ? "badge-status-in-review"
-                                                                      : task.status === "On Hold"
+                                                                      : task.status ===
+                                                                          "On Hold"
                                                                         ? "badge-status-on-hold"
-                                                                        : task.status === "Rejected"
+                                                                        : task.status ===
+                                                                            "Rejected"
                                                                           ? "badge-status-rejected"
                                                                           : "badge-status-pending"
                                                               }`}
@@ -4048,20 +4199,37 @@ const ProjectTaskBoard = ({
                                                           ) : (
                                                             <span
                                                               className={`badge-span ${
-                                                                task.status === "Completed"
+                                                                task.status ===
+                                                                "Completed"
                                                                   ? "badge-status-completed"
-                                                                  : task.status === "In Progress"
+                                                                  : task.status ===
+                                                                      "In Progress"
                                                                     ? "badge-status-in-progress"
-                                                                    : task.status === "IN-REVIEW" || task.status === "In Review" || task.status === "IN-Review"
+                                                                    : task.status ===
+                                                                          "IN-REVIEW" ||
+                                                                        task.status ===
+                                                                          "In Review" ||
+                                                                        task.status ===
+                                                                          "IN-Review"
                                                                       ? "badge-status-in-review"
-                                                                      : task.status === "On Hold"
+                                                                      : task.status ===
+                                                                          "On Hold"
                                                                         ? "badge-status-on-hold"
-                                                                        : task.status === "Rejected"
+                                                                        : task.status ===
+                                                                            "Rejected"
                                                                           ? "badge-status-rejected"
                                                                           : "badge-status-pending"
                                                               }`}
                                                             >
-                                                              {task.status === "IN-REVIEW" || task.status === "In Review" || task.status === "IN-Review" ? "In Review" : (task.status || "Pending")}
+                                                              {task.status ===
+                                                                "IN-REVIEW" ||
+                                                              task.status ===
+                                                                "In Review" ||
+                                                              task.status ===
+                                                                "IN-Review"
+                                                                ? "In Review"
+                                                                : task.status ||
+                                                                  "Pending"}
                                                             </span>
                                                           )}
                                                         </div>
@@ -4402,6 +4570,36 @@ const ProjectTaskBoard = ({
                                                                         .companyName
                                                                     }
                                                                   </span>
+                                                                ) : (
+                                                                  <span className="text-slate-400 dark:text-slate-555 text-[9px] font-normal">
+                                                                    N/A
+                                                                  </span>
+                                                                )}
+                                                              </td>
+
+                                                              {/* Created By Column */}
+                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 opacity-60">
+                                                                {task.createdBy ? (
+                                                                  <div className="flex items-center gap-2">
+                                                                    {(task.createdBy.profile?.profileImage?.url || task.createdBy.profileImage?.url || task.createdBy.profile?.avatar || task.createdBy.avatar) ? (
+                                                                      <img
+                                                                        src={task.createdBy.profile?.profileImage?.url || task.createdBy.profileImage?.url || task.createdBy.profile?.avatar || task.createdBy.avatar}
+                                                                        alt={task.createdBy.name}
+                                                                        className="w-5 h-5 rounded-full object-cover border border-slate-200 dark:border-white/10 shrink-0"
+                                                                      />
+                                                                    ) : (
+                                                                      <div
+                                                                        className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
+                                                                          task.createdBy.name || "U"
+                                                                        )}`}
+                                                                      >
+                                                                        {getInitials(task.createdBy.name || "U")}
+                                                                      </div>
+                                                                    )}
+                                                                    <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[100px]" title={task.createdBy.name}>
+                                                                      {task.createdBy.name}
+                                                                    </span>
+                                                                  </div>
                                                                 ) : (
                                                                   <span className="text-slate-400 dark:text-slate-550 text-[9px] font-normal">
                                                                     N/A
@@ -4929,15 +5127,24 @@ const ProjectTaskBoard = ({
                                                                         )
                                                                       }
                                                                       className={`badge-select ${
-                                                                        sub.status === "Completed"
+                                                                        sub.status ===
+                                                                        "Completed"
                                                                           ? "badge-status-completed"
-                                                                          : sub.status === "In Progress"
+                                                                          : sub.status ===
+                                                                              "In Progress"
                                                                             ? "badge-status-in-progress"
-                                                                            : sub.status === "IN-REVIEW" || sub.status === "In Review" || sub.status === "IN-Review"
+                                                                            : sub.status ===
+                                                                                  "IN-REVIEW" ||
+                                                                                sub.status ===
+                                                                                  "In Review" ||
+                                                                                sub.status ===
+                                                                                  "IN-Review"
                                                                               ? "badge-status-in-review"
-                                                                              : sub.status === "On Hold"
+                                                                              : sub.status ===
+                                                                                  "On Hold"
                                                                                 ? "badge-status-on-hold"
-                                                                                : sub.status === "Rejected"
+                                                                                : sub.status ===
+                                                                                    "Rejected"
                                                                                   ? "badge-status-rejected"
                                                                                   : "badge-status-pending"
                                                                       }`}
@@ -4946,10 +5153,12 @@ const ProjectTaskBoard = ({
                                                                         Pending
                                                                       </option>
                                                                       <option value="In Progress">
-                                                                        In Progress
+                                                                        In
+                                                                        Progress
                                                                       </option>
                                                                       <option value="IN-REVIEW">
-                                                                        In Review
+                                                                        In
+                                                                        Review
                                                                       </option>
                                                                       <option value="Completed">
                                                                         Completed
@@ -4964,20 +5173,37 @@ const ProjectTaskBoard = ({
                                                                   ) : (
                                                                     <span
                                                                       className={`badge-span ${
-                                                                        sub.status === "Completed"
+                                                                        sub.status ===
+                                                                        "Completed"
                                                                           ? "badge-status-completed"
-                                                                          : sub.status === "In Progress"
+                                                                          : sub.status ===
+                                                                              "In Progress"
                                                                             ? "badge-status-in-progress"
-                                                                            : sub.status === "IN-REVIEW" || sub.status === "In Review" || sub.status === "IN-Review"
+                                                                            : sub.status ===
+                                                                                  "IN-REVIEW" ||
+                                                                                sub.status ===
+                                                                                  "In Review" ||
+                                                                                sub.status ===
+                                                                                  "IN-Review"
                                                                               ? "badge-status-in-review"
-                                                                              : sub.status === "On Hold"
+                                                                              : sub.status ===
+                                                                                  "On Hold"
                                                                                 ? "badge-status-on-hold"
-                                                                                : sub.status === "Rejected"
+                                                                                : sub.status ===
+                                                                                    "Rejected"
                                                                                   ? "badge-status-rejected"
                                                                                   : "badge-status-pending"
                                                                       }`}
                                                                     >
-                                                                      {sub.status === "IN-REVIEW" || sub.status === "In Review" || sub.status === "IN-Review" ? "In Review" : (sub.status || "Pending")}
+                                                                      {sub.status ===
+                                                                        "IN-REVIEW" ||
+                                                                      sub.status ===
+                                                                        "In Review" ||
+                                                                      sub.status ===
+                                                                        "IN-Review"
+                                                                        ? "In Review"
+                                                                        : sub.status ||
+                                                                          "Pending"}
                                                                     </span>
                                                                   )}
                                                                 </div>
@@ -5054,7 +5280,7 @@ const ProjectTaskBoard = ({
                                         <tr className=" pointer-events-none">
                                           <td
                                             colSpan={
-                                              showSelectionColumn ? 13 : 12
+                                              showSelectionColumn ? 14 : 13
                                             }
                                             className=" p-0 border-0 bg-transparent"
                                           />
@@ -5082,200 +5308,204 @@ const ProjectTaskBoard = ({
             <div className="space-y-4 ">
               {/* Board Columns Grid */}
               <div className="flex gap-4 items-start overflow-x-auto pb-4 hide-scrollbar snap-x">
-                {["Pending", "In Progress", "IN-REVIEW", "On Hold", "Completed", "Rejected"].map(
-                  (statusName) => {
-                    const columnTasks = activeProjectTasks.filter((t) => {
-                      if (statusName === "IN-REVIEW") {
-                        return t.status === "IN-REVIEW" || t.status === "In Review" || t.status === "IN-Review";
-                      }
-                      return t.status === statusName;
-                    });
+                {[
+                  "Pending",
+                  "In Progress",
+                  "IN-REVIEW",
+                  "On Hold",
+                  "Completed",
+                  "Rejected",
+                ].map((statusName) => {
+                  const columnTasks = activeProjectTasks.filter((t) => {
+                    if (statusName === "IN-REVIEW") {
+                      return (
+                        t.status === "IN-REVIEW" ||
+                        t.status === "In Review" ||
+                        t.status === "IN-Review"
+                      );
+                    }
+                    return t.status === statusName;
+                  });
 
-                    return (
-                      <div
-                        key={statusName}
-                        className="bg-slate-50/80 dark:bg-[#1a1a1a]/40 p-4 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm flex flex-col min-h-[380px] max-h-[700px] min-w-[280px] sm:min-w-[320px] snap-center shrink-0"
-                      >
-                        {/* Column Header */}
-                        <div className="flex items-center justify-between mb-4 px-1">
-                          <div className="flex items-center gap-2">
-                            <h4 className="text-sm font-bold text-slate-800 dark:text-white">
-                              {statusName}
-                            </h4>
-                          </div>
-                          <span className="text-[10px] font-extrabold px-2 py-2 rounded-lg bg-slate-200/50 dark:bg-white/10 text-slate-600 dark:text-slate-300">
-                            {columnTasks.length}
-                          </span>
+                  return (
+                    <div
+                      key={statusName}
+                      className="bg-slate-50/80 dark:bg-[#1a1a1a]/40 p-4 rounded-2xl border border-slate-100 dark:border-white/5 shadow-sm flex flex-col min-h-[380px] max-h-[700px] min-w-[280px] sm:min-w-[320px] snap-center shrink-0"
+                    >
+                      {/* Column Header */}
+                      <div className="flex items-center justify-between mb-4 px-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-bold text-slate-800 dark:text-white">
+                            {statusName}
+                          </h4>
                         </div>
+                        <span className="text-[10px] font-extrabold px-2 py-2 rounded-lg bg-slate-200/50 dark:bg-white/10 text-slate-600 dark:text-slate-300">
+                          {columnTasks.length}
+                        </span>
+                      </div>
 
-                        {/* Cards Container */}
-                        <StrictModeDroppable droppableId={statusName}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.droppableProps}
-                              className={`flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin rounded-xl p-1 transition-colors ${
-                                snapshot.isDraggingOver
-                                  ? "bg-slate-100/50 dark:bg-white/5 ring-1 ring-blue-400/30 dark:ring-[#3b82f6]/30"
-                                  : ""
-                              }`}
-                            >
-                              {columnTasks.map((task, index) => {
-                                const isCompleted = task.status === "Completed";
-                                return (
-                                  <Draggable
-                                    key={task._id}
-                                    draggableId={task._id}
-                                    index={index}
-                                  >
-                                    {(provided, snapshot) => (
-                                      <div
-                                        ref={provided.innerRef}
-                                        {...provided.draggableProps}
-                                        {...provided.dragHandleProps}
-                                        style={provided.draggableProps.style}
-                                        onClick={() =>
-                                          setSelectedTaskId(task._id)
-                                        }
-                                        className={`bg-white dark:bg-[#111111] p-2.5 rounded-xl border cursor-pointer space-y-2 relative group select-none ${
-                                          snapshot.isDragging
-                                            ? "shadow-2xl ring-2 ring-blue-500 dark:ring-[#3b82f6] scale-[1.03] z-50 border-blue-300 dark:border-[#3b82f6]"
-                                            : "border-slate-150 dark:border-white/5 hover:shadow-md hover:border-slate-200 dark:hover:border-[#3b82f6]/50 transition-shadow transition-colors"
-                                        }`}
-                                      >
-                                        <div className="flex items-start gap-2">
-                                          {/* Status Checkbox */}
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleTaskFieldChange(task._id, {
-                                                status: isCompleted
-                                                  ? "Pending"
-                                                  : "Completed",
-                                              });
-                                            }}
-                                            className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
-                                              isCompleted
-                                                ? "bg-emerald-500 border-emerald-500 text-white"
-                                                : "border-slate-350 dark:border-slate-650 hover:border-blue-500 dark:hover:border-[#3b82f6] text-transparent hover:text-slate-400 dark:hover:text-[#3b82f6]"
-                                            }`}
-                                          >
-                                            <FiCheck size={9} />
-                                          </button>
+                      {/* Cards Container */}
+                      <StrictModeDroppable droppableId={statusName}>
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.droppableProps}
+                            className={`flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin rounded-xl p-1 transition-colors ${
+                              snapshot.isDraggingOver
+                                ? "bg-slate-100/50 dark:bg-white/5 ring-1 ring-blue-400/30 dark:ring-[#3b82f6]/30"
+                                : ""
+                            }`}
+                          >
+                            {columnTasks.map((task, index) => {
+                              const isCompleted = task.status === "Completed";
+                              return (
+                                <Draggable
+                                  key={task._id}
+                                  draggableId={task._id}
+                                  index={index}
+                                >
+                                  {(provided, snapshot) => (
+                                    <div
+                                      ref={provided.innerRef}
+                                      {...provided.draggableProps}
+                                      {...provided.dragHandleProps}
+                                      style={provided.draggableProps.style}
+                                      onClick={() =>
+                                        setSelectedTaskId(task._id)
+                                      }
+                                      className={`bg-white dark:bg-[#111111] p-2.5 rounded-xl border cursor-pointer space-y-2 relative group select-none ${
+                                        snapshot.isDragging
+                                          ? "shadow-2xl ring-2 ring-blue-500 dark:ring-[#3b82f6] scale-[1.03] z-50 border-blue-300 dark:border-[#3b82f6]"
+                                          : "border-slate-150 dark:border-white/5 hover:shadow-md hover:border-slate-200 dark:hover:border-[#3b82f6]/50 transition-shadow transition-colors"
+                                      }`}
+                                    >
+                                      <div className="flex items-start gap-2">
+                                        {/* Status Checkbox */}
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleTaskFieldChange(task._id, {
+                                              status: isCompleted
+                                                ? "Pending"
+                                                : "Completed",
+                                            });
+                                          }}
+                                          className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 transition-colors ${
+                                            isCompleted
+                                              ? "bg-emerald-500 border-emerald-500 text-white"
+                                              : "border-slate-350 dark:border-slate-650 hover:border-blue-500 dark:hover:border-[#3b82f6] text-transparent hover:text-slate-400 dark:hover:text-[#3b82f6]"
+                                          }`}
+                                        >
+                                          <FiCheck size={9} />
+                                        </button>
 
-                                          {/* Title */}
-                                          <span
-                                            className={`text-[11px] font-bold leading-normal text-slate-855 dark:text-white pr-6 ${
-                                              isCompleted
-                                                ? "line-through text-slate-400 dark:text-slate-500"
-                                                : ""
-                                            }`}
-                                          >
-                                            {task.title}
-                                          </span>
-                                        </div>
+                                        {/* Title */}
+                                        <span
+                                          className={`text-[11px] font-bold leading-normal text-slate-855 dark:text-white pr-6 ${
+                                            isCompleted
+                                              ? "line-through text-slate-400 dark:text-slate-500"
+                                              : ""
+                                          }`}
+                                        >
+                                          {task.title}
+                                        </span>
+                                      </div>
 
-                                        {/* Board Card Extra Data: Tags / Status */}
-                                        <div className="flex flex-wrap items-center gap-1 mt-1.5 mb-2">
-                                          {/* Status Badge */}
-                                          <span
-                                            className={`text-[8px] font-bold  tracking-wider px-1 py-2 rounded-md border ${
-                                              task.status === "Completed"
-                                                ? "bg-emerald-55/10 text-emerald-600 border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/40"
-                                                : task.status === "In Progress"
-                                                  ? "bg-blue-50 text-blue-600 border-blue-100 dark:bg-[#3b82f6]/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30"
-                                                  : task.status === "On Hold"
-                                                    ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/30 dark:border-amber-900/40"
-                                                    : "bg-slate-100 text-slate-500 border-slate-200 dark:bg-white/5 dark:text-slate-400 dark:border-white/10"
-                                            }`}
-                                          >
-                                            {task.status || "Pending"}
-                                          </span>
+                                      {/* Board Card Extra Data: Tags / Status */}
+                                      <div className="flex flex-wrap items-center gap-1 mt-1.5 mb-2">
+                                        {/* Status Badge */}
+                                        <span
+                                          className={`text-[8px] font-bold  tracking-wider px-1 py-2 rounded-md border ${
+                                            task.status === "Completed"
+                                              ? "bg-emerald-55/10 text-emerald-600 border-emerald-100 dark:bg-emerald-950/30 dark:border-emerald-900/40"
+                                              : task.status === "In Progress"
+                                                ? "bg-blue-50 text-blue-600 border-blue-100 dark:bg-[#3b82f6]/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30"
+                                                : task.status === "On Hold"
+                                                  ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/30 dark:border-amber-900/40"
+                                                  : "bg-slate-100 text-slate-500 border-slate-200 dark:bg-white/5 dark:text-slate-400 dark:border-white/10"
+                                          }`}
+                                        >
+                                          {task.status || "Pending"}
+                                        </span>
 
-                                          {/* Priority Badge */}
-                                          <span
-                                            className={`text-[8px] font-bold tracking-wider px-1 py-2 rounded-md border whitespace-nowrap ${
-                                              task.priority === "Top High"
-                                                ? "bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-955/20 dark:border-purple-900/40"
-                                                : task.priority === "High"
-                                                  ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-955/20 dark:border-rose-900/40"
-                                                  : task.priority === "Medium"
-                                                    ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-955/20 dark:border-amber-900/40"
-                                                    : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-[#1a1a1a] dark:text-slate-400 dark:border-white/5"
-                                            }`}
-                                          >
-                                            {task.priority || "Medium"}
-                                          </span>
+                                        {/* Priority Badge */}
+                                        <span
+                                          className={`text-[8px] font-bold tracking-wider px-1 py-2 rounded-md border whitespace-nowrap ${
+                                            task.priority === "Top High"
+                                              ? "bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-955/20 dark:border-purple-900/40"
+                                              : task.priority === "High"
+                                                ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-955/20 dark:border-rose-900/40"
+                                                : task.priority === "Medium"
+                                                  ? "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-955/20 dark:border-amber-900/40"
+                                                  : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-[#1a1a1a] dark:text-slate-400 dark:border-white/5"
+                                          }`}
+                                        >
+                                          {task.priority || "Medium"}
+                                        </span>
 
-                                          {/* Due Date */}
-                                          {task.dueDate && (
-                                            <span className="flex items-center gap-1 text-[8px] font-bold px-1.5 py-2 rounded-md bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900/40 text-rose-600 dark:text-rose-300">
-                                              <FiCalendar
-                                                size={8}
-                                                className="text-rose-505 dark:text-rose-400"
-                                              />
-                                              {new Date(
-                                                task.dueDate,
-                                              ).toLocaleDateString("en-GB", {
-                                                day: "2-digit",
-                                                month: "short",
-                                                year: "numeric",
-                                              })}
-                                            </span>
-                                          )}
-                                        </div>
-
-                                        {/* Delete Action (visible on hover) */}
-                                        {isAdminOrManager && (
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleParentTaskDelete(task._id);
-                                            }}
-                                            className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-1.5 right-1.5 p-1 text-rose-500 bg-rose-50 dark:bg-rose-905/30 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/50"
-                                          >
-                                            <FiTrash2 size={11} />
-                                          </button>
-                                        )}
-
-                                        {/* Card Footer: Assignee */}
-                                        <div className="flex items-center justify-between pt-0.5 border-t border-slate-100 dark:border-slate-800/60">
-                                          <div
-                                            className="flex items-center gap-1 pt-1"
-                                            onClick={(e) => e.stopPropagation()}
-                                          >
-                                            <AssigneeDropdown
-                                              selectedUser={task.assignedTo}
-                                              users={users}
-                                              onChange={(userId) =>
-                                                handleTaskFieldChange(
-                                                  task._id,
-                                                  {
-                                                    assignedTo: userId,
-                                                  },
-                                                )
-                                              }
-                                              isAdminOrManager={
-                                                isAdminOrManager
-                                              }
-                                              getAvatarColor={getAvatarColor}
-                                              size="md"
+                                        {/* Due Date */}
+                                        {task.dueDate && (
+                                          <span className="flex items-center gap-1 text-[8px] font-bold px-1.5 py-2 rounded-md bg-rose-50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900/40 text-rose-600 dark:text-rose-300">
+                                            <FiCalendar
+                                              size={8}
+                                              className="text-rose-505 dark:text-rose-400"
                                             />
-                                          </div>
+                                            {new Date(
+                                              task.dueDate,
+                                            ).toLocaleDateString("en-GB", {
+                                              day: "2-digit",
+                                              month: "short",
+                                              year: "numeric",
+                                            })}
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {/* Delete Action (visible on hover) */}
+                                      {isAdminOrManager && (
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleParentTaskDelete(task._id);
+                                          }}
+                                          className="opacity-0 group-hover:opacity-100 transition-opacity absolute top-1.5 right-1.5 p-1 text-rose-500 bg-rose-50 dark:bg-rose-905/30 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-900/50"
+                                        >
+                                          <FiTrash2 size={11} />
+                                        </button>
+                                      )}
+
+                                      {/* Card Footer: Assignee */}
+                                      <div className="flex items-center justify-between pt-0.5 border-t border-slate-100 dark:border-slate-800/60">
+                                        <div
+                                          className="flex items-center gap-1 pt-1"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <AssigneeDropdown
+                                            selectedUser={task.assignedTo}
+                                            users={users}
+                                            onChange={(userId) =>
+                                              handleTaskFieldChange(task._id, {
+                                                assignedTo: userId,
+                                              })
+                                            }
+                                            isAdminOrManager={isAdminOrManager}
+                                            getAvatarColor={getAvatarColor}
+                                            size="md"
+                                          />
                                         </div>
                                       </div>
-                                    )}
-                                  </Draggable>
-                                );
-                              })}
-                              {provided.placeholder}
-                            </div>
-                          )}
-                        </StrictModeDroppable>
-                      </div>
-                    );
-                  },
-                )}
+                                    </div>
+                                  )}
+                                </Draggable>
+                              );
+                            })}
+                            {provided.placeholder}
+                          </div>
+                        )}
+                      </StrictModeDroppable>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </DragDropContext>
@@ -5733,7 +5963,9 @@ const ProjectTaskBoard = ({
                             ? "badge-status-completed"
                             : selectedTask.status === "In Progress"
                               ? "badge-status-in-progress"
-                              : selectedTask.status === "IN-REVIEW" || selectedTask.status === "In Review" || selectedTask.status === "IN-Review"
+                              : selectedTask.status === "IN-REVIEW" ||
+                                  selectedTask.status === "In Review" ||
+                                  selectedTask.status === "IN-Review"
                                 ? "badge-status-in-review"
                                 : selectedTask.status === "On Hold"
                                   ? "badge-status-on-hold"
@@ -5742,7 +5974,11 @@ const ProjectTaskBoard = ({
                                     : "badge-status-pending"
                         }`}
                       >
-                        {selectedTask.status === "IN-REVIEW" || selectedTask.status === "In Review" || selectedTask.status === "IN-Review" ? "In Review" : (selectedTask.status || "Pending")}
+                        {selectedTask.status === "IN-REVIEW" ||
+                        selectedTask.status === "In Review" ||
+                        selectedTask.status === "IN-Review"
+                          ? "In Review"
+                          : selectedTask.status || "Pending"}
                       </div>
                     )}
                   </div>
