@@ -28,6 +28,7 @@ import {
   FiChevronLeft,
   FiChevronRight,
 } from "react-icons/fi";
+import { LuNewspaper } from "react-icons/lu";
 import axiosInstance from "../../services/axiosInstance";
 import toast from "react-hot-toast";
 
@@ -497,368 +498,692 @@ const EodReports = () => {
           )}
         </div>
 
-        {/* TABLE 1: UNSUBMITTED / PENDING REPORTS */}
-        <div className="bg-white dark:bg-[#111827] shadow-lg rounded-xl border border-slate-200/80 dark:border-slate-800/85 p-5 space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <div className="flex items-center gap-2">
-              <h2 className="text-md font-bold text-slate-800 dark:text-slate-100">
-                Unsubmitted EOD Reports
-              </h2>
-              <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-250/20">
-                {unsubmittedRows.length} Pending
-              </span>
+        {isDesigner ? (
+          /* SINGLE UNIFIED TABLE FOR GRAPHIC DESIGNERS */
+          <div className="bg-white dark:bg-[#111827] shadow-lg rounded-xl border border-slate-200/80 dark:border-slate-800/85 p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div className="flex items-center gap-2">
+                <h2 className="text-md font-bold text-slate-800 dark:text-slate-100">
+                  EOD Reports Dashboard
+                </h2>
+                <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-250/20">
+                  {unsubmittedRows.length} Pending
+                </span>
+                <span className="bg-indigo-100 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-indigo-250/20">
+                  {submittedRows.length} Saved
+                </span>
+              </div>
             </div>
-            {!isDesigner && (
-              <button
-                onClick={addBlankRow}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-lg shadow-md transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
-              >
-                <FiPlus size={13} className="stroke-[3]" />
-                Add Blank Row
-              </button>
-            )}
-          </div>
 
-          <div className="overflow-auto custom-scrollbar max-h-[400px] border border-slate-200/60 dark:border-slate-800/60 rounded-lg bg-white dark:bg-black">
-            <table className="eod-grid-table text-left table-auto w-full">
-              <thead>
-                <tr className="sticky top-0 z-10 bg-slate-100/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
-                  <th className="w-[45px] min-w-[45px] text-center bg-slate-100/50 dark:bg-slate-850/50 py-3"></th>
-                  <th className="min-w-[120px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
-                  <th className="min-w-[180px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Client Name *</th>
-                  <th className="min-w-[280px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Projects Worked On *</th>
-                  {isDesigner && (
-                    <>
-                      <th className="min-w-[160px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Designs Completed *</th>
-                      <th className="min-w-[220px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Submitted Links</th>
-                    </>
-                  )}
-                  <th className="min-w-[200px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pending Tasks</th>
-                  <th className="min-w-[200px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Reason for Pending</th>
-                  <th className="min-w-[130px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Time Spent *</th>
-                  <th className="min-w-[200px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Challenges Faced</th>
-                  <th className="min-w-[280px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tomorrow Plan *</th>
-                  <th className="min-w-[180px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Support Needed</th>
-                  <th className="min-w-[160px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Overall Status *</th>
-                  <th className="min-w-[95px] px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                {unsubmittedRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={totalColumnsCount + 2} className="text-center py-10 text-xs text-slate-500 bg-slate-50/50 dark:bg-slate-900/30">
-                      No unsubmitted EOD reports. All task reports have been submitted.
-                    </td>
+            <div className="overflow-auto custom-scrollbar max-h-[600px] border border-slate-200/60 dark:border-slate-800/60 rounded-lg bg-white dark:bg-black">
+              <table className="eod-grid-table text-left table-auto w-full">
+                <thead>
+                  <tr className="sticky top-0 z-10 bg-slate-100/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
+                    <th className="w-[45px] min-w-[45px] text-center bg-slate-100/50 dark:bg-slate-850/50 py-3"></th>
+                    <th className="min-w-[120px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
+                    <th className="min-w-[180px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Client Name *</th>
+                    <th className="min-w-[280px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                      <div className="flex items-center gap-1.5 justify-start">
+                        <LuNewspaper size={12} className="text-slate-400 dark:text-slate-500 shrink-0" />
+                        <span>Projects Worked On *</span>
+                      </div>
+                    </th>
+                    <th className="min-w-[160px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Designs Completed *</th>
+                    <th className="min-w-[220px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Submitted Links</th>
+                    <th className="min-w-[200px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pending Tasks</th>
+                    <th className="min-w-[200px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Reason for Pending</th>
+                    <th className="min-w-[130px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Time Spent *</th>
+                    <th className="min-w-[200px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Challenges Faced</th>
+                    <th className="min-w-[280px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tomorrow Plan *</th>
+                    <th className="min-w-[180px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Support Needed</th>
+                    <th className="min-w-[160px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Overall Status *</th>
+                    <th className="min-w-[95px] px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center">Actions</th>
                   </tr>
-                ) : (
-                  unsubmittedRows.map((row, index) => {
-                    const excelIndex = index + 1;
-                    const trackedTime = getTrackedTimeForTitle(row.projectsWorkedOn);
-                    return (
-                      <tr key={row.keyId} className="bg-emerald-50/5 dark:bg-emerald-950/5 hover:bg-emerald-50/10 dark:hover:bg-emerald-950/10 transition-colors group">
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 text-center text-[10px] text-slate-400 font-bold bg-slate-50/50 dark:bg-slate-850/50 select-none py-3">{excelIndex}</td>
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 px-3 py-3 text-xs text-slate-550 dark:text-slate-400 bg-slate-50/30 dark:bg-slate-850/30 font-semibold select-none">
-                          {new Date(row.date || new Date()).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                        </td>
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
-                          <input type="text" value={row.clientName} onChange={(e) => handleUnsavedChange(row.keyId, "clientName", e.target.value)} placeholder="Client *" disabled={row.isPreFilled} className="eod-grid-input" />
-                        </td>
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
-                          <input type="text" value={row.projectsWorkedOn} onChange={(e) => handleUnsavedChange(row.keyId, "projectsWorkedOn", e.target.value)} placeholder="Task Name *" disabled={row.isPreFilled} className="eod-grid-input font-semibold" />
-                        </td>
-                        {isDesigner && (
-                          <>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                  {unsubmittedRows.length === 0 && paginatedSubmittedRows.length === 0 ? (
+                    <tr>
+                      <td colSpan={totalColumnsCount + 2} className="text-center py-10 text-xs text-slate-500 bg-slate-50/50 dark:bg-slate-900/30">
+                        No EOD reports found.
+                      </td>
+                    </tr>
+                  ) : (
+                    <>
+                      {/* --- UNCOMMITTED / PENDING ROWS --- */}
+                      {unsubmittedRows.map((row, index) => {
+                        const excelIndex = index + 1;
+                        const trackedTime = getTrackedTimeForTitle(row.projectsWorkedOn);
+                        return (
+                          <tr key={row.keyId} className="bg-emerald-50/5 dark:bg-emerald-950/5 hover:bg-emerald-50/10 dark:hover:bg-emerald-950/10 transition-colors group">
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 text-center text-[10px] text-slate-400 font-bold bg-slate-50/50 dark:bg-slate-850/50 select-none py-3">{excelIndex}</td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 px-3 py-3 text-xs text-slate-550 dark:text-slate-400 bg-slate-50/30 dark:bg-slate-850/30 font-semibold select-none">
+                              {new Date(row.date || new Date()).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            </td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <input type="text" value={row.clientName} onChange={(e) => handleUnsavedChange(row.keyId, "clientName", e.target.value)} placeholder="Client *" disabled={row.isPreFilled} className="eod-grid-input" />
+                            </td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <input type="text" value={row.projectsWorkedOn} onChange={(e) => handleUnsavedChange(row.keyId, "projectsWorkedOn", e.target.value)} placeholder="Task Name *" disabled={row.isPreFilled} className="eod-grid-input font-semibold" />
+                            </td>
                             <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
                               <input type="text" value={row.designCount} onChange={(e) => handleUnsavedChange(row.keyId, "designCount", e.target.value)} placeholder="Count *" className="eod-grid-input font-semibold" />
                             </td>
                             <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
                               <input type="text" value={row.filesSubmitted} onChange={(e) => handleUnsavedChange(row.keyId, "filesSubmitted", e.target.value)} placeholder="Links (optional)" className="eod-grid-input text-blue-600 dark:text-blue-400" />
                             </td>
-                          </>
-                        )}
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
-                          <input type="text" value={row.pendingTasks} onChange={(e) => handleUnsavedChange(row.keyId, "pendingTasks", e.target.value)} placeholder="Pending work" className="eod-grid-input" />
-                        </td>
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
-                          <input type="text" value={row.reasonForPending} onChange={(e) => handleUnsavedChange(row.keyId, "reasonForPending", e.target.value)} placeholder="Reason" className="eod-grid-input" />
-                        </td>
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
-                          <div className="flex flex-col items-start gap-1 p-1">
-                            <input type="text" value={row.timeSpentToday} onChange={(e) => handleUnsavedChange(row.keyId, "timeSpentToday", e.target.value)} placeholder="Hours *" className="eod-grid-input font-bold" />
-                            {trackedTime && (
-                              <button type="button" onClick={() => handleUnsavedChange(row.keyId, "timeSpentToday", trackedTime)} className="inline-flex items-center gap-1 text-[9px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-extrabold bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded border border-indigo-150 dark:border-indigo-900/40 transition-all cursor-pointer whitespace-nowrap" title="Click to apply hours tracked in My Tasks">
-                                <FiClock size={10} /> Use Tracked: {trackedTime}
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
-                          <input type="text" value={row.challengesFaced} onChange={(e) => handleUnsavedChange(row.keyId, "challengesFaced", e.target.value)} placeholder="Challenges" className="eod-grid-input" />
-                        </td>
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
-                          <input type="text" value={row.tomorrowPlan} onChange={(e) => handleUnsavedChange(row.keyId, "tomorrowPlan", e.target.value)} placeholder="Tomorrow plan *" className="eod-grid-input" />
-                        </td>
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
-                          <input type="text" value={row.supportNeeded} onChange={(e) => handleUnsavedChange(row.keyId, "supportNeeded", e.target.value)} placeholder="Support needed" className="eod-grid-input" />
-                        </td>
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
-                          <select value={row.overallStatus} onChange={(e) => handleUnsavedChange(row.keyId, "overallStatus", e.target.value)} className="eod-grid-select">
-                            <option value="On Track">On Track</option>
-                            <option value="Completed">Completed</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Delayed">Delayed</option>
-                            <option value="Blocked">Blocked</option>
-                          </select>
-                        </td>
-                        <td className="p-1.5 text-center">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button type="button" onClick={() => saveUnsavedRow(row.keyId)} title="Save to database" className="w-6.5 h-6.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white flex items-center justify-center transition-all shadow-sm hover:scale-[1.05]">
-                              <FiCheck size={14} className="stroke-[2.5]" />
-                            </button>
-                            <button type="button" onClick={() => deleteUnsavedRow(row.keyId)} title="Discard row" className="w-6.5 h-6.5 rounded-lg bg-slate-400 hover:bg-slate-500 dark:bg-slate-700 dark:hover:bg-slate-600 text-white flex items-center justify-center transition-all shadow-sm hover:scale-[1.05]">
-                              <FiX size={14} className="stroke-[2.5]" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <input type="text" value={row.pendingTasks} onChange={(e) => handleUnsavedChange(row.keyId, "pendingTasks", e.target.value)} placeholder="Pending work" className="eod-grid-input" />
+                            </td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <input type="text" value={row.reasonForPending} onChange={(e) => handleUnsavedChange(row.keyId, "reasonForPending", e.target.value)} placeholder="Reason" className="eod-grid-input" />
+                            </td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <div className="flex flex-col items-start gap-1 p-1">
+                                <input type="text" value={row.timeSpentToday} onChange={(e) => handleUnsavedChange(row.keyId, "timeSpentToday", e.target.value)} placeholder="Hours *" className="eod-grid-input font-bold" />
+                                {trackedTime && (
+                                  <button type="button" onClick={() => handleUnsavedChange(row.keyId, "timeSpentToday", trackedTime)} className="inline-flex items-center gap-1 text-[9px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-extrabold bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded border border-indigo-150 dark:border-indigo-900/40 transition-all cursor-pointer whitespace-nowrap" title="Click to apply hours tracked in My Tasks">
+                                    <FiClock size={10} /> Use Tracked: {trackedTime}
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <input type="text" value={row.challengesFaced} onChange={(e) => handleUnsavedChange(row.keyId, "challengesFaced", e.target.value)} placeholder="Challenges" className="eod-grid-input" />
+                            </td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <input type="text" value={row.tomorrowPlan} onChange={(e) => handleUnsavedChange(row.keyId, "tomorrowPlan", e.target.value)} placeholder="Tomorrow plan *" className="eod-grid-input" />
+                            </td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <input type="text" value={row.supportNeeded} onChange={(e) => handleUnsavedChange(row.keyId, "supportNeeded", e.target.value)} placeholder="Support needed" className="eod-grid-input" />
+                            </td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <select value={row.overallStatus} onChange={(e) => handleUnsavedChange(row.keyId, "overallStatus", e.target.value)} className="eod-grid-select">
+                                <option value="On Track">On Track</option>
+                                <option value="Completed">Completed</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Delayed">Delayed</option>
+                                <option value="Blocked">Blocked</option>
+                              </select>
+                            </td>
+                            <td className="p-1.5 text-center">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button type="button" onClick={() => saveUnsavedRow(row.keyId)} title="Save to database" className="w-6.5 h-6.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white flex items-center justify-center transition-all shadow-sm hover:scale-[1.05]">
+                                  <FiCheck size={14} className="stroke-[2.5]" />
+                                </button>
+                                <button type="button" onClick={() => deleteUnsavedRow(row.keyId)} title="Discard row" className="w-6.5 h-6.5 rounded-lg bg-slate-400 hover:bg-slate-500 dark:bg-slate-700 dark:hover:bg-slate-600 text-white flex items-center justify-center transition-all shadow-sm hover:scale-[1.05]">
+                                  <FiX size={14} className="stroke-[2.5]" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
 
-        {/* TABLE 2: SUBMITTED EOD REPORTS WITH PAGINATION */}
-        <div className="bg-white dark:bg-[#111827] shadow-lg rounded-xl border border-slate-200/80 dark:border-slate-800/85 p-5 space-y-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-2">
-              <h2 className="text-md font-bold text-slate-800 dark:text-slate-100">
-                Submitted EOD Reports
-              </h2>
-              <span className="bg-indigo-100 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-indigo-250/20">
-                {submittedRows.length} Saved
-              </span>
-            </div>
-          </div>
+                      {/* --- DIVIDER ROW --- */}
+                      {submittedRows.length > 0 && unsubmittedRows.length > 0 && (
+                        <tr className="bg-indigo-50/80 dark:bg-indigo-950/30 border-y border-indigo-200/60 dark:border-indigo-800/60">
+                          <td colSpan={totalColumnsCount + 2} className="px-4 py-2 text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest text-center">
+                            ✓ Submitted Reports ({submittedRows.length})
+                          </td>
+                        </tr>
+                      )}
 
-          <div className="overflow-auto custom-scrollbar max-h-[500px] border border-slate-200/60 dark:border-slate-800/60 rounded-lg bg-white dark:bg-black">
-            <table className="eod-grid-table text-left table-auto w-full">
-              <thead>
-                <tr className="sticky top-0 z-10 bg-slate-100/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
-                  <th className="w-[45px] min-w-[45px] text-center bg-slate-100/50 dark:bg-slate-850/50 py-3"></th>
-                  <th className="min-w-[120px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
-                  <th className="min-w-[180px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Client Name *</th>
-                  <th className="min-w-[280px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Projects Worked On *</th>
-                  {isDesigner && (
-                    <>
-                      <th className="min-w-[160px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Designs Completed *</th>
-                      <th className="min-w-[220px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Submitted Links</th>
-                    </>
-                  )}
-                  <th className="min-w-[200px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pending Tasks</th>
-                  <th className="min-w-[200px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Reason for Pending</th>
-                  <th className="min-w-[130px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Time Spent *</th>
-                  <th className="min-w-[200px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Challenges Faced</th>
-                  <th className="min-w-[280px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tomorrow Plan *</th>
-                  <th className="min-w-[180px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Support Needed</th>
-                  <th className="min-w-[160px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Overall Status *</th>
-                  <th className="min-w-[95px] px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
-                {loading ? (
-                  <tr>
-                    <td colSpan={totalColumnsCount + 2} className="text-center py-12">
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="w-6 h-6 border-2 border-slate-350 border-t-blue-500 rounded-full animate-spin"></div>
-                        <p className="text-slate-500 dark:text-slate-400 font-medium text-xs">Loading database records...</p>
-                      </div>
-                    </td>
-                  </tr>
-                ) : paginatedSubmittedRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={totalColumnsCount + 2} className="text-center py-10 text-xs text-slate-500 bg-slate-50/50 dark:bg-slate-900/30">
-                      No submitted EOD reports found.
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedSubmittedRows.map((row, index) => {
-                    const isEditing = editingId === row.keyId;
-                    const excelIndex = (currentPage - 1) * itemsPerPage + index + 1;
-                    const trackedTime = getTrackedTimeForTitle(row.projectsWorkedOn);
+                      {/* --- SUBMITTED ROWS --- */}
+                      {paginatedSubmittedRows.map((row, index) => {
+                        const isEditing = editingId === row.keyId;
+                        const excelIndex = (currentPage - 1) * itemsPerPage + index + 1;
+                        const trackedTime = getTrackedTimeForTitle(row.projectsWorkedOn);
 
-                    if (isEditing) {
-                      return (
-                        <tr key={row.keyId} className="bg-amber-500/5 dark:bg-amber-500/5 hover:bg-amber-500/10 transition-colors">
-                          <td className="border-r border-slate-200/60 dark:border-slate-800/60 text-center text-[10px] text-slate-400 font-bold bg-slate-50/50 dark:bg-slate-850/50 select-none py-3">{excelIndex}</td>
-                          <td className="border-r border-slate-200/60 dark:border-slate-800/60 px-3 py-3 text-xs text-slate-550 dark:text-slate-400 bg-slate-50/30 dark:bg-slate-850/30 font-semibold select-none">
-                            {new Date(getTaskCreationDate(editRow.projectsWorkedOn) || editRow.date || new Date()).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                          </td>
-                          <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
-                            <input type="text" name="clientName" value={editRow.clientName} onChange={handleEditChange} disabled={isDesigner} className="eod-grid-input" />
-                          </td>
-                          <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
-                            <input type="text" name="projectsWorkedOn" value={editRow.projectsWorkedOn} onChange={handleEditChange} disabled={isDesigner} className="eod-grid-input font-semibold" />
-                          </td>
-                          {isDesigner && (
-                            <>
+                        if (isEditing) {
+                          return (
+                            <tr key={row.keyId} className="bg-amber-500/5 dark:bg-amber-500/5 hover:bg-amber-500/10 transition-colors">
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 text-center text-[10px] text-slate-400 font-bold bg-slate-50/50 dark:bg-slate-850/50 select-none py-3">{excelIndex}</td>
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 px-3 py-3 text-xs text-slate-550 dark:text-slate-400 bg-slate-50/30 dark:bg-slate-850/30 font-semibold select-none">
+                                {new Date(getTaskCreationDate(editRow.projectsWorkedOn) || editRow.date || editRow.createdAt || new Date()).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                              </td>
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                <input type="text" name="clientName" value={editRow.clientName} onChange={handleEditChange} disabled={isDesigner} className="eod-grid-input" />
+                              </td>
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                <input type="text" name="projectsWorkedOn" value={editRow.projectsWorkedOn} onChange={handleEditChange} disabled={isDesigner} className="eod-grid-input font-semibold" />
+                              </td>
                               <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
                                 <input type="text" name="designCount" value={editRow.designCount} onChange={handleEditChange} className="eod-grid-input font-semibold" />
                               </td>
                               <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
                                 <input type="text" name="filesSubmitted" value={editRow.filesSubmitted} onChange={handleEditChange} className="eod-grid-input text-blue-600 dark:text-blue-400" />
                               </td>
-                            </>
-                          )}
-                          <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
-                            <input type="text" name="pendingTasks" value={editRow.pendingTasks} onChange={handleEditChange} className="eod-grid-input" />
-                          </td>
-                          <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
-                            <input type="text" name="reasonForPending" value={editRow.reasonForPending} onChange={handleEditChange} className="eod-grid-input" />
-                          </td>
-                          <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
-                            <div className="flex flex-col items-start gap-1 p-1">
-                              <input type="text" name="timeSpentToday" value={editRow.timeSpentToday} onChange={handleEditChange} className="eod-grid-input font-bold" />
-                              {trackedTime && (
-                                <button type="button" onClick={() => setEditRow({ ...editRow, timeSpentToday: trackedTime })} className="inline-flex items-center gap-1 text-[9px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-extrabold bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded border border-indigo-150 dark:border-indigo-900/40 transition-all cursor-pointer whitespace-nowrap" title="Click to apply hours tracked in My Tasks">
-                                  <FiClock size={10} /> Use Tracked: {trackedTime}
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                          <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
-                            <input type="text" name="challengesFaced" value={editRow.challengesFaced} onChange={handleEditChange} className="eod-grid-input" />
-                          </td>
-                          <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
-                            <input type="text" name="tomorrowPlan" value={editRow.tomorrowPlan} onChange={handleEditChange} className="eod-grid-input" />
-                          </td>
-                          <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
-                            <input type="text" name="supportNeeded" value={editRow.supportNeeded} onChange={handleEditChange} className="eod-grid-input" />
-                          </td>
-                          <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
-                            <select name="overallStatus" value={editRow.overallStatus} onChange={handleEditChange} className="eod-grid-select">
-                              <option value="On Track">On Track</option>
-                              <option value="Completed">Completed</option>
-                              <option value="In Progress">In Progress</option>
-                              <option value="Delayed">Delayed</option>
-                              <option value="Blocked">Blocked</option>
-                            </select>
-                          </td>
-                          <td className="p-1.5 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
-                              <button type="button" onClick={() => saveEditedRow(row.keyId)} title="Save Updates" className="w-6.5 h-6.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white flex items-center justify-center transition-all shadow-sm hover:scale-[1.05]">
-                                <FiCheck size={14} className="stroke-[2.5]" />
-                              </button>
-                              <button type="button" onClick={() => { setEditingId(null); setEditRow(null); }} title="Cancel" className="w-6.5 h-6.5 rounded-lg bg-slate-400 hover:bg-slate-500 dark:bg-slate-700 dark:hover:bg-slate-600 text-white flex items-center justify-center transition-all shadow-sm hover:scale-[1.05]">
-                                <FiX size={14} className="stroke-[2.5]" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    }
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                <input type="text" name="pendingTasks" value={editRow.pendingTasks} onChange={handleEditChange} className="eod-grid-input" />
+                              </td>
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                <input type="text" name="reasonForPending" value={editRow.reasonForPending} onChange={handleEditChange} className="eod-grid-input" />
+                              </td>
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                <div className="flex flex-col items-start gap-1 p-1">
+                                  <input type="text" name="timeSpentToday" value={editRow.timeSpentToday} onChange={handleEditChange} className="eod-grid-input font-bold" />
+                                  {trackedTime && (
+                                    <button type="button" onClick={() => setEditRow({ ...editRow, timeSpentToday: trackedTime })} className="inline-flex items-center gap-1 text-[9px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-extrabold bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded border border-indigo-150 dark:border-indigo-900/40 transition-all cursor-pointer whitespace-nowrap" title="Click to apply hours tracked in My Tasks">
+                                      <FiClock size={10} /> Use Tracked: {trackedTime}
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                <input type="text" name="challengesFaced" value={editRow.challengesFaced} onChange={handleEditChange} className="eod-grid-input" />
+                              </td>
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                <input type="text" name="tomorrowPlan" value={editRow.tomorrowPlan} onChange={handleEditChange} className="eod-grid-input" />
+                              </td>
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                <input type="text" name="supportNeeded" value={editRow.supportNeeded} onChange={handleEditChange} className="eod-grid-input" />
+                              </td>
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                <select name="overallStatus" value={editRow.overallStatus} onChange={handleEditChange} className="eod-grid-select">
+                                  <option value="On Track">On Track</option>
+                                  <option value="Completed">Completed</option>
+                                  <option value="In Progress">In Progress</option>
+                                  <option value="Delayed">Delayed</option>
+                                  <option value="Blocked">Blocked</option>
+                                </select>
+                              </td>
+                              <td className="p-1.5 text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button type="button" onClick={() => saveEditedRow(row.keyId)} title="Save Updates" className="w-6.5 h-6.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white flex items-center justify-center transition-all shadow-sm hover:scale-[1.05]">
+                                    <FiCheck size={14} className="stroke-[2.5]" />
+                                  </button>
+                                  <button type="button" onClick={() => { setEditingId(null); setEditRow(null); }} title="Cancel" className="w-6.5 h-6.5 rounded-lg bg-slate-400 hover:bg-slate-500 dark:bg-slate-700 dark:hover:bg-slate-600 text-white flex items-center justify-center transition-all shadow-sm hover:scale-[1.05]">
+                                    <FiX size={14} className="stroke-[2.5]" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        }
 
-                    return (
-                      <tr key={row.keyId} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/20 transition-colors">
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 text-center text-[10px] text-slate-400 font-bold bg-slate-50/30 dark:bg-slate-850/30 select-none"><div className="eod-grid-value-cell justify-center">{excelIndex}</div></td>
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0 text-slate-500 dark:text-slate-400 font-semibold select-none">
-                          <div className="eod-grid-value-cell">
-                            {new Date(getTaskCreationDate(row.projectsWorkedOn) || row.date || row.createdAt || new Date()).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                          </div>
-                        </td>
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell font-bold text-slate-800 dark:text-slate-250 truncate max-w-[180px]">{row.clientName || "-"}</div></td>
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell font-bold text-slate-800 dark:text-slate-200 truncate max-w-[280px]">{row.projectsWorkedOn || "-"}</div></td>
-                        {isDesigner && (
-                          <>
+                        return (
+                          <tr key={row.keyId} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/20 transition-colors">
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 text-center text-[10px] text-slate-400 font-bold bg-slate-50/30 dark:bg-slate-850/30 select-none"><div className="eod-grid-value-cell justify-center">{excelIndex}</div></td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0 text-slate-500 dark:text-slate-400 font-semibold select-none">
+                              <div className="eod-grid-value-cell">
+                                {new Date(getTaskCreationDate(row.projectsWorkedOn) || row.date || row.createdAt || new Date()).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                              </div>
+                            </td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell font-bold text-slate-800 dark:text-slate-250 truncate max-w-[180px]">{row.clientName || "-"}</div></td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <div className="eod-grid-value-cell font-bold text-slate-800 dark:text-slate-200 truncate max-w-[280px] flex items-center gap-1.5">
+                                <LuNewspaper size={13} className="text-slate-400 dark:text-slate-500 shrink-0" />
+                                <span>{row.projectsWorkedOn || "-"}</span>
+                              </div>
+                            </td>
                             <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell font-bold text-center justify-center">{row.designCount || "-"}</div></td>
                             <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
                               <div className="eod-grid-value-cell text-blue-600 dark:text-blue-400 truncate max-w-[220px]">
                                 {row.filesSubmitted ? <a href={row.filesSubmitted} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium hover:underline inline-flex items-center gap-1"><FiPaperclip size={10} /> Link</a> : "-"}
                               </div>
                             </td>
-                          </>
-                        )}
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell text-slate-600 dark:text-slate-400 truncate max-w-[200px]">{row.pendingTasks || "-"}</div></td>
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell text-slate-600 dark:text-slate-400 truncate max-w-[200px]">{row.reasonForPending || "-"}</div></td>
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell font-bold text-slate-800 dark:text-slate-250">{row.timeSpentToday || "-"}</div></td>
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell text-slate-655 dark:text-slate-400 truncate max-w-[200px]">{row.challengesFaced || "-"}</div></td>
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell text-slate-655 dark:text-slate-400 truncate max-w-[280px]">{row.tomorrowPlan || "-"}</div></td>
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell text-slate-600 dark:text-slate-400 truncate max-w-[180px]">{row.supportNeeded || "-"}</div></td>
-                        <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
-                          <div className="eod-grid-value-cell">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm ${getStatusBadgeStyle(row.overallStatus)}`}>{row.overallStatus || "Completed"}</span>
-                          </div>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell text-slate-600 dark:text-slate-400 truncate max-w-[200px]">{row.pendingTasks || "-"}</div></td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell text-slate-600 dark:text-slate-400 truncate max-w-[200px]">{row.reasonForPending || "-"}</div></td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell font-bold text-slate-800 dark:text-slate-250">{row.timeSpentToday || "-"}</div></td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell text-slate-655 dark:text-slate-400 truncate max-w-[200px]">{row.challengesFaced || "-"}</div></td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell text-slate-655 dark:text-slate-400 truncate max-w-[280px]">{row.tomorrowPlan || "-"}</div></td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell text-slate-600 dark:text-slate-400 truncate max-w-[180px]">{row.supportNeeded || "-"}</div></td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <div className="eod-grid-value-cell">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm ${getStatusBadgeStyle(row.overallStatus)}`}>{row.overallStatus || "Completed"}</span>
+                              </div>
+                            </td>
+                            <td className="px-3.5 py-3 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <button onClick={() => handleView(row)} title="View Details" className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"><FiEye size={13} className="stroke-[2.5]" /></button>
+                                <button onClick={() => { setEditingId(row.keyId); setEditRow({ ...row }); }} title="Edit Entry" className="p-1 rounded-md text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 transition-colors"><FiEdit2 size={13} className="stroke-[2.5]" /></button>
+                                <button onClick={() => handleDeleteRow(row.keyId)} title="Delete Entry" className="p-1 rounded-md text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/10 transition-colors"><FiTrash2 size={13} className="stroke-[2.5]" /></button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* PAGINATION UI */}
+            {!loading && submittedRows.length > itemsPerPage && (
+              <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111827] flex flex-col sm:flex-row items-center justify-between gap-4">
+                <p className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
+                  Showing <span className="font-semibold text-slate-700 dark:text-slate-300">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-semibold text-slate-700 dark:text-slate-300">{Math.min(currentPage * itemsPerPage, submittedRows.length)}</span> of <span className="font-semibold text-slate-700 dark:text-slate-300">{submittedRows.length}</span>
+                </p>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <FiChevronLeft size={16} />
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }).map((_, idx) => {
+                      const page = idx + 1;
+                      if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
+                        return (
+                          <button
+                            type="button"
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`min-w-[28px] h-7 px-2 rounded text-[12px] font-bold transition-colors ${
+                              currentPage === page
+                                ? "bg-blue-600 text-white"
+                                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        );
+                      } else if (page === currentPage - 2 || page === currentPage + 2) {
+                        return <span key={page} className="px-1 text-[12px] text-slate-400">...</span>;
+                      }
+                      return null;
+                    })}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-1.5 rounded text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <FiChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* TABLE 1: UNSUBMITTED / PENDING REPORTS */}
+            <div className="bg-white dark:bg-[#111827] shadow-lg rounded-xl border border-slate-200/80 dark:border-slate-800/85 p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-md font-bold text-slate-800 dark:text-slate-100">
+                    Unsubmitted EOD Reports
+                  </h2>
+                  <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-amber-250/20">
+                    {unsubmittedRows.length} Pending
+                  </span>
+                </div>
+                {!isDesigner && (
+                  <button
+                    onClick={addBlankRow}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-lg shadow-md transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
+                  >
+                    <FiPlus size={13} className="stroke-[3]" />
+                    Add Blank Row
+                  </button>
+                )}
+              </div>
+
+              <div className="overflow-auto custom-scrollbar max-h-[400px] border border-slate-200/60 dark:border-slate-800/60 rounded-lg bg-white dark:bg-black">
+                <table className="eod-grid-table text-left table-auto w-full">
+                  <thead>
+                    <tr className="sticky top-0 z-10 bg-slate-100/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
+                      <th className="w-[45px] min-w-[45px] text-center bg-slate-100/50 dark:bg-slate-850/50 py-3"></th>
+                      <th className="min-w-[120px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
+                      <th className="min-w-[180px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Client Name *</th>
+                      <th className="min-w-[280px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        <div className="flex items-center gap-1.5 justify-start">
+                          <LuNewspaper size={12} className="text-slate-400 dark:text-slate-500 shrink-0" />
+                          <span>Projects Worked On *</span>
+                        </div>
+                      </th>
+                      {isDesigner && (
+                        <>
+                          <th className="min-w-[160px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Designs Completed *</th>
+                          <th className="min-w-[220px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Submitted Links</th>
+                        </>
+                      )}
+                      <th className="min-w-[200px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pending Tasks</th>
+                      <th className="min-w-[200px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Reason for Pending</th>
+                      <th className="min-w-[130px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Time Spent *</th>
+                      <th className="min-w-[200px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Challenges Faced</th>
+                      <th className="min-w-[280px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tomorrow Plan *</th>
+                      <th className="min-w-[180px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Support Needed</th>
+                      <th className="min-w-[160px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Overall Status *</th>
+                      <th className="min-w-[95px] px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                    {unsubmittedRows.length === 0 ? (
+                      <tr>
+                        <td colSpan={totalColumnsCount + 2} className="text-center py-10 text-xs text-slate-500 bg-slate-50/50 dark:bg-slate-900/30">
+                          No unsubmitted EOD reports. All task reports have been submitted.
                         </td>
-                        <td className="px-3.5 py-3 text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            <button onClick={() => handleView(row)} title="View Details" className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"><FiEye size={13} className="stroke-[2.5]" /></button>
-                            <button onClick={() => { setEditingId(row.keyId); setEditRow({ ...row }); }} title="Edit Entry" className="p-1 rounded-md text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 transition-colors"><FiEdit2 size={13} className="stroke-[2.5]" /></button>
-                            <button onClick={() => handleDeleteRow(row.keyId)} title="Delete Entry" className="p-1 rounded-md text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/10 transition-colors"><FiTrash2 size={13} className="stroke-[2.5]" /></button>
+                      </tr>
+                    ) : (
+                      unsubmittedRows.map((row, index) => {
+                        const excelIndex = index + 1;
+                        const trackedTime = getTrackedTimeForTitle(row.projectsWorkedOn);
+                        return (
+                          <tr key={row.keyId} className="bg-emerald-50/5 dark:bg-emerald-950/5 hover:bg-emerald-50/10 dark:hover:bg-emerald-950/10 transition-colors group">
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 text-center text-[10px] text-slate-400 font-bold bg-slate-50/50 dark:bg-slate-850/50 select-none py-3">{excelIndex}</td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 px-3 py-3 text-xs text-slate-550 dark:text-slate-400 bg-slate-50/30 dark:bg-slate-850/30 font-semibold select-none">
+                              {new Date(row.date || new Date()).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            </td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <input type="text" value={row.clientName} onChange={(e) => handleUnsavedChange(row.keyId, "clientName", e.target.value)} placeholder="Client *" disabled={row.isPreFilled} className="eod-grid-input" />
+                            </td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <input type="text" value={row.projectsWorkedOn} onChange={(e) => handleUnsavedChange(row.keyId, "projectsWorkedOn", e.target.value)} placeholder="Task Name *" disabled={row.isPreFilled} className="eod-grid-input font-semibold" />
+                            </td>
+                            {isDesigner && (
+                              <>
+                                <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                  <input type="text" value={row.designCount} onChange={(e) => handleUnsavedChange(row.keyId, "designCount", e.target.value)} placeholder="Count *" className="eod-grid-input font-semibold" />
+                                </td>
+                                <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                  <input type="text" value={row.filesSubmitted} onChange={(e) => handleUnsavedChange(row.keyId, "filesSubmitted", e.target.value)} placeholder="Links (optional)" className="eod-grid-input text-blue-600 dark:text-blue-400" />
+                                </td>
+                              </>
+                            )}
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <input type="text" value={row.pendingTasks} onChange={(e) => handleUnsavedChange(row.keyId, "pendingTasks", e.target.value)} placeholder="Pending work" className="eod-grid-input" />
+                            </td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <input type="text" value={row.reasonForPending} onChange={(e) => handleUnsavedChange(row.keyId, "reasonForPending", e.target.value)} placeholder="Reason" className="eod-grid-input" />
+                            </td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <div className="flex flex-col items-start gap-1 p-1">
+                                <input type="text" value={row.timeSpentToday} onChange={(e) => handleUnsavedChange(row.keyId, "timeSpentToday", e.target.value)} placeholder="Hours *" className="eod-grid-input font-bold" />
+                                {trackedTime && (
+                                  <button type="button" onClick={() => handleUnsavedChange(row.keyId, "timeSpentToday", trackedTime)} className="inline-flex items-center gap-1 text-[9px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-extrabold bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded border border-indigo-150 dark:border-indigo-900/40 transition-all cursor-pointer whitespace-nowrap" title="Click to apply hours tracked in My Tasks">
+                                    <FiClock size={10} /> Use Tracked: {trackedTime}
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <input type="text" value={row.challengesFaced} onChange={(e) => handleUnsavedChange(row.keyId, "challengesFaced", e.target.value)} placeholder="Challenges" className="eod-grid-input" />
+                            </td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <input type="text" value={row.tomorrowPlan} onChange={(e) => handleUnsavedChange(row.keyId, "tomorrowPlan", e.target.value)} placeholder="Tomorrow plan *" className="eod-grid-input" />
+                            </td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <input type="text" value={row.supportNeeded} onChange={(e) => handleUnsavedChange(row.keyId, "supportNeeded", e.target.value)} placeholder="Support needed" className="eod-grid-input" />
+                            </td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <select value={row.overallStatus} onChange={(e) => handleUnsavedChange(row.keyId, "overallStatus", e.target.value)} className="eod-grid-select">
+                                <option value="On Track">On Track</option>
+                                <option value="Completed">Completed</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Delayed">Delayed</option>
+                                <option value="Blocked">Blocked</option>
+                              </select>
+                            </td>
+                            <td className="p-1.5 text-center">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button type="button" onClick={() => saveUnsavedRow(row.keyId)} title="Save to database" className="w-6.5 h-6.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white flex items-center justify-center transition-all shadow-sm hover:scale-[1.05]">
+                                  <FiCheck size={14} className="stroke-[2.5]" />
+                                </button>
+                                <button type="button" onClick={() => deleteUnsavedRow(row.keyId)} title="Discard row" className="w-6.5 h-6.5 rounded-lg bg-slate-400 hover:bg-slate-500 dark:bg-slate-700 dark:hover:bg-slate-600 text-white flex items-center justify-center transition-all shadow-sm hover:scale-[1.05]">
+                                  <FiX size={14} className="stroke-[2.5]" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* TABLE 2: SUBMITTED EOD REPORTS WITH PAGINATION */}
+            <div className="bg-white dark:bg-[#111827] shadow-lg rounded-xl border border-slate-200/80 dark:border-slate-800/85 p-5 space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-md font-bold text-slate-800 dark:text-slate-100">
+                    Submitted EOD Reports
+                  </h2>
+                  <span className="bg-indigo-100 dark:bg-indigo-950/40 text-indigo-650 dark:text-indigo-400 text-[10px] font-black px-2 py-0.5 rounded-full border border-indigo-250/20">
+                    {submittedRows.length} Saved
+                  </span>
+                </div>
+              </div>
+
+              <div className="overflow-auto custom-scrollbar max-h-[500px] border border-slate-200/60 dark:border-slate-800/60 rounded-lg bg-white dark:bg-black">
+                <table className="eod-grid-table text-left table-auto w-full">
+                  <thead>
+                    <tr className="sticky top-0 z-10 bg-slate-100/50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-800">
+                      <th className="w-[45px] min-w-[45px] text-center bg-slate-100/50 dark:bg-slate-850/50 py-3"></th>
+                      <th className="min-w-[120px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
+                      <th className="min-w-[180px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Client Name *</th>
+                      <th className="min-w-[280px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        <div className="flex items-center gap-1.5 justify-start">
+                          <LuNewspaper size={12} className="text-slate-400 dark:text-slate-500 shrink-0" />
+                          <span>Projects Worked On *</span>
+                        </div>
+                      </th>
+                      {isDesigner && (
+                        <>
+                          <th className="min-w-[160px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Designs Completed *</th>
+                          <th className="min-w-[220px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Submitted Links</th>
+                        </>
+                      )}
+                      <th className="min-w-[200px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pending Tasks</th>
+                      <th className="min-w-[200px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Reason for Pending</th>
+                      <th className="min-w-[130px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Time Spent *</th>
+                      <th className="min-w-[200px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Challenges Faced</th>
+                      <th className="min-w-[280px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tomorrow Plan *</th>
+                      <th className="min-w-[180px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Support Needed</th>
+                      <th className="min-w-[160px] border-r border-slate-200/80 dark:border-slate-800/80 px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Overall Status *</th>
+                      <th className="min-w-[95px] px-3.5 py-3 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                    {loading ? (
+                      <tr>
+                        <td colSpan={totalColumnsCount + 2} className="text-center py-12">
+                          <div className="flex flex-col items-center gap-2">
+                            <div className="w-6 h-6 border-2 border-slate-350 border-t-blue-500 rounded-full animate-spin"></div>
+                            <p className="text-slate-500 dark:text-slate-400 font-medium text-xs">Loading database records...</p>
                           </div>
                         </td>
                       </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                    ) : paginatedSubmittedRows.length === 0 ? (
+                      <tr>
+                        <td colSpan={totalColumnsCount + 2} className="text-center py-10 text-xs text-slate-500 bg-slate-50/50 dark:bg-slate-900/30">
+                          No submitted EOD reports found.
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedSubmittedRows.map((row, index) => {
+                        const isEditing = editingId === row.keyId;
+                        const excelIndex = (currentPage - 1) * itemsPerPage + index + 1;
+                        const trackedTime = getTrackedTimeForTitle(row.projectsWorkedOn);
 
-          {/* PAGINATION UI */}
-          {!loading && submittedRows.length > itemsPerPage && (
-            <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111827] flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
-                Showing <span className="font-semibold text-slate-700 dark:text-slate-300">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-semibold text-slate-700 dark:text-slate-300">{Math.min(currentPage * itemsPerPage, submittedRows.length)}</span> of <span className="font-semibold text-slate-700 dark:text-slate-300">{submittedRows.length}</span>
-              </p>
+                        if (isEditing) {
+                          return (
+                            <tr key={row.keyId} className="bg-amber-500/5 dark:bg-amber-500/5 hover:bg-amber-500/10 transition-colors">
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 text-center text-[10px] text-slate-400 font-bold bg-slate-50/50 dark:bg-slate-850/50 select-none py-3">{excelIndex}</td>
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 px-3 py-3 text-xs text-slate-550 dark:text-slate-400 bg-slate-50/30 dark:bg-slate-850/30 font-semibold select-none">
+                                {new Date(getTaskCreationDate(editRow.projectsWorkedOn) || editRow.date || new Date()).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                              </td>
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                <input type="text" name="clientName" value={editRow.clientName} onChange={handleEditChange} disabled={isDesigner} className="eod-grid-input" />
+                              </td>
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                <input type="text" name="projectsWorkedOn" value={editRow.projectsWorkedOn} onChange={handleEditChange} disabled={isDesigner} className="eod-grid-input font-semibold" />
+                              </td>
+                              {isDesigner && (
+                                <>
+                                  <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                    <input type="text" name="designCount" value={editRow.designCount} onChange={handleEditChange} className="eod-grid-input font-semibold" />
+                                  </td>
+                                  <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                    <input type="text" name="filesSubmitted" value={editRow.filesSubmitted} onChange={handleEditChange} className="eod-grid-input text-blue-600 dark:text-blue-400" />
+                                  </td>
+                                </>
+                              )}
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                <input type="text" name="pendingTasks" value={editRow.pendingTasks} onChange={handleEditChange} className="eod-grid-input" />
+                              </td>
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                <input type="text" name="reasonForPending" value={editRow.reasonForPending} onChange={handleEditChange} className="eod-grid-input" />
+                              </td>
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                <div className="flex flex-col items-start gap-1 p-1">
+                                  <input type="text" name="timeSpentToday" value={editRow.timeSpentToday} onChange={handleEditChange} className="eod-grid-input font-bold" />
+                                  {trackedTime && (
+                                    <button type="button" onClick={() => setEditRow({ ...editRow, timeSpentToday: trackedTime })} className="inline-flex items-center gap-1 text-[9px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-extrabold bg-indigo-50 dark:bg-indigo-950/40 px-1.5 py-0.5 rounded border border-indigo-150 dark:border-indigo-900/40 transition-all cursor-pointer whitespace-nowrap" title="Click to apply hours tracked in My Tasks">
+                                      <FiClock size={10} /> Use Tracked: {trackedTime}
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                <input type="text" name="challengesFaced" value={editRow.challengesFaced} onChange={handleEditChange} className="eod-grid-input" />
+                              </td>
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                <input type="text" name="tomorrowPlan" value={editRow.tomorrowPlan} onChange={handleEditChange} className="eod-grid-input" />
+                              </td>
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                <input type="text" name="supportNeeded" value={editRow.supportNeeded} onChange={handleEditChange} className="eod-grid-input" />
+                              </td>
+                              <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                <select name="overallStatus" value={editRow.overallStatus} onChange={handleEditChange} className="eod-grid-select">
+                                  <option value="On Track">On Track</option>
+                                  <option value="Completed">Completed</option>
+                                  <option value="In Progress">In Progress</option>
+                                  <option value="Delayed">Delayed</option>
+                                  <option value="Blocked">Blocked</option>
+                                </select>
+                              </td>
+                              <td className="p-1.5 text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button type="button" onClick={() => saveEditedRow(row.keyId)} title="Save Updates" className="w-6.5 h-6.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-500 text-white flex items-center justify-center transition-all shadow-sm hover:scale-[1.05]">
+                                    <FiCheck size={14} className="stroke-[2.5]" />
+                                  </button>
+                                  <button type="button" onClick={() => { setEditingId(null); setEditRow(null); }} title="Cancel" className="w-6.5 h-6.5 rounded-lg bg-slate-400 hover:bg-slate-500 dark:bg-slate-700 dark:hover:bg-slate-600 text-white flex items-center justify-center transition-all shadow-sm hover:scale-[1.05]">
+                                    <FiX size={14} className="stroke-[2.5]" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        }
 
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="p-1.5 rounded text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <FiChevronLeft size={16} />
-                </button>
-
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }).map((_, idx) => {
-                    const page = idx + 1;
-                    if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
-                      return (
-                        <button
-                          type="button"
-                          key={page}
-                          onClick={() => setCurrentPage(page)}
-                          className={`min-w-[28px] h-7 px-2 rounded text-[12px] font-bold transition-colors ${
-                            currentPage === page
-                              ? "bg-blue-600 text-white"
-                              : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      );
-                    } else if (page === currentPage - 2 || page === currentPage + 2) {
-                      return <span key={page} className="px-1 text-[12px] text-slate-400">...</span>;
-                    }
-                    return null;
-                  })}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="p-1.5 rounded text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                >
-                  <FiChevronRight size={16} />
-                </button>
+                        return (
+                          <tr key={row.keyId} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/20 transition-colors">
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 text-center text-[10px] text-slate-400 font-bold bg-slate-50/30 dark:bg-slate-850/30 select-none"><div className="eod-grid-value-cell justify-center">{excelIndex}</div></td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0 text-slate-500 dark:text-slate-400 font-semibold select-none">
+                              <div className="eod-grid-value-cell">
+                                {new Date(getTaskCreationDate(row.projectsWorkedOn) || row.date || row.createdAt || new Date()).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                              </div>
+                            </td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell font-bold text-slate-800 dark:text-slate-250 truncate max-w-[180px]">{row.clientName || "-"}</div></td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <div className="eod-grid-value-cell font-bold text-slate-800 dark:text-slate-200 truncate max-w-[280px] flex items-center gap-1.5">
+                                <LuNewspaper size={13} className="text-slate-400 dark:text-slate-500 shrink-0" />
+                                <span>{row.projectsWorkedOn || "-"}</span>
+                              </div>
+                            </td>
+                            {isDesigner && (
+                              <>
+                                <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell font-bold text-center justify-center">{row.designCount || "-"}</div></td>
+                                <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                                  <div className="eod-grid-value-cell text-blue-600 dark:text-blue-400 truncate max-w-[220px]">
+                                    {row.filesSubmitted ? <a href={row.filesSubmitted} target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium hover:underline inline-flex items-center gap-1"><FiPaperclip size={10} /> Link</a> : "-"}
+                                  </div>
+                                </td>
+                              </>
+                            )}
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell text-slate-600 dark:text-slate-400 truncate max-w-[200px]">{row.pendingTasks || "-"}</div></td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell text-slate-600 dark:text-slate-400 truncate max-w-[200px]">{row.reasonForPending || "-"}</div></td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell font-bold text-slate-800 dark:text-slate-250">{row.timeSpentToday || "-"}</div></td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell text-slate-655 dark:text-slate-400 truncate max-w-[200px]">{row.challengesFaced || "-"}</div></td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell text-slate-655 dark:text-slate-400 truncate max-w-[280px]">{row.tomorrowPlan || "-"}</div></td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0"><div className="eod-grid-value-cell text-slate-600 dark:text-slate-400 truncate max-w-[180px]">{row.supportNeeded || "-"}</div></td>
+                            <td className="border-r border-slate-200/60 dark:border-slate-800/60 p-0">
+                              <div className="eod-grid-value-cell">
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm ${getStatusBadgeStyle(row.overallStatus)}`}>{row.overallStatus || "Completed"}</span>
+                              </div>
+                            </td>
+                            <td className="px-3.5 py-3 text-center">
+                              <div className="flex items-center justify-center gap-1">
+                                <button onClick={() => handleView(row)} title="View Details" className="p-1 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"><FiEye size={13} className="stroke-[2.5]" /></button>
+                                <button onClick={() => { setEditingId(row.keyId); setEditRow({ ...row }); }} title="Edit Entry" className="p-1 rounded-md text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 transition-colors"><FiEdit2 size={13} className="stroke-[2.5]" /></button>
+                                <button onClick={() => handleDeleteRow(row.keyId)} title="Delete Entry" className="p-1 rounded-md text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/10 transition-colors"><FiTrash2 size={13} className="stroke-[2.5]" /></button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
               </div>
+
+              {/* PAGINATION UI */}
+              {!loading && submittedRows.length > itemsPerPage && (
+                <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111827] flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <p className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
+                    Showing <span className="font-semibold text-slate-700 dark:text-slate-300">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-semibold text-slate-700 dark:text-slate-300">{Math.min(currentPage * itemsPerPage, submittedRows.length)}</span> of <span className="font-semibold text-slate-700 dark:text-slate-300">{submittedRows.length}</span>
+                  </p>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="p-1.5 rounded text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <FiChevronLeft size={16} />
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }).map((_, idx) => {
+                        const page = idx + 1;
+                        if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
+                          return (
+                            <button
+                              type="button"
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              className={`min-w-[28px] h-7 px-2 rounded text-[12px] font-bold transition-colors ${
+                                currentPage === page
+                                  ? "bg-blue-600 text-white"
+                                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          );
+                        } else if (page === currentPage - 2 || page === currentPage + 2) {
+                          return <span key={page} className="px-1 text-[12px] text-slate-400">...</span>;
+                        }
+                        return null;
+                      })}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="p-1.5 rounded text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <FiChevronRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </>
+        )}
 
         {openViewModal && selectedReport && (
           <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -901,8 +1226,9 @@ const EodReports = () => {
                     <span className="text-[9px] font-black text-slate-455 dark:text-slate-555 uppercase tracking-widest block">
                       Projects Worked On (Task Name)
                     </span>
-                    <p className="text-[13px] font-bold text-slate-800 dark:text-slate-100 mt-0.5">
-                      {selectedReport.projectsWorkedOn || "-"}
+                    <p className="text-[13px] font-bold text-slate-800 dark:text-slate-100 mt-0.5 flex items-center gap-1.5">
+                       <LuNewspaper size={14} className="text-slate-400 dark:text-slate-500 shrink-0" />
+                       <span>{selectedReport.projectsWorkedOn || "-"}</span>
                     </p>
                   </div>
 

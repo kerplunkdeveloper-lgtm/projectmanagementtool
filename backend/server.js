@@ -117,6 +117,7 @@ const io = require('socket.io')(server, {
     origin: allowedOrigins,
     credentials: true,
   },
+  transports: ['websocket', 'polling']
 });
 
 // Keep track of active calls in memory

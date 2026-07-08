@@ -8,7 +8,7 @@ const SubtaskSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["Pending", "In Progress", "Completed", "On Hold"],
+    enum: ["Pending", "In Progress", "Completed", "On Hold", "IN-REVIEW", "In Review", "IN-Review", "Rejected"],
     default: "Pending",
   },
   assignedTo: {
@@ -66,7 +66,7 @@ const TaskSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Pending", "In Progress", "Completed", "On Hold"],
+      enum: ["Pending", "In Progress", "Completed", "On Hold", "IN-REVIEW", "In Review", "IN-Review", "Rejected"],
       default: "Pending",
     },
     priority: {
@@ -87,6 +87,18 @@ const TaskSchema = new mongoose.Schema(
     },
     actualEndTime: {
       type: Date,
+    },
+    isBlocked: {
+      type: Boolean,
+      default: false,
+    },
+    blockerReason: {
+      type: String,
+      default: "",
+    },
+    revisions: {
+      type: Number,
+      default: 0,
     },
     comments: [
       {

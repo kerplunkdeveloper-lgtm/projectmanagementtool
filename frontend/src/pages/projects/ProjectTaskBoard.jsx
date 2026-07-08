@@ -2129,6 +2129,11 @@ const ProjectTaskBoard = ({
                               color: "bg-blue-500",
                             },
                             {
+                              name: "IN-REVIEW",
+                              label: "In Review",
+                              color: "bg-sky-500",
+                            },
+                            {
                               name: "Completed",
                               label: "Completed",
                               color: "bg-emerald-500",
@@ -2137,6 +2142,11 @@ const ProjectTaskBoard = ({
                               name: "On Hold",
                               label: "On Hold",
                               color: "bg-rose-500",
+                            },
+                            {
+                              name: "Rejected",
+                              label: "Rejected",
+                              color: "bg-red-500",
                             },
                           ].map((status) => (
                             <button
@@ -4003,16 +4013,17 @@ const ProjectTaskBoard = ({
                                                                 )
                                                               }
                                                               className={`badge-select ${
-                                                                task.status ===
-                                                                "Completed"
+                                                                task.status === "Completed"
                                                                   ? "badge-status-completed"
-                                                                  : task.status ===
-                                                                      "In Progress"
+                                                                  : task.status === "In Progress"
                                                                     ? "badge-status-in-progress"
-                                                                    : task.status ===
-                                                                        "On Hold"
-                                                                      ? "badge-status-on-hold"
-                                                                      : "badge-status-pending"
+                                                                    : task.status === "IN-REVIEW" || task.status === "In Review" || task.status === "IN-Review"
+                                                                      ? "badge-status-in-review"
+                                                                      : task.status === "On Hold"
+                                                                        ? "badge-status-on-hold"
+                                                                        : task.status === "Rejected"
+                                                                          ? "badge-status-rejected"
+                                                                          : "badge-status-pending"
                                                               }`}
                                                             >
                                                               <option value="Pending">
@@ -4021,30 +4032,36 @@ const ProjectTaskBoard = ({
                                                               <option value="In Progress">
                                                                 In Progress
                                                               </option>
+                                                              <option value="IN-REVIEW">
+                                                                In Review
+                                                              </option>
                                                               <option value="Completed">
                                                                 Completed
                                                               </option>
                                                               <option value="On Hold">
                                                                 On Hold
                                                               </option>
+                                                              <option value="Rejected">
+                                                                Rejected
+                                                              </option>
                                                             </select>
                                                           ) : (
                                                             <span
                                                               className={`badge-span ${
-                                                                task.status ===
-                                                                "Completed"
+                                                                task.status === "Completed"
                                                                   ? "badge-status-completed"
-                                                                  : task.status ===
-                                                                      "In Progress"
+                                                                  : task.status === "In Progress"
                                                                     ? "badge-status-in-progress"
-                                                                    : task.status ===
-                                                                        "On Hold"
-                                                                      ? "badge-status-on-hold"
-                                                                      : "badge-status-pending"
+                                                                    : task.status === "IN-REVIEW" || task.status === "In Review" || task.status === "IN-Review"
+                                                                      ? "badge-status-in-review"
+                                                                      : task.status === "On Hold"
+                                                                        ? "badge-status-on-hold"
+                                                                        : task.status === "Rejected"
+                                                                          ? "badge-status-rejected"
+                                                                          : "badge-status-pending"
                                                               }`}
                                                             >
-                                                              {task.status ||
-                                                                "Pending"}
+                                                              {task.status === "IN-REVIEW" || task.status === "In Review" || task.status === "IN-Review" ? "In Review" : (task.status || "Pending")}
                                                             </span>
                                                           )}
                                                         </div>
@@ -4912,24 +4929,27 @@ const ProjectTaskBoard = ({
                                                                         )
                                                                       }
                                                                       className={`badge-select ${
-                                                                        sub.status ===
-                                                                        "Completed"
+                                                                        sub.status === "Completed"
                                                                           ? "badge-status-completed"
-                                                                          : sub.status ===
-                                                                              "In Progress"
+                                                                          : sub.status === "In Progress"
                                                                             ? "badge-status-in-progress"
-                                                                            : sub.status ===
-                                                                                "On Hold"
-                                                                              ? "badge-status-on-hold"
-                                                                              : "badge-status-pending"
+                                                                            : sub.status === "IN-REVIEW" || sub.status === "In Review" || sub.status === "IN-Review"
+                                                                              ? "badge-status-in-review"
+                                                                              : sub.status === "On Hold"
+                                                                                ? "badge-status-on-hold"
+                                                                                : sub.status === "Rejected"
+                                                                                  ? "badge-status-rejected"
+                                                                                  : "badge-status-pending"
                                                                       }`}
                                                                     >
                                                                       <option value="Pending">
                                                                         Pending
                                                                       </option>
                                                                       <option value="In Progress">
-                                                                        In
-                                                                        Progress
+                                                                        In Progress
+                                                                      </option>
+                                                                      <option value="IN-REVIEW">
+                                                                        In Review
                                                                       </option>
                                                                       <option value="Completed">
                                                                         Completed
@@ -4937,24 +4957,27 @@ const ProjectTaskBoard = ({
                                                                       <option value="On Hold">
                                                                         On Hold
                                                                       </option>
+                                                                      <option value="Rejected">
+                                                                        Rejected
+                                                                      </option>
                                                                     </select>
                                                                   ) : (
                                                                     <span
                                                                       className={`badge-span ${
-                                                                        sub.status ===
-                                                                        "Completed"
+                                                                        sub.status === "Completed"
                                                                           ? "badge-status-completed"
-                                                                          : sub.status ===
-                                                                              "In Progress"
+                                                                          : sub.status === "In Progress"
                                                                             ? "badge-status-in-progress"
-                                                                            : sub.status ===
-                                                                                "On Hold"
-                                                                              ? "badge-status-on-hold"
-                                                                              : "badge-status-pending"
+                                                                            : sub.status === "IN-REVIEW" || sub.status === "In Review" || sub.status === "IN-Review"
+                                                                              ? "badge-status-in-review"
+                                                                              : sub.status === "On Hold"
+                                                                                ? "badge-status-on-hold"
+                                                                                : sub.status === "Rejected"
+                                                                                  ? "badge-status-rejected"
+                                                                                  : "badge-status-pending"
                                                                       }`}
                                                                     >
-                                                                      {sub.status ||
-                                                                        "Pending"}
+                                                                      {sub.status === "IN-REVIEW" || sub.status === "In Review" || sub.status === "IN-Review" ? "In Review" : (sub.status || "Pending")}
                                                                     </span>
                                                                   )}
                                                                 </div>
@@ -5059,11 +5082,14 @@ const ProjectTaskBoard = ({
             <div className="space-y-4 ">
               {/* Board Columns Grid */}
               <div className="flex gap-4 items-start overflow-x-auto pb-4 hide-scrollbar snap-x">
-                {["Pending", "In Progress", "On Hold", "Completed"].map(
+                {["Pending", "In Progress", "IN-REVIEW", "On Hold", "Completed", "Rejected"].map(
                   (statusName) => {
-                    const columnTasks = activeProjectTasks.filter(
-                      (t) => t.status === statusName,
-                    );
+                    const columnTasks = activeProjectTasks.filter((t) => {
+                      if (statusName === "IN-REVIEW") {
+                        return t.status === "IN-REVIEW" || t.status === "In Review" || t.status === "IN-Review";
+                      }
+                      return t.status === statusName;
+                    });
 
                     return (
                       <div
@@ -5676,6 +5702,12 @@ const ProjectTaskBoard = ({
                           In Progress
                         </option>
                         <option
+                          value="IN-REVIEW"
+                          className="dark:bg-slate-950 dark:text-slate-200"
+                        >
+                          In Review
+                        </option>
+                        <option
                           value="Completed"
                           className="dark:bg-slate-950 dark:text-slate-200"
                         >
@@ -5687,14 +5719,30 @@ const ProjectTaskBoard = ({
                         >
                           On Hold
                         </option>
+                        <option
+                          value="Rejected"
+                          className="dark:bg-slate-950 dark:text-slate-200"
+                        >
+                          Rejected
+                        </option>
                       </select>
                     ) : (
                       <div
-                        className={`px-3 py-2 border rounded-xl text-xs font-semibold w-fit  tracking-wider ${getStatusBadge(
-                          selectedTask.status,
-                        )}`}
+                        className={`badge-span ${
+                          selectedTask.status === "Completed"
+                            ? "badge-status-completed"
+                            : selectedTask.status === "In Progress"
+                              ? "badge-status-in-progress"
+                              : selectedTask.status === "IN-REVIEW" || selectedTask.status === "In Review" || selectedTask.status === "IN-Review"
+                                ? "badge-status-in-review"
+                                : selectedTask.status === "On Hold"
+                                  ? "badge-status-on-hold"
+                                  : selectedTask.status === "Rejected"
+                                    ? "badge-status-rejected"
+                                    : "badge-status-pending"
+                        }`}
                       >
-                        {selectedTask.status || "Pending"}
+                        {selectedTask.status === "IN-REVIEW" || selectedTask.status === "In Review" || selectedTask.status === "IN-Review" ? "In Review" : (selectedTask.status || "Pending")}
                       </div>
                     )}
                   </div>

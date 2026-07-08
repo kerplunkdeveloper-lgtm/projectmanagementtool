@@ -8,6 +8,40 @@ import { incrementUnreadCount } from "../features/chat/chatSlice";
 import toast from "react-hot-toast";
 import { FiBell, FiX } from "react-icons/fi";
 
+// Global interaction listener to unlock AudioContext on first user click/tap/keypress
+let audioContextUnlocked = false;
+const unlockAudioContext = () => {
+  if (audioContextUnlocked) return;
+  try {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") {
+      audioCtx.resume().then(() => {
+        audioContextUnlocked = true;
+        cleanupUnlockListeners();
+      });
+    } else {
+      audioContextUnlocked = true;
+      cleanupUnlockListeners();
+    }
+  } catch (e) {
+    console.error("Failed to unlock audio context:", e);
+  }
+};
+
+const cleanupUnlockListeners = () => {
+  if (typeof window !== "undefined") {
+    window.removeEventListener("click", unlockAudioContext);
+    window.removeEventListener("keydown", unlockAudioContext);
+    window.removeEventListener("touchstart", unlockAudioContext);
+  }
+};
+
+if (typeof window !== "undefined") {
+  window.addEventListener("click", unlockAudioContext);
+  window.addEventListener("keydown", unlockAudioContext);
+  window.addEventListener("touchstart", unlockAudioContext);
+}
+
 const playNotificationSound = () => {
   const soundEnabledSetting = localStorage.getItem("soundEnabled");
   if (soundEnabledSetting === "false") {
@@ -15,6 +49,12 @@ const playNotificationSound = () => {
   }
   try {
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    // Explicitly resume if suspended
+    if (audioCtx.state === "suspended") {
+      audioCtx.resume();
+    }
+
     const playTone = (time, freq, duration, vol) => {
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
@@ -100,7 +140,10 @@ const useSocket = () => {
     if (user && userId) {
       const baseUrl = import.meta.env.VITE_API_BASE_URL;
       const socketUrl = baseUrl ? baseUrl : (typeof window !== 'undefined' ? window.location.origin : "http://localhost:5001");
-      socket.current = io(socketUrl);
+      socket.current = io(socketUrl, {
+        transports: ["websocket", "polling"],
+        withCredentials: true
+      });
 
       socket.current.on("connect", () => {
         socket.current.emit("join", userId);

@@ -16,6 +16,36 @@ exports.createEodReport = async (req, res) => {
       "name email role profile"
     );
 
+    // Notify admins and operation managers
+    try {
+      const User = require("../models/User");
+      const Notification = require("../models/Notification");
+      const adminsAndManagers = await User.find({
+        role: { $in: ["admin", "operationmanager"] }
+      });
+      
+      const io = req.app.get("io");
+      const senderName = req.user.name || "A team member";
+      
+      for (const recipient of adminsAndManagers) {
+        if (recipient._id.toString() === req.user._id.toString()) continue;
+        
+        const notification = await Notification.create({
+          recipient: recipient._id,
+          sender: req.user._id,
+          type: "report_submitted",
+          message: `${senderName} submitted a new EOD Report`,
+        });
+        
+        if (io) {
+          const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
+          io.to(recipient._id.toString()).emit("notification", populatedNotification);
+        }
+      }
+    } catch (notifErr) {
+      console.error("Failed to send EOD report notifications:", notifErr);
+    }
+
     res.status(201).json({
       success: true,
       message: "EOD Report submitted successfully",
