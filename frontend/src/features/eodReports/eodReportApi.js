@@ -17,3 +17,9 @@ export const updateEodReportAPI = async ({ id, data }) => {
   const response = await axiosInstance.put(`/eod-reports/${id}`, data);
   return response.data;
 };
+
+// DELETE EOD REPORT
+export const deleteEodReportAPI = async (id) => {
+  const response = await axiosInstance.delete(`/eod-reports/${id}`);
+  return response.data;
+};

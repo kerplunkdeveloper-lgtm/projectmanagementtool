@@ -6,6 +6,7 @@ import clientReducer from "../features/clients/clientslice";
 import templateReducer from "../features/template/templateSlice";
 import projectReducer from "../features/projects/projectSlice";
 import eodReportReducer from "../features/eodReports/eodReportSlice";
+import designerEodReportReducer from "../features/eodReports/designerEodReportSlice";
 import eventReducer from "../features/events/eventSlice";
 import taskReducer from "../features/tasks/taskSlice";
 import notificationReducer from "../features/notifications/notificationSlice";
@@ -22,6 +23,7 @@ export const store = configureStore({
     templates: templateReducer,
     projects: projectReducer,
     eodReports: eodReportReducer,
+    designerEodReports: designerEodReportReducer,
     events: eventReducer,
     tasks: taskReducer,
     notifications: notificationReducer,

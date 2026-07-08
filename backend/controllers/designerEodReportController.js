@@ -1,24 +1,24 @@
-const EodReport = require("../models/EodReport");
+const DesignerEodReport = require("../models/DesignerEodReport");
 const cloudinary = require("../config/cloudinary");
 
 // ==========================================
-// CREATE EOD REPORT
+// CREATE DESIGNER EOD REPORT
 // ==========================================
-exports.createEodReport = async (req, res) => {
+exports.createDesignerEodReport = async (req, res) => {
   try {
-    const report = await EodReport.create({
+    const report = await DesignerEodReport.create({
       ...req.body,
       user: req.user._id,
     });
 
-    const populatedReport = await EodReport.findById(report._id).populate(
+    const populatedReport = await DesignerEodReport.findById(report._id).populate(
       "user",
       "name email role profile"
     );
 
     res.status(201).json({
       success: true,
-      message: "EOD Report submitted successfully",
+      message: "Designer EOD Report submitted successfully",
       data: populatedReport,
     });
   } catch (err) {
@@ -30,9 +30,9 @@ exports.createEodReport = async (req, res) => {
 };
 
 // ==========================================
-// GET EOD REPORTS
+// GET DESIGNER EOD REPORTS
 // ==========================================
-exports.getEodReports = async (req, res) => {
+exports.getDesignerEodReports = async (req, res) => {
   try {
     let query = {};
 
@@ -42,7 +42,7 @@ exports.getEodReports = async (req, res) => {
     }
 
     // Admins and Operation Managers can see all reports
-    const reports = await EodReport.find(query)
+    const reports = await DesignerEodReport.find(query)
       .populate("user", "name email role profile")
       .sort({ createdAt: -1 });
 
@@ -60,17 +60,17 @@ exports.getEodReports = async (req, res) => {
 };
 
 // ==========================================
-// GET SINGLE EOD REPORT
+// GET SINGLE DESIGNER EOD REPORT
 // ==========================================
-exports.getEodReport = async (req, res) => {
+exports.getDesignerEodReport = async (req, res) => {
   try {
-    const report = await EodReport.findById(req.params.id)
+    const report = await DesignerEodReport.findById(req.params.id)
       .populate("user", "name email role profile");
 
     if (!report) {
       return res.status(404).json({
         success: false,
-        message: "Report not found",
+        message: "Designer EOD Report not found",
       });
     }
 
@@ -95,16 +95,16 @@ exports.getEodReport = async (req, res) => {
 };
 
 // ==========================================
-// UPDATE EOD REPORT
+// UPDATE DESIGNER EOD REPORT
 // ==========================================
-exports.updateEodReport = async (req, res) => {
+exports.updateDesignerEodReport = async (req, res) => {
   try {
-    let report = await EodReport.findById(req.params.id);
+    let report = await DesignerEodReport.findById(req.params.id);
 
     if (!report) {
       return res.status(404).json({
         success: false,
-        message: "Report not found",
+        message: "Designer EOD Report not found",
       });
     }
 
@@ -116,14 +116,14 @@ exports.updateEodReport = async (req, res) => {
       });
     }
 
-    report = await EodReport.findByIdAndUpdate(req.params.id, req.body, {
+    report = await DesignerEodReport.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
     }).populate("user", "name email profile");
 
     res.status(200).json({
       success: true,
-      message: "Report updated successfully",
+      message: "Designer EOD Report updated successfully",
       data: report,
     });
   } catch (err) {
@@ -135,16 +135,16 @@ exports.updateEodReport = async (req, res) => {
 };
 
 // ==========================================
-// UPLOAD ATTACHMENT FOR EOD REPORT
+// UPLOAD ATTACHMENT FOR DESIGNER EOD REPORT
 // ==========================================
-exports.uploadEodAttachment = async (req, res) => {
+exports.uploadDesignerEodAttachment = async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, message: "No file provided" });
     }
 
     const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: "eod_attachments",
+      folder: "designer_eod_attachments",
       resource_type: "auto",
     });
 
@@ -172,16 +172,16 @@ exports.uploadEodAttachment = async (req, res) => {
 };
 
 // ==========================================
-// DELETE EOD REPORT
+// DELETE DESIGNER EOD REPORT
 // ==========================================
-exports.deleteEodReport = async (req, res) => {
+exports.deleteDesignerEodReport = async (req, res) => {
   try {
-    const report = await EodReport.findById(req.params.id);
+    const report = await DesignerEodReport.findById(req.params.id);
 
     if (!report) {
       return res.status(404).json({
         success: false,
-        message: "Report not found",
+        message: "Designer EOD Report not found",
       });
     }
 
@@ -197,7 +197,7 @@ exports.deleteEodReport = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Report deleted successfully",
+      message: "Designer EOD Report deleted successfully",
     });
   } catch (err) {
     res.status(500).json({

@@ -1907,3 +1907,232 @@ td:first-child {
   animation: bell-shake 0.8s ease-in-out !important;
 }
 
+/* ==========================================================================
+   EOD PREMIUM SPREADSHEET GRID DESIGN
+   ========================================================================== */
+
+/* Outer container border and shadow */
+.eod-spreadsheet-card {
+  background-color: var(--color-white) !important;
+  border: 1px solid var(--color-slate-200) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04) !important;
+  overflow: hidden !important;
+}
+
+.dark .eod-spreadsheet-card {
+  background-color: #000000 !important; /* Pure Black Card bg */
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* EOD Table Grid lines */
+.eod-grid-table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+}
+
+.eod-grid-table th {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  font-size: 11px !important;
+  letter-spacing: 0.05em !important;
+  padding: 10px 12px !important;
+  border-right: 1px solid var(--color-slate-200) !important;
+  border-bottom: 2px solid var(--color-slate-300) !important;
+}
+
+.dark .eod-grid-table th {
+  background-color: #0a0a0c !important; /* Extremely dark headers */
+  color: #a6adbb !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.eod-grid-table td {
+  border-right: 1px solid var(--color-slate-200) !important;
+  border-bottom: 1px solid var(--color-slate-200) !important;
+  background-color: #ffffff !important; /* Premium clean white in light mode */
+  padding: 0 !important; /* Let input fill the entire cell */
+  transition: background-color 0.15s ease !important;
+}
+
+/* Light mode row states overrides */
+.eod-grid-table tr:hover td {
+  background-color: #f8fafc !important; /* Soft premium slate hover */
+}
+.eod-grid-table tr[class*="bg-emerald-50/5"] td {
+  background-color: #f4fbf7 !important; /* Muted soft green tint */
+}
+.eod-grid-table tr[class*="bg-emerald-50/5"]:hover td {
+  background-color: #e6f7ed !important; /* Slightly darker soft green */
+}
+.eod-grid-table tr[class*="bg-amber-500/5"] td {
+  background-color: #fffdf5 !important; /* Muted soft amber tint */
+}
+.eod-grid-table tr[class*="bg-amber-500/5"]:hover td {
+  background-color: #fff9e6 !important; /* Slightly darker soft amber */
+}
+
+/* Dark mode premium styles */
+.dark .eod-grid-table td {
+  background-color: #000000 !important; /* Pure Black Cells */
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Row states override for dark mode black background alignment */
+.dark tr.hover\:bg-slate-50\/60:hover td,
+.dark tr:hover td {
+  background-color: #0a0a0c !important; /* Pure black slight highlight */
+}
+.dark tr[class*="bg-emerald-50/5"] td {
+  background-color: #020d06 !important; /* Very dark rich green tint */
+}
+.dark tr[class*="bg-emerald-50/5"]:hover td {
+  background-color: #031409 !important;
+}
+.dark tr[class*="bg-amber-500/5"] td {
+  background-color: #0f0a02 !important; /* Very dark rich amber tint */
+}
+.dark tr[class*="bg-amber-500/5"]:hover td {
+  background-color: #160f03 !important;
+}
+
+/* Grid Input elements */
+.eod-grid-input {
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 0px !important;
+  padding: 8px 12px !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  width: 100% !important;
+  height: 38px !important;
+  color: #1e293b !important;
+  box-shadow: none !important;
+  outline: none !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+.dark .eod-grid-input {
+  color: #f1f5f9 !important;
+}
+
+.eod-grid-input::placeholder {
+  color: #94a3b8 !important;
+  opacity: 0.6;
+}
+
+.dark .eod-grid-input::placeholder {
+  color: #64748b !important;
+  opacity: 0.65;
+}
+
+/* Hover effect on input: make cell background slightly highlight */
+.eod-grid-input:hover {
+  background-color: rgba(99, 102, 241, 0.02) !important;
+}
+
+.dark .eod-grid-input:hover {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Active focus state: spreadsheet cell highlight style */
+.eod-grid-input:focus {
+  background-color: #ffffff !important;
+  border: 1px solid #3b82f6 !important;
+  box-shadow: inset 0 0 0 1px #3b82f6 !important;
+  z-index: 10 !important;
+}
+
+.dark .eod-grid-input:focus {
+  background-color: #000000 !important; /* Black bg on focus */
+  border: 1px solid #60a5fa !important;
+  box-shadow: inset 0 0 0 1px #60a5fa !important;
+  z-index: 10 !important;
+}
+
+/* Disabled input state: looks clean, read-only style */
+.eod-grid-input:disabled {
+  color: #64748b !important;
+  cursor: not-allowed !important;
+  background-color: #f8fafc !important;
+}
+
+.dark .eod-grid-input:disabled {
+  color: #64748b !important;
+  background-color: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Select element inside grid */
+.eod-grid-select {
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 0px !important;
+  padding: 8px 12px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  width: 100% !important;
+  height: 38px !important;
+  color: #1e293b !important;
+  box-shadow: none !important;
+  outline: none !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+.dark .eod-grid-select {
+  color: #f1f5f9 !important;
+}
+
+.eod-grid-select:hover {
+  background-color: rgba(99, 102, 241, 0.02) !important;
+}
+
+.dark .eod-grid-select:hover {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+.eod-grid-select:focus {
+  background-color: #ffffff !important;
+  border: 1px solid #3b82f6 !important;
+}
+
+.dark .eod-grid-select:focus {
+  background-color: #000000 !important;
+  border: 1px solid #60a5fa !important;
+}
+
+/* Styled read-only td values */
+.eod-grid-value-cell {
+  padding: 8px 12px !important;
+  font-size: 12.5px !important;
+  height: 38px !important;
+  display: flex !important;
+  align-items: center !important;
+  font-weight: 500 !important;
+}
+
+/* Adjust tracking status indicator badge container */
+.tracked-time-badge {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  background-color: rgba(245, 158, 11, 0.1) !important;
+  color: #d97706 !important;
+  border: 1px solid rgba(245, 158, 11, 0.2) !important;
+}
+
+.dark .tracked-time-badge {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+  color: #fbbf24 !important;
+  border: 1px solid rgba(245, 158, 11, 0.3) !important;
+}
+

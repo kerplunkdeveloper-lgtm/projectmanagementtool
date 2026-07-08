@@ -53,6 +53,7 @@ const clientRoutes = require(
   "./routes/clientRoutes"
 );
 const eodReports = require('./routes/eodReportRoutes');
+const designerEodReports = require('./routes/designerEodReportRoutes');
 const eventRoutes = require('./routes/eventRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const businessProjectRoutes = require("./routes/businessProjectRoutes");
@@ -96,6 +97,7 @@ app.use('/api/profile', profiles);
 app.use('/api/clients', clientRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/eod-reports', eodReports);
+app.use('/api/designer-eod-reports', designerEodReports);
 app.use('/api/events', eventRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/business-projects', businessProjectRoutes);

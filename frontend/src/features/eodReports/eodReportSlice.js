@@ -4,6 +4,7 @@ import {
   getEodReportsAPI,
   createEodReportAPI,
   updateEodReportAPI,
+  deleteEodReportAPI,
 } from "./eodReportApi";
 
 // ==========================================
@@ -48,6 +49,21 @@ export const updateEodReport = createAsyncThunk(
   }
 );
 
+// ==========================================
+// DELETE EOD REPORT
+// ==========================================
+export const deleteEodReport = createAsyncThunk(
+  "eodReports/deleteEodReport",
+  async (id, thunkAPI) => {
+    try {
+      await deleteEodReportAPI(id);
+      return id;
+    } catch (err) {
+      return thunkAPI.rejectWithValue(err.response.data.message);
+    }
+  }
+);
+
 const eodReportSlice = createSlice({
   name: "eodReports",
   initialState: {
@@ -83,6 +99,14 @@ const eodReportSlice = createSlice({
           report._id === action.payload.data._id ? action.payload.data : report
         );
         toast.success("EOD Report updated successfully");
+      })
+
+      // DELETE EOD REPORT
+      .addCase(deleteEodReport.fulfilled, (state, action) => {
+        state.eodReports = state.eodReports.filter(
+          (report) => report._id !== action.payload
+        );
+        toast.success("EOD Report deleted successfully");
       });
   },
 });

@@ -5,6 +5,7 @@ const {
   getEodReport,
   updateEodReport,
   uploadEodAttachment,
+  deleteEodReport,
 } = require('../controllers/eodReportController');
 
 const router = express.Router();
@@ -22,6 +23,8 @@ router.post('/upload', protect, authorize('team'), chatUpload.single('file'), up
 router
   .route('/:id')
   .get(protect, getEodReport)
-  .put(protect, authorize('team'), updateEodReport);
+  .put(protect, authorize('team'), updateEodReport)
+  .delete(protect, deleteEodReport);
 
 module.exports = router;
+

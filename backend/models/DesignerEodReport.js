@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const eodReportSchema = new mongoose.Schema(
+const designerEodReportSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -22,6 +22,16 @@ const eodReportSchema = new mongoose.Schema(
     projectsWorkedOn: {
       type: String,
       required: [true, "Projects Worked On (task name) is required"],
+    },
+
+    designCount: {
+      type: String,
+      required: [true, "Number of designs completed is required"],
+    },
+
+    filesSubmitted: {
+      type: String,
+      default: "", // Optional
     },
 
     pendingTasks: {
@@ -84,4 +94,4 @@ const eodReportSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("EodReport", eodReportSchema);
+module.exports = mongoose.model("DesignerEodReport", designerEodReportSchema);
