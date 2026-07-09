@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { sidebarConfig } from "../../config/sidebarConfig";
-import { logoutUser, impersonateUser } from "../../features/auth/authSlice";
+import { logoutUser, impersonateUser, exitImpersonation } from "../../features/auth/authSlice";
 import { getProjects } from "../../features/projects/projectSlice";
 import { getUsers } from "../../features/users/userSlice";
 import { getPortfolios } from "../../features/portfolio/portfolioSlice";
@@ -63,7 +63,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   const { projects } = useSelector((state) => state.projects);
   const { portfolios = [] } = useSelector((state) => state.portfolios || {});
   const { users } = useSelector((state) => state.users);
-  const { user: currentUser } = useSelector((state) => state.auth);
+  const { user: currentUser, originalAdminUser } = useSelector((state) => state.auth);
   const { profile } = useSelector((state) => state.profile);
   const { unreadCounts = {} } = useSelector((state) => state.chat);
   const totalUnreadChatCount = Object.values(unreadCounts).reduce(
@@ -144,6 +144,14 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     } catch (err) {
       toast.error(err || "Failed to switch user");
     }
+  };
+
+  const handleSwitchBack = () => {
+    dispatch(exitImpersonation());
+    dispatch(apiSlice.util.resetApiState());
+    toast.success("Switched back to Admin");
+    if (window.innerWidth < 1024) setSidebarOpen(false);
+    navigate("/admin");
   };
 
   const handleLogout = async () => {
@@ -472,7 +480,35 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
         {/* FOOTER */}
         <div className="p-3 border-t border-slate-200 dark:border-white/5 space-y-1.5">
-          {role === "admin" && users && users.length > 0 && (
+
+          {/* Switch Back to Admin — shown when impersonating any user */}
+          {originalAdminUser && (
+            <button
+              type="button"
+              onClick={handleSwitchBack}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200/60 dark:border-indigo-500/20 hover:bg-indigo-100/80 dark:hover:bg-indigo-500/20 transition-all duration-200 cursor-pointer group"
+            >
+              <div className="w-6 h-6 rounded-lg bg-indigo-500/10 dark:bg-indigo-400/10 border border-indigo-300/40 dark:border-indigo-400/20 flex items-center justify-center shrink-0">
+                <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400">
+                  {getInitials(originalAdminUser?.name)}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0 text-left">
+                <p className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 truncate leading-tight">
+                  Switch Back
+                </p>
+                <p className="text-[8px] font-black text-indigo-500/70 dark:text-indigo-400/60 uppercase tracking-wider leading-none mt-0.5 truncate">
+                  {originalAdminUser?.name}
+                </p>
+              </div>
+              <svg className="w-3 h-3 text-indigo-400 dark:text-indigo-500 shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+              </svg>
+            </button>
+          )}
+
+          {/* Switch User dropdown — shown only for the actual admin (not impersonating) */}
+          {role === "admin" && !originalAdminUser && users && users.length > 0 && (
             <div className="p-1.5 text-left relative">
               <label className="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1 px-1">
                 Switch User

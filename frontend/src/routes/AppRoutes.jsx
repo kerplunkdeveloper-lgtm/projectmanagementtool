@@ -1,5 +1,6 @@
 import React, { Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
+import ScrollToTop from "../components/common/ScrollToTop";
 
 // Synchronous core wrappers
 import ProtectedRoute from "../components/common/ProtectedRoute.jsx";
@@ -43,6 +44,7 @@ const PageLoader = () => (
 const AppRoutes = () => {
   return (
     <Suspense fallback={<PageLoader />}>
+      <ScrollToTop />
       <Routes>
 
       {/* LOGIN */}
