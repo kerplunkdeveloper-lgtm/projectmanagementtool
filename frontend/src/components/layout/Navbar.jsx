@@ -604,6 +604,8 @@ const Navbar = ({ setSidebarOpen }) => {
                                 n.message.toLowerCase().includes("client:"))
                             ) {
                               navigate(`/${user?.role}/clients`);
+                            } else if (n.type === "task_assigned") {
+                              navigate(`/${user?.role}/tasks`);
                             } else if (n.type?.startsWith("task_")) {
                               if (n.project && (user?.role === "admin" || user?.role === "operationmanager")) {
                                 const projectId = typeof n.project === 'object' ? n.project._id : n.project;
