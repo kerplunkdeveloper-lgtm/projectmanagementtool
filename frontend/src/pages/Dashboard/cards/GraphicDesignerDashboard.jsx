@@ -1,9 +1,26 @@
 import React, { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { useGetTasksQuery } from "../../../features/api/apiSlice";
-import { format, isToday, isPast, parseISO, differenceInDays, isYesterday, isAfter, subDays, isSameMonth } from "date-fns";
+import {
+  format,
+  isToday,
+  isPast,
+  parseISO,
+  differenceInDays,
+  isYesterday,
+  isAfter,
+  subDays,
+  isSameMonth,
+} from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiClock, FiAlertCircle, FiActivity, FiFilter, FiChevronDown, FiCheckCircle } from "react-icons/fi";
+import {
+  FiClock,
+  FiAlertCircle,
+  FiActivity,
+  FiFilter,
+  FiChevronDown,
+  FiCheckCircle,
+} from "react-icons/fi";
 
 const GraphicDesignerDashboard = () => {
   const { users } = useSelector((state) => state.users);
@@ -16,11 +33,13 @@ const GraphicDesignerDashboard = () => {
 
   // 1. Filter Graphic Designers
   const designers = useMemo(() => {
-    return users?.filter(
-      (u) =>
-        u.department?.toLowerCase().includes("graphic") ||
-        u.department?.toLowerCase().includes("design")
-    ) || [];
+    return (
+      users?.filter(
+        (u) =>
+          u.department?.toLowerCase().includes("graphic") ||
+          u.department?.toLowerCase().includes("design"),
+      ) || []
+    );
   }, [users]);
 
   const designerIds = useMemo(() => designers.map((d) => d._id), [designers]);
@@ -30,19 +49,23 @@ const GraphicDesignerDashboard = () => {
     return allTasks.filter((task) => {
       // Check Assignee
       if (!task.assignedTo) return false;
-      const assigneeId = typeof task.assignedTo === "object" ? task.assignedTo._id : task.assignedTo;
+      const assigneeId =
+        typeof task.assignedTo === "object"
+          ? task.assignedTo._id
+          : task.assignedTo;
       if (!designerIds.includes(assigneeId)) return false;
 
       // Check Date
       if (dateFilter === "All Time") return true;
       if (!task.createdAt) return true; // fallback
-      
+
       const taskDate = parseISO(task.createdAt);
       if (dateFilter === "Today") return isToday(taskDate);
       if (dateFilter === "Yesterday") return isYesterday(taskDate);
-      if (dateFilter === "Last 7 Days") return isAfter(taskDate, subDays(new Date(), 7));
+      if (dateFilter === "Last 7 Days")
+        return isAfter(taskDate, subDays(new Date(), 7));
       if (dateFilter === "This Month") return isSameMonth(taskDate, new Date());
-      
+
       return true;
     });
   }, [allTasks, designerIds, dateFilter]);
@@ -59,10 +82,15 @@ const GraphicDesignerDashboard = () => {
       const status = task.status?.toLowerCase() || "";
       if (status === "completed") completed++;
       else if (status.includes("revision")) inRevision++;
-      else if (status.includes("client") || status.includes("approval")) clientApproval++;
+      else if (status.includes("client") || status.includes("approval"))
+        clientApproval++;
       else pending++;
 
-      if (task.dueDate && isPast(parseISO(task.dueDate)) && status !== "completed") {
+      if (
+        task.dueDate &&
+        isPast(parseISO(task.dueDate)) &&
+        status !== "completed"
+      ) {
         overdue++;
       }
     });
@@ -79,7 +107,14 @@ const GraphicDesignerDashboard = () => {
   }, [designerTasks, designers.length]);
 
   // 4. Board Data
-  const boardColumns = ["Assigned", "In Progress", "Revision Pending", "Revision", "Approved", "Completed"];
+  const boardColumns = [
+    "Assigned",
+    "In Progress",
+    "Revision Pending",
+    "Revision",
+    "Approved",
+    "Completed",
+  ];
   const getColumnForTask = (task) => {
     const status = task.status || "Assigned";
     if (boardColumns.includes(status)) return status;
@@ -106,7 +141,8 @@ const GraphicDesignerDashboard = () => {
     return designers.map((designer) => {
       const myTasks = designerTasks.filter((t) => {
         if (!t.assignedTo) return false;
-        const aId = typeof t.assignedTo === "object" ? t.assignedTo._id : t.assignedTo;
+        const aId =
+          typeof t.assignedTo === "object" ? t.assignedTo._id : t.assignedTo;
         return aId === designer._id;
       });
       let comp = 0;
@@ -116,11 +152,13 @@ const GraphicDesignerDashboard = () => {
         const s = t.status?.toLowerCase() || "";
         if (s === "completed") comp++;
         else pend++;
-        if (t.dueDate && isPast(parseISO(t.dueDate)) && s !== "completed") over++;
+        if (t.dueDate && isPast(parseISO(t.dueDate)) && s !== "completed")
+          over++;
       });
       return {
         id: designer._id,
         name: designer.name,
+        profileImage: designer.profilePic || designer.profileImage || designer.avatar || (designer.profile && designer.profile.profilePic),
         assigned: myTasks.length,
         completed: comp,
         pending: pend,
@@ -134,18 +172,27 @@ const GraphicDesignerDashboard = () => {
     const cp = {};
     designerTasks.forEach((task) => {
       let clientId = task.client;
-      if (typeof clientId === "object" && clientId?._id) clientId = clientId._id;
+      if (typeof clientId === "object" && clientId?._id)
+        clientId = clientId._id;
       if (!clientId && task.project) {
-        const projId = typeof task.project === "object" ? task.project._id : task.project;
+        const projId =
+          typeof task.project === "object" ? task.project._id : task.project;
         const proj = projects?.find((p) => p._id === projId);
         clientId = proj?.client?._id || proj?.client;
       }
       if (!clientId) return;
 
       if (!cp[clientId]) {
-        cp[clientId] = { id: clientId, pending: 0, completed: 0, dueToday: 0, delayed: 0, revision: 0 };
+        cp[clientId] = {
+          id: clientId,
+          pending: 0,
+          completed: 0,
+          dueToday: 0,
+          delayed: 0,
+          revision: 0,
+        };
       }
-      
+
       const s = task.status?.toLowerCase() || "";
       if (s === "completed") cp[clientId].completed++;
       else {
@@ -158,8 +205,8 @@ const GraphicDesignerDashboard = () => {
       }
     });
 
-    return Object.values(cp).map(c => {
-      const cl = clients?.find(cl => cl._id === c.id);
+    return Object.values(cp).map((c) => {
+      const cl = clients?.find((cl) => cl._id === c.id);
       return { ...c, name: cl?.name || cl?.companyName || "Unknown Client" };
     });
   }, [designerTasks, projects, clients]);
@@ -167,16 +214,21 @@ const GraphicDesignerDashboard = () => {
   // 7. Delayed Projects/Tasks
   const delayedTasks = useMemo(() => {
     return designerTasks
-      .filter((t) => t.dueDate && isPast(parseISO(t.dueDate)) && t.status?.toLowerCase() !== "completed")
-      .map(t => {
+      .filter(
+        (t) =>
+          t.dueDate &&
+          isPast(parseISO(t.dueDate)) &&
+          t.status?.toLowerCase() !== "completed",
+      )
+      .map((t) => {
         let diff = differenceInDays(new Date(), parseISO(t.dueDate));
         return {
           ...t,
-          daysDelayed: diff === 0 ? "Same day" : diff + (diff === 1 ? " day" : " days")
+          daysDelayed:
+            diff === 0 ? "Same day" : diff + (diff === 1 ? " day" : " days"),
         };
       });
   }, [designerTasks]);
-
 
   if (isLoading) {
     return (
@@ -188,7 +240,6 @@ const GraphicDesignerDashboard = () => {
 
   return (
     <div className="bg-white dark:bg-[#0b1120] space-y-8 font-sans mt-8 overflow-visible transition-colors duration-300 relative">
-      
       {/* Decorative Blur Backgrounds for Dark Mode Premium Feel */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden rounded-3xl pointer-events-none hidden dark:block">
         <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-indigo-500/10 blur-[120px] rounded-full" />
@@ -211,33 +262,44 @@ const GraphicDesignerDashboard = () => {
 
         {/* Date Filter Dropdown */}
         <div className="relative">
-          <button 
+          <button
             onClick={() => setShowDropdown(!showDropdown)}
             className="flex items-center gap-2 px-5 py-2.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-700/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 transition-all shadow-sm backdrop-blur-md"
           >
             <FiFilter className="text-indigo-500 dark:text-indigo-400" />
             {dateFilter}
-            <FiChevronDown className={`transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`} />
+            <FiChevronDown
+              className={`transition-transform duration-200 ${showDropdown ? "rotate-180" : ""}`}
+            />
           </button>
 
           <AnimatePresence>
             {showDropdown && (
               <>
-                <div className="fixed inset-0 z-30" onClick={() => setShowDropdown(false)} />
-                <motion.div 
+                <div
+                  className="fixed inset-0 z-30"
+                  onClick={() => setShowDropdown(false)}
+                />
+                <motion.div
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
                   className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-40 overflow-hidden backdrop-blur-xl"
                 >
-                  {["Today", "Yesterday", "Last 7 Days", "This Month", "All Time"].map(option => (
+                  {[
+                    "Today",
+                    "Yesterday",
+                    "Last 7 Days",
+                    "This Month",
+                    "All Time",
+                  ].map((option) => (
                     <button
                       key={option}
                       onClick={() => {
                         setDateFilter(option);
                         setShowDropdown(false);
                       }}
-                      className={`w-full text-left px-4 py-3 text-sm font-bold transition-colors ${dateFilter === option ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                      className={`w-full text-left px-4 py-3 text-sm font-bold transition-colors ${dateFilter === option ? "bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"}`}
                     >
                       {option}
                     </button>
@@ -250,24 +312,67 @@ const GraphicDesignerDashboard = () => {
       </div>
 
       {/* Premium Metrics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 lg:gap-6 relative z-10">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-4 relative z-10">
         {[
-          { label: "Designers", value: metrics.designersWorking, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-gradient-to-br dark:from-blue-900/40 dark:to-blue-900/10 border-blue-100 dark:border-blue-800/50" },
-          { label: "Tasks Assigned", value: metrics.tasksAssigned, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-gradient-to-br dark:from-indigo-900/40 dark:to-indigo-900/10 border-indigo-100 dark:border-indigo-800/50" },
-          { label: "Completed", value: metrics.completed, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-gradient-to-br dark:from-emerald-900/40 dark:to-emerald-900/10 border-emerald-100 dark:border-emerald-800/50" },
-          { label: "Pending", value: metrics.pending, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-gradient-to-br dark:from-amber-900/40 dark:to-amber-900/10 border-amber-100 dark:border-amber-800/50" },
-          { label: "Overdue", value: metrics.overdue, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-gradient-to-br dark:from-rose-900/40 dark:to-rose-900/10 border-rose-100 dark:border-rose-800/50" },
-          { label: "In Revision", value: metrics.inRevision, color: "text-fuchsia-600 dark:text-fuchsia-400", bg: "bg-fuchsia-50 dark:bg-gradient-to-br dark:from-fuchsia-900/40 dark:to-fuchsia-900/10 border-fuchsia-100 dark:border-fuchsia-800/50" },
-          { label: "Client Approval", value: metrics.clientApproval, color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-50 dark:bg-gradient-to-br dark:from-cyan-900/40 dark:to-cyan-900/10 border-cyan-100 dark:border-cyan-800/50" },
+          {
+            label: "Designers",
+            value: metrics.designersWorking,
+            color: "text-blue-600 dark:text-blue-400",
+            bg: "bg-blue-50 dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#050b14] border-blue-100 dark:border-blue-500/30 dark:shadow-[0_0_15px_rgba(59,130,246,0.15)]",
+          },
+          {
+            label: "Tasks Assigned",
+            value: metrics.tasksAssigned,
+            color: "text-indigo-600 dark:text-indigo-400",
+            bg: "bg-indigo-50 dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#050b14] border-indigo-100 dark:border-indigo-500/30 dark:shadow-[0_0_15px_rgba(99,102,241,0.15)]",
+          },
+          {
+            label: "Completed",
+            value: metrics.completed,
+            color: "text-emerald-600 dark:text-emerald-400",
+            bg: "bg-emerald-50 dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#050b14] border-emerald-100 dark:border-emerald-500/30 dark:shadow-[0_0_15px_rgba(16,185,129,0.15)]",
+          },
+          {
+            label: "Pending",
+            value: metrics.pending,
+            color: "text-amber-600 dark:text-amber-400",
+            bg: "bg-amber-50 dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#050b14] border-amber-100 dark:border-amber-500/30 dark:shadow-[0_0_15px_rgba(245,158,11,0.15)]",
+          },
+          {
+            label: "Overdue",
+            value: metrics.overdue,
+            color: "text-rose-600 dark:text-rose-400",
+            bg: "bg-rose-50 dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#050b14] border-rose-100 dark:border-rose-500/30 dark:shadow-[0_0_15px_rgba(244,63,94,0.15)]",
+          },
+          {
+            label: "In Revision",
+            value: metrics.inRevision,
+            color: "text-fuchsia-600 dark:text-fuchsia-400",
+            bg: "bg-fuchsia-50 dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#050b14] border-fuchsia-100 dark:border-fuchsia-500/30 dark:shadow-[0_0_15px_rgba(217,70,239,0.15)]",
+          },
+          {
+            label: "Client Approval",
+            value: metrics.clientApproval,
+            color: "text-cyan-600 dark:text-cyan-400",
+            bg: "bg-cyan-50 dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#050b14] border-cyan-100 dark:border-cyan-500/30 dark:shadow-[0_0_15px_rgba(6,182,212,0.15)]",
+          },
         ].map((m, i) => (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-            key={i} 
-            className={`flex flex-col p-5 rounded-2xl border ${m.bg} shadow-sm dark:shadow-lg relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 backdrop-blur-md`}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05 }}
+            key={i}
+            className={`flex flex-col items-center justify-center text-center p-4 rounded-2xl border ${m.bg} shadow-sm dark:shadow-lg relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 backdrop-blur-md`}
           >
             <div className="absolute inset-0 bg-white/40 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <span className={`text-4xl font-black ${m.color} relative z-10 drop-shadow-sm`}>{m.value}</span>
-            <span className="text-[11px] font-extrabold text-slate-600 dark:text-slate-300 tracking-widest uppercase mt-2 leading-tight relative z-10">{m.label}</span>
+            <span
+              className={`text-3xl font-black ${m.color} relative z-10 drop-shadow-sm`}
+            >
+              {m.value}
+            </span>
+            <span className="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 tracking-widest uppercase mt-1.5 leading-tight relative z-10">
+              {m.label}
+            </span>
           </motion.div>
         ))}
       </div>
@@ -277,11 +382,25 @@ const GraphicDesignerDashboard = () => {
         {Array.from({ length: 60 }).map((_, i) => {
           let color = "bg-slate-200 dark:bg-slate-800";
           const ratio = i / 60;
-          if (ratio < (metrics.completed / (metrics.tasksAssigned || 1))) color = "bg-emerald-400 dark:bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]";
-          else if (ratio < ((metrics.completed + metrics.pending) / (metrics.tasksAssigned || 1))) color = "bg-amber-400 dark:bg-amber-500";
-          else if (ratio < ((metrics.completed + metrics.pending + metrics.overdue) / (metrics.tasksAssigned || 1))) color = "bg-rose-400 dark:bg-rose-500";
+          if (ratio < metrics.completed / (metrics.tasksAssigned || 1))
+            color =
+              "bg-emerald-400 dark:bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]";
+          else if (
+            ratio <
+            (metrics.completed + metrics.pending) / (metrics.tasksAssigned || 1)
+          )
+            color = "bg-amber-400 dark:bg-amber-500";
+          else if (
+            ratio <
+            (metrics.completed + metrics.pending + metrics.overdue) /
+              (metrics.tasksAssigned || 1)
+          )
+            color = "bg-rose-400 dark:bg-rose-500";
           return (
-            <div key={i} className={`flex-1 h-full rounded-full ${color} transition-colors duration-500 opacity-80 hover:opacity-100`} />
+            <div
+              key={i}
+              className={`flex-1 h-full rounded-full ${color} transition-colors duration-500 opacity-80 hover:opacity-100`}
+            />
           );
         })}
       </div>
@@ -289,7 +408,9 @@ const GraphicDesignerDashboard = () => {
       {/* Live Task Board */}
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4 px-1">
-          <h3 className="text-base font-black text-slate-800 dark:text-white tracking-wide uppercase">Live Task Board</h3>
+          <h3 className="text-base font-black text-slate-800 dark:text-white tracking-wide uppercase">
+            Live Task Board
+          </h3>
           <span className="flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-500/20">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             LIVE SYNC
@@ -297,9 +418,14 @@ const GraphicDesignerDashboard = () => {
         </div>
         <div className="flex overflow-x-auto gap-5 pb-6 snap-x hide-scrollbar">
           {boardColumns.map((col, i) => (
-            <div key={i} className="min-w-[280px] w-[280px] flex-shrink-0 snap-start bg-slate-50 dark:bg-[#0f172a]/80 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/80 flex flex-col max-h-[450px] shadow-sm">
+            <div
+              key={i}
+              className="min-w-[280px] w-[280px] flex-shrink-0 snap-start bg-slate-50 dark:bg-[#0f172a]/80 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/80 flex flex-col max-h-[450px] shadow-sm"
+            >
               <div className="p-4 border-b border-slate-200 dark:border-slate-700/80 flex items-center justify-between bg-white dark:bg-transparent rounded-t-2xl">
-                <span className="text-xs font-black text-slate-700 dark:text-slate-200 tracking-widest uppercase">{col}</span>
+                <span className="text-xs font-black text-slate-700 dark:text-slate-200 tracking-widest uppercase">
+                  {col}
+                </span>
                 <span className="text-[11px] font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-700">
                   {tasksByColumn[col].length}
                 </span>
@@ -309,24 +435,39 @@ const GraphicDesignerDashboard = () => {
                   {tasksByColumn[col].map((task) => {
                     let projName = "No Project";
                     if (task.project) {
-                       const pId = typeof task.project === 'object' ? task.project._id : task.project;
-                       const p = projects?.find(x => x._id === pId);
-                       projName = p?.name || "Unknown";
+                      const pId =
+                        typeof task.project === "object"
+                          ? task.project._id
+                          : task.project;
+                      const p = projects?.find((x) => x._id === pId);
+                      projName = p?.name || "Unknown";
                     }
-                    
+
                     return (
-                      <motion.div initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} exit={{opacity:0, scale:0.95}} key={task._id} className="bg-white dark:bg-[#1e293b]/90 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500/80 transition-all shadow-sm hover:shadow-md relative group">
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        key={task._id}
+                        className="bg-white dark:bg-[#1e293b]/90 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500/80 transition-all shadow-sm hover:shadow-md relative group"
+                      >
                         <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-indigo-500 to-purple-600 rounded-l-xl opacity-80" />
-                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-1.5 truncate pl-2">{projName}</p>
-                        <p className="text-sm font-bold text-slate-700 dark:text-slate-100 leading-snug pl-2">{task.title}</p>
+                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-1.5 truncate pl-2">
+                          {projName}
+                        </p>
+                        <p className="text-sm font-bold text-slate-700 dark:text-slate-100 leading-snug pl-2">
+                          {task.title}
+                        </p>
                         {task.dueDate && (
-                          <div className={`mt-3 pl-2 flex items-center gap-1.5 text-[11px] font-bold ${isPast(parseISO(task.dueDate)) && task.status !== 'Completed' ? 'text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-2 py-0.5 rounded w-fit' : 'text-slate-500 dark:text-slate-400'}`}>
+                          <div
+                            className={`mt-3 pl-2 flex items-center gap-1.5 text-[11px] font-bold ${isPast(parseISO(task.dueDate)) && task.status !== "Completed" ? "text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-2 py-0.5 rounded w-fit" : "text-slate-500 dark:text-slate-400"}`}
+                          >
                             <FiClock size={12} />
                             {format(parseISO(task.dueDate), "MMM dd, yyyy")}
                           </div>
                         )}
                       </motion.div>
-                    )
+                    );
                   })}
                 </AnimatePresence>
               </div>
@@ -339,30 +480,59 @@ const GraphicDesignerDashboard = () => {
         {/* Team Performance */}
         <div className="bg-white dark:bg-[#0f172a]/90 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden shadow-sm dark:shadow-xl">
           <div className="p-5 border-b border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-transparent">
-            <h3 className="text-sm font-black text-slate-800 dark:text-white tracking-widest uppercase">Team Performance</h3>
+            <h3 className="text-sm font-black text-slate-800 dark:text-white tracking-widest uppercase">
+              Team Performance
+            </h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50 dark:bg-slate-900/80">
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Designer</th>
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Assigned</th>
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Completed</th>
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Pending</th>
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Overdue</th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                    Designer
+                  </th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                    Assigned
+                  </th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                    Completed
+                  </th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                    Pending
+                  </th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                    Overdue
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                 {teamPerformance.map((tp) => (
-                  <tr key={tp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                  <tr
+                    key={tp.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                  >
                     <td className="p-4 text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white text-[10px]">{tp.name.charAt(0)}</div>
+                      {tp.profileImage ? (
+                        <img src={tp.profileImage} alt={tp.name} className="w-6 h-6 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white text-[10px]">
+                          {tp.name.charAt(0)}
+                        </div>
+                      )}
                       {tp.name}
                     </td>
-                    <td className="p-4 text-sm font-black text-indigo-600 dark:text-indigo-400">{tp.assigned}</td>
-                    <td className="p-4 text-sm font-black text-emerald-600 dark:text-emerald-400">{tp.completed}</td>
-                    <td className="p-4 text-sm font-black text-amber-600 dark:text-amber-400">{tp.pending}</td>
-                    <td className="p-4 text-sm font-black text-rose-600 dark:text-rose-400">{tp.overdue}</td>
+                    <td className="p-4 text-sm font-black text-indigo-600 dark:text-indigo-400">
+                      {tp.assigned}
+                    </td>
+                    <td className="p-4 text-sm font-black text-emerald-600 dark:text-emerald-400">
+                      {tp.completed}
+                    </td>
+                    <td className="p-4 text-sm font-black text-amber-600 dark:text-amber-400">
+                      {tp.pending}
+                    </td>
+                    <td className="p-4 text-sm font-black text-rose-600 dark:text-rose-400">
+                      {tp.overdue}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -373,27 +543,52 @@ const GraphicDesignerDashboard = () => {
         {/* Client-wise Progress */}
         <div className="bg-white dark:bg-[#0f172a]/90 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden shadow-sm dark:shadow-xl">
           <div className="p-5 border-b border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-transparent">
-            <h3 className="text-sm font-black text-slate-800 dark:text-white tracking-widest uppercase">Client-wise Progress</h3>
+            <h3 className="text-sm font-black text-slate-800 dark:text-white tracking-widest uppercase">
+              Client-wise Progress
+            </h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50 dark:bg-slate-900/80">
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Client</th>
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Pending</th>
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Completed</th>
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Due Today</th>
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Delayed</th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                    Client
+                  </th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                    Pending
+                  </th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                    Completed
+                  </th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                    Due Today
+                  </th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                    Delayed
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                 {clientProgress.map((cp) => (
-                  <tr key={cp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                    <td className="p-4 text-sm font-bold text-slate-700 dark:text-slate-200">{cp.name}</td>
-                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-300">{cp.pending}</td>
-                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-300">{cp.completed}</td>
-                    <td className="p-4 text-sm font-black text-amber-600 dark:text-amber-400">{cp.dueToday}</td>
-                    <td className="p-4 text-sm font-black text-rose-600 dark:text-rose-400">{cp.delayed}</td>
+                  <tr
+                    key={cp.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                  >
+                    <td className="p-4 text-sm font-bold text-slate-700 dark:text-slate-200">
+                      {cp.name}
+                    </td>
+                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-300">
+                      {cp.pending}
+                    </td>
+                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-300">
+                      {cp.completed}
+                    </td>
+                    <td className="p-4 text-sm font-black text-amber-600 dark:text-amber-400">
+                      {cp.dueToday}
+                    </td>
+                    <td className="p-4 text-sm font-black text-rose-600 dark:text-rose-400">
+                      {cp.delayed}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -408,38 +603,54 @@ const GraphicDesignerDashboard = () => {
           <div className="p-2 bg-rose-100 dark:bg-rose-500/20 rounded-lg text-rose-600 dark:text-rose-400">
             <FiAlertCircle className="text-lg" />
           </div>
-          <h3 className="text-sm font-black text-slate-800 dark:text-white tracking-widest uppercase">Delayed Projects & Bottlenecks</h3>
+          <h3 className="text-sm font-black text-slate-800 dark:text-white tracking-widest uppercase">
+            Delayed Projects & Bottlenecks
+          </h3>
         </div>
         <div className="p-5 space-y-4">
           {delayedTasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-emerald-500 dark:text-emerald-400">
               <FiCheckCircle className="text-4xl mb-3 opacity-50" />
-              <p className="text-sm font-black tracking-widest uppercase">Zero Delays!</p>
+              <p className="text-sm font-black tracking-widest uppercase">
+                Zero Delays!
+              </p>
             </div>
           ) : (
-            delayedTasks.slice(0, 5).map(task => {
+            delayedTasks.slice(0, 5).map((task) => {
               let projName = "No Project";
               if (task.project) {
-                 const pId = typeof task.project === 'object' ? task.project._id : task.project;
-                 const p = projects?.find(x => x._id === pId);
-                 projName = p?.name || "Unknown";
+                const pId =
+                  typeof task.project === "object"
+                    ? task.project._id
+                    : task.project;
+                const p = projects?.find((x) => x._id === pId);
+                projName = p?.name || "Unknown";
               }
               return (
-                <div key={task._id} className="flex items-center justify-between p-4 rounded-xl border-l-4 border-rose-500 bg-rose-50 dark:bg-rose-500/10 shadow-sm dark:shadow-none transition-transform hover:-translate-y-0.5">
+                <div
+                  key={task._id}
+                  className="flex items-center justify-between p-4 rounded-xl border-l-4 border-rose-500 bg-rose-50 dark:bg-rose-500/10 shadow-sm dark:shadow-none transition-transform hover:-translate-y-0.5"
+                >
                   <div>
-                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">{projName} — <span className="text-slate-500 dark:text-slate-400">{task.title}</span></h4>
-                    <p className="text-[11px] text-slate-500 font-bold mt-1 uppercase tracking-widest">{task.status}</p>
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                      {projName} —{" "}
+                      <span className="text-slate-500 dark:text-slate-400">
+                        {task.title}
+                      </span>
+                    </h4>
+                    <p className="text-[11px] text-slate-500 font-bold mt-1 uppercase tracking-widest">
+                      {task.status}
+                    </p>
                   </div>
                   <div className="text-xs font-black text-rose-600 dark:text-rose-300 bg-white dark:bg-rose-500/20 px-4 py-1.5 rounded-lg border border-rose-200 dark:border-rose-500/30 shadow-sm">
                     {task.daysDelayed}
                   </div>
                 </div>
-              )
+              );
             })
           )}
         </div>
       </div>
-
     </div>
   );
 };

@@ -303,7 +303,7 @@ const Dashboardmain = () => {
           <DashboardCards />
         </div>
 
-        <div className="col-span-1 theme-bg-card border theme-border rounded-xl p-4 shadow-xl flex flex-col justify-between">
+        <div className="col-span-1 theme-bg-card  flex flex-col justify-between">
           <div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
               <h1 className="text-[16px] text-blue-500 dark:text-[#3b82f6] font-medium tracking-wider">
