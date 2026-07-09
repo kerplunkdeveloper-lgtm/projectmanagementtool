@@ -179,12 +179,18 @@ const Notifications = () => {
                     }
                     if (n.type === "message_received" || n.chatRoomId) {
                       navigate(`/${user?.role}/chat?id=${n.chatRoomId}`);
-                    } else if (n.type?.startsWith("task_")) {
-                      navigate(`/${user?.role}/tasks`);
                     } else if (n.type === "client_assigned" || (n.message && n.message.toLowerCase().includes("client:"))) {
                       navigate(`/${user?.role}/clients`);
+                    } else if (n.type?.startsWith("task_")) {
+                      if (n.project && (user?.role === "admin" || user?.role === "operationmanager")) {
+                        const projectId = typeof n.project === 'object' ? n.project._id : n.project;
+                        navigate(`/${user?.role}/projects?id=${projectId}`);
+                      } else {
+                        navigate(`/${user?.role}/tasks`);
+                      }
                     } else if (n.project) {
-                      navigate(`/${user?.role}/projects?id=${n.project}`);
+                      const projectId = typeof n.project === 'object' ? n.project._id : n.project;
+                      navigate(`/${user?.role}/projects?id=${projectId}`);
                     } else {
                       navigate(`/${user?.role}/tasks`);
                     }
