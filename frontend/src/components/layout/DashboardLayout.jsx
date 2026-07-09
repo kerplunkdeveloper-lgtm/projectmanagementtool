@@ -6,6 +6,7 @@ import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import useSocket from "../../hooks/useSocket.jsx";
 import { exitImpersonation } from "../../features/auth/authSlice";
+import { apiSlice } from "../../features/api/apiSlice";
 
 const DashboardLayout = ({ role }) => {
   useSocket();
@@ -21,8 +22,9 @@ const DashboardLayout = ({ role }) => {
 
   const handleSwitchBack = () => {
     dispatch(exitImpersonation());
-    window.location.href = "/admin";
-  
+    dispatch(apiSlice.util.resetApiState());
+    toast.success("Returned to Admin account");
+    navigate("/admin");
   };
 
   return (

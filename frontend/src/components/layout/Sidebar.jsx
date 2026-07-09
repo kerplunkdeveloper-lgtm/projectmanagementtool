@@ -10,6 +10,7 @@ import { logoutUser, impersonateUser } from "../../features/auth/authSlice";
 import { getProjects } from "../../features/projects/projectSlice";
 import { getUsers } from "../../features/users/userSlice";
 import { getPortfolios } from "../../features/portfolio/portfolioSlice";
+import { apiSlice } from "../../features/api/apiSlice";
 import ProjectIcon from "../common/ProjectIcon";
 
 const projectColors = [
@@ -127,15 +128,18 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   const handleSwitchUser = async (userId) => {
     try {
       const result = await dispatch(impersonateUser(userId)).unwrap();
+      dispatch(apiSlice.util.resetApiState());
       toast.success("Successfully logged in as user");
-      setSidebarOpen(false);
+      if (window.innerWidth < 1024) {
+        setSidebarOpen(false);
+      }
       const targetRole = result.data.user.role;
       if (targetRole === "admin") {
-        window.location.href = "/admin";
+        navigate("/admin");
       } else if (targetRole === "operationmanager") {
-        window.location.href = "/operationmanager";
+        navigate("/operationmanager");
       } else if (targetRole === "team") {
-        window.location.href = "/team";
+        navigate("/team");
       }
     } catch (err) {
       toast.error(err || "Failed to switch user");

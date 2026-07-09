@@ -26,6 +26,7 @@ const Notifications = () => {
   // RTK Query hooks for Notifications API
   const { data: notifications = [], isLoading: loading } = useGetNotificationsQuery(undefined, {
     skip: !user,
+    pollingInterval: 2000,
   });
 
   const [markAsReadTrigger] = useMarkAsReadMutation();
