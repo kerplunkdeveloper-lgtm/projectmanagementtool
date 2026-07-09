@@ -131,11 +131,11 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       setSidebarOpen(false);
       const targetRole = result.data.user.role;
       if (targetRole === "admin") {
-        navigate("/admin");
+        window.location.href = "/admin";
       } else if (targetRole === "operationmanager") {
-        navigate("/operationmanager");
+        window.location.href = "/operationmanager";
       } else if (targetRole === "team") {
-        navigate("/team");
+        window.location.href = "/team";
       }
     } catch (err) {
       toast.error(err || "Failed to switch user");

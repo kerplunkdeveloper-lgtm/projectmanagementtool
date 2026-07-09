@@ -21,8 +21,8 @@ const DashboardLayout = ({ role }) => {
 
   const handleSwitchBack = () => {
     dispatch(exitImpersonation());
-    toast.success("Returned to Admin account");
-    navigate("/admin");
+    window.location.href = "/admin";
+  
   };
 
   return (
