@@ -259,7 +259,7 @@ const CalendarPage = () => {
     };
 
     return (
-      <div className="flex flex-col md:flex-row  justify-between items-center gap-4 mb-5 p-1">
+      <div className="flex flex-col md:flex-row  justify-between items-center gap-4 mb-5 p-1 ">
         {/* Navigation Buttons (Back, Today, Next) */}
         <div className="flex items-center gap-1 bg-slate-150/70 dark:bg-transparent p-1.5 rounded-xl border border-slate-200/50 dark:border-slate-800">
           <button
@@ -313,12 +313,12 @@ const CalendarPage = () => {
   };
 
   return (
-    <div className="min-h-screen">
-      <div className="py-4 sm:py-6">
+    <div className="min-h-screen  max-w-6xl mx-auto ">
+      <div className="py-4 sm:py-6 ">
         {/* HEADER */}
         <div className="flex justify-between items-center gap-3 mb-5">
           <div>
-            <div className="flex items-center gap-2 mb-0.5">
+            <div className="flex items-center gap-2 mb-0.5 ">
               <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
                 <FiCalendar size={14} className="text-white" />
               </div>
@@ -338,7 +338,7 @@ const CalendarPage = () => {
                 setIsEditing(false);
                 setOpenModal(true);
               }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm shadow-sm shadow-blue-200 transition-all active:scale-95 shrink-0"
+              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm  transition-all active:scale-95 shrink-0"
             >
               <FiPlus size={14} /> New Event
             </button>

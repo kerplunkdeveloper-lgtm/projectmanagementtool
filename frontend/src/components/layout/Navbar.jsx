@@ -64,7 +64,7 @@ const Navbar = ({ setSidebarOpen }) => {
 
   const { data: notifications = [] } = useGetNotificationsQuery(undefined, {
     skip: !user,
-    pollingInterval: 2000,
+    pollingInterval: 60000,
     refetchOnFocus: true,
     refetchOnReconnect: true,
   });

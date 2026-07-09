@@ -69,7 +69,7 @@ const Profile = () => {
   const avatarSrc = previewImage || profile?.profileImage?.url;
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
+    <div className="min-h-screen bg-gray-50/50 max-w-5xl mx-auto">
       <div className=" px-3 sm:px-5 py-4 sm:py-6">
 
         {/* PAGE TITLE */}
