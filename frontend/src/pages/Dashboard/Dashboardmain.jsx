@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import WelcomeUser from "../admin/partnerhub/components/WelcomeUser";
 import DashboardCards from "./cards/DashboardCards";
+import GraphicDesignerDashboard from "./cards/GraphicDesignerDashboard";
 import { getEvents } from "../../features/events/eventSlice";
 import {
   getProjects,
@@ -296,6 +297,7 @@ const Dashboardmain = () => {
       {/* GREETING */}
       <WelcomeUser />
 
+{/* .................................................3cards.............................. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 mb-4 ">
         <div className="col-span-1">
           <DashboardCards />
@@ -431,6 +433,32 @@ const Dashboardmain = () => {
             <DashboardCards />
       )} */}
       </div>
+
+
+      {/* ............................................status cards .......................................... */}
+      {(user?.role === "admin" || user?.role === "operationmanager") && (
+        <GraphicDesignerDashboard />
+      )}
+      {/* end................................................................................................... */}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
       {/* user details list name and email */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
