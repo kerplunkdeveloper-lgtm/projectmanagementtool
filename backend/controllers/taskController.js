@@ -86,7 +86,7 @@ exports.getTasks = async (req, res) => {
 // @access  Private/Admin/OperationManager
 exports.createTask = async (req, res) => {
   try {
-    req.body.createdBy = req.user.id;
+    req.body.createdBy = req.user._id;
     const task = await Task.create(req.body);
 
     const populatedTask = await Task.findById(task._id)
@@ -128,7 +128,7 @@ exports.createTask = async (req, res) => {
     if (task.assignedTo) {
       const notification = await Notification.create({
         recipient: task.assignedTo,
-        sender: req.user.id,
+        sender: req.user._id,
         type: "task_assigned",
         message: `You have been assigned a new task: "${task.title}"`,
         task: task._id,
@@ -156,6 +156,12 @@ exports.createTask = async (req, res) => {
 // @access  Private
 exports.updateTask = async (req, res) => {
   try {
+    const currentUserId = req.user._id ? req.user._id.toString() : req.user.id;
+    
+    // Prevent overriding read-only fields on update
+    delete req.body.createdBy;
+    delete req.body.project;
+
     let task = await Task.findById(req.params.id);
 
     if (!task) {
@@ -243,33 +249,51 @@ exports.updateTask = async (req, res) => {
     // Check if task status has been updated (e.g. marked completed)
     if (req.body.status && req.body.status !== previousStatus) {
       const io = req.app.get("io");
-      const isAssignee = task.assignedTo?._id?.toString() === req.user.id;
+      const isAssignee = (task.assignedTo?._id || task.assignedTo)?.toString() === currentUserId;
 
       if (isAssignee) {
-        // A member updated their own task status. Notify all admins and operation managers!
+        // A member updated their own task status. Notify all admins, operation managers, and the task creator!
         const managers = await User.find({ role: { $in: ["admin", "operationmanager"] } });
-        for (const manager of managers) {
+        const recipientIds = new Set(managers.map(m => m._id.toString()));
+        
+        const creatorId = task.createdBy?._id || task.createdBy;
+        if (creatorId && creatorId.toString() !== currentUserId) {
+          recipientIds.add(creatorId.toString());
+        }
+
+        for (const recipientId of recipientIds) {
           const notification = await Notification.create({
-            recipient: manager._id,
-            sender: req.user.id,
+            recipient: recipientId,
+            sender: req.user._id,
             type: "task_updated",
-            message: `${req.user.department} -  ${req.user.name} updated task "${task.title}" to: ${task.status}`,
+            message: `${req.user.department || 'Member'} - ${req.user.name} updated task "${task.title}" to: ${task.status}`,
             task: task._id,
             project: task.project?._id || task.project,
           });
 
           if (io) {
             const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
-            io.to(manager._id.toString()).emit("notification", populatedNotification);
+            io.to(recipientId).emit("notification", populatedNotification);
           }
         }
       } else {
-        // An admin/manager updated the task status. Notify the assignee!
+        // An admin/manager or creator updated the task status. Notify assignee and creator!
+        const recipientIds = new Set();
+        
         const recipient = task.assignedTo?._id || task.assignedTo;
-        if (recipient) {
+        if (recipient && recipient.toString() !== currentUserId) {
+          recipientIds.add(recipient.toString());
+        }
+
+        const creatorId = task.createdBy?._id || task.createdBy;
+        if (creatorId && creatorId.toString() !== currentUserId) {
+          recipientIds.add(creatorId.toString());
+        }
+
+        for (const recipientId of recipientIds) {
           const notification = await Notification.create({
-            recipient,
-            sender: req.user.id,
+            recipient: recipientId,
+            sender: req.user._id,
             type: "task_updated",
             message: `Task "${task.title}" status updated to: ${task.status}`,
             task: task._id,
@@ -278,7 +302,7 @@ exports.updateTask = async (req, res) => {
 
           if (io) {
             const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
-            io.to(recipient.toString()).emit("notification", populatedNotification);
+            io.to(recipientId).emit("notification", populatedNotification);
           }
         }
       }
@@ -288,7 +312,7 @@ exports.updateTask = async (req, res) => {
     if (req.body.assignedTo && req.body.assignedTo.toString() !== previousAssignee?.toString()) {
       const notification = await Notification.create({
         recipient: req.body.assignedTo,
-        sender: req.user.id,
+        sender: req.user._id,
         type: "task_assigned",
         message: `You have been assigned the task: "${task.title}"`,
         task: task._id,
@@ -315,7 +339,7 @@ exports.updateTask = async (req, res) => {
           if (subAssignee) {
             const notification = await Notification.create({
               recipient: subAssignee,
-              sender: req.user.id,
+              sender: req.user._id,
               type: "task_assigned",
               message: `You have been assigned a new subtask: "${sub.title || 'Untitled'}" in task "${task.title}"`,
               task: task._id,
@@ -336,7 +360,7 @@ exports.updateTask = async (req, res) => {
             // Assigned to someone else
             const notification = await Notification.create({
               recipient: currSubAssignee,
-              sender: req.user.id,
+              sender: req.user._id,
               type: "task_assigned",
               message: `You have been assigned the subtask: "${sub.title}" in task "${task.title}"`,
               task: task._id,
@@ -351,14 +375,21 @@ exports.updateTask = async (req, res) => {
 
           // Check for status change
           if (sub.status && sub.status !== prevSub.status) {
-            const isSubAssignee = currSubAssignee?.toString() === req.user.id || prevSubAssignee?.toString() === req.user.id;
+            const isSubAssignee = currSubAssignee?.toString() === currentUserId || prevSubAssignee?.toString() === currentUserId;
             if (isSubAssignee) {
-              // Member updated their own subtask status. Notify all admins and operation managers!
+              // Member updated their own subtask status. Notify all admins, operation managers, and the task creator!
               const managers = await User.find({ role: { $in: ["admin", "operationmanager"] } });
-              for (const manager of managers) {
+              const recipientIds = new Set(managers.map(m => m._id.toString()));
+              
+              const creatorId = task.createdBy?._id || task.createdBy;
+              if (creatorId && creatorId.toString() !== currentUserId) {
+                recipientIds.add(creatorId.toString());
+              }
+
+              for (const recipientId of recipientIds) {
                 const notification = await Notification.create({
-                  recipient: manager._id,
-                  sender: req.user.id,
+                  recipient: recipientId,
+                  sender: req.user._id,
                   type: "task_updated",
                   message: `Member ${req.user.name} updated subtask "${sub.title}" to: ${sub.status} (in task "${task.title}")`,
                   task: task._id,
@@ -367,15 +398,24 @@ exports.updateTask = async (req, res) => {
 
                 if (io) {
                   const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
-                  io.to(manager._id.toString()).emit("notification", populatedNotification);
+                  io.to(recipientId).emit("notification", populatedNotification);
                 }
               }
             } else {
-              // Admin/manager updated the subtask status. Notify assignee!
-              if (currSubAssignee) {
+              // Admin/manager/creator updated the subtask status. Notify assignee and creator!
+              const recipientIds = new Set();
+              if (currSubAssignee && currSubAssignee.toString() !== currentUserId) {
+                recipientIds.add(currSubAssignee.toString());
+              }
+              const creatorId = task.createdBy?._id || task.createdBy;
+              if (creatorId && creatorId.toString() !== currentUserId) {
+                recipientIds.add(creatorId.toString());
+              }
+
+              for (const recipientId of recipientIds) {
                 const notification = await Notification.create({
-                  recipient: currSubAssignee,
-                  sender: req.user.id,
+                  recipient: recipientId,
+                  sender: req.user._id,
                   type: "task_updated",
                   message: `Subtask "${sub.title}" status updated to: ${sub.status} (in task "${task.title}")`,
                   task: task._id,
@@ -384,7 +424,7 @@ exports.updateTask = async (req, res) => {
 
                 if (io) {
                   const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
-                  io.to(currSubAssignee.toString()).emit("notification", populatedNotification);
+                  io.to(recipientId).emit("notification", populatedNotification);
                 }
               }
             }

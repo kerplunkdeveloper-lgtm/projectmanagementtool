@@ -141,7 +141,7 @@ const useSocket = () => {
       const baseUrl = import.meta.env.VITE_API_BASE_URL;
       const socketUrl = baseUrl ? baseUrl : (typeof window !== 'undefined' ? window.location.origin : "http://localhost:5001");
       socket.current = io(socketUrl, {
-        transports: ["websocket", "polling"],
+        transports: ["polling", "websocket"],
         withCredentials: true
       });
 

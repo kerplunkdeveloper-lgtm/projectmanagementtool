@@ -5,7 +5,7 @@ const Notification = require('../models/Notification');
 // @access  Private
 exports.getNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.find({ recipient: req.user.id })
+    const notifications = await Notification.find({ recipient: req.user._id })
       .sort('-createdAt')
       .populate('sender', 'name')
       .limit(20);
@@ -30,7 +30,7 @@ exports.markAsRead = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Notification not found' });
     }
 
-    if (notification.recipient.toString() !== req.user.id) {
+    if (notification.recipient.toString() !== req.user._id.toString()) {
       return res.status(401).json({ success: false, message: 'Not authorized' });
     }
 
@@ -52,7 +52,7 @@ exports.markAsRead = async (req, res) => {
 exports.markAllAsRead = async (req, res) => {
   try {
     await Notification.updateMany(
-      { recipient: req.user.id, isRead: false },
+      { recipient: req.user._id, isRead: false },
       { isRead: true }
     );
 
@@ -76,7 +76,7 @@ exports.deleteNotification = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Notification not found' });
     }
 
-    if (notification.recipient.toString() !== req.user.id) {
+    if (notification.recipient.toString() !== req.user._id.toString()) {
       return res.status(401).json({ success: false, message: 'Not authorized' });
     }
 

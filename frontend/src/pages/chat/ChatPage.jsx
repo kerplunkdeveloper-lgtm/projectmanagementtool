@@ -388,7 +388,10 @@ const ChatPage = () => {
   useEffect(() => {
     const apiBase =
       import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
-    socketRef.current = io(apiBase);
+    socketRef.current = io(apiBase, {
+      transports: ["polling", "websocket"],
+      withCredentials: true
+    });
 
     const performJoin = () => {
       if (currentUserId) {

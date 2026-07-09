@@ -12,7 +12,57 @@ const templateRoutes = require('./routes/templateRoutes');
 dotenv.config();
 
 // Connect to database
-connectDB();
+connectDB().then(() => {
+  // Repair any tasks missing the createdBy field
+  const repairTasksCreatedBy = async () => {
+    try {
+      const Task = require('./models/Task');
+      const Project = require('./models/Project');
+      const User = require('./models/User');
+
+      const tasksToRepair = await Task.find({ 
+        $or: [
+          { createdBy: null }, 
+          { createdBy: { $exists: false } }
+        ] 
+      });
+      
+      if (tasksToRepair.length > 0) {
+        console.log(`[Database Repair] Found ${tasksToRepair.length} tasks without createdBy. Repairing...`);
+        const fallbackAdmin = await User.findOne({ role: 'admin' });
+        const fallbackAdminId = fallbackAdmin ? fallbackAdmin._id : null;
+
+        for (const task of tasksToRepair) {
+          let newCreatorId = null;
+          
+          if (task.project) {
+            const project = await Project.findById(task.project);
+            if (project && project.createdBy) {
+              newCreatorId = project.createdBy;
+            }
+          }
+          
+          if (!newCreatorId && task.assignedTo) {
+            newCreatorId = task.assignedTo;
+          }
+
+          if (!newCreatorId) {
+            newCreatorId = fallbackAdminId;
+          }
+
+          if (newCreatorId) {
+            task.createdBy = newCreatorId;
+            await task.save();
+          }
+        }
+        console.log(`[Database Repair] Successfully repaired ${tasksToRepair.length} tasks.`);
+      }
+    } catch (err) {
+      console.error('[Database Repair] Error repairing tasks createdBy:', err);
+    }
+  };
+  repairTasksCreatedBy();
+});
 
 const app = express();
 
@@ -126,7 +176,7 @@ const io = require('socket.io')(server, {
     origin: allowedOrigins,
     credentials: true,
   },
-  transports: ['websocket', 'polling']
+  transports: ['polling', 'websocket']
 });
 
 // Keep track of active calls in memory

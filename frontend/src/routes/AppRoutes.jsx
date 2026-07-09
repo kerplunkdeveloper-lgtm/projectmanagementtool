@@ -5,28 +5,48 @@ import ScrollToTop from "../components/common/ScrollToTop";
 // Synchronous core wrappers
 import ProtectedRoute from "../components/common/ProtectedRoute.jsx";
 
+// Helper to retry dynamic imports when chunks fail to load (e.g., after a new deployment)
+const lazyWithRetry = (importFn) => {
+  return React.lazy(async () => {
+    try {
+      const module = await importFn();
+      window.sessionStorage.removeItem("lazy-retry-failed");
+      return module;
+    } catch (error) {
+      // Check if we have already retried to prevent infinite reloads
+      const hasRetried = window.sessionStorage.getItem("lazy-retry-failed");
+      if (!hasRetried) {
+        window.sessionStorage.setItem("lazy-retry-failed", "true");
+        window.location.reload();
+        return new Promise(() => {}); // Return a pending promise to avoid rendering broken state before reload
+      }
+      throw error;
+    }
+  });
+};
+
 // Lazy Loaded Pages & Layouts
-const Login = React.lazy(() => import("../pages/auth/Login.jsx"));
-const DashboardLayout = React.lazy(() => import("../components/layout/DashboardLayout.jsx"));
-const Dashboardmain = React.lazy(() => import("../pages/Dashboard/Dashboardmain.jsx"));
-const Project = React.lazy(() => import("../pages/projects/Project.jsx"));
-const AdminUsers = React.lazy(() => import("../pages/admin/AdminUsers.jsx"));
-const PartnerHub = React.lazy(() => import("../pages/admin/partnerhub/PartnerHub.jsx"));
-const Profile = React.lazy(() => import("../pages/profile/Profile.jsx"));
-const Settings = React.lazy(() => import("../pages/settings/Settings.jsx"));
-const OperationHome = React.lazy(() => import("../pages/OperationMananger/OperationHome.jsx"));
-const OperationProjects = React.lazy(() => import("../pages/OperationMananger/OperationProjects.jsx"));
-const TeamHome = React.lazy(() => import("../pages/team/TeamHome.jsx"));
-const EodReports = React.lazy(() => import("../pages/team/EodReports.jsx"));
-const AdminEodReports = React.lazy(() => import("../pages/admin/AdminEodReports.jsx"));
-const Templatelib = React.lazy(() => import("../pages/admin/templatelibrary/Templatelib.jsx"));
-const Clients = React.lazy(() => import("../pages/admin/clients/Clients.jsx"));
-const CalendarPage = React.lazy(() => import("../pages/calendar/CalendarPage.jsx"));
-const Notifications = React.lazy(() => import("../pages/notifications/Notifications.jsx"));
-const Task = React.lazy(() => import("../pages/tasks/Task.jsx"));
-const ChatPage = React.lazy(() => import("../pages/chat/ChatPage.jsx"));
-const Portfolio = React.lazy(() => import("../pages/admin/portfolio/Portfolio.jsx"));
-const Workload = React.lazy(() => import("../pages/workload/Workload.jsx"));
+const Login = lazyWithRetry(() => import("../pages/auth/Login.jsx"));
+const DashboardLayout = lazyWithRetry(() => import("../components/layout/DashboardLayout.jsx"));
+const Dashboardmain = lazyWithRetry(() => import("../pages/Dashboard/Dashboardmain.jsx"));
+const Project = lazyWithRetry(() => import("../pages/projects/Project.jsx"));
+const AdminUsers = lazyWithRetry(() => import("../pages/admin/AdminUsers.jsx"));
+const PartnerHub = lazyWithRetry(() => import("../pages/admin/partnerhub/PartnerHub.jsx"));
+const Profile = lazyWithRetry(() => import("../pages/profile/Profile.jsx"));
+const Settings = lazyWithRetry(() => import("../pages/settings/Settings.jsx"));
+const OperationHome = lazyWithRetry(() => import("../pages/OperationMananger/OperationHome.jsx"));
+const OperationProjects = lazyWithRetry(() => import("../pages/OperationMananger/OperationProjects.jsx"));
+const TeamHome = lazyWithRetry(() => import("../pages/team/TeamHome.jsx"));
+const EodReports = lazyWithRetry(() => import("../pages/team/EodReports.jsx"));
+const AdminEodReports = lazyWithRetry(() => import("../pages/admin/AdminEodReports.jsx"));
+const Templatelib = lazyWithRetry(() => import("../pages/admin/templatelibrary/Templatelib.jsx"));
+const Clients = lazyWithRetry(() => import("../pages/admin/clients/Clients.jsx"));
+const CalendarPage = lazyWithRetry(() => import("../pages/calendar/CalendarPage.jsx"));
+const Notifications = lazyWithRetry(() => import("../pages/notifications/Notifications.jsx"));
+const Task = lazyWithRetry(() => import("../pages/tasks/Task.jsx"));
+const ChatPage = lazyWithRetry(() => import("../pages/chat/ChatPage.jsx"));
+const Portfolio = lazyWithRetry(() => import("../pages/admin/portfolio/Portfolio.jsx"));
+const Workload = lazyWithRetry(() => import("../pages/workload/Workload.jsx"));
 
 // Elegant, premium animated page loader
 const PageLoader = () => (

@@ -14,7 +14,7 @@ exports.createProfile = async (req, res) => {
       address,
     } = req.body;
 
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user._id);
 
     if (!user) {
       return res.status(404).json({
@@ -38,14 +38,14 @@ exports.createProfile = async (req, res) => {
     }
 
     const profile = await Profile.create({
-      user: req.user.id,
+      user: req.user._id,
       bio,
       phone,
       address,
       profileImage: imageData,
     });
 
-    await User.findByIdAndUpdate(req.user.id, {
+    await User.findByIdAndUpdate(req.user._id, {
       profile: profile._id,
     });
 
@@ -70,7 +70,7 @@ exports.getProfile = async (req, res) => {
 
   try {
 
-    const user = await User.findById(req.user.id)
+    const user = await User.findById(req.user._id)
       .populate("profile");
 
     res.status(200).json({
@@ -95,7 +95,7 @@ exports.updateProfile = async (req, res) => {
   try {
     const { bio, phone, address } = req.body;
 
-    const user = await User.findById(req.user.id).populate("profile");
+    const user = await User.findById(req.user._id).populate("profile");
 
     if (!user.profile) {
       return res.status(404).json({
@@ -165,7 +165,7 @@ exports.deleteProfileImage = async (req, res) => {
 
   try {
 
-    const user = await User.findById(req.user.id)
+    const user = await User.findById(req.user._id)
       .populate("profile");
 
     const profile = await Profile.findById(user.profile._id);
