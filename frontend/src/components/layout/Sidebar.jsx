@@ -177,7 +177,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       <aside
         className={`
           fixed top-0 left-0 z-[100] h-screen
-          w-64 lg:w-48 xl:w-52
+          w-64 lg:w-48
           sidebar-bg
           backdrop-blur-xl
           border-r border-slate-200/40 dark:border-white/5

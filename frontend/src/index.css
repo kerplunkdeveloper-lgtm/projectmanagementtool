@@ -535,29 +535,45 @@ select.badge-select option {
   }
 }
 
-/* Custom Webkit Scrollbar Styling - Hidden / Invisible but Scrollable */
+/* Global Default Scrollbar - Thin & Subtle */
 ::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-  background: transparent !important;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent !important;
+  background: transparent;
 }
 /* Light Mode Scrollbar Thumb */
 ::-webkit-scrollbar-thumb {
-  background: transparent !important;
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.6);
 }
 /* Dark Mode Scrollbar Thumb */
 .dark ::-webkit-scrollbar-thumb,
 .dark::-webkit-scrollbar-thumb {
-  background: transparent !important;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
 }
+.dark ::-webkit-scrollbar-thumb:hover,
+.dark::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+/* Firefox global */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+.dark * {
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+/* ── Visible Scrollbar Classes ─────────────────────────────── */
 
 /* Dedicated Sidebar Scrollbar Styling - Visible but Subtle */
 .sidebar-scrollbar::-webkit-scrollbar {
-  display: block !important;
   width: 3px !important;
   height: 3px !important;
 }
@@ -576,6 +592,79 @@ select.badge-select option {
 }
 .dark .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* custom-scrollbar - used in tables, modals, panels */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px !important;
+  height: 5px !important;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent !important;
+  border-radius: 9999px !important;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4) !important;
+  border-radius: 9999px !important;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.7) !important;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* scrollbar-thin - slim visible scrollbar */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px !important;
+  height: 4px !important;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35) !important;
+  border-radius: 9999px !important;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.6) !important;
+}
+.dark .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22) !important;
+}
+
+/* scrollbar-hide / hide-scrollbar / scrollbar-none - force hide */
+.scrollbar-hide::-webkit-scrollbar,
+.hide-scrollbar::-webkit-scrollbar,
+.scrollbar-none::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.scrollbar-hide,
+.hide-scrollbar,
+.scrollbar-none {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+/* Firefox: thin scrollbars for sidebar/custom/thin classes */
+.sidebar-scrollbar,
+.custom-scrollbar,
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+.dark .sidebar-scrollbar,
+.dark .custom-scrollbar,
+.dark .scrollbar-thin {
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
 }
 
 /* Placeholder for contentEditable elements */
@@ -1291,20 +1380,7 @@ button[type="submit"]:active {
   border-color: var(--accent-color-dark) !important;
 }
 
-/* Premium Glassmorphic scrollbars */
-.sidebar-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-.sidebar-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.sidebar-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.15);
-  border-radius: 9999px;
-}
-.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.35);
-}
+/* (sidebar-scrollbar styles consolidated above) */
 
 
 

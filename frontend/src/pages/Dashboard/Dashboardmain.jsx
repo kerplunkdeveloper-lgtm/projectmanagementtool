@@ -293,7 +293,7 @@ const Dashboardmain = () => {
   };
 
   return (
-    <div className="space-y-4 pb-6 ">
+    <div className="space-y-4 pb-6 max-w-7xl mx-auto">
       {/* GREETING */}
       <WelcomeUser />
 
@@ -440,21 +440,6 @@ const Dashboardmain = () => {
         <GraphicDesignerDashboard />
       )}
       {/* end................................................................................................... */}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

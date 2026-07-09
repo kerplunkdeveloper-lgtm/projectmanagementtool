@@ -34,6 +34,10 @@ const NotificationSchema = new mongoose.Schema({
   chatRoomType: {
     type: String,
   },
+  senderDepartment: {
+    type: String,
+    default: null,
+  },
   isRead: {
     type: Boolean,
     default: false,

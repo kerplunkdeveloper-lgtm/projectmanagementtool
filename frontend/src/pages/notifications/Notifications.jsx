@@ -211,12 +211,29 @@ const Notifications = () => {
 
                   {/* MESSAGE AND TIME */}
                   <div className="flex-1 space-y-1 pr-6">
+                    {/* DEPARTMENT TAG + MESSAGE */}
                     <p className={`text-xs sm:text-sm font-semibold leading-relaxed ${
                       !n.isRead ? "text-slate-800 font-extrabold" : "text-slate-600"
                     }`}>
+                      {n.senderDepartment && (
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest mr-1.5 align-middle"
+                          style={{
+                            background: "linear-gradient(135deg, rgba(99,102,241,0.12) 0%, rgba(168,85,247,0.12) 100%)",
+                            border: "1px solid rgba(99,102,241,0.25)",
+                            color: "#6366f1",
+                          }}
+                        >
+                          <span
+                            className="w-1.5 h-1.5 rounded-full shrink-0"
+                            style={{ background: "#6366f1", boxShadow: "0 0 5px rgba(99,102,241,0.5)" }}
+                          />
+                          {n.senderDepartment}
+                        </span>
+                      )}
                       {n.message}
                     </p>
-                    
+
                     <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
                       <FiMail className="shrink-0 text-slate-350" size={11} />
                       {new Date(n.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })} at{" "}
