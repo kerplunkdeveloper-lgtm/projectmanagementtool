@@ -15,7 +15,7 @@ import { getProfile } from "../../../../features/profile/profileSlice";
 const WelcomeUser = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
-  const { profile } = useSelector((state) => state.profile);
+  const { profile, loading: profileLoading } = useSelector((state) => state.profile);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -27,13 +27,13 @@ const WelcomeUser = () => {
   }, []);
 
   useEffect(() => {
-    if (user) {
+    if (user && !profileLoading) {
       const profileUserId = profile?.user?._id || profile?.user;
       if (!profile || profileUserId !== (user.id || user._id)) {
         dispatch(getProfile());
       }
     }
-  }, [dispatch, user, profile]);
+  }, [dispatch, user]);
 
   const hour = currentTime.getHours();
   let greeting = "Good Evening";

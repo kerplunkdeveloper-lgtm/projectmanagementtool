@@ -39,8 +39,8 @@ app.use(cors({
 app.use(helmet());
 
 const limiter = rateLimit({
-  windowMs: 10 * 60 * 1000,
-  max: 1000,
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === "development" ? 100000 : 5000, // higher limit in development
 
   handler: (req, res) => {
     console.log("RATE LIMIT HIT =>", req.originalUrl);

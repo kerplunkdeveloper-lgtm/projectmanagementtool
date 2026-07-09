@@ -49,8 +49,8 @@ const Navbar = ({ setSidebarOpen }) => {
   const [openNotifications, setOpenNotifications] = useState(false);
 
   const { user } = useSelector((state) => state.auth);
-  const { profile } = useSelector((state) => state.profile);
-  const { clients = [] } = useSelector((state) => state.clients);
+  const { profile, loading: profileLoading } = useSelector((state) => state.profile);
+  const { clients = [], loading: clientsLoading } = useSelector((state) => state.clients);
   const { theme, setTheme } = useTheme();
 
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -189,13 +189,13 @@ const Navbar = ({ setSidebarOpen }) => {
   const pageTitle = getPageTitle();
 
   useEffect(() => {
-    if (user) {
+    if (user && !profileLoading) {
       const profileUserId = profile?.user?._id || profile?.user;
       if (!profile || profileUserId !== (user.id || user._id)) {
         dispatch(getProfile());
       }
     }
-  }, [dispatch, user, profile]);
+  }, [dispatch, user]);
 
   const categories = ["Navigation", "Projects", "Tasks", "Clients"];
 
@@ -335,10 +335,10 @@ const Navbar = ({ setSidebarOpen }) => {
   const allFilteredItems = getSearchItems();
 
   useEffect(() => {
-    if (user && (!clients || clients.length === 0)) {
+    if (user && !clientsLoading && (!clients || clients.length === 0)) {
       dispatch(getClients());
     }
-  }, [dispatch, user, clients]);
+  }, [dispatch, user]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {

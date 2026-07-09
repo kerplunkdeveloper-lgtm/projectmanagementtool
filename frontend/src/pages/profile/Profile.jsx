@@ -24,7 +24,11 @@ const Profile = () => {
   const [image, setImage]             = useState(null);
   const [previewImage, setPreviewImage] = useState("");
 
-  useEffect(() => { dispatch(getProfile()); }, [dispatch, user]);
+  useEffect(() => {
+    if (!profile && !loading) {
+      dispatch(getProfile());
+    }
+  }, [dispatch, user]);
 
   useEffect(() => {
     if (profile) setFormData({ bio: profile.bio || "", phone: profile.phone || "", address: profile.address || "" });
