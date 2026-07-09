@@ -47,7 +47,7 @@ const ThemeSettingsPanel = () => {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(true)}
-        className="fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-white dark:bg-[#0f172a] p-3 rounded-l-xl shadow-lg border-y border-l border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group"
+        className="fixed right-0 top-35 -translate-y-1/2 z-40 bg-white dark:bg-[#0f172a] p-3 rounded-l-xl shadow-lg border-y border-l border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors group"
       >
         <FiSettings className="w-5 h-5 animate-[spin_4s_linear_infinite]" />
       </motion.button>

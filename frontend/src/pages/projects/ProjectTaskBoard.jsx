@@ -1879,7 +1879,7 @@ const ProjectTaskBoard = ({
   ).length;
 
   return (
-    <div className="space-y-6 w-full max-w-[1600px] mx-auto px-2 md:px-0 relative">
+    <div className="space-y-6 w-full max-w-8xl mx-auto px-2 md:px-0 relative">
       {/* WORKSPACE HEADER & PROGRESS */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mt-4 mb-4 pb-4 border-b border-slate-100 dark:border-white/5">
         <div className="flex items-center gap-3 min-w-0 w-full lg:w-1/4 order-1 lg:order-none">
