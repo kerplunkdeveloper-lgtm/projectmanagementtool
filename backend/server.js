@@ -38,11 +38,20 @@ app.use(cors({
 // Set security headers
 app.use(helmet());
 
-// Rate limiting
 const limiter = rateLimit({
-  windowMs: 10 * 60 * 1000, // 10 mins
+  windowMs: 10 * 60 * 1000,
   max: 1000,
+
+  handler: (req, res) => {
+    console.log("RATE LIMIT HIT =>", req.originalUrl);
+
+    res.status(429).json({
+      success: false,
+      message: "Too many requests",
+    });
+  },
 });
+
 app.use(limiter);
 
 // Route files
