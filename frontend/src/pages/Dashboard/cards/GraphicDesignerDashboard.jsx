@@ -1,15 +1,18 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { useGetTasksQuery } from "../../../features/api/apiSlice";
-import { format, isToday, isPast, parseISO, differenceInDays } from "date-fns";
-import { motion } from "framer-motion";
-import { FiClock, FiAlertCircle, FiCheckCircle, FiRefreshCw, FiUser, FiActivity } from "react-icons/fi";
+import { format, isToday, isPast, parseISO, differenceInDays, isYesterday, isAfter, subDays, isSameMonth } from "date-fns";
+import { motion, AnimatePresence } from "framer-motion";
+import { FiClock, FiAlertCircle, FiActivity, FiFilter, FiChevronDown, FiCheckCircle } from "react-icons/fi";
 
 const GraphicDesignerDashboard = () => {
   const { users } = useSelector((state) => state.users);
   const { projects } = useSelector((state) => state.projects);
   const { clients } = useSelector((state) => state.clients);
   const { data: allTasks = [], isLoading } = useGetTasksQuery();
+
+  const [dateFilter, setDateFilter] = useState("All Time");
+  const [showDropdown, setShowDropdown] = useState(false);
 
   // 1. Filter Graphic Designers
   const designers = useMemo(() => {
@@ -22,14 +25,27 @@ const GraphicDesignerDashboard = () => {
 
   const designerIds = useMemo(() => designers.map((d) => d._id), [designers]);
 
-  // 2. Filter Tasks assigned to Graphic Designers
+  // 2. Filter Tasks assigned to Graphic Designers + Date Filter
   const designerTasks = useMemo(() => {
     return allTasks.filter((task) => {
+      // Check Assignee
       if (!task.assignedTo) return false;
       const assigneeId = typeof task.assignedTo === "object" ? task.assignedTo._id : task.assignedTo;
-      return designerIds.includes(assigneeId);
+      if (!designerIds.includes(assigneeId)) return false;
+
+      // Check Date
+      if (dateFilter === "All Time") return true;
+      if (!task.createdAt) return true; // fallback
+      
+      const taskDate = parseISO(task.createdAt);
+      if (dateFilter === "Today") return isToday(taskDate);
+      if (dateFilter === "Yesterday") return isYesterday(taskDate);
+      if (dateFilter === "Last 7 Days") return isAfter(taskDate, subDays(new Date(), 7));
+      if (dateFilter === "This Month") return isSameMonth(taskDate, new Date());
+      
+      return true;
     });
-  }, [allTasks, designerIds]);
+  }, [allTasks, designerIds, dateFilter]);
 
   // 3. Compute Metrics
   const metrics = useMemo(() => {
@@ -120,7 +136,6 @@ const GraphicDesignerDashboard = () => {
       let clientId = task.client;
       if (typeof clientId === "object" && clientId?._id) clientId = clientId._id;
       if (!clientId && task.project) {
-        // try to get from project
         const projId = typeof task.project === "object" ? task.project._id : task.project;
         const proj = projects?.find((p) => p._id === projId);
         clientId = proj?.client?._id || proj?.client;
@@ -164,122 +179,190 @@ const GraphicDesignerDashboard = () => {
 
 
   if (isLoading) {
-    return <div className="animate-pulse h-96 bg-slate-800/50 rounded-2xl w-full flex items-center justify-center text-slate-400 font-mono text-sm tracking-widest uppercase">Initializing Designer Board...</div>;
+    return (
+      <div className="animate-pulse h-96 bg-slate-100 dark:bg-slate-800/50 rounded-2xl w-full flex items-center justify-center text-slate-400 font-mono text-sm tracking-widest uppercase shadow-inner border border-slate-200 dark:border-slate-800">
+        Initializing Designer Board...
+      </div>
+    );
   }
 
   return (
-    <div className=" border border-slate-200 dark:border-slate-800/60 rounded-2xl p-6 shadow-xl dark:shadow-2xl space-y-8 font-sans mt-8 overflow-hidden transition-colors duration-300">
+    <div className="bg-white dark:bg-[#0b1120] space-y-8 font-sans mt-8 overflow-visible transition-colors duration-300 relative">
       
-      {/* Header & Pulse Tracker */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+      {/* Decorative Blur Backgrounds for Dark Mode Premium Feel */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden rounded-3xl pointer-events-none hidden dark:block">
+        <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-indigo-500/10 blur-[120px] rounded-full" />
+        <div className="absolute top-[40%] -right-[10%] w-[40%] h-[40%] bg-emerald-500/10 blur-[120px] rounded-full" />
+      </div>
+
+      {/* Header & Filter */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-20">
         <div className="space-y-1">
-          <h2 className="text-xl font-black tracking-tight text-slate-800 dark:text-white flex items-center gap-2">
-            <FiActivity className="text-emerald-500 dark:text-emerald-400" />
+          <h2 className="text-xl lg:text-xl font-black tracking-tight text-slate-800 dark:text-white flex items-center gap-3">
+            <div className="p-2 bg-emerald-100 dark:bg-emerald-500/20 rounded-xl">
+              <FiActivity className="text-emerald-600 dark:text-emerald-400 text-xl" />
+            </div>
             Graphic Designer Board
           </h2>
-          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider uppercase">Live updates across all projects</p>
+          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider uppercase pl-12">
+            Real-time analytics & task tracking
+          </p>
         </div>
-        <div className="flex gap-1 h-3 flex-1 max-w-xl justify-end items-center">
-          {/* Simulated pulse grid based on task count */}
-          {Array.from({ length: 40 }).map((_, i) => {
-            let color = "bg-slate-200 dark:bg-slate-800/50";
-            if (i < metrics.completed / 2) color = "bg-emerald-400 dark:bg-emerald-500/80";
-            else if (i < (metrics.completed + metrics.pending) / 2) color = "bg-amber-400 dark:bg-amber-500/80";
-            else if (i < (metrics.completed + metrics.pending + metrics.overdue) / 2) color = "bg-rose-400 dark:bg-rose-500/80";
-            return (
-              <div key={i} className={`w-3 h-full rounded-sm ${color} border border-slate-300 dark:border-black/20`} />
-            );
-          })}
+
+        {/* Date Filter Dropdown */}
+        <div className="relative">
+          <button 
+            onClick={() => setShowDropdown(!showDropdown)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-700/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 transition-all shadow-sm backdrop-blur-md"
+          >
+            <FiFilter className="text-indigo-500 dark:text-indigo-400" />
+            {dateFilter}
+            <FiChevronDown className={`transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`} />
+          </button>
+
+          <AnimatePresence>
+            {showDropdown && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setShowDropdown(false)} />
+                <motion.div 
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-40 overflow-hidden backdrop-blur-xl"
+                >
+                  {["Today", "Yesterday", "Last 7 Days", "This Month", "All Time"].map(option => (
+                    <button
+                      key={option}
+                      onClick={() => {
+                        setDateFilter(option);
+                        setShowDropdown(false);
+                      }}
+                      className={`w-full text-left px-4 py-3 text-sm font-bold transition-colors ${dateFilter === option ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+      {/* Premium Metrics Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4 lg:gap-6 relative z-10">
         {[
-          { label: "Designers", value: metrics.designersWorking, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 border-blue-100 dark:bg-blue-900/20 dark:border-blue-800/30" },
-          { label: "Tasks Assigned", value: metrics.tasksAssigned, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 border-indigo-100 dark:bg-indigo-900/20 dark:border-indigo-800/30" },
-          { label: "Completed", value: metrics.completed, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800/30" },
-          { label: "Pending", value: metrics.pending, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 border-amber-100 dark:bg-amber-900/20 dark:border-amber-800/30" },
-          { label: "Overdue", value: metrics.overdue, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 border-rose-100 dark:bg-rose-900/20 dark:border-rose-800/30" },
-          { label: "In Revision", value: metrics.inRevision, color: "text-fuchsia-600 dark:text-fuchsia-400", bg: "bg-fuchsia-50 border-fuchsia-100 dark:bg-fuchsia-900/20 dark:border-fuchsia-800/30" },
-          { label: "Client Approval", value: metrics.clientApproval, color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-50 border-cyan-100 dark:bg-cyan-900/20 dark:border-cyan-800/30" },
+          { label: "Designers", value: metrics.designersWorking, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-gradient-to-br dark:from-blue-900/40 dark:to-blue-900/10 border-blue-100 dark:border-blue-800/50" },
+          { label: "Tasks Assigned", value: metrics.tasksAssigned, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-gradient-to-br dark:from-indigo-900/40 dark:to-indigo-900/10 border-indigo-100 dark:border-indigo-800/50" },
+          { label: "Completed", value: metrics.completed, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-gradient-to-br dark:from-emerald-900/40 dark:to-emerald-900/10 border-emerald-100 dark:border-emerald-800/50" },
+          { label: "Pending", value: metrics.pending, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-gradient-to-br dark:from-amber-900/40 dark:to-amber-900/10 border-amber-100 dark:border-amber-800/50" },
+          { label: "Overdue", value: metrics.overdue, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-gradient-to-br dark:from-rose-900/40 dark:to-rose-900/10 border-rose-100 dark:border-rose-800/50" },
+          { label: "In Revision", value: metrics.inRevision, color: "text-fuchsia-600 dark:text-fuchsia-400", bg: "bg-fuchsia-50 dark:bg-gradient-to-br dark:from-fuchsia-900/40 dark:to-fuchsia-900/10 border-fuchsia-100 dark:border-fuchsia-800/50" },
+          { label: "Client Approval", value: metrics.clientApproval, color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-50 dark:bg-gradient-to-br dark:from-cyan-900/40 dark:to-cyan-900/10 border-cyan-100 dark:border-cyan-800/50" },
         ].map((m, i) => (
-          <div key={i} className={`flex flex-col p-3 rounded-xl border ${m.bg} shadow-sm dark:shadow-inner relative overflow-hidden group`}>
-            {/* Elegant dark mode gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent dark:from-white/5 dark:to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-            <span className={`text-2xl font-black ${m.color} relative z-10`}>{m.value}</span>
-            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-wider uppercase mt-1 leading-tight relative z-10">{m.label}</span>
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+            key={i} 
+            className={`flex flex-col p-5 rounded-2xl border ${m.bg} shadow-sm dark:shadow-lg relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 backdrop-blur-md`}
+          >
+            <div className="absolute inset-0 bg-white/40 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <span className={`text-4xl font-black ${m.color} relative z-10 drop-shadow-sm`}>{m.value}</span>
+            <span className="text-[11px] font-extrabold text-slate-600 dark:text-slate-300 tracking-widest uppercase mt-2 leading-tight relative z-10">{m.label}</span>
+          </motion.div>
         ))}
       </div>
 
+      {/* Pulse Line */}
+      <div className="flex gap-1 h-4 w-full items-center relative z-10 bg-slate-50 dark:bg-slate-900/50 p-2 rounded-xl border border-slate-200 dark:border-slate-800/80">
+        {Array.from({ length: 60 }).map((_, i) => {
+          let color = "bg-slate-200 dark:bg-slate-800";
+          const ratio = i / 60;
+          if (ratio < (metrics.completed / (metrics.tasksAssigned || 1))) color = "bg-emerald-400 dark:bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]";
+          else if (ratio < ((metrics.completed + metrics.pending) / (metrics.tasksAssigned || 1))) color = "bg-amber-400 dark:bg-amber-500";
+          else if (ratio < ((metrics.completed + metrics.pending + metrics.overdue) / (metrics.tasksAssigned || 1))) color = "bg-rose-400 dark:bg-rose-500";
+          return (
+            <div key={i} className={`flex-1 h-full rounded-full ${color} transition-colors duration-500 opacity-80 hover:opacity-100`} />
+          );
+        })}
+      </div>
+
       {/* Live Task Board */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-slate-800 dark:text-white tracking-wide">Live Task Board</h3>
-          <span className="text-[9px] text-slate-400 dark:text-slate-500 font-mono tracking-widest">REAL-TIME</span>
+      <div className="relative z-10">
+        <div className="flex items-center justify-between mb-4 px-1">
+          <h3 className="text-base font-black text-slate-800 dark:text-white tracking-wide uppercase">Live Task Board</h3>
+          <span className="flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            LIVE SYNC
+          </span>
         </div>
-        <div className="flex overflow-x-auto gap-4 pb-4 snap-x hide-scrollbar">
+        <div className="flex overflow-x-auto gap-5 pb-6 snap-x hide-scrollbar">
           {boardColumns.map((col, i) => (
-            <div key={i} className="min-w-[240px] w-[240px] flex-shrink-0 snap-start bg-slate-50 dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-800/80 flex flex-col max-h-[400px]">
-              <div className="p-3 border-b border-slate-200 dark:border-slate-800/80 flex items-center justify-between bg-white/50 dark:bg-transparent rounded-t-xl">
-                <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 tracking-widest uppercase">{col}</span>
-                <span className="text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full">{tasksByColumn[col].length}</span>
+            <div key={i} className="min-w-[280px] w-[280px] flex-shrink-0 snap-start bg-slate-50 dark:bg-[#0f172a]/80 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/80 flex flex-col max-h-[450px] shadow-sm">
+              <div className="p-4 border-b border-slate-200 dark:border-slate-700/80 flex items-center justify-between bg-white dark:bg-transparent rounded-t-2xl">
+                <span className="text-xs font-black text-slate-700 dark:text-slate-200 tracking-widest uppercase">{col}</span>
+                <span className="text-[11px] font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-700">
+                  {tasksByColumn[col].length}
+                </span>
               </div>
               <div className="p-3 overflow-y-auto space-y-3 flex-1 custom-scrollbar">
-                {tasksByColumn[col].map((task) => {
-                  let projName = "No Project";
-                  if (task.project) {
-                     const pId = typeof task.project === 'object' ? task.project._id : task.project;
-                     const p = projects?.find(x => x._id === pId);
-                     projName = p?.name || "Unknown";
-                  }
-                  
-                  return (
-                    <motion.div initial={{opacity:0, y:5}} animate={{opacity:1, y:0}} key={task._id} className="bg-white dark:bg-[#1e293b] p-3 rounded-lg border border-slate-200 dark:border-slate-700/50 hover:border-indigo-400 dark:hover:border-indigo-500/50 transition-colors shadow-sm dark:shadow-md relative overflow-hidden">
-                      <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-400 to-purple-500 opacity-50" />
-                      <p className="text-[9px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-1 truncate pl-2">{projName}</p>
-                      <p className="text-xs font-bold text-slate-700 dark:text-slate-200 leading-snug pl-2">{task.title}</p>
-                      {task.dueDate && (
-                        <div className={`mt-3 pl-2 flex items-center gap-1.5 text-[10px] font-bold ${isPast(parseISO(task.dueDate)) && task.status !== 'Completed' ? 'text-rose-500 dark:text-rose-400' : 'text-slate-500'}`}>
-                          <FiClock size={10} />
-                          {format(parseISO(task.dueDate), "MMM dd")}
-                        </div>
-                      )}
-                    </motion.div>
-                  )
-                })}
+                <AnimatePresence>
+                  {tasksByColumn[col].map((task) => {
+                    let projName = "No Project";
+                    if (task.project) {
+                       const pId = typeof task.project === 'object' ? task.project._id : task.project;
+                       const p = projects?.find(x => x._id === pId);
+                       projName = p?.name || "Unknown";
+                    }
+                    
+                    return (
+                      <motion.div initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} exit={{opacity:0, scale:0.95}} key={task._id} className="bg-white dark:bg-[#1e293b]/90 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500/80 transition-all shadow-sm hover:shadow-md relative group">
+                        <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-indigo-500 to-purple-600 rounded-l-xl opacity-80" />
+                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-1.5 truncate pl-2">{projName}</p>
+                        <p className="text-sm font-bold text-slate-700 dark:text-slate-100 leading-snug pl-2">{task.title}</p>
+                        {task.dueDate && (
+                          <div className={`mt-3 pl-2 flex items-center gap-1.5 text-[11px] font-bold ${isPast(parseISO(task.dueDate)) && task.status !== 'Completed' ? 'text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-2 py-0.5 rounded w-fit' : 'text-slate-500 dark:text-slate-400'}`}>
+                            <FiClock size={12} />
+                            {format(parseISO(task.dueDate), "MMM dd, yyyy")}
+                          </div>
+                        )}
+                      </motion.div>
+                    )
+                  })}
+                </AnimatePresence>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 relative z-10">
         {/* Team Performance */}
-        <div className="bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-800/80 overflow-hidden shadow-sm dark:shadow-none">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800/80 bg-slate-50/50 dark:bg-transparent">
-            <h3 className="text-sm font-bold text-slate-800 dark:text-white tracking-wide">Team Performance</h3>
+        <div className="bg-white dark:bg-[#0f172a]/90 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden shadow-sm dark:shadow-xl">
+          <div className="p-5 border-b border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-transparent">
+            <h3 className="text-sm font-black text-slate-800 dark:text-white tracking-widest uppercase">Team Performance</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 dark:bg-slate-900/50">
-                  <th className="p-3 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Designer</th>
-                  <th className="p-3 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Assigned</th>
-                  <th className="p-3 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Completed</th>
-                  <th className="p-3 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Pending</th>
-                  <th className="p-3 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Overdue</th>
+                <tr className="bg-slate-50/50 dark:bg-slate-900/80">
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Designer</th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Assigned</th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Completed</th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Pending</th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Overdue</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                 {teamPerformance.map((tp) => (
-                  <tr key={tp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors">
-                    <td className="p-3 text-xs font-bold text-slate-700 dark:text-slate-200">{tp.name}</td>
-                    <td className="p-3 text-xs font-bold text-indigo-600 dark:text-indigo-400">{tp.assigned}</td>
-                    <td className="p-3 text-xs font-bold text-emerald-600 dark:text-emerald-400">{tp.completed}</td>
-                    <td className="p-3 text-xs font-bold text-amber-600 dark:text-amber-400">{tp.pending}</td>
-                    <td className="p-3 text-xs font-bold text-rose-600 dark:text-rose-400">{tp.overdue}</td>
+                  <tr key={tp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                    <td className="p-4 text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white text-[10px]">{tp.name.charAt(0)}</div>
+                      {tp.name}
+                    </td>
+                    <td className="p-4 text-sm font-black text-indigo-600 dark:text-indigo-400">{tp.assigned}</td>
+                    <td className="p-4 text-sm font-black text-emerald-600 dark:text-emerald-400">{tp.completed}</td>
+                    <td className="p-4 text-sm font-black text-amber-600 dark:text-amber-400">{tp.pending}</td>
+                    <td className="p-4 text-sm font-black text-rose-600 dark:text-rose-400">{tp.overdue}</td>
                   </tr>
                 ))}
               </tbody>
@@ -288,29 +371,29 @@ const GraphicDesignerDashboard = () => {
         </div>
 
         {/* Client-wise Progress */}
-        <div className="bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-800/80 overflow-hidden shadow-sm dark:shadow-none">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800/80 bg-slate-50/50 dark:bg-transparent">
-            <h3 className="text-sm font-bold text-slate-800 dark:text-white tracking-wide">Client-wise Progress</h3>
+        <div className="bg-white dark:bg-[#0f172a]/90 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden shadow-sm dark:shadow-xl">
+          <div className="p-5 border-b border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-transparent">
+            <h3 className="text-sm font-black text-slate-800 dark:text-white tracking-widest uppercase">Client-wise Progress</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50 dark:bg-slate-900/50">
-                  <th className="p-3 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Client</th>
-                  <th className="p-3 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Pending</th>
-                  <th className="p-3 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Completed</th>
-                  <th className="p-3 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Due Today</th>
-                  <th className="p-3 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Delayed</th>
+                <tr className="bg-slate-50/50 dark:bg-slate-900/80">
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Client</th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Pending</th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Completed</th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Due Today</th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">Delayed</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                 {clientProgress.map((cp) => (
-                  <tr key={cp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors">
-                    <td className="p-3 text-xs font-bold text-slate-700 dark:text-slate-200">{cp.name}</td>
-                    <td className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300">{cp.pending}</td>
-                    <td className="p-3 text-xs font-bold text-slate-600 dark:text-slate-300">{cp.completed}</td>
-                    <td className="p-3 text-xs font-bold text-amber-600 dark:text-amber-400">{cp.dueToday}</td>
-                    <td className="p-3 text-xs font-bold text-rose-600 dark:text-rose-400">{cp.delayed}</td>
+                  <tr key={cp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                    <td className="p-4 text-sm font-bold text-slate-700 dark:text-slate-200">{cp.name}</td>
+                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-300">{cp.pending}</td>
+                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-300">{cp.completed}</td>
+                    <td className="p-4 text-sm font-black text-amber-600 dark:text-amber-400">{cp.dueToday}</td>
+                    <td className="p-4 text-sm font-black text-rose-600 dark:text-rose-400">{cp.delayed}</td>
                   </tr>
                 ))}
               </tbody>
@@ -320,14 +403,19 @@ const GraphicDesignerDashboard = () => {
       </div>
 
       {/* Delayed Projects & Bottlenecks */}
-      <div className="bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-slate-800/80 overflow-hidden shadow-sm dark:shadow-none">
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800/80 flex items-center gap-2 bg-slate-50/50 dark:bg-transparent">
-          <FiAlertCircle className="text-rose-500" />
-          <h3 className="text-sm font-bold text-slate-800 dark:text-white tracking-wide">Delayed Projects & Bottlenecks</h3>
+      <div className="bg-white dark:bg-[#0f172a]/90 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden shadow-sm dark:shadow-xl relative z-10">
+        <div className="p-5 border-b border-slate-200 dark:border-slate-700/80 flex items-center gap-3 bg-slate-50 dark:bg-transparent">
+          <div className="p-2 bg-rose-100 dark:bg-rose-500/20 rounded-lg text-rose-600 dark:text-rose-400">
+            <FiAlertCircle className="text-lg" />
+          </div>
+          <h3 className="text-sm font-black text-slate-800 dark:text-white tracking-widest uppercase">Delayed Projects & Bottlenecks</h3>
         </div>
-        <div className="p-4 space-y-3">
+        <div className="p-5 space-y-4">
           {delayedTasks.length === 0 ? (
-            <p className="text-xs text-slate-500 font-bold">No delayed tasks currently.</p>
+            <div className="flex flex-col items-center justify-center py-8 text-emerald-500 dark:text-emerald-400">
+              <FiCheckCircle className="text-4xl mb-3 opacity-50" />
+              <p className="text-sm font-black tracking-widest uppercase">Zero Delays!</p>
+            </div>
           ) : (
             delayedTasks.slice(0, 5).map(task => {
               let projName = "No Project";
@@ -337,12 +425,12 @@ const GraphicDesignerDashboard = () => {
                  projName = p?.name || "Unknown";
               }
               return (
-                <div key={task._id} className="flex items-center justify-between p-3 rounded-lg border-l-4 border-rose-500 bg-rose-50 dark:bg-rose-500/5 shadow-sm dark:shadow-none">
+                <div key={task._id} className="flex items-center justify-between p-4 rounded-xl border-l-4 border-rose-500 bg-rose-50 dark:bg-rose-500/10 shadow-sm dark:shadow-none transition-transform hover:-translate-y-0.5">
                   <div>
-                    <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">{projName} — <span className="text-slate-500 dark:text-slate-400">{task.title}</span></h4>
-                    <p className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-wider">{task.status}</p>
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">{projName} — <span className="text-slate-500 dark:text-slate-400">{task.title}</span></h4>
+                    <p className="text-[11px] text-slate-500 font-bold mt-1 uppercase tracking-widest">{task.status}</p>
                   </div>
-                  <div className="text-xs font-black text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-500/10 px-3 py-1 rounded-full border border-rose-200 dark:border-rose-500/20">
+                  <div className="text-xs font-black text-rose-600 dark:text-rose-300 bg-white dark:bg-rose-500/20 px-4 py-1.5 rounded-lg border border-rose-200 dark:border-rose-500/30 shadow-sm">
                     {task.daysDelayed}
                   </div>
                 </div>
