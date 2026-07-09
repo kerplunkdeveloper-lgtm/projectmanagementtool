@@ -253,8 +253,7 @@ exports.updateTask = async (req, res) => {
             recipient: manager._id,
             sender: req.user.id,
             type: "task_updated",
-            message: `${req.user.department} : ${req.user.name} updated task "${task.title}" to: ${task.status}`,
-            senderDepartment: req.user.department || null,
+            message: `Member ${req.user.name} updated task "${task.title}" to: ${task.status}`,
             task: task._id,
             project: task.project?._id || task.project,
           });
@@ -272,7 +271,7 @@ exports.updateTask = async (req, res) => {
             recipient,
             sender: req.user.id,
             type: "task_updated",
-            message: `${req.user.name} -Task Assigned :"${task.title}" status updated to: ${task.status}`,
+            message: `Task "${task.title}" status updated to: ${task.status}`,
             task: task._id,
             project: task.project?._id || task.project,
           });
