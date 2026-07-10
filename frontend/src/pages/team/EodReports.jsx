@@ -306,15 +306,15 @@ const EodReports = () => {
       <div className="bg-white dark:bg-slate-800 ">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <h1 className="text-xl font-bold text-slate-800 dark:text-white text-left">
-              Today's Tasks — {user?.name || "Member"} ({user?.department || "Member"}) 
+            <h1 className="text-md font-bold text-slate-800 dark:text-white text-left">
+              Today's Tasks — {user?.name || "Member"}  
             </h1>
             <p className="text-slate-450 dark:text-slate-400 text-xs font-semibold mt-1 text-left">
               Review and submit EOD reports for tasks assigned to you today.
             </p>
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 px-4 py-2 rounded-xl text-slate-700 dark:text-slate-300 self-start lg:self-auto">
+          <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-100 px-10 p-10 py-2 rounded-xl text-slate-700 dark:text-slate-300 self-start lg:self-auto">
             <FiCalendar className="shrink-0" />
             <span className="font-semibold text-xs">
               {new Date().toLocaleDateString("en-GB", {
@@ -328,7 +328,7 @@ const EodReports = () => {
 
         {/* Progress Bar */}
         <div className="mt-6">
-          <div className="h-2.5 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-900 flex">
+          <div className="h-1 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-900 flex">
             <div
               className="bg-emerald-500 transition-all duration-500"
               style={{ width: `${completedWidth}%` }}
@@ -347,19 +347,19 @@ const EodReports = () => {
         {/* Stats indicators */}
         <div className="flex flex-wrap gap-6 mt-4">
           <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+            <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
             <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
               {completedCount} Completed
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-yellow-400"></div>
+            <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
             <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
               {pendingCount} Pending
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+            <div className="w-2 h-2 rounded-full bg-red-500"></div>
             <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
               {rejectedCount} Rejected
             </span>
