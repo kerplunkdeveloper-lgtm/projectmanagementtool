@@ -52,9 +52,29 @@ const formatElapsed = (startTime, endTime) => {
 
 // Helper: map task board status to EOD status enum
 const mapTaskStatusToEodStatus = (status) => {
-  if (status === "Completed") return "Completed";
-  if (status === "Rejected") return "Rejected";
-  return "Pending";
+  return status || "Pending";
+};
+
+const getStatusBadgeStyle = (status) => {
+  const s = (status || "Pending").toUpperCase();
+  switch (s) {
+    case "COMPLETED":
+      return "bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-500/10 dark:text-emerald-450 dark:border-emerald-500/20";
+    case "IN PROGRESS":
+    case "IN_PROGRESS":
+      return "bg-blue-50 text-blue-700 border-blue-200/50 dark:bg-blue-500/10 dark:text-blue-450 dark:border-blue-500/20";
+    case "IN-REVIEW":
+    case "IN REVIEW":
+    case "IN_REVIEW":
+      return "bg-purple-50 text-purple-700 border-purple-200/50 dark:bg-purple-500/10 dark:text-purple-450 dark:border-purple-500/20";
+    case "ON HOLD":
+    case "ON_HOLD":
+      return "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-500/10 dark:text-amber-450 dark:border-amber-500/20";
+    case "REJECTED":
+      return "bg-red-50 text-red-700 border-red-200/50 dark:bg-red-500/10 dark:text-red-450 dark:border-red-500/20";
+    default: // Pending
+      return "bg-slate-50 text-slate-700 border-slate-200/60 dark:bg-slate-800/50 dark:text-slate-400 dark:border-slate-850";
+  }
 };
 
 const EodReports = () => {
@@ -282,14 +302,20 @@ const EodReports = () => {
   };
 
   // Dynamic stats
-  const completedCount = tasksState.filter((t) => t.statusAtEod === "Completed").length;
-  const pendingCount = tasksState.filter((t) => t.statusAtEod === "Pending").length;
-  const rejectedCount = tasksState.filter((t) => t.statusAtEod === "Rejected").length;
   const totalTasks = tasksState.length;
+  const completedCount = tasksState.filter((t) => t.statusAtEod === "Completed").length;
+  const rejectedCount = tasksState.filter((t) => t.statusAtEod === "Rejected").length;
+  const inProgressCount = tasksState.filter((t) => t.statusAtEod === "In Progress").length;
+  const onHoldCount = tasksState.filter((t) => t.statusAtEod === "On Hold").length;
+  const inReviewCount = tasksState.filter((t) => ["IN-REVIEW", "In Review", "IN-Review"].includes(t.statusAtEod)).length;
+  const pendingCount = Math.max(0, totalTasks - completedCount - rejectedCount - inProgressCount - onHoldCount - inReviewCount);
 
   const completedWidth = totalTasks > 0 ? (completedCount / totalTasks) * 100 : 0;
-  const pendingWidth = totalTasks > 0 ? (pendingCount / totalTasks) * 100 : 0;
+  const inProgressWidth = totalTasks > 0 ? (inProgressCount / totalTasks) * 100 : 0;
+  const inReviewWidth = totalTasks > 0 ? (inReviewCount / totalTasks) * 100 : 0;
+  const onHoldWidth = totalTasks > 0 ? (onHoldCount / totalTasks) * 100 : 0;
   const rejectedWidth = totalTasks > 0 ? (rejectedCount / totalTasks) * 100 : 0;
+  const pendingWidth = totalTasks > 0 ? (pendingCount / totalTasks) * 100 : 0;
 
   if (tasksLoading || reportLoading || projectsLoading) {
     return (
@@ -326,45 +352,6 @@ const EodReports = () => {
           </div>
         </div>
 
-        {/* Progress Bar */}
-        <div className="mt-6">
-          <div className="h-1 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-900 flex">
-            <div
-              className="bg-emerald-500 transition-all duration-500"
-              style={{ width: `${completedWidth}%` }}
-            ></div>
-            <div
-              className="bg-yellow-400 transition-all duration-500"
-              style={{ width: `${pendingWidth}%` }}
-            ></div>
-            <div
-              className="bg-red-500 transition-all duration-500"
-              style={{ width: `${rejectedWidth}%` }}
-            ></div>
-          </div>
-        </div>
-
-        {/* Stats indicators */}
-        <div className="flex flex-wrap gap-6 mt-4">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-            <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
-              {completedCount} Completed
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
-            <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
-              {pendingCount} Pending
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-red-500"></div>
-            <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
-              {rejectedCount} Rejected
-            </span>
-          </div>
-        </div>
       </div>
 
       {/* Task Cards Grid */}
@@ -379,29 +366,22 @@ const EodReports = () => {
           </p>
         </div>
       ) : (
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
           {tasksState.map((task) => (
             <div
               key={task.id}
               className="bg-white dark:bg-slate-800/70 border border-slate-200/60 dark:border-slate-700/40 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-300 text-left"
             >
               {/* Task Top Meta info */}
-              <div className="flex justify-between items-start gap-4">
+              <div className="flex justify-between  items-start gap-4">
                 <div>
                   <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100">
-                    {task.code ? `[${task.code}] ` : ""}{task.title}
+                    {task.code ? `${task.code} ` : ""}{task.title}
                   </h3>
+                  
                   <div className="flex flex-wrap gap-2 mt-2">
-                    <span className="bg-slate-100 text-slate-600 border border-slate-200/40 dark:bg-slate-900 dark:text-slate-450 dark:border-slate-800 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
-                      {task.project}
-                    </span>
-                    <span
-                      className={`${getPriorityStyle(
-                        task.priority
-                      )} text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider`}
-                    >
-                      {task.priority}
-                    </span>
+                   
+                  
                     <span className="bg-slate-100 text-slate-600 border border-slate-200/40 dark:bg-slate-900 dark:text-slate-450 dark:border-slate-800 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
                       {task.client}
                     </span>
@@ -414,34 +394,40 @@ const EodReports = () => {
                 </div>
 
                 <div className="text-right shrink-0">
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-                    Rev. {task.revision}
-                  </span>
-                  {task.time && (
-                    <div className="inline-flex items-center gap-1.5 mt-2 px-2 py-0.5 bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-150 dark:border-slate-800 rounded-md text-[10px] font-bold">
-                      <FiClock size={11} />
-                      {task.time}
-                    </div>
-                  )}
+                    <span
+                      className={`${getPriorityStyle(
+                        task.priority
+                      )} text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider`}
+                    >
+                      {task.priority}
+                    </span>
+                
+                 
                 </div>
               </div>
 
               {/* Form Layout: Perfectly aligned fields inside EOD cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5 pt-4 border-t border-slate-100 dark:border-slate-700/50">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3 ">
                 {/* EOD Status */}
+                  {task.time && (
+                    <div className="inline-flex items-center gap-1.5 mt-2 px-2 py-0.5 bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 border border-slate-150 dark:border-slate-800 rounded-md text-[10px] font-bold">
+                      <FiClock size={11} />
+                      <span>Time spent: </span>
+                      {task.time}
+                    </div>
+                  )}
+                  <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                    Rev. {task.revision}
+                  </span>
                 <div>
                   <label className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider block">
-                    Status at EOD
+                    Status
                   </label>
-                  <select
-                    className="w-full mt-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-500 dark:text-slate-450 outline-none transition-all font-semibold cursor-not-allowed"
-                    value={task.statusAtEod}
-                    disabled={true}
+                  <div
+                    className={`w-full mt-1.5 border rounded-xl px-3 py-2.5 text-xs font-semibold select-none flex items-center justify-between transition-all duration-300 ${getStatusBadgeStyle(task.statusAtEod)}`}
                   >
-                    <option value="Pending">Pending</option>
-                    <option value="Completed">Completed</option>
-                    <option value="Rejected">Rejected</option>
-                  </select>
+                    <span>{task.statusAtEod || "Pending"}</span>
+                  </div>
                   <p className="text-[9px] text-slate-400 mt-1">
                     Derived from task status on Task board
                   </p>
@@ -590,6 +576,9 @@ const EodReports = () => {
               </select>
             </div>
           </div>
+
+
+          
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">

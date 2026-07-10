@@ -33,7 +33,7 @@ const designerEodReportSchema = new mongoose.Schema(
         loggedTime: String,
         statusAtEod: {
           type: String,
-          enum: ["Completed", "Pending", "Rejected"],
+          enum: ["Pending", "In Progress", "Completed", "On Hold", "IN-REVIEW", "In Review", "IN-Review", "Rejected"],
           default: "Pending",
         },
         outputLink: String,

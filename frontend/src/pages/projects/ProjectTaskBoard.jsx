@@ -5432,7 +5432,7 @@ const ProjectTaskBoard = ({
                                         <span
                                           className={`text-[8px] font-bold tracking-wider px-1 py-2 rounded-md border whitespace-nowrap ${
                                             task.priority === "Top High"
-                                              ? "bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-955/20 dark:border-purple-900/40"
+                                              ? "bg-red-50 text-red-600 border-red-100 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/40"
                                               : task.priority === "High"
                                                 ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-955/20 dark:border-rose-900/40"
                                                 : task.priority === "Medium"
@@ -6116,7 +6116,7 @@ const ProjectTaskBoard = ({
                         </option>
                         <option
                           value="Top High"
-                          className="dark:bg-purple-955 dark:text-slate-200"
+                          className="dark:bg-red-950 dark:text-slate-200"
                         >
                           Top High
                         </option>
@@ -6125,7 +6125,7 @@ const ProjectTaskBoard = ({
                       <div
                         className={`px-3 py-2 border rounded-xl text-xs font-semibold w-fit ${
                           selectedTask.priority === "Top High"
-                            ? "bg-purple-550/10 text-purple-700 border-purple-200/50"
+                            ? "bg-red-50 text-red-650 border-red-200 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/40"
                             : selectedTask.priority === "High"
                               ? "bg-rose-550/10 text-rose-700 border-rose-200/50"
                               : selectedTask.priority === "Medium"

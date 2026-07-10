@@ -639,6 +639,13 @@ select.badge-select:hover, span.badge-span:hover {
   box-shadow: 0 3px 8px rgba(225, 29, 72, 0.2) !important;
 }
 
+select.badge-priority-top-high {
+  background: #e11d48 !important; /* solid rose/red background */
+  color: #ffffff !important;
+  border: 2px solid #ffea00 !important; /* Gold border to indicate Top High */
+  display: inline-block !important;
+}
+
 .badge-priority-top-high::before {
   content: '' !important;
   position: absolute !important;
@@ -673,6 +680,12 @@ select.badge-select:hover, span.badge-span:hover {
 
 .dark .badge-priority-top-high {
   box-shadow: 0 4px 14px rgba(255, 0, 0, 0.55) !important;
+}
+
+.dark select.badge-priority-top-high {
+  background: #9f1239 !important; /* darker red background for dark mode */
+  color: #ffffff !important;
+  border: 2px solid #ffea00 !important;
 }
 
 .dark .badge-priority-top-high::after {
