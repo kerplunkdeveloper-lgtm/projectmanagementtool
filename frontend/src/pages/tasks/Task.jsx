@@ -754,13 +754,13 @@ const Task = () => {
       case "Top High":
         return "badge-priority-top-high";
       case "High":
-        return "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-900 dark:text-rose-300 dark:border-rose-600";
+        return "bg-rose-600 text-white dark:bg-rose-900 dark:text-rose-300";
       case "Medium":
-        return "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-900 dark:text-amber-300 dark:border-amber-600";
+        return "bg-yellow-600 text-white dark:bg-yellow-900 dark:text-yellow-300";
       case "Low":
-        return "bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600";
+        return "bg-slate-600 text-white dark:bg-slate-800 dark:text-slate-200";
       default:
-        return "bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600";
+        return "bg-yellow-600 text-white dark:bg-yellow-900 dark:text-yellow-300";
     }
   };
 
@@ -1192,30 +1192,30 @@ const Task = () => {
       ) : (
         <div className="space-y-4">
           <div className="bg-white dark:bg-[#070b13] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)] overflow-hidden border border-slate-200/60 dark:border-[#1e293b]/50 transition-all">
-            <div className="overflow-x-auto overflow-y-auto h-[calc(100vh-260px)] min-h-[400px] w-full scrollbar-thin">
+            <div className="overflow-x-auto overflow-y-auto h-[calc(100vh-260px)] min-h-[500px] w-full scrollbar-thin">
               <table className="w-full min-w-[1300px] text-left border-collapse table-auto border-0">
                 <thead>
-                  <tr className="sticky top-0 z-20 bg-slate-50 dark:bg-[#0f172a] text-slate-500 dark:text-slate-400 text-[10px] font-bold tracking-wider border-b border-slate-200/60 dark:border-[#1e293b]/50 shadow-sm">
-                    <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-24">
+                  <tr className="sticky top-0 z-20 uppercase text-center bg-slate-50 dark:bg-[#0f172a] text-slate-500 dark:text-slate-400 text-[10px] font-bold tracking-wider border-b border-slate-200/60 dark:border-[#1e293b]/50 shadow-sm">
+                    <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-16">
                       ID 
                     </th>
                     <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-28">
                      Priority
                     </th>
-                    <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 min-w-[180px] w-[220px]">
+                    <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 min-w-[180px] whitespace-nowrap">
                       Task Name
                     </th>
                     <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-36">
                       Client
                     </th>
-                    <th className="px-3 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-32">
+                    <th className="px-3 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-32 whitespace-nowrap">
                       Content-type
                     </th>
-                    <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-44 min-w-[150px]">
-                      Status Mode
+                    <th className="px-5 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-32 min-w-[110px]">
+                      Status 
                     </th>
-                    <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-32">
-                      Timer
+                    <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-32 whitespace-nowrap">
+                      Time tracker
                     </th>
                     <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-28">
                       Revision
@@ -1263,15 +1263,15 @@ const Task = () => {
 
 
                              {/* ID */}
-                            <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 font-mono font-bold text-[10.5px] text-slate-500 dark:text-slate-400">
+                            <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 font-bold text-[14px] text-slate-500 dark:text-slate-400">
                               {getTaskDisplayId(task)}
                             </td>
 
 
                             {/* Priority Badge */}
-                            <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40">
+                            <td className="px-2 py-2 p-10 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40">
                               <span
-                                className={`px-4 py-0.2 border text-[16px] rounded-md  font-bold tracking-wider uppercase whitespace-nowrap ${getPriorityStyle(task.priority || "Medium")}`}
+                                className={`inline-block text-center w-30 py-2 text-[14px] rounded-[15px] font-bold uppercase whitespace-nowrap ${getPriorityStyle(task.priority || "Medium")}`}
                               >
                                 {task.priority || "Medium"}
                               </span>
@@ -1285,7 +1285,7 @@ const Task = () => {
                                 <span
                                   className={`text-xs ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-white"}`}
                                 >
-                                <span className="flex items-center gap-1 text-xs uppercase"><BiFile /> {task.title}</span> 
+                                <span className="flex items-center gap-1 text-[16px] whitespace-nowrap"><BiFile /> {task.title}</span>
                                 </span>
                                 {task.isBlocked && (
                                   <span 
@@ -1327,22 +1327,37 @@ const Task = () => {
                                 );
                                 const client = projectObj?.client || task.project?.client;
                                 if (client) {
-                                  return <ClientBadge client={client} size="md" />;
+                                  return <ClientBadge client={client} size="lg" />;
                                 }
                                 return <span className="text-slate-400 italic text-[10px]">No Client</span>;
                               })()}
                             </td>
 
                             {/* Content-type */}
-                            <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40">
+                            <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 whitespace-nowrap">
                               <span
-                                className={`px-2 py-0.5 rounded-md text-[9px] font-bold tracking-wider uppercase border border-slate-200 dark:border-slate-800/80 ${
-                                  task.contentType === "Post"
-                                    ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300"
-                                    : task.contentType === "Story"
-                                      ? "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-500"
-                                      : "bg-slate-100 text-slate-600 dark:bg-slate-200 dark:text-slate-400"
-                                }`}
+                                className={`px-2 py-0.5 rounded-md text-[11px] font-bold tracking-wider uppercase border whitespace-nowrap ${(() => {
+                                  const t = (task.contentType || "").toUpperCase();
+                                  switch (t) {
+                                    case "VIDEO":
+                                    case "WEBSITE":
+                                      return "badge-type-video";
+                                    case "IMAGE":
+                                    case "SEO":
+                                      return "badge-type-image";
+                                    case "CAROUSEL":
+                                    case "VIDEO SHOOT":
+                                      return "badge-type-carousel";
+                                    case "REEL":
+                                      return "badge-type-reel";
+                                    case "POST":
+                                      return "badge-type-post";
+                                    case "STORY":
+                                      return "badge-type-story";
+                                    default:
+                                      return "badge-type-none";
+                                  }
+                                })()}`}
                               >
                                 {task.contentType || "None"}
                               </span>
@@ -1350,7 +1365,7 @@ const Task = () => {
 
                             {/* Status Select */}
                             <td
-                              className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-44 min-w-[150px]"
+                              className="px-1 py-1 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-32 min-w-[110px]"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <div className="relative w-full group">
@@ -1362,7 +1377,7 @@ const Task = () => {
                                       e.target.value,
                                     )
                                   }
-                                  className={`appearance-none pl-3 pr-7 py-1.5 text-[11px] font-bold rounded-full border cursor-pointer w-full text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-sm hover:shadow ${statusStyle.bg}`}
+                                  className={`appearance-none pl-2.5 pr-6 py-0.5 text-[9.5px] font-bold rounded-full border-2 cursor-pointer w-full text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-sm hover:shadow ${statusStyle.bg}`}
                                 >
                                   <option
                                     value="Pending"
@@ -1401,15 +1416,15 @@ const Task = () => {
                                     Rejected
                                   </option>
                                 </select>
-                                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
-                                  <FiChevronDown size={11} strokeWidth={2.5} />
+                                <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
+                                  <FiChevronDown size={9} strokeWidth={2.5} />
                                 </div>
                               </div>
                             </td>
 
                             {/* Timer Column */}
                             <td
-                              className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-32"
+                              className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-32 whitespace-nowrap"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <TimeTracker
@@ -1431,9 +1446,9 @@ const Task = () => {
                             {/* Start Date */}
                             <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-32">
                               <span
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold whitespace-nowrap ${
+                                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap ${
                                   task.startDate
-                                    ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300 border border-blue-200/50 dark:border-blue-500/20"
+                                    ? "bg-blue-200 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300 border border-blue-200/50 dark:border-blue-500/20"
                                     : "text-slate-450 dark:text-slate-500 border border-dashed border-slate-200 dark:border-[#1e293b]/40"
                                 }`}
                               >
@@ -1444,9 +1459,9 @@ const Task = () => {
                             {/* End Date */}
                             <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-32">
                               <span
-                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold whitespace-nowrap ${
+                                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap ${
                                   task.dueDate
-                                    ? "bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300 border border-rose-200/50 dark:border-rose-500/20"
+                                    ? "bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300 border border-rose-200/50 dark:border-rose-500/20"
                                     : "text-slate-450 dark:text-slate-500 border border-dashed border-slate-200 dark:border-[#1e293b]/40"
                                 }`}
                               >

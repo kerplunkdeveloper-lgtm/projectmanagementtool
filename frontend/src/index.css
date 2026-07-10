@@ -625,17 +625,64 @@ select.badge-select:hover, span.badge-span:hover {
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08) !important;
 }
 
-/* Priority: Top High */
+/* Priority: Top High with spinning border animation */
 .badge-priority-top-high {
-  background: #ff0000 !important;
+  position: relative !important;
+  z-index: 1 !important;
+  overflow: hidden !important;
+  background: transparent !important;
   color: #ffffff !important;
-  border-color: #cc0000 !important;
+  border: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 3px 8px rgba(225, 29, 72, 0.2) !important;
 }
+
+.badge-priority-top-high::before {
+  content: '' !important;
+  position: absolute !important;
+  top: -60% !important;
+  left: -60% !important;
+  width: 220% !important;
+  height: 220% !important;
+  background: conic-gradient(
+    from 0deg,
+    #ff0000,
+    #ffea00,
+    #ff0000,
+    #ffea00,
+    #ff0000
+  ) !important;
+  animation: border-spin 2s linear infinite !important;
+  z-index: -2 !important;
+  border-radius: 50% !important;
+}
+
+.badge-priority-top-high::after {
+  content: '' !important;
+  position: absolute !important;
+  top: 2px !important;
+  left: 2px !important;
+  right: 2px !important;
+  bottom: 2px !important;
+  background: #e11d48 !important; /* bg-rose-600 */
+  border-radius: 13px !important; /* 15px - 2px */
+  z-index: -1 !important;
+}
+
 .dark .badge-priority-top-high {
-  background: #ff0000 !important;
-  color: #ffffff !important;
-  border-color: #cc0000 !important;
-  box-shadow: 0 4px 12px rgba(255, 0, 0, 0.4) !important;
+  box-shadow: 0 4px 14px rgba(255, 0, 0, 0.55) !important;
+}
+
+.dark .badge-priority-top-high::after {
+  background: #9f1239 !important; /* bg-rose-800 for dark mode */
+}
+
+@keyframes border-spin {
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes light-red-pulse {
