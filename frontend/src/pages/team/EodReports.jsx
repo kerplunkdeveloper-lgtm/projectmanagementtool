@@ -16,6 +16,7 @@ import {
   FiTool,
   FiPhone,
   FiCheckCircle,
+  FiX,
 } from "react-icons/fi";
 
 // Helper: get priority badge colors based on priority value
@@ -112,11 +113,11 @@ const EodReports = () => {
   // State fields
   const [tasksState, setTasksState] = useState([]);
   const [daySummary, setDaySummary] = useState({
-    toolsIssues: "",
+    toolsIssues: "None",
     clientCalls: "",
     anythingElseOps: "",
   });
-  const [tomorrowPlan, setTomorrowPlan] = useState("");
+  const [tomorrowPlan, setTomorrowPlan] = useState("None");
   const [overallStatus, setOverallStatus] = useState("On Track");
   const [reportId, setReportId] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -185,11 +186,11 @@ const EodReports = () => {
       setReportId(todayReport._id);
       setIsSubmitted(!todayReport.isDraft);
       setDaySummary({
-        toolsIssues: todayReport.daySummary?.toolsIssues || "",
+        toolsIssues: todayReport.daySummary?.toolsIssues || "None",
         clientCalls: todayReport.daySummary?.clientCalls || "",
         anythingElseOps: todayReport.daySummary?.anythingElseOps || "",
       });
-      setTomorrowPlan(todayReport.tomorrowPlan || "");
+      setTomorrowPlan(todayReport.tomorrowPlan || "None");
       setOverallStatus(todayReport.overallStatus || "On Track");
 
       if (todayReport.tasks && todayReport.tasks.length > 0) {
@@ -246,6 +247,12 @@ const EodReports = () => {
           };
         })
       );
+      setDaySummary({
+        toolsIssues: "None",
+        clientCalls: "",
+        anythingElseOps: "",
+      });
+      setTomorrowPlan("None");
       setReportId(null);
       setIsSubmitted(false);
     }
@@ -332,6 +339,13 @@ const EodReports = () => {
   const onHoldCount = tasksState.filter((t) => t.statusAtEod === "On Hold").length;
   const inReviewCount = tasksState.filter((t) => ["IN-REVIEW", "In Review", "IN-Review"].includes(t.statusAtEod)).length;
   const pendingCount = Math.max(0, totalTasks - completedCount - rejectedCount - inProgressCount - onHoldCount - inReviewCount);
+
+  const dynamicPlans = tasksState.map((task) => {
+    const actionWord = task.statusAtEod === "Completed" ? "Complete" : "Continue";
+    const clientPart = task.client ? `${task.client} ` : "";
+    const titlePart = task.title || "";
+    return `${actionWord} ${clientPart}${titlePart}`;
+  });
 
   if (tasksLoading || reportLoading || projectsLoading) {
     return (
@@ -464,24 +478,7 @@ const EodReports = () => {
                 </div>
 
                 {/* Dynamic field rows depending on the status */}
-                {task.statusAtEod === "Completed" ? (
-                  <div className="col-span-1 sm:col-span-2">
-                    <label className="text-[10px] font-bold theme-text-secondary uppercase tracking-wider block">
-                      Output Link
-                    </label>
-                    <div className="relative mt-1.5">
-                      <FiLink className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={13} />
-                      <input
-                        type="url"
-                        placeholder="Paste output link (e.g. Figma, Behance, Drive)"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-4 text-xs text-slate-700 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-semibold"
-                        value={task.outputLink || ""}
-                        onChange={(e) => updateTask(task.id, "outputLink", e.target.value)}
-                        disabled={isSubmitted}
-                      />
-                    </div>
-                  </div>
-                ) : (
+                {task.statusAtEod !== "Completed" && (
                   <>
                     <div>
                       <label className="text-[10px] font-bold theme-text-secondary uppercase tracking-wider block">
@@ -653,37 +650,62 @@ const EodReports = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
           <div>
             <label className="text-[10px] font-bold theme-text-secondary uppercase tracking-wider block">
-              Tools / Resource Issues
+              Issues faced
             </label>
             <div className="relative mt-2">
-              <FiTool className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={13} />
-              <input
+              <FiTool className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-semibold" size={13} />
+              <select
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-700 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-semibold"
-                placeholder="e.g Photoshop crashing"
-                value={daySummary.toolsIssues}
-                onChange={(e) => setDaySummary({ ...daySummary, toolsIssues: e.target.value })}
+                value={
+                  daySummary.toolsIssues === "None"
+                    ? "None"
+                    : ["Client content received late", "Software / tool issue", "Power / internet issue"].includes(daySummary.toolsIssues)
+                    ? daySummary.toolsIssues
+                    : "Other"
+                }
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === "Other") {
+                    setDaySummary({ ...daySummary, toolsIssues: "" });
+                  } else {
+                    setDaySummary({ ...daySummary, toolsIssues: val });
+                  }
+                }}
                 disabled={isSubmitted}
-              />
+              >
+                <option value="None">None</option>
+                <option value="Client content received late">Client content received late</option>
+                <option value="Software / tool issue">Software / tool issue</option>
+                <option value="Power / internet issue">Power / internet issue</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
-          </div>
-
-          <div>
-            <label className="text-[10px] font-bold theme-text-secondary uppercase tracking-wider block">
-              Client Calls / Briefings
-            </label>
-            <div className="relative mt-2">
-              <FiPhone className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={13} />
-              <input
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-700 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-semibold"
-                placeholder="e.g BlackThunder brief"
-                value={daySummary.clientCalls}
-                onChange={(e) => setDaySummary({ ...daySummary, clientCalls: e.target.value })}
-                disabled={isSubmitted}
-              />
-            </div>
+            
+            {daySummary.toolsIssues !== "None" && 
+              !["Client content received late", "Software / tool issue", "Power / internet issue"].includes(daySummary.toolsIssues) && (
+                <div className="relative mt-2">
+                  <input
+                    type="text"
+                    placeholder="Specify other issue..."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-4 pr-10 text-xs text-slate-700 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-semibold"
+                    value={daySummary.toolsIssues}
+                    onChange={(e) => setDaySummary({ ...daySummary, toolsIssues: e.target.value })}
+                    disabled={isSubmitted}
+                  />
+                  {!isSubmitted && (
+                    <button
+                      type="button"
+                      onClick={() => setDaySummary({ ...daySummary, toolsIssues: "None" })}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500 transition-colors"
+                    >
+                      <FiX size={14} />
+                    </button>
+                  )}
+                </div>
+              )}
           </div>
 
           <div>
@@ -726,14 +748,57 @@ const EodReports = () => {
             <label className="text-[10px] font-bold theme-text-secondary uppercase tracking-wider block">
               Tomorrow Plan
             </label>
-            <textarea
-              rows={4}
-              placeholder="What tasks do you plan to work on tomorrow?"
-              className="w-full mt-2 bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs text-slate-700 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all resize-none font-semibold"
-              value={tomorrowPlan}
-              onChange={(e) => setTomorrowPlan(e.target.value)}
+            <select
+              className="w-full mt-2 bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-4 text-xs text-slate-700 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-semibold"
+              value={
+                tomorrowPlan === "None"
+                  ? "None"
+                  : dynamicPlans.includes(tomorrowPlan)
+                  ? tomorrowPlan
+                  : "Other"
+              }
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === "Other") {
+                  setTomorrowPlan("");
+                } else if (val === "None") {
+                  setTomorrowPlan("None");
+                } else {
+                  setTomorrowPlan(val);
+                }
+              }}
               disabled={isSubmitted}
-            />
+            >
+              <option value="None">None</option>
+              {dynamicPlans.map((plan, idx) => (
+                <option key={idx} value={plan}>
+                  {plan}
+                </option>
+              ))}
+              <option value="Other">Other</option>
+            </select>
+
+            {tomorrowPlan !== "None" && (!tomorrowPlan || !dynamicPlans.includes(tomorrowPlan)) && (
+              <div className="relative mt-2">
+                <textarea
+                  rows={3}
+                  placeholder="What tasks do you plan to work on tomorrow?"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 pr-10 text-xs text-slate-700 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all resize-none font-semibold"
+                  value={tomorrowPlan}
+                  onChange={(e) => setTomorrowPlan(e.target.value)}
+                  disabled={isSubmitted}
+                />
+                {!isSubmitted && (
+                  <button
+                    type="button"
+                    onClick={() => setTomorrowPlan("None")}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-rose-500 transition-colors"
+                  >
+                    <FiX size={14} />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

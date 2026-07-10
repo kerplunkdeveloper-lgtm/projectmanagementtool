@@ -32,6 +32,7 @@ import {
   FiBriefcase,
   FiX,
   FiChevronDown,
+  FiSearch,
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -170,12 +171,12 @@ const Dashboardmain = () => {
   const [name, setName] = useState("");
   const [clientId, setClientId] = useState("");
   const [status, setStatus] = useState("Active");
-  const [filterClientId, setFilterClientId] = useState("all");
-  const [projectsCurrentPage, setProjectsCurrentPage] = useState(1);
+  const [clientsCurrentPage, setClientsCurrentPage] = useState(1);
+  const [clientSearchQuery, setClientSearchQuery] = useState("");
 
   useEffect(() => {
-    setProjectsCurrentPage(1);
-  }, [filterClientId]);
+    setClientsCurrentPage(1);
+  }, [clientSearchQuery]);
 
   const filterClients = React.useMemo(() => {
     const uniqueClientsMap = new Map();
@@ -196,14 +197,23 @@ const Dashboardmain = () => {
     return Array.from(uniqueClientsMap.values());
   }, [projects, clients]);
 
-  const filteredProjects = React.useMemo(() => {
-    if (!projects) return [];
-    if (filterClientId === "all") return projects;
-    return projects.filter(
-      (p) =>
-        (p.client?._id || p.client) === filterClientId
+  const filteredClientsList = React.useMemo(() => {
+    if (!clients) return [];
+    if (!clientSearchQuery) return clients;
+    return clients.filter((c) =>
+      c.companyName?.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
+      c.industry?.toLowerCase().includes(clientSearchQuery.toLowerCase())
     );
-  }, [projects, filterClientId]);
+  }, [clients, clientSearchQuery]);
+
+  const getInitials = (name) => {
+    if (!name) return "";
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
 
   useEffect(() => {
     dispatch(getEvents());
@@ -303,119 +313,121 @@ const Dashboardmain = () => {
           <DashboardCards />
         </div>
 
-        <div className="col-span-1 theme-bg-card  flex flex-col justify-between">
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-              <h1 className="text-[16px] text-blue-500 dark:text-[#3b82f6] font-medium tracking-wider">
-                Projects OverView
+        <div className="col-span-1 theme-bg-card border theme-border rounded-xl p-3 flex flex-col justify-between h-full min-h-[195px] max-h-[195px] lg:min-h-[195px] lg:max-h-[195px] overflow-hidden">
+          <div className="flex flex-col h-full justify-between">
+            <div className="flex items-center justify-between gap-3 mb-2 shrink-0">
+              <h1 className="text-xs text-blue-500 dark:text-[#3b82f6] font-bold tracking-wider uppercase">
+                List of Clients
               </h1>
 
-              {/* CLIENT FILTER SELECT */}
-              {filterClients && filterClients.length > 0 && (
-                <div className="relative shrink-0 min-w-[150px]">
-                  <select
-                    value={filterClientId}
-                    onChange={(e) => setFilterClientId(e.target.value)}
-                    className="w-full pl-3 pr-8 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 focus:outline-none focus:border-blue-500 text-xs font-semibold theme-text-primary cursor-pointer appearance-none transition-all shadow-sm"
+              {/* CLIENT SEARCH INPUT */}
+              <div className="relative shrink-0 w-36 sm:w-44">
+                <FiSearch className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={11} />
+                <input
+                  type="text"
+                  placeholder="Search clients..."
+                  value={clientSearchQuery}
+                  onChange={(e) => setClientSearchQuery(e.target.value)}
+                  className="w-full pl-6 pr-6 py-0.5 rounded-lg bg-slate-50/50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700/60 focus:outline-none focus:border-blue-500 text-[10px] font-semibold theme-text-primary transition-all"
+                />
+                {clientSearchQuery && (
+                  <button
+                    onClick={() => setClientSearchQuery("")}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                   >
-                    <option value="all">All Clients</option>
-                    {filterClients.map((c) => (
-                      <option key={c._id} value={c._id}>
-                        {c.companyName}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 dark:text-slate-500">
-                    <FiChevronDown size={14} />
-                  </div>
-                </div>
-              )}
+                    <FiX size={10} />
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5">
-              {/* CREATE PROJECT BUTTON */}
-              {/* {(user?.role === "admin" ||
-                user?.role === "operationmanager" ||
-                user?.role === "team") && (
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="flex items-center gap-2 group text-left"
-                >
-                  <div className="w-10 h-10 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover:border-slate-400 dark:group-hover:border-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-400 transition-colors shrink-0">
-                    <FiPlus size={18} />
-                  </div>
-                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 group-hover:text-slate-800 dark:group-hover:text-slate-300 transition-colors">
-                    Create project
-                  </span>
-                </button>
-              )} */}
-
-              {/* PROJECTS LIST */}
+            <div className="space-y-1.5 flex-1 flex flex-col justify-center">
               {(() => {
                 const itemsPerPage = 3;
                 const totalPages = Math.ceil(
-                  (filteredProjects?.length || 0) / itemsPerPage
+                  (filteredClientsList?.length || 0) / itemsPerPage
                 );
-                const startIndex = (projectsCurrentPage - 1) * itemsPerPage;
-                const paginatedProjects =
-                  filteredProjects?.slice(
+                const startIndex = (clientsCurrentPage - 1) * itemsPerPage;
+                const paginatedClients =
+                  filteredClientsList?.slice(
                     startIndex,
                     startIndex + itemsPerPage
                   ) || [];
 
                 return (
                   <>
-                    {paginatedProjects.length > 0 ? (
-                      paginatedProjects.map((project, index) => (
-                        <button
-                          key={project._id}
-                          onClick={() =>
-                            navigate(`/${user?.role}/projects?id=${project._id}`)
-                          }
-                          className="flex flex-col justify-between p-3.5 rounded-xl border border-slate-100 dark:border-white/5 bg-white dark:bg-slate-800/40 hover:border-[var(--accent-color)]/30 dark:hover:border-[var(--accent-color-dark)]/30  dark:hover:bg-slate-800/70 transition-all duration-200 group text-left w-full "
-                        >
-                          <div className="flex items-start justify-between w-full min-w-0">
-                            <div className="flex items-center gap-2.5 min-w-0 w-full">
-                              <ProjectIcon
-                                name={project.name}
-                                size="md"
-                                className="transition-transform group-hover:scale-[1.05]"
-                              />
-                              <div className="min-w-0 flex-1">
-                                <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200 line-clamp-1 group-hover:text-[var(--accent-color)] dark:group-hover:text-[var(--accent-color-dark)] transition-colors">
-                                  {project.name}
-                                </span>
-                                <div className="mt-1">
-                                  {project.client ? (
-                                    <ClientBadge client={project.client} size="sm" />
-                                  ) : (
-                                    <span className="text-slate-400 text-[9px] italic">No Client</span>
-                                  )}
-                                </div>
+                    {paginatedClients.length > 0 ? (
+                      paginatedClients.map((client) => {
+                        const clientProjectsCount = projects?.filter(
+                          (p) => (p.client?._id || p.client) === client._id
+                        ).length || 0;
+
+                        return (
+                          <div
+                            key={client._id}
+                            onClick={() =>
+                              navigate(`/${user?.role}/clients?id=${client._id}`)
+                            }
+                            className="grid grid-cols-12 items-center gap-2 py-1 px-2.5 rounded-lg border border-slate-100/80 dark:border-white/5 bg-white dark:bg-slate-800/30 hover:border-blue-500/20 hover:bg-slate-50/30 dark:hover:bg-slate-800/60 transition-all duration-200 group cursor-pointer w-full"
+                          >
+                            {/* Col 1-2: Initial circle avatar */}
+                            <div className="col-span-2 flex items-center justify-start">
+                              <div
+                                className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[9px] font-black tracking-wider shrink-0 shadow-sm transition-transform group-hover:scale-[1.05]"
+                                style={{ backgroundColor: client.color || "#3b82f6" }}
+                              >
+                                {getInitials(client.companyName)}
+                              </div>
+                            </div>
+
+                            {/* Col 3-8: Client Details */}
+                            <div className="col-span-6 min-w-0">
+                              <h4 className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-blue-500 transition-colors leading-tight">
+                                {client.companyName}
+                              </h4>
+                              <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold block leading-none mt-0.5">
+                                {client.industry || "No Industry"}
+                              </span>
+                            </div>
+                            
+                            {/* Col 9-11: Projects count badge */}
+                            <div className="col-span-3 flex justify-end">
+                              <span className="text-[9px] font-extrabold bg-slate-50 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/50 px-2 py-0.5 rounded-md whitespace-nowrap">
+                                {clientProjectsCount} {clientProjectsCount === 1 ? "Project" : "Projects"}
+                              </span>
+                            </div>
+
+                            {/* Col 12: Chevron icon */}
+                            <div className="col-span-1 flex justify-end">
+                              <div className="w-5 h-5 rounded-md bg-slate-50 dark:bg-slate-900/60 border border-slate-200/40 dark:border-slate-700/40 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover:bg-blue-500 group-hover:border-blue-500 group-hover:text-white transition-all duration-200">
+                                <FiChevronRight size={11} />
                               </div>
                             </div>
                           </div>
-                        </button>
-                      ))
+                        );
+                      })
                     ) : (
-                      <div className="col-span-full py-12 flex flex-col items-center justify-center text-center opacity-60">
-                        <FiBriefcase size={28} className="text-slate-400 dark:text-slate-500 mb-2" />
-                        <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                          No projects found for this client
+                      <div className="py-2 flex flex-col items-center justify-center text-center opacity-60">
+                        <FiUser size={18} className="text-slate-400 dark:text-slate-500 mb-1" />
+                        <p className="text-[9px] font-semibold text-slate-500 dark:text-slate-400">
+                          No clients found
                         </p>
                       </div>
                     )}
-                    
+
                     {totalPages > 1 && (
-                      <div className="col-span-full flex items-center justify-center gap-2 mt-2 pt-4 border-t border-slate-100 dark:border-white/5">
+                      <div className="flex items-center justify-center gap-1.5 mt-1 pt-1 border-t border-slate-100/50 dark:border-white/5 shrink-0">
                         {Array.from({ length: totalPages }).map((_, i) => (
                           <button
                             key={i}
-                            onClick={() => setProjectsCurrentPage(i + 1)}
-                            className={`h-1.5 rounded-full transition-all duration-300 ${
-                              projectsCurrentPage === i + 1
-                                ? "w-6 bg-blue-500"
-                                : "w-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setClientsCurrentPage(i + 1);
+                            }}
+                            className={`h-1 rounded-full transition-all duration-300 ${
+                              clientsCurrentPage === i + 1
+                                ? "w-4 bg-blue-500"
+                                : "w-1 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600"
                             }`}
                             aria-label={`Page ${i + 1}`}
                           />

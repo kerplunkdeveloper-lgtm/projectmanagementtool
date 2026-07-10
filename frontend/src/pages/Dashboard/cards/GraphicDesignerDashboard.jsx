@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from "react";
-import { useSelector } from "react-redux";
+import React, { useMemo, useState, useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import { useGetTasksQuery } from "../../../features/api/apiSlice";
+import { getDesignerEodReports } from "../../../features/eodReports/designerEodReportSlice";
 import {
   format,
   isToday,
@@ -23,13 +24,19 @@ import {
 } from "react-icons/fi";
 
 const GraphicDesignerDashboard = () => {
+  const dispatch = useDispatch();
   const { users } = useSelector((state) => state.users);
   const { projects } = useSelector((state) => state.projects);
   const { clients } = useSelector((state) => state.clients);
+  const { designerEodReports = [] } = useSelector((state) => state.designerEodReports || {});
   const { data: allTasks = [], isLoading } = useGetTasksQuery();
 
   const [dateFilter, setDateFilter] = useState("All Time");
   const [showDropdown, setShowDropdown] = useState(false);
+
+  useEffect(() => {
+    dispatch(getDesignerEodReports());
+  }, [dispatch]);
 
   // 1. Filter Graphic Designers
   const designers = useMemo(() => {
@@ -145,16 +152,50 @@ const GraphicDesignerDashboard = () => {
           typeof t.assignedTo === "object" ? t.assignedTo._id : t.assignedTo;
         return aId === designer._id;
       });
+
       let comp = 0;
       let pend = 0;
       let over = 0;
+      let totalRevisions = 0;
+      let totalLoggedMs = 0;
+
       myTasks.forEach((t) => {
         const s = t.status?.toLowerCase() || "";
         if (s === "completed") comp++;
         else pend++;
         if (t.dueDate && isPast(parseISO(t.dueDate)) && s !== "completed")
           over++;
+
+        totalRevisions += t.revisions || 0;
+
+        if (t.actualStartTime) {
+          const start = new Date(t.actualStartTime).getTime();
+          const end = t.actualEndTime ? new Date(t.actualEndTime).getTime() : Date.now();
+          totalLoggedMs += Math.max(0, end - start);
+        }
       });
+
+      const avgRevisions = myTasks.length > 0 ? totalRevisions / myTasks.length : 0;
+      const totalHours = totalLoggedMs / (1000 * 60 * 60);
+
+      // Find today's EOD report for this designer
+      const todayStr = new Date().toISOString().split("T")[0];
+      const designerReport = designerEodReports?.find((report) => {
+        const rUserId = typeof report.user === "object" ? report.user?._id : report.user;
+        if (rUserId !== designer._id) return false;
+        const reportDate = new Date(report.date).toISOString().split("T")[0];
+        return reportDate === todayStr;
+      });
+
+      let lastSubmittedStr = "Not submitted";
+      if (designerReport) {
+        if (designerReport.isDraft) {
+          lastSubmittedStr = "Draft";
+        } else {
+          lastSubmittedStr = format(new Date(designerReport.updatedAt), "h:mm a");
+        }
+      }
+
       return {
         id: designer._id,
         name: designer.name,
@@ -163,9 +204,12 @@ const GraphicDesignerDashboard = () => {
         completed: comp,
         pending: pend,
         overdue: over,
+        avgRevisions,
+        totalHours,
+        lastSubmitted: lastSubmittedStr,
       };
     });
-  }, [designers, designerTasks]);
+  }, [designers, designerTasks, designerEodReports]);
 
   // 6. Client Progress
   const clientProgress = useMemo(() => {
@@ -237,6 +281,15 @@ const GraphicDesignerDashboard = () => {
       </div>
     );
   }
+
+  const getInitials = (name) => {
+    if (!name) return "";
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
 
   return (
     <div className="bg-white dark:bg-[#0b1120] space-y-8 font-sans mt-8 overflow-visible transition-colors duration-300 relative">
@@ -476,13 +529,16 @@ const GraphicDesignerDashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 relative z-10">
+      <div className="relative z-10">
         {/* Team Performance */}
         <div className="bg-white dark:bg-[#0f172a]/90 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden shadow-sm dark:shadow-xl">
-          <div className="p-5 border-b border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-transparent">
-            <h3 className="text-sm font-black text-slate-800 dark:text-white tracking-widest uppercase">
-              Team Performance
+          <div className="p-5 border-b border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-transparent flex justify-between items-center">
+            <h3 className="text-sm font-medium  text-slate-800 dark:text-white tracking-widest ">
+              Designer performance
             </h3>
+            <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              today
+            </span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -501,7 +557,16 @@ const GraphicDesignerDashboard = () => {
                     Pending
                   </th>
                   <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
-                    Overdue
+                    Revisions
+                  </th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                    Hours
+                  </th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                    Delay
+                  </th>
+                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                    Last Submitted
                   </th>
                 </tr>
               </thead>
@@ -515,79 +580,48 @@ const GraphicDesignerDashboard = () => {
                       {tp.profileImage ? (
                         <img src={tp.profileImage} alt={tp.name} className="w-6 h-6 rounded-full object-cover" />
                       ) : (
-                        <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white text-[10px]">
-                          {tp.name.charAt(0)}
+                        <div className="w-6 h-6 rounded-full bg-blue-900/90 dark:bg-blue-950 flex items-center justify-center text-white text-[9px] font-extrabold tracking-wider">
+                          {getInitials(tp.name)}
                         </div>
                       )}
                       {tp.name}
                     </td>
-                    <td className="p-4 text-sm font-black text-indigo-600 dark:text-indigo-400">
+                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-300">
                       {tp.assigned}
                     </td>
-                    <td className="p-4 text-sm font-black text-emerald-600 dark:text-emerald-400">
+                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-300">
                       {tp.completed}
                     </td>
-                    <td className="p-4 text-sm font-black text-amber-600 dark:text-amber-400">
+                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-300">
                       {tp.pending}
                     </td>
-                    <td className="p-4 text-sm font-black text-rose-600 dark:text-rose-400">
+                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-300">
+                      <div className="flex items-center gap-2.5 min-w-[110px]">
+                        <div className="w-14 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${
+                              tp.avgRevisions <= 1.5
+                                ? "bg-emerald-600 dark:bg-emerald-500"
+                                : tp.avgRevisions <= 3.0
+                                ? "bg-amber-600 dark:bg-amber-500"
+                                : "bg-rose-600 dark:bg-rose-500"
+                            }`}
+                            style={{ width: `${Math.min(100, (tp.avgRevisions / 5) * 100)}%` }}
+                          />
+                        </div>
+                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                          {tp.avgRevisions.toFixed(1)} avg
+                        </span>
+                      </div>
+                    </td>
+                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-300">
+                      {tp.totalHours.toFixed(1)}h
+                    </td>
+                    <td className={`p-4 text-sm font-black ${tp.overdue > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-500 dark:text-slate-400"}`}>
                       {tp.overdue}
                     </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Client-wise Progress */}
-        <div className="bg-white dark:bg-[#0f172a]/90 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden shadow-sm dark:shadow-xl">
-          <div className="p-5 border-b border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-transparent">
-            <h3 className="text-sm font-black text-slate-800 dark:text-white tracking-widest uppercase">
-              Client-wise Progress
-            </h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/50 dark:bg-slate-900/80">
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
-                    Client
-                  </th>
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
-                    Pending
-                  </th>
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
-                    Completed
-                  </th>
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
-                    Due Today
-                  </th>
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
-                    Delayed
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                {clientProgress.map((cp) => (
-                  <tr
-                    key={cp.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
-                  >
-                    <td className="p-4 text-sm font-bold text-slate-700 dark:text-slate-200">
-                      {cp.name}
-                    </td>
-                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-300">
-                      {cp.pending}
-                    </td>
-                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-300">
-                      {cp.completed}
-                    </td>
-                    <td className="p-4 text-sm font-black text-amber-600 dark:text-amber-400">
-                      {cp.dueToday}
-                    </td>
-                    <td className="p-4 text-sm font-black text-rose-600 dark:text-rose-400">
-                      {cp.delayed}
+                    <td className={`p-4 text-xs font-bold ${tp.lastSubmitted === "Not submitted" ? "text-slate-400 dark:text-slate-500 font-semibold" : "text-slate-700 dark:text-slate-300"}`}>
+                      {tp.lastSubmitted}
                     </td>
                   </tr>
                 ))}
