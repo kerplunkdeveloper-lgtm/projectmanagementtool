@@ -251,7 +251,12 @@ const useSocket = () => {
                   ) {
                     navigate(`/${user?.role}/clients`);
                   } else if (notification.type?.startsWith("task_")) {
-                    navigate(`/${user?.role}/tasks`);
+                    if (notification.project) {
+                      const projectId = typeof notification.project === 'object' ? notification.project._id : notification.project;
+                      navigate(`/${user?.role}/projects?id=${projectId}`);
+                    } else {
+                      navigate(`/${user?.role}/tasks`);
+                    }
                   }
                 }}
               >

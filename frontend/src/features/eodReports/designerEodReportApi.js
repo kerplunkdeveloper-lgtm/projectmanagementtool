@@ -1,8 +1,8 @@
 import axiosInstance from "../../services/axiosInstance";
 
 // GET DESIGNER EOD REPORTS
-export const getDesignerEodReportsAPI = async () => {
-  const response = await axiosInstance.get("/designer-eod-reports");
+export const getDesignerEodReportsAPI = async (params) => {
+  const response = await axiosInstance.get("/designer-eod-reports", { params });
   return response.data;
 };
 

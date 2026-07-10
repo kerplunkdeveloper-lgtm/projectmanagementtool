@@ -14,63 +14,96 @@ const designerEodReportSchema = new mongoose.Schema(
       required: true,
     },
 
+    // New nested tasks layout
+    tasks: [
+      {
+        taskId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Task",
+        },
+        title: String,
+        project: String,
+        priority: String,
+        contentType: String,
+        client: String,
+        revisions: {
+          type: Number,
+          default: 0,
+        },
+        loggedTime: String,
+        statusAtEod: {
+          type: String,
+          enum: ["Completed", "Pending", "Rejected"],
+          default: "Pending",
+        },
+        outputLink: String,
+        reason: String, // Reason for Pending / Rejection
+        nextAction: String,
+        feedback: String,
+        reviewedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      },
+    ],
+
+    // New day summary fields
+    daySummary: {
+      toolsIssues: { type: String, default: "" },
+      clientCalls: { type: String, default: "" },
+      anythingElseOps: { type: String, default: "" },
+    },
+
+    isDraft: {
+      type: Boolean,
+      default: true,
+    },
+
+    // Retaining old fields for backward compatibility to avoid validator failures
     clientName: {
       type: String,
-      required: [true, "Client Name is required"],
+      default: "",
     },
-
     projectsWorkedOn: {
       type: String,
-      required: [true, "Projects Worked On (task name) is required"],
+      default: "",
     },
-
     designCount: {
       type: String,
-      required: [true, "Number of designs completed is required"],
+      default: "",
     },
-
     filesSubmitted: {
       type: String,
-      default: "", // Optional
+      default: "",
     },
-
     pendingTasks: {
       type: String,
-      default: "", // Optional
+      default: "",
     },
-
     reasonForPending: {
       type: String,
-      default: "", // Optional
+      default: "",
     },
-
     timeSpentToday: {
       type: String,
-      required: [true, "Time spent today is required"],
+      default: "",
     },
-
     challengesFaced: {
       type: String,
-      default: "", // Optional
+      default: "",
     },
-
     tomorrowPlan: {
       type: String,
-      required: [true, "Tomorrow plan is required"],
+      default: "",
     },
-
     supportNeeded: {
       type: String,
-      default: "", // Optional
+      default: "",
     },
-
     overallStatus: {
       type: String,
-      required: [true, "Overall Status is required"],
-      enum: ["On Track", "Delayed", "Blocked", "Completed"],
       default: "On Track",
     },
-
     attachments: [
       {
         url: {
@@ -95,3 +128,4 @@ const designerEodReportSchema = new mongoose.Schema(
 );
 
 module.exports = mongoose.model("DesignerEodReport", designerEodReportSchema);
+

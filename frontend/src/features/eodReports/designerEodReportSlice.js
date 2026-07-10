@@ -12,9 +12,9 @@ import {
 // ==========================================
 export const getDesignerEodReports = createAsyncThunk(
   "designerEodReports/getDesignerEodReports",
-  async (_, thunkAPI) => {
+  async (params, thunkAPI) => {
     try {
-      return await getDesignerEodReportsAPI();
+      return await getDesignerEodReportsAPI(params);
     } catch (err) {
       return thunkAPI.rejectWithValue(err.response?.data?.message || "Failed to load designer reports");
     }
@@ -89,8 +89,17 @@ const designerEodReportSlice = createSlice({
 
       // CREATE DESIGNER EOD REPORT
       .addCase(createDesignerEodReport.fulfilled, (state, action) => {
-        state.designerEodReports.unshift(action.payload.data);
-        toast.success("Designer EOD Report submitted successfully");
+        const exists = state.designerEodReports.some(
+          (report) => report._id === action.payload.data._id
+        );
+        if (exists) {
+          state.designerEodReports = state.designerEodReports.map((report) =>
+            report._id === action.payload.data._id ? action.payload.data : report
+          );
+        } else {
+          state.designerEodReports.unshift(action.payload.data);
+        }
+        toast.success(action.payload.message || "EOD Report saved successfully");
       })
 
       // UPDATE DESIGNER EOD REPORT

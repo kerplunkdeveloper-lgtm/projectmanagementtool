@@ -185,7 +185,7 @@ const Notifications = () => {
                     } else if (n.type === "task_assigned") {
                       navigate(`/${user?.role}/tasks`);
                     } else if (n.type?.startsWith("task_")) {
-                      if (n.project && (user?.role === "admin" || user?.role === "operationmanager")) {
+                      if (n.project) {
                         const projectId = typeof n.project === 'object' ? n.project._id : n.project;
                         navigate(`/${user?.role}/projects?id=${projectId}`);
                       } else {

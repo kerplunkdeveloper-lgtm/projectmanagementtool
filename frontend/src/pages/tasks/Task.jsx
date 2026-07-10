@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
+  import { BiFile } from "react-icons/bi";
 import {
   FiCheck,
   FiClock,
@@ -12,6 +13,7 @@ import {
   FiChevronDown,
   FiChevronLeft,
   FiChevronRight,
+
   FiX,
   FiPlus,
   FiTrash2,
@@ -1212,6 +1214,9 @@ const Task = () => {
                     <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-44 min-w-[150px]">
                       Status Mode
                     </th>
+                    <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-32">
+                      Timer
+                    </th>
                     <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-28">
                       Revision
                     </th>
@@ -1266,7 +1271,7 @@ const Task = () => {
                             {/* Priority Badge */}
                             <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40">
                               <span
-                                className={`px-4 py-0.2 border text-[14px] font-extrabold tracking-wider uppercase whitespace-nowrap ${getPriorityStyle(task.priority || "Medium")}`}
+                                className={`px-4 py-0.2 border text-[16px] rounded-md  font-bold tracking-wider uppercase whitespace-nowrap ${getPriorityStyle(task.priority || "Medium")}`}
                               >
                                 {task.priority || "Medium"}
                               </span>
@@ -1280,7 +1285,7 @@ const Task = () => {
                                 <span
                                   className={`text-xs ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-white"}`}
                                 >
-                                  {task.title}
+                                <span className="flex items-center gap-1 text-xs uppercase"><BiFile /> {task.title}</span> 
                                 </span>
                                 {task.isBlocked && (
                                   <span 
@@ -1348,65 +1353,70 @@ const Task = () => {
                               className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-44 min-w-[150px]"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <div className="flex flex-col items-stretch gap-1.5 w-full">
-                                <div className="relative w-full group">
-                                  <select
-                                    value={task.status}
-                                    onChange={(e) =>
-                                      handleStatusChange(
-                                        task._id,
-                                        e.target.value,
-                                      )
-                                    }
-                                    className={`appearance-none pl-4 pr-9 py-1.5 text-[11px] font-bold rounded-full border cursor-pointer w-full text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-sm hover:shadow ${statusStyle.bg}`}
+                              <div className="relative w-full group">
+                                <select
+                                  value={task.status}
+                                  onChange={(e) =>
+                                    handleStatusChange(
+                                      task._id,
+                                      e.target.value,
+                                    )
+                                  }
+                                  className={`appearance-none pl-3 pr-7 py-1.5 text-[11px] font-bold rounded-full border cursor-pointer w-full text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-sm hover:shadow ${statusStyle.bg}`}
+                                >
+                                  <option
+                                    value="Pending"
+                                    className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
                                   >
-                                    <option
-                                      value="Pending"
-                                      className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
-                                    >
-                                      Pending
-                                    </option>
-                                    <option
-                                      value="In Progress"
-                                      className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
-                                    >
-                                      In Progress
-                                    </option>
-                                    <option
-                                      value="IN-REVIEW"
-                                      className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
-                                    >
-                                      In Review
-                                    </option>
-                                    <option
-                                      value="Completed"
-                                      className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
-                                    >
-                                      Completed
-                                    </option>
-                                    <option
-                                      value="On Hold"
-                                      className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
-                                    >
-                                      On Hold
-                                    </option>
-                                    <option
-                                      value="Rejected"
-                                      className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
-                                    >
-                                      Rejected
-                                    </option>
-                                  </select>
-                                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
-                                    <FiChevronDown size={14} strokeWidth={3} />
-                                  </div>
+                                    Pending
+                                  </option>
+                                  <option
+                                    value="In Progress"
+                                    className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                                  >
+                                    In Progress
+                                  </option>
+                                  <option
+                                    value="IN-REVIEW"
+                                    className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                                  >
+                                    In Review
+                                  </option>
+                                  <option
+                                    value="Completed"
+                                    className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                                  >
+                                    Completed
+                                  </option>
+                                  <option
+                                    value="On Hold"
+                                    className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                                  >
+                                    On Hold
+                                  </option>
+                                  <option
+                                    value="Rejected"
+                                    className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                                  >
+                                    Rejected
+                                  </option>
+                                </select>
+                                <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
+                                  <FiChevronDown size={11} strokeWidth={2.5} />
                                 </div>
-                                <TimeTracker
-                                  startTime={task.actualStartTime}
-                                  endTime={task.actualEndTime}
-                                  status={task.status}
-                                />
                               </div>
+                            </td>
+
+                            {/* Timer Column */}
+                            <td
+                              className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-32"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <TimeTracker
+                                startTime={task.actualStartTime}
+                                endTime={task.actualEndTime}
+                                status={task.status}
+                              />
                             </td>
 
                             {/* Revision Column */}

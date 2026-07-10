@@ -853,7 +853,7 @@ const ChatPage = () => {
     : [];
 
   return (
-    <div className="flex h-full w-full theme-bg-card md:rounded-3xl overflow-hidden border-0 md:border theme-border shadow-sm relative transition-colors duration-300">
+    <div className="flex h-full w-full theme-bg-card  overflow-hidden border-0 md:border theme-border shadow-sm relative transition-colors duration-300">
       {/* LEFT PANEL: CHATS & DIRECT MESSAGE DIRECTORY */}
       <div
         className={`w-full md:w-80 shrink-0 theme-bg-main border-r theme-border flex flex-col h-full transition-colors duration-300 ${
@@ -861,28 +861,33 @@ const ChatPage = () => {
         }`}
       >
         <div className="p-4 border-b theme-border theme-bg-main">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-extrabold theme-text-primary uppercase tracking-wide flex items-center gap-2">
-              <FiMessageSquare className="theme-icon" /> Messaging
-            </h2>
-            <button
+          <div className="flex items-center justify-between  gap-2">
+           
+            <div className="relative w-full">
+              <input
+                type="text"
+                placeholder="Search team member..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs outline-none focus:border-blue-600 dark:focus:border-[#3b82f6] focus:ring-2 focus:ring-blue-600/20 dark:focus:ring-[#3b82f6]/20 transition-all theme-text-primary placeholder:theme-text-secondary"
+              />
+            </div>
+
+            <div>
+               <button
               onClick={() => setShowCreateModal(true)}
               className="w-7 h-7 rounded-lg bg-blue-600 text-white hover:bg-blue-700 dark:bg-[#3b82f6] dark:text-gray-900 flex items-center justify-center transition-all cursor-pointer shadow-sm"
               title="Create Custom Group"
             >
               <FiPlus size={16} />
             </button>
+
+            </div>
+
+           
           </div>
 
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search team member..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs outline-none focus:border-blue-600 dark:focus:border-[#3b82f6] focus:ring-2 focus:ring-blue-600/20 dark:focus:ring-[#3b82f6]/20 transition-all theme-text-primary placeholder:theme-text-secondary"
-            />
-          </div>
+         
         </div>
 
         {/* DIRECTORY LIST */}
@@ -978,9 +983,7 @@ const ChatPage = () => {
 
           <div className="h-px theme-border border-t my-2" />
           <div className="px-3 mb-2">
-            <p className="text-[10px] font-black uppercase tracking-wider theme-text-secondary mb-2">
-              Direct Messages
-            </p>
+           
             {/* Scrollable Department Tabs */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-none snap-x">
               <button

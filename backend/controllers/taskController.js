@@ -314,7 +314,7 @@ exports.updateTask = async (req, res) => {
         recipient: req.body.assignedTo,
         sender: req.user._id,
         type: "task_assigned",
-        message: `You have been assigned the task: "${task.title}"`,
+        message: `You have been assigned the task: "${task.title}" , Assigned by : "${req.user.name}" `,
         task: task._id,
         project: task.project?._id || task.project,
       });

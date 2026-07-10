@@ -4,51 +4,81 @@ const cloudinary = require("../config/cloudinary");
 // ==========================================
 // CREATE DESIGNER EOD REPORT
 // ==========================================
+// ==========================================
+// CREATE DESIGNER EOD REPORT (with Upsert logic by Date)
+// ==========================================
 exports.createDesignerEodReport = async (req, res) => {
   try {
-    const report = await DesignerEodReport.create({
-      ...req.body,
+    const { date, tasks, daySummary, isDraft } = req.body;
+
+    const reportDate = date ? new Date(date) : new Date();
+    const startOfDay = new Date(reportDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(reportDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    let report = await DesignerEodReport.findOne({
       user: req.user._id,
+      date: { $gte: startOfDay, $lte: endOfDay },
     });
 
-    const populatedReport = await DesignerEodReport.findById(report._id).populate(
-      "user",
-      "name email role profile"
-    );
-
-    // Notify admins and operation managers
-    try {
-      const User = require("../models/User");
-      const Notification = require("../models/Notification");
-      const adminsAndManagers = await User.find({
-        role: { $in: ["admin", "operationmanager"] }
+    if (report) {
+      // Update existing report
+      if (tasks !== undefined) report.tasks = tasks;
+      if (daySummary !== undefined) report.daySummary = daySummary;
+      if (isDraft !== undefined) report.isDraft = isDraft;
+      report.date = reportDate;
+      await report.save();
+    } else {
+      // Create new report
+      report = await DesignerEodReport.create({
+        user: req.user._id,
+        date: reportDate,
+        tasks: tasks || [],
+        daySummary: daySummary || { toolsIssues: "", clientCalls: "", anythingElseOps: "" },
+        isDraft: isDraft !== undefined ? isDraft : true,
       });
-      
-      const io = req.app.get("io");
-      const senderName = req.user.name || "A designer";
-      
-      for (const recipient of adminsAndManagers) {
-        if (recipient._id.toString() === req.user._id.toString()) continue;
-        
-        const notification = await Notification.create({
-          recipient: recipient._id,
-          sender: req.user._id,
-          type: "report_submitted",
-          message: `${senderName} submitted a new Designer EOD Report`,
+    }
+
+    const populatedReport = await DesignerEodReport.findById(report._id)
+      .populate("user", "name email role profile department")
+      .populate("tasks.reviewedBy", "name email role profile department");
+
+    // Notify admins and operation managers only if submitted (not draft)
+    if (!isDraft) {
+      try {
+        const User = require("../models/User");
+        const Notification = require("../models/Notification");
+        const adminsAndManagers = await User.find({
+          role: { $in: ["admin", "operationmanager"] }
         });
         
-        if (io) {
-          const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
-          io.to(recipient._id.toString()).emit("notification", populatedNotification);
+        const io = req.app.get("io");
+        const senderName = req.user.name || "A designer";
+        
+        for (const recipient of adminsAndManagers) {
+          if (recipient._id.toString() === req.user._id.toString()) continue;
+          
+          const notification = await Notification.create({
+            recipient: recipient._id,
+            sender: req.user._id,
+            type: "report_submitted",
+            message: `${senderName} submitted a new Designer EOD Report`,
+          });
+          
+          if (io) {
+            const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
+            io.to(recipient._id.toString()).emit("notification", populatedNotification);
+          }
         }
+      } catch (notifErr) {
+        console.error("Failed to send designer EOD report notifications:", notifErr);
       }
-    } catch (notifErr) {
-      console.error("Failed to send designer EOD report notifications:", notifErr);
     }
 
     res.status(201).json({
       success: true,
-      message: "Designer EOD Report submitted successfully",
+      message: isDraft ? "Designer EOD Report draft saved successfully" : "Designer EOD Report submitted successfully",
       data: populatedReport,
     });
   } catch (err) {
@@ -60,7 +90,7 @@ exports.createDesignerEodReport = async (req, res) => {
 };
 
 // ==========================================
-// GET DESIGNER EOD REPORTS
+// GET DESIGNER EOD REPORTS (with date/query filters)
 // ==========================================
 exports.getDesignerEodReports = async (req, res) => {
   try {
@@ -68,13 +98,28 @@ exports.getDesignerEodReports = async (req, res) => {
 
     // If role is team, only show their own reports
     if (req.user.role === "team") {
-      query = { user: req.user._id };
+      query.user = req.user._id;
+    }
+
+    // Filter by specific user if provided (e.g. by admin)
+    if (req.query.userId) {
+      query.user = req.query.userId;
+    }
+
+    // Filter by Date
+    if (req.query.date) {
+      const startOfDay = new Date(req.query.date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(req.query.date);
+      endOfDay.setHours(23, 59, 59, 999);
+      query.date = { $gte: startOfDay, $lte: endOfDay };
     }
 
     // Admins and Operation Managers can see all reports
     const reports = await DesignerEodReport.find(query)
-      .populate("user", "name email role profile")
-      .sort({ createdAt: -1 });
+      .populate("user", "name email role profile department")
+      .populate("tasks.reviewedBy", "name email role profile department")
+      .sort({ date: -1, createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -95,7 +140,8 @@ exports.getDesignerEodReports = async (req, res) => {
 exports.getDesignerEodReport = async (req, res) => {
   try {
     const report = await DesignerEodReport.findById(req.params.id)
-      .populate("user", "name email role profile");
+      .populate("user", "name email role profile department")
+      .populate("tasks.reviewedBy", "name email role profile department");
 
     if (!report) {
       return res.status(404).json({
@@ -149,7 +195,9 @@ exports.updateDesignerEodReport = async (req, res) => {
     report = await DesignerEodReport.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
-    }).populate("user", "name email profile");
+    })
+      .populate("user", "name email profile department")
+      .populate("tasks.reviewedBy", "name email profile department");
 
     res.status(200).json({
       success: true,

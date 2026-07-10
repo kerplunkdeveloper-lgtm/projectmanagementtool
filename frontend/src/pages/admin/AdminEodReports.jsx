@@ -37,8 +37,14 @@ const AdminEodReports = () => {
   const filteredReports = useMemo(() => {
     return (reportsList || []).filter((report) => {
       const searchLower = searchQuery.toLowerCase();
-      const client = report.clientName || "";
-      const task = report.projectsWorkedOn || "";
+      let client = report.clientName || "";
+      let task = report.projectsWorkedOn || "";
+      
+      if (activeTab === "designer" && report.tasks) {
+        client = report.tasks.map(t => t.client).filter(Boolean).join(" ");
+        task = report.tasks.map(t => `${t.title} ${t.project}`).filter(Boolean).join(" ");
+      }
+
       const matchesSearch = 
         client.toLowerCase().includes(searchLower) ||
         task.toLowerCase().includes(searchLower) ||
@@ -54,7 +60,7 @@ const AdminEodReports = () => {
 
       return matchesSearch && matchesStatus && matchesDate;
     });
-  }, [reportsList, searchQuery, statusFilter, dateFilter]);
+  }, [reportsList, searchQuery, statusFilter, dateFilter, activeTab]);
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
@@ -260,18 +266,20 @@ const AdminEodReports = () => {
                       </td>
 
                       {/* CLIENT */}
-                      <td className="px-5 py-3.5 max-w-[150px] truncate">
+                      <td className="px-5 py-3.5 max-w-[150px] truncate" title={activeTab === "designer" && report.tasks ? [...new Set(report.tasks.map(t => t.client).filter(Boolean))].join(', ') : report.clientName}>
                         <span className="text-[13px] font-bold text-slate-850 dark:text-slate-200">
-                          {report.clientName || "-"}
+                          {activeTab === "designer" && report.tasks 
+                            ? [...new Set(report.tasks.map(t => t.client).filter(Boolean))].join(', ') || report.clientName || "-" 
+                            : report.clientName || "-"}
                         </span>
                       </td>
 
-
-
                       {/* PROJECTS WORKED ON (TASK NAME) */}
-                      <td className="px-5 py-3.5 max-w-[200px] truncate">
+                      <td className="px-5 py-3.5 max-w-[200px] truncate" title={activeTab === "designer" && report.tasks ? [...new Set(report.tasks.map(t => t.project).filter(Boolean))].join(', ') : report.projectsWorkedOn}>
                         <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200">
-                          {report.projectsWorkedOn || "N/A"}
+                          {activeTab === "designer" && report.tasks 
+                            ? [...new Set(report.tasks.map(t => t.project).filter(Boolean))].join(', ') || report.projectsWorkedOn || "-" 
+                            : report.projectsWorkedOn || "N/A"}
                         </span>
                       </td>
 
@@ -280,30 +288,40 @@ const AdminEodReports = () => {
                         <>
                           <td className="px-5 py-3.5 max-w-[150px] truncate">
                             <span className="text-slate-655 dark:text-slate-400 text-[13px] leading-relaxed">
-                              {report.designCount || "-"}
+                              {report.tasks 
+                                ? report.tasks.filter(t => t.statusAtEod === 'Completed').length 
+                                : report.designCount || "-"}
                             </span>
                           </td>
-                          <td className="px-5 py-3.5 max-w-[200px] truncate">
-                            <span className="text-slate-600 dark:text-slate-400 text-[13px] leading-relaxed" title={report.filesSubmitted}>
-                              {report.filesSubmitted || "-"}
+                          <td className="px-5 py-3.5 max-w-[200px] truncate" title={report.tasks ? report.tasks.map(t => t.outputLink).filter(Boolean).join(', ') : report.filesSubmitted}>
+                            <span className="text-slate-600 dark:text-slate-400 text-[13px] leading-relaxed">
+                              {report.tasks 
+                                ? report.tasks.map(t => t.outputLink).filter(Boolean).join(', ') || "-" 
+                                : report.filesSubmitted || "-"}
                             </span>
                           </td>
                         </>
                       )}
 
                       {/* PENDING TASKS */}
-                      <td className="px-5 py-3.5 max-w-[150px] truncate">
-                        {report.pendingTasks || "-"}
+                      <td className="px-5 py-3.5 max-w-[150px] truncate" title={activeTab === "designer" && report.tasks ? report.tasks.filter(t => t.statusAtEod !== 'Completed').map(t => t.title).join(', ') : report.pendingTasks}>
+                        {activeTab === "designer" && report.tasks 
+                          ? report.tasks.filter(t => t.statusAtEod !== 'Completed').map(t => t.title).join(', ') || "None" 
+                          : report.pendingTasks || "-"}
                       </td>
 
                       {/* REASON FOR PENDING */}
-                      <td className="px-5 py-3.5 max-w-[150px] truncate">
-                        {report.reasonForPending || "-"}
+                      <td className="px-5 py-3.5 max-w-[150px] truncate" title={activeTab === "designer" && report.tasks ? report.tasks.filter(t => t.reason).map(t => `${t.title}: ${t.reason}`).join(' | ') : report.reasonForPending}>
+                        {activeTab === "designer" && report.tasks 
+                          ? report.tasks.filter(t => t.reason).map(t => `${t.title}: ${t.reason}`).join(' | ') || "None" 
+                          : report.reasonForPending || "-"}
                       </td>
 
                       {/* TIME SPENT */}
-                      <td className="px-5 py-3.5 max-w-[100px] truncate">
-                        {report.timeSpentToday || "-"}
+                      <td className="px-5 py-3.5 max-w-[100px] truncate" title={activeTab === "designer" && report.tasks ? report.tasks.map(t => t.loggedTime).filter(Boolean).join(', ') : report.timeSpentToday}>
+                        {activeTab === "designer" && report.tasks 
+                          ? report.tasks.map(t => t.loggedTime).filter(Boolean).join(', ') || "0m" 
+                          : report.timeSpentToday || "-"}
                       </td>
 
                       {/* CHALLENGES */}
@@ -433,90 +451,217 @@ const AdminEodReports = () => {
                       {selectedReport.user?.department || selectedReport.user?.role || "Team Member"} • {selectedReport.user?.email || ""}
                     </p>
                   </div>
-                </div>
+                </div>                {/* DETAILS CONTENT */}
+                {activeTab === "designer" && selectedReport.tasks && selectedReport.tasks.length > 0 ? (
+                  <div className="space-y-5">
+                    {/* Visual Progress / Stats */}
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/30 border border-slate-200/50 dark:border-slate-800/60 grid grid-cols-3 gap-4 text-center">
+                      <div>
+                        <span className="text-[9px] font-bold text-slate-450 uppercase tracking-wider block">Completed</span>
+                        <span className="text-md font-extrabold text-emerald-600 dark:text-emerald-400">
+                          {selectedReport.tasks.filter(t => t.statusAtEod === "Completed").length}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-slate-450 uppercase tracking-wider block">Pending</span>
+                        <span className="text-md font-extrabold text-amber-600 dark:text-amber-400">
+                          {selectedReport.tasks.filter(t => t.statusAtEod === "Pending").length}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[9px] font-bold text-slate-450 uppercase tracking-wider block">Rejected</span>
+                        <span className="text-md font-extrabold text-rose-600 dark:text-rose-400">
+                          {selectedReport.tasks.filter(t => t.statusAtEod === "Rejected").length}
+                        </span>
+                      </div>
+                    </div>
 
-                {/* 2x2 Grid details */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                  {/* Client Name */}
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Client Name</span>
-                    <p className="text-[13px] font-bold text-slate-800 dark:text-slate-100">{selectedReport.clientName || "-"}</p>
-                  </div>
+                    {/* Task List */}
+                    <div className="space-y-3">
+                      <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Logged Tasks</span>
+                      <div className="space-y-4">
+                        {selectedReport.tasks.map((task, idx) => (
+                          <div key={idx} className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200/60 dark:border-slate-800 relative overflow-hidden">
+                            <div className={`absolute top-0 left-0 bottom-0 w-1 ${
+                              task.statusAtEod === "Completed"
+                                ? "bg-emerald-500"
+                                : task.statusAtEod === "Rejected"
+                                ? "bg-rose-500"
+                                : "bg-amber-500"
+                            }`} />
 
+                            <div className="flex justify-between items-start gap-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+                              <div>
+                                <h4 className="text-xs font-extrabold text-slate-800 dark:text-slate-100">
+                                  {task.title}
+                                </h4>
+                                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+                                  Proj: {task.project || "Internal"} • Client: {task.client || "None"}
+                                </p>
+                              </div>
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                                task.statusAtEod === "Completed"
+                                  ? "bg-emerald-55 text-emerald-600 border border-emerald-200/40 dark:bg-emerald-950/40 dark:text-emerald-400"
+                                  : task.statusAtEod === "Rejected"
+                                  ? "bg-rose-55 text-rose-650 border border-rose-200/40 dark:bg-rose-955/40 dark:text-rose-400"
+                                  : "bg-amber-55 text-amber-600 border border-amber-200/40 dark:bg-amber-955/40 dark:text-amber-400"
+                              }`}>
+                                {task.statusAtEod}
+                              </span>
+                            </div>
 
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-3 text-[11px]">
+                              <div>
+                                <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block font-bold">Time Logged</span>
+                                <span className="font-bold text-slate-700 dark:text-slate-300">{task.loggedTime || "0m"}</span>
+                              </div>
+                              <div>
+                                <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block font-bold">Content Type</span>
+                                <span className="font-bold text-slate-700 dark:text-slate-300">{task.contentType || "IMAGE"}</span>
+                              </div>
+                              {task.outputLink && (
+                                <div className="col-span-2">
+                                  <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block font-bold">Output Link</span>
+                                  <a href={task.outputLink} target="_blank" rel="noopener noreferrer" className="text-indigo-650 hover:underline font-bold truncate block">
+                                    {task.outputLink}
+                                  </a>
+                                </div>
+                              )}
+                              {task.reason && (
+                                <div className="col-span-2 bg-amber-50/50 dark:bg-amber-955/10 p-2 rounded text-amber-700 dark:text-amber-400 font-semibold border border-amber-100/30">
+                                  <span className="text-[9px] text-amber-550 dark:text-amber-500 uppercase tracking-wider block font-extrabold">Reason</span>
+                                  {task.reason}
+                                </div>
+                              )}
+                              {task.feedback && (
+                                <div className="col-span-2 bg-rose-50/50 dark:bg-rose-955/10 p-2 rounded text-rose-700 dark:text-rose-400 font-semibold border border-rose-100/30">
+                                  <span className="text-[9px] text-rose-550 dark:text-rose-500 uppercase tracking-wider block font-extrabold">Supervisor Feedback</span>
+                                  {task.feedback}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
 
-                  {/* Projects Worked On */}
-                  <div className="space-y-1 md:col-span-2">
-                    <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Projects Worked On (Task Name)</span>
-                    <p className="text-[13.5px] font-bold text-slate-800 dark:text-slate-100">{selectedReport.projectsWorkedOn || "N/A"}</p>
-                  </div>
+                    {/* Operational Summary */}
+                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/30 border border-slate-200/50 dark:border-slate-800/60 space-y-3">
+                      <span className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest block border-b border-slate-200/60 pb-1.5">Operational Summary</span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[12px]">
+                        <div>
+                          <span className="text-[9px] text-slate-400 uppercase tracking-wider block font-bold">Tools / Resource Issues</span>
+                          <span className="font-bold text-slate-700 dark:text-slate-300">{selectedReport.daySummary?.toolsIssues || "None"}</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] text-slate-400 uppercase tracking-wider block font-bold">Client Calls Attended</span>
+                          <span className="font-bold text-slate-700 dark:text-slate-300">{selectedReport.daySummary?.clientCalls || "None"}</span>
+                        </div>
+                        {selectedReport.daySummary?.anythingElseOps && (
+                          <div className="col-span-2">
+                            <span className="text-[9px] text-slate-400 uppercase tracking-wider block font-bold">Additional Operations Notes</span>
+                            <p className="font-semibold text-slate-655 dark:text-slate-300 mt-0.5">{selectedReport.daySummary.anythingElseOps}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
 
-                  {/* Design Count & Files Submitted (If designer) */}
-                  {selectedReport.designCount !== undefined && (
+                    {/* Tomorrow Plan */}
                     <div className="space-y-1">
-                      <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Number of Designs Completed</span>
-                      <p className="text-[13px] text-slate-700 dark:text-slate-300 font-bold">{selectedReport.designCount || "N/A"}</p>
+                      <span className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest block">Tomorrow Plan</span>
+                      <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-line leading-relaxed bg-blue-50/20 dark:bg-blue-900/10 p-3 rounded-lg border border-blue-100/30 dark:border-blue-900/20">{selectedReport.tomorrowPlan}</p>
                     </div>
-                  )}
 
-                  {selectedReport.filesSubmitted !== undefined && (
+                    {/* Overall Status */}
+                    <div className="space-y-1.5">
+                      <span className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest block">Overall Status</span>
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${getStatusBadgeStyle(selectedReport.overallStatus)}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${getStatusDotStyle(selectedReport.overallStatus)}`}></span>
+                        {selectedReport.overallStatus || "Completed"}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    {/* Client Name */}
                     <div className="space-y-1">
-                      <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Submitted Links</span>
-                      <p className="text-[13px] text-slate-700 dark:text-slate-300 font-bold truncate">{selectedReport.filesSubmitted || "N/A"}</p>
+                      <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Client Name</span>
+                      <p className="text-[13px] font-bold text-slate-800 dark:text-slate-100">{selectedReport.clientName || "-"}</p>
                     </div>
-                  )}
 
-                  {/* Pending Tasks */}
-                  <div className="space-y-1 md:col-span-2">
-                    <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Pending Tasks</span>
-                    <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-line leading-relaxed">{selectedReport.pendingTasks || "None"}</p>
-                  </div>
-
-                  {/* Reason for Pending */}
-                  {selectedReport.reasonForPending && (
+                    {/* Projects Worked On */}
                     <div className="space-y-1 md:col-span-2">
-                      <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Reason for Pending Work</span>
-                      <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium">{selectedReport.reasonForPending}</p>
+                      <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Projects Worked On (Task Name)</span>
+                      <p className="text-[13.5px] font-bold text-slate-800 dark:text-slate-100">{selectedReport.projectsWorkedOn || "N/A"}</p>
                     </div>
-                  )}
 
-                  {/* Time Spent Today */}
-                  <div className="space-y-1">
-                    <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Time Spent Today</span>
-                    <p className="text-[13px] text-slate-700 dark:text-slate-300 font-bold">{selectedReport.timeSpentToday || "N/A"}</p>
-                  </div>
+                    {/* Design Count & Files Submitted (If designer) */}
+                    {selectedReport.designCount !== undefined && (
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest block">Number of Designs Completed</span>
+                        <p className="text-[13px] text-slate-700 dark:text-slate-300 font-bold">{selectedReport.designCount || "N/A"}</p>
+                      </div>
+                    )}
 
-                  {/* Challenges Faced */}
-                  {selectedReport.challengesFaced && (
+                    {selectedReport.filesSubmitted !== undefined && (
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Submitted Links</span>
+                        <p className="text-[13px] text-slate-700 dark:text-slate-300 font-bold truncate">{selectedReport.filesSubmitted || "N/A"}</p>
+                      </div>
+                    )}
+
+                    {/* Pending Tasks */}
                     <div className="space-y-1 md:col-span-2">
-                      <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Challenges Faced</span>
-                      <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium">{selectedReport.challengesFaced}</p>
+                      <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Pending Tasks</span>
+                      <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-line leading-relaxed">{selectedReport.pendingTasks || "None"}</p>
                     </div>
-                  )}
 
-                  {/* Tomorrow Plan */}
-                  <div className="space-y-1 md:col-span-2">
-                    <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Tomorrow Plan</span>
-                    <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-line leading-relaxed bg-blue-50/20 dark:bg-blue-900/10 p-3 rounded-lg border border-blue-100/30 dark:border-blue-900/20">{selectedReport.tomorrowPlan}</p>
-                  </div>
+                    {/* Reason for Pending */}
+                    {selectedReport.reasonForPending && (
+                      <div className="space-y-1 md:col-span-2">
+                        <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Reason for Pending Work</span>
+                        <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium">{selectedReport.reasonForPending}</p>
+                      </div>
+                    )}
 
-                  {/* Support Needed */}
-                  {selectedReport.supportNeeded && (
+                    {/* Time Spent Today */}
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Time Spent Today</span>
+                      <p className="text-[13px] text-slate-705 dark:text-slate-300 font-bold">{selectedReport.timeSpentToday || "N/A"}</p>
+                    </div>
+
+                    {/* Challenges Faced */}
+                    {selectedReport.challengesFaced && (
+                      <div className="space-y-1 md:col-span-2">
+                        <span className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest block">Challenges Faced</span>
+                        <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium">{selectedReport.challengesFaced}</p>
+                      </div>
+                    )}
+
+                    {/* Tomorrow Plan */}
                     <div className="space-y-1 md:col-span-2">
-                      <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Support Needed</span>
-                      <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium">{selectedReport.supportNeeded}</p>
+                      <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Tomorrow Plan</span>
+                      <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-line leading-relaxed bg-blue-50/20 dark:bg-blue-900/10 p-3 rounded-lg border border-blue-100/30 dark:border-blue-900/20">{selectedReport.tomorrowPlan}</p>
                     </div>
-                  )}
 
-                  {/* Overall Status */}
-                  <div className="space-y-1.5 md:col-span-2">
-                    <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Overall Status</span>
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${getStatusBadgeStyle(selectedReport.overallStatus)}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${getStatusDotStyle(selectedReport.overallStatus)}`}></span>
-                      {selectedReport.overallStatus || "Completed"}
-                    </span>
+                    {/* Support Needed */}
+                    {selectedReport.supportNeeded && (
+                      <div className="space-y-1 md:col-span-2">
+                        <span className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest block">Support Needed</span>
+                        <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium">{selectedReport.supportNeeded}</p>
+                      </div>
+                    )}
+
+                    {/* Overall Status */}
+                    <div className="space-y-1.5 md:col-span-2">
+                      <span className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest block">Overall Status</span>
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${getStatusBadgeStyle(selectedReport.overallStatus)}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${getStatusDotStyle(selectedReport.overallStatus)}`}></span>
+                        {selectedReport.overallStatus || "Completed"}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 {/* Attachments Display */}
                 {selectedReport.attachments?.length > 0 && (

@@ -436,11 +436,19 @@ td {
   border-bottom: 1px solid var(--color-slate-100) !important;
   color: var(--color-slate-950) !important;
 }
+/* Table body accent tint — uses settings accent color at low opacity */
+tbody {
+  background-color: color-mix(in srgb, var(--accent-color) 4%, var(--color-white)) !important;
+}
+.dark tbody {
+  background-color: color-mix(in srgb, var(--accent-color-dark) 6%, var(--color-white)) !important;
+}
+
 tr:hover {
-  background-color: rgba(99, 102, 241, 0.03) !important;
+  background-color: color-mix(in srgb, var(--accent-color) 8%, transparent) !important;
 }
 .dark tr:hover {
-  background-color: rgba(139, 92, 246, 0.03) !important;
+  background-color: color-mix(in srgb, var(--accent-color-dark) 10%, transparent) !important;
 }
 
 /* Forms & Inputs styling */
