@@ -171,12 +171,7 @@ const Dashboardmain = () => {
   const [name, setName] = useState("");
   const [clientId, setClientId] = useState("");
   const [status, setStatus] = useState("Active");
-  const [clientsCurrentPage, setClientsCurrentPage] = useState(1);
   const [clientSearchQuery, setClientSearchQuery] = useState("");
-
-  useEffect(() => {
-    setClientsCurrentPage(1);
-  }, [clientSearchQuery]);
 
   const filterClients = React.useMemo(() => {
     const uniqueClientsMap = new Map();
@@ -341,102 +336,40 @@ const Dashboardmain = () => {
               </div>
             </div>
 
-            <div className="space-y-1.5 flex-1 flex flex-col justify-center">
-              {(() => {
-                const itemsPerPage = 3;
-                const totalPages = Math.ceil(
-                  (filteredClientsList?.length || 0) / itemsPerPage
-                );
-                const startIndex = (clientsCurrentPage - 1) * itemsPerPage;
-                const paginatedClients =
-                  filteredClientsList?.slice(
-                    startIndex,
-                    startIndex + itemsPerPage
-                  ) || [];
-
-                return (
-                  <>
-                    {paginatedClients.length > 0 ? (
-                      paginatedClients.map((client) => {
-                        const clientProjectsCount = projects?.filter(
-                          (p) => (p.client?._id || p.client) === client._id
-                        ).length || 0;
-
-                        return (
-                          <div
-                            key={client._id}
-                            onClick={() =>
-                              navigate(`/${user?.role}/clients?id=${client._id}`)
-                            }
-                            className="grid grid-cols-12 items-center gap-2 py-1 px-2.5 rounded-lg border border-slate-100/80 dark:border-white/5 bg-white dark:bg-slate-800/30 hover:border-blue-500/20 hover:bg-slate-50/30 dark:hover:bg-slate-800/60 transition-all duration-200 group cursor-pointer w-full"
-                          >
-                            {/* Col 1-2: Initial circle avatar */}
-                            <div className="col-span-2 flex items-center justify-start">
-                              <div
-                                className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[9px] font-black tracking-wider shrink-0 shadow-sm transition-transform group-hover:scale-[1.05]"
-                                style={{ backgroundColor: client.color || "#3b82f6" }}
-                              >
-                                {getInitials(client.companyName)}
-                              </div>
-                            </div>
-
-                            {/* Col 3-8: Client Details */}
-                            <div className="col-span-6 min-w-0">
-                              <h4 className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-blue-500 transition-colors leading-tight">
-                                {client.companyName}
-                              </h4>
-                              <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold block leading-none mt-0.5">
-                                {client.industry || "No Industry"}
-                              </span>
-                            </div>
-                            
-                            {/* Col 9-11: Projects count badge */}
-                            <div className="col-span-3 flex justify-end">
-                              <span className="text-[9px] font-extrabold bg-slate-50 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/50 px-2 py-0.5 rounded-md whitespace-nowrap">
-                                {clientProjectsCount} {clientProjectsCount === 1 ? "Project" : "Projects"}
-                              </span>
-                            </div>
-
-                            {/* Col 12: Chevron icon */}
-                            <div className="col-span-1 flex justify-end">
-                              <div className="w-5 h-5 rounded-md bg-slate-50 dark:bg-slate-900/60 border border-slate-200/40 dark:border-slate-700/40 flex items-center justify-center text-slate-400 dark:text-slate-500 group-hover:bg-blue-500 group-hover:border-blue-500 group-hover:text-white transition-all duration-200">
-                                <FiChevronRight size={11} />
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="py-2 flex flex-col items-center justify-center text-center opacity-60">
-                        <FiUser size={18} className="text-slate-400 dark:text-slate-500 mb-1" />
-                        <p className="text-[9px] font-semibold text-slate-500 dark:text-slate-400">
-                          No clients found
-                        </p>
-                      </div>
-                    )}
-
-                    {totalPages > 1 && (
-                      <div className="flex items-center justify-center gap-1.5 mt-1 pt-1 border-t border-slate-100/50 dark:border-white/5 shrink-0">
-                        {Array.from({ length: totalPages }).map((_, i) => (
-                          <button
-                            key={i}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setClientsCurrentPage(i + 1);
-                            }}
-                            className={`h-1 rounded-full transition-all duration-300 ${
-                              clientsCurrentPage === i + 1
-                                ? "w-4 bg-blue-500"
-                                : "w-1 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600"
-                            }`}
-                            aria-label={`Page ${i + 1}`}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 overflow-y-auto max-h-[145px] pr-1 py-1 flex-1 scrollbar-thin">
+              {filteredClientsList && filteredClientsList.length > 0 ? (
+                filteredClientsList.map((client) => (
+                  <div
+                    key={client._id}
+                    onClick={() =>
+                      navigate(`/${user?.role}/clients?id=${client._id}`)
+                    }
+                    className="flex items-center gap-2 p-1.5 rounded-lg border border-slate-100/80 dark:border-white/5 bg-white dark:bg-slate-800/30 hover:border-blue-500/20 hover:bg-slate-50/30 dark:hover:bg-slate-800/60 transition-all duration-200 group cursor-pointer w-full"
+                  >
+                    <div
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[9px] font-black tracking-wider shrink-0 shadow-sm transition-transform group-hover:scale-[1.05]"
+                      style={{ backgroundColor: client.color || "#3b82f6" }}
+                    >
+                      {getInitials(client.companyName)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-blue-500 transition-colors leading-tight">
+                        {client.companyName}
+                      </h4>
+                      <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold block leading-none mt-0.5">
+                        {client.industry || "No Industry"}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-2 py-8 flex flex-col items-center justify-center text-center opacity-60">
+                  <FiUser size={18} className="text-slate-400 dark:text-slate-500 mb-1" />
+                  <p className="text-[9px] font-semibold text-slate-500 dark:text-slate-400">
+                    No clients found
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
