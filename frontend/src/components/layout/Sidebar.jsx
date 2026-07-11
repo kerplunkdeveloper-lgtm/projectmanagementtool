@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
-import { FiX, FiLogOut, FiFolder, FiList, FiLayers } from "react-icons/fi";
+import { FiX, FiLogOut, FiFolder, FiList, FiLayers, FiShare2 } from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
@@ -83,6 +83,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   const [isWorkOpen, setIsWorkOpen] = useState(false);
   const [isProjectsListOpen, setIsProjectsListOpen] = useState(true);
   const [isPortfoliosListOpen, setIsPortfoliosListOpen] = useState(false);
+  const [isSmePortfoliosListOpen, setIsSmePortfoliosListOpen] = useState(false);
   const [isPortfolioDropdownOpen, setIsPortfolioDropdownOpen] = useState(
     location.pathname.includes("/portfolio"),
   );
@@ -223,24 +224,23 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           {(() => {
             let hasRenderedPortfoliosList = false;
 
-            const renderPortfoliosList = () => (
+            const renderPortfolioDropdown = (title, icon, isOpen, setIsOpen, list) => {
+              if (!list || list.length === 0) return null;
+              return (
               <div className="mt-0.5 mb-1">
                 {/* Dropdown Header Toggle */}
                 <button
                   type="button"
-                  onClick={() => setIsPortfoliosListOpen(!isPortfoliosListOpen)}
+                  onClick={() => setIsOpen(!isOpen)}
                   className="w-full flex items-center gap-2.5 px-3 py-2 text-left rounded-xl border border-transparent hover:bg-slate-100/60 dark:hover:bg-white/5 transition-all duration-200 cursor-pointer group text-slate-500 dark:text-slate-400 hover:theme-text-accent"
                 >
-                  <FiLayers
-                    size={13}
-                    className="shrink-0 transition-colors"
-                  />
-                  <span className="text-[0.6875rem] font-semibold uppercase tracking-widest flex-1 text-left transition-colors">
-                    Portfolios
+                  {icon}
+                  <span className="text-[0.625rem] font-semibold uppercase tracking-wider whitespace-nowrap truncate flex-1 text-left transition-colors">
+                    {title}
                   </span>
                   <svg
                     className={`w-3 h-3 shrink-0 transform transition-transform duration-200 transition-colors ${
-                      isPortfoliosListOpen ? "rotate-180" : ""
+                      isOpen ? "rotate-180" : ""
                     }`}
                     fill="none"
                     viewBox="0 0 24 24"
@@ -256,9 +256,9 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                 </button>
 
                 {/* Portfolio List */}
-                {isPortfoliosListOpen && (
+                {isOpen && (
                   <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-white/8 space-y-0.5 overflow-y-auto max-h-[18.75rem] sidebar-scrollbar mt-0.5">
-                    {portfolios.map((portfolio) => {
+                    {list.map((portfolio) => {
                       const isActive = activePortfolioId === portfolio._id;
                       const portfolioProjects = (projects || []).filter(
                         (proj) => {
@@ -395,7 +395,36 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   </div>
                 )}
               </div>
-            );
+            )};
+
+            const renderPortfoliosList = () => {
+              const smeRoles = ["Social Media Executive", "Social Media Manager"];
+              const smePortfolios = portfolios.filter(
+                (p) => smeRoles.includes(p.createdBy?.department) || smeRoles.includes(p.createdBy?.role)
+              );
+              const generalPortfolios = portfolios.filter(
+                (p) => !smeRoles.includes(p.createdBy?.department) && !smeRoles.includes(p.createdBy?.role)
+              );
+
+              return (
+                <>
+                  {renderPortfolioDropdown(
+                    "Portfolios",
+                    <FiLayers size={13} className="shrink-0 transition-colors" />,
+                    isPortfoliosListOpen,
+                    setIsPortfoliosListOpen,
+                    generalPortfolios
+                  )}
+                  {renderPortfolioDropdown(
+                    "Social Media Executive",
+                    <FiShare2 size={13} className="shrink-0 transition-colors" />,
+                    isSmePortfoliosListOpen,
+                    setIsSmePortfoliosListOpen,
+                    smePortfolios
+                  )}
+                </>
+              );
+            };
 
             return (
               <>
