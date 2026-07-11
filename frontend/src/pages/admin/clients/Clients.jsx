@@ -24,7 +24,11 @@ import {
   FiCheck,
 } from "react-icons/fi";
 import { FaRegBuilding } from "react-icons/fa";
-import { getClientIconComponent, CLIENT_COLORS, CLIENT_ICONS } from "../../../utils/clientHelpers";
+import {
+  getClientIconComponent,
+  CLIENT_COLORS,
+  CLIENT_ICONS,
+} from "../../../utils/clientHelpers";
 
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
@@ -347,8 +351,8 @@ const Clients = () => {
       ...client,
       color: client.color || "#3b82f6",
       icon: client.icon || "FaRegBuilding",
-      onboardingDate: client.onboardingDate 
-        ? new Date(client.onboardingDate).toISOString().split('T')[0] 
+      onboardingDate: client.onboardingDate
+        ? new Date(client.onboardingDate).toISOString().split("T")[0]
         : "",
       service: Array.isArray(client.service)
         ? client.service
@@ -488,7 +492,6 @@ const Clients = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-250 dark:border-slate-800 bg-slate-50 dark:bg-white/5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
             />
-           
           </div>
 
           {/* SERVICE FILTER */}
@@ -514,7 +517,11 @@ const Clients = () => {
                 stroke="currentColor"
                 strokeWidth={2.5}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </div>
           </div>
@@ -565,18 +572,30 @@ const Clients = () => {
                       Client Profile
                     </div>
                   </th>
-                  <th className="px-5 py-4 font-extrabold bg-transparent border-r theme-border">Contact Info</th>
-                  <th className="px-5 py-4 font-extrabold bg-transparent border-r theme-border">Service & Members</th>
-                  <th className="px-5 py-4 font-extrabold bg-transparent w-48 border-r theme-border">Deliverables</th>
+                  <th className="px-5 py-4 font-extrabold bg-transparent border-r theme-border">
+                    Contact Info
+                  </th>
+                  <th className="px-5 py-4 font-extrabold bg-transparent border-r theme-border">
+                    Service & Members
+                  </th>
+                  <th className="px-5 py-4 font-extrabold bg-transparent w-48 border-r theme-border">
+                    Deliverables
+                  </th>
                   {user?.role === "team" && (
-                    <th className="px-5 py-4 font-extrabold bg-transparent border-r theme-border last:border-r-0">Assigned By</th>
+                    <th className="px-5 py-4 font-extrabold bg-transparent border-r theme-border last:border-r-0">
+                      Assigned By
+                    </th>
                   )}
                   {user?.role !== "team" && (
-                    <th className="px-5 py-4 font-extrabold bg-transparent border-r theme-border last:border-r-0">Financials (INR)</th>
+                    <th className="px-5 py-4 font-extrabold bg-transparent border-r theme-border last:border-r-0">
+                      Financials (INR)
+                    </th>
                   )}
                   {(user?.role === "admin" ||
                     user?.role === "operationmanager") && (
-                    <th className="px-5 py-4 font-extrabold bg-transparent text-center w-24 border-r-0">Actions</th>
+                    <th className="px-5 py-4 font-extrabold bg-transparent text-center w-24 border-r-0">
+                      Actions
+                    </th>
                   )}
                 </tr>
               </thead>
@@ -589,9 +608,10 @@ const Clients = () => {
                         : client.service || "";
                       const conf = getServiceStyles(primaryService);
                       const ServiceIcon = conf.icon;
-                      
-                      const cellClass = "px-5 py-4 bg-transparent transition-colors border-r theme-border last:border-r-0";
-                      
+
+                      const cellClass =
+                        "px-5 py-4 bg-transparent transition-colors border-r theme-border last:border-r-0";
+
                       const nameColors = [
                         "text-blue-900 dark:text-blue-400",
                         "text-purple-700 dark:text-purple-400",
@@ -603,12 +623,14 @@ const Clients = () => {
                         "text-pink-600 dark:text-pink-400",
                         "text-yellow-500 dark:text-yellow-400",
                       ];
-                      
+
                       // Create a simple hash based on company name length and char codes
                       let hash = 0;
                       if (client.companyName) {
                         for (let i = 0; i < client.companyName.length; i++) {
-                          hash = client.companyName.charCodeAt(i) + ((hash << 5) - hash);
+                          hash =
+                            client.companyName.charCodeAt(i) +
+                            ((hash << 5) - hash);
                         }
                       }
                       const nameHexes = [
@@ -624,10 +646,11 @@ const Clients = () => {
                       ];
                       const colorIndex = Math.abs(hash) % nameColors.length;
                       const nameColor = nameColors[colorIndex];
-                      const clientColor = client.color && client.color !== "#3b82f6"
-                        ? client.color
-                        : nameHexes[colorIndex];
-                      
+                      const clientColor =
+                        client.color && client.color !== "#3b82f6"
+                          ? client.color
+                          : nameHexes[colorIndex];
+
                       return (
                         <motion.tr
                           layout
@@ -642,14 +665,16 @@ const Clients = () => {
                           <td className={`${cellClass} relative`}>
                             <div className="flex items-center gap-3">
                               {(() => {
-                                const ClientIcon = getClientIconComponent(client.icon);
+                                const ClientIcon = getClientIconComponent(
+                                  client.icon,
+                                );
                                 return (
-                                  <div 
+                                  <div
                                     className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border shadow-sm transition-all duration-300"
                                     style={{
                                       backgroundColor: `${clientColor}12`,
                                       borderColor: `${clientColor}30`,
-                                      color: clientColor
+                                      color: clientColor,
                                     }}
                                   >
                                     <ClientIcon size={18} />
@@ -657,7 +682,7 @@ const Clients = () => {
                                 );
                               })()}
                               <div className="min-w-[120px]">
-                                <h2 
+                                <h2
                                   className="font-bold transition-colors text-[14px] truncate max-w-[200px]"
                                   style={{ color: clientColor }}
                                 >
@@ -670,10 +695,12 @@ const Clients = () => {
                                   {client.onboardingDate && (
                                     <span className="text-[9.5px] text-slate-400 dark:text-slate-500 font-medium flex items-center gap-1">
                                       <FiCalendar size={9} />
-                                      {new Date(client.onboardingDate).toLocaleDateString("en-IN", {
+                                      {new Date(
+                                        client.onboardingDate,
+                                      ).toLocaleDateString("en-IN", {
                                         day: "2-digit",
                                         month: "short",
-                                        year: "2-digit"
+                                        year: "2-digit",
                                       })}
                                     </span>
                                   )}
@@ -690,11 +717,16 @@ const Clients = () => {
                                   href={`tel:${client.phoneNumber}`}
                                   className="inline-flex items-center gap-1.5 text-[11.5px] text-slate-650 dark:text-slate-300 hover:theme-text-accent font-semibold transition-colors group/link"
                                 >
-                                  <FiPhone size={11} className="text-slate-400 group-hover/link:theme-text-accent transition-colors" />
+                                  <FiPhone
+                                    size={11}
+                                    className="text-slate-400 group-hover/link:theme-text-accent transition-colors"
+                                  />
                                   <span>{client.phoneNumber}</span>
                                 </a>
                               ) : (
-                                <span className="text-[10.5px] text-slate-450 dark:text-slate-600 italic">No Phone</span>
+                                <span className="text-[10.5px] text-slate-450 dark:text-slate-600 italic">
+                                  No Phone
+                                </span>
                               )}
 
                               {client.email ? (
@@ -702,11 +734,18 @@ const Clients = () => {
                                   href={`mailto:${client.email}`}
                                   className="inline-flex items-center gap-1.5 text-[11.5px] text-slate-655 dark:text-slate-300 hover:theme-text-accent font-semibold transition-colors group/link"
                                 >
-                                  <FiMail size={11} className="text-slate-400 group-hover/link:theme-text-accent transition-colors" />
-                                  <span className="truncate max-w-[150px]">{client.email}</span>
+                                  <FiMail
+                                    size={11}
+                                    className="text-slate-400 group-hover/link:theme-text-accent transition-colors"
+                                  />
+                                  <span className="truncate max-w-[150px]">
+                                    {client.email}
+                                  </span>
                                 </a>
                               ) : (
-                                <span className="text-[10.5px] text-slate-450 dark:text-slate-600 italic">No Email</span>
+                                <span className="text-[10.5px] text-slate-450 dark:text-slate-600 italic">
+                                  No Email
+                                </span>
                               )}
                             </div>
                           </td>
@@ -744,7 +783,7 @@ const Clients = () => {
                                       );
                                     })()}
                               </div>
-                              
+
                               <div className="flex flex-wrap gap-1 max-w-[220px]">
                                 {client.assignedTo &&
                                 (Array.isArray(client.assignedTo)
@@ -755,7 +794,9 @@ const Clients = () => {
                                       const uCol = getUserColor(
                                         member._id || member,
                                       );
-                                      const initial = member.name ? member.name.charAt(0).toUpperCase() : "?";
+                                      const initial = member.name
+                                        ? member.name.charAt(0).toUpperCase()
+                                        : "?";
                                       return (
                                         <span
                                           key={member._id || member}
@@ -777,11 +818,18 @@ const Clients = () => {
                                         client.assignedTo._id ||
                                           client.assignedTo,
                                       );
-                                      const initial = client.assignedTo.name ? client.assignedTo.name.charAt(0).toUpperCase() : "?";
+                                      const initial = client.assignedTo.name
+                                        ? client.assignedTo.name
+                                            .charAt(0)
+                                            .toUpperCase()
+                                        : "?";
                                       return (
                                         <span
                                           className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${uCol.bg} ${uCol.text} border ${uCol.border} font-bold text-[9.5px] shadow-sm`}
-                                          title={client.assignedTo.name || client.assignedTo.email}
+                                          title={
+                                            client.assignedTo.name ||
+                                            client.assignedTo.email
+                                          }
                                         >
                                           <span className="w-3.5 h-3.5 rounded-full bg-white/40 dark:bg-black/25 flex items-center justify-center text-[7.5px] font-black shrink-0">
                                             {initial}
@@ -816,12 +864,14 @@ const Clients = () => {
                                   <div className="flex flex-wrap gap-1">
                                     {client.posts > 0 && (
                                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-450 border border-blue-100 dark:border-blue-900/30 font-bold text-[9px]">
-                                        <FiLayers size={8.5} /> {client.posts} Posts
+                                        <FiLayers size={8.5} /> {client.posts}{" "}
+                                        Posts
                                       </span>
                                     )}
                                     {client.reels > 0 && (
                                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900/30 font-bold text-[9px]">
-                                        <FiVideo size={8.5} /> {client.reels} Reels
+                                        <FiVideo size={8.5} /> {client.reels}{" "}
+                                        Reels
                                       </span>
                                     )}
                                   </div>
@@ -829,7 +879,9 @@ const Clients = () => {
                               )}
 
                               {/* Video Production */}
-                              {(client.shoot > 0 || (client.needDslr && client.needDslr !== "No DSLR")) && (
+                              {(client.shoot > 0 ||
+                                (client.needDslr &&
+                                  client.needDslr !== "No DSLR")) && (
                                 <div className="space-y-0.5">
                                   <div className="text-[8px] font-extrabold tracking-wider uppercase text-rose-500/80 dark:text-rose-400/80">
                                     Video Production
@@ -837,14 +889,17 @@ const Clients = () => {
                                   <div className="flex flex-wrap gap-1">
                                     {client.shoot > 0 && (
                                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-405 border border-rose-100 dark:border-rose-900/30 font-bold text-[9px]">
-                                        <FiVideo size={8.5} /> {client.shoot} Shoots
+                                        <FiVideo size={8.5} /> {client.shoot}{" "}
+                                        Shoots
                                       </span>
                                     )}
-                                    {client.needDslr && client.needDslr !== "No DSLR" && (
-                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30 font-bold text-[9px]">
-                                        <FiVideo size={8.5} /> DSLR: {client.needDslr}
-                                      </span>
-                                    )}
+                                    {client.needDslr &&
+                                      client.needDslr !== "No DSLR" && (
+                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30 font-bold text-[9px]">
+                                          <FiVideo size={8.5} /> DSLR:{" "}
+                                          {client.needDslr}
+                                        </span>
+                                      )}
                                   </div>
                                 </div>
                               )}
@@ -857,7 +912,8 @@ const Clients = () => {
                                   </div>
                                   <div className="flex flex-wrap gap-1">
                                     <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30 font-bold text-[9px]">
-                                      <FiGlobe size={8.5} /> {client.pages} Pages
+                                      <FiGlobe size={8.5} /> {client.pages}{" "}
+                                      Pages
                                     </span>
                                   </div>
                                 </div>
@@ -885,9 +941,16 @@ const Clients = () => {
                               )}
 
                               {/* Empty State Fallback */}
-                              {!client.posts && !client.reels && !client.shoot && !client.pages && !client.onpage && !client.offpage && (
-                                <span className="text-[10px] text-slate-400 dark:text-slate-500 italic">No deliverables set.</span>
-                              )}
+                              {!client.posts &&
+                                !client.reels &&
+                                !client.shoot &&
+                                !client.pages &&
+                                !client.onpage &&
+                                !client.offpage && (
+                                  <span className="text-[10px] text-slate-400 dark:text-slate-500 italic">
+                                    No deliverables set.
+                                  </span>
+                                )}
                             </div>
                           </td>
 
@@ -927,10 +990,18 @@ const Clients = () => {
                             <td className={cellClass}>
                               <div className="space-y-0.5">
                                 <div className="text-[11.5px] font-extrabold text-slate-800 dark:text-slate-200">
-                                  ₹{Number(client.totalBudget || 0).toLocaleString("en-IN")}
+                                  ₹
+                                  {Number(
+                                    client.totalBudget || 0,
+                                  ).toLocaleString("en-IN")}
                                 </div>
                                 <div className="text-[9.5px] font-bold text-slate-400 dark:text-slate-500 flex items-center gap-1">
-                                  <span>Base: ₹{Number(client.budget || 0).toLocaleString("en-IN")}</span>
+                                  <span>
+                                    Base: ₹
+                                    {Number(client.budget || 0).toLocaleString(
+                                      "en-IN",
+                                    )}
+                                  </span>
                                   <span>•</span>
                                   <span>GST: {client.gst}%</span>
                                 </div>
@@ -955,7 +1026,10 @@ const Clients = () => {
                                   className="w-7 h-7 flex items-center justify-center bg-slate-50 hover:bg-rose-50 dark:bg-slate-800/50 dark:hover:bg-rose-955/20 text-slate-450 hover:text-rose-600 dark:hover:text-rose-400 border theme-border hover:border-rose-200 dark:hover:border-rose-900 rounded-lg transition-all active:scale-95 cursor-pointer"
                                   title="Delete Record"
                                 >
-                                  <FiTrash2 size={12} className="stroke-[2.5]" />
+                                  <FiTrash2
+                                    size={12}
+                                    className="stroke-[2.5]"
+                                  />
                                 </button>
                               </div>
                             </td>
@@ -1026,26 +1100,30 @@ const Clients = () => {
                 >
                   Previous
                 </button>
-                
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                  const isSelected = page === currentPage;
-                  return (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`h-6 w-6 rounded-md text-[10px] font-extrabold flex items-center justify-center transition-all ${
-                        isSelected
-                          ? "theme-bg-accent text-white dark:text-black font-black"
-                          : "bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  );
-                })}
+
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => {
+                    const isSelected = page === currentPage;
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`h-6 w-6 rounded-md text-[10px] font-extrabold flex items-center justify-center transition-all ${
+                          isSelected
+                            ? "theme-bg-accent text-white dark:text-black font-black"
+                            : "bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    );
+                  },
+                )}
 
                 <button
-                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(p + 1, totalPages))
+                  }
                   disabled={currentPage === totalPages}
                   className="px-2.5 py-1 rounded-lg border border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 text-[10px] font-bold theme-text-primary disabled:opacity-40 disabled:pointer-events-none transition-all active:scale-95 cursor-pointer"
                 >
@@ -1214,28 +1292,46 @@ const Clients = () => {
                             </label>
                           </div>
                           <div className="grid grid-cols-5 sm:grid-cols-8 gap-3 bg-slate-50/50 dark:bg-slate-800/30 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
-                            {Object.entries(CLIENT_ICONS).map(([key, IconComponent]) => {
-                              const isSelected = formData.icon === key;
-                              return (
-                                <button
-                                  key={key}
-                                  type="button"
-                                  onClick={() => setFormData(prev => ({ ...prev, icon: key }))}
-                                  className={`w-12 h-12 rounded-[1.25rem] flex flex-col items-center justify-center transition-all duration-300 cursor-pointer ${
-                                    isSelected 
-                                      ? 'shadow-md scale-110 ring-2 ring-offset-2 dark:ring-offset-slate-900 bg-white dark:bg-slate-800' 
-                                      : 'hover:scale-105 hover:bg-white dark:hover:bg-slate-700/50 hover:shadow-sm'
-                                  }`}
-                                  style={{
-                                    color: isSelected ? formData.color : "rgb(148, 163, 184)",
-                                    ringColor: isSelected ? formData.color : "transparent"
-                                  }}
-                                  title={key.replace("Fa", "").replace("Fi", "")}
-                                >
-                                  <IconComponent size={22} className={isSelected ? 'drop-shadow-sm' : ''} />
-                                </button>
-                              );
-                            })}
+                            {Object.entries(CLIENT_ICONS).map(
+                              ([key, IconComponent]) => {
+                                const isSelected = formData.icon === key;
+                                return (
+                                  <button
+                                    key={key}
+                                    type="button"
+                                    onClick={() =>
+                                      setFormData((prev) => ({
+                                        ...prev,
+                                        icon: key,
+                                      }))
+                                    }
+                                    className={`w-12 h-12 rounded-[1.25rem] flex flex-col items-center justify-center transition-all duration-300 cursor-pointer ${
+                                      isSelected
+                                        ? "shadow-md scale-110 ring-2 ring-offset-2 dark:ring-offset-slate-900 bg-white dark:bg-slate-800"
+                                        : "hover:scale-105 hover:bg-white dark:hover:bg-slate-700/50 hover:shadow-sm"
+                                    }`}
+                                    style={{
+                                      color: isSelected
+                                        ? formData.color
+                                        : "rgb(148, 163, 184)",
+                                      ringColor: isSelected
+                                        ? formData.color
+                                        : "transparent",
+                                    }}
+                                    title={key
+                                      .replace("Fa", "")
+                                      .replace("Fi", "")}
+                                  >
+                                    <IconComponent
+                                      size={22}
+                                      className={
+                                        isSelected ? "drop-shadow-sm" : ""
+                                      }
+                                    />
+                                  </button>
+                                );
+                              },
+                            )}
                           </div>
                         </div>
 
@@ -1257,35 +1353,65 @@ const Clients = () => {
                                 <button
                                   key={c}
                                   type="button"
-                                  onClick={() => setFormData(prev => ({ ...prev, color: c }))}
+                                  onClick={() =>
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      color: c,
+                                    }))
+                                  }
                                   className={`w-8 h-8 rounded-full transition-all duration-300 cursor-pointer flex items-center justify-center ${
-                                    isSelected ? 'scale-110 shadow-lg ring-2 ring-offset-2 dark:ring-offset-slate-900' : 'hover:scale-110 hover:shadow-md'
+                                    isSelected
+                                      ? "scale-110 shadow-lg ring-2 ring-offset-2 dark:ring-offset-slate-900"
+                                      : "hover:scale-110 hover:shadow-md"
                                   }`}
                                   style={{
                                     backgroundColor: c,
-                                    ringColor: isSelected ? c : "transparent"
+                                    ringColor: isSelected ? c : "transparent",
                                   }}
                                 >
-                                  {isSelected && <FiCheck size={14} className="text-white drop-shadow-md" />}
+                                  {isSelected && (
+                                    <FiCheck
+                                      size={14}
+                                      className="text-white drop-shadow-md"
+                                    />
+                                  )}
                                 </button>
                               );
                             })}
-                            
+
                             <div className="w-px h-8 bg-slate-200 dark:bg-slate-700 mx-2" />
-                            
-                            <label 
+
+                            <label
                               className={`relative h-10 px-4 rounded-xl border-2 border-dashed bg-white dark:bg-slate-800 cursor-pointer flex items-center justify-center shadow-sm transition-all duration-300 hover:border-slate-400 dark:hover:border-slate-500 ${
-                                !CLIENT_COLORS.some(colorItem => (colorItem.value || colorItem) === formData.color) ? 'border-solid shadow-md ring-2 ring-offset-2 dark:ring-offset-slate-900 scale-105' : 'border-slate-300 dark:border-slate-600 hover:scale-105'
+                                !CLIENT_COLORS.some(
+                                  (colorItem) =>
+                                    (colorItem.value || colorItem) ===
+                                    formData.color,
+                                )
+                                  ? "border-solid shadow-md ring-2 ring-offset-2 dark:ring-offset-slate-900 scale-105"
+                                  : "border-slate-300 dark:border-slate-600 hover:scale-105"
                               }`}
                               style={{
-                                borderColor: !CLIENT_COLORS.some(colorItem => (colorItem.value || colorItem) === formData.color) ? formData.color : undefined,
-                                ringColor: !CLIENT_COLORS.some(colorItem => (colorItem.value || colorItem) === formData.color) ? formData.color : "transparent"
+                                borderColor: !CLIENT_COLORS.some(
+                                  (colorItem) =>
+                                    (colorItem.value || colorItem) ===
+                                    formData.color,
+                                )
+                                  ? formData.color
+                                  : undefined,
+                                ringColor: !CLIENT_COLORS.some(
+                                  (colorItem) =>
+                                    (colorItem.value || colorItem) ===
+                                    formData.color,
+                                )
+                                  ? formData.color
+                                  : "transparent",
                               }}
                             >
                               <div className="flex items-center gap-2">
-                                <div 
-                                  className="w-4 h-4 rounded-full shadow-inner border border-black/10 dark:border-white/10" 
-                                  style={{ backgroundColor: formData.color }} 
+                                <div
+                                  className="w-4 h-4 rounded-full shadow-inner border border-black/10 dark:border-white/10"
+                                  style={{ backgroundColor: formData.color }}
                                 />
                                 <span className="text-[11px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                                   Custom
@@ -1834,8 +1960,7 @@ const Clients = () => {
                 Are you sure you want to permanently delete the client record
                 for{" "}
                 <span className="text-rose-600 dark:text-rose-400 font-extrabold inline-flex items-center gap-1 mx-1 translate-y-0.5">
-                  <FaRegBuilding size={11} />
-                  "{clientToDelete.companyName}"
+                  <FaRegBuilding size={11} />"{clientToDelete.companyName}"
                 </span>
                 ?
               </p>

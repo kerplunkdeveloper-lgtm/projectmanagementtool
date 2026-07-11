@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { useTheme } from "../../../context/ThemeContext";
 import { useGetTasksQuery } from "../../../features/api/apiSlice";
 import { getDesignerEodReports } from "../../../features/eodReports/designerEodReportSlice";
 import {
@@ -21,22 +22,48 @@ import {
   FiFilter,
   FiChevronDown,
   FiCheckCircle,
+  FiUsers,
+  FiLayers,
+  FiBriefcase,
+  FiTrendingUp,
 } from "react-icons/fi";
 
 const GraphicDesignerDashboard = () => {
   const dispatch = useDispatch();
+  const { theme } = useTheme();
+  const isDarkMode =
+    theme === "dark" ||
+    (theme === "system" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
   const { users } = useSelector((state) => state.users);
   const { projects } = useSelector((state) => state.projects);
   const { clients } = useSelector((state) => state.clients);
-  const { designerEodReports = [] } = useSelector((state) => state.designerEodReports || {});
+  const { designerEodReports = [] } = useSelector(
+    (state) => state.designerEodReports || {},
+  );
   const { data: allTasks = [], isLoading } = useGetTasksQuery();
 
-  const [dateFilter, setDateFilter] = useState("All Time");
+  const [dateFilter, setDateFilter] = useState("Today");
   const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
-    dispatch(getDesignerEodReports());
-  }, [dispatch]);
+    const params = {};
+    if (dateFilter === "Today") {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      params.date = `${year}-${month}-${day}`;
+    } else if (dateFilter === "Yesterday") {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const year = yesterday.getFullYear();
+      const month = String(yesterday.getMonth() + 1).padStart(2, "0");
+      const day = String(yesterday.getDate()).padStart(2, "0");
+      params.date = `${year}-${month}-${day}`;
+    }
+    dispatch(getDesignerEodReports(params));
+  }, [dispatch, dateFilter]);
 
   // 1. Filter Graphic Designers
   const designers = useMemo(() => {
@@ -170,36 +197,85 @@ const GraphicDesignerDashboard = () => {
 
         if (t.actualStartTime) {
           const start = new Date(t.actualStartTime).getTime();
-          const end = t.actualEndTime ? new Date(t.actualEndTime).getTime() : Date.now();
+          const end = t.actualEndTime
+            ? new Date(t.actualEndTime).getTime()
+            : Date.now();
           totalLoggedMs += Math.max(0, end - start);
         }
       });
 
-      const avgRevisions = myTasks.length > 0 ? totalRevisions / myTasks.length : 0;
+      const avgRevisions =
+        myTasks.length > 0 ? totalRevisions / myTasks.length : 0;
       const totalHours = totalLoggedMs / (1000 * 60 * 60);
 
-      // Find today's EOD report for this designer
-      const todayStr = new Date().toISOString().split("T")[0];
-      const designerReport = designerEodReports?.find((report) => {
-        const rUserId = typeof report.user === "object" ? report.user?._id : report.user;
-        if (rUserId !== designer._id) return false;
-        const reportDate = new Date(report.date).toISOString().split("T")[0];
-        return reportDate === todayStr;
-      });
+      const getLocalDateString = (date = new Date()) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      };
+
+      // Filter reports for this designer
+      const designerReports =
+        designerEodReports?.filter((report) => {
+          const rUserId =
+            typeof report.user === "object" ? report.user?._id : report.user;
+          return rUserId === designer._id;
+        }) || [];
+
+      // Find the one that matches the dateFilter
+      let designerReport = null;
+      if (dateFilter === "Today") {
+        const todayStr = getLocalDateString();
+        designerReport = designerReports.find((report) => {
+          const reportDate = new Date(report.date).toISOString().split("T")[0];
+          return reportDate === todayStr;
+        });
+      } else if (dateFilter === "Yesterday") {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = getLocalDateString(yesterday);
+        designerReport = designerReports.find((report) => {
+          const reportDate = new Date(report.date).toISOString().split("T")[0];
+          return reportDate === yesterdayStr;
+        });
+      } else {
+        // For range filters, find the latest report within the filter range
+        designerReport = designerReports.find((report) => {
+          const reportDate = new Date(report.date);
+          if (dateFilter === "Last 7 Days") {
+            return isAfter(reportDate, subDays(new Date(), 7));
+          } else if (dateFilter === "This Month") {
+            return isSameMonth(reportDate, new Date());
+          }
+          return true; // All Time
+        });
+      }
 
       let lastSubmittedStr = "Not submitted";
       if (designerReport) {
         if (designerReport.isDraft) {
           lastSubmittedStr = "Draft";
         } else {
-          lastSubmittedStr = format(new Date(designerReport.updatedAt), "h:mm a");
+          const reportUpdatedAt = new Date(designerReport.updatedAt);
+          if (isToday(reportUpdatedAt)) {
+            lastSubmittedStr = format(reportUpdatedAt, "h:mm a");
+          } else {
+            lastSubmittedStr = format(reportUpdatedAt, "MMM dd, h:mm a");
+          }
         }
       }
 
       return {
         id: designer._id,
         name: designer.name,
-        profileImage: designer.profilePic || designer.profileImage || designer.avatar || (designer.profile && designer.profile.profilePic),
+        profileImage:
+          (typeof designer.profile?.profileImage === "object" ? designer.profile?.profileImage?.url : designer.profile?.profileImage) ||
+          (typeof designer.profileImage === "object" ? designer.profileImage?.url : designer.profileImage) ||
+          designer.profilePic ||
+          designer.avatar ||
+          designer.profile?.profilePic ||
+          designer.profile?.avatar,
         assigned: myTasks.length,
         completed: comp,
         pending: pend,
@@ -209,7 +285,7 @@ const GraphicDesignerDashboard = () => {
         lastSubmitted: lastSubmittedStr,
       };
     });
-  }, [designers, designerTasks, designerEodReports]);
+  }, [designers, designerTasks, designerEodReports, dateFilter]);
 
   // 6. Client Progress
   const clientProgress = useMemo(() => {
@@ -292,7 +368,7 @@ const GraphicDesignerDashboard = () => {
   };
 
   return (
-    <div className="bg-white dark:bg-[#0b1120] space-y-8 font-sans mt-8 overflow-visible transition-colors duration-300 relative">
+    <div className="bg-white dark:bg-[#0b1120] py-4 md:py-4 px-0 md:px-6 space-y-8 font-sans mt-8 overflow-visible transition-colors duration-300 relative">
       {/* Decorative Blur Backgrounds for Dark Mode Premium Feel */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden rounded-3xl pointer-events-none hidden dark:block">
         <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-indigo-500/10 blur-[120px] rounded-full" />
@@ -301,14 +377,14 @@ const GraphicDesignerDashboard = () => {
 
       {/* Header & Filter */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-20">
-        <div className="space-y-1">
-          <h2 className="text-xl lg:text-xl font-black tracking-tight text-slate-800 dark:text-white flex items-center gap-3">
+        <div className="space-y-1 ">
+          <h2 className="text-xl lg:text-md font-black tracking-tight text-slate-800 dark:text-white flex items-center justify-center gap-3">
             <div className="p-2 bg-emerald-100 dark:bg-emerald-500/20 rounded-xl">
               <FiActivity className="text-emerald-600 dark:text-emerald-400 text-xl" />
             </div>
             Graphic Designer Board
           </h2>
-          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider uppercase pl-12">
+          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider  pl-12">
             Real-time analytics & task tracking
           </p>
         </div>
@@ -370,64 +446,121 @@ const GraphicDesignerDashboard = () => {
           {
             label: "Designers",
             value: metrics.designersWorking,
-            color: "text-blue-600 dark:text-blue-400",
-            bg: "bg-blue-50 dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#050b14] border-blue-100 dark:border-blue-500/30 dark:shadow-[0_0_15px_rgba(59,130,246,0.15)]",
+            icon: FiUsers,
+            glow: "hover:shadow-[0_4px_20px_rgba(59,130,246,0.15)]",
+            bg: "bg-blue-500/5 dark:bg-blue-500/10 border-blue-500/30 dark:border-blue-500/20",
+            labelColor: "text-blue-600 dark:text-blue-400",
+            valueColor: "text-slate-800 dark:text-slate-100",
+            iconBg:
+              "bg-blue-100 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-500/20",
+            iconColor: "text-blue-600 dark:text-blue-400",
           },
           {
             label: "Tasks Assigned",
             value: metrics.tasksAssigned,
-            color: "text-indigo-600 dark:text-indigo-400",
-            bg: "bg-indigo-50 dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#050b14] border-indigo-100 dark:border-indigo-500/30 dark:shadow-[0_0_15px_rgba(99,102,241,0.15)]",
+            icon: FiLayers,
+            glow: "hover:shadow-[0_4px_20px_rgba(99,102,241,0.15)]",
+            bg: "bg-indigo-500/5 dark:bg-indigo-500/10 border-indigo-500/30 dark:border-indigo-500/20",
+            labelColor: "text-indigo-600 dark:text-indigo-400",
+            valueColor: "text-slate-800 dark:text-slate-100",
+            iconBg:
+              "bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-500/20",
+            iconColor: "text-indigo-600 dark:text-indigo-400",
           },
           {
             label: "Completed",
             value: metrics.completed,
-            color: "text-emerald-600 dark:text-emerald-400",
-            bg: "bg-emerald-50 dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#050b14] border-emerald-100 dark:border-emerald-500/30 dark:shadow-[0_0_15px_rgba(16,185,129,0.15)]",
+            icon: FiCheckCircle,
+            glow: "hover:shadow-[0_4px_20px_rgba(16,185,129,0.15)]",
+            bg: "bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/30 dark:border-emerald-500/20",
+            labelColor: "text-emerald-600 dark:text-emerald-400",
+            valueColor: "text-slate-800 dark:text-slate-100",
+            iconBg:
+              "bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-500/20",
+            iconColor: "text-emerald-600 dark:text-emerald-400",
           },
           {
             label: "Pending",
             value: metrics.pending,
-            color: "text-amber-600 dark:text-amber-400",
-            bg: "bg-amber-50 dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#050b14] border-amber-100 dark:border-amber-500/30 dark:shadow-[0_0_15px_rgba(245,158,11,0.15)]",
+            icon: FiClock,
+            glow: "hover:shadow-[0_4px_20px_rgba(245,158,11,0.15)]",
+            bg: "bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/30 dark:border-amber-500/20",
+            labelColor: "text-amber-600 dark:text-amber-400",
+            valueColor: "text-slate-800 dark:text-slate-100",
+            iconBg:
+              "bg-amber-100 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-500/20",
+            iconColor: "text-amber-600 dark:text-amber-400",
           },
           {
             label: "Overdue",
             value: metrics.overdue,
-            color: "text-rose-600 dark:text-rose-400",
-            bg: "bg-rose-50 dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#050b14] border-rose-100 dark:border-rose-500/30 dark:shadow-[0_0_15px_rgba(244,63,94,0.15)]",
+            icon: FiAlertCircle,
+            glow: "hover:shadow-[0_4px_20px_rgba(244,63,94,0.15)]",
+            bg: "bg-rose-500/5 dark:bg-rose-500/10 border-rose-500/30 dark:border-rose-500/20",
+            labelColor: "text-rose-650 dark:text-rose-400",
+            valueColor: "text-slate-800 dark:text-slate-100",
+            iconBg:
+              "bg-rose-100 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/20",
+            iconColor: "text-rose-600 dark:text-rose-400",
           },
           {
             label: "In Revision",
             value: metrics.inRevision,
-            color: "text-fuchsia-600 dark:text-fuchsia-400",
-            bg: "bg-fuchsia-50 dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#050b14] border-fuchsia-100 dark:border-fuchsia-500/30 dark:shadow-[0_0_15px_rgba(217,70,239,0.15)]",
+            icon: FiActivity,
+            glow: "hover:shadow-[0_4px_20px_rgba(217,70,239,0.15)]",
+            bg: "bg-fuchsia-500/5 dark:bg-fuchsia-500/10 border-fuchsia-500/30 dark:border-fuchsia-500/20",
+            labelColor: "text-fuchsia-600 dark:text-fuchsia-400",
+            valueColor: "text-slate-800 dark:text-slate-100",
+            iconBg:
+              "bg-fuchsia-100 dark:bg-fuchsia-950/60 border border-fuchsia-200 dark:border-fuchsia-500/20",
+            iconColor: "text-fuchsia-600 dark:text-fuchsia-400",
           },
           {
             label: "Client Approval",
             value: metrics.clientApproval,
-            color: "text-cyan-600 dark:text-cyan-400",
-            bg: "bg-cyan-50 dark:bg-gradient-to-br dark:from-slate-900 dark:to-[#050b14] border-cyan-100 dark:border-cyan-500/30 dark:shadow-[0_0_15px_rgba(6,182,212,0.15)]",
+            icon: FiTrendingUp,
+            glow: "hover:shadow-[0_4px_20px_rgba(6,182,212,0.15)]",
+            bg: "bg-cyan-500/5 dark:bg-cyan-500/10 border-cyan-500/30 dark:border-cyan-500/20",
+            labelColor: "text-cyan-600 dark:text-cyan-400",
+            valueColor: "text-slate-800 dark:text-slate-100",
+            iconBg:
+              "bg-cyan-100 dark:bg-cyan-950/60 border border-cyan-200 dark:border-cyan-500/20",
+            iconColor: "text-cyan-600 dark:text-cyan-400",
           },
-        ].map((m, i) => (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            key={i}
-            className={`flex flex-col items-center justify-center text-center p-4 rounded-2xl border ${m.bg} shadow-sm dark:shadow-lg relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 backdrop-blur-md`}
-          >
-            <div className="absolute inset-0 bg-white/40 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <span
-              className={`text-3xl font-black ${m.color} relative z-10 drop-shadow-sm`}
+        ].map((m, i) => {
+          const IconComponent = m.icon;
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              key={i}
+              className={`flex flex-col text-left p-5 rounded-2xl border ${m.bg} ${m.glow} relative overflow-hidden group hover:scale-[1.03] transition-all duration-300 backdrop-blur-md shadow-sm`}
             >
-              {m.value}
-            </span>
-            <span className="text-[10px] font-extrabold text-slate-600 dark:text-slate-300 tracking-widest uppercase mt-1.5 leading-tight relative z-10">
-              {m.label}
-            </span>
-          </motion.div>
-        ))}
+              {/* Decorative light reflection overlay */}
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-white/10 to-transparent rounded-full -mr-6 -mt-6 blur-md pointer-events-none" />
+
+              <div className="flex items-center justify-between mb-3 relative z-10">
+                <span
+                  className={`text-3xl font-black ${m.valueColor} tracking-tight`}
+                >
+                  {m.value}
+                </span>
+                <div
+                  className={`p-2.5 rounded-xl ${m.iconBg} group-hover:scale-110 transition-transform duration-300`}
+                >
+                  <IconComponent size={18} className={m.iconColor} />
+                </div>
+              </div>
+
+              <span
+                className={`text-[10px] font-black tracking-widest uppercase mt-1 leading-tight relative z-10 ${m.labelColor}`}
+              >
+                {m.label}
+              </span>
+            </motion.div>
+          );
+        })}
       </div>
 
       {/* Pulse Line */}
@@ -537,7 +670,7 @@ const GraphicDesignerDashboard = () => {
               Designer performance
             </h3>
             <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-              today
+              {dateFilter}
             </span>
           </div>
           <div className="overflow-x-auto">
@@ -578,7 +711,11 @@ const GraphicDesignerDashboard = () => {
                   >
                     <td className="p-4 text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
                       {tp.profileImage ? (
-                        <img src={tp.profileImage} alt={tp.name} className="w-6 h-6 rounded-full object-cover" />
+                        <img
+                          src={tp.profileImage}
+                          alt={tp.name}
+                          className="w-6 h-6 rounded-full object-cover"
+                        />
                       ) : (
                         <div className="w-6 h-6 rounded-full bg-blue-900/90 dark:bg-blue-950 flex items-center justify-center text-white text-[9px] font-extrabold tracking-wider">
                           {getInitials(tp.name)}
@@ -603,10 +740,12 @@ const GraphicDesignerDashboard = () => {
                               tp.avgRevisions <= 1.5
                                 ? "bg-emerald-600 dark:bg-emerald-500"
                                 : tp.avgRevisions <= 3.0
-                                ? "bg-amber-600 dark:bg-amber-500"
-                                : "bg-rose-600 dark:bg-rose-500"
+                                  ? "bg-amber-600 dark:bg-amber-500"
+                                  : "bg-rose-600 dark:bg-rose-500"
                             }`}
-                            style={{ width: `${Math.min(100, (tp.avgRevisions / 5) * 100)}%` }}
+                            style={{
+                              width: `${Math.min(100, (tp.avgRevisions / 5) * 100)}%`,
+                            }}
                           />
                         </div>
                         <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
@@ -617,10 +756,14 @@ const GraphicDesignerDashboard = () => {
                     <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-300">
                       {tp.totalHours.toFixed(1)}h
                     </td>
-                    <td className={`p-4 text-sm font-black ${tp.overdue > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-500 dark:text-slate-400"}`}>
+                    <td
+                      className={`p-4 text-sm font-black ${tp.overdue > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-500 dark:text-slate-400"}`}
+                    >
                       {tp.overdue}
                     </td>
-                    <td className={`p-4 text-xs font-bold ${tp.lastSubmitted === "Not submitted" ? "text-slate-400 dark:text-slate-500 font-semibold" : "text-slate-700 dark:text-slate-300"}`}>
+                    <td
+                      className={`p-4 text-xs font-bold ${tp.lastSubmitted === "Not submitted" ? "text-slate-400 dark:text-slate-500 font-semibold" : "text-slate-700 dark:text-slate-300"}`}
+                    >
                       {tp.lastSubmitted}
                     </td>
                   </tr>

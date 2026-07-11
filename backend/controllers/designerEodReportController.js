@@ -13,9 +13,9 @@ exports.createDesignerEodReport = async (req, res) => {
 
     const reportDate = date ? new Date(date) : new Date();
     const startOfDay = new Date(reportDate);
-    startOfDay.setHours(0, 0, 0, 0);
+    startOfDay.setUTCHours(0, 0, 0, 0);
     const endOfDay = new Date(reportDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    endOfDay.setUTCHours(23, 59, 59, 999);
 
     let report = await DesignerEodReport.findOne({
       user: req.user._id,
@@ -38,6 +38,23 @@ exports.createDesignerEodReport = async (req, res) => {
         daySummary: daySummary || { toolsIssues: "", clientCalls: "", anythingElseOps: "" },
         isDraft: isDraft !== undefined ? isDraft : true,
       });
+    }
+
+    // Sync task status and revisions back to Task collection in the database
+    if (tasks && tasks.length > 0) {
+      const Task = require("../models/Task");
+      for (const t of tasks) {
+        if (t.taskId) {
+          const updateData = {};
+          if (t.statusAtEod) {
+            updateData.status = t.statusAtEod;
+          }
+          if (t.revisions !== undefined) {
+            updateData.revisions = t.revisions;
+          }
+          await Task.findByIdAndUpdate(t.taskId, updateData);
+        }
+      }
     }
 
     const populatedReport = await DesignerEodReport.findById(report._id)
@@ -109,9 +126,9 @@ exports.getDesignerEodReports = async (req, res) => {
     // Filter by Date
     if (req.query.date) {
       const startOfDay = new Date(req.query.date);
-      startOfDay.setHours(0, 0, 0, 0);
+      startOfDay.setUTCHours(0, 0, 0, 0);
       const endOfDay = new Date(req.query.date);
-      endOfDay.setHours(23, 59, 59, 999);
+      endOfDay.setUTCHours(23, 59, 59, 999);
       query.date = { $gte: startOfDay, $lte: endOfDay };
     }
 
@@ -198,6 +215,23 @@ exports.updateDesignerEodReport = async (req, res) => {
     })
       .populate("user", "name email profile department")
       .populate("tasks.reviewedBy", "name email profile department");
+
+    // Sync task status and revisions back to Task collection in the database
+    if (req.body.tasks && req.body.tasks.length > 0) {
+      const Task = require("../models/Task");
+      for (const t of req.body.tasks) {
+        if (t.taskId) {
+          const updateData = {};
+          if (t.statusAtEod) {
+            updateData.status = t.statusAtEod;
+          }
+          if (t.revisions !== undefined) {
+            updateData.revisions = t.revisions;
+          }
+          await Task.findByIdAndUpdate(t.taskId, updateData);
+        }
+      }
+    }
 
     res.status(200).json({
       success: true,

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useGetTasksQuery, useGetProjectsQuery } from "../../features/api/apiSlice";
 import { getUsers } from "../../features/users/userSlice";
+import { format } from "date-fns";
 import {
   getDesignerEodReports,
   createDesignerEodReport,
@@ -31,6 +32,32 @@ const getPriorityStyle = (priority) => {
   if (p.includes("low"))
     return "bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/30";
   return "bg-slate-50 text-slate-500 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800";
+};
+
+const safeFormatDate = (dateStr, formatPattern = "MMM dd, yyyy") => {
+  if (!dateStr) return "";
+  const date = new Date(dateStr + "T12:00:00");
+  if (isNaN(date.getTime())) {
+    return dateStr;
+  }
+  try {
+    return format(date, formatPattern);
+  } catch (e) {
+    return dateStr;
+  }
+};
+
+const safeFormatDateTime = (timeStr, formatPattern = "MMM dd, yyyy h:mm a") => {
+  if (!timeStr) return "";
+  const date = new Date(timeStr);
+  if (isNaN(date.getTime())) {
+    return "";
+  }
+  try {
+    return format(date, formatPattern);
+  } catch (e) {
+    return "";
+  }
 };
 
 const formatElapsed = (startTime, endTime) => {
@@ -107,7 +134,7 @@ const EodReports = () => {
   const { users } = useSelector((state) => state.users);
   const { designerEodReports, loading: reportLoading } = useSelector((state) => state.designerEodReports);
 
-  const { data: allTasks = [], isLoading: tasksLoading } = useGetTasksQuery();
+  const { data: allTasks = [], isLoading: tasksLoading, refetch: refetchTasks } = useGetTasksQuery();
   const { data: projects = [], isLoading: projectsLoading } = useGetProjectsQuery();
 
   // State fields
@@ -122,20 +149,51 @@ const EodReports = () => {
   const [reportId, setReportId] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  // Fetch users and designer EOD report for today
+  const getLocalDateString = (date = new Date()) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const [selectedDate, setSelectedDate] = useState(getLocalDateString());
+
+  // Fetch users and designer EOD report
   useEffect(() => {
     dispatch(getUsers());
-    const todayStr = new Date().toISOString().split("T")[0];
-    dispatch(getDesignerEodReports({ date: todayStr }));
   }, [dispatch]);
 
-  // Filter tasks assigned to me
+  useEffect(() => {
+    if (selectedDate) {
+      dispatch(getDesignerEodReports({ date: selectedDate }));
+    }
+  }, [dispatch, selectedDate]);
+
+  // Filter tasks assigned to me for the selected date
   const myTasks = React.useMemo(() => {
     return allTasks.filter((task) => {
       const assigneeId = task.assignedTo?._id || task.assignedTo;
-      return assigneeId === (user?._id || user?.id);
+      const isAssignedToMe = assigneeId === (user?._id || user?.id);
+      if (!isAssignedToMe) return false;
+
+      // Filter strictly by selectedDate
+      if (!task.createdAt) return false;
+      
+      const taskDate = new Date(task.createdAt);
+      const year = taskDate.getFullYear();
+      const month = String(taskDate.getMonth() + 1).padStart(2, '0');
+      const day = String(taskDate.getDate()).padStart(2, '0');
+      const taskDateStr = `${year}-${month}-${day}`;
+      
+      const taskUpdate = new Date(task.updatedAt || task.createdAt);
+      const yearU = taskUpdate.getFullYear();
+      const monthU = String(taskUpdate.getMonth() + 1).padStart(2, '0');
+      const dayU = String(taskUpdate.getDate()).padStart(2, '0');
+      const taskUpdateStr = `${yearU}-${monthU}-${dayU}`;
+
+      return taskDateStr === selectedDate || taskUpdateStr === selectedDate;
     });
-  }, [allTasks, user]);
+  }, [allTasks, user, selectedDate]);
 
   // Generate task display ID (e.g. WBLT1)
   const getTaskDisplayId = (task) => {
@@ -166,14 +224,13 @@ const EodReports = () => {
     return `${projChar}${clientChars}T${num}`;
   };
 
-  // Find today's report
+  // Find report for the selected date
   const todayReport = React.useMemo(() => {
-    const todayStr = new Date().toISOString().split("T")[0];
     return designerEodReports?.find((report) => {
       const reportDate = new Date(report.date).toISOString().split("T")[0];
-      return reportDate === todayStr;
+      return reportDate === selectedDate;
     });
-  }, [designerEodReports]);
+  }, [designerEodReports, selectedDate]);
 
   // Reviewers list (admin and operation managers)
   const reviewers = React.useMemo(() => {
@@ -216,9 +273,40 @@ const EodReports = () => {
               nextAction: t.nextAction || "",
               reviewedBy: t.reviewedBy?._id || t.reviewedBy || "",
               code: taskCode,
+              createdAt: correspondingTask?.createdAt || t.createdAt,
             };
           })
         );
+      } else if (myTasks.length > 0) {
+        setTasksState(
+          myTasks.map((t) => {
+            const clientName = t.project?.client?.companyName || "Internal";
+            const projectName = t.project?.name || "Internal";
+            const elapsedStr = formatElapsed(t.actualStartTime, t.actualEndTime);
+            const taskCode = getTaskDisplayId(t);
+
+            return {
+              id: t._id,
+              taskId: t._id,
+              title: t.title,
+              project: projectName,
+              priority: t.priority,
+              contentType: t.contentType || "",
+              client: clientName,
+              revision: t.revisions || 0,
+              time: elapsedStr,
+              statusAtEod: mapTaskStatusToEodStatus(t.status),
+              outputLink: "",
+              reason: "",
+              nextAction: "",
+              reviewedBy: "",
+              code: taskCode,
+              createdAt: t.createdAt,
+            };
+          })
+        );
+      } else {
+        setTasksState([]);
       }
     } else if (myTasks.length > 0) {
       setTasksState(
@@ -244,9 +332,21 @@ const EodReports = () => {
             nextAction: "",
             reviewedBy: "",
             code: taskCode,
+            createdAt: t.createdAt,
           };
         })
       );
+      setDaySummary({
+        toolsIssues: "None",
+        clientCalls: "",
+        anythingElseOps: "",
+      });
+      setTomorrowPlan("None");
+      setReportId(null);
+      setIsSubmitted(false);
+    } else {
+      // Reset form state for a fresh date with no tasks and no report
+      setTasksState([]);
       setDaySummary({
         toolsIssues: "None",
         clientCalls: "",
@@ -296,7 +396,7 @@ const EodReports = () => {
 
   const handleSave = async (isDraftSubmit) => {
     const payload = {
-      date: new Date().toISOString(),
+      date: selectedDate,
       isDraft: isDraftSubmit,
       tasks: tasksState.map((t) => ({
         taskId: t.taskId,
@@ -312,6 +412,7 @@ const EodReports = () => {
         reason: t.reason,
         nextAction: t.nextAction,
         reviewedBy: t.reviewedBy || undefined,
+        createdAt: t.createdAt,
       })),
       daySummary,
       tomorrowPlan,
@@ -324,8 +425,8 @@ const EodReports = () => {
       } else {
         await dispatch(createDesignerEodReport(payload)).unwrap();
       }
-      const todayStr = new Date().toISOString().split("T")[0];
-      dispatch(getDesignerEodReports({ date: todayStr }));
+      dispatch(getDesignerEodReports({ date: selectedDate }));
+      refetchTasks();
     } catch (err) {
       console.error("Failed to save report:", err);
     }
@@ -361,24 +462,25 @@ const EodReports = () => {
       {/* Header Card */}
       <div className="theme-bg-card  ">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div>
+          <div className="text-left">
             <h1 className="text-md font-bold theme-text-primary text-left">
-              Today's Tasks — {user?.name || "Member"}  
+              {selectedDate === getLocalDateString() ? "Today's Tasks" : `Tasks for ${safeFormatDate(selectedDate)}`} — {user?.name || "Member"}
             </h1>
             <p className="theme-text-secondary text-xs font-semibold mt-1 text-left">
-              Review and submit EOD reports for tasks assigned to you today.
+              {selectedDate === getLocalDateString()
+                ? "Review and submit EOD reports for tasks assigned to you today."
+                : `Review and submit EOD reports for tasks assigned to you on ${safeFormatDate(selectedDate)}.`}
             </p>
           </div>
 
-          <div className="flex items-center gap-2 bg-slate-50 border theme-border px-4 py-2 rounded-xl text-slate-700 dark:text-slate-300 self-start lg:self-auto">
-            <FiCalendar className="shrink-0 text-slate-400" />
-            <span className="font-semibold text-xs">
-              {new Date().toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              })}
-            </span>
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border theme-border px-4 py-2.5 rounded-xl text-slate-700 dark:text-slate-300 self-start lg:self-auto shadow-sm">
+            <FiCalendar className="shrink-0 text-indigo-500" />
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="bg-transparent text-xs font-bold outline-none cursor-pointer [&::-webkit-calendar-picker-indicator]:dark:invert"
+            />
           </div>
         </div>
       </div>
@@ -389,9 +491,13 @@ const EodReports = () => {
           <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400 border theme-border">
             <FiCheckCircle size={22} />
           </div>
-          <h3 className="font-bold theme-text-primary mt-4 text-sm">No Active Tasks</h3>
+          <h3 className="font-bold theme-text-primary mt-4 text-sm">
+            {selectedDate === getLocalDateString() ? "Today no task assigned" : "No tasks assigned for this date"}
+          </h3>
           <p className="text-xs theme-text-secondary mt-1 max-w-xs">
-            You don't have any tasks assigned for today. Go to Tasks board to pick up new work.
+            {selectedDate === getLocalDateString()
+              ? "You don't have any tasks assigned for today. Go to Tasks board to pick up new work."
+              : `You didn't have any tasks assigned on ${safeFormatDate(selectedDate)}.`}
           </p>
         </div>
       ) : (
@@ -422,6 +528,11 @@ const EodReports = () => {
                         <FiClock size={10} className="shrink-0" />
                         <span>Time spent: {task.time}</span>
                       </div>
+                    )}
+                    {task.createdAt && (
+                      <span className="bg-slate-50 text-slate-500 border border-slate-200/60 dark:bg-slate-900/10 dark:text-slate-400 dark:border-slate-800/60 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
+                        Created: {safeFormatDateTime(task.createdAt)}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -518,7 +629,8 @@ const EodReports = () => {
       {/* =========================================
                       DAY SUMMARY
       ========================================= */}
-      <div className="theme-bg-card border theme-border rounded-2xl mt-8 p-6 text-left shadow-sm">
+      {(tasksState.length > 0 || todayReport) && (
+        <div className="theme-bg-card border theme-border rounded-2xl mt-8 p-6 text-left shadow-sm">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3">
           <div>
             <h2 className="text-md font-bold theme-text-primary">EOD REPORT</h2>
@@ -594,14 +706,14 @@ const EodReports = () => {
 
         {/* Dynamic Task Summary List */}
         <div className="border-t theme-border  text-left">
-          {/* Completed Today Section */}
+          {/* Completed Section */}
           <div>
             <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 tracking-wider uppercase">
-              Completed Today
+              Completed Tasks
             </h3>
             <div className="mt-3 divide-y divide-slate-100 dark:divide-slate-800/40">
               {tasksState.filter((t) => t.statusAtEod === "Completed").length === 0 ? (
-                <p className="text-xs theme-text-secondary py-3 italic">No tasks completed today.</p>
+                <p className="text-xs theme-text-secondary py-3 italic">No tasks completed.</p>
               ) : (
                 tasksState
                   .filter((t) => t.statusAtEod === "Completed")
@@ -631,7 +743,7 @@ const EodReports = () => {
             </h3>
             <div className="mt-3 divide-y divide-slate-100 dark:divide-slate-800/40">
               {tasksState.filter((t) => t.statusAtEod !== "Completed").length === 0 ? (
-                <p className="text-xs theme-text-secondary py-3 italic">No pending tasks today.</p>
+                <p className="text-xs theme-text-secondary py-3 italic">No pending tasks.</p>
               ) : (
                 tasksState
                   .filter((t) => t.statusAtEod !== "Completed")
@@ -708,9 +820,10 @@ const EodReports = () => {
               )}
           </div>
 
+          {/* Overall Status */}
           <div>
             <label className="text-[10px] font-bold theme-text-secondary uppercase tracking-wider block">
-              Overall Today's status
+              Overall Status
             </label>
             <div className="relative mt-2">
               <FiAlertCircle className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={13} />
@@ -826,13 +939,14 @@ const EodReports = () => {
           ) : (
             <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-4 py-2 rounded-xl text-xs font-bold">
               <FiCheckCircle />
-              Report Submitted for Today
+              Report Submitted for {selectedDate === getLocalDateString() ? "Today" : safeFormatDate(selectedDate)}
             </div>
           )}
         </div>
       </div>
-    </div>
-  );
+    )}
+  </div>
+);
 };
 
 export default EodReports;

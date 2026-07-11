@@ -67,12 +67,31 @@ const TYPE_CONFIG = {
   },
 };
 
+const ACCENT_COLOR_MAP = {
+  default: "bg-blue-600 dark:bg-blue-500",
+  emerald: "bg-emerald-600 dark:bg-emerald-500",
+  violet: "bg-violet-600 dark:bg-violet-500",
+  amber: "bg-amber-600 dark:bg-amber-500",
+  rose: "bg-rose-600 dark:bg-rose-500",
+  cyan: "bg-cyan-600 dark:bg-cyan-500",
+  lime: "bg-lime-600 dark:bg-lime-500",
+  fuchsia: "bg-fuchsia-600 dark:bg-fuchsia-500",
+  teal: "bg-teal-600 dark:bg-teal-500",
+  red: "bg-red-600 dark:bg-red-500",
+  indigo: "bg-indigo-600 dark:bg-indigo-500",
+  gold: "bg-amber-700 dark:bg-amber-650",
+};
+
 const Dashboardmain = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
+  const { theme, accentColor } = useTheme();
+  const activeAccentBgClass = ACCENT_COLOR_MAP[accentColor] || ACCENT_COLOR_MAP.default;
+  const isDark =
+    theme === "dark" ||
+    (theme === "system" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
   const { events, loading } = useSelector((state) => state.events);
   const { projects } = useSelector((state) => state.projects);
   const { clients } = useSelector((state) => state.clients);
@@ -172,6 +191,7 @@ const Dashboardmain = () => {
   const [clientId, setClientId] = useState("");
   const [status, setStatus] = useState("Active");
   const [clientSearchQuery, setClientSearchQuery] = useState("");
+  const [activeDeptTab, setActiveDeptTab] = useState("Graphic Designer");
 
   const filterClients = React.useMemo(() => {
     const uniqueClientsMap = new Map();
@@ -200,6 +220,37 @@ const Dashboardmain = () => {
       c.industry?.toLowerCase().includes(clientSearchQuery.toLowerCase())
     );
   }, [clients, clientSearchQuery]);
+
+  const uniqueDepartments = React.useMemo(() => {
+    if (!users || users.length === 0) return ["Graphic Designer"];
+    const depts = users
+      .map((u) => u.department)
+      .filter((d) => d && d.trim() !== "");
+    const unique = Array.from(new Set(depts));
+    
+    const endDepts = [];
+    const middleDepts = [];
+    
+    unique.forEach((d) => {
+      const lower = d.toLowerCase();
+      if (lower.includes("managing partner") || lower.includes("operation manager")) {
+        endDepts.push(d);
+      } else if (d !== "Graphic Designer") {
+        middleDepts.push(d);
+      }
+    });
+
+    // Ensure they sort consistently: Managing partner then operation manager
+    endDepts.sort((a, b) => {
+      const aLower = a.toLowerCase();
+      const bLower = b.toLowerCase();
+      if (aLower.includes("managing partner") && bLower.includes("operation manager")) return -1;
+      if (aLower.includes("operation manager") && bLower.includes("managing partner")) return 1;
+      return 0;
+    });
+
+    return ["Graphic Designer", ...middleDepts, ...endDepts];
+  }, [users]);
 
   const getInitials = (name) => {
     if (!name) return "";
@@ -317,13 +368,13 @@ const Dashboardmain = () => {
 
               {/* CLIENT SEARCH INPUT */}
               <div className="relative shrink-0 w-36 sm:w-44">
-                <FiSearch className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={11} />
+              
                 <input
                   type="text"
                   placeholder="Search clients..."
                   value={clientSearchQuery}
                   onChange={(e) => setClientSearchQuery(e.target.value)}
-                  className="w-full pl-6 pr-6 py-0.5 rounded-lg bg-slate-50/50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700/60 focus:outline-none focus:border-blue-500 text-[10px] font-semibold theme-text-primary transition-all"
+                  className="w-full pl-8 pr-6 py-0.5 rounded-lg bg-slate-50/50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700/60 focus:outline-none focus:border-blue-500 text-[10px] font-semibold theme-text-primary transition-all"
                 />
                 {clientSearchQuery && (
                   <button
@@ -382,7 +433,55 @@ const Dashboardmain = () => {
 
       {/* ............................................status cards .......................................... */}
       {(user?.role === "admin" || user?.role === "operationmanager") && (
-        <GraphicDesignerDashboard />
+        <div className="w-full py-4 md:py-10">
+          {/* Department Tabs */}
+          <div className="flex justify-center w-full mb-8">
+            <div className={`flex gap-1.5 p-1.5  border rounded-2xl shadow-inner max-w-full overflow-x-auto scrollbar-hide backdrop-blur-md ${isDark ? "bg-slate-900/80 border-slate-800/80" : "bg-slate-100/80 border-slate-200/50"}`}>
+              {uniqueDepartments.map((dept) => {
+                const isActive = activeDeptTab === dept;
+                return (
+                  <button
+                    key={dept}
+                    onClick={() => setActiveDeptTab(dept)}
+                    className={`relative px-5 py-3 rounded-xl text-xs font-bold transition-colors duration-300 whitespace-nowrap cursor-pointer z-10 ${
+                      isActive
+                        ? "text-white"
+                        : isDark
+                        ? "text-slate-400 hover:text-yellow-400"
+                        : "text-slate-600 hover:text-slate-800"
+                    }`}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeDeptTabIndicator"
+                        className={`absolute inset-0 ${activeAccentBgClass} rounded-xl -z-10 shadow-md dark:shadow-none`}
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      />
+                    )}
+                    <span>{dept}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          {activeDeptTab === "Graphic Designer" ? (
+            <GraphicDesignerDashboard />
+          ) : (
+            <div className="theme-bg-card border theme-border border-dashed rounded-2xl p-12 text-center flex flex-col items-center justify-center min-h-[200px]">
+              <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400 border theme-border">
+                <FiLayers size={22} />
+              </div>
+              <h3 className="font-bold theme-text-primary mt-4 text-sm">
+                No stats card for {activeDeptTab}
+              </h3>
+              <p className="text-xs theme-text-secondary mt-1 max-w-xs">
+                Stats dashboard configuration is currently pending for this department.
+              </p>
+            </div>
+          )}
+        </div>
       )}
       {/* end................................................................................................... */}
 

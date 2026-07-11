@@ -497,6 +497,7 @@ const AdminEodReports = () => {
                                 </h4>
                                 <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">
                                   Proj: {task.project || "Internal"} • Client: {task.client || "None"}
+                                  {task.createdAt && ` • Created: ${new Date(task.createdAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })} ${new Date(task.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`}
                                 </p>
                               </div>
                               <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
