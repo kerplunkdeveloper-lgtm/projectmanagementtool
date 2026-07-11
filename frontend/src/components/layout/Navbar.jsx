@@ -437,11 +437,11 @@ const Navbar = ({ setSidebarOpen }) => {
           "
           title="Toggle Sidebar"
         >
-          <HiOutlineMenuAlt3 className="text-[17px] transform hover:scale-110 transition-transform duration-200" />
+          <HiOutlineMenuAlt3 className="text-[1.0625rem] transform hover:scale-110 transition-transform duration-200" />
         </button>
 
         {/* PAGE TITLE */}
-        <h1 className="text-[12px] md:text-[20px] theme-text-accent font-medium shrink-0">
+        <h1 className="text-xs md:text-[1.25rem] theme-text-accent font-medium shrink-0">
           {pageTitle}
         </h1>
       </div>
@@ -461,8 +461,8 @@ const Navbar = ({ setSidebarOpen }) => {
           absolute left-1/2 transform -translate-x-1/2
         "
       >
-        <FiSearch className="text-[13px]  shrink-0 text-slate-450 dark:text-slate-400" />
-        <span className="text-[11px] font-semibold flex-1 text-left text-slate-450 dark:text-slate-400">
+        <FiSearch className="text-[0.8125rem]  shrink-0 text-slate-450 dark:text-slate-400" />
+        <span className="text-[0.6875rem] font-semibold flex-1 text-left text-slate-450 dark:text-slate-400">
           Search...
         </span>
       </div>
@@ -471,11 +471,11 @@ const Navbar = ({ setSidebarOpen }) => {
       <div className="flex items-center gap-2 shrink-0">
         {/* USER LOCATION */}
         <div
-          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border theme-border theme-bg-card text-[12px] font-bold theme-text-secondary shadow-sm hover:theme-text-primary hover:theme-bg-main transition-all duration-200"
+          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border theme-border theme-bg-card text-xs font-bold theme-text-secondary shadow-sm hover:theme-text-primary hover:theme-bg-main transition-all duration-200"
           title={profile?.address || "No location set"}
         >
-          <FiMapPin className="text-[13px] text-red-600 shrink-0" />
-          <span className="truncate max-w-[120px] text-indigo-500 dark:text-indigo-400">
+          <FiMapPin className="text-[0.8125rem] text-red-600 shrink-0" />
+          <span className="truncate max-w-[7.5rem] text-indigo-500 dark:text-indigo-400">
             {profile?.address || "No Location"}
           </span>
         </div>
@@ -493,7 +493,7 @@ const Navbar = ({ setSidebarOpen }) => {
           "
           title="Search"
         >
-          <FiSearch className="text-[15px]" />
+          <FiSearch className="text-[0.9375rem]" />
         </button>
 
         {/* NOTIFICATIONS */}
@@ -509,22 +509,22 @@ const Navbar = ({ setSidebarOpen }) => {
               }
             `}
           >
-            <FiBell className="text-[15px]" />
+            <FiBell className="text-[0.9375rem]" />
             {unreadCount > 0 && (
               <>
                 <span
                   className="
                   absolute -top-1.5 -right-1.5
-                  min-w-[17px] h-[17px] px-1
+                  min-w-[1.0625rem] h-[1.0625rem] px-1
                   rounded-full bg-rose-500
-                  text-white text-[8px] font-black
+                  text-white text-[0.5rem] font-black
                   flex items-center justify-center
                   border-2 border-white  shadow-sm z-10
                 "
                 >
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
-                <span className="absolute -top-1.5 -right-1.5 w-[17px] h-[17px] rounded-full bg-rose-500 animate-ping opacity-60 border-2 border-white dark:border-slate-900" />
+                <span className="absolute -top-1.5 -right-1.5 w-[1.0625rem] h-[1.0625rem] rounded-full bg-rose-500 animate-ping opacity-60 border-2 border-white dark:border-slate-900" />
               </>
             )}
           </button>
@@ -538,9 +538,9 @@ const Navbar = ({ setSidebarOpen }) => {
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                 transition={{ duration: 0.15 }}
                 className="
-                  fixed top-[62px] left-4 right-4
+                  fixed top-[3.875rem] left-4 right-4
                   md:absolute md:top-auto md:left-auto md:right-0 md:mt-2
-                  md:w-[340px] md:max-w-none
+                  md:w-[21.25rem] md:max-w-none
                   bg-white dark:bg-slate-900 rounded-2xl border theme-border
                   shadow-2xl z-50 overflow-hidden
                 "
@@ -548,11 +548,11 @@ const Navbar = ({ setSidebarOpen }) => {
                 {/* Header */}
                 <div className="px-4 py-3 theme-bg-accent text-white dark:text-black border-b theme-border flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-[11px] text-white dark:text-black uppercase tracking-wider">
+                    <span className="font-extrabold text-[0.6875rem] text-white dark:text-black uppercase tracking-wider">
                       Notifications
                     </span>
                     {unreadCount > 0 && (
-                      <span className="bg-white/20 dark:bg-black/10 text-white dark:text-black text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                      <span className="bg-white/20 dark:bg-black/10 text-white dark:text-black text-[0.625rem] font-extrabold px-2 py-0.5 rounded-full">
                         {unreadCount} new
                       </span>
                     )}
@@ -562,7 +562,7 @@ const Navbar = ({ setSidebarOpen }) => {
                       onClick={() => {
                         markAllAsReadTrigger();
                       }}
-                      className="text-[10px] text-white/85 dark:text-black/85 hover:text-white dark:hover:text-black font-bold transition-colors cursor-pointer hover:underline"
+                      className="text-[0.625rem] text-white/85 dark:text-black/85 hover:text-white dark:hover:text-black font-bold transition-colors cursor-pointer hover:underline"
                     >
                       Mark all as read
                     </button>

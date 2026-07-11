@@ -35,7 +35,7 @@ export const ThemeProvider = ({ children }) => {
   const { user, originalAdminUser } = useSelector((s) => s.auth);
 
   const [theme, setThemeState] = useState(() => {
-    return localStorage.getItem("theme") || "system";
+    return localStorage.getItem("theme") || "light";
   });
 
   const [accentColor, setAccentColorState] = useState(() => {

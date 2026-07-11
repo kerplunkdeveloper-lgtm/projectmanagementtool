@@ -48,7 +48,7 @@ const DashboardLayout = ({ role }) => {
       >
         {/* IMPERSONATION BANNER */}
         {originalAdminUser && (
-          <div className="bg-blue-500 dark:bg-[#3b82f6]  px-4 py-2 text-[10px] flex items-center justify-between gap-5 shadow-md z-50">
+          <div className="bg-blue-500 dark:bg-[#3b82f6]  px-4 py-2 text-[0.625rem] flex items-center justify-between gap-5 shadow-md z-50">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-yellow-400 dark:bg-red-500   animate-pulse" />
               <span className="dark:text-black">
@@ -69,7 +69,7 @@ const DashboardLayout = ({ role }) => {
             </div>
             <button
               onClick={handleSwitchBack}
-              className=" bg-yellow-500 dark:bg-black text-white dark:text-white  font-bold cursor-pointer  px-3 py-1 rounded text-[12px] uppercase tracking-wider transition-all"
+              className=" bg-yellow-500 dark:bg-black text-white dark:text-white  font-bold cursor-pointer  px-3 py-1 rounded text-xs uppercase tracking-wider transition-all"
             >
               Switch Back
             </button>

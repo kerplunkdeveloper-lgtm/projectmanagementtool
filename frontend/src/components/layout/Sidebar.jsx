@@ -235,7 +235,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                     size={13}
                     className="shrink-0 transition-colors"
                   />
-                  <span className="text-[11px] font-semibold uppercase tracking-widest flex-1 text-left transition-colors">
+                  <span className="text-[0.6875rem] font-semibold uppercase tracking-widest flex-1 text-left transition-colors">
                     Portfolios
                   </span>
                   <svg
@@ -257,7 +257,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
                 {/* Portfolio List */}
                 {isPortfoliosListOpen && (
-                  <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-white/8 space-y-0.5 overflow-y-auto max-h-[300px] sidebar-scrollbar mt-0.5">
+                  <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-white/8 space-y-0.5 overflow-y-auto max-h-[18.75rem] sidebar-scrollbar mt-0.5">
                     {portfolios.map((portfolio) => {
                       const isActive = activePortfolioId === portfolio._id;
                       const portfolioProjects = (projects || []).filter(
@@ -290,7 +290,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                   [portfolio._id]: isActive ? !prev[portfolio._id] : true,
                                 }));
                               }}
-                              className={`flex-1 flex items-center gap-2 text-left text-[11px] font-semibold py-1.5 pl-2.5 pr-1.5 transition-all duration-150 ${
+                              className={`flex-1 flex items-center gap-2 text-left text-[0.6875rem] font-semibold py-1.5 pl-2.5 pr-1.5 transition-all duration-150 ${
                                 portfolioProjects.length > 0 ? "rounded-l-lg" : "rounded-lg pr-2.5"
                               } ${
                                 isActive
@@ -301,7 +301,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                             >
                               <svg
                                 viewBox="0 0 240 180"
-                                className="w-[16px] h-[13px] shrink-0"
+                                className="w-[1rem] h-[0.8125rem] shrink-0"
                                 style={{ fill: portfolio.color || "#ff80bf" }}
                               >
                                 <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
@@ -366,7 +366,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                         `/${role}/projects?id=${project._id}`,
                                       );
                                     }}
-                                    className={`w-full flex items-center gap-2 text-left text-[10px] font-semibold py-1 rounded-md px-2 transition-all duration-150 cursor-pointer ${
+                                    className={`w-full flex items-center gap-2 text-left text-[0.625rem] font-semibold py-1 rounded-md px-2 transition-all duration-150 cursor-pointer ${
                                       isProjectActive
                                         ? "bg-slate-50 dark:bg-slate-800/60 theme-text-accent font-bold"
                                         : "text-slate-500 dark:text-slate-600 hover:theme-text-accent hover:bg-slate-100/40 dark:hover:bg-white/5"
@@ -429,18 +429,18 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                             >
                               <Icon size={14} />
                             </div>
-                            <span className="text-[11px] font-semibold truncate flex-1 text-left transition-colors">
+                            <span className="text-[0.6875rem] font-semibold truncate flex-1 text-left transition-colors">
                               {item.name}
                             </span>
                             {item.name === "Notifications" &&
                               unreadCount > 0 && (
-                                <span className="min-w-[16px] h-[16px] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse shrink-0">
+                                <span className="min-w-[1rem] h-[1rem] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[0.5625rem] font-bold animate-pulse shrink-0">
                                   {unreadCount}
                                 </span>
                               )}
                             {item.name === "Chat" &&
                               totalUnreadChatCount > 0 && (
-                                <span className="flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-red-600 px-1 text-[9px] font-black text-white animate-pulse shrink-0">
+                                <span className="flex h-[1rem] min-w-[1rem] items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-red-600 px-1 text-[0.5625rem] font-black text-white animate-pulse shrink-0">
                                   {totalUnreadChatCount}
                                 </span>
                               )}
@@ -489,15 +489,15 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200/60 dark:border-indigo-500/20 hover:bg-indigo-100/80 dark:hover:bg-indigo-500/20 transition-all duration-200 cursor-pointer group"
             >
               <div className="w-6 h-6 rounded-lg bg-indigo-500/10 dark:bg-indigo-400/10 border border-indigo-300/40 dark:border-indigo-400/20 flex items-center justify-center shrink-0">
-                <span className="text-[9px] font-black text-indigo-600 dark:text-indigo-400">
+                <span className="text-[0.5625rem] font-black text-indigo-600 dark:text-indigo-400">
                   {getInitials(originalAdminUser?.name)}
                 </span>
               </div>
               <div className="flex-1 min-w-0 text-left">
-                <p className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300 truncate leading-tight">
+                <p className="text-[0.625rem] font-bold text-indigo-700 dark:text-indigo-300 truncate leading-tight">
                   Switch Back
                 </p>
-                <p className="text-[8px] font-black text-indigo-500/70 dark:text-indigo-400/60 uppercase tracking-wider leading-none mt-0.5 truncate">
+                <p className="text-[0.5rem] font-black text-indigo-500/70 dark:text-indigo-400/60 uppercase tracking-wider leading-none mt-0.5 truncate">
                   {originalAdminUser?.name}
                 </p>
               </div>
@@ -510,7 +510,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
           {/* Switch User dropdown — shown only for the actual admin (not impersonating) */}
           {role === "admin" && !originalAdminUser && users && users.length > 0 && (
             <div className="p-1.5 text-left relative">
-              <label className="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1 px-1">
+              <label className="block text-[0.5rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1 px-1">
                 Switch User
               </label>
 
@@ -530,16 +530,16 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <span className="text-[9px] font-black">
+                      <span className="text-[0.5625rem] font-black">
                         {getInitials(currentUser?.name)}
                       </span>
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold theme-text-primary truncate leading-tight">
+                    <p className="text-[0.625rem] font-bold theme-text-primary truncate leading-tight">
                       {currentUser?.name}
                     </p>
-                    <p className="text-[8px] font-black theme-text-secondary uppercase tracking-wider leading-none mt-0.5">
+                    <p className="text-[0.5rem] font-black theme-text-secondary uppercase tracking-wider leading-none mt-0.5">
                       {displayRole(currentUser?.role)}
                     </p>
                   </div>
@@ -577,7 +577,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 8, scale: 0.95 }}
                     transition={{ type: "spring", stiffness: 350, damping: 24 }}
-                    className="absolute bottom-full left-1.5 right-1.5 mb-3 z-50 bg-white/95 dark:bg-[#0b1120]/95 backdrop-blur-xl border border-white/50 dark:border-white/10 rounded-2xl shadow-2xl shadow-indigo-500/10 dark:shadow-black/50 overflow-hidden flex flex-col p-2 max-h-[280px] overflow-y-auto sidebar-scrollbar"
+                    className="absolute bottom-full left-1.5 right-1.5 mb-3 z-50 bg-white/95 dark:bg-[#0b1120]/95 backdrop-blur-xl border border-white/50 dark:border-white/10 rounded-2xl shadow-2xl shadow-indigo-500/10 dark:shadow-black/50 overflow-hidden flex flex-col p-2 max-h-[17.5rem] overflow-y-auto sidebar-scrollbar"
                   >
                     {users.map((u) => {
                       const isCurrent =
@@ -614,14 +614,14 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                   className="w-full h-full object-cover"
                                 />
                               ) : (
-                                <span className="text-[10px] font-black">
+                                <span className="text-[0.625rem] font-black">
                                   {getInitials(u.name)}
                                 </span>
                               )}
                             </div>
                             <div className="min-w-0 flex-1">
                               <p
-                                className={`text-[11px] font-bold truncate leading-tight transition-colors ${
+                                className={`text-[0.6875rem] font-bold truncate leading-tight transition-colors ${
                                   isCurrent
                                     ? "text-indigo-700 dark:text-indigo-300"
                                     : "text-slate-700 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
@@ -629,7 +629,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                               >
                                 {u.name}
                               </p>
-                              <p className="text-[9px] font-black opacity-70 uppercase tracking-widest mt-0.5 theme-text-secondary truncate">
+                              <p className="text-[0.5625rem] font-black opacity-70 uppercase tracking-widest mt-0.5 theme-text-secondary truncate">
                                 {displayRole(u.role)}
                                 {u.role === "team" && u.department
                                   ? ` • ${u.department}`
