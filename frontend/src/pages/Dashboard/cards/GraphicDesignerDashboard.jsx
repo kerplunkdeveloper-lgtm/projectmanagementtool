@@ -380,7 +380,7 @@ const GraphicDesignerDashboard = () => {
   };
 
   return (
-    <div className="bg-white dark:bg-[#0b1120] py-4 md:py-4 px-0 md:px-6 space-y-8 font-sans mt-8 overflow-visible transition-colors duration-300 relative">
+    <div className="bg-white dark:bg-[#0b1120] py-4 md:py-4 px-0 md:px-2 space-y-8 font-sans mt-8 overflow-visible transition-colors duration-300 relative">
       {/* Decorative Blur Backgrounds for Dark Mode Premium Feel */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden rounded-3xl pointer-events-none hidden dark:block">
         <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-indigo-500/10 blur-[120px] rounded-full" />
@@ -390,7 +390,7 @@ const GraphicDesignerDashboard = () => {
       {/* Header & Filter */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-20">
         <div className="space-y-1 ">
-          <h2 className="text-xl lg:text-md font-black tracking-tight text-slate-800 dark:text-white flex items-center justify-center gap-3">
+          <h2 className="text-sm lg:text-xl font-black tracking-tight text-slate-800 dark:text-white flex items-center justify-center gap-3">
             <div className="p-2 bg-emerald-100 dark:bg-emerald-500/20 rounded-xl">
               <FiActivity className="text-emerald-600 dark:text-emerald-400 text-xl" />
             </div>
@@ -453,7 +453,7 @@ const GraphicDesignerDashboard = () => {
       </div>
 
       {/* Premium Metrics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-4 relative z-10">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 lg:gap-4 relative z-10">
         {[
           {
             label: "Designers",
@@ -527,18 +527,7 @@ const GraphicDesignerDashboard = () => {
               "bg-fuchsia-100 dark:bg-fuchsia-950/60 border border-fuchsia-200 dark:border-fuchsia-500/20",
             iconColor: "text-fuchsia-600 dark:text-fuchsia-400",
           },
-          {
-            label: "Client Approval",
-            value: metrics.clientApproval,
-            icon: FiTrendingUp,
-            glow: "hover:shadow-[0_4px_20px_rgba(6,182,212,0.15)]",
-            bg: "bg-cyan-500/5 dark:bg-cyan-500/10 border-cyan-500/30 dark:border-cyan-500/20",
-            labelColor: "text-cyan-600 dark:text-cyan-400",
-            valueColor: "text-slate-800 dark:text-slate-100",
-            iconBg:
-              "bg-cyan-100 dark:bg-cyan-950/60 border border-cyan-200 dark:border-cyan-500/20",
-            iconColor: "text-cyan-600 dark:text-cyan-400",
-          },
+
         ].map((m, i) => {
           const IconComponent = m.icon;
           return (
@@ -575,38 +564,12 @@ const GraphicDesignerDashboard = () => {
         })}
       </div>
 
-      {/* Pulse Line */}
-      <div className="flex gap-1 h-4 w-full items-center relative z-10 bg-slate-50 dark:bg-slate-900/50 p-2 rounded-xl border border-slate-200 dark:border-slate-800/80">
-        {Array.from({ length: 60 }).map((_, i) => {
-          let color = "bg-slate-200 dark:bg-slate-800";
-          const ratio = i / 60;
-          if (ratio < metrics.completed / (metrics.tasksAssigned || 1))
-            color =
-              "bg-emerald-400 dark:bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]";
-          else if (
-            ratio <
-            (metrics.completed + metrics.pending) / (metrics.tasksAssigned || 1)
-          )
-            color = "bg-amber-400 dark:bg-amber-500";
-          else if (
-            ratio <
-            (metrics.completed + metrics.pending + metrics.overdue) /
-              (metrics.tasksAssigned || 1)
-          )
-            color = "bg-rose-400 dark:bg-rose-500";
-          return (
-            <div
-              key={i}
-              className={`flex-1 h-full rounded-full ${color} transition-colors duration-500 opacity-80 hover:opacity-100`}
-            />
-          );
-        })}
-      </div>
+
 
       {/* Live Task Board */}
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4 px-1">
-          <h3 className="text-base font-black text-slate-800 dark:text-white tracking-wide uppercase">
+          <h3 className="text-base font-bold text-slate-800 dark:text-white tracking-wide ">
             Live Task Board
           </h3>
           <span className="flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-500/20">
@@ -792,7 +755,7 @@ const GraphicDesignerDashboard = () => {
           <div className="p-2 bg-rose-100 dark:bg-rose-500/20 rounded-lg text-rose-600 dark:text-rose-400">
             <FiAlertCircle className="text-lg" />
           </div>
-          <h3 className="text-sm font-black text-slate-800 dark:text-white tracking-widest uppercase">
+          <h3 className="text-sm font-bold text-slate-800 dark:text-white tracking-widest">
             Delayed Projects & Bottlenecks
           </h3>
         </div>
