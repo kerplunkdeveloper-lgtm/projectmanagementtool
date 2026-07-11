@@ -85,8 +85,23 @@ const Project = () => {
     currentUser?.role === "operationmanager" ||
     currentUser?.role === "team";
 
+  // Filter allowed clients for the current user
+  const userClients = clients.filter(c => {
+    if (currentUser?.role === 'admin') return true;
+    return c.assignedTo?.some(userId => 
+      userId?.toString() === currentUser?._id?.toString() || 
+      userId?._id?.toString() === currentUser?._id?.toString()
+    );
+  });
+
   // Filter projects
   const filteredProjects = projects.filter((project) => {
+    const projectClientId = project.client?._id || project.client;
+    
+    // Only show projects for clients assigned to this user
+    const isAssigned = userClients.some(c => c._id.toString() === projectClientId?.toString());
+    if (!isAssigned) return false;
+
     const matchesSearch =
       project.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.client?.companyName
@@ -94,7 +109,6 @@ const Project = () => {
         .includes(searchTerm.toLowerCase());
     const matchesStatus =
       statusFilter === "All" || project.status === statusFilter;
-    const projectClientId = project.client?._id || project.client;
     const matchesClient =
       clientFilter === "All" ||
       (projectClientId && projectClientId.toString() === clientFilter);
@@ -277,7 +291,7 @@ const Project = () => {
             <option value="All" className="dark:bg-[#111111]">
               All Clients
             </option>
-            {clients.map((c) => (
+            {userClients.map((c) => (
               <option key={c._id} value={c._id} className="dark:bg-[#111111]">
                 {c.companyName}
               </option>
@@ -516,7 +530,7 @@ const Project = () => {
                         onChange={(e) => setClientId(e.target.value)}
                         className="w-full px-4 py-3 pr-10 rounded-2xl bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-155 dark:border-white/10 focus:outline-none focus:border-blue-500 dark:focus:border-[#3b82f6] focus:bg-white dark:focus:bg-[#111111] text-sm text-slate-700 dark:text-white cursor-pointer appearance-none transition-all focus:shadow-sm"
                       >
-                        {clients.map((c) => (
+                        {userClients.map((c) => (
                           <option
                             key={c._id}
                             value={c._id}
@@ -658,7 +672,7 @@ const Project = () => {
                         onChange={(e) => setEditClientId(e.target.value)}
                         className="w-full px-4 py-3 pr-10 rounded-2xl bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-155 dark:border-white/10 focus:outline-none focus:border-blue-500 dark:focus:border-[#3b82f6] focus:bg-white dark:focus:bg-[#111111] text-sm text-slate-700 dark:text-white cursor-pointer appearance-none transition-all focus:shadow-sm"
                       >
-                        {clients.map((c) => (
+                        {userClients.map((c) => (
                           <option
                             key={c._id}
                             value={c._id}
