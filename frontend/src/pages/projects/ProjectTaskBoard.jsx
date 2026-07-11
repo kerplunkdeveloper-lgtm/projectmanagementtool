@@ -2461,7 +2461,7 @@ const ProjectTaskBoard = ({
                   >
                     {showSelectionColumn && (
                       <td
-                        className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 w-10 md:sticky md:left-0 z-10 bg-transparent"
+                        className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 w-10 md:sticky md:left-0 z-10 bg-transparent"
                         style={{
                           width: "40px",
                           minWidth: "40px",
@@ -2473,7 +2473,7 @@ const ProjectTaskBoard = ({
                     )}
                     {/* Chevron column spacer */}
                     <td
-                      className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-10 bg-transparent"
+                      className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 md:sticky z-10 bg-transparent"
                       style={{
                         left: showSelectionColumn ? "40px" : "0px",
                         width: "40px",
@@ -2485,7 +2485,7 @@ const ProjectTaskBoard = ({
                     />
                     {/* ID column spacer */}
                     <td
-                      className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-10"
+                      className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 md:sticky z-10"
                       style={{
                         left: showSelectionColumn ? "80px" : "40px",
                         backgroundColor: "inherit",
@@ -2496,7 +2496,7 @@ const ProjectTaskBoard = ({
                       }}
                     />
                     <td
-                      className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-10 min-w-[250px] md:min-w-[400px]"
+                      className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 md:sticky z-10 min-w-[250px] md:min-w-[400px]"
                       style={{
                         left: showSelectionColumn ? "140px" : "100px",
                         backgroundColor: "inherit",
@@ -2610,42 +2610,7 @@ const ProjectTaskBoard = ({
                       </div>
                     </td>
                     <td
-                      className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700"
-                      style={bBottom}
-                    />
-                    <td
-                      className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700"
-                      style={bBottom}
-                    />
-                    <td
-                      className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700"
-                      style={bBottom}
-                    />
-                    <td
-                      className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700"
-                      style={bBottom}
-                    />
-                    <td
-                      className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700"
-                      style={bBottom}
-                    />
-                    <td
-                      className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700"
-                      style={bBottom}
-                    />
-                    <td
-                      className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700"
-                      style={bBottom}
-                    />
-                    <td
-                      className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700"
-                      style={bBottom}
-                    />
-                    <td
-                      className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700"
-                      style={bBottom}
-                    />
-                    <td
+                      colSpan={9}
                       className="px-3 py-1 border-b border-slate-300 dark:border-slate-700"
                       style={{ ...bBottom, ...bRight }}
                     />
@@ -2679,7 +2644,14 @@ const ProjectTaskBoard = ({
                     </div>
                   </div>
 
-                  <div className="overflow-x-auto overflow-y-auto h-[calc(100vh-220px)] min-h-[400px] w-full bg-white dark:bg-[#111115] border border-slate-200 dark:border-slate-800 rounded-xl relative scrollbar-thin">
+                  <div
+                    className="overflow-x-auto overflow-y-auto h-[calc(100vh-220px)] min-h-[400px] w-full bg-white dark:bg-[#111115] border border-slate-200 dark:border-slate-800 rounded-xl relative scrollbar-thin"
+                    onWheel={(e) => {
+                      if (e.deltaY !== 0 && !e.shiftKey) {
+                        e.currentTarget.scrollLeft += e.deltaY;
+                      }
+                    }}
+                  >
                     <StrictModeDroppable
                       droppableId="sections-list"
                       type="SECTION"
@@ -3324,17 +3296,10 @@ const ProjectTaskBoard = ({
                                                 )}
                                             </div>
                                           </td>
-                                          {/* Empty Column Cells to render vertical gridlines */}
-                                          <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b] whitespace-nowrap min-w-[140px]" />
-                                          <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b] whitespace-nowrap min-w-[190px]" />
-                                          <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b] whitespace-nowrap min-w-[130px]" />
-                                          <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b] whitespace-nowrap min-w-[120px]" />
-                                          <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b] whitespace-nowrap min-w-[120px]" />
-                                          <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b] whitespace-nowrap min-w-[120px]" />
-                                          <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b] whitespace-nowrap min-w-[120px]" />
-                                          <td className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b] whitespace-nowrap min-w-[120px]" />
+                                          {/* Empty Column Cells merged into one to remove vertical gridlines */}
                                           <td
-                                            className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b] text-center whitespace-nowrap min-w-[80px]"
+                                            colSpan={9}
+                                            className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b]"
                                             style={{
                                               borderRight: `2.5px solid ${sColor.hex}`,
                                             }}
@@ -3661,23 +3626,65 @@ const ProjectTaskBoard = ({
                                                       <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                                         {task.createdBy ? (
                                                           <div className="flex items-center gap-2">
-                                                            {(task.createdBy.profile?.profileImage?.url || task.createdBy.profileImage?.url || task.createdBy.profile?.avatar || task.createdBy.avatar) ? (
+                                                            {task.createdBy
+                                                              .profile
+                                                              ?.profileImage
+                                                              ?.url ||
+                                                            task.createdBy
+                                                              .profileImage
+                                                              ?.url ||
+                                                            task.createdBy
+                                                              .profile
+                                                              ?.avatar ||
+                                                            task.createdBy
+                                                              .avatar ? (
                                                               <img
-                                                                src={task.createdBy.profile?.profileImage?.url || task.createdBy.profileImage?.url || task.createdBy.profile?.avatar || task.createdBy.avatar}
-                                                                alt={task.createdBy.name}
+                                                                src={
+                                                                  task.createdBy
+                                                                    .profile
+                                                                    ?.profileImage
+                                                                    ?.url ||
+                                                                  task.createdBy
+                                                                    .profileImage
+                                                                    ?.url ||
+                                                                  task.createdBy
+                                                                    .profile
+                                                                    ?.avatar ||
+                                                                  task.createdBy
+                                                                    .avatar
+                                                                }
+                                                                alt={
+                                                                  task.createdBy
+                                                                    .name
+                                                                }
                                                                 className="w-5 h-5 rounded-full object-cover border border-slate-250 dark:border-white/10 shrink-0"
                                                               />
                                                             ) : (
                                                               <div
                                                                 className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
-                                                                  task.createdBy.name || "U"
+                                                                  task.createdBy
+                                                                    .name ||
+                                                                    "U",
                                                                 )}`}
                                                               >
-                                                                {getInitials(task.createdBy.name || "U")}
+                                                                {getInitials(
+                                                                  task.createdBy
+                                                                    .name ||
+                                                                    "U",
+                                                                )}
                                                               </div>
                                                             )}
-                                                            <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[100px]" title={task.createdBy.name}>
-                                                              {task.createdBy.name}
+                                                            <span
+                                                              className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[100px]"
+                                                              title={
+                                                                task.createdBy
+                                                                  .name
+                                                              }
+                                                            >
+                                                              {
+                                                                task.createdBy
+                                                                  .name
+                                                              }
                                                             </span>
                                                           </div>
                                                         ) : (
@@ -4581,23 +4588,78 @@ const ProjectTaskBoard = ({
                                                               <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 opacity-60">
                                                                 {task.createdBy ? (
                                                                   <div className="flex items-center gap-2">
-                                                                    {(task.createdBy.profile?.profileImage?.url || task.createdBy.profileImage?.url || task.createdBy.profile?.avatar || task.createdBy.avatar) ? (
+                                                                    {task
+                                                                      .createdBy
+                                                                      .profile
+                                                                      ?.profileImage
+                                                                      ?.url ||
+                                                                    task
+                                                                      .createdBy
+                                                                      .profileImage
+                                                                      ?.url ||
+                                                                    task
+                                                                      .createdBy
+                                                                      .profile
+                                                                      ?.avatar ||
+                                                                    task
+                                                                      .createdBy
+                                                                      .avatar ? (
                                                                       <img
-                                                                        src={task.createdBy.profile?.profileImage?.url || task.createdBy.profileImage?.url || task.createdBy.profile?.avatar || task.createdBy.avatar}
-                                                                        alt={task.createdBy.name}
+                                                                        src={
+                                                                          task
+                                                                            .createdBy
+                                                                            .profile
+                                                                            ?.profileImage
+                                                                            ?.url ||
+                                                                          task
+                                                                            .createdBy
+                                                                            .profileImage
+                                                                            ?.url ||
+                                                                          task
+                                                                            .createdBy
+                                                                            .profile
+                                                                            ?.avatar ||
+                                                                          task
+                                                                            .createdBy
+                                                                            .avatar
+                                                                        }
+                                                                        alt={
+                                                                          task
+                                                                            .createdBy
+                                                                            .name
+                                                                        }
                                                                         className="w-5 h-5 rounded-full object-cover border border-slate-200 dark:border-white/10 shrink-0"
                                                                       />
                                                                     ) : (
                                                                       <div
                                                                         className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
-                                                                          task.createdBy.name || "U"
+                                                                          task
+                                                                            .createdBy
+                                                                            .name ||
+                                                                            "U",
                                                                         )}`}
                                                                       >
-                                                                        {getInitials(task.createdBy.name || "U")}
+                                                                        {getInitials(
+                                                                          task
+                                                                            .createdBy
+                                                                            .name ||
+                                                                            "U",
+                                                                        )}
                                                                       </div>
                                                                     )}
-                                                                    <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[100px]" title={task.createdBy.name}>
-                                                                      {task.createdBy.name}
+                                                                    <span
+                                                                      className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[100px]"
+                                                                      title={
+                                                                        task
+                                                                          .createdBy
+                                                                          .name
+                                                                      }
+                                                                    >
+                                                                      {
+                                                                        task
+                                                                          .createdBy
+                                                                          .name
+                                                                      }
                                                                     </span>
                                                                   </div>
                                                                 ) : (
