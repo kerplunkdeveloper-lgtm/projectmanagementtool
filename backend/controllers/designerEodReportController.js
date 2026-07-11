@@ -61,19 +61,22 @@ exports.createDesignerEodReport = async (req, res) => {
       .populate("user", "name email role profile department")
       .populate("tasks.reviewedBy", "name email role profile department");
 
-    // Notify admins and operation managers only if submitted (not draft)
+    // Notify admins, operation managers, and social media managers only if submitted (not draft)
     if (!isDraft) {
       try {
         const User = require("../models/User");
         const Notification = require("../models/Notification");
-        const adminsAndManagers = await User.find({
-          role: { $in: ["admin", "operationmanager"] }
+        const recipients = await User.find({
+          $or: [
+            { role: { $in: ["admin", "operationmanager"] } },
+            { department: { $regex: /social media manager/i } }
+          ]
         });
         
         const io = req.app.get("io");
         const senderName = req.user.name || "A designer";
         
-        for (const recipient of adminsAndManagers) {
+        for (const recipient of recipients) {
           if (recipient._id.toString() === req.user._id.toString()) continue;
           
           const notification = await Notification.create({
@@ -113,8 +116,8 @@ exports.getDesignerEodReports = async (req, res) => {
   try {
     let query = {};
 
-    // If role is team, only show their own reports
-    if (req.user.role === "team") {
+    // If role is team, only show their own reports, unless they are a Social Media Manager
+    if (req.user.role === "team" && req.user.department?.toLowerCase() !== "social media manager") {
       query.user = req.user._id;
     }
 

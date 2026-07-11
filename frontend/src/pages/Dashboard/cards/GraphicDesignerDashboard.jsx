@@ -35,6 +35,7 @@ const GraphicDesignerDashboard = () => {
     theme === "dark" ||
     (theme === "system" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const { user } = useSelector((state) => state.auth);
   const { users } = useSelector((state) => state.users);
   const { projects } = useSelector((state) => state.projects);
   const { clients } = useSelector((state) => state.clients);
@@ -89,6 +90,17 @@ const GraphicDesignerDashboard = () => {
           : task.assignedTo;
       if (!designerIds.includes(assigneeId)) return false;
 
+      // Check Creator if logged-in user is a Social Media Manager
+      const isSocialMediaManager = user?.department?.toLowerCase() === "social media manager";
+      if (isSocialMediaManager) {
+        const creatorId =
+          task.createdBy && typeof task.createdBy === "object"
+            ? task.createdBy._id
+            : task.createdBy;
+        const currentUserId = user?._id || user?.id;
+        if (creatorId !== currentUserId) return false;
+      }
+
       // Check Date
       if (dateFilter === "All Time") return true;
       if (!task.createdAt) return true; // fallback
@@ -102,7 +114,7 @@ const GraphicDesignerDashboard = () => {
 
       return true;
     });
-  }, [allTasks, designerIds, dateFilter]);
+  }, [allTasks, designerIds, dateFilter, user]);
 
   // 3. Compute Metrics
   const metrics = useMemo(() => {

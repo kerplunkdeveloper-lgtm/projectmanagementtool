@@ -272,10 +272,10 @@ const Dashboardmain = () => {
     ) {
       dispatch(getClients());
     }
-  }, [dispatch, user]);
+  }, [dispatch, user?._id, user?.role]);
 
   useEffect(() => {
-    if (clients && clients.length > 0 && !clientId) {
+    if (clients && clients.length > 0 && !clientId && clients[0]?._id) {
       setClientId(clients[0]._id);
     }
   }, [clients, clientId]);
@@ -432,7 +432,9 @@ const Dashboardmain = () => {
 
 
       {/* ............................................status cards .......................................... */}
-      {(user?.role === "admin" || user?.role === "operationmanager") && (
+      {(user?.role === "admin" ||
+        user?.role === "operationmanager" ||
+        user?.department?.toLowerCase() === "social media manager") && (
         <div className="w-full py-4 md:py-10">
           {/* Department Tabs */}
           <div className="flex justify-center w-full mb-8">

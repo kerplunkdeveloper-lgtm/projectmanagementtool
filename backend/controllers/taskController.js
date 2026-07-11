@@ -261,6 +261,16 @@ exports.updateTask = async (req, res) => {
           recipientIds.add(creatorId.toString());
         }
 
+        // If a Graphic Designer updates their status, also notify Social Media Managers
+        if (req.user.department && (req.user.department.toLowerCase().includes("graphic") || req.user.department.toLowerCase().includes("design"))) {
+          const smms = await User.find({ department: { $regex: /social media manager/i } });
+          smms.forEach(s => {
+            if (s._id.toString() !== currentUserId) {
+              recipientIds.add(s._id.toString());
+            }
+          });
+        }
+
         for (const recipientId of recipientIds) {
           const notification = await Notification.create({
             recipient: recipientId,

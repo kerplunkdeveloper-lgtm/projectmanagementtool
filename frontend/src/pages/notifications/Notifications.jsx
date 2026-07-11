@@ -12,6 +12,7 @@ import {
   FiInbox,
   FiMail,
   FiUser,
+  FiFileText,
 } from "react-icons/fi";
 import {
   useGetNotificationsQuery,
@@ -84,6 +85,11 @@ const Notifications = () => {
         return {
           icon: FiMail,
           bgColor: "bg-teal-50 text-teal-600 border-teal-100",
+        };
+      case "report_submitted":
+        return {
+          icon: FiFileText,
+          bgColor: "bg-fuchsia-50 text-fuchsia-600 border-fuchsia-100",
         };
       default:
         return {
@@ -180,6 +186,8 @@ const Notifications = () => {
                     }
                     if (n.type === "message_received" || n.chatRoomId) {
                       navigate(`/${user?.role}/chat?id=${n.chatRoomId}`);
+                    } else if (n.type === "report_submitted") {
+                      navigate(`/${user?.role}/eod-reports`);
                     } else if (n.type === "client_assigned" || (n.message && n.message.toLowerCase().includes("client:"))) {
                       navigate(`/${user?.role}/clients`);
                     } else if (n.type === "task_assigned") {
