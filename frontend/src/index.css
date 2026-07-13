@@ -1,6 +1,5 @@
-
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&family=Roboto:wght@300;400;500;700;900&family=Poppins:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -168,10 +167,10 @@ a, li, ul, ol, svg, img, figure, figcaption {
   --color-slate-100: #1e293b; /* Subtle Borders - Slate 800 */
   --color-gray-100: #1e293b; 
   
-  --color-slate-200: #334155; /* Default Borders - Slate 700 */
-  --color-gray-200: #334155; 
+  --color-slate-200: #ffffff; /* Default Borders - Slate 700 */
+  --color-gray-200: #ffffff; 
   
-  --color-slate-700: #e2e8f0; /* Light text secondary - Slate 200 */
+  --color-slate-700: #fefeff; /* Light text secondary - Slate 200 */
   --color-gray-700: #fafcff; 
   
   --color-slate-800: #f1f5f9; /* Light text primary - Slate 100 */
@@ -179,10 +178,10 @@ a, li, ul, ol, svg, img, figure, figcaption {
   --color-slate-950: #f8fafc; /* Primary Text */
   
   /* Text and Icon Colors */
-  --color-slate-600: #edf1f6; /* Medium Slate Text */
+  --color-slate-600: #ffffff; /* Medium Slate Text */
   --color-gray-600: #fdfeff;
   --color-slate-500: #eff2f6; /* Secondary Text - Slate 400 */
-  --color-gray-500: #e9ecf1; 
+  --color-gray-500: #ffffff; 
   
   --color-slate-400: #ffffff; /* Muted Icon / Text - Slate 500 */
   --color-gray-400: #f4f5f6; 
@@ -234,7 +233,7 @@ a, li, ul, ol, svg, img, figure, figcaption {
   }
   .rbc-header {
     border-bottom-color: #1e293b !important;
-    color: #f1f5f9 !important;
+    color: #ffffff !important;
     background-color: #020710 !important;
     font-weight: 700;
   }

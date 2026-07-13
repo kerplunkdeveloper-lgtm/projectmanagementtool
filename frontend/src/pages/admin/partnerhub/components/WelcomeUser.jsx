@@ -18,6 +18,7 @@ const WelcomeUser = () => {
   const { profile, loading: profileLoading } = useSelector((state) => state.profile);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [hasAttemptedProfileFetch, setHasAttemptedProfileFetch] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -27,13 +28,18 @@ const WelcomeUser = () => {
   }, []);
 
   useEffect(() => {
-    if (user && !profileLoading) {
+    setHasAttemptedProfileFetch(false);
+  }, [user?._id, user?.id]);
+
+  useEffect(() => {
+    if (user && !profileLoading && !hasAttemptedProfileFetch) {
       const profileUserId = profile?.user?._id || profile?.user;
       if (!profile || profileUserId !== (user.id || user._id)) {
+        setHasAttemptedProfileFetch(true);
         dispatch(getProfile());
       }
     }
-  }, [dispatch, user]);
+  }, [dispatch, user, profile, profileLoading, hasAttemptedProfileFetch]);
 
   const hour = currentTime.getHours();
   let greeting = "Good Evening";

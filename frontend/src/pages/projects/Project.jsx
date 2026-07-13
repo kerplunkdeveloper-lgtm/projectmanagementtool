@@ -102,6 +102,18 @@ const Project = () => {
     const isAssigned = userClients.some(c => c._id.toString() === projectClientId?.toString());
     if (!isAssigned) return false;
 
+    // Social Media Managers can only see projects they created themselves (bypassed for admin/operationmanager)
+    if (currentUser?.role !== "admin" && currentUser?.role !== "operationmanager") {
+      const creator = project.createdBy;
+      const creatorDept = creator?.department || "";
+      const creatorId = creator?._id || creator;
+      if (creatorDept.toLowerCase() === "social media manager") {
+        if (creatorId?.toString() !== currentUser?._id?.toString()) {
+          return false;
+        }
+      }
+    }
+
     const matchesSearch =
       project.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       project.client?.companyName
@@ -344,7 +356,7 @@ const Project = () => {
                   Progress
                 </th>
                 <th className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-center">
-                  View
+                  Action
                 </th>
               </tr>
             </thead>
@@ -436,16 +448,36 @@ const Project = () => {
                       })()}
                     </td>
                     <td className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-center">
-                      <button
-                        onClick={() =>
-                          navigate(
-                            `/${currentUser?.role}/projects?id=${project._id}`,
-                          )
-                        }
-                        className="px-2.5 py-1 bg-blue-50/50 hover:bg-blue-600 hover:text-white dark:bg-slate-850 dark:text-[#3b82f6] dark:hover:bg-[#3b82f6] dark:hover:text-black rounded text-[10px] font-extrabold transition-colors border border-blue-100/50 dark:border-slate-700 dark:hover:border-[#3b82f6] whitespace-nowrap active:scale-95 shadow-sm"
-                      >
-                        View Tasks
-                      </button>
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          onClick={() =>
+                            navigate(
+                              `/${currentUser?.role}/projects?id=${project._id}`,
+                            )
+                          }
+                          className="px-2.5 py-1 bg-blue-50/50 hover:bg-blue-600 hover:text-white dark:bg-slate-850 dark:text-[#3b82f6] dark:hover:bg-[#3b82f6] dark:hover:text-black rounded text-[10px] font-extrabold transition-colors border border-blue-100/50 dark:border-slate-700 dark:hover:border-[#3b82f6] whitespace-nowrap active:scale-95 shadow-sm"
+                        >
+                          View Tasks
+                        </button>
+                        {isAdminOrManager && (
+                          <>
+                            <button
+                              onClick={(e) => handleOpenEdit(e, project)}
+                              className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-[#3b82f6] dark:hover:bg-slate-800 transition-colors rounded cursor-pointer"
+                              title="Edit Project"
+                            >
+                              <FiEdit2 size={13} />
+                            </button>
+                            <button
+                              onClick={(e) => handleProjectDelete(e, project._id)}
+                              className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-red-500 dark:hover:bg-slate-800 transition-colors rounded cursor-pointer"
+                              title="Delete Project"
+                            >
+                              <FiTrash2 size={13} />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

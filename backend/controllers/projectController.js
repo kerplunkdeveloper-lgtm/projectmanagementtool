@@ -17,9 +17,13 @@ exports.getProjects = async (req, res) => {
       ];
 
       if (req.user.department) {
-        const usersInSameDept = await User.find({ department: req.user.department }).select("_id");
-        const userIds = usersInSameDept.map(u => u._id);
-        orConditions.push({ createdBy: { $in: userIds } });
+        if (req.user.department.toLowerCase() === "social media manager") {
+          orConditions.push({ createdBy: req.user._id });
+        } else {
+          const usersInSameDept = await User.find({ department: req.user.department }).select("_id");
+          const userIds = usersInSameDept.map(u => u._id);
+          orConditions.push({ createdBy: { $in: userIds } });
+        }
       } else {
         orConditions.push({ createdBy: req.user._id });
       }
@@ -30,10 +34,22 @@ exports.getProjects = async (req, res) => {
       .populate("client", "companyName industry primaryContact color icon")
       .populate("createdBy", "name department");
 
+    // Filter projects: If created by a Social Media Manager, only allow the creator to view it (bypassed for admin/operationmanager)
+    let filteredProjects = projects;
+    if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
+      filteredProjects = projects.filter(project => {
+        const creator = project.createdBy;
+        if (creator && creator.department?.toLowerCase() === "social media manager") {
+          return creator._id.toString() === req.user._id.toString();
+        }
+        return true;
+      });
+    }
+
     res.status(200).json({
       success: true,
-      count: projects.length,
-      data: projects,
+      count: filteredProjects.length,
+      data: filteredProjects,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -76,7 +92,14 @@ exports.updateProject = async (req, res) => {
 
     if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
       const creator = await User.findById(project.createdBy);
-      if (!creator || creator.department !== req.user.department) {
+      if (!creator) {
+        return res.status(403).json({ success: false, message: "You are not authorized" });
+      }
+      if (creator.department?.toLowerCase() === "social media manager") {
+        if (project.createdBy.toString() !== req.user._id.toString()) {
+          return res.status(403).json({ success: false, message: "You are not authorized to edit this project" });
+        }
+      } else if (creator.department !== req.user.department) {
         return res.status(403).json({ success: false, message: "You are not authorized to edit projects outside your department" });
       }
     }
@@ -110,7 +133,14 @@ exports.deleteProject = async (req, res) => {
 
     if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
       const creator = await User.findById(project.createdBy);
-      if (!creator || creator.department !== req.user.department) {
+      if (!creator) {
+        return res.status(403).json({ success: false, message: "You are not authorized" });
+      }
+      if (creator.department?.toLowerCase() === "social media manager") {
+        if (project.createdBy.toString() !== req.user._id.toString()) {
+          return res.status(403).json({ success: false, message: "You are not authorized to delete this project" });
+        }
+      } else if (creator.department !== req.user.department) {
         return res.status(403).json({ success: false, message: "You are not authorized to delete projects outside your department" });
       }
     }

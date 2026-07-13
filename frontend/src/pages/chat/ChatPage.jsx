@@ -1054,7 +1054,7 @@ const ChatPage = () => {
                   <p className="item-subtitle truncate mt-0.5">
                     {lastMessages[u._id]
                       ? formatLastMessageText(lastMessages[u._id])
-                      : `${u.role}${u.department ? ` — ${u.department}` : ""}`}
+                      : `${u.department ? `${u.department}` : ""}`}
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0 ml-auto relative min-h-[32px] justify-end">
@@ -1165,9 +1165,9 @@ const ChatPage = () => {
                     {activeChatUser.name}
                   </h3>
                   <p className="text-[9px] theme-text-secondary font-semibold capitalize mt-0.5 leading-none truncate max-w-[120px] sm:max-w-xs">
-                    {activeChatUser.role}
+                  
                     {activeChatUser.department
-                      ? ` — ${activeChatUser.department}`
+                      ? `${activeChatUser.department}`
                       : ""}
                   </p>
                 </div>

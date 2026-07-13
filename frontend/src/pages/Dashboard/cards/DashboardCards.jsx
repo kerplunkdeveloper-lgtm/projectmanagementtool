@@ -57,7 +57,7 @@ const DashboardCards = () => {
     {
       title: isAdminOrOpManager
         ? "Total Overall No.of Active Clients"
-        : "No.of Active Clients",
+        : "No.of Assigned Clients",
       value: activeClientsCount,
       icon: FiBriefcase,
       gradient: "bg-gradient-to-br from-amber-300 to-orange-400 ",
@@ -71,7 +71,7 @@ const DashboardCards = () => {
     {
       title: isAdminOrOpManager
         ? "Total Overall No.of Projects"
-        : "No.of Projects",
+        : "No.of Assigned Projects",
       value: activeProjectsCount,
       icon: FiBriefcase,
       gradient: "bg-gradient-to-br from-blue-400 to-indigo-400 ",
