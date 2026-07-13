@@ -779,15 +779,15 @@ select.badge-priority-top-high {
 
 /* Priority: High */
 .badge-priority-high {
-  background: linear-gradient(135deg, #f10145 0%, #ff0040 100%) !important;
+  background: linear-gradient(135deg, #ec4899 0%, #db2777 100%) !important;
   color: #ffffff !important;
-  border-color: #881337 !important;
+  border-color: #db2777 !important;
 }
 .dark .badge-priority-high {
-  background: linear-gradient(135deg, #ef0145 0%, #400115 100%) !important;
+  background: linear-gradient(135deg, #db2777 0%, #831843 100%) !important;
   color: #ffffff !important;
-  border-color: #881337 !important;
-  box-shadow: 0 4px 12px rgba(159, 18, 57, 0.4) !important;
+  border-color: #be185d !important;
+  box-shadow: 0 4px 12px rgba(219, 39, 119, 0.4) !important;
 }
 
 /* Priority: Medium */

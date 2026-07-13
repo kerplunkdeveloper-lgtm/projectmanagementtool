@@ -13,6 +13,9 @@ import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
+import {
+  useGetTasksQuery,
+} from "../../features/api/apiSlice";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -33,6 +36,9 @@ import {
   FiX,
   FiChevronDown,
   FiSearch,
+  FiCheck,
+  FiCheckCircle,
+  FiSliders,
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -82,12 +88,474 @@ const ACCENT_COLOR_MAP = {
   gold: "bg-amber-700 dark:bg-amber-650",
 };
 
+const getDaysRemaining = (dueDateStr) => {
+  if (!dueDateStr) return null;
+  const dueDate = new Date(dueDateStr);
+  dueDate.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const diffTime = dueDate.getTime() - today.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+};
+
+const GraphicDesignerDeadlines = ({ user }) => {
+  const navigate = useNavigate();
+  const { data: tasks = [], isLoading } = useGetTasksQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
+
+  const [filterTab, setFilterTab] = useState("active"); // "active" | "overdue" | "today" | "completed" | "all"
+  const [selectedClient, setSelectedClient] = useState("all");
+  const [selectedDate, setSelectedDate] = useState("");
+
+  // Filter tasks assigned to this user
+  const currentUserId = user?._id || user?.id;
+  const myTasks = React.useMemo(() => {
+    return tasks.filter((t) => {
+      const assignedId = t.assignedTo?._id || t.assignedTo;
+      return assignedId === currentUserId;
+    });
+  }, [tasks, currentUserId]);
+
+  const uniqueClients = React.useMemo(() => {
+    const clientsMap = new Map();
+    myTasks.forEach((t) => {
+      if (t.client) {
+        const clientVal = t.client;
+        const clientId = typeof clientVal === "object" ? clientVal._id || clientVal.id : clientVal;
+        const clientName = typeof clientVal === "object" ? clientVal.companyName || clientVal.name : clientVal;
+        if (clientId && clientName) {
+          clientsMap.set(clientId, clientName);
+        }
+      }
+    });
+    return Array.from(clientsMap.entries()).map(([id, name]) => ({ id, name }));
+  }, [myTasks]);
+
+  const taskStats = React.useMemo(() => {
+    let overdueCount = 0;
+    let todayCount = 0;
+    let activeCount = 0;
+    let completedCount = 0;
+
+    myTasks.forEach((t) => {
+      // Client Filter
+      if (selectedClient !== "all") {
+        const clientVal = t.client;
+        const clientId = typeof clientVal === "object" ? clientVal._id || clientVal.id : clientVal;
+        if (clientId !== selectedClient) return;
+      }
+
+      // Date Filter
+      if (selectedDate) {
+        if (!t.dueDate) return;
+        const taskDate = new Date(t.dueDate);
+        const filterDate = new Date(selectedDate);
+        if (
+          taskDate.getFullYear() !== filterDate.getFullYear() ||
+          taskDate.getMonth() !== filterDate.getMonth() ||
+          taskDate.getDate() !== filterDate.getDate()
+        ) {
+          return;
+        }
+      }
+
+      if (t.status === "Completed") {
+        completedCount++;
+      } else {
+        activeCount++;
+        const days = getDaysRemaining(t.dueDate);
+        if (days !== null) {
+          if (days < 0) overdueCount++;
+          if (days === 0) todayCount++;
+        }
+      }
+    });
+
+    return { overdueCount, todayCount, activeCount, completedCount };
+  }, [myTasks, selectedClient, selectedDate]);
+
+  const filteredTasks = React.useMemo(() => {
+    return myTasks
+      .filter((t) => {
+        const days = getDaysRemaining(t.dueDate);
+        const isCompleted = t.status === "Completed";
+
+        if (filterTab === "overdue") {
+          if (isCompleted || days === null || days >= 0) return false;
+        } else if (filterTab === "today") {
+          if (isCompleted || days === null || days !== 0) return false;
+        } else if (filterTab === "active") {
+          if (isCompleted) return false;
+        } else if (filterTab === "completed") {
+          if (!isCompleted) return false;
+        }
+
+        // Client Filter
+        if (selectedClient !== "all") {
+          const clientVal = t.client;
+          const clientId = typeof clientVal === "object" ? clientVal._id || clientVal.id : clientVal;
+          if (clientId !== selectedClient) return false;
+        }
+
+        // Date Filter
+        if (selectedDate) {
+          if (!t.dueDate) return false;
+          const taskDate = new Date(t.dueDate);
+          const filterDate = new Date(selectedDate);
+          if (
+            taskDate.getFullYear() !== filterDate.getFullYear() ||
+            taskDate.getMonth() !== filterDate.getMonth() ||
+            taskDate.getDate() !== filterDate.getDate()
+          ) {
+            return false;
+          }
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return new Date(a.dueDate) - new Date(b.dueDate);
+      });
+  }, [myTasks, filterTab, selectedClient, selectedDate]);
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    const day = String(d.getDate()).padStart(2, "0");
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const month = months[d.getMonth()];
+    const year = d.getFullYear();
+    return `${day} ${month} ${year}`;
+  };
+
+
+
+  if (isLoading) {
+    return (
+      <div className="theme-bg-card border theme-border rounded-xl p-6 shadow-sm animate-pulse space-y-4">
+        <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/4"></div>
+        <div className="space-y-3">
+          <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded"></div>
+          <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="theme-bg-card border theme-border rounded-2xl p-5 shadow-sm w-full">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b theme-border pb-4 mb-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-pink-50 dark:bg-pink-950/30 flex items-center justify-center text-pink-600 dark:text-pink-400 shrink-0 shadow-sm animate-pulse">
+            <FiClock size={16} />
+          </div>
+          <div>
+            <h2 className="text-[13px] font-black theme-text-primary uppercase tracking-wider">
+              My Design Deadlines
+            </h2>
+            <p className="text-[10px] theme-text-secondary font-bold">
+              Track and update your assigned graphic design tasks and due dates
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => navigate(`/${user?.role}/tasks`)}
+          className="inline-flex items-center gap-1 text-[10px] font-black text-blue-600 dark:text-[#3b82f6] hover:underline uppercase tracking-wider"
+        >
+          View Task Board <FiChevronRight size={12} />
+        </button>
+      </div>
+
+      {/* Stats Quick Filters & Search Control Row */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5 border-b theme-border pb-4">
+        {/* Quick Filter Tabs */}
+        <div className="flex flex-wrap gap-2">
+          {[
+            {
+              id: "active",
+              label: "Active Tasks",
+              count: taskStats.activeCount,
+              color:
+                "border-blue-500/20 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/20",
+            },
+            {
+              id: "overdue",
+              label: "Overdue",
+              count: taskStats.overdueCount,
+              color:
+                "border-rose-500/20 text-rose-600 dark:text-rose-400 bg-rose-50/50 dark:bg-rose-950/20",
+              highlight: taskStats.overdueCount > 0,
+            },
+            {
+              id: "today",
+              label: "Due Today",
+              count: taskStats.todayCount,
+              color:
+                "border-amber-500/20 text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-950/20",
+            },
+            {
+              id: "completed",
+              label: "Completed",
+              count: taskStats.completedCount,
+              color:
+                "border-emerald-500/20 text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20",
+            },
+            {
+              id: "all",
+              label: "All Tasks",
+              count: myTasks.filter((t) => {
+                if (selectedClient !== "all") {
+                  const clientVal = t.client;
+                  const clientId = typeof clientVal === "object" ? clientVal._id || clientVal.id : clientVal;
+                  if (clientId !== selectedClient) return false;
+                }
+                if (selectedDate) {
+                  if (!t.dueDate) return false;
+                  const taskDate = new Date(t.dueDate);
+                  const filterDate = new Date(selectedDate);
+                  if (
+                    taskDate.getFullYear() !== filterDate.getFullYear() ||
+                    taskDate.getMonth() !== filterDate.getMonth() ||
+                    taskDate.getDate() !== filterDate.getDate()
+                  ) {
+                    return false;
+                  }
+                }
+                return true;
+              }).length,
+              color:
+                "border-slate-500/20 text-slate-600 dark:text-slate-400 bg-slate-50/50 dark:bg-slate-950/20",
+            },
+          ].map((tab) => {
+            const isActive = filterTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setFilterTab(tab.id)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[11px] font-bold transition-all shadow-sm cursor-pointer ${
+                  isActive
+                    ? "bg-blue-600 border-blue-600 text-white dark:bg-blue-500 dark:border-blue-500"
+                    : `${tab.color} hover:bg-slate-100 dark:hover:bg-slate-800`
+                } ${tab.highlight ? "animate-pulse" : ""}`}
+              >
+                <span>{tab.label}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${
+                    isActive
+                      ? "bg-white/20 text-white"
+                      : "bg-slate-200/50 dark:bg-slate-800/80 text-slate-705 dark:text-slate-300"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Client & Date Filter Controls */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Client Filter Dropdown */}
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/50 border theme-border px-3 py-1.5 rounded-xl shadow-sm min-w-[150px]">
+            <FiSliders size={12} className="text-slate-400 dark:text-slate-500 shrink-0" />
+            <div className="flex-1 flex flex-col items-start min-w-0">
+              <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-none mb-0.5">Client</span>
+              <select
+                value={selectedClient}
+                onChange={(e) => setSelectedClient(e.target.value)}
+                className="w-full bg-transparent text-[11px] font-bold theme-text-primary focus:outline-none cursor-pointer p-0"
+              >
+                <option value="all" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white">All Clients</option>
+                {uniqueClients.map((c) => (
+                  <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Date Filter Input */}
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/50 border theme-border px-3 py-1.5 rounded-xl shadow-sm">
+            <FiCalendar size={12} className="text-slate-400 dark:text-slate-500 shrink-0" />
+            <div className="flex flex-col items-start">
+              <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-none mb-0.5">Due Date</span>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="bg-transparent text-[11px] font-bold theme-text-primary focus:outline-none cursor-pointer p-0 [color-scheme:light] dark:[color-scheme:dark]"
+                />
+                {selectedDate && (
+                  <button
+                    onClick={() => setSelectedDate("")}
+                    className="text-[9px] font-black text-rose-500 hover:text-rose-600 uppercase tracking-wider cursor-pointer pl-1 border-l theme-border"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Task List */}
+      <div className="space-y-3 overflow-y-auto max-h-[400px] pr-2 scrollbar-thin">
+        {filteredTasks.length > 0 ? (
+          filteredTasks.map((task) => {
+            const daysLeft = getDaysRemaining(task.dueDate);
+            const isOverdue =
+              task.status !== "Completed" && daysLeft !== null && daysLeft < 0;
+            const isToday =
+              task.status !== "Completed" &&
+              daysLeft !== null &&
+              daysLeft === 0;
+            const isCompleted = task.status === "Completed";
+
+            // Priority styling (left border & glow)
+            const priorityBorder =
+              task.priority === "Top High"
+                ? "border-l-4 border-l-rose-500 dark:border-l-rose-600"
+                : task.priority === "High"
+                  ? "border-l-4 border-l-pink-500 dark:border-l-pink-600"
+                  : task.priority === "Medium"
+                    ? "border-l-4 border-l-amber-500 dark:border-l-amber-600"
+                    : "border-l-4 border-l-slate-400 dark:border-l-slate-600";
+
+            return (
+              <div
+                key={task._id}
+                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border theme-border bg-white dark:bg-slate-900/40 hover:bg-slate-50/50 dark:hover:bg-slate-900/80 transition-all duration-200 shadow-sm ${priorityBorder}`}
+              >
+                {/* Left side: Title, Details */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                    {/* Client Badge */}
+                    {task.client && (
+                      <span className="text-[9px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold">
+                        Client: {task.client.companyName || (typeof task.client === 'object' ? task.client.name : task.client)}
+                      </span>
+                    )}
+                    {/* Content Type Badge */}
+                    {task.contentType && (
+                      <span className="text-[9px] px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider">
+                        {task.contentType}
+                      </span>
+                    )}
+                    {/* Status Badge */}
+                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider ${
+                      task.status === "Completed" ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400" :
+                      task.status === "In Progress" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400" :
+                      task.status === "IN-REVIEW" ? "bg-sky-50 dark:bg-sky-950/20 text-sky-600 dark:text-sky-400" :
+                      task.status === "On Hold" ? "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-455" :
+                      task.status === "Rejected" ? "bg-red-50 dark:bg-red-950/20 text-red-655 dark:text-red-405" :
+                      "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                    }`}>
+                      {task.status}
+                    </span>
+                  </div>
+
+                  <h3
+                    className={`text-xs font-bold leading-snug theme-text-primary ${
+                      isCompleted
+                        ? "line-through text-slate-400 dark:text-slate-500 font-medium"
+                        : ""
+                    }`}
+                  >
+                    {task.title}
+                  </h3>
+                </div>
+
+                {/* Right side: Deadline */}
+                <div className="flex items-center gap-3 shrink-0 flex-wrap justify-between sm:justify-end">
+                  {/* Deadline Label */}
+                  {task.dueDate ? (
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase tracking-wider flex items-center gap-1 ${
+                          isCompleted
+                            ? "bg-emerald-55 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400"
+                            : isOverdue
+                              ? "bg-rose-55 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30 animate-pulse"
+                              : isToday
+                                ? "bg-amber-55 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/30"
+                                : "bg-slate-55 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 border theme-border"
+                        }`}
+                      >
+                        {isOverdue && <FiAlertCircle size={10} />}
+                        {isToday && <FiClock size={10} />}
+                        {isCompleted
+                          ? "Done"
+                          : isOverdue
+                            ? `Overdue by ${Math.abs(daysLeft)} day${Math.abs(daysLeft) > 1 ? "s" : ""}`
+                            : isToday
+                              ? "Due Today"
+                              : daysLeft === 1
+                                ? "Due Tomorrow"
+                                : `${daysLeft} days left`}
+                      </span>
+
+                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-550">
+                        ({formatDate(task.dueDate)})
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold italic">
+                      No Deadline Set
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="text-center py-10 bg-slate-50/50 dark:bg-slate-900/30 rounded-2xl border border-dashed theme-border">
+            <FiCheckCircle
+              size={32}
+              className="mx-auto text-slate-300 dark:text-slate-700 mb-2"
+            />
+            <h3 className="text-xs font-bold theme-text-primary">
+              All caught up!
+            </h3>
+            <p className="text-[10px] theme-text-secondary mt-0.5">
+              No tasks found matching your filter criteria.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const Dashboardmain = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const { theme, accentColor } = useTheme();
-  const activeAccentBgClass = ACCENT_COLOR_MAP[accentColor] || ACCENT_COLOR_MAP.default;
+  const activeAccentBgClass =
+    ACCENT_COLOR_MAP[accentColor] || ACCENT_COLOR_MAP.default;
   const isDark =
     theme === "dark" ||
     (theme === "system" &&
@@ -215,9 +683,12 @@ const Dashboardmain = () => {
   const filteredClientsList = React.useMemo(() => {
     if (!clients) return [];
     if (!clientSearchQuery) return clients;
-    return clients.filter((c) =>
-      c.companyName?.toLowerCase().includes(clientSearchQuery.toLowerCase()) ||
-      c.industry?.toLowerCase().includes(clientSearchQuery.toLowerCase())
+    return clients.filter(
+      (c) =>
+        c.companyName
+          ?.toLowerCase()
+          .includes(clientSearchQuery.toLowerCase()) ||
+        c.industry?.toLowerCase().includes(clientSearchQuery.toLowerCase()),
     );
   }, [clients, clientSearchQuery]);
 
@@ -227,9 +698,9 @@ const Dashboardmain = () => {
       .map((u) => u.department)
       .filter((d) => d && d.trim() !== "");
     const unique = Array.from(new Set(depts));
-    
+
     const middleDepts = [];
-    
+
     unique.forEach((d) => {
       const lower = d.toLowerCase();
       if (
@@ -345,7 +816,7 @@ const Dashboardmain = () => {
       {/* GREETING */}
       <WelcomeUser />
 
-{/* .................................................3cards.............................. */}
+      {/* .................................................3cards.............................. */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 mb-4 ">
         <div className="col-span-1">
           <DashboardCards />
@@ -360,7 +831,6 @@ const Dashboardmain = () => {
 
               {/* CLIENT SEARCH INPUT */}
               <div className="relative shrink-0 w-36 sm:w-44">
-              
                 <input
                   type="text"
                   placeholder="Search clients..."
@@ -407,7 +877,10 @@ const Dashboardmain = () => {
                 ))
               ) : (
                 <div className="col-span-2 py-8 flex flex-col items-center justify-center text-center opacity-60">
-                  <FiUser size={18} className="text-slate-400 dark:text-slate-500 mb-1" />
+                  <FiUser
+                    size={18}
+                    className="text-slate-400 dark:text-slate-500 mb-1"
+                  />
                   <p className="text-[9px] font-semibold text-slate-500 dark:text-slate-400">
                     No clients found
                   </p>
@@ -422,7 +895,6 @@ const Dashboardmain = () => {
       )} */}
       </div>
 
-
       {/* ............................................status cards .......................................... */}
       {(user?.role === "admin" ||
         user?.role === "operationmanager" ||
@@ -430,7 +902,9 @@ const Dashboardmain = () => {
         <div className="w-full py-4 md:py-10">
           {/* Department Tabs */}
           <div className="flex justify-center w-full mb-8">
-            <div className={`flex gap-1.5 p-1.5  border rounded-full shadow-inner max-w-full overflow-x-auto scrollbar-hide backdrop-blur-md ${isDark ? "bg-slate-50 border-slate-100" : "bg-slate-100/80 border-slate-200/50"}`}>
+            <div
+              className={`flex gap-1.5 p-1.5  border rounded-full shadow-inner max-w-full overflow-x-auto scrollbar-hide backdrop-blur-md ${isDark ? "bg-slate-50 border-slate-100" : "bg-slate-100/80 border-slate-200/50"}`}
+            >
               {uniqueDepartments.map((dept) => {
                 const isActive = activeDeptTab === dept;
                 return (
@@ -441,15 +915,19 @@ const Dashboardmain = () => {
                       isActive
                         ? "text-white"
                         : isDark
-                        ? "text-slate-400 hover:text-yellow-400"
-                        : "text-slate-600 hover:text-slate-800"
+                          ? "text-slate-400 hover:text-yellow-400"
+                          : "text-slate-600 hover:text-slate-800"
                     }`}
                   >
                     {isActive && (
                       <motion.div
                         layoutId="activeDeptTabIndicator"
                         className={`absolute inset-0 ${activeAccentBgClass} rounded-3xl -z-10 shadow-md dark:shadow-none`}
-                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 380,
+                          damping: 30,
+                        }}
                       />
                     )}
                     <span>{dept}</span>
@@ -471,7 +949,8 @@ const Dashboardmain = () => {
                 No stats card for {activeDeptTab}
               </h3>
               <p className="text-xs theme-text-secondary mt-1 max-w-xs">
-                Stats dashboard configuration is currently pending for this department.
+                Stats dashboard configuration is currently pending for this
+                department.
               </p>
             </div>
           )}
@@ -479,24 +958,12 @@ const Dashboardmain = () => {
       )}
       {/* end................................................................................................... */}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+      {/* status shortut for grahics designer */}
+      {user?.department?.toLowerCase() === "graphic designer" && (
+        <div className="w-full mt-4">
+          <GraphicDesignerDeadlines user={user} />
+        </div>
+      )}
 
       {/* user details list name and email */}
       {(user?.role === "admin" || user?.role === "operationmanager") && (
@@ -606,7 +1073,7 @@ const Dashboardmain = () => {
                   <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
                     Assigned
                   </span>
-              </div>
+                </div>
               )}
             </div>
           </div>
@@ -615,7 +1082,7 @@ const Dashboardmain = () => {
 
       {/* TWO-COLUMN LOWER DASHBOARD SECTION */}
       {(user?.role === "admin" || user?.role === "operationmanager") && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 max-w-7xl">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 w-full">
           {/* UPCOMING EVENTS SECTION */}
           <div className="lg:col-span-2 theme-bg-card border theme-border rounded-xl p-4 shadow-sm">
             <div className="flex items-center justify-between mb-4 border-b theme-border pb-3">
@@ -714,9 +1181,15 @@ const Dashboardmain = () => {
                         </span>
                         <div className="max-w-[150px] flex justify-end truncate">
                           {event.client ? (
-                            <ClientBadge client={event.client} size="sm" className="!text-[8px] !px-1.5 !py-0.5" />
+                            <ClientBadge
+                              client={event.client}
+                              size="sm"
+                              className="!text-[8px] !px-1.5 !py-0.5"
+                            />
                           ) : (
-                            <span className="theme-text-primary font-extrabold truncate">Internal Event</span>
+                            <span className="theme-text-primary font-extrabold truncate">
+                              Internal Event
+                            </span>
                           )}
                         </div>
                       </div>
@@ -733,8 +1206,8 @@ const Dashboardmain = () => {
                   No Upcoming Scheduled Initiatives
                 </h4>
                 <p className="text-[10px] theme-text-secondary mt-1 max-w-xs">
-                  There are no scheduled events, reports, or content deliverables
-                  listed for today or the coming week.
+                  There are no scheduled events, reports, or content
+                  deliverables listed for today or the coming week.
                 </p>
               </div>
             )}
@@ -818,10 +1291,6 @@ const Dashboardmain = () => {
           </div>
         </div>
       )}
-
-
-
-
     </div>
   );
 };

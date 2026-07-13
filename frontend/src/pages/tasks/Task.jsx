@@ -754,13 +754,13 @@ const Task = () => {
       case "Top High":
         return "badge-priority-top-high";
       case "High":
-        return "bg-rose-600 text-white dark:bg-rose-900 dark:text-rose-300";
+        return "badge-priority-high";
       case "Medium":
-        return "bg-yellow-600 text-white dark:bg-yellow-900 dark:text-yellow-300";
+        return "badge-priority-medium";
       case "Low":
-        return "bg-slate-600 text-white dark:bg-slate-800 dark:text-slate-200";
+        return "badge-priority-low";
       default:
-        return "bg-yellow-600 text-white dark:bg-yellow-900 dark:text-yellow-300";
+        return "badge-priority-medium";
     }
   };
 
@@ -1397,12 +1397,14 @@ const Task = () => {
                                   >
                                     In Review
                                   </option>
-                                  <option
-                                    value="Completed"
-                                    className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
-                                  >
-                                    Completed
-                                  </option>
+                                  {task.status === "Completed" && (
+                                    <option
+                                      value="Completed"
+                                      className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                                    >
+                                      Completed
+                                    </option>
+                                  )}
                                   <option
                                     value="On Hold"
                                     className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
@@ -1776,12 +1778,14 @@ const Task = () => {
                           >
                             In Progress
                           </option>
-                          <option
-                            value="Completed"
-                            className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
-                          >
-                            Completed
-                          </option>
+                          {task.status === "Completed" && (
+                            <option
+                              value="Completed"
+                              className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                            >
+                              Completed
+                            </option>
+                          )}
                           <option
                             value="On Hold"
                             className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
@@ -1975,12 +1979,14 @@ const Task = () => {
                       >
                         In Review
                       </option>
-                      <option
-                        value="Completed"
-                        className={getStatusStyle("Completed").bg}
-                      >
-                        Completed
-                      </option>
+                      {selectedTask.status === "Completed" && (
+                        <option
+                          value="Completed"
+                          className={getStatusStyle("Completed").bg}
+                        >
+                          Completed
+                        </option>
+                      )}
                       <option
                         value="On Hold"
                         className={getStatusStyle("On Hold").bg}
@@ -2326,12 +2332,14 @@ const Task = () => {
                                   >
                                     In Review
                                   </option>
-                                  <option
-                                    value="Completed"
-                                    className={getStatusStyle("Completed").bg}
-                                  >
-                                    Completed
-                                  </option>
+                                  {sub.status === "Completed" && (
+                                    <option
+                                      value="Completed"
+                                      className={getStatusStyle("Completed").bg}
+                                    >
+                                      Completed
+                                    </option>
+                                  )}
                                   <option
                                     value="On Hold"
                                     className={getStatusStyle("On Hold").bg}
