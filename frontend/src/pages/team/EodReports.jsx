@@ -232,10 +232,6 @@ const EodReports = () => {
     });
   }, [designerEodReports, selectedDate]);
 
-  // Reviewers list (admin and operation managers)
-  const reviewers = React.useMemo(() => {
-    return users.filter((u) => u.role === "admin" || u.role === "operationmanager");
-  }, [users]);
 
   // Populate form state when EOD Report or tasks load
   useEffect(() => {
@@ -257,6 +253,14 @@ const EodReports = () => {
             const actualStatus = correspondingTask ? mapTaskStatusToEodStatus(correspondingTask.status) : (t.statusAtEod || "Pending");
             const taskCode = correspondingTask ? getTaskDisplayId(correspondingTask) : "";
             
+            const creator = correspondingTask?.createdBy || t.reviewedBy;
+            const creatorName = creator && typeof creator === "object"
+              ? creator.name
+              : (users.find(u => u._id === (typeof creator === "string" ? creator : creator?._id))?.name || "Admin");
+            const creatorId = creator && typeof creator === "object"
+              ? creator._id
+              : (creator || "");
+
             return {
               id: t.taskId || t._id,
               taskId: t.taskId?._id || t.taskId || t._id,
@@ -271,7 +275,8 @@ const EodReports = () => {
               outputLink: t.outputLink || "",
               reason: t.reason || "",
               nextAction: t.nextAction || "",
-              reviewedBy: t.reviewedBy?._id || t.reviewedBy || "",
+              reviewedBy: creatorId,
+              assignedByName: creatorName,
               code: taskCode,
               createdAt: correspondingTask?.createdAt || t.createdAt,
             };
@@ -284,6 +289,14 @@ const EodReports = () => {
             const projectName = t.project?.name || "Internal";
             const elapsedStr = formatElapsed(t.actualStartTime, t.actualEndTime);
             const taskCode = getTaskDisplayId(t);
+
+            const creator = t.createdBy;
+            const creatorName = creator && typeof creator === "object"
+              ? creator.name
+              : (users.find(u => u._id === (typeof creator === "string" ? creator : creator?._id))?.name || "Admin");
+            const creatorId = creator && typeof creator === "object"
+              ? creator._id
+              : (creator || "");
 
             return {
               id: t._id,
@@ -299,7 +312,8 @@ const EodReports = () => {
               outputLink: "",
               reason: "",
               nextAction: "",
-              reviewedBy: "",
+              reviewedBy: creatorId,
+              assignedByName: creatorName,
               code: taskCode,
               createdAt: t.createdAt,
             };
@@ -316,6 +330,14 @@ const EodReports = () => {
           const elapsedStr = formatElapsed(t.actualStartTime, t.actualEndTime);
           const taskCode = getTaskDisplayId(t);
 
+          const creator = t.createdBy;
+          const creatorName = creator && typeof creator === "object"
+            ? creator.name
+            : (users.find(u => u._id === (typeof creator === "string" ? creator : creator?._id))?.name || "Admin");
+          const creatorId = creator && typeof creator === "object"
+            ? creator._id
+            : (creator || "");
+
           return {
             id: t._id,
             taskId: t._id,
@@ -330,7 +352,8 @@ const EodReports = () => {
             outputLink: "",
             reason: "",
             nextAction: "",
-            reviewedBy: "",
+            reviewedBy: creatorId,
+            assignedByName: creatorName,
             code: taskCode,
             createdAt: t.createdAt,
           };
@@ -356,7 +379,7 @@ const EodReports = () => {
       setReportId(null);
       setIsSubmitted(false);
     }
-  }, [todayReport, myTasks, projects]);
+  }, [todayReport, myTasks, projects, users]);
 
   // Sync task status, code, and elapsed time dynamically from allTasks/myTasks
   useEffect(() => {
@@ -369,16 +392,28 @@ const EodReports = () => {
             const elapsedStr = formatElapsed(correspondingTask.actualStartTime, correspondingTask.actualEndTime);
             const taskCode = getTaskDisplayId(correspondingTask);
             
+            const creator = correspondingTask.createdBy;
+            const creatorName = creator && typeof creator === "object"
+              ? creator.name
+              : (users.find(u => u._id === (typeof creator === "string" ? creator : creator?._id))?.name || "Admin");
+            const creatorId = creator && typeof creator === "object"
+              ? creator._id
+              : (creator || "");
+
             if (
               t.statusAtEod !== mappedStatus ||
               t.time !== elapsedStr ||
-              t.code !== taskCode
+              t.code !== taskCode ||
+              t.reviewedBy !== creatorId ||
+              t.assignedByName !== creatorName
             ) {
               return {
                 ...t,
                 statusAtEod: mappedStatus,
                 time: elapsedStr,
                 code: taskCode,
+                reviewedBy: creatorId,
+                assignedByName: creatorName,
               };
             }
           }
@@ -386,7 +421,7 @@ const EodReports = () => {
         })
       );
     }
-  }, [myTasks, projects]);
+  }, [myTasks, projects, users]);
 
   const updateTask = (taskId, field, value) => {
     setTasksState((prev) =>
@@ -568,24 +603,14 @@ const EodReports = () => {
                   </p>
                 </div>
 
-                {/* Reviewer select */}
+                {/* Assigned By (Read-Only) */}
                 <div>
                   <label className="text-[10px] font-bold theme-text-secondary uppercase tracking-wider block">
-                    Reviewed By
+                    Assigned By
                   </label>
-                  <select
-                    className="w-full mt-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-700 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-semibold"
-                    value={task.reviewedBy}
-                    onChange={(e) => updateTask(task.id, "reviewedBy", e.target.value)}
-                    disabled={isSubmitted}
-                  >
-                    <option value="">Select Reviewer</option>
-                    {reviewers.map((rev) => (
-                      <option key={rev._id} value={rev._id}>
-                        {rev.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="w-full mt-1.5 bg-slate-50 border border-slate-200 dark:bg-[#0f172a] dark:border-white/5 rounded-xl px-3 py-2.5 text-xs theme-text-primary font-semibold select-none">
+                    {task.assignedByName || "Admin"}
+                  </div>
                 </div>
 
                 {/* Dynamic field rows depending on the status */}

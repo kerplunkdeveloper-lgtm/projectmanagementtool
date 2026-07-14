@@ -446,26 +446,6 @@ const Navbar = ({ setSidebarOpen }) => {
         </h1>
       </div>
 
-      {/* DESKTOP SEARCH BAR (PREMIUM PILL) - CENTERED */}
-      <div
-        onClick={() => {
-          setShowSearchModal(true);
-          setSearchQuery("");
-          setSelectedIndex(0);
-        }}
-        className="
-          hidden sm:flex items-center gap-2 px-3 py-3
-          w-48 sm:w-56 md:w-72 lg:w-120 rounded-full border theme-border theme-bg-card
-          theme-text-secondary hover:theme-text-primary hover:theme-bg-main
-          cursor-pointer transition-all duration-200 shadow-sm select-none
-          absolute left-1/2 transform -translate-x-1/2
-        "
-      >
-        <FiSearch className="text-[0.8125rem]  shrink-0 text-slate-450 dark:text-slate-400" />
-        <span className="text-[0.6875rem] font-semibold flex-1 text-left text-slate-450 dark:text-slate-400">
-          Search...
-        </span>
-      </div>
 
       {/* RIGHT */}
       <div className="flex items-center gap-2 shrink-0">
@@ -480,21 +460,6 @@ const Navbar = ({ setSidebarOpen }) => {
           </span>
         </div>
 
-        {/* MOBILE SEARCH TRIGGER */}
-        <button
-          onClick={() => {
-            setShowSearchModal(true);
-            setSearchQuery("");
-            setSelectedIndex(0);
-          }}
-          className="
-            sm:hidden w-8 h-8 rounded-lg border flex items-center justify-center transition-all duration-200 cursor-pointer
-            theme-border theme-bg-card theme-text-secondary hover:theme-bg-main hover:theme-text-primary
-          "
-          title="Search"
-        >
-          <FiSearch className="text-[0.9375rem]" />
-        </button>
 
         {/* NOTIFICATIONS */}
         <div className="relative" ref={notificationRef}>
@@ -604,14 +569,11 @@ const Navbar = ({ setSidebarOpen }) => {
                                 n.message.toLowerCase().includes("client:"))
                             ) {
                               navigate(`/${user?.role}/clients`);
-                            } else if (n.type === "task_assigned") {
-                              navigate(`/${user?.role}/tasks`);
-                            } else if (n.type?.startsWith("task_")) {
-                              if (n.project) {
+                            } else if (n.type === "task_assigned" || n.type?.startsWith("task_")) {
+                              const isProjectRedirect = n.message && /in-review|in progress|on-hold|on hold/i.test(n.message);
+                              if (n.project && (user?.role !== "team" || isProjectRedirect)) {
                                 const projectId = typeof n.project === 'object' ? n.project._id : n.project;
-                                navigate(
-                                  `/${user?.role}/projects?id=${projectId}`,
-                                );
+                                navigate(`/${user?.role}/projects?id=${projectId}`);
                               } else {
                                 navigate(`/${user?.role}/tasks`);
                               }

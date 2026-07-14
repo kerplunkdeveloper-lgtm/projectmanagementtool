@@ -381,12 +381,6 @@ const GraphicDesignerDashboard = () => {
 
   return (
     <div className="bg-white dark:bg-[#0b1120] py-4 md:py-4 px-0 md:px-2 space-y-8 font-sans mt-8 overflow-visible transition-colors duration-300 relative">
-      {/* Decorative Blur Backgrounds for Dark Mode Premium Feel */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden rounded-3xl pointer-events-none hidden dark:block">
-        <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] bg-indigo-500/10 blur-[120px] rounded-full" />
-        <div className="absolute top-[40%] -right-[10%] w-[40%] h-[40%] bg-emerald-500/10 blur-[120px] rounded-full" />
-      </div>
-
       {/* Header & Filter */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-20">
         <div className="space-y-1 ">
@@ -453,18 +447,18 @@ const GraphicDesignerDashboard = () => {
       </div>
 
       {/* Premium Metrics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 lg:gap-4 relative z-10">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 lg:gap-4 relative z-10">
         {[
           {
             label: "Designers",
             value: metrics.designersWorking,
             icon: FiUsers,
             glow: "hover:shadow-[0_4px_20px_rgba(59,130,246,0.15)]",
-            bg: "bg-blue-500/5 dark:bg-blue-500/10 border-blue-500/30 dark:border-blue-500/20",
-            labelColor: "text-blue-600 dark:text-blue-400",
-            valueColor: "text-slate-800 dark:text-slate-100",
+            bg: "bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-800 dark:to-blue-900 border border-blue-200/50 dark:border-blue-900/30",
+            labelColor: "text-white dark:text-white",
+            valueColor: "text-slate-100 dark:text-white",
             iconBg:
-              "bg-blue-100 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-500/20",
+              "bg-blue-100 dark:bg-blue-950 border border-blue-200 dark:border-blue-500",
             iconColor: "text-blue-600 dark:text-blue-400",
           },
           {
@@ -472,9 +466,9 @@ const GraphicDesignerDashboard = () => {
             value: metrics.tasksAssigned,
             icon: FiLayers,
             glow: "hover:shadow-[0_4px_20px_rgba(99,102,241,0.15)]",
-            bg: "bg-indigo-500/5 dark:bg-indigo-500/10 border-indigo-500/30 dark:border-indigo-500/20",
-            labelColor: "text-indigo-600 dark:text-indigo-400",
-            valueColor: "text-slate-800 dark:text-slate-100",
+            bg: "bg-gradient-to-br from-violet-400 to-violet-500 dark:from-red-950 dark:to-indigo-900 border border-indigo-200/50 dark:border-indigo-900/30",
+            labelColor: "text-white dark:text-white",
+            valueColor: "text-slate-100 dark:text-white",
             iconBg:
               "bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-500/20",
             iconColor: "text-indigo-600 dark:text-indigo-400",
@@ -484,9 +478,9 @@ const GraphicDesignerDashboard = () => {
             value: metrics.completed,
             icon: FiCheckCircle,
             glow: "hover:shadow-[0_4px_20px_rgba(16,185,129,0.15)]",
-            bg: "bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/30 dark:border-emerald-500/20",
-            labelColor: "text-emerald-600 dark:text-emerald-400",
-            valueColor: "text-slate-800 dark:text-slate-100",
+            bg: "bg-gradient-to-br from-emerald-400 to-emerald-500 dark:from-emerald-700 dark:to-emerald-800 border border-emerald-200/50 dark:border-emerald-900/30",
+            labelColor: "text-white dark:text-white",
+            valueColor: "text-slate-100 dark:text-white",
             iconBg:
               "bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-500/20",
             iconColor: "text-emerald-600 dark:text-emerald-400",
@@ -496,9 +490,9 @@ const GraphicDesignerDashboard = () => {
             value: metrics.pending,
             icon: FiClock,
             glow: "hover:shadow-[0_4px_20px_rgba(245,158,11,0.15)]",
-            bg: "bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/30 dark:border-amber-500/20",
-            labelColor: "text-amber-600 dark:text-amber-400",
-            valueColor: "text-slate-800 dark:text-slate-100",
+            bg: "bg-gradient-to-br from-amber-500 to-amber-600 dark:from-amber-800 dark:to-amber-900 border border-amber-200/50 dark:border-amber-900/30",
+            labelColor: "text-white dark:text-white",
+            valueColor: "text-slate-100 dark:text-white",
             iconBg:
               "bg-amber-100 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-500/20",
             iconColor: "text-amber-600 dark:text-amber-400",
@@ -508,26 +502,13 @@ const GraphicDesignerDashboard = () => {
             value: metrics.overdue,
             icon: FiAlertCircle,
             glow: "hover:shadow-[0_4px_20px_rgba(244,63,94,0.15)]",
-            bg: "bg-rose-500/5 dark:bg-rose-500/10 border-rose-500/30 dark:border-rose-500/20",
-            labelColor: "text-rose-650 dark:text-rose-400",
-            valueColor: "text-slate-800 dark:text-slate-100",
+            bg: "bg-gradient-to-br from-rose-500 to-rose-600 dark:from-rose-600 dark:to-rose-800 border border-rose-200/50 dark:border-rose-900/30",
+            labelColor: "text-white dark:text-white",
+            valueColor: "text-slate-100 dark:text-white",
             iconBg:
               "bg-rose-100 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/20",
             iconColor: "text-rose-600 dark:text-rose-400",
           },
-          {
-            label: "In Revision",
-            value: metrics.inRevision,
-            icon: FiActivity,
-            glow: "hover:shadow-[0_4px_20px_rgba(217,70,239,0.15)]",
-            bg: "bg-fuchsia-500/5 dark:bg-fuchsia-500/10 border-fuchsia-500/30 dark:border-fuchsia-500/20",
-            labelColor: "text-fuchsia-600 dark:text-fuchsia-400",
-            valueColor: "text-slate-800 dark:text-slate-100",
-            iconBg:
-              "bg-fuchsia-100 dark:bg-fuchsia-950/60 border border-fuchsia-200 dark:border-fuchsia-500/20",
-            iconColor: "text-fuchsia-600 dark:text-fuchsia-400",
-          },
-
         ].map((m, i) => {
           const IconComponent = m.icon;
           return (
@@ -536,7 +517,7 @@ const GraphicDesignerDashboard = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
               key={i}
-              className={`flex flex-col text-left p-5 rounded-2xl border ${m.bg} ${m.glow} relative overflow-hidden group hover:scale-[1.03] transition-all duration-300 backdrop-blur-md shadow-sm`}
+              className={`flex flex-col text-left p-5 rounded-2xl ${m.bg} ${m.glow} relative overflow-hidden group hover:scale-[1.03] transition-all duration-300 backdrop-blur-md shadow-sm`}
             >
               {/* Decorative light reflection overlay */}
               <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-white/10 to-transparent rounded-full -mr-6 -mt-6 blur-md pointer-events-none" />

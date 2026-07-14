@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { FiX, FiLogOut, FiFolder, FiList, FiLayers, FiShare2 } from "react-icons/fi";
@@ -36,6 +36,52 @@ const displayRole = (role) => {
   if (role === "operationmanager") return "Operation Manager";
   if (role === "admin") return "Admin";
   return "Team";
+};
+
+const dropdownVariants = {
+  hidden: { 
+    opacity: 0, 
+    y: 10,
+    scale: 0.95,
+    transition: {
+      duration: 0.15,
+      ease: "easeInOut"
+    }
+  },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    scale: 1,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 22,
+      staggerChildren: 0.04,
+      delayChildren: 0.05
+    }
+  },
+  exit: { 
+    opacity: 0, 
+    y: 8, 
+    scale: 0.95,
+    transition: {
+      duration: 0.12,
+      ease: "easeInOut"
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 8 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 22
+    }
+  }
 };
 
 const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
@@ -89,6 +135,17 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   );
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [expandedPortfolios, setExpandedPortfolios] = useState({});
+  const userDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
+        setShowUserDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (activePortfolioId) {
@@ -178,7 +235,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       <aside
         className={`
           fixed top-0 left-0 z-[100] h-screen
-          w-64 lg:w-48 xl:w-52
+          w-64 lg:w-60 xl:w-64
           sidebar-bg
           backdrop-blur-xl
           border-r border-slate-200/40 dark:border-white/5
@@ -538,7 +595,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
           {/* Switch User dropdown — shown only for the actual admin (not impersonating) */}
           {role === "admin" && !originalAdminUser && users && users.length > 0 && (
-            <div className="p-1.5 text-left relative">
+            <div ref={userDropdownRef} className="p-1.5 text-left relative">
               <label className="block text-[0.5rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1 px-1">
                 Switch User
               </label>
@@ -568,8 +625,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                     <p className="text-[0.625rem] font-bold theme-text-primary truncate leading-tight">
                       {currentUser?.name}
                     </p>
-                    <p className="text-[0.5rem] font-black theme-text-secondary uppercase tracking-wider leading-none mt-0.5">
-                      {displayRole(currentUser?.role)}
+                    <p className="text-[0.5rem] font-medium theme-text-secondary  leading-none mt-0.5">
+                      {currentUser?.role === "team" ? (currentUser?.department || "Team") : displayRole(currentUser?.role)}
                     </p>
                   </div>
                 </div>
@@ -590,30 +647,25 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                 </svg>
               </button>
 
-              {/* Click outside Overlay */}
-              {showUserDropdown && (
-                <div
-                  className="fixed inset-0 z-40 bg-transparent"
-                  onClick={() => setShowUserDropdown(false)}
-                />
-              )}
-
               {/* Dropdown Options List */}
               <AnimatePresence>
                 {showUserDropdown && (
                   <motion.div
-                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                    transition={{ type: "spring", stiffness: 350, damping: 24 }}
+                    variants={dropdownVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
                     className="absolute bottom-full left-1.5 right-1.5 mb-3 z-50 bg-white/95 dark:bg-[#0b1120]/95 backdrop-blur-xl border border-white/50 dark:border-white/10 rounded-2xl shadow-2xl shadow-indigo-500/10 dark:shadow-black/50 overflow-hidden flex flex-col p-2 max-h-[17.5rem] overflow-y-auto sidebar-scrollbar"
                   >
                     {users.map((u) => {
                       const isCurrent =
                         u._id === (currentUser?._id || currentUser?.id);
                       return (
-                        <button
+                        <motion.button
                           key={u._id}
+                          variants={itemVariants}
+                          whileHover={{ scale: 1.02, x: 2 }}
+                          whileTap={{ scale: 0.98 }}
                           type="button"
                           onClick={() => {
                             setShowUserDropdown(false);
@@ -659,10 +711,9 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                 {u.name}
                               </p>
                               <p className="text-[0.5625rem] font-black opacity-70 uppercase tracking-widest mt-0.5 theme-text-secondary truncate">
-                                {displayRole(u.role)}
-                                {u.role === "team" && u.department
-                                  ? ` • ${u.department}`
-                                  : ""}
+                                {u.role === "team"
+                                  ? (u.department || "Team")
+                                  : displayRole(u.role)}
                               </p>
                             </div>
                           </div>
@@ -671,7 +722,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           {isCurrent && (
                             <div className="shrink-0 w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)] animate-pulse" />
                           )}
-                        </button>
+                        </motion.button>
                       );
                     })}
                   </motion.div>

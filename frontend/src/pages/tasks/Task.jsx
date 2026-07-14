@@ -1211,7 +1211,7 @@ const Task = () => {
                     <th className="px-3 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-32 whitespace-nowrap">
                       Content-type
                     </th>
-                    <th className="px-5 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-32 min-w-[110px]">
+                    <th className="px-5 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-40 min-w-[145px]">
                       Status 
                     </th>
                     <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-32 whitespace-nowrap">
@@ -1365,7 +1365,7 @@ const Task = () => {
 
                             {/* Status Select */}
                             <td
-                              className="px-1 py-1 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-32 min-w-[110px]"
+                              className="px-1 py-1 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-40 min-w-[145px]"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <div className="relative w-full group">
@@ -1411,12 +1411,14 @@ const Task = () => {
                                   >
                                     On Hold
                                   </option>
-                                  <option
-                                    value="Rejected"
-                                    className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
-                                  >
-                                    Rejected
-                                  </option>
+                                  {task.status === "Rejected" && (
+                                    <option
+                                      value="Rejected"
+                                      className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                                    >
+                                      Rejected
+                                    </option>
+                                  )}
                                 </select>
                                 <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
                                   <FiChevronDown size={9} strokeWidth={2.5} />
@@ -1438,10 +1440,13 @@ const Task = () => {
 
                             {/* Revision Column */}
                             <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-28" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex justify-center">
+                              <div className="flex justify-center items-center gap-1.5">
                                 <span className="font-extrabold text-xs text-slate-800 dark:text-yellow-50 text-center">
                                   {task.revisions || 0}
                                 </span>
+                                {(task.revisions || 0) > 3 && (
+                                  <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)] animate-pulse" title="More than 3 revisions" />
+                                )}
                               </div>
                             </td>
 
