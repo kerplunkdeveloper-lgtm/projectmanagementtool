@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getEodReports } from "../../features/eodReports/eodReportSlice";
-import { getDesignerEodReports } from "../../features/eodReports/designerEodReportSlice";
+import { getEodReports, deleteEodReport } from "../../features/eodReports/eodReportSlice";
+import { getDesignerEodReports, deleteDesignerEodReport } from "../../features/eodReports/designerEodReportSlice";
 import {
   FiImage,
   FiFile,
@@ -14,10 +14,12 @@ import {
   FiEye,
   FiInfo,
   FiChevronDown,
+  FiTrash2,
 } from "react-icons/fi";
 
 const getContentTypeStyle = (contentType) => {
-  if (!contentType) return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+  if (!contentType)
+    return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
   const type = contentType.toLowerCase().trim();
   if (type.includes("reel")) {
     return "bg-pink-50 text-pink-650 border border-pink-200/50 dark:bg-pink-500/10 dark:text-pink-400 dark:border-pink-500/20";
@@ -44,14 +46,14 @@ const calculateTotalLoggedTime = (report) => {
   if (!report.tasks || !Array.isArray(report.tasks)) {
     return report.timeSpentToday || "-";
   }
-  
+
   let totalMinutes = 0;
   report.tasks.forEach((t) => {
     if (!t.loggedTime) return;
     const timeStr = t.loggedTime.toLowerCase().trim();
     let hours = 0;
     let minutes = 0;
-    
+
     if (/^\d+(\.\d+)?$/.test(timeStr)) {
       hours = parseFloat(timeStr);
     } else {
@@ -62,7 +64,7 @@ const calculateTotalLoggedTime = (report) => {
         const hourWordMatch = timeStr.match(/(\d+(\.\d+)?)\s*hour/);
         if (hourWordMatch) hours = parseFloat(hourWordMatch[1]);
       }
-      
+
       const mMatch = timeStr.match(/(\d+)\s*m/);
       if (mMatch) {
         minutes = parseInt(mMatch[1], 10);
@@ -71,14 +73,14 @@ const calculateTotalLoggedTime = (report) => {
         if (minWordMatch) minutes = parseInt(minWordMatch[1], 10);
       }
     }
-    
-    totalMinutes += (hours * 60) + minutes;
+
+    totalMinutes += hours * 60 + minutes;
   });
-  
+
   if (totalMinutes === 0) {
     return report.timeSpentToday || "-";
   }
-  
+
   const h = Math.floor(totalMinutes / 60);
   const m = Math.round(totalMinutes % 60);
   if (h > 0 && m > 0) return `${h}h ${m}m`;
@@ -89,8 +91,12 @@ const calculateTotalLoggedTime = (report) => {
 const AdminEodReports = () => {
   const dispatch = useDispatch();
 
-  const { eodReports, loading: generalLoading } = useSelector((state) => state.eodReports);
-  const { designerEodReports, loading: designerLoading } = useSelector((state) => state.designerEodReports);
+  const { eodReports, loading: generalLoading } = useSelector(
+    (state) => state.eodReports,
+  );
+  const { designerEodReports, loading: designerLoading } = useSelector(
+    (state) => state.designerEodReports,
+  );
 
   const [activeTab, setActiveTab] = useState("Graphic Designer");
 
@@ -223,14 +229,21 @@ const AdminEodReports = () => {
 
       return matchesSearch && matchesStatus && matchesDate;
     });
-  }, [groupedDepartments, activeTab, searchQuery, statusFilter, dateRange, customDate]);
+  }, [
+    groupedDepartments,
+    activeTab,
+    searchQuery,
+    statusFilter,
+    dateRange,
+    customDate,
+  ]);
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
   const currentReports = useMemo(() => {
     return filteredReports.slice(
       (currentPage - 1) * itemsPerPage,
-      currentPage * itemsPerPage
+      currentPage * itemsPerPage,
     );
   }, [filteredReports, currentPage, itemsPerPage]);
 
@@ -275,7 +288,18 @@ const AdminEodReports = () => {
     setOpenViewModal(true);
   };
 
-  const loading = activeTab === "Graphic Designer" ? designerLoading : generalLoading;
+  const handleDelete = (report) => {
+    if (window.confirm("Are you sure you want to delete this EOD report? This action cannot be undone.")) {
+      if (activeTab === "Graphic Designer") {
+        dispatch(deleteDesignerEodReport(report._id));
+      } else {
+        dispatch(deleteEodReport(report._id));
+      }
+    }
+  };
+
+  const loading =
+    activeTab === "Graphic Designer" ? designerLoading : generalLoading;
   const totalColumnsCount = activeTab === "Graphic Designer" ? 13 : 12;
 
   return (
@@ -320,25 +344,50 @@ const AdminEodReports = () => {
         {/* METRICS CARDS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="theme-bg-card border theme-border p-4 rounded-2xl flex flex-col justify-between shadow-sm">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">Total Reports</span>
-            <span className="text-2xl font-black theme-text-primary text-left mt-2">{filteredReports.length}</span>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">
+              Total Reports
+            </span>
+            <span className="text-2xl font-black theme-text-primary text-left mt-2">
+              {filteredReports.length}
+            </span>
           </div>
           <div className="theme-bg-card border theme-border p-4 rounded-2xl flex flex-col justify-between shadow-sm">
-            <span className="text-[10px] font-black uppercase tracking-widest text-left text-emerald-600 dark:text-emerald-400">Completed</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-left text-emerald-600 dark:text-emerald-400">
+              Completed
+            </span>
             <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 text-left mt-2">
-              {filteredReports.filter((r) => r.overallStatus === "Completed").length}
+              {
+                filteredReports.filter((r) => r.overallStatus === "Completed")
+                  .length
+              }
             </span>
           </div>
           <div className="theme-bg-card border theme-border p-4 rounded-2xl flex flex-col justify-between shadow-sm">
-            <span className="text-[10px] font-black uppercase tracking-widest text-left text-blue-600 dark:text-blue-400">Active / On Track</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-left text-blue-600 dark:text-blue-400">
+              Active / On Track
+            </span>
             <span className="text-2xl font-black text-blue-600 dark:text-blue-400 text-left mt-2">
-              {filteredReports.filter((r) => r.overallStatus === "On Track" || r.overallStatus === "In Progress").length}
+              {
+                filteredReports.filter(
+                  (r) =>
+                    r.overallStatus === "On Track" ||
+                    r.overallStatus === "In Progress",
+                ).length
+              }
             </span>
           </div>
           <div className="theme-bg-card border theme-border p-4 rounded-2xl flex flex-col justify-between shadow-sm">
-            <span className="text-[10px] font-black uppercase tracking-widest text-left text-rose-600 dark:text-rose-450">Delayed / Blocked</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-left text-rose-600 dark:text-rose-450">
+              Delayed / Blocked
+            </span>
             <span className="text-2xl font-black text-rose-600 dark:text-rose-400 text-left mt-2">
-              {filteredReports.filter((r) => r.overallStatus === "Delayed" || r.overallStatus === "Blocked").length}
+              {
+                filteredReports.filter(
+                  (r) =>
+                    r.overallStatus === "Delayed" ||
+                    r.overallStatus === "Blocked",
+                ).length
+              }
             </span>
           </div>
         </div>
@@ -358,21 +407,33 @@ const AdminEodReports = () => {
 
           <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
             {/* DATE FILTER (Custom Dropdown matching Reference Image) */}
-            <div id="date-filter-dropdown-container" className="relative w-full sm:w-auto">
+            <div
+              id="date-filter-dropdown-container"
+              className="relative w-full sm:w-auto"
+            >
               <button
                 type="button"
                 onClick={() => setShowDateDropdown(!showDateDropdown)}
                 className="w-full sm:w-auto px-5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full flex items-center justify-between sm:justify-start gap-3 text-xs font-bold text-slate-705 dark:text-slate-205 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all cursor-pointer min-w-[130px] h-[38px]"
               >
                 <div className="flex items-center gap-2">
-                  <FiFilter className="text-emerald-500 dark:text-emerald-400 font-bold" size={13} />
+                  <FiFilter
+                    className="text-emerald-500 dark:text-emerald-400 font-bold"
+                    size={13}
+                  />
                   <span>
                     {dateRange === "Custom" && customDate
-                      ? new Date(customDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                      ? new Date(customDate).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                        })
                       : dateRangeLabelMap[dateRange]}
                   </span>
                 </div>
-                <FiChevronDown className="text-slate-400 dark:text-slate-500 ml-1" size={12} />
+                <FiChevronDown
+                  className="text-slate-400 dark:text-slate-500 ml-1"
+                  size={12}
+                />
               </button>
 
               {showDateDropdown && (
@@ -396,7 +457,7 @@ const AdminEodReports = () => {
                       {opt.label}
                     </button>
                   ))}
-                  
+
                   {dateRange === "Custom" && (
                     <div className="px-3 py-2 border-t border-slate-100 dark:border-slate-750 mt-1">
                       <input
@@ -441,53 +502,101 @@ const AdminEodReports = () => {
         {/* TABLE SECTION */}
         <div className="bg-white dark:bg-[#111827] shadow-sm overflow-hidden transition-colors rounded-xl">
           <div className="overflow-x-auto custom-scrollbar">
-            <table className="w-full min-w-[1000px] text-left border-collapse">
+            <table className="w-full min-w-[1000px] text-left border-collapse border border-slate-200 dark:border-slate-850 [&_th]:border [&_th]:border-slate-200 [&_th]:dark:border-slate-850 [&_td]:border [&_td]:border-slate-200 [&_td]:dark:border-slate-850">
               <thead>
                 <tr className="bg-slate-50/50 dark:bg-[#0f172a]/50 ">
-                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Date</th>
-                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Team Member</th>
-                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Client Name</th>
-                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Task Name</th>
-                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Task Assigned by</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                    Date
+                  </th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                    Team Member
+                  </th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                    Client Name
+                  </th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                    Task Name
+                  </th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                    Task Assigned by
+                  </th>
 
                   {activeTab === "Graphic Designer" && (
                     <>
-                      <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Total Designs</th>
+                      <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                        Total Completed Designs
+                      </th>
                     </>
                   )}
-                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Pending Tasks</th>
-                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Reason for Pending</th>
-                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap min-w-[250px]">Tomorrow Plan</th>
-                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Total Time Spent</th>
-                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Overall Status</th>
-                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center whitespace-nowrap">Actions</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                    Pending Tasks
+                  </th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                    Reason for Pending
+                  </th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap min-w-[250px]">
+                    Tomorrow Plan
+                  </th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                    Total Time Spent
+                  </th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                    Overall Status
+                  </th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center whitespace-nowrap">
+                    Actions
+                  </th>
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                 {loading ? (
                   <tr>
-                    <td colSpan={totalColumnsCount} className="text-center py-16">
+                    <td
+                      colSpan={totalColumnsCount}
+                      className="text-center py-16"
+                    >
                       <div className="flex flex-col items-center gap-3">
                         <div className="w-6 h-6 border-2 border-slate-200 dark:border-slate-700 border-t-blue-500 rounded-full animate-spin"></div>
-                        <p className="text-slate-500 dark:text-slate-400 font-medium text-xs">Fetching EOD reports...</p>
+                        <p className="text-slate-500 dark:text-slate-400 font-medium text-xs">
+                          Fetching EOD reports...
+                        </p>
                       </div>
                     </td>
                   </tr>
                 ) : currentReports.length === 0 ? (
                   <tr>
-                    <td colSpan={totalColumnsCount} className="text-center py-16">
+                    <td
+                      colSpan={totalColumnsCount}
+                      className="text-center py-16"
+                    >
                       <div className="flex flex-col items-center gap-2">
                         <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center border border-slate-100 dark:border-slate-800">
-                          <FiFile className="text-slate-400 dark:text-slate-500" size={16} />
+                          <FiFile
+                            className="text-slate-400 dark:text-slate-500"
+                            size={16}
+                          />
                         </div>
-                        <p className="text-slate-600 dark:text-slate-400 font-medium text-xs mt-2">No reports found.</p>
+                        <p className="text-slate-600 dark:text-slate-400 font-medium text-xs mt-2">
+                          No reports found.
+                        </p>
                       </div>
                     </td>
                   </tr>
                 ) : (
                   currentReports.map((report) => (
-                    <tr key={report._id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors group">
+                    <tr
+                      key={report._id}
+                      className={`transition-colors group no-hover-row ${
+                        report.overallStatus?.trim() === "On Track"
+                          ? "bg-yellow-300 dark:bg-yellow-600"
+                          : report.overallStatus?.trim() === "Completed"
+                            ? "bg-emerald-200 dark:bg-emerald-600"
+                            : report.overallStatus?.trim() === "Delayed"
+                              ? "bg-rose-200 dark:bg-rose-200"
+                              : ""
+                      }`}
+                    >
                       {/* DATE */}
                       <td className="px-5 py-3 whitespace-nowrap">
                         <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
@@ -518,7 +627,9 @@ const AdminEodReports = () => {
                               {report.user?.name || "Anonymous"}
                             </p>
                             <p className="text-[9px] text-slate-450 dark:text-slate-500 uppercase tracking-widest font-bold truncate mt-0.5 text-left">
-                              {report.user?.department || report.user?.role || "Team"}
+                              {report.user?.department ||
+                                report.user?.role ||
+                                "Team"}
                             </p>
                           </div>
                         </div>
@@ -529,13 +640,25 @@ const AdminEodReports = () => {
                         className="px-5 py-3 max-w-[150px] truncate text-left"
                         title={
                           report.tasks
-                            ? [...new Set(report.tasks.map((t) => t.client).filter(Boolean))].join(", ")
+                            ? [
+                                ...new Set(
+                                  report.tasks
+                                    .map((t) => t.client)
+                                    .filter(Boolean),
+                                ),
+                              ].join(", ")
                             : report.clientName
                         }
                       >
                         <span className="text-xs font-semibold text-slate-855 dark:text-slate-200">
                           {report.tasks
-                            ? [...new Set(report.tasks.map((t) => t.client).filter(Boolean))].join(", ") || "-"
+                            ? [
+                                ...new Set(
+                                  report.tasks
+                                    .map((t) => t.client)
+                                    .filter(Boolean),
+                                ),
+                              ].join(", ") || "-"
                             : report.clientName || "-"}
                         </span>
                       </td>
@@ -545,21 +668,34 @@ const AdminEodReports = () => {
                         {report.tasks && Array.isArray(report.tasks) ? (
                           <div className="flex flex-col gap-1.5">
                             {report.tasks.map((t, idx) => (
-                              <div key={idx} className="flex items-center gap-1.5 min-w-0">
-                                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={t.title}>
+                              <div
+                                key={idx}
+                                className="flex items-center gap-1.5 min-w-0"
+                              >
+                                <span
+                                  className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate"
+                                  title={t.title}
+                                >
                                   {t.title || "-"}
                                 </span>
                                 {t.contentType && (
-                                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider shrink-0 ${getContentTypeStyle(t.contentType)}`}>
+                                  <span
+                                    className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider shrink-0 ${getContentTypeStyle(t.contentType)}`}
+                                  >
                                     {t.contentType}
                                   </span>
                                 )}
                               </div>
                             ))}
-                            {report.tasks.length === 0 && <span className="text-xs text-slate-400">—</span>}
+                            {report.tasks.length === 0 && (
+                              <span className="text-xs text-slate-400">—</span>
+                            )}
                           </div>
                         ) : (
-                          <span className="text-xs font-semibold text-slate-805 dark:text-slate-200 block truncate" title={report.projectsWorkedOn}>
+                          <span
+                            className="text-xs font-semibold text-slate-805 dark:text-slate-200 block truncate"
+                            title={report.projectsWorkedOn}
+                          >
                             {report.projectsWorkedOn || "-"}
                           </span>
                         )}
@@ -569,12 +705,16 @@ const AdminEodReports = () => {
                       <td className="px-5 py-3 text-left whitespace-nowrap">
                         <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                           {report.tasks && Array.isArray(report.tasks)
-                            ? [...new Set(report.tasks.map((t) => t.reviewedBy?.name).filter(Boolean))].join(", ") || "-"
+                            ? [
+                                ...new Set(
+                                  report.tasks
+                                    .map((t) => t.reviewedBy?.name)
+                                    .filter(Boolean),
+                                ),
+                              ].join(", ") || "-"
                             : "-"}
                         </span>
                       </td>
-
-
 
                       {/* DYNAMIC DESIGNER SPECIFIC FIELDS */}
                       {activeTab === "Graphic Designer" && (
@@ -582,7 +722,7 @@ const AdminEodReports = () => {
                           <td className="px-5 py-3 text-left">
                             <span className="text-slate-655 dark:text-slate-400 text-xs">
                               {report.tasks
-                                ? report.tasks.filter((t) => t.statusAtEod === "Completed").length
+                                ? `${report.tasks.filter((t) => t.statusAtEod === "Completed").length} / ${report.tasks.length}`
                                 : report.designCount || "-"}
                             </span>
                           </td>
@@ -594,12 +734,18 @@ const AdminEodReports = () => {
                         className="px-5 py-3 max-w-[150px] truncate text-left text-xs text-slate-700 dark:text-slate-350"
                         title={
                           report.tasks
-                            ? report.tasks.filter((t) => t.statusAtEod !== "Completed").map((t) => t.title).join(", ")
+                            ? report.tasks
+                                .filter((t) => t.statusAtEod !== "Completed")
+                                .map((t) => t.title)
+                                .join(", ")
                             : report.pendingTasks
                         }
                       >
                         {report.tasks
-                          ? report.tasks.filter((t) => t.statusAtEod !== "Completed").map((t) => t.title).join(", ") || "None"
+                          ? report.tasks
+                              .filter((t) => t.statusAtEod !== "Completed")
+                              .map((t) => t.title)
+                              .join(", ") || "None"
                           : report.pendingTasks || "-"}
                       </td>
 
@@ -608,17 +754,26 @@ const AdminEodReports = () => {
                         className="px-5 py-3 max-w-[150px] truncate text-left text-xs text-slate-500 dark:text-slate-400"
                         title={
                           report.tasks
-                            ? report.tasks.filter((t) => t.reason).map((t) => `${t.title}: ${t.reason}`).join(" | ")
+                            ? report.tasks
+                                .filter((t) => t.reason)
+                                .map((t) => `${t.title}: ${t.reason}`)
+                                .join(" | ")
                             : report.reasonForPending
                         }
                       >
                         {report.tasks
-                          ? report.tasks.filter((t) => t.reason).map((t) => `${t.title}: ${t.reason}`).join(" | ") || "None"
+                          ? report.tasks
+                              .filter((t) => t.reason)
+                              .map((t) => `${t.title}: ${t.reason}`)
+                              .join(" | ") || "None"
                           : report.reasonForPending || "-"}
                       </td>
 
                       {/* TOMORROW PLAN */}
-                      <td className="px-5 py-3 max-w-[300px] truncate text-left text-xs text-slate-500 dark:text-slate-400" title={report.tomorrowPlan}>
+                      <td
+                        className="px-5 py-3 max-w-[300px] truncate text-left text-xs text-slate-500 dark:text-slate-400"
+                        title={report.tomorrowPlan}
+                      >
                         {report.tomorrowPlan || "-"}
                       </td>
 
@@ -629,21 +784,40 @@ const AdminEodReports = () => {
 
                       {/* OVERALL STATUS */}
                       <td className="px-5 py-3 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${getStatusBadgeStyle(report.overallStatus)}`}>
-                          <span className={`w-1 h-1 rounded-full mr-1.5 ${getStatusDotStyle(report.overallStatus)}`}></span>
-                          {report.overallStatus || "Completed"}
-                        </span>
+                        {report.overallStatus ? (
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${getStatusBadgeStyle(report.overallStatus)}`}
+                          >
+                            <span
+                              className={`w-1 h-1 rounded-full mr-1.5 ${getStatusDotStyle(report.overallStatus)}`}
+                            ></span>
+                            {report.overallStatus}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400 dark:text-slate-500">
+                            —
+                          </span>
+                        )}
                       </td>
 
                       {/* ACTIONS */}
                       <td className="px-5 py-3 text-center">
-                        <button
-                          onClick={() => handleView(report)}
-                          title="View Details"
-                          className="w-7 h-7 rounded-lg bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center transition-all mx-auto cursor-pointer"
-                        >
-                          <FiEye size={13} />
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => handleView(report)}
+                            title="View Details"
+                            className="w-7 h-7 rounded-lg bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center transition-all cursor-pointer"
+                          >
+                            <FiEye size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(report)}
+                            title="Delete Report"
+                            className="w-7 h-7 rounded-lg bg-transparent hover:bg-rose-50 dark:hover:bg-rose-950/20 text-slate-400 hover:text-rose-600 dark:hover:text-rose-450 flex items-center justify-center transition-all cursor-pointer"
+                          >
+                            <FiTrash2 size={13} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -656,9 +830,19 @@ const AdminEodReports = () => {
           {!loading && filteredReports.length > itemsPerPage && (
             <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111827] flex flex-col sm:flex-row items-center justify-between gap-4">
               <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                Showing <span className="font-semibold text-slate-700 dark:text-slate-300">{(currentPage - 1) * itemsPerPage + 1}</span> to{" "}
-                <span className="font-semibold text-slate-700 dark:text-slate-300">{Math.min(currentPage * itemsPerPage, filteredReports.length)}</span> of{" "}
-                <span className="font-semibold text-slate-700 dark:text-slate-300">{filteredReports.length}</span> entries
+                Showing{" "}
+                <span className="font-semibold text-slate-700 dark:text-slate-300">
+                  {(currentPage - 1) * itemsPerPage + 1}
+                </span>{" "}
+                to{" "}
+                <span className="font-semibold text-slate-700 dark:text-slate-300">
+                  {Math.min(currentPage * itemsPerPage, filteredReports.length)}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-slate-700 dark:text-slate-300">
+                  {filteredReports.length}
+                </span>{" "}
+                entries
               </p>
 
               <div className="flex items-center gap-1.5">
@@ -673,7 +857,11 @@ const AdminEodReports = () => {
                 <div className="flex items-center gap-1">
                   {Array.from({ length: totalPages }).map((_, idx) => {
                     const page = idx + 1;
-                    if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
+                    if (
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
                       return (
                         <button
                           key={page}
@@ -687,15 +875,27 @@ const AdminEodReports = () => {
                           {page}
                         </button>
                       );
-                    } else if (page === currentPage - 2 || page === currentPage + 2) {
-                      return <span key={page} className="px-1 text-[11px] text-slate-400">...</span>;
+                    } else if (
+                      page === currentPage - 2 ||
+                      page === currentPage + 2
+                    ) {
+                      return (
+                        <span
+                          key={page}
+                          className="px-1 text-[11px] text-slate-400"
+                        >
+                          ...
+                        </span>
+                      );
                     }
                     return null;
                   })}
                 </div>
 
                 <button
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
                   disabled={currentPage === totalPages}
                   className="p-1 rounded text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 >
@@ -714,7 +914,8 @@ const AdminEodReports = () => {
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
                 <div className="text-left">
                   <h2 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">
-                    {selectedReport.tasks ? "Graphic Designer " : ""}EOD Report Details
+                    {selectedReport.tasks ? "Graphic Designer " : ""}EOD Report
+                    Details
                   </h2>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 flex items-center gap-1">
                     <FiCalendar size={11} />
@@ -740,22 +941,23 @@ const AdminEodReports = () => {
                 {/* User Card */}
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/30 border border-slate-200/50 dark:border-slate-800/60">
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-650 flex items-center justify-center text-white text-xs font-bold shadow-sm shrink-0 overflow-hidden">
-                            {selectedReport.user?.profile?.profileImage?.url ? (
-                              <img
-                                src={selectedReport.user.profile.profileImage.url}
-                                alt={selectedReport.user?.name || "User"}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              selectedReport.user?.name?.charAt(0) || "U"
-                            )}
+                    {selectedReport.user?.profile?.profileImage?.url ? (
+                      <img
+                        src={selectedReport.user.profile.profileImage.url}
+                        alt={selectedReport.user?.name || "User"}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      selectedReport.user?.name?.charAt(0) || "U"
+                    )}
                   </div>
                   <div>
                     <p className="text-xs font-extrabold text-slate-855 dark:text-slate-100">
                       {selectedReport.user?.name || "Anonymous Member"}
                     </p>
                     <p className="text-[10px] text-slate-450 dark:text-slate-500 uppercase tracking-widest font-bold mt-0.5">
-                      {selectedReport.user?.department || "Team Member"} • {selectedReport.user?.email || ""}
+                      {selectedReport.user?.department || "Team Member"} •{" "}
+                      {selectedReport.user?.email || ""}
                     </p>
                   </div>
                 </div>
@@ -766,28 +968,50 @@ const AdminEodReports = () => {
                     {/* Visual Stats */}
                     <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/30 border border-slate-200/50 dark:border-slate-800/60 grid grid-cols-3 gap-4 text-center">
                       <div>
-                        <span className="text-[9px] font-black text-slate-450 uppercase tracking-wider block">Completed</span>
+                        <span className="text-[9px] font-black text-slate-450 uppercase tracking-wider block">
+                          Completed
+                        </span>
                         <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-450">
-                          {selectedReport.tasks.filter((t) => t.statusAtEod === "Completed").length}
+                          {
+                            selectedReport.tasks.filter(
+                              (t) => t.statusAtEod === "Completed",
+                            ).length
+                          }
                         </span>
                       </div>
                       <div>
-                        <span className="text-[9px] font-black text-slate-450 uppercase tracking-wider block">Pending</span>
+                        <span className="text-[9px] font-black text-slate-450 uppercase tracking-wider block">
+                          Pending
+                        </span>
                         <span className="text-sm font-extrabold text-amber-600 dark:text-amber-450">
-                          {selectedReport.tasks.filter((t) => t.statusAtEod === "Pending" || t.statusAtEod === "In Progress").length}
+                          {
+                            selectedReport.tasks.filter(
+                              (t) =>
+                                t.statusAtEod === "Pending" ||
+                                t.statusAtEod === "In Progress",
+                            ).length
+                          }
                         </span>
                       </div>
                       <div>
-                        <span className="text-[9px] font-black text-slate-450 uppercase tracking-wider block">Rejected</span>
+                        <span className="text-[9px] font-black text-slate-450 uppercase tracking-wider block">
+                          Rejected
+                        </span>
                         <span className="text-sm font-extrabold text-rose-600 dark:text-rose-450">
-                          {selectedReport.tasks.filter((t) => t.statusAtEod === "Rejected").length}
+                          {
+                            selectedReport.tasks.filter(
+                              (t) => t.statusAtEod === "Rejected",
+                            ).length
+                          }
                         </span>
                       </div>
                     </div>
 
                     {/* Task List */}
                     <div className="space-y-2">
-                      <span className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Logged Tasks</span>
+                      <span className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">
+                        Logged Tasks
+                      </span>
                       <div className="space-y-3">
                         {selectedReport.tasks.map((task, idx) => (
                           <div
@@ -799,8 +1023,8 @@ const AdminEodReports = () => {
                                 task.statusAtEod === "Completed"
                                   ? "bg-emerald-500"
                                   : task.statusAtEod === "Rejected"
-                                  ? "bg-rose-500"
-                                  : "bg-amber-500"
+                                    ? "bg-rose-500"
+                                    : "bg-amber-500"
                               }`}
                             />
 
@@ -811,38 +1035,52 @@ const AdminEodReports = () => {
                                     {task.title}
                                   </h4>
                                   {task.contentType && (
-                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${getContentTypeStyle(task.contentType)}`}>
+                                    <span
+                                      className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${getContentTypeStyle(task.contentType)}`}
+                                    >
                                       {task.contentType}
                                     </span>
                                   )}
                                 </div>
                                 <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">
-                                • Client: {task.client || "None"}
+                                  • Client: {task.client || "None"}
                                 </p>
                               </div>
-                              <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
-                                task.statusAtEod === "Completed"
-                                  ? "bg-emerald-50 text-emerald-600 border border-emerald-200/40"
-                                  : task.statusAtEod === "Rejected"
-                                  ? "bg-rose-50 text-rose-600 border border-rose-200/40"
-                                  : "bg-amber-50 text-amber-600 border border-amber-200/40"
-                              }`}>
+                              <span
+                                className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
+                                  task.statusAtEod === "Completed"
+                                    ? "bg-emerald-50 text-emerald-600 border border-emerald-200/40"
+                                    : task.statusAtEod === "Rejected"
+                                      ? "bg-rose-50 text-rose-600 border border-rose-200/40"
+                                      : "bg-amber-50 text-amber-600 border border-amber-200/40"
+                                }`}
+                              >
                                 {task.statusAtEod}
                               </span>
                             </div>
 
                             <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2 text-[10px]">
                               <div>
-                                <span className="text-[8px] text-slate-400 uppercase tracking-wider block font-bold">Time Spent</span>
-                                <span className="font-bold text-slate-700 dark:text-slate-350">{task.loggedTime || "0m"}</span>
+                                <span className="text-[8px] text-slate-400 uppercase tracking-wider block font-bold">
+                                  Time Spent
+                                </span>
+                                <span className="font-bold text-slate-700 dark:text-slate-350">
+                                  {task.loggedTime || "0m"}
+                                </span>
                               </div>
                               <div>
-                                <span className="text-[8px] text-slate-400 uppercase tracking-wider block font-bold">Content Type</span>
-                                <span className="font-bold text-slate-700 dark:text-slate-350">{task.contentType || "IMAGE"}</span>
+                                <span className="text-[8px] text-slate-400 uppercase tracking-wider block font-bold">
+                                  Content Type
+                                </span>
+                                <span className="font-bold text-slate-700 dark:text-slate-350">
+                                  {task.contentType || "IMAGE"}
+                                </span>
                               </div>
                               {task.outputLink && (
                                 <div className="col-span-2">
-                                  <span className="text-[8px] text-slate-400 uppercase tracking-wider block font-bold">Output Link</span>
+                                  <span className="text-[8px] text-slate-400 uppercase tracking-wider block font-bold">
+                                    Output Link
+                                  </span>
                                   <a
                                     href={task.outputLink}
                                     target="_blank"
@@ -855,7 +1093,9 @@ const AdminEodReports = () => {
                               )}
                               {task.reason && (
                                 <div className="col-span-2 bg-amber-50/50 dark:bg-amber-950/10 p-2 rounded text-amber-700 dark:text-amber-400 font-semibold">
-                                  <span className="text-[8px] text-amber-600 uppercase tracking-wider block font-black">Reason</span>
+                                  <span className="text-[8px] text-amber-600 uppercase tracking-wider block font-black">
+                                    Reason
+                                  </span>
                                   {task.reason}
                                 </div>
                               )}
@@ -867,15 +1107,25 @@ const AdminEodReports = () => {
 
                     {/* Operational Summary */}
                     <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/30 border border-slate-200/50 dark:border-slate-800/60 space-y-2">
-                      <span className="text-[9px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest block border-b border-slate-200/60 pb-1">Operational Summary</span>
+                      <span className="text-[9px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest block border-b border-slate-200/60 pb-1">
+                        Operational Summary
+                      </span>
                       <div className="grid grid-cols-2 gap-2 text-[11px]">
                         <div>
-                          <span className="text-[8px] text-slate-400 uppercase tracking-wider block font-bold">Tools Issues</span>
-                          <span className="font-bold text-slate-700 dark:text-slate-350">{selectedReport.daySummary?.toolsIssues || "None"}</span>
+                          <span className="text-[8px] text-slate-400 uppercase tracking-wider block font-bold">
+                            Tools Issues
+                          </span>
+                          <span className="font-bold text-slate-700 dark:text-slate-350">
+                            {selectedReport.daySummary?.toolsIssues || "None"}
+                          </span>
                         </div>
                         <div>
-                          <span className="text-[8px] text-slate-400 uppercase tracking-wider block font-bold">Client Calls</span>
-                          <span className="font-bold text-slate-700 dark:text-slate-350">{selectedReport.daySummary?.clientCalls || "None"}</span>
+                          <span className="text-[8px] text-slate-400 uppercase tracking-wider block font-bold">
+                            Client Calls
+                          </span>
+                          <span className="font-bold text-slate-700 dark:text-slate-350">
+                            {selectedReport.daySummary?.clientCalls || "None"}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -884,43 +1134,71 @@ const AdminEodReports = () => {
                   /* GENERAL EOD BREAKDOWN */
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-xs font-semibold">
                     <div className="space-y-1">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Client Name</span>
-                      <p className="text-slate-800 dark:text-slate-200">{selectedReport.clientName || "-"}</p>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">
+                        Client Name
+                      </span>
+                      <p className="text-slate-800 dark:text-slate-200">
+                        {selectedReport.clientName || "-"}
+                      </p>
                     </div>
 
                     <div className="space-y-1 md:col-span-2">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Projects Worked On (Task Name)</span>
-                      <p className="text-slate-800 dark:text-slate-200">{selectedReport.projectsWorkedOn || "-"}</p>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">
+                        Projects Worked On (Task Name)
+                      </span>
+                      <p className="text-slate-800 dark:text-slate-200">
+                        {selectedReport.projectsWorkedOn || "-"}
+                      </p>
                     </div>
 
                     <div className="space-y-1">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Time Spent Today</span>
-                      <p className="text-slate-800 dark:text-slate-200">{selectedReport.timeSpentToday || "-"}</p>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">
+                        Time Spent Today
+                      </span>
+                      <p className="text-slate-800 dark:text-slate-200">
+                        {selectedReport.timeSpentToday || "-"}
+                      </p>
                     </div>
 
                     <div className="space-y-1 md:col-span-2">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Pending Tasks</span>
-                      <p className="text-slate-655 dark:text-slate-300 whitespace-pre-line leading-relaxed">{selectedReport.pendingTasks || "None"}</p>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">
+                        Pending Tasks
+                      </span>
+                      <p className="text-slate-655 dark:text-slate-300 whitespace-pre-line leading-relaxed">
+                        {selectedReport.pendingTasks || "None"}
+                      </p>
                     </div>
 
                     {selectedReport.reasonForPending && (
                       <div className="space-y-1 md:col-span-2">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Reason for Pending</span>
-                        <p className="text-slate-655 dark:text-slate-300">{selectedReport.reasonForPending}</p>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">
+                          Reason for Pending
+                        </span>
+                        <p className="text-slate-655 dark:text-slate-300">
+                          {selectedReport.reasonForPending}
+                        </p>
                       </div>
                     )}
 
                     {selectedReport.challengesFaced && (
                       <div className="space-y-1 md:col-span-2">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Challenges Faced</span>
-                        <p className="text-slate-655 dark:text-slate-300">{selectedReport.challengesFaced}</p>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">
+                          Challenges Faced
+                        </span>
+                        <p className="text-slate-655 dark:text-slate-300">
+                          {selectedReport.challengesFaced}
+                        </p>
                       </div>
                     )}
 
                     {selectedReport.supportNeeded && (
                       <div className="space-y-1 md:col-span-2">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Support Needed</span>
-                        <p className="text-slate-655 dark:text-slate-300">{selectedReport.supportNeeded}</p>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">
+                          Support Needed
+                        </span>
+                        <p className="text-slate-655 dark:text-slate-300">
+                          {selectedReport.supportNeeded}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -928,7 +1206,9 @@ const AdminEodReports = () => {
 
                 {/* Common fields (Tomorrow plan and attachments) */}
                 <div className="space-y-1 pt-2">
-                  <span className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Tomorrow's Plan</span>
+                  <span className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">
+                    Tomorrow's Plan
+                  </span>
                   <p className="text-xs text-slate-700 dark:text-slate-300 font-medium whitespace-pre-line leading-relaxed bg-blue-50/20 dark:bg-blue-900/10 p-3 rounded-lg border border-blue-100/30 dark:border-blue-900/20">
                     {selectedReport.tomorrowPlan}
                   </p>
@@ -936,7 +1216,9 @@ const AdminEodReports = () => {
 
                 {selectedReport.attachments?.length > 0 && (
                   <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-700/50">
-                    <span className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Attachments</span>
+                    <span className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">
+                      Attachments
+                    </span>
                     <div className="grid grid-cols-2 gap-3">
                       {selectedReport.attachments.map((att, i) => (
                         <div
@@ -944,7 +1226,11 @@ const AdminEodReports = () => {
                           className="flex items-center gap-3 p-2 rounded-lg border border-slate-200/60 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 overflow-hidden"
                         >
                           <div className="text-slate-400 dark:text-slate-500 shrink-0">
-                            {att.fileType === "image" ? <FiImage size={15} /> : <FiFile size={15} />}
+                            {att.fileType === "image" ? (
+                              <FiImage size={15} />
+                            ) : (
+                              <FiFile size={15} />
+                            )}
                           </div>
                           <div className="min-w-0 flex-1">
                             <a
@@ -967,9 +1253,15 @@ const AdminEodReports = () => {
 
                 {/* Overall status display */}
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
-                  <span className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest">Overall Status:</span>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${getStatusBadgeStyle(selectedReport.overallStatus)}`}>
-                    <span className={`w-1 h-1 rounded-full mr-1.5 ${getStatusDotStyle(selectedReport.overallStatus)}`}></span>
+                  <span className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest">
+                    Overall Status:
+                  </span>
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${getStatusBadgeStyle(selectedReport.overallStatus)}`}
+                  >
+                    <span
+                      className={`w-1 h-1 rounded-full mr-1.5 ${getStatusDotStyle(selectedReport.overallStatus)}`}
+                    ></span>
                     {selectedReport.overallStatus || "Completed"}
                   </span>
                 </div>

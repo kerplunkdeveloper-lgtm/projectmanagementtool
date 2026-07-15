@@ -2610,7 +2610,7 @@ const ProjectTaskBoard = ({
                       </div>
                     </td>
                     <td
-                      colSpan={9}
+                      colSpan={10}
                       className="px-3 py-1 border-b border-slate-300 dark:border-slate-700"
                       style={{ ...bBottom, ...bRight }}
                     />
@@ -2741,6 +2741,9 @@ const ProjectTaskBoard = ({
                               </th>
                               <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
                                 Status
+                              </th>
+                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[100px]">
+                                Revision
                               </th>
                               <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
                                 Total Hours
@@ -3298,7 +3301,7 @@ const ProjectTaskBoard = ({
                                           </td>
                                           {/* Empty Column Cells merged into one to remove vertical gridlines */}
                                           <td
-                                            colSpan={9}
+                                            colSpan={10}
                                             className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b]"
                                             style={{
                                               borderRight: `2.5px solid ${sColor.hex}`,
@@ -4238,6 +4241,18 @@ const ProjectTaskBoard = ({
                                                                 : task.status ||
                                                                   "Pending"}
                                                             </span>
+                                                          )}
+                                                        </div>
+                                                      </td>
+
+                                                      {/* Revision Column */}
+                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700" onClick={(e) => e.stopPropagation()}>
+                                                        <div className="flex justify-center items-center gap-1.5">
+                                                          <span className="font-extrabold text-xs text-slate-800 dark:text-yellow-50 text-center">
+                                                            {task.revisions || 0}
+                                                          </span>
+                                                          {(task.revisions || 0) > 3 && (
+                                                            <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)] animate-pulse" title="More than 3 revisions" />
                                                           )}
                                                         </div>
                                                       </td>
@@ -5271,6 +5286,13 @@ const ProjectTaskBoard = ({
                                                                 </div>
                                                               </td>
 
+                                                              {/* Subtask Revision Column (Placeholder to align columns) */}
+                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center text-slate-450 opacity-60">
+                                                                <span className="text-slate-400 dark:text-slate-555 text-[9px] font-normal">
+                                                                  -
+                                                                </span>
+                                                              </td>
+
                                                               {/* Total Hours Column */}
                                                               <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                                                 <TimeTracker
@@ -5342,7 +5364,7 @@ const ProjectTaskBoard = ({
                                         <tr className=" pointer-events-none">
                                           <td
                                             colSpan={
-                                              showSelectionColumn ? 14 : 13
+                                              showSelectionColumn ? 15 : 14
                                             }
                                             className=" p-0 border-0 bg-transparent"
                                           />

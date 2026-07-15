@@ -491,10 +491,10 @@ tbody {
   background-color: color-mix(in srgb, var(--accent-color-dark) 6%, var(--color-white)) !important;
 }
 
-tr:hover {
+tr:not(.no-hover-row):hover {
   background-color: color-mix(in srgb, var(--accent-color) 8%, transparent) !important;
 }
-.dark tr:hover {
+.dark tr:not(.no-hover-row):hover {
   background-color: color-mix(in srgb, var(--accent-color-dark) 10%, transparent) !important;
 }
 
@@ -2126,7 +2126,7 @@ td:first-child {
 
 /* Row states override for dark mode black background alignment */
 .dark tr.hover\:bg-slate-50\/60:hover td,
-.dark tr:hover td {
+.dark tr:not(.no-hover-row):hover td {
   background-color: #0a0a0c !important; /* Pure black slight highlight */
 }
 .dark tr[class*="bg-emerald-50/5"] td {

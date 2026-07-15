@@ -1,6 +1,61 @@
 const DesignerEodReport = require("../models/DesignerEodReport");
 const cloudinary = require("../config/cloudinary");
 
+// Helper function to notify admins, operation managers, and creators of the tasks in the report
+const sendEodReportNotifications = async (req, reportTasks) => {
+  try {
+    const User = require("../models/User");
+    const Notification = require("../models/Notification");
+    const Task = require("../models/Task");
+
+    // 1. Get IDs of admins and operation managers
+    const adminsAndManagers = await User.find({
+      role: { $in: ["admin", "operationmanager"] }
+    });
+    const adminAndManagerIds = adminsAndManagers.map(u => u._id.toString());
+
+    // 2. Get task IDs from this report and find their creators (who assigned the task)
+    const taskIdsInReport = (reportTasks || []).map(t => t.taskId).filter(Boolean);
+    let assignerIds = [];
+    if (taskIdsInReport.length > 0) {
+      const fetchedTasks = await Task.find({ _id: { $in: taskIdsInReport } });
+      assignerIds = fetchedTasks
+        .map(t => t.createdBy ? t.createdBy.toString() : null)
+        .filter(Boolean);
+    }
+
+    // 3. Combine unique recipient IDs
+    const recipientIds = [...new Set([...adminAndManagerIds, ...assignerIds])];
+
+    // 4. Fetch the actual recipient User documents
+    const recipients = await User.find({
+      _id: { $in: recipientIds }
+    });
+
+    const io = req.app.get("io");
+    const senderName = req.user.name || "A designer";
+
+    for (const recipient of recipients) {
+      // Don't send notification to the sender
+      if (recipient._id.toString() === req.user._id.toString()) continue;
+
+      const notification = await Notification.create({
+        recipient: recipient._id,
+        sender: req.user._id,
+        type: "report_submitted",
+        message: `${senderName} submitted a new Designer EOD Report`,
+      });
+
+      if (io) {
+        const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
+        io.to(recipient._id.toString()).emit("notification", populatedNotification);
+      }
+    }
+  } catch (notifErr) {
+    console.error("Failed to send designer EOD report notifications:", notifErr);
+  }
+};
+
 // ==========================================
 // CREATE DESIGNER EOD REPORT
 // ==========================================
@@ -9,7 +64,7 @@ const cloudinary = require("../config/cloudinary");
 // ==========================================
 exports.createDesignerEodReport = async (req, res) => {
   try {
-    const { date, tasks, daySummary, isDraft } = req.body;
+    const { date, tasks, daySummary, isDraft, overallStatus, tomorrowPlan } = req.body;
 
     const reportDate = date ? new Date(date) : new Date();
     const startOfDay = new Date(reportDate);
@@ -27,6 +82,8 @@ exports.createDesignerEodReport = async (req, res) => {
       if (tasks !== undefined) report.tasks = tasks;
       if (daySummary !== undefined) report.daySummary = daySummary;
       if (isDraft !== undefined) report.isDraft = isDraft;
+      if (overallStatus !== undefined) report.overallStatus = overallStatus;
+      if (tomorrowPlan !== undefined) report.tomorrowPlan = tomorrowPlan;
       report.date = reportDate;
       await report.save();
     } else {
@@ -37,6 +94,8 @@ exports.createDesignerEodReport = async (req, res) => {
         tasks: tasks || [],
         daySummary: daySummary || { toolsIssues: "", clientCalls: "", anythingElseOps: "" },
         isDraft: isDraft !== undefined ? isDraft : true,
+        overallStatus: overallStatus || "On Track",
+        tomorrowPlan: tomorrowPlan || "",
       });
     }
 
@@ -65,39 +124,9 @@ exports.createDesignerEodReport = async (req, res) => {
       })
       .populate("tasks.reviewedBy", "name email role profile department");
 
-    // Notify admins, operation managers, and social media managers only if submitted (not draft)
+    // Notify admins, operation managers, and the users who assigned the tasks in this report
     if (!isDraft) {
-      try {
-        const User = require("../models/User");
-        const Notification = require("../models/Notification");
-        const recipients = await User.find({
-          $or: [
-            { role: { $in: ["admin", "operationmanager"] } },
-            { department: { $regex: /social media manager/i } }
-          ]
-        });
-        
-        const io = req.app.get("io");
-        const senderName = req.user.name || "A designer";
-        
-        for (const recipient of recipients) {
-          if (recipient._id.toString() === req.user._id.toString()) continue;
-          
-          const notification = await Notification.create({
-            recipient: recipient._id,
-            sender: req.user._id,
-            type: "report_submitted",
-            message: `${senderName} submitted a new Designer EOD Report`,
-          });
-          
-          if (io) {
-            const populatedNotification = await Notification.findById(notification._id).populate("sender", "name");
-            io.to(recipient._id.toString()).emit("notification", populatedNotification);
-          }
-        }
-      } catch (notifErr) {
-        console.error("Failed to send designer EOD report notifications:", notifErr);
-      }
+      await sendEodReportNotifications(req, tasks);
     }
 
     res.status(201).json({
@@ -224,6 +253,8 @@ exports.updateDesignerEodReport = async (req, res) => {
       });
     }
 
+    const wasDraft = report.isDraft;
+
     report = await DesignerEodReport.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
@@ -234,6 +265,11 @@ exports.updateDesignerEodReport = async (req, res) => {
         populate: { path: "profile", select: "profileImage" }
       })
       .populate("tasks.reviewedBy", "name email role profile department");
+
+    // Send notifications if transitioning from draft to submitted
+    if (wasDraft && report.isDraft === false) {
+      await sendEodReportNotifications(req, report.tasks);
+    }
 
     // Sync task status and revisions back to Task collection in the database
     if (req.body.tasks && req.body.tasks.length > 0) {
