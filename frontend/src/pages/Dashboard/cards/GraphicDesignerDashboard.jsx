@@ -76,11 +76,12 @@ const GraphicDesignerDashboard = () => {
           u.department?.toLowerCase().includes("design"),
       ) || [];
 
-    const isSocialMediaManager = user?.department?.toLowerCase() === "social media manager";
+    const isSocialMediaManager =
+      user?.department?.toLowerCase() === "social media manager";
     if (isSocialMediaManager) {
       const currentUserId = user?._id || user?.id;
       const assignedDesignerIds = new Set();
-      
+
       allTasks.forEach((task) => {
         const creatorId =
           task.createdBy && typeof task.createdBy === "object"
@@ -115,7 +116,8 @@ const GraphicDesignerDashboard = () => {
       if (!designerIds.includes(assigneeId)) return false;
 
       // Check Creator if logged-in user is a Social Media Manager
-      const isSocialMediaManager = user?.department?.toLowerCase() === "social media manager";
+      const isSocialMediaManager =
+        user?.department?.toLowerCase() === "social media manager";
       if (isSocialMediaManager) {
         const creatorId =
           task.createdBy && typeof task.createdBy === "object"
@@ -181,7 +183,7 @@ const GraphicDesignerDashboard = () => {
 
   // 4. Board Data
   const boardColumns = [
-    "Assigned",
+    "Pending",
     "In Progress",
     "Revision Pending",
     "Revision",
@@ -189,7 +191,7 @@ const GraphicDesignerDashboard = () => {
     "Completed",
   ];
   const getColumnForTask = (task) => {
-    const status = task.status || "Assigned";
+    const status = task.status || "Pending";
     if (boardColumns.includes(status)) return status;
     if (status.toLowerCase().includes("progress")) return "In Progress";
     if (status.toLowerCase().includes("review")) return "Revision Pending";
@@ -197,7 +199,8 @@ const GraphicDesignerDashboard = () => {
     if (status.toLowerCase().includes("reject")) return "Rejected";
     if (status.toLowerCase().includes("approve")) return "Completed";
     if (status.toLowerCase() === "completed") return "Completed";
-    return "Assigned";
+    if (status.toLowerCase() === "assigned") return "Pending";
+    return "Pending";
   };
 
   const tasksByColumn = useMemo(() => {
@@ -310,8 +313,12 @@ const GraphicDesignerDashboard = () => {
         id: designer._id,
         name: designer.name,
         profileImage:
-          (typeof designer.profile?.profileImage === "object" ? designer.profile?.profileImage?.url : designer.profile?.profileImage) ||
-          (typeof designer.profileImage === "object" ? designer.profileImage?.url : designer.profileImage) ||
+          (typeof designer.profile?.profileImage === "object"
+            ? designer.profile?.profileImage?.url
+            : designer.profile?.profileImage) ||
+          (typeof designer.profileImage === "object"
+            ? designer.profileImage?.url
+            : designer.profileImage) ||
           designer.profilePic ||
           designer.avatar ||
           designer.profile?.profilePic ||
@@ -600,8 +607,6 @@ const GraphicDesignerDashboard = () => {
         })}
       </div>
 
-
-
       {/* Live Task Board */}
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4 px-1">
@@ -613,21 +618,21 @@ const GraphicDesignerDashboard = () => {
             LIVE SYNC
           </span>
         </div>
-        <div className="flex overflow-x-auto gap-5 pb-6 snap-x hide-scrollbar">
+        <div className="flex xl:grid xl:grid-cols-6 overflow-x-auto gap-3 pb-6 snap-x hide-scrollbar">
           {boardColumns.map((col, i) => (
             <div
               key={i}
-              className="min-w-[280px] w-[280px] flex-shrink-0 snap-start bg-slate-50 dark:bg-[#0f172a]/80 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/80 flex flex-col max-h-[450px] shadow-sm"
+              className="min-w-[210px] xl:min-w-0 w-full flex-shrink-0 snap-start bg-slate-50 dark:bg-[#0f172a]/80 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/80 flex flex-col max-h-[450px] shadow-sm"
             >
-              <div className="p-4 border-b border-slate-200 dark:border-slate-700/80 flex items-center justify-between bg-white dark:bg-transparent rounded-t-2xl">
-                <span className="text-xs font-black text-slate-700 dark:text-slate-200 tracking-widest uppercase">
+              <div className="p-3 border-b border-slate-200 dark:border-slate-700/80 flex items-center justify-between bg-white dark:bg-transparent rounded-t-2xl">
+                <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 tracking-widest uppercase truncate max-w-[80%]">
                   {col}
                 </span>
-                <span className="text-[11px] font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-700">
+                <span className="text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 shrink-0">
                   {tasksByColumn[col].length}
                 </span>
               </div>
-              <div className="p-3 overflow-y-auto space-y-3 flex-1 custom-scrollbar">
+              <div className="p-2.5 overflow-y-auto space-y-2.5 flex-1 custom-scrollbar">
                 <AnimatePresence>
                   {tasksByColumn[col].map((task) => {
                     let projName = "No Project";
@@ -646,20 +651,18 @@ const GraphicDesignerDashboard = () => {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
                         key={task._id}
-                        className="bg-white dark:bg-[#1e293b]/90 p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500/80 transition-all shadow-sm hover:shadow-md relative group"
+                        className="bg-white dark:bg-[#1e293b]/90 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500/80 transition-all shadow-sm hover:shadow-md relative group"
                       >
                         <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-indigo-500 to-purple-600 rounded-l-xl opacity-80" />
-                        <p className="text-[10px] font-black text-slate-400 dark:text-slate-400 uppercase tracking-widest mb-1.5 truncate pl-2">
-                          {projName}
-                        </p>
-                        <p className="text-sm font-bold text-slate-700 dark:text-slate-100 leading-snug pl-2">
+                        <p className="text-[9px] font-black text-slate-450 dark:text-slate-400 uppercase tracking-widest mb-1 truncate pl-1.5"></p>
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-100 leading-snug pl-1.5 break-words">
                           {task.title}
                         </p>
                         {task.dueDate && (
                           <div
-                            className={`mt-3 pl-2 flex items-center gap-1.5 text-[11px] font-bold ${isPast(parseISO(task.dueDate)) && task.status !== "Completed" ? "text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-2 py-0.5 rounded w-fit" : "text-slate-500 dark:text-slate-400"}`}
+                            className={`mt-2 pl-1.5 flex items-center gap-1 text-[10px] font-bold ${isPast(parseISO(task.dueDate)) && task.status !== "Completed" ? "text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-1.5 py-0.5 rounded w-fit" : "text-slate-550 dark:text-slate-400"}`}
                           >
-                            <FiClock size={12} />
+                            <FiClock size={11} />
                             {format(parseISO(task.dueDate), "MMM dd, yyyy")}
                           </div>
                         )}
