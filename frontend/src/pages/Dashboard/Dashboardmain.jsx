@@ -13,9 +13,7 @@ import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
-import {
-  useGetTasksQuery,
-} from "../../features/api/apiSlice";
+import { useGetTasksQuery } from "../../features/api/apiSlice";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -124,8 +122,14 @@ const GraphicDesignerDeadlines = ({ user }) => {
     myTasks.forEach((t) => {
       if (t.client) {
         const clientVal = t.client;
-        const clientId = typeof clientVal === "object" ? clientVal._id || clientVal.id : clientVal;
-        const clientName = typeof clientVal === "object" ? clientVal.companyName || clientVal.name : clientVal;
+        const clientId =
+          typeof clientVal === "object"
+            ? clientVal._id || clientVal.id
+            : clientVal;
+        const clientName =
+          typeof clientVal === "object"
+            ? clientVal.companyName || clientVal.name
+            : clientVal;
         if (clientId && clientName) {
           clientsMap.set(clientId, clientName);
         }
@@ -144,7 +148,10 @@ const GraphicDesignerDeadlines = ({ user }) => {
       // Client Filter
       if (selectedClient !== "all") {
         const clientVal = t.client;
-        const clientId = typeof clientVal === "object" ? clientVal._id || clientVal.id : clientVal;
+        const clientId =
+          typeof clientVal === "object"
+            ? clientVal._id || clientVal.id
+            : clientVal;
         if (clientId !== selectedClient) return;
       }
 
@@ -196,7 +203,10 @@ const GraphicDesignerDeadlines = ({ user }) => {
         // Client Filter
         if (selectedClient !== "all") {
           const clientVal = t.client;
-          const clientId = typeof clientVal === "object" ? clientVal._id || clientVal.id : clientVal;
+          const clientId =
+            typeof clientVal === "object"
+              ? clientVal._id || clientVal.id
+              : clientVal;
           if (clientId !== selectedClient) return false;
         }
 
@@ -245,8 +255,6 @@ const GraphicDesignerDeadlines = ({ user }) => {
     const year = d.getFullYear();
     return `${day} ${month} ${year}`;
   };
-
-
 
   if (isLoading) {
     return (
@@ -326,7 +334,10 @@ const GraphicDesignerDeadlines = ({ user }) => {
               count: myTasks.filter((t) => {
                 if (selectedClient !== "all") {
                   const clientVal = t.client;
-                  const clientId = typeof clientVal === "object" ? clientVal._id || clientVal.id : clientVal;
+                  const clientId =
+                    typeof clientVal === "object"
+                      ? clientVal._id || clientVal.id
+                      : clientVal;
                   if (clientId !== selectedClient) return false;
                 }
                 if (selectedDate) {
@@ -377,17 +388,31 @@ const GraphicDesignerDeadlines = ({ user }) => {
         <div className="flex flex-wrap items-center gap-3">
           {/* Client Filter Dropdown */}
           <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/50 border theme-border px-3 py-1.5 rounded-xl shadow-sm min-w-[150px]">
-            <FiSliders size={12} className="text-slate-400 dark:text-slate-500 shrink-0" />
+            <FiSliders
+              size={12}
+              className="text-slate-400 dark:text-slate-500 shrink-0"
+            />
             <div className="flex-1 flex flex-col items-start min-w-0">
-              <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-none mb-0.5">Client</span>
+              <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-none mb-0.5">
+                Client
+              </span>
               <select
                 value={selectedClient}
                 onChange={(e) => setSelectedClient(e.target.value)}
                 className="w-full bg-transparent text-[11px] font-bold theme-text-primary focus:outline-none cursor-pointer p-0"
               >
-                <option value="all" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white">All Clients</option>
+                <option
+                  value="all"
+                  className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
+                >
+                  All Clients
+                </option>
                 {uniqueClients.map((c) => (
-                  <option key={c.id} value={c.id} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white">
+                  <option
+                    key={c.id}
+                    value={c.id}
+                    className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
+                  >
                     {c.name}
                   </option>
                 ))}
@@ -397,9 +422,14 @@ const GraphicDesignerDeadlines = ({ user }) => {
 
           {/* Date Filter Input */}
           <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/50 border theme-border px-3 py-1.5 rounded-xl shadow-sm">
-            <FiCalendar size={12} className="text-slate-400 dark:text-slate-500 shrink-0" />
+            <FiCalendar
+              size={12}
+              className="text-slate-400 dark:text-slate-500 shrink-0"
+            />
             <div className="flex flex-col items-start">
-              <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-none mb-0.5">Due Date</span>
+              <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-none mb-0.5">
+                Due Date
+              </span>
               <div className="flex items-center gap-1.5">
                 <input
                   type="date"
@@ -455,7 +485,11 @@ const GraphicDesignerDeadlines = ({ user }) => {
                     {/* Client Badge */}
                     {task.client && (
                       <span className="text-[9px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold">
-                        Client: {task.client.companyName || (typeof task.client === 'object' ? task.client.name : task.client)}
+                        Client:{" "}
+                        {task.client.companyName ||
+                          (typeof task.client === "object"
+                            ? task.client.name
+                            : task.client)}
                       </span>
                     )}
                     {/* Content Type Badge */}
@@ -465,14 +499,21 @@ const GraphicDesignerDeadlines = ({ user }) => {
                       </span>
                     )}
                     {/* Status Badge */}
-                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider ${
-                      task.status === "Completed" ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400" :
-                      task.status === "In Progress" ? "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400" :
-                      task.status === "IN-REVIEW" ? "bg-sky-50 dark:bg-sky-950/20 text-sky-600 dark:text-sky-400" :
-                      task.status === "On Hold" ? "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-455" :
-                      task.status === "Rejected" ? "bg-red-50 dark:bg-red-950/20 text-red-655 dark:text-red-405" :
-                      "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
-                    }`}>
+                    <span
+                      className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider ${
+                        task.status === "Completed"
+                          ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400"
+                          : task.status === "In Progress"
+                            ? "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400"
+                            : task.status === "IN-REVIEW"
+                              ? "bg-sky-50 dark:bg-sky-950/20 text-sky-600 dark:text-sky-400"
+                              : task.status === "On Hold"
+                                ? "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-455"
+                                : task.status === "Rejected"
+                                  ? "bg-red-50 dark:bg-red-950/20 text-red-655 dark:text-red-405"
+                                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                      }`}
+                    >
                       {task.status}
                     </span>
                   </div>
@@ -816,84 +857,54 @@ const Dashboardmain = () => {
       {/* GREETING */}
       <WelcomeUser />
 
-      {/* .................................................3cards.............................. */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 mb-4 ">
-        <div className="col-span-1">
-          <DashboardCards />
-        </div>
+      {/* .................................................Dashboard Cards / Assigned Clients.............................. */}
+      {(() => {
+        const isAdminOrOpManager =
+          user?.role === "admin" || user?.role === "operationmanager";
+        return isAdminOrOpManager ? (
+          <div className="mb-4">
+            <DashboardCards />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 mb-4 items-start">
+            <div className="col-span-1">
+              <DashboardCards />
+            </div>
 
-        <div className="col-span-1 theme-bg-card border theme-border rounded-xl p-3 flex flex-col justify-between h-full min-h-[195px] max-h-[195px] lg:min-h-[195px] lg:max-h-[195px] overflow-hidden">
-          <div className="flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between gap-3 mb-2 shrink-0">
-              <h1 className="text-xs text-blue-500 dark:text-[#3b82f6] font-bold tracking-wider uppercase">
-                List of Assigned Clients
-              </h1>
-
-              {/* CLIENT SEARCH INPUT */}
-              <div className="relative shrink-0 w-36 sm:w-44">
-                <input
-                  type="text"
-                  placeholder="Search clients..."
-                  value={clientSearchQuery}
-                  onChange={(e) => setClientSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-6 py-0.5 rounded-lg bg-slate-50/50 dark:bg-slate-850 border border-slate-200 dark:border-slate-700/60 focus:outline-none focus:border-blue-500 text-[10px] font-semibold theme-text-primary transition-all"
-                />
-                {clientSearchQuery && (
-                  <button
-                    onClick={() => setClientSearchQuery("")}
-                    className="absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                  >
-                    <FiX size={10} />
-                  </button>
+            <div className="col-span-1 theme-bg-card border theme-border rounded-full px-5 py-2 flex items-center h-[48px] overflow-hidden">
+              <div className="flex flex-wrap gap-2 overflow-y-auto max-h-[30px] w-full scrollbar-thin">
+                {clients && clients.length > 0 ? (
+                  clients.map((client) => (
+                    <div
+                      key={client._id}
+                      onClick={() =>
+                        navigate(`/${user?.role}/clients?id=${client._id}`)
+                      }
+                      className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-slate-800/40 hover:border-blue-500/30 hover:bg-slate-100/50 dark:hover:bg-slate-800/80 transition-all duration-150 group cursor-pointer"
+                    >
+                      <div
+                        className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[7px] font-black shrink-0"
+                        style={{ backgroundColor: client.color || "#3b82f6" }}
+                      >
+                        {getInitials(client.companyName)}
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-700 dark:text-slate-350 group-hover:text-blue-500 transition-colors">
+                        {client.companyName}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="w-full flex items-center justify-center py-2 text-slate-400 opacity-60">
+                    <span className="text-[10px] font-semibold">
+                      No clients assigned
+                    </span>
+                  </div>
                 )}
               </div>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 overflow-y-auto max-h-[145px] pr-1 py-1 flex-1 scrollbar-thin">
-              {filteredClientsList && filteredClientsList.length > 0 ? (
-                filteredClientsList.map((client) => (
-                  <div
-                    key={client._id}
-                    onClick={() =>
-                      navigate(`/${user?.role}/clients?id=${client._id}`)
-                    }
-                    className="flex items-center gap-2 p-1.5 rounded-lg border border-slate-100/80 dark:border-white/5 bg-white dark:bg-slate-800/30 hover:border-blue-500/20 hover:bg-slate-50/30 dark:hover:bg-slate-800/60 transition-all duration-200 group cursor-pointer w-full"
-                  >
-                    <div
-                      className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[9px] font-black tracking-wider shrink-0 shadow-sm transition-transform group-hover:scale-[1.05]"
-                      style={{ backgroundColor: client.color || "#3b82f6" }}
-                    >
-                      {getInitials(client.companyName)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h4 className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-blue-500 transition-colors leading-tight">
-                        {client.companyName}
-                      </h4>
-                      <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold block leading-none mt-0.5">
-                        {client.industry || "No Industry"}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="col-span-2 py-8 flex flex-col items-center justify-center text-center opacity-60">
-                  <FiUser
-                    size={18}
-                    className="text-slate-400 dark:text-slate-500 mb-1"
-                  />
-                  <p className="text-[9px] font-semibold text-slate-500 dark:text-slate-400">
-                    No clients found
-                  </p>
-                </div>
-              )}
-            </div>
           </div>
-        </div>
-
-        {/* {user?.role === 'admin' && (
-            <DashboardCards />
-      )} */}
-      </div>
+        );
+      })()}
 
       {/* ............................................status cards .......................................... */}
       {(user?.role === "admin" ||
@@ -911,7 +922,7 @@ const Dashboardmain = () => {
                   <button
                     key={dept}
                     onClick={() => setActiveDeptTab(dept)}
-                    className={`relative px-5 py-3 rounded-3xl text-sm font-bold transition-colors duration-300 whitespace-nowrap cursor-pointer z-10 ${
+                    className={`relative px-4 py-1.5 rounded-full text-[11px] font-bold transition-colors duration-300 whitespace-nowrap cursor-pointer z-10 ${
                       isActive
                         ? "text-white"
                         : isDark
@@ -922,7 +933,7 @@ const Dashboardmain = () => {
                     {isActive && (
                       <motion.div
                         layoutId="activeDeptTabIndicator"
-                        className={`absolute inset-0 ${activeAccentBgClass} rounded-3xl -z-10 shadow-md dark:shadow-none`}
+                        className={`absolute inset-0 ${activeAccentBgClass} rounded-full -z-10 shadow-md dark:shadow-none`}
                         transition={{
                           type: "spring",
                           stiffness: 380,

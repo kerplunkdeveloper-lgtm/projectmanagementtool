@@ -32,19 +32,45 @@ const DashboardCards = () => {
 
   const activeClientsCount = clients ? clients.length : 0;
   const teamStrengthCount = users ? users.length : 0;
-  const activeProjectsCount = projects
-    ? projects.filter((p) => p.status === "Active").length
-    : 0;
-  const completedProjectsCount = projects
-    ? projects.filter((p) => p.status === "Completed").length
-    : 0;
-  const onHoldProjectsCount = projects
-    ? projects.filter((p) => p.status === "On Hold").length
-    : 0;
-  const inactiveProjectsCount = projects
-    ? projects.filter((p) => p.status === "Inactive").length
-    : 0;
-  const totalProjectsCount = projects ? projects.length : 0;
+
+  const uniqueDepts = Array.from(
+    new Set(
+      (users || [])
+        .map((u) => u.department)
+        .filter((dept) => typeof dept === "string" && dept.trim() !== ""),
+    ),
+  )
+    .filter((d) => {
+      const lower = d.toLowerCase();
+      return (
+        !lower.includes("managing partner") &&
+        !lower.includes("operation manager") &&
+        !lower.includes("admin")
+      );
+    })
+    .sort();
+
+  const deptCards = uniqueDepts.map((dept, idx) => {
+    const count = (users || []).filter((u) => u.department === dept).length;
+    const gradients = [
+      "from-blue-400 to-indigo-500",
+      "from-violet-400 to-purple-500",
+      "from-pink-400 to-rose-500",
+      "from-cyan-400 to-blue-500",
+    ];
+    const gradient = gradients[idx % gradients.length];
+    return {
+      title: `No.of ${dept}`,
+      value: count,
+      icon: FiUsers,
+      gradient: `bg-gradient-to-br ${gradient}`,
+      border: "border-white/30",
+      valueColor: "text-white",
+      glowColor: "rgba(99, 102, 241, 0.4)",
+      subtitleColor: "text-white/80",
+      subtitle: `Total ${dept} members`,
+    };
+  });
 
   const isAdminOrOpManager =
     user?.role === "admin" || user?.role === "operationmanager";
@@ -68,38 +94,35 @@ const DashboardCards = () => {
       subtitleColor: "text-white/80 ",
       subtitle: "Total managed client accounts",
     },
-    {
-      title: isAdminOrOpManager
-        ? "Total Overall No.of Projects"
-        : "No.of Assigned Projects",
-      value: activeProjectsCount,
-      icon: FiBriefcase,
-      gradient: "bg-gradient-to-br from-blue-400 to-indigo-400 ",
-      border: "border-white/30 ",
+    ...(isAdminOrOpManager ? deptCards : []),
+    ...(isAdminOrOpManager
+      ? [
+          {
+            title: "total team Strength",
+            value: teamStrengthCount,
+            icon: FiUsers,
+            gradient: "bg-gradient-to-br from-emerald-300 to-teal-400",
+            border: "border-white/30 ",
 
-      valueColor: "text-white",
-      glowColor: "rgba(59, 130, 246, 0.4)",
-      subtitleColor: "text-white/80 ",
-      subtitle: `Active: ${completedProjectsCount} • On Hold: ${onHoldProjectsCount} • Inactive: ${inactiveProjectsCount} • Active: ${totalProjectsCount}`,
-    },
-    {
-      title: isAdminOrOpManager ? "total team Strength" : "Total Strength",
-      value: teamStrengthCount,
-      icon: FiUsers,
-      gradient: "bg-gradient-to-br from-emerald-300 to-teal-400",
-      border: "border-white/30 ",
-
-      valueColor: "text-white",
-      glowColor: "rgba(16, 185, 129, 0.4)",
-      subtitleColor: "text-white/80 ",
-      subtitle: "Active registered team members",
-    },
+            valueColor: "text-white",
+            glowColor: "rgba(16, 185, 129, 0.4)",
+            subtitleColor: "text-white/80 ",
+            subtitle: "Active registered team members",
+          },
+        ]
+      : []),
   ];
 
   return (
     <div className="w-full">
       {/* GRID */}
-      <div className="grid grid-cols-1 gap-4 ">
+      <div
+        className={`grid gap-4 ${
+          cards.length === 1
+            ? "grid-cols-1"
+            : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+        }`}
+      >
         {cards.map((card, index) => {
           const Icon = card.icon;
 
@@ -117,9 +140,9 @@ const DashboardCards = () => {
                 y: -3,
                 scale: 1.01,
               }}
-              className={`relative overflow-hidden rounded-xl border shadow-md hover:shadow-lg transition-all duration-300 theme-bg-card ${card.gradient} ${card.border}`}
+              className={`relative overflow-hidden rounded-full border shadow-md hover:shadow-lg transition-all duration-300 theme-bg-card ${card.gradient} ${card.border} h-[48px] flex items-center`}
             >
-              <div className="px-4 py-3 md:px-6 md:py-3 flex items-center justify-between relative z-10">
+              <div className="px-6 flex items-center justify-between relative z-10 w-full">
                 <p
                   className={`text-xs md:text-xs uppercase tracking-wider font-medium`}
                 >
