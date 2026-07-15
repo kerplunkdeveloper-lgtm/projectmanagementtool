@@ -505,7 +505,7 @@ const AdminEodReports = () => {
             <table className="w-full min-w-[1000px] text-left border-collapse border border-slate-200 dark:border-slate-850 [&_th]:border [&_th]:border-slate-200 [&_th]:dark:border-slate-850 [&_td]:border [&_td]:border-slate-200 [&_td]:dark:border-slate-850">
               <thead>
                 <tr className="bg-slate-50/50 dark:bg-[#0f172a]/50 ">
-                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap min-w-[120px]">
                     Date
                   </th>
                   <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
@@ -528,13 +528,13 @@ const AdminEodReports = () => {
                       </th>
                     </>
                   )}
-                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap min-w-[200px]">
                     Pending Tasks
                   </th>
                   <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
                     Reason for Pending
                   </th>
-                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap min-w-[250px]">
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap min-w-[320px]">
                     Tomorrow Plan
                   </th>
                   <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
@@ -703,17 +703,32 @@ const AdminEodReports = () => {
 
                       {/* TASK ASSIGNED BY */}
                       <td className="px-5 py-3 text-left whitespace-nowrap">
-                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                          {report.tasks && Array.isArray(report.tasks)
-                            ? [
+                        {report.tasks && Array.isArray(report.tasks) && report.tasks[0]?.reviewedBy ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-[9px] font-bold shadow-sm shrink-0 overflow-hidden">
+                              {report.tasks[0].reviewedBy?.profile?.profileImage?.url ? (
+                                <img
+                                  src={report.tasks[0].reviewedBy.profile.profileImage.url}
+                                  alt={report.tasks[0].reviewedBy?.name || "User"}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                (report.tasks[0].reviewedBy?.name || "U").charAt(0).toUpperCase()
+                              )}
+                            </div>
+                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                              {[
                                 ...new Set(
                                   report.tasks
                                     .map((t) => t.reviewedBy?.name)
                                     .filter(Boolean),
                                 ),
-                              ].join(", ") || "-"
-                            : "-"}
-                        </span>
+                              ].join(", ") || "-"}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-slate-400">-</span>
+                        )}
                       </td>
 
                       {/* DYNAMIC DESIGNER SPECIFIC FIELDS */}
@@ -731,7 +746,7 @@ const AdminEodReports = () => {
 
                       {/* PENDING TASKS */}
                       <td
-                        className="px-5 py-3 max-w-[150px] truncate text-left text-xs text-slate-700 dark:text-slate-350"
+                        className="px-5 py-3 min-w-[200px] max-w-[220px] truncate text-left text-xs text-slate-700 dark:text-slate-350"
                         title={
                           report.tasks
                             ? report.tasks
@@ -771,15 +786,17 @@ const AdminEodReports = () => {
 
                       {/* TOMORROW PLAN */}
                       <td
-                        className="px-5 py-3 max-w-[300px] truncate text-left text-xs text-slate-500 dark:text-slate-400"
+                        className="px-5 py-3 min-w-[320px] max-w-[360px] truncate text-left text-xs text-slate-500 dark:text-slate-400"
                         title={report.tomorrowPlan}
                       >
                         {report.tomorrowPlan || "-"}
                       </td>
 
                       {/* TOTAL TIME SPENT */}
-                      <td className="px-5 py-3 text-left whitespace-nowrap text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        {calculateTotalLoggedTime(report)}
+                      <td className="px-5 py-3 text-left whitespace-nowrap">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-black bg-violet-50 text-violet-700 border border-violet-200/50 dark:bg-violet-500/10 dark:text-violet-300 dark:border-violet-500/20">
+                          {calculateTotalLoggedTime(report)}
+                        </span>
                       </td>
 
                       {/* OVERALL STATUS */}
