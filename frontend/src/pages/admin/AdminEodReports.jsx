@@ -103,6 +103,7 @@ const AdminEodReports = () => {
   // Filters State
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [clientFilter, setClientFilter] = useState("All");
   const [dateRange, setDateRange] = useState("All");
   const [customDate, setCustomDate] = useState("");
   const [showDateDropdown, setShowDateDropdown] = useState(false);
@@ -171,6 +172,22 @@ const AdminEodReports = () => {
     return ["Graphic Designer", ...depts];
   }, [groupedDepartments]);
 
+  // Extract unique clients based on the active tab's reports
+  const uniqueClients = useMemo(() => {
+    const reports = groupedDepartments[activeTab] || [];
+    const clientsSet = new Set();
+    reports.forEach((report) => {
+      if (report.tasks && Array.isArray(report.tasks)) {
+        report.tasks.forEach((t) => {
+          if (t.client) clientsSet.add(t.client.trim());
+        });
+      } else if (report.clientName) {
+        clientsSet.add(report.clientName.trim());
+      }
+    });
+    return Array.from(clientsSet).sort();
+  }, [groupedDepartments, activeTab]);
+
   // Filter reports of active department
   const filteredReports = useMemo(() => {
     const reports = groupedDepartments[activeTab] || [];
@@ -197,6 +214,18 @@ const AdminEodReports = () => {
 
       const matchesStatus =
         statusFilter === "All" || report.overallStatus === statusFilter;
+
+      // Client filter matches
+      let matchesClient = true;
+      if (clientFilter !== "All") {
+        if (report.tasks && Array.isArray(report.tasks)) {
+          matchesClient = report.tasks.some(
+            (t) => t.client && t.client.trim() === clientFilter
+          );
+        } else {
+          matchesClient = report.clientName && report.clientName.trim() === clientFilter;
+        }
+      }
 
       let matchesDate = true;
       const reportDate = new Date(report.date);
@@ -227,13 +256,14 @@ const AdminEodReports = () => {
         }
       }
 
-      return matchesSearch && matchesStatus && matchesDate;
+      return matchesSearch && matchesStatus && matchesClient && matchesDate;
     });
   }, [
     groupedDepartments,
     activeTab,
     searchQuery,
     statusFilter,
+    clientFilter,
     dateRange,
     customDate,
   ]);
@@ -249,7 +279,11 @@ const AdminEodReports = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeTab, searchQuery, statusFilter, dateRange, customDate]);
+  }, [activeTab, searchQuery, statusFilter, clientFilter, dateRange, customDate]);
+
+  useEffect(() => {
+    setClientFilter("All");
+  }, [activeTab]);
 
   const getStatusBadgeStyle = (status) => {
     switch (status) {
@@ -300,14 +334,14 @@ const AdminEodReports = () => {
 
   const loading =
     activeTab === "Graphic Designer" ? designerLoading : generalLoading;
-  const totalColumnsCount = activeTab === "Graphic Designer" ? 13 : 12;
+  const totalColumnsCount = activeTab === "Graphic Designer" ? 14 : 13;
 
   return (
     <div className="min-h-screen py-6 transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
         {/* HEADER */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <h1 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight text-left">
+          <h1 className="text-md font-bold text-slate-800 dark:text-white tracking-tight text-left">
             Teammate EOD Reports
           </h1>
         </div>
@@ -491,9 +525,23 @@ const AdminEodReports = () => {
                 <option value="All">All Statuses</option>
                 <option value="On Track">On Track</option>
                 <option value="Completed">Completed</option>
-                <option value="In Progress">In Progress</option>
                 <option value="Delayed">Delayed</option>
-                <option value="Blocked">Blocked</option>
+              </select>
+            </div>
+
+            {/* CLIENT FILTER */}
+            <div className="relative w-full sm:w-auto">
+              <select
+                value={clientFilter}
+                onChange={(e) => setClientFilter(e.target.value)}
+                className="w-full pl-4 pr-10 py-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer appearance-none min-w-[160px] bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em]"
+              >
+                <option value="All">All Clients</option>
+                {uniqueClients.map((client) => (
+                  <option key={client} value={client}>
+                    {client}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -542,6 +590,9 @@ const AdminEodReports = () => {
                   </th>
                   <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
                     Overall Status
+                  </th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                    Last Submitted
                   </th>
                   <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center whitespace-nowrap">
                     Actions
@@ -815,6 +866,32 @@ const AdminEodReports = () => {
                             —
                           </span>
                         )}
+                      </td>
+
+                      {/* LAST SUBMITTED */}
+                      <td className="px-5 py-3 whitespace-nowrap">
+                        <p className="text-xs font-semibold text-slate-605 dark:text-slate-350">
+                          {report.updatedAt || report.createdAt ? (
+                            <>
+                              <span className="block">
+                                {new Date(report.updatedAt || report.createdAt).toLocaleDateString("en-US", {
+                                  month: "short",
+                                  day: "2-digit",
+                                  year: "numeric",
+                                })}
+                              </span>
+                              <span className="block text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 font-normal">
+                                {new Date(report.updatedAt || report.createdAt).toLocaleTimeString("en-US", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: true,
+                                })}
+                              </span>
+                            </>
+                          ) : (
+                            "-"
+                          )}
+                        </p>
                       </td>
 
                       {/* ACTIONS */}

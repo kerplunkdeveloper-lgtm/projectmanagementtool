@@ -26,6 +26,7 @@ import {
   FiLayers,
   FiBriefcase,
   FiTrendingUp,
+  FiXCircle,
 } from "react-icons/fi";
 
 const GraphicDesignerDashboard = () => {
@@ -146,10 +147,12 @@ const GraphicDesignerDashboard = () => {
     let overdue = 0;
     let inRevision = 0;
     let clientApproval = 0;
+    let rejected = 0;
 
     designerTasks.forEach((task) => {
       const status = task.status?.toLowerCase() || "";
       if (status === "completed") completed++;
+      else if (status.includes("reject")) rejected++;
       else if (status.includes("revision")) inRevision++;
       else if (status.includes("client") || status.includes("approval"))
         clientApproval++;
@@ -172,6 +175,7 @@ const GraphicDesignerDashboard = () => {
       overdue,
       inRevision,
       clientApproval,
+      rejected,
     };
   }, [designerTasks, designers.length]);
 
@@ -181,7 +185,7 @@ const GraphicDesignerDashboard = () => {
     "In Progress",
     "Revision Pending",
     "Revision",
-    "Approved",
+    "Rejected",
     "Completed",
   ];
   const getColumnForTask = (task) => {
@@ -190,7 +194,8 @@ const GraphicDesignerDashboard = () => {
     if (status.toLowerCase().includes("progress")) return "In Progress";
     if (status.toLowerCase().includes("review")) return "Revision Pending";
     if (status.toLowerCase().includes("revision")) return "Revision";
-    if (status.toLowerCase().includes("approve")) return "Approved";
+    if (status.toLowerCase().includes("reject")) return "Rejected";
+    if (status.toLowerCase().includes("approve")) return "Completed";
     if (status.toLowerCase() === "completed") return "Completed";
     return "Assigned";
   };
@@ -470,7 +475,7 @@ const GraphicDesignerDashboard = () => {
       </div>
 
       {/* Premium Metrics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 lg:gap-4 relative z-10">
+      <div className="grid grid-cols-2 md:grid-cols-7 gap-3 lg:gap-4 relative z-10">
         {[
           {
             label:
@@ -524,6 +529,18 @@ const GraphicDesignerDashboard = () => {
             iconColor: "text-amber-600 dark:text-amber-400",
           },
           {
+            label: "Revision",
+            value: metrics.inRevision,
+            icon: FiTrendingUp,
+            glow: "hover:shadow-[0_4px_20px_rgba(139,92,246,0.15)]",
+            bg: "bg-gradient-to-br from-indigo-500 to-indigo-600 dark:from-indigo-800 dark:to-indigo-950 border border-indigo-200/50 dark:border-indigo-900/30",
+            labelColor: "text-white dark:text-white",
+            valueColor: "text-slate-100 dark:text-white",
+            iconBg:
+              "bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-500/20",
+            iconColor: "text-indigo-600 dark:text-indigo-400",
+          },
+          {
             label: "Overdue",
             value: metrics.overdue,
             icon: FiAlertCircle,
@@ -534,6 +551,18 @@ const GraphicDesignerDashboard = () => {
             iconBg:
               "bg-rose-100 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/20",
             iconColor: "text-rose-600 dark:text-rose-400",
+          },
+          {
+            label: "Rejected",
+            value: metrics.rejected,
+            icon: FiXCircle,
+            glow: "hover:shadow-[0_4px_20px_rgba(239,68,68,0.15)]",
+            bg: "bg-gradient-to-br from-red-500 to-red-600 dark:from-red-650 dark:to-red-800 border border-red-200/50 dark:border-red-900/30",
+            labelColor: "text-white dark:text-white",
+            valueColor: "text-slate-100 dark:text-white",
+            iconBg:
+              "bg-red-100 dark:bg-red-950/60 border border-red-200 dark:border-red-500/20",
+            iconColor: "text-red-600 dark:text-red-400",
           },
         ].map((m, i) => {
           const IconComponent = m.icon;
