@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   useGetTasksQuery,
   useGetProjectsQuery,
+  useUpdateTaskMutation,
 } from "../../features/api/apiSlice";
 import { getUsers } from "../../features/users/userSlice";
 import { format } from "date-fns";
@@ -173,6 +174,7 @@ const calculateTotalLoggedTime = (tasks) => {
 
 const EodReports = () => {
   const dispatch = useDispatch();
+  const [updateTaskTrigger] = useUpdateTaskMutation();
   const { user } = useSelector((state) => state.auth);
   const { users } = useSelector((state) => state.users);
   const { designerEodReports, loading: reportLoading } = useSelector(
@@ -327,7 +329,7 @@ const EodReports = () => {
             priority: t.priority,
             contentType: t.contentType || "",
             client: t.client,
-            revision: t.revisions || 0,
+            revision: correspondingTask ? (correspondingTask.revisions || 0) : (t.revisions || 0),
             time: t.loggedTime || "",
             statusAtEod: actualStatus,
             outputLink: t.outputLink || "",
@@ -538,12 +540,15 @@ const EodReports = () => {
                 ? creator._id
                 : creator || "";
 
+            const taskRevision = correspondingTask.revisions || 0;
+
             if (
               t.statusAtEod !== mappedStatus ||
               t.time !== elapsedStr ||
               t.code !== taskCode ||
               t.reviewedBy !== creatorId ||
-              t.assignedByName !== creatorName
+              t.assignedByName !== creatorName ||
+              t.revision !== taskRevision
             ) {
               return {
                 ...t,
@@ -552,6 +557,7 @@ const EodReports = () => {
                 code: taskCode,
                 reviewedBy: creatorId,
                 assignedByName: creatorName,
+                revision: taskRevision,
               };
             }
           }
@@ -661,6 +667,9 @@ const EodReports = () => {
   const inReviewCount = tasksState.filter((t) =>
     ["IN-REVIEW", "In Review", "IN-Review"].includes(t.statusAtEod),
   ).length;
+  const revisionCount = tasksState.filter((t) =>
+    ["Revision", "Revision Pending"].includes(t.statusAtEod),
+  ).length;
   const pendingCount = Math.max(
     0,
     totalTasks -
@@ -668,7 +677,8 @@ const EodReports = () => {
       rejectedCount -
       inProgressCount -
       onHoldCount -
-      inReviewCount,
+      inReviewCount -
+      revisionCount,
   );
 
   const dynamicPlans = tasksState.map((task) => {
@@ -798,8 +808,8 @@ const EodReports = () => {
                   >
                     {task.priority}
                   </span>
-                  <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-                    Rev. {task.revision}
+                  <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mt-0.5">
+                    Rev. {task.revision || 0}
                   </span>
                 </div>
               </div>
@@ -887,71 +897,65 @@ const EodReports = () => {
             <span className="text-[10px] font-bold text-slate-400 ">
               Submitted once, covers all tasks
             </span>
-          </div>
-
+          </div>{" "}
           {/* eod card  */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-2 mb-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-4 mb-5">
             {/* Completed Card */}
-            <div className="bg-gradient-to-br from-emerald-50/60 to-emerald-100/30 dark:from-emerald-950/15 dark:to-emerald-900/5 border border-emerald-100/50 dark:border-emerald-900/20 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300">
-              <span className="text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400 block">
+            <div className="bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent dark:from-emerald-500/15 dark:via-emerald-500/5 dark:to-transparent border border-emerald-500/20 dark:border-emerald-500/30 rounded-2xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-full -mr-6 -mt-6 blur-md group-hover:bg-emerald-500/10 transition-all duration-300" />
+              <span className="text-2xl font-black tracking-tight text-emerald-600 dark:text-emerald-400 block relative z-10">
                 {completedCount}
               </span>
-              <span className="text-[11px] font-semibold text-emerald-800/80 dark:text-emerald-450/80 mt-1 block">
+              <span className="text-[10px] font-black text-emerald-700/80 dark:text-emerald-300/80 uppercase tracking-widest mt-1.5 block relative z-10">
                 Completed
               </span>
             </div>
 
             {/* In Progress Card */}
-            <div className="bg-gradient-to-br from-blue-50/60 to-blue-100/30 dark:from-blue-950/15 dark:to-blue-900/5 border border-blue-100/50 dark:border-blue-900/20 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300">
-              <span className="text-2xl font-bold tracking-tight text-blue-650 dark:text-blue-400 block">
+            <div className="bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent dark:from-blue-500/15 dark:via-blue-500/5 dark:to-transparent border border-blue-500/20 dark:border-blue-500/30 rounded-2xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-full -mr-6 -mt-6 blur-md group-hover:bg-blue-500/10 transition-all duration-300" />
+              <span className="text-2xl font-black tracking-tight text-blue-600 dark:text-blue-400 block relative z-10">
                 {inProgressCount}
               </span>
-              <span className="text-[11px] font-semibold text-blue-800/80 dark:text-blue-450/80 mt-1 block">
+              <span className="text-[10px] font-black text-blue-700/80 dark:text-blue-300/80 uppercase tracking-widest mt-1.5 block relative z-10">
                 In Progress
               </span>
             </div>
 
             {/* In Review Card */}
-            <div className="bg-gradient-to-br from-purple-50/60 to-purple-100/30 dark:from-purple-950/15 dark:to-purple-900/5 border border-purple-100/50 dark:border-purple-900/20 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300">
-              <span className="text-2xl font-bold tracking-tight text-purple-650 dark:text-purple-400 block">
+            <div className="bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent dark:from-purple-500/15 dark:via-purple-500/5 dark:to-transparent border border-purple-500/20 dark:border-purple-500/30 rounded-2xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/5 rounded-full -mr-6 -mt-6 blur-md group-hover:bg-purple-500/10 transition-all duration-300" />
+              <span className="text-2xl font-black tracking-tight text-purple-600 dark:text-purple-400 block relative z-10">
                 {inReviewCount}
               </span>
-              <span className="text-[11px] font-semibold text-purple-800/80 dark:text-purple-450/80 mt-1 block">
+              <span className="text-[10px] font-black text-purple-700/80 dark:text-purple-300/80 uppercase tracking-widest mt-1.5 block relative z-10">
                 In Review
               </span>
             </div>
 
             {/* On Hold Card */}
-            <div className="bg-gradient-to-br from-amber-50/60 to-amber-100/30 dark:from-amber-950/15 dark:to-amber-900/5 border border-amber-100/50 dark:border-amber-900/20 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300">
-              <span className="text-2xl font-bold tracking-tight text-amber-600 dark:text-amber-400 block">
+            <div className="bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent dark:from-amber-500/15 dark:via-amber-500/5 dark:to-transparent border border-amber-500/20 dark:border-amber-500/30 rounded-2xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/5 rounded-full -mr-6 -mt-6 blur-md group-hover:bg-amber-500/10 transition-all duration-300" />
+              <span className="text-2xl font-black tracking-tight text-amber-600 dark:text-amber-400 block relative z-10">
                 {onHoldCount}
               </span>
-              <span className="text-[11px] font-semibold text-amber-800/80 dark:text-amber-450/80 mt-1 block">
+              <span className="text-[10px] font-black text-amber-700/80 dark:text-amber-300/80 uppercase tracking-widest mt-1.5 block relative z-10">
                 On Hold
               </span>
             </div>
 
-            {/* Rejected Card */}
-            <div className="bg-gradient-to-br from-rose-50/60 to-rose-100/30 dark:from-rose-950/15 dark:to-rose-900/5 border border-rose-100/50 dark:border-rose-900/20 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300">
-              <span className="text-2xl font-bold tracking-tight text-rose-650 dark:text-rose-455 block">
-                {rejectedCount}
-              </span>
-              <span className="text-[11px] font-semibold text-rose-800/80 dark:text-rose-450/80 mt-1 block">
-                Rejected
-              </span>
-            </div>
 
             {/* Total Logged Card */}
-            <div className="bg-gradient-to-br from-slate-50 to-slate-100/60 dark:from-slate-900/30 dark:to-slate-800/10 border border-slate-200/50 dark:border-slate-850 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300">
-              <span className="text-2xl font-bold tracking-tight theme-text-primary block">
+            <div className="bg-gradient-to-br from-slate-500/10 via-slate-500/5 to-transparent dark:from-slate-500/15 dark:via-slate-500/5 dark:to-transparent border border-slate-500/20 dark:border-slate-700/30 rounded-2xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-slate-500/5 rounded-full -mr-6 -mt-6 blur-md group-hover:bg-slate-500/10 transition-all duration-300" />
+              <span className="text-2xl font-black tracking-tight theme-text-primary block relative z-10">
                 {calculateTotalLoggedTime(tasksState)}
               </span>
-              <span className="text-[11px] font-semibold theme-text-secondary mt-1 block">
+              <span className="text-[10px] font-black theme-text-secondary uppercase tracking-widest mt-1.5 block relative z-10">
                 Total Logged
               </span>
             </div>
           </div>
-
           {/* Dynamic Task Summary List */}
           <div className="border-t theme-border  text-left">
             {/* Completed Section */}
@@ -1023,7 +1027,6 @@ const EodReports = () => {
               </div>
             </div>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
             <div>
               <label className="text-[10px] font-bold theme-text-secondary uppercase tracking-wider block">
@@ -1121,7 +1124,6 @@ const EodReports = () => {
               </div>
             </div>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
             <div>
               <label className="text-[10px] font-bold theme-text-secondary uppercase tracking-wider block">
@@ -1200,7 +1202,6 @@ const EodReports = () => {
                 )}
             </div>
           </div>
-
           {/* Footer actions */}
           <div className="flex flex-col md:flex-row justify-between items-center gap-5 mt-8 border-t theme-border pt-6">
             <p className="text-xs font-semibold theme-text-secondary">

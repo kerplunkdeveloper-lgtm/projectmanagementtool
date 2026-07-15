@@ -150,6 +150,7 @@ const GraphicDesignerDashboard = () => {
     let inRevision = 0;
     let clientApproval = 0;
     let rejected = 0;
+    let totalRevisions = 0;
 
     designerTasks.forEach((task) => {
       const status = task.status?.toLowerCase() || "";
@@ -159,6 +160,8 @@ const GraphicDesignerDashboard = () => {
       else if (status.includes("client") || status.includes("approval"))
         clientApproval++;
       else pending++;
+
+      totalRevisions += task.revisions || 0;
 
       if (
         task.dueDate &&
@@ -178,6 +181,7 @@ const GraphicDesignerDashboard = () => {
       inRevision,
       clientApproval,
       rejected,
+      totalRevisions,
     };
   }, [designerTasks, designers.length]);
 
@@ -415,7 +419,7 @@ const GraphicDesignerDashboard = () => {
   };
 
   return (
-    <div className="bg-white dark:bg-[#0b1120] py-4 md:py-4 px-0 md:px-2 space-y-8 font-sans mt-8 overflow-visible transition-colors duration-300 relative">
+    <div className="bg-white dark:bg-[#0b1120] py-4 md:py-4 px-0 md:px-0 space-y-8 font-sans mt-8 overflow-visible transition-colors duration-300 relative">
       {/* Header & Filter */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-20">
         <div className="space-y-1 ">
@@ -482,7 +486,7 @@ const GraphicDesignerDashboard = () => {
       </div>
 
       {/* Premium Metrics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-7 gap-3 lg:gap-4 relative z-10">
+      <div className="grid grid-cols-2 md:grid-cols-7 gap-3 lg:gap-2 relative z-10">
         {[
           {
             label:
@@ -537,7 +541,7 @@ const GraphicDesignerDashboard = () => {
           },
           {
             label: "Revision",
-            value: metrics.inRevision,
+            value: metrics.totalRevisions,
             icon: FiTrendingUp,
             glow: "hover:shadow-[0_4px_20px_rgba(139,92,246,0.15)]",
             bg: "bg-gradient-to-br from-indigo-500 to-indigo-600 dark:from-indigo-800 dark:to-indigo-950 border border-indigo-200/50 dark:border-indigo-900/30",
@@ -579,7 +583,7 @@ const GraphicDesignerDashboard = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
               key={i}
-              className={`flex flex-col text-left p-5 rounded-2xl ${m.bg} ${m.glow} relative overflow-hidden group hover:scale-[1.03] transition-all duration-300 backdrop-blur-md shadow-sm`}
+              className={`flex flex-col text-left p-3 rounded-2xl ${m.bg} ${m.glow} relative overflow-hidden group hover:scale-[1.03] transition-all duration-300 backdrop-blur-md shadow-sm`}
             >
               {/* Decorative light reflection overlay */}
               <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-white/10 to-transparent rounded-full -mr-6 -mt-6 blur-md pointer-events-none" />
@@ -610,7 +614,7 @@ const GraphicDesignerDashboard = () => {
       {/* Live Task Board */}
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4 px-1">
-          <h3 className="text-base font-bold text-slate-800 dark:text-white tracking-wide ">
+          <h3 className="text-md font-bold text-slate-800 dark:text-white tracking-wide ">
             Live Task Board
           </h3>
           <span className="flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-500/20">

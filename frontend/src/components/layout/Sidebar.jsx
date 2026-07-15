@@ -502,22 +502,63 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           item.path === "/team"
                         }
                         className={({ isActive }) => {
-                          const activeClass = isActive
-                            ? `bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent border-[var(--accent-color)]/20 dark:border-[var(--accent-color-dark)]/25 shadow-sm`
-                            : `text-slate-600 dark:text-slate-400 border-transparent hover:bg-slate-100/60 dark:hover:bg-white/5 hover:theme-text-accent`;
-                          return `block rounded-xl border transition-all duration-200 ${activeClass}`;
+                          return `block rounded-xl transition-all duration-200 relative group ${isActive ? "" : ""}`;
                         }}
                       >
                         {({ isActive }) => (
-                          <div className="flex items-center gap-2.5 px-3 py-2 w-full">
-                            <div
-                              className={`shrink-0 transition-colors ${isActive ? "theme-text-accent" : ""}`}
+                          <motion.div
+                            className={`flex items-center gap-2.5 px-3 py-2 w-full rounded-xl relative overflow-hidden transition-all duration-200 ${
+                              isActive
+                                ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)]"
+                                : "hover:bg-slate-100/60 dark:hover:bg-white/5"
+                            }`}
+                            whileHover={{ x: 2 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                          >
+                            {/* Active left accent bar */}
+                            {isActive && (
+                              <motion.span
+                                layoutId="activeBar"
+                                className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full theme-bg-accent"
+                                initial={{ scaleY: 0 }}
+                                animate={{ scaleY: 1 }}
+                                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                              />
+                            )}
+
+                            {/* Icon wrapper */}
+                            <motion.div
+                              className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 ${
+                                isActive
+                                  ? "theme-bg-accent/15 dark:theme-bg-accent/20 shadow-sm"
+                                  : "bg-slate-100/70 dark:bg-white/5 group-hover:bg-[var(--accent-light-bg-subtle)] dark:group-hover:bg-[var(--accent-dark-bg-subtle)]"
+                              }`}
+                              whileHover={{ scale: 1.1, rotate: 3 }}
+                              whileTap={{ scale: 0.92 }}
+                              transition={{ type: "spring", stiffness: 500, damping: 20 }}
                             >
-                              <Icon size={14} />
-                            </div>
-                            <span className="text-[0.6875rem] font-semibold truncate flex-1 text-left transition-colors">
+                              <Icon
+                                size={13}
+                                className={`transition-colors duration-200 ${
+                                  isActive
+                                    ? "theme-text-accent"
+                                    : "text-slate-500 dark:text-slate-400 group-hover:theme-text-accent"
+                                }`}
+                              />
+                            </motion.div>
+
+                            {/* Label */}
+                            <span
+                              className={`text-[0.6875rem] font-semibold truncate flex-1 text-left transition-colors duration-200 ${
+                                isActive
+                                  ? "theme-text-accent font-bold"
+                                  : "text-slate-600 dark:text-slate-400 group-hover:theme-text-accent"
+                              }`}
+                            >
                               {item.name}
                             </span>
+
+                            {/* Notification badges */}
                             {item.name === "Notifications" &&
                               unreadCount > 0 && (
                                 <span className="min-w-[1rem] h-[1rem] px-1 bg-red-500 text-white rounded-full flex items-center justify-center text-[0.5625rem] font-bold animate-pulse shrink-0">
@@ -530,13 +571,20 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                   {totalUnreadChatCount}
                                 </span>
                               )}
+
+                            {/* Active dot (for items without badge) */}
                             {isActive &&
                               !unreadCount &&
                               item.name !== "Notifications" &&
                               item.name !== "Chat" && (
-                                <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
+                                <motion.span
+                                  className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0"
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                                />
                               )}
-                          </div>
+                          </motion.div>
                         )}
                       </NavLink>
 

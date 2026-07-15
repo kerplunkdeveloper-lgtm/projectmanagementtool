@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-  import { BiFile } from "react-icons/bi";
+import { BiFile } from "react-icons/bi";
 import {
   FiCheck,
   FiClock,
@@ -13,7 +13,6 @@ import {
   FiChevronDown,
   FiChevronLeft,
   FiChevronRight,
-
   FiX,
   FiPlus,
   FiTrash2,
@@ -259,7 +258,7 @@ const Task = () => {
           id: cId,
           name: client.companyName || "No Company Name",
           color: client.color || "#3b82f6",
-          icon: client.icon || "FaRegBuilding"
+          icon: client.icon || "FaRegBuilding",
         };
       }
     });
@@ -268,22 +267,26 @@ const Task = () => {
 
   const getTaskDisplayId = (task) => {
     if (!task || !task._id) return "";
-    
+
     // Find the project object from projects array
     const projId = task.project?._id || task.project;
     const projectObj = projects.find((p) => p._id === projId);
-    
+
     // Project Name first character (upper case, fallback to 'P')
-    const projChar = (projectObj?.name || task.project?.name || "P").charAt(0).toUpperCase();
-    
+    const projChar = (projectObj?.name || task.project?.name || "P")
+      .charAt(0)
+      .toUpperCase();
+
     // Client Name first 2 characters (upper case, fallback to 'XX')
     const client = projectObj?.client || task.project?.client;
     const clientName = client?.companyName || "";
-    const clientChars = clientName ? clientName.substring(0, 2).toUpperCase().padEnd(2, "X") : "XX";
+    const clientChars = clientName
+      ? clientName.substring(0, 2).toUpperCase().padEnd(2, "X")
+      : "XX";
 
     // Get all tasks for this project
     const projectTasks = tasks.filter(
-      (t) => (t.project?._id || t.project) === projId
+      (t) => (t.project?._id || t.project) === projId,
     );
 
     // Sort stably by createdAt or _id
@@ -369,8 +372,7 @@ const Task = () => {
       const projectObj = projects.find((p) => p._id === taskProjectId);
       const clientObj = projectObj?.client || task.project?.client;
       const clientId = clientObj?._id || clientObj?.id;
-      const matchesClient =
-        clientFilter === "All" || clientId === clientFilter;
+      const matchesClient = clientFilter === "All" || clientId === clientFilter;
 
       // Search term
       const projectName = projectObj?.name || task.project?.name || "";
@@ -380,9 +382,18 @@ const Task = () => {
         projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         clientName.toLowerCase().includes(searchTerm.toLowerCase());
 
-      return matchesPriority && matchesProject && matchesClient && matchesSearch;
+      return (
+        matchesPriority && matchesProject && matchesClient && matchesSearch
+      );
     });
-  }, [myTasks, priorityFilter, projectFilter, clientFilter, searchTerm, projects]);
+  }, [
+    myTasks,
+    priorityFilter,
+    projectFilter,
+    clientFilter,
+    searchTerm,
+    projects,
+  ]);
 
   const counts = React.useMemo(() => {
     const res = {
@@ -790,16 +801,29 @@ const Task = () => {
           <button
             onClick={() => setFilterPanelOpen(true)}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
-              priorityFilter !== "All" || projectFilter !== "All" || statusFilter !== "All" || clientFilter !== "All"
+              priorityFilter !== "All" ||
+              projectFilter !== "All" ||
+              statusFilter !== "All" ||
+              clientFilter !== "All"
                 ? "bg-blue-50 dark:bg-[#3b82f6]/10 border-blue-200 dark:border-[#3b82f6]/30 text-blue-700 dark:text-[#3b82f6]"
                 : "bg-white dark:bg-black border-slate-200 dark:border-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900"
             }`}
           >
             <FiFilter size={14} />
             Filter
-            {(priorityFilter !== "All" || projectFilter !== "All" || statusFilter !== "All" || clientFilter !== "All") && (
+            {(priorityFilter !== "All" ||
+              projectFilter !== "All" ||
+              statusFilter !== "All" ||
+              clientFilter !== "All") && (
               <span className="flex items-center justify-center bg-blue-600 dark:bg-[#3b82f6] text-white dark:text-black text-[9px] w-4 h-4 rounded-full font-black">
-                {[priorityFilter, projectFilter, statusFilter, clientFilter].filter((f) => f !== "All").length}
+                {
+                  [
+                    priorityFilter,
+                    projectFilter,
+                    statusFilter,
+                    clientFilter,
+                  ].filter((f) => f !== "All").length
+                }
               </span>
             )}
           </button>
@@ -830,12 +854,20 @@ const Task = () => {
               <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-white/5">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-blue-500/10 dark:bg-[#3b82f6]/10 flex items-center justify-center">
-                    <FiFilter size={13} className="text-blue-600 dark:text-[#3b82f6]" />
+                    <FiFilter
+                      size={13}
+                      className="text-blue-600 dark:text-[#3b82f6]"
+                    />
                   </div>
-                  <span className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider">Filters</span>
+                  <span className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider">
+                    Filters
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {(priorityFilter !== "All" || projectFilter !== "All" || statusFilter !== "All" || clientFilter !== "All") && (
+                  {(priorityFilter !== "All" ||
+                    projectFilter !== "All" ||
+                    statusFilter !== "All" ||
+                    clientFilter !== "All") && (
                     <button
                       onClick={() => {
                         setPriorityFilter("All");
@@ -861,16 +893,46 @@ const Task = () => {
               <div className="flex-1 overflow-y-auto sidebar-scrollbar p-5 space-y-6">
                 {/* Status */}
                 <div className="space-y-2.5">
-                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Status</label>
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                    Status
+                  </label>
                   <div className="flex flex-wrap gap-2">
                     {[
-                      { name: "All", label: "All Statuses", color: "bg-slate-400" },
-                      { name: "Pending", label: "Pending", color: "bg-slate-400" },
-                      { name: "In Progress", label: "In Progress", color: "bg-amber-500" },
-                      { name: "IN-REVIEW", label: "In Review", color: "bg-sky-500" },
-                      { name: "Completed", label: "Completed", color: "bg-emerald-500" },
-                      { name: "On Hold", label: "On Hold", color: "bg-rose-500" },
-                      { name: "Rejected", label: "Rejected", color: "bg-red-500" },
+                      {
+                        name: "All",
+                        label: "All Statuses",
+                        color: "bg-slate-400",
+                      },
+                      {
+                        name: "Pending",
+                        label: "Pending",
+                        color: "bg-slate-400",
+                      },
+                      {
+                        name: "In Progress",
+                        label: "In Progress",
+                        color: "bg-amber-500",
+                      },
+                      {
+                        name: "IN-REVIEW",
+                        label: "In Review",
+                        color: "bg-sky-500",
+                      },
+                      {
+                        name: "Completed",
+                        label: "Completed",
+                        color: "bg-emerald-500",
+                      },
+                      {
+                        name: "On Hold",
+                        label: "On Hold",
+                        color: "bg-rose-500",
+                      },
+                      {
+                        name: "Rejected",
+                        label: "Rejected",
+                        color: "bg-red-500",
+                      },
                     ].map((st) => (
                       <button
                         key={st.name}
@@ -882,7 +944,9 @@ const Task = () => {
                         }`}
                       >
                         {st.name !== "All" && (
-                          <span className={`w-2 h-2 rounded-full ${st.color} shrink-0`} />
+                          <span
+                            className={`w-2 h-2 rounded-full ${st.color} shrink-0`}
+                          />
                         )}
                         {st.label}
                       </button>
@@ -895,14 +959,28 @@ const Task = () => {
 
                 {/* Priority */}
                 <div className="space-y-2.5">
-                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Priority</label>
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                    Priority
+                  </label>
                   <div className="flex flex-wrap gap-2">
                     {[
-                      { name: "All", label: "All Priorities", color: "bg-slate-400" },
+                      {
+                        name: "All",
+                        label: "All Priorities",
+                        color: "bg-slate-400",
+                      },
                       { name: "Low", label: "Low", color: "bg-slate-400" },
-                      { name: "Medium", label: "Medium", color: "bg-amber-500" },
+                      {
+                        name: "Medium",
+                        label: "Medium",
+                        color: "bg-amber-500",
+                      },
                       { name: "High", label: "High", color: "bg-rose-500" },
-                      { name: "Top High", label: "Top High", color: "bg-purple-600" },
+                      {
+                        name: "Top High",
+                        label: "Top High",
+                        color: "bg-purple-600",
+                      },
                     ].map((priority) => (
                       <button
                         key={priority.name}
@@ -914,7 +992,9 @@ const Task = () => {
                         }`}
                       >
                         {priority.name !== "All" && (
-                          <span className={`w-2 h-2 rounded-full ${priority.color} shrink-0`} />
+                          <span
+                            className={`w-2 h-2 rounded-full ${priority.color} shrink-0`}
+                          />
                         )}
                         {priority.label}
                       </button>
@@ -927,7 +1007,9 @@ const Task = () => {
 
                 {/* Client */}
                 <div className="space-y-2.5">
-                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Client</label>
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                    Client
+                  </label>
                   <div className="flex flex-col gap-1.5">
                     <button
                       onClick={() => setClientFilter("All")}
@@ -952,15 +1034,21 @@ const Task = () => {
                               : "text-slate-600 dark:text-slate-400 hover:border-blue-400 dark:hover:border-[#3b82f6]/40"
                           }`}
                           style={{
-                            backgroundColor: isSelected ? c.color : "transparent",
-                            borderColor: isSelected ? c.color : "rgba(148, 163, 184, 0.1)"
+                            backgroundColor: isSelected
+                              ? c.color
+                              : "transparent",
+                            borderColor: isSelected
+                              ? c.color
+                              : "rgba(148, 163, 184, 0.1)",
                           }}
                         >
-                          <span 
+                          <span
                             className="w-5 h-5 rounded-lg flex items-center justify-center text-[10px] font-extrabold shrink-0"
                             style={{
-                              backgroundColor: isSelected ? "rgba(255, 255, 255, 0.2)" : `${c.color}15`,
-                              color: isSelected ? "#ffffff" : c.color
+                              backgroundColor: isSelected
+                                ? "rgba(255, 255, 255, 0.2)"
+                                : `${c.color}15`,
+                              color: isSelected ? "#ffffff" : c.color,
                             }}
                           >
                             <ClientIcon size={10} />
@@ -977,7 +1065,9 @@ const Task = () => {
 
                 {/* Project */}
                 <div className="space-y-2.5">
-                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">Project</label>
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                    Project
+                  </label>
                   <div className="flex flex-col gap-1.5">
                     <button
                       onClick={() => setProjectFilter("All")}
@@ -1043,151 +1133,163 @@ const Task = () => {
         </div>
       ) : viewType === "kanban" ? (
         <div className="flex gap-6 overflow-x-auto pb-8 pt-2 scrollbar-thin px-2">
-          {["Pending", "In Progress", "IN-REVIEW", "On Hold", "Completed", "Rejected"].map(
-            (colStatus) => {
-              const colTasks = filteredTasks.filter((t) => {
-                if (colStatus === "IN-REVIEW") {
-                  return t.status === "IN-REVIEW" || t.status === "In Review" || t.status === "IN-Review";
-                }
-                return t.status === colStatus;
-              });
-              const style = getStatusStyle(colStatus);
+          {[
+            "Pending",
+            "In Progress",
+            "IN-REVIEW",
+            "On Hold",
+            "Completed",
+            "Rejected",
+          ].map((colStatus) => {
+            const colTasks = filteredTasks.filter((t) => {
+              if (colStatus === "IN-REVIEW") {
+                return (
+                  t.status === "IN-REVIEW" ||
+                  t.status === "In Review" ||
+                  t.status === "IN-Review"
+                );
+              }
+              return t.status === colStatus;
+            });
+            const style = getStatusStyle(colStatus);
 
-              return (
-                <div
-                  key={colStatus}
-                  className={`flex-shrink-0 w-[300px] sm:w-[340px] flex flex-col rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/80 p-4 transition-colors duration-300 ${draggedTaskId ? "border-dashed border-blue-300 dark:border-blue-500/50 bg-blue-50/30 dark:bg-blue-900/10" : ""}`}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={(e) => handleDrop(e, colStatus)}
-                >
-                  <div className="mb-5 flex items-center justify-between">
-                    <h3 className="text-sm font-black tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2.5">
-                      <span
-                        className={`w-2.5 h-2.5 rounded-full shadow-sm ${style.dot}`}
-                      ></span>
-                      {colStatus}
-                    </h3>
-                    <span className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-black px-2.5 py-1 rounded-full shadow-sm">
-                      {colTasks.length}
-                    </span>
-                  </div>
+            return (
+              <div
+                key={colStatus}
+                className={`flex-shrink-0 w-[300px] sm:w-[340px] flex flex-col rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/80 p-4 transition-colors duration-300 ${draggedTaskId ? "border-dashed border-blue-300 dark:border-blue-500/50 bg-blue-50/30 dark:bg-blue-900/10" : ""}`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, colStatus)}
+              >
+                <div className="mb-5 flex items-center justify-between">
+                  <h3 className="text-sm font-black tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2.5">
+                    <span
+                      className={`w-2.5 h-2.5 rounded-full shadow-sm ${style.dot}`}
+                    ></span>
+                    {colStatus}
+                  </h3>
+                  <span className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-[10px] font-black px-2.5 py-1 rounded-full shadow-sm">
+                    {colTasks.length}
+                  </span>
+                </div>
 
-                  <div className="flex flex-col gap-3 h-full min-h-[200px]">
-                    {colTasks.length === 0 ? (
-                      <div className="bg-white/50 dark:bg-[#0f172a]/30 border-2 border-slate-200/50 dark:border-slate-800/40 border-dashed rounded-2xl h-32 flex flex-col items-center justify-center text-center px-4 transition-colors">
-                        <span className="text-[11px] font-bold text-slate-400 tracking-wider">
-                          Drop tasks here
-                        </span>
-                      </div>
-                    ) : (
-                      colTasks.map((task) => {
-                        const isCompleted = task.status === "Completed";
-                        return (
-                          <div
-                            key={task._id}
-                            draggable
-                            onDragStart={(e) => handleDragStart(e, task._id)}
-                            onDragEnd={() => setDraggedTaskId(null)}
-                            className={`bg-white dark:bg-[#0f172a] shadow-sm hover:shadow-lg dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-5 border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-500/60 transition-all cursor-grab active:cursor-grabbing group flex flex-col gap-3 ${
-                              draggedTaskId === task._id
-                                ? "opacity-50 scale-95 border-blue-500"
-                                : ""
-                            }`}
-                          >
-                            <div className="flex justify-between items-start flex-wrap gap-1.5">
-                              <div className="flex items-center gap-1.5">
-                                <span
-                                  className={`px-2.5 py-1 rounded-lg text-[9px] font-black tracking-wider uppercase ${getPriorityStyle(task.priority || "Medium")}`}
-                                >
-                                  {task.priority || "Medium"}
-                                </span>
-                                {task.isBlocked && (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200/50 dark:border-rose-500/40 font-extrabold text-[8.5px] whitespace-nowrap tracking-wider uppercase animate-pulse">
-                                    <FiAlertCircle size={9} /> Blocked
-                                  </span>
-                                )}
-                              </div>
-                              {task.dueDate && (
-                                <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200/50 dark:border-rose-500/40 font-extrabold text-[9px] whitespace-nowrap tracking-wider">
-                                  <FiCalendar size={10} />
-                                  {new Date(task.dueDate).toLocaleDateString(
-                                    undefined,
-                                    { month: "short", day: "numeric" },
-                                  )}
+                <div className="flex flex-col gap-3 h-full min-h-[200px]">
+                  {colTasks.length === 0 ? (
+                    <div className="bg-white/50 dark:bg-[#0f172a]/30 border-2 border-slate-200/50 dark:border-slate-800/40 border-dashed rounded-2xl h-32 flex flex-col items-center justify-center text-center px-4 transition-colors">
+                      <span className="text-[11px] font-bold text-slate-400 tracking-wider">
+                        Drop tasks here
+                      </span>
+                    </div>
+                  ) : (
+                    colTasks.map((task) => {
+                      const isCompleted = task.status === "Completed";
+                      return (
+                        <div
+                          key={task._id}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, task._id)}
+                          onDragEnd={() => setDraggedTaskId(null)}
+                          className={`bg-white dark:bg-[#0f172a] shadow-sm hover:shadow-lg dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-5 border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-500/60 transition-all cursor-grab active:cursor-grabbing group flex flex-col gap-3 ${
+                            draggedTaskId === task._id
+                              ? "opacity-50 scale-95 border-blue-500"
+                              : ""
+                          }`}
+                        >
+                          <div className="flex justify-between items-start flex-wrap gap-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={`px-2.5 py-1 rounded-lg text-[9px] font-black tracking-wider uppercase ${getPriorityStyle(task.priority || "Medium")}`}
+                              >
+                                {task.priority || "Medium"}
+                              </span>
+                              {task.isBlocked && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200/50 dark:border-rose-500/40 font-extrabold text-[8.5px] whitespace-nowrap tracking-wider uppercase animate-pulse">
+                                  <FiAlertCircle size={9} /> Blocked
                                 </span>
                               )}
                             </div>
-                            <h4
-                              className={`text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug flex flex-col gap-1.5 ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : ""}`}
-                            >
-                              <span>{task.title}</span>
-                              {task.isBlocked && task.blockerReason && (
-                                <span className="text-[10px] text-rose-600 dark:text-rose-450 italic font-semibold normal-case bg-rose-500/5 dark:bg-rose-500/10 px-2 py-1 rounded-lg border border-rose-100 dark:border-rose-950/40">
-                                  Blocker: {task.blockerReason}
-                                </span>
-                              )}
-                            </h4>
-                            <div className="flex items-center justify-between pt-4 mt-1 border-t border-slate-100 dark:border-slate-800/80 flex-wrap gap-2">
-                              <div className="flex items-center gap-2">
-                                <span className="inline-flex items-center gap-1.5 text-[9px] font-black tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-2.5 py-1 rounded-lg border border-blue-100 dark:border-blue-900/40">
-                                  <FiBriefcase size={10} />
-                                  {(() => {
-                                    const projId =
-                                      task.project?._id || task.project;
-                                    const projectObj = projects.find(
-                                      (p) => p._id === projId,
-                                    );
-                                    return (
-                                      projectObj?.name ||
-                                      task.project?.name ||
-                                      "Internal"
-                                    );
-                                  })()}
-                                </span>
+                            {task.dueDate && (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-rose-50 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300 border border-rose-200/50 dark:border-rose-500/40 font-extrabold text-[9px] whitespace-nowrap tracking-wider">
+                                <FiCalendar size={10} />
+                                {new Date(task.dueDate).toLocaleDateString(
+                                  undefined,
+                                  { month: "short", day: "numeric" },
+                                )}
+                              </span>
+                            )}
+                          </div>
+                          <h4
+                            className={`text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug flex flex-col gap-1.5 ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : ""}`}
+                          >
+                            <span>{task.title}</span>
+                            {task.isBlocked && task.blockerReason && (
+                              <span className="text-[10px] text-rose-600 dark:text-rose-450 italic font-semibold normal-case bg-rose-500/5 dark:bg-rose-500/10 px-2 py-1 rounded-lg border border-rose-100 dark:border-rose-950/40">
+                                Blocker: {task.blockerReason}
+                              </span>
+                            )}
+                          </h4>
+                          <div className="flex items-center justify-between pt-4 mt-1 border-t border-slate-100 dark:border-slate-800/80 flex-wrap gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="inline-flex items-center gap-1.5 text-[9px] font-black tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-2.5 py-1 rounded-lg border border-blue-100 dark:border-blue-900/40">
+                                <FiBriefcase size={10} />
                                 {(() => {
                                   const projId =
                                     task.project?._id || task.project;
                                   const projectObj = projects.find(
                                     (p) => p._id === projId,
                                   );
-                                  const client = projectObj?.client || task.project?.client;
-                                  if (client?.companyName) {
-                                    return <ClientBadge client={client} size="sm" />;
-                                  }
-                                  return null;
+                                  return (
+                                    projectObj?.name ||
+                                    task.project?.name ||
+                                    "Internal"
+                                  );
                                 })()}
-                              </div>
-                              {task.subtasks?.length > 0 && (
-                                <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 flex items-center gap-1 bg-slate-50 dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                                  <FiCheckSquare
-                                    size={11}
-                                    className={
-                                      task.subtasks.filter(
-                                        (s) => s.status === "Completed",
-                                      ).length === task.subtasks.length
-                                        ? "text-emerald-500"
-                                        : ""
-                                    }
-                                  />
-                                  {
+                              </span>
+                              {(() => {
+                                const projId =
+                                  task.project?._id || task.project;
+                                const projectObj = projects.find(
+                                  (p) => p._id === projId,
+                                );
+                                const client =
+                                  projectObj?.client || task.project?.client;
+                                if (client?.companyName) {
+                                  return (
+                                    <ClientBadge client={client} size="sm" />
+                                  );
+                                }
+                                return null;
+                              })()}
+                            </div>
+                            {task.subtasks?.length > 0 && (
+                              <span className="text-[10px] font-extrabold text-slate-500 dark:text-slate-400 flex items-center gap-1 bg-slate-50 dark:bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                                <FiCheckSquare
+                                  size={11}
+                                  className={
                                     task.subtasks.filter(
                                       (s) => s.status === "Completed",
-                                    ).length
+                                    ).length === task.subtasks.length
+                                      ? "text-emerald-500"
+                                      : ""
                                   }
-                                  /{task.subtasks.length}
-                                </span>
-                              )}
-                            </div>
+                                />
+                                {
+                                  task.subtasks.filter(
+                                    (s) => s.status === "Completed",
+                                  ).length
+                                }
+                                /{task.subtasks.length}
+                              </span>
+                            )}
                           </div>
-                        );
-                      })
-                    )}
-                  </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
-              );
-            },
-          )}
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div className="space-y-4">
@@ -1197,10 +1299,10 @@ const Task = () => {
                 <thead>
                   <tr className="sticky top-0 z-20 uppercase text-center bg-slate-50 dark:bg-[#0f172a] text-slate-500 dark:text-slate-400 text-[10px] font-bold tracking-wider border-b border-slate-200/60 dark:border-[#1e293b]/50 shadow-sm">
                     <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-16">
-                      ID 
+                      ID
                     </th>
                     <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-28">
-                     Priority
+                      Priority
                     </th>
                     <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 min-w-[180px] whitespace-nowrap">
                       Task Name
@@ -1212,7 +1314,7 @@ const Task = () => {
                       Content-type
                     </th>
                     <th className="px-5 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-40 min-w-[145px]">
-                      Status 
+                      Status
                     </th>
                     <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-32 whitespace-nowrap">
                       Time tracker
@@ -1229,7 +1331,9 @@ const Task = () => {
                     <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-44">
                       Assigned By
                     </th>
-                    <th className="px-6 py-2 min-w-[200px] w-56">Created Time</th>
+                    <th className="px-6 py-2 min-w-[200px] w-56">
+                      Created Time
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
@@ -1260,13 +1364,10 @@ const Task = () => {
                             }`}
                             onClick={() => setSelectedTaskId(task._id)}
                           >
-
-
-                             {/* ID */}
+                            {/* ID */}
                             <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 font-bold text-[14px] text-slate-500 dark:text-slate-400">
                               {getTaskDisplayId(task)}
                             </td>
-
 
                             {/* Priority Badge */}
                             <td className="px-2 py-2 p-10 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40">
@@ -1277,18 +1378,18 @@ const Task = () => {
                               </span>
                             </td>
 
-                           
-
                             {/* Title & Subtasks Dropdown */}
                             <td className="px-6 py-2 font-bold border-r border-b border-slate-200/60 dark:border-[#1e293b]/40">
                               <div className="flex items-center gap-3">
                                 <span
                                   className={`text-xs ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-white"}`}
                                 >
-                                <span className="flex items-center gap-1 text-[16px] whitespace-nowrap"><BiFile /> {task.title}</span>
+                                  <span className="flex items-center gap-1 text-[16px] whitespace-nowrap">
+                                    <BiFile /> {task.title}
+                                  </span>
                                 </span>
                                 {task.isBlocked && (
-                                  <span 
+                                  <span
                                     className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 dark:bg-rose-950/45 dark:text-rose-400 border border-rose-200 dark:border-rose-800 text-[10px] font-black tracking-wider uppercase animate-pulse shrink-0"
                                     title={task.blockerReason || "Blocked"}
                                   >
@@ -1309,8 +1410,7 @@ const Task = () => {
                                       <FiChevronRight size={14} />
                                     )}
                                     <span>
-                                      Subtasks ({task.subtasks.length}
-                                      )
+                                      Subtasks ({task.subtasks.length})
                                     </span>
                                   </button>
                                 )}
@@ -1325,11 +1425,18 @@ const Task = () => {
                                 const projectObj = projects.find(
                                   (p) => p._id === projId,
                                 );
-                                const client = projectObj?.client || task.project?.client;
+                                const client =
+                                  projectObj?.client || task.project?.client;
                                 if (client) {
-                                  return <ClientBadge client={client} size="lg" />;
+                                  return (
+                                    <ClientBadge client={client} size="lg" />
+                                  );
                                 }
-                                return <span className="text-slate-400 italic text-[10px]">No Client</span>;
+                                return (
+                                  <span className="text-slate-400 italic text-[10px]">
+                                    No Client
+                                  </span>
+                                );
                               })()}
                             </td>
 
@@ -1337,7 +1444,9 @@ const Task = () => {
                             <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 whitespace-nowrap">
                               <span
                                 className={`px-2 py-0.5 rounded-md text-[11px] font-bold tracking-wider uppercase border whitespace-nowrap ${(() => {
-                                  const t = (task.contentType || "").toUpperCase();
+                                  const t = (
+                                    task.contentType || ""
+                                  ).toUpperCase();
                                   switch (t) {
                                     case "VIDEO":
                                     case "WEBSITE":
@@ -1372,10 +1481,7 @@ const Task = () => {
                                 <select
                                   value={task.status}
                                   onChange={(e) =>
-                                    handleStatusChange(
-                                      task._id,
-                                      e.target.value,
-                                    )
+                                    handleStatusChange(task._id, e.target.value)
                                   }
                                   className={`appearance-none pl-2.5 pr-6 py-0.5 text-[9.5px] font-bold rounded-full border-2 cursor-pointer w-full text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-sm hover:shadow ${statusStyle.bg}`}
                                 >
@@ -1439,13 +1545,19 @@ const Task = () => {
                             </td>
 
                             {/* Revision Column */}
-                            <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-28" onClick={(e) => e.stopPropagation()}>
+                            <td
+                              className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-28"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <div className="flex justify-center items-center gap-1.5">
                                 <span className="font-extrabold text-xs text-slate-800 dark:text-yellow-50 text-center">
                                   {task.revisions || 0}
                                 </span>
                                 {(task.revisions || 0) > 3 && (
-                                  <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)] animate-pulse" title="More than 3 revisions" />
+                                  <span
+                                    className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)] animate-pulse"
+                                    title="More than 3 revisions"
+                                  />
                                 )}
                               </div>
                             </td>
@@ -1482,16 +1594,14 @@ const Task = () => {
                               {task.createdBy ? (
                                 <div className="flex items-center gap-2">
                                   <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/35 flex items-center justify-center text-[10px] font-black text-blue-700 dark:text-blue-400 overflow-hidden">
-                                    {task.createdBy.profile
-                                      ?.profileImage?.url ||
-                                    task.createdBy.profileImage
-                                      ?.url ? (
+                                    {task.createdBy.profile?.profileImage
+                                      ?.url ||
+                                    task.createdBy.profileImage?.url ? (
                                       <img
                                         src={
-                                          task.createdBy.profile
-                                            ?.profileImage?.url ||
-                                          task.createdBy.profileImage
-                                            .url
+                                          task.createdBy.profile?.profileImage
+                                            ?.url ||
+                                          task.createdBy.profileImage.url
                                         }
                                         alt={task.createdBy.name}
                                         className="w-full h-full object-cover"
@@ -1525,11 +1635,8 @@ const Task = () => {
                           {isExpanded &&
                             task.subtasks?.length > 0 &&
                             task.subtasks.map((sub, subIdx) => {
-                              const isSubCompleted =
-                                sub.status === "Completed";
-                              const subStatusStyle = getStatusStyle(
-                                sub.status,
-                              );
+                              const isSubCompleted = sub.status === "Completed";
+                              const subStatusStyle = getStatusStyle(sub.status);
                               return (
                                 <tr
                                   key={sub._id || subIdx}
@@ -1565,7 +1672,10 @@ const Task = () => {
                                   </td>
                                   <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30" />
                                   <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30" />
-                                  <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30 w-36" onClick={(e) => e.stopPropagation()}>
+                                  <td
+                                    className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30 w-36"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
                                     <div className="flex flex-col items-start gap-1 w-full">
                                       <div className="relative w-full">
                                         <button
@@ -1585,30 +1695,78 @@ const Task = () => {
                                                 ? "Done"
                                                 : sub.status}
                                           </span>
-                                          <FiChevronDown size={8} className={`transition-transform duration-200 ${openDropdown === sub._id ? "rotate-180" : ""}`} />
+                                          <FiChevronDown
+                                            size={8}
+                                            className={`transition-transform duration-200 ${openDropdown === sub._id ? "rotate-180" : ""}`}
+                                          />
                                         </button>
                                         {openDropdown === sub._id && (
                                           <>
-                                            <div className="fixed inset-0 z-40 cursor-default" onClick={() => setOpenDropdown(null)} />
+                                            <div
+                                              className="fixed inset-0 z-40 cursor-default"
+                                              onClick={() =>
+                                                setOpenDropdown(null)
+                                              }
+                                            />
                                             <div className="absolute left-0 mt-1 w-max min-w-full bg-white dark:bg-[#0f172a] border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-lg p-1 z-50">
                                               {[
-                                                { name: "Pending", label: "Not started", color: "bg-slate-400" },
-                                                { name: "In Progress", label: "In Progress", color: "bg-blue-500" },
-                                                { name: "IN-REVIEW", label: "In Review", color: "bg-sky-500" },
-                                                { name: "Completed", label: "Done", color: "bg-emerald-500" },
-                                                { name: "On Hold", label: "On Hold", color: "bg-amber-500" },
-                                                { name: "Rejected", label: "Rejected", color: "bg-red-500" },
+                                                {
+                                                  name: "Pending",
+                                                  label: "Not started",
+                                                  color: "bg-slate-400",
+                                                },
+                                                {
+                                                  name: "In Progress",
+                                                  label: "In Progress",
+                                                  color: "bg-blue-500",
+                                                },
+                                                {
+                                                  name: "IN-REVIEW",
+                                                  label: "In Review",
+                                                  color: "bg-sky-500",
+                                                },
+                                                {
+                                                  name: "Completed",
+                                                  label: "Done",
+                                                  color: "bg-emerald-500",
+                                                },
+                                                {
+                                                  name: "On Hold",
+                                                  label: "On Hold",
+                                                  color: "bg-amber-500",
+                                                },
+                                                {
+                                                  name: "Rejected",
+                                                  label: "Rejected",
+                                                  color: "bg-red-500",
+                                                },
                                               ].map((opt) => (
                                                 <button
                                                   key={opt.name}
                                                   onClick={() => {
-                                                    const updatedSubtasks = task.subtasks.map((s) => s._id === sub._id ? { ...s, status: opt.name } : s);
-                                                    handleTaskFieldChange(task._id, { subtasks: updatedSubtasks });
+                                                    const updatedSubtasks =
+                                                      task.subtasks.map((s) =>
+                                                        s._id === sub._id
+                                                          ? {
+                                                              ...s,
+                                                              status: opt.name,
+                                                            }
+                                                          : s,
+                                                      );
+                                                    handleTaskFieldChange(
+                                                      task._id,
+                                                      {
+                                                        subtasks:
+                                                          updatedSubtasks,
+                                                      },
+                                                    );
                                                     setOpenDropdown(null);
                                                   }}
                                                   className={`flex items-center gap-1.5 w-full text-left px-2 py-1 rounded-lg text-[9px] font-extrabold hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors ${sub.status === opt.name ? "text-blue-600 dark:text-[#3b82f6]" : "text-slate-700 dark:text-slate-350"}`}
                                                 >
-                                                  <span className={`w-1 h-1 rounded-full ${opt.color}`} />
+                                                  <span
+                                                    className={`w-1 h-1 rounded-full ${opt.color}`}
+                                                  />
                                                   <span>{opt.label}</span>
                                                 </button>
                                               ))}
@@ -1616,22 +1774,34 @@ const Task = () => {
                                           </>
                                         )}
                                       </div>
-                                      <TimeTracker startTime={sub.actualStartTime} endTime={sub.actualEndTime} status={sub.status} />
+                                      <TimeTracker
+                                        startTime={sub.actualStartTime}
+                                        endTime={sub.actualEndTime}
+                                        status={sub.status}
+                                      />
                                     </div>
                                   </td>
                                   <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30" />
                                   <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30">
-                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold ${sub.startDate ? "bg-indigo-50/60 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-100/50 dark:border-indigo-900/30" : "text-slate-400 dark:text-slate-655 border border-dashed border-slate-200 dark:border-[#1e293b]/40"}`}>
-                                      <FiCalendar size={11} />{formatDate(sub.startDate)}
+                                    <span
+                                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold ${sub.startDate ? "bg-indigo-50/60 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-100/50 dark:border-indigo-900/30" : "text-slate-400 dark:text-slate-655 border border-dashed border-slate-200 dark:border-[#1e293b]/40"}`}
+                                    >
+                                      <FiCalendar size={11} />
+                                      {formatDate(sub.startDate)}
                                     </span>
                                   </td>
                                   <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30">
-                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold ${sub.dueDate ? "bg-indigo-50/60 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-100/50 dark:border-indigo-900/30" : "text-slate-400 dark:text-slate-650 border border-dashed border-slate-200 dark:border-[#1e293b]/40"}`}>
-                                      <FiCalendar size={11} />{formatDate(sub.dueDate)}
+                                    <span
+                                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold ${sub.dueDate ? "bg-indigo-50/60 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-100/50 dark:border-indigo-900/30" : "text-slate-400 dark:text-slate-650 border border-dashed border-slate-200 dark:border-[#1e293b]/40"}`}
+                                    >
+                                      <FiCalendar size={11} />
+                                      {formatDate(sub.dueDate)}
                                     </span>
                                   </td>
                                   <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30">
-                                    <span className="text-gray-405 dark:text-slate-600">—</span>
+                                    <span className="text-gray-405 dark:text-slate-600">
+                                      —
+                                    </span>
                                   </td>
                                   <td className="px-6 py-1.5 border-b border-slate-100/60 dark:border-[#1e293b]/30">
                                     <span className="text-slate-400">—</span>
@@ -1762,7 +1932,10 @@ const Task = () => {
                     </div>
 
                     {/* Dropdown status */}
-                    <div onClick={(e) => e.stopPropagation()} className="relative">
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className="relative"
+                    >
                       <div className="relative group min-w-[100px]">
                         <select
                           value={task.status}
@@ -2102,7 +2275,11 @@ const Task = () => {
                       <FiAlertCircle size={14} /> Task Blocker Status
                     </label>
                     <button
-                      onClick={() => handleTaskFieldChange(selectedTask._id, { isBlocked: !selectedTask.isBlocked })}
+                      onClick={() =>
+                        handleTaskFieldChange(selectedTask._id, {
+                          isBlocked: !selectedTask.isBlocked,
+                        })
+                      }
                       className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all border ${
                         selectedTask.isBlocked
                           ? "bg-rose-600 border-rose-600 text-white shadow-md shadow-rose-600/20"
@@ -2114,11 +2291,17 @@ const Task = () => {
                   </div>
                   {selectedTask.isBlocked && (
                     <div className="space-y-1.5">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Blocker Reason *</span>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">
+                        Blocker Reason *
+                      </span>
                       <input
                         type="text"
                         value={selectedTask.blockerReason || ""}
-                        onChange={(e) => handleTaskFieldChange(selectedTask._id, { blockerReason: e.target.value })}
+                        onChange={(e) =>
+                          handleTaskFieldChange(selectedTask._id, {
+                            blockerReason: e.target.value,
+                          })
+                        }
                         placeholder="Why is this task blocked?"
                         className="w-full bg-white dark:bg-slate-950 border border-rose-200 dark:border-rose-950/60 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-350 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-colors"
                       />
