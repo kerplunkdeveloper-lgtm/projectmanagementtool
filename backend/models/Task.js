@@ -96,6 +96,39 @@ const TaskSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    blockerType: {
+      type: String,
+      default: "",
+    },
+    blockerDescription: {
+      type: String,
+      default: "",
+    },
+    blockerExpectedTime: {
+      type: String,
+      default: "",
+    },
+    blockerPriority: {
+      type: String,
+      default: "",
+    },
+    blockerPausedAt: {
+      type: Date,
+    },
+    blockerResumedAt: {
+      type: Date,
+    },
+    blockerHistory: [
+      {
+        blockerType: String,
+        blockerDescription: String,
+        blockerExpectedTime: String,
+        blockerPriority: String,
+        pausedAt: Date,
+        resumedAt: Date,
+        totalPauseMinutes: Number,
+      }
+    ],
     revisions: {
       type: Number,
       default: 0,

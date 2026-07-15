@@ -71,7 +71,7 @@ const TaskTitleInput = ({ task, handleTaskFieldChange, isCompleted }) => {
   );
 };
 
-const TimeTracker = ({ startTime, endTime, status }) => {
+const TimeTracker = ({ startTime, endTime, status, isBlocked, blockerPausedAt, blockerHistory }) => {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -80,18 +80,43 @@ const TimeTracker = ({ startTime, endTime, status }) => {
     const calculateElapsed = () => {
       const start = new Date(startTime).getTime();
       const end = endTime ? new Date(endTime).getTime() : Date.now();
-      return Math.max(0, Math.floor((end - start) / 1000));
+      
+      // Calculate total historical pause duration in ms
+      let totalPauseMs = 0;
+      if (blockerHistory && blockerHistory.length > 0) {
+        blockerHistory.forEach(item => {
+          if (item.pausedAt && item.resumedAt) {
+            const p = new Date(item.pausedAt).getTime();
+            const r = new Date(item.resumedAt).getTime();
+            if (r >= p) {
+              totalPauseMs += (r - p);
+            }
+          }
+        });
+      }
+      
+      // If currently blocked, add current pause duration since blockerPausedAt
+      if (isBlocked && blockerPausedAt) {
+        const pauseStart = new Date(blockerPausedAt).getTime();
+        const currentPause = Date.now() - pauseStart;
+        if (currentPause > 0) {
+          totalPauseMs += currentPause;
+        }
+      }
+
+      const totalElapsedMs = (end - start) - totalPauseMs;
+      return Math.max(0, Math.floor(totalElapsedMs / 1000));
     };
 
     setElapsed(calculateElapsed());
 
-    if (status === "In Progress" && !endTime) {
+    if (status === "In Progress" && !isBlocked && !endTime) {
       const interval = setInterval(() => {
         setElapsed(calculateElapsed());
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [startTime, endTime, status]);
+  }, [startTime, endTime, status, isBlocked, blockerPausedAt, blockerHistory]);
 
   if (!startTime && status !== "In Progress") return null;
   if (!startTime && status === "In Progress")
@@ -107,6 +132,15 @@ const TimeTracker = ({ startTime, endTime, status }) => {
   const seconds = elapsed % 60;
 
   const timeString = `${hours > 0 ? `${hours}h ` : ""}${minutes}m ${seconds}s`;
+
+  if (isBlocked) {
+    return (
+      <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded border text-[9px] font-bold tracking-wider bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20 shadow-sm">
+        <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+        Paused: {timeString}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -218,6 +252,13 @@ const Task = () => {
   // Continuous subtask input state inside the drawer
   const [drawerSubtaskTitle, setDrawerSubtaskTitle] = useState("");
   const subtaskInputRef = useRef(null);
+
+  // Blocker Modal states
+  const [blockerModalTask, setBlockerModalTask] = useState(null);
+  const [blockerType, setBlockerType] = useState("Client Call");
+  const [blockerDescription, setBlockerDescription] = useState("");
+  const [blockerExpectedTime, setBlockerExpectedTime] = useState("15 mins");
+  const [blockerPriority, setBlockerPriority] = useState("Normal");
 
   // Comments and Attachments
   const [newComment, setNewComment] = useState("");
@@ -446,6 +487,68 @@ const Task = () => {
     updateTaskTrigger({ id: taskId, taskData: sanitizedFields });
   };
 
+  // Blocker handlers
+  const handleOpenBlockerModal = (task) => {
+    setBlockerModalTask(task);
+    setBlockerType("Client Call");
+    setBlockerDescription("");
+    setBlockerExpectedTime("15 mins");
+    setBlockerPriority("Normal");
+  };
+
+  const handleSubmitBlocker = () => {
+    if (!blockerModalTask) return;
+    if (!blockerDescription.trim()) {
+      toast.error("Please enter a blocker description");
+      return;
+    }
+
+    const fields = {
+      isBlocked: true,
+      blockerType,
+      blockerDescription: blockerDescription.trim(),
+      blockerExpectedTime,
+      blockerPriority,
+      blockerPausedAt: new Date().toISOString(),
+    };
+
+    handleTaskFieldChange(blockerModalTask._id, fields);
+    setSelectedTaskId(blockerModalTask._id);
+    setBlockerModalTask(null);
+    toast.success("Task paused - Blocker added");
+  };
+
+  const handleResumeTask = (task) => {
+    const pausedAt = task.blockerPausedAt || new Date().toISOString();
+    const resumedAt = new Date().toISOString();
+    const totalPauseMinutes = Math.max(
+      1,
+      Math.round((new Date(resumedAt).getTime() - new Date(pausedAt).getTime()) / 60000)
+    );
+
+    const newHistoryItem = {
+      blockerType: task.blockerType || "Unknown",
+      blockerDescription: task.blockerDescription || task.blockerReason || "No details",
+      blockerExpectedTime: task.blockerExpectedTime || "Unknown",
+      blockerPriority: task.blockerPriority || "Normal",
+      pausedAt: pausedAt,
+      resumedAt: resumedAt,
+      totalPauseMinutes: totalPauseMinutes,
+    };
+
+    const updatedHistory = [...(task.blockerHistory || []), newHistoryItem];
+
+    const fields = {
+      isBlocked: false,
+      blockerResumedAt: resumedAt,
+      blockerHistory: updatedHistory,
+      status: "In Progress", // resume to In Progress
+    };
+
+    handleTaskFieldChange(task._id, fields);
+    toast.success("Task resumed successfully!");
+  };
+
   // Add Comment Handler
   const handleAddComment = () => {
     if (!newComment.trim() || !selectedTask) return;
@@ -642,7 +745,14 @@ const Task = () => {
     setExpandedTasks((prev) => ({ ...prev, [taskId]: !prev[taskId] }));
   };
 
-  const getStatusStyle = (status) => {
+  const getStatusStyle = (status, isBlocked) => {
+    if (isBlocked) {
+      return {
+        bg: "!bg-orange-50/90 !text-orange-700 !border-orange-200 dark:!bg-orange-950/40 dark:!text-orange-400 dark:!border-orange-900/40",
+        dot: "bg-orange-500",
+        icon: FiAlertCircle,
+      };
+    }
     switch (status) {
       case "Completed":
         return {
@@ -1316,6 +1426,9 @@ const Task = () => {
                     <th className="px-5 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-40 min-w-[145px]">
                       Status
                     </th>
+                    <th className="px-5 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-44 min-w-[170px]">
+                      Blocker
+                    </th>
                     <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-32 whitespace-nowrap">
                       Time tracker
                     </th>
@@ -1340,7 +1453,7 @@ const Task = () => {
                   {sortedTasks.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={11}
+                        colSpan={13}
                         className="px-6 py-8 text-center text-slate-450 dark:text-slate-500 font-bold bg-slate-50/5 dark:bg-slate-900/5 text-xs"
                       >
                         No tasks found.
@@ -1349,7 +1462,7 @@ const Task = () => {
                   ) : (
                     sortedTasks.map((task) => {
                       const isCompleted = task.status === "Completed";
-                      const statusStyle = getStatusStyle(task.status);
+                      const statusStyle = getStatusStyle(task.status, task.isBlocked);
                       const isExpanded = !!expandedTasks[task._id];
 
                       return (
@@ -1477,70 +1590,154 @@ const Task = () => {
                               className="px-1 py-1 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-40 min-w-[145px]"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <div className="relative w-full group">
-                                <select
-                                  value={task.status}
-                                  onChange={(e) =>
-                                    handleStatusChange(task._id, e.target.value)
-                                  }
-                                  className={`appearance-none pl-2.5 pr-6 py-0.5 text-[9.5px] font-bold rounded-full border-2 cursor-pointer w-full text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-sm hover:shadow ${statusStyle.bg}`}
-                                >
-                                  <option
-                                    value="Pending"
-                                    className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
-                                  >
-                                    Pending
-                                  </option>
-                                  <option
-                                    value="In Progress"
-                                    className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
-                                  >
-                                    In Progress
-                                  </option>
-                                  <option
-                                    value="IN-REVIEW"
-                                    className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
-                                  >
-                                    In Review
-                                  </option>
-                                  {task.status === "Completed" && (
-                                    <option
-                                      value="Completed"
-                                      className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
-                                    >
-                                      Completed
-                                    </option>
-                                  )}
-                                  <option
-                                    value="On Hold"
-                                    className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
-                                  >
-                                    On Hold
-                                  </option>
-                                  {task.status === "Rejected" && (
-                                    <option
-                                      value="Rejected"
-                                      className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
-                                    >
-                                      Rejected
-                                    </option>
-                                  )}
-                                </select>
-                                <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
-                                  <FiChevronDown size={9} strokeWidth={2.5} />
+                              {task.isBlocked ? (
+                                <div className="px-2.5 py-1 text-[9.5px] font-black rounded-full border border-orange-200 dark:border-orange-500/30 text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center gap-1.5 shadow-sm uppercase tracking-wider">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                                  Paused - Blocked
                                 </div>
-                              </div>
-                            </td>
+                              ) : (
+                                <div className="relative w-full group">
+                                  <select
+                                    value={task.status}
+                                    onChange={(e) =>
+                                      handleStatusChange(task._id, e.target.value)
+                                    }
+                                    className={`appearance-none pl-2.5 pr-6 py-0.5 text-[9.5px] font-bold rounded-full border-2 cursor-pointer w-full text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-sm hover:shadow ${statusStyle.bg}`}
+                                  >
+                                    <option
+                                      value="Pending"
+                                      className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                                    >
+                                      Pending
+                                    </option>
+                                    <option
+                                      value="In Progress"
+                                      className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                                    >
+                                      In Progress
+                                    </option>
+                                    <option
+                                      value="IN-REVIEW"
+                                      className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                                    >
+                                      In Review
+                                    </option>
+                                    {task.status === "Completed" && (
+                                      <option
+                                        value="Completed"
+                                        className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                                      >
+                                        Completed
+                                      </option>
+                                    )}
+                                    <option
+                                      value="On Hold"
+                                      className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                                    >
+                                      On Hold
+                                    </option>
+                                    {task.status === "Rejected" && (
+                                      <option
+                                        value="Rejected"
+                                        className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                                      >
+                                        Rejected
+                                      </option>
+                                    )}
+                                  </select>
+                                  <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
+                                    <FiChevronDown size={9} strokeWidth={2.5} />
+                                  </div>
+                                </div>
+                              )}
+                             </td>
 
-                            {/* Timer Column */}
-                            <td
-                              className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-32 whitespace-nowrap"
-                              onClick={(e) => e.stopPropagation()}
-                            >
+                             {/* Blocker Column */}
+                             <td
+                               className="px-4 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-48 min-w-[190px]"
+                               onClick={(e) => e.stopPropagation()}
+                             >
+                               <div className="flex flex-col gap-1.5 w-full">
+                                 {task.isBlocked ? (
+                                   <div className="space-y-1.5 p-2 bg-rose-500/5 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-950/40 rounded-2xl">
+                                     <div className="flex justify-between items-center gap-1.5">
+                                       <span className="px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/30 text-rose-700 dark:text-rose-400 text-[8.5px] font-black uppercase tracking-wider truncate max-w-[100px]" title={task.blockerType}>
+                                         {task.blockerType}
+                                       </span>
+                                       <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase ${task.blockerPriority === 'Urgent' ? 'bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-transparent'}`}>
+                                         {task.blockerPriority}
+                                       </span>
+                                     </div>
+                                     <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium italic line-clamp-2 leading-tight" title={task.blockerDescription}>
+                                       "{task.blockerDescription}"
+                                     </p>
+                                     <div className="flex justify-between items-center text-[8.5px] font-bold text-slate-450 dark:text-slate-500">
+                                       <span>⏳ Exp: {task.blockerExpectedTime}</span>
+                                       <span>Paused: {formatDate(task.blockerPausedAt)}</span>
+                                     </div>
+                                     <button
+                                       onClick={() => handleResumeTask(task)}
+                                       className="w-full mt-1 flex items-center justify-center gap-1 px-2.5 py-1 rounded-xl text-[9px] font-black tracking-wider uppercase bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-500/10 hover:shadow transition-all cursor-pointer"
+                                     >
+                                       ✅ Resume Work
+                                     </button>
+                                   </div>
+                                 ) : (
+                                   <>
+                                     <button
+                                       onClick={() => handleOpenBlockerModal(task)}
+                                       className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl text-[9.5px] font-black tracking-wider uppercase bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-rose-500 hover:text-rose-500 transition-all w-full text-center cursor-pointer"
+                                     >
+                                       <FiPlus size={10} /> Add Blocker
+                                     </button>
+                                     {task.blockerHistory && task.blockerHistory.length > 0 && (
+                                       <div className="relative group/history mt-1 text-center">
+                                         <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-slate-400 dark:text-slate-500 hover:text-rose-500 cursor-pointer transition-colors">
+                                           ⏱️ Pause History ({task.blockerHistory.length})
+                                         </span>
+                                         {/* Tooltip containing details */}
+                                         <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover/history:block z-50 w-64 bg-white dark:bg-[#070b13] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-3 text-left space-y-2 pointer-events-none transition-all">
+                                           <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800/80 pb-1 flex justify-between">
+                                             <span>Pause Log</span>
+                                             <span>Total Pauses: {task.blockerHistory.length}</span>
+                                           </div>
+                                           <div className="max-h-40 overflow-y-auto space-y-2 scrollbar-thin pr-1">
+                                             {task.blockerHistory.map((hist, idx) => (
+                                               <div key={idx} className="text-[10px] space-y-0.5 border-b border-slate-50 dark:border-slate-900/50 pb-1.5 last:border-0 last:pb-0">
+                                                 <div className="flex justify-between font-black text-slate-700 dark:text-slate-350">
+                                                   <span className="text-rose-600 dark:text-rose-400">{hist.blockerType}</span>
+                                                   <span className="text-slate-500">{hist.totalPauseMinutes} mins</span>
+                                                 </div>
+                                                 {hist.blockerDescription && (
+                                                   <p className="text-slate-500 dark:text-slate-450 italic line-clamp-2">"{hist.blockerDescription}"</p>
+                                                 )}
+                                                 <div className="text-[8px] text-slate-400 dark:text-slate-500 flex justify-between">
+                                                   <span>In: {formatDateTime(hist.pausedAt)}</span>
+                                                   <span>Out: {formatDateTime(hist.resumedAt)}</span>
+                                                 </div>
+                                               </div>
+                                             ))}
+                                           </div>
+                                         </div>
+                                       </div>
+                                     )}
+                                   </>
+                                 )}
+                               </div>
+                             </td>
+
+                             {/* Timer Column */}
+                             <td
+                               className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-32 whitespace-nowrap"
+                               onClick={(e) => e.stopPropagation()}
+                             >
                               <TimeTracker
                                 startTime={task.actualStartTime}
                                 endTime={task.actualEndTime}
                                 status={task.status}
+                                isBlocked={task.isBlocked}
+                                blockerPausedAt={task.blockerPausedAt}
+                                blockerHistory={task.blockerHistory}
                               />
                             </td>
 
@@ -1778,9 +1975,13 @@ const Task = () => {
                                         startTime={sub.actualStartTime}
                                         endTime={sub.actualEndTime}
                                         status={sub.status}
+                                        isBlocked={false}
+                                        blockerPausedAt={null}
+                                        blockerHistory={[]}
                                       />
                                     </div>
                                   </td>
+                                  <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30" />
                                   <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30" />
                                   <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30">
                                     <span
@@ -2064,7 +2265,7 @@ const Task = () => {
 
       {/* OFF-CANVAS PREVIEW DRAWER */}
       <AnimatePresence>
-        {false && (
+        {selectedTask && (
           <div className="fixed inset-0 z-50 flex justify-end">
             {/* Backdrop */}
             <motion.div
@@ -2269,42 +2470,106 @@ const Task = () => {
                 </div>
 
                 {/* Blocker Settings */}
-                <div className="p-4 bg-rose-500/5 dark:bg-rose-500/10 border border-rose-200/50 dark:border-rose-950/40 rounded-3xl space-y-3">
+                <div className="p-4 bg-rose-500/5 dark:bg-rose-500/10 border border-rose-200/50 dark:border-rose-950/40 rounded-3xl space-y-4">
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black text-rose-600 dark:text-rose-400 tracking-wider flex items-center gap-1.5 uppercase">
-                      <FiAlertCircle size={14} /> Task Blocker Status
+                    <label className="text-[10px] font-black text-rose-600 dark:text-rose-455 tracking-wider flex items-center gap-1.5 uppercase">
+                      <FiAlertCircle size={14} /> Blocker & Pause Control
                     </label>
-                    <button
-                      onClick={() =>
-                        handleTaskFieldChange(selectedTask._id, {
-                          isBlocked: !selectedTask.isBlocked,
-                        })
-                      }
-                      className={`px-3 py-1 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all border ${
-                        selectedTask.isBlocked
-                          ? "bg-rose-600 border-rose-600 text-white shadow-md shadow-rose-600/20"
-                          : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-rose-500 hover:text-rose-500"
-                      }`}
-                    >
-                      {selectedTask.isBlocked ? "Blocked" : "Mark Blocked"}
-                    </button>
-                  </div>
-                  {selectedTask.isBlocked && (
-                    <div className="space-y-1.5">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">
-                        Blocker Reason *
+                    {selectedTask.isBlocked ? (
+                      <span className="px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 text-[9px] font-black uppercase tracking-wider animate-pulse">
+                        Paused - Blocked
                       </span>
-                      <input
-                        type="text"
-                        value={selectedTask.blockerReason || ""}
-                        onChange={(e) =>
-                          handleTaskFieldChange(selectedTask._id, {
-                            blockerReason: e.target.value,
-                          })
-                        }
-                        placeholder="Why is this task blocked?"
-                        className="w-full bg-white dark:bg-slate-950 border border-rose-200 dark:border-rose-950/60 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-350 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-colors"
-                      />
+                    ) : (
+                      <button
+                        onClick={() => handleOpenBlockerModal(selectedTask)}
+                        className="px-3 py-1 bg-slate-100 hover:bg-rose-600 dark:bg-slate-900 dark:hover:bg-rose-600 hover:text-white border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all cursor-pointer"
+                      >
+                        + Add Blocker
+                      </button>
+                    )}
+                  </div>
+
+                  {selectedTask.isBlocked && (
+                    <div className="space-y-3 text-xs">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                            Blocker Type
+                          </span>
+                          <div className="px-2.5 py-1.5 bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 text-rose-700 dark:text-rose-400 font-extrabold rounded-xl">
+                            {selectedTask.blockerType || "Client Call"}
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                            Priority
+                          </span>
+                          <div className={`px-2.5 py-1.5 border font-extrabold rounded-xl ${selectedTask.blockerPriority === 'Urgent' ? 'bg-red-550/10 dark:bg-red-950/30 border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400' : 'bg-slate-55/50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'}`}>
+                            {selectedTask.blockerPriority || "Normal"}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                          Blocker Description
+                        </span>
+                        <div className="p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-805 rounded-xl text-slate-650 dark:text-slate-350 italic font-medium leading-relaxed">
+                          "{selectedTask.blockerDescription || selectedTask.blockerReason || "No description provided"}"
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 text-[10px]">
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-0.5">
+                            Expected Time
+                          </span>
+                          <span className="font-bold text-slate-750 dark:text-slate-300">
+                            ⏳ {selectedTask.blockerExpectedTime || "15 mins"}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block mb-0.5">
+                            Paused Since
+                          </span>
+                          <span className="font-bold text-slate-750 dark:text-slate-300">
+                            📅 {formatDateTime(selectedTask.blockerPausedAt)}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleResumeTask(selectedTask)}
+                        className="w-full mt-2 flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/10 hover:shadow-lg transition-all cursor-pointer"
+                      >
+                        ✅ Resume Work
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Historical Pauses */}
+                  {selectedTask.blockerHistory && selectedTask.blockerHistory.length > 0 && (
+                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-2">
+                      <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                        Pause History ({selectedTask.blockerHistory.length})
+                      </span>
+                      <div className="space-y-2 max-h-40 overflow-y-auto pr-1 scrollbar-thin">
+                        {selectedTask.blockerHistory.map((hist, idx) => (
+                          <div key={idx} className="p-2.5 bg-slate-50/50 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-800/50 rounded-xl space-y-1">
+                            <div className="flex justify-between items-center text-[10px] font-black">
+                              <span className="text-rose-600 dark:text-rose-455 uppercase">{hist.blockerType}</span>
+                              <span className="text-slate-500 dark:text-slate-400">{hist.totalPauseMinutes} mins</span>
+                            </div>
+                            {hist.blockerDescription && (
+                              <p className="text-[10px] text-slate-500 dark:text-slate-455 italic">"{hist.blockerDescription}"</p>
+                            )}
+                            <div className="text-[8px] text-slate-400 dark:text-slate-500 flex justify-between">
+                              <span>In: {formatDateTime(hist.pausedAt)}</span>
+                              <span>Out: {formatDateTime(hist.resumedAt)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -2636,6 +2901,146 @@ const Task = () => {
                     )}
                   </div>
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ADD BLOCKER MODAL */}
+      <AnimatePresence>
+        {blockerModalTask && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setBlockerModalTask(null)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            />
+
+            {/* Modal Body */}
+            <motion.div
+              initial={{ scale: 0.95, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.95, y: 20, opacity: 0 }}
+              className="relative w-full max-w-md bg-white dark:bg-[#0f172a] rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xl p-6 z-10 space-y-5"
+            >
+              {/* Header */}
+              <div className="flex justify-between items-center pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/40 flex items-center justify-center text-rose-600 dark:text-rose-400">
+                    <FiAlertCircle size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-850 dark:text-slate-100 uppercase tracking-wider">
+                      Add Task Blocker
+                    </h3>
+                    <p className="text-[10px] text-slate-450 font-bold dark:text-slate-400 mt-0.5 truncate max-w-[250px]">
+                      {blockerModalTask.title}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setBlockerModalTask(null)}
+                  className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <FiX size={16} />
+                </button>
+              </div>
+
+              {/* Blocker Type Dropdown */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  Blocker Type *
+                </label>
+                <select
+                  value={blockerType}
+                  onChange={(e) => setBlockerType(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-750 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-colors cursor-pointer"
+                >
+                  <option value="Client Call">Client Call</option>
+                  <option value="Urgent New Task">Urgent New Task</option>
+                  <option value="Client Revision">Client Revision</option>
+                  <option value="Internal Meeting">Internal Meeting</option>
+                  <option value="Waiting for Content">Waiting for Content</option>
+                  <option value="Waiting for Approval">Waiting for Approval</option>
+                  <option value="Technical Issue">Technical Issue</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              {/* Blocker Description */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  Blocker Description *
+                </label>
+                <textarea
+                  value={blockerDescription}
+                  onChange={(e) => setBlockerDescription(e.target.value)}
+                  placeholder="e.g. Blackthunder client requested urgent offer poster change. Existing poster work paused."
+                  rows={3}
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-750 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-rose-550 transition-colors placeholder:text-slate-450"
+                />
+              </div>
+
+              {/* Expected Time Dropdown */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  Expected Time *
+                </label>
+                <select
+                  value={blockerExpectedTime}
+                  onChange={(e) => setBlockerExpectedTime(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-750 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-colors cursor-pointer"
+                >
+                  <option value="15 mins">15 mins</option>
+                  <option value="30 mins">30 mins</option>
+                  <option value="1 hour">1 hour</option>
+                  <option value="More than 1 hour">More than 1 hour</option>
+                </select>
+              </div>
+
+              {/* Priority Select */}
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  Priority *
+                </label>
+                <div className="flex gap-4">
+                  {["Normal", "Urgent"].map((p) => (
+                    <label
+                      key={p}
+                      className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 dark:text-slate-300"
+                    >
+                      <input
+                        type="radio"
+                        name="blockerPriority"
+                        value={p}
+                        checked={blockerPriority === p}
+                        onChange={() => setBlockerPriority(p)}
+                        className="text-rose-600 focus:ring-rose-500 border-slate-300 dark:border-slate-700 dark:bg-slate-900"
+                      />
+                      <span>{p}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setBlockerModalTask(null)}
+                  className="flex-1 px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitBlocker}
+                  className="flex-1 px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-rose-600/10 hover:shadow-lg transition-all"
+                >
+                  Add Blocker
+                </button>
               </div>
             </motion.div>
           </div>
