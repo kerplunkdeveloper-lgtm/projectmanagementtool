@@ -68,14 +68,37 @@ const GraphicDesignerDashboard = () => {
 
   // 1. Filter Graphic Designers
   const designers = useMemo(() => {
-    return (
+    const baseDesigners =
       users?.filter(
         (u) =>
           u.department?.toLowerCase().includes("graphic") ||
           u.department?.toLowerCase().includes("design"),
-      ) || []
-    );
-  }, [users]);
+      ) || [];
+
+    const isSocialMediaManager = user?.department?.toLowerCase() === "social media manager";
+    if (isSocialMediaManager) {
+      const currentUserId = user?._id || user?.id;
+      const assignedDesignerIds = new Set();
+      
+      allTasks.forEach((task) => {
+        const creatorId =
+          task.createdBy && typeof task.createdBy === "object"
+            ? task.createdBy._id
+            : task.createdBy;
+        if (creatorId === currentUserId && task.assignedTo) {
+          const assigneeId =
+            typeof task.assignedTo === "object"
+              ? task.assignedTo._id
+              : task.assignedTo;
+          assignedDesignerIds.add(assigneeId);
+        }
+      });
+
+      return baseDesigners.filter((d) => assignedDesignerIds.has(d._id));
+    }
+
+    return baseDesigners;
+  }, [users, allTasks, user]);
 
   const designerIds = useMemo(() => designers.map((d) => d._id), [designers]);
 
@@ -450,7 +473,10 @@ const GraphicDesignerDashboard = () => {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 lg:gap-4 relative z-10">
         {[
           {
-            label: "Designers",
+            label:
+              user?.role === "admin" || user?.role === "operationmanager"
+                ? "Total Designers"
+                : "Assigned Designer",
             value: metrics.designersWorking,
             icon: FiUsers,
             glow: "hover:shadow-[0_4px_20px_rgba(59,130,246,0.15)]",
