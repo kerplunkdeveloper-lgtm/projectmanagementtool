@@ -154,10 +154,7 @@ const AppRoutes = () => {
           element={<ChatPage />}
         />
 
-        <Route
-          path="workload"
-          element={<Workload />}
-        />
+
         
       
         
@@ -236,10 +233,7 @@ const AppRoutes = () => {
           element={<ChatPage />}
         />
 
-        <Route
-          path="workload"
-          element={<Workload />}
-        />
+
 
 
 

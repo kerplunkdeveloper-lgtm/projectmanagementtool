@@ -11,10 +11,11 @@ exports.createEodReport = async (req, res) => {
       user: req.user._id,
     });
 
-    const populatedReport = await EodReport.findById(report._id).populate(
-      "user",
-      "name email role profile"
-    );
+    const populatedReport = await EodReport.findById(report._id).populate({
+      path: "user",
+      select: "name email role profile department",
+      populate: { path: "profile", select: "profileImage" }
+    });
 
     // Notify admins and operation managers
     try {
@@ -73,7 +74,11 @@ exports.getEodReports = async (req, res) => {
 
     // Admins and Operation Managers can see all reports
     const reports = await EodReport.find(query)
-      .populate("user", "name email role profile")
+      .populate({
+        path: "user",
+        select: "name email role profile department",
+        populate: { path: "profile", select: "profileImage" }
+      })
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -95,7 +100,11 @@ exports.getEodReports = async (req, res) => {
 exports.getEodReport = async (req, res) => {
   try {
     const report = await EodReport.findById(req.params.id)
-      .populate("user", "name email role profile");
+      .populate({
+        path: "user",
+        select: "name email role profile department",
+        populate: { path: "profile", select: "profileImage" }
+      });
 
     if (!report) {
       return res.status(404).json({

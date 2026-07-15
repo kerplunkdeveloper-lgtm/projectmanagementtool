@@ -58,7 +58,11 @@ exports.createDesignerEodReport = async (req, res) => {
     }
 
     const populatedReport = await DesignerEodReport.findById(report._id)
-      .populate("user", "name email role profile department")
+      .populate({
+        path: "user",
+        select: "name email role profile department",
+        populate: { path: "profile", select: "profileImage" }
+      })
       .populate("tasks.reviewedBy", "name email role profile department");
 
     // Notify admins, operation managers, and social media managers only if submitted (not draft)
@@ -137,7 +141,11 @@ exports.getDesignerEodReports = async (req, res) => {
 
     // Admins and Operation Managers can see all reports
     const reports = await DesignerEodReport.find(query)
-      .populate("user", "name email role profile department")
+      .populate({
+        path: "user",
+        select: "name email role profile department",
+        populate: { path: "profile", select: "profileImage" }
+      })
       .populate("tasks.reviewedBy", "name email role profile department")
       .sort({ date: -1, createdAt: -1 });
 
@@ -160,7 +168,11 @@ exports.getDesignerEodReports = async (req, res) => {
 exports.getDesignerEodReport = async (req, res) => {
   try {
     const report = await DesignerEodReport.findById(req.params.id)
-      .populate("user", "name email role profile department")
+      .populate({
+        path: "user",
+        select: "name email role profile department",
+        populate: { path: "profile", select: "profileImage" }
+      })
       .populate("tasks.reviewedBy", "name email role profile department");
 
     if (!report) {
@@ -216,8 +228,12 @@ exports.updateDesignerEodReport = async (req, res) => {
       new: true,
       runValidators: true,
     })
-      .populate("user", "name email profile department")
-      .populate("tasks.reviewedBy", "name email profile department");
+      .populate({
+        path: "user",
+        select: "name email role profile department",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate("tasks.reviewedBy", "name email role profile department");
 
     // Sync task status and revisions back to Task collection in the database
     if (req.body.tasks && req.body.tasks.length > 0) {

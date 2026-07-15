@@ -2,77 +2,241 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getEodReports } from "../../features/eodReports/eodReportSlice";
 import { getDesignerEodReports } from "../../features/eodReports/designerEodReportSlice";
-import { FiImage, FiFile, FiSearch, FiCalendar, FiFilter, FiChevronLeft, FiChevronRight, FiChevronDown, FiX, FiEye } from "react-icons/fi";
+import {
+  FiImage,
+  FiFile,
+  FiSearch,
+  FiCalendar,
+  FiFilter,
+  FiChevronLeft,
+  FiChevronRight,
+  FiX,
+  FiEye,
+  FiInfo,
+  FiChevronDown,
+} from "react-icons/fi";
+
+const getContentTypeStyle = (contentType) => {
+  if (!contentType) return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+  const type = contentType.toLowerCase().trim();
+  if (type.includes("reel")) {
+    return "bg-pink-50 text-pink-650 border border-pink-200/50 dark:bg-pink-500/10 dark:text-pink-400 dark:border-pink-500/20";
+  }
+  if (type.includes("static") || type.includes("single")) {
+    return "bg-sky-50 text-sky-650 border border-sky-200/50 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20";
+  }
+  if (type.includes("video")) {
+    return "bg-violet-50 text-violet-650 border border-violet-200/50 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/20";
+  }
+  if (type.includes("carousel") || type.includes("slider")) {
+    return "bg-amber-50 text-amber-650 border border-amber-200/50 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20";
+  }
+  if (type.includes("story")) {
+    return "bg-emerald-50 text-emerald-650 border border-emerald-200/50 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20";
+  }
+  if (type.includes("logo") || type.includes("brand")) {
+    return "bg-indigo-50 text-indigo-650 border border-indigo-200/50 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20";
+  }
+  return "bg-slate-50 text-slate-655 border border-slate-200/50 dark:bg-slate-500/10 dark:text-slate-450 dark:border-slate-500/20";
+};
+
+const calculateTotalLoggedTime = (report) => {
+  if (!report.tasks || !Array.isArray(report.tasks)) {
+    return report.timeSpentToday || "-";
+  }
+  
+  let totalMinutes = 0;
+  report.tasks.forEach((t) => {
+    if (!t.loggedTime) return;
+    const timeStr = t.loggedTime.toLowerCase().trim();
+    let hours = 0;
+    let minutes = 0;
+    
+    if (/^\d+(\.\d+)?$/.test(timeStr)) {
+      hours = parseFloat(timeStr);
+    } else {
+      const hMatch = timeStr.match(/(\d+(\.\d+)?)\s*h/);
+      if (hMatch) {
+        hours = parseFloat(hMatch[1]);
+      } else {
+        const hourWordMatch = timeStr.match(/(\d+(\.\d+)?)\s*hour/);
+        if (hourWordMatch) hours = parseFloat(hourWordMatch[1]);
+      }
+      
+      const mMatch = timeStr.match(/(\d+)\s*m/);
+      if (mMatch) {
+        minutes = parseInt(mMatch[1], 10);
+      } else {
+        const minWordMatch = timeStr.match(/(\d+)\s*min/);
+        if (minWordMatch) minutes = parseInt(minWordMatch[1], 10);
+      }
+    }
+    
+    totalMinutes += (hours * 60) + minutes;
+  });
+  
+  if (totalMinutes === 0) {
+    return report.timeSpentToday || "-";
+  }
+  
+  const h = Math.floor(totalMinutes / 60);
+  const m = Math.round(totalMinutes % 60);
+  if (h > 0 && m > 0) return `${h}h ${m}m`;
+  if (h > 0) return `${h}h`;
+  return `${m}m`;
+};
 
 const AdminEodReports = () => {
   const dispatch = useDispatch();
-  const [activeTab, setActiveTab] = useState("general"); // "general" or "designer"
 
   const { eodReports, loading: generalLoading } = useSelector((state) => state.eodReports);
   const { designerEodReports, loading: designerLoading } = useSelector((state) => state.designerEodReports);
 
-  const reportsList = activeTab === "designer" ? designerEodReports : eodReports;
-  const loading = activeTab === "designer" ? designerLoading : generalLoading;
+  const [activeTab, setActiveTab] = useState("Graphic Designer");
 
-  // Filter & Pagination State
+  // Filters State
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
-  const [dateFilter, setDateFilter] = useState(""); // YYYY-MM-DD
+  const [dateRange, setDateRange] = useState("All");
+  const [customDate, setCustomDate] = useState("");
+  const [showDateDropdown, setShowDateDropdown] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [openViewModal, setOpenViewModal] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
   const itemsPerPage = 10;
 
+  const dateRangeOptions = [
+    { value: "All", label: "All Dates" },
+    { value: "Today", label: "Today" },
+    { value: "Yesterday", label: "Yesterday" },
+    { value: "Week", label: "This Week" },
+    { value: "Month", label: "This Month" },
+    { value: "Custom", label: "Custom Date" },
+  ];
+
+  const dateRangeLabelMap = {
+    All: "All Dates",
+    Today: "Today",
+    Yesterday: "Yesterday",
+    Week: "This Week",
+    Month: "This Month",
+    Custom: "Custom Date",
+  };
+
   useEffect(() => {
-    if (activeTab === "designer") {
-      dispatch(getDesignerEodReports());
-    } else {
-      dispatch(getEodReports());
-    }
-  }, [dispatch, activeTab]);
+    const handleOutsideClick = (event) => {
+      if (!event.target.closest("#date-filter-dropdown-container")) {
+        setShowDateDropdown(false);
+      }
+    };
+    document.addEventListener("click", handleOutsideClick);
+    return () => document.removeEventListener("click", handleOutsideClick);
+  }, []);
 
-  const [imagePreview, setImagePreview] = useState(null);
+  useEffect(() => {
+    dispatch(getEodReports());
+    dispatch(getDesignerEodReports());
+  }, [dispatch]);
 
-  // Filter Logic
+  // Group reports by User Department
+  const groupedDepartments = useMemo(() => {
+    const groups = {};
+
+    // Initialize Graphic Designer tab with designer-specific reports
+    groups["Graphic Designer"] = designerEodReports || [];
+
+    // Group general reports under user's department
+    (eodReports || []).forEach((report) => {
+      const dept = report.user?.department || "General";
+      if (!groups[dept]) {
+        groups[dept] = [];
+      }
+      groups[dept].push(report);
+    });
+
+    return groups;
+  }, [eodReports, designerEodReports]);
+
+  // Generate department list (Graphic Designer is always first)
+  const departmentsList = useMemo(() => {
+    const depts = Object.keys(groupedDepartments)
+      .filter((d) => d !== "Graphic Designer")
+      .sort();
+    return ["Graphic Designer", ...depts];
+  }, [groupedDepartments]);
+
+  // Filter reports of active department
   const filteredReports = useMemo(() => {
-    return (reportsList || []).filter((report) => {
+    const reports = groupedDepartments[activeTab] || [];
+    return reports.filter((report) => {
       const searchLower = searchQuery.toLowerCase();
       let client = report.clientName || "";
       let task = report.projectsWorkedOn || "";
-      
-      if (activeTab === "designer" && report.tasks) {
-        client = report.tasks.map(t => t.client).filter(Boolean).join(" ");
-        task = report.tasks.map(t => `${t.title} ${t.project}`).filter(Boolean).join(" ");
+
+      if (report.tasks && Array.isArray(report.tasks)) {
+        client = report.tasks
+          .map((t) => t.client)
+          .filter(Boolean)
+          .join(" ");
+        task = report.tasks
+          .map((t) => `${t.title} ${t.project}`)
+          .filter(Boolean)
+          .join(" ");
       }
 
-      const matchesSearch = 
+      const matchesSearch =
         client.toLowerCase().includes(searchLower) ||
         task.toLowerCase().includes(searchLower) ||
-        report.user?.name?.toLowerCase().includes(searchLower);
-      
-      const matchesStatus = statusFilter === "All" || report.overallStatus === statusFilter;
-      
+        (report.user?.name || "").toLowerCase().includes(searchLower);
+
+      const matchesStatus =
+        statusFilter === "All" || report.overallStatus === statusFilter;
+
       let matchesDate = true;
-      if (dateFilter) {
-        const reportDate = new Date(report.date).toISOString().split('T')[0];
-        matchesDate = reportDate === dateFilter;
+      const reportDate = new Date(report.date);
+      const reportDateStr = reportDate.toISOString().split("T")[0];
+
+      const today = new Date();
+      const todayStr = today.toISOString().split("T")[0];
+
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+      if (dateRange === "Today") {
+        matchesDate = reportDateStr === todayStr;
+      } else if (dateRange === "Yesterday") {
+        matchesDate = reportDateStr === yesterdayStr;
+      } else if (dateRange === "Week") {
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+        matchesDate = reportDate >= startOfWeek && reportDate <= today;
+      } else if (dateRange === "Month") {
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        matchesDate = reportDate >= startOfMonth && reportDate <= today;
+      } else if (dateRange === "Custom") {
+        if (customDate) {
+          matchesDate = reportDateStr === customDate;
+        }
       }
 
       return matchesSearch && matchesStatus && matchesDate;
     });
-  }, [reportsList, searchQuery, statusFilter, dateFilter, activeTab]);
+  }, [groupedDepartments, activeTab, searchQuery, statusFilter, dateRange, customDate]);
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
-  const currentReports = filteredReports.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const currentReports = useMemo(() => {
+    return filteredReports.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
+  }, [filteredReports, currentPage, itemsPerPage]);
 
-  // Reset page when filters change or when changing tabs
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, statusFilter, dateFilter, activeTab]);
+  }, [activeTab, searchQuery, statusFilter, dateRange, customDate]);
 
   const getStatusBadgeStyle = (status) => {
     switch (status) {
@@ -100,7 +264,7 @@ const AdminEodReports = () => {
       case "Delayed":
         return "bg-rose-500";
       case "Blocked":
-        return "bg-amber-550";
+        return "bg-amber-500";
       default:
         return "bg-slate-400";
     }
@@ -111,65 +275,149 @@ const AdminEodReports = () => {
     setOpenViewModal(true);
   };
 
-  const totalColumnsCount = activeTab === "designer" ? 13 : 11;
+  const loading = activeTab === "Graphic Designer" ? designerLoading : generalLoading;
+  const totalColumnsCount = activeTab === "Graphic Designer" ? 13 : 12;
 
   return (
-    <div className="min-h-screen py-6  transition-colors duration-300">
+    <div className="min-h-screen py-6 transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
-        {/* HEADER & TAB SWITCHER */}
+        {/* HEADER */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <h1 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight text-left">
-            Team EOD Reports
+            Teammate EOD Reports
           </h1>
+        </div>
 
-          {/* Premium Tab Bar */}
-          <div className="flex bg-slate-100 dark:bg-slate-800/80 p-1 rounded-xl max-w-xs self-start md:self-auto border border-slate-200/50 dark:border-slate-700/50">
-            <button
-              onClick={() => setActiveTab("general")}
-              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                activeTab === "general"
-                  ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-sm"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-              }`}
-            >
-              General Reports
-            </button>
-            <button
-              onClick={() => setActiveTab("designer")}
-              className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                activeTab === "designer"
-                  ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-white shadow-sm"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-              }`}
-            >
-              Designer Reports
-            </button>
+        {/* Dynamic Department Tabs */}
+        <div className="flex border-b theme-border overflow-x-auto scrollbar-none mb-6">
+          {departmentsList.map((dept) => {
+            const count = (groupedDepartments[dept] || []).length;
+            return (
+              <button
+                key={dept}
+                onClick={() => setActiveTab(dept)}
+                className={`px-5 py-3 text-xs font-bold border-b-2 whitespace-nowrap transition-all flex items-center gap-2 cursor-pointer ${
+                  activeTab === dept
+                    ? "border-blue-600 dark:border-blue-500 theme-text-accent font-black"
+                    : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                }`}
+              >
+                <span>{dept}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                    activeTab === dept
+                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                      : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* METRICS CARDS */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="theme-bg-card border theme-border p-4 rounded-2xl flex flex-col justify-between shadow-sm">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">Total Reports</span>
+            <span className="text-2xl font-black theme-text-primary text-left mt-2">{filteredReports.length}</span>
+          </div>
+          <div className="theme-bg-card border theme-border p-4 rounded-2xl flex flex-col justify-between shadow-sm">
+            <span className="text-[10px] font-black uppercase tracking-widest text-left text-emerald-600 dark:text-emerald-400">Completed</span>
+            <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 text-left mt-2">
+              {filteredReports.filter((r) => r.overallStatus === "Completed").length}
+            </span>
+          </div>
+          <div className="theme-bg-card border theme-border p-4 rounded-2xl flex flex-col justify-between shadow-sm">
+            <span className="text-[10px] font-black uppercase tracking-widest text-left text-blue-600 dark:text-blue-400">Active / On Track</span>
+            <span className="text-2xl font-black text-blue-600 dark:text-blue-400 text-left mt-2">
+              {filteredReports.filter((r) => r.overallStatus === "On Track" || r.overallStatus === "In Progress").length}
+            </span>
+          </div>
+          <div className="theme-bg-card border theme-border p-4 rounded-2xl flex flex-col justify-between shadow-sm">
+            <span className="text-[10px] font-black uppercase tracking-widest text-left text-rose-600 dark:text-rose-450">Delayed / Blocked</span>
+            <span className="text-2xl font-black text-rose-600 dark:text-rose-400 text-left mt-2">
+              {filteredReports.filter((r) => r.overallStatus === "Delayed" || r.overallStatus === "Blocked").length}
+            </span>
           </div>
         </div>
 
         {/* FILTER BAR */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 mb-6 flex flex-col lg:flex-row gap-4 justify-between items-center transition-colors border border-slate-100 dark:border-slate-700/40">
-          
           {/* SEARCH */}
           <div className="relative w-full lg:max-w-md">
             <input
               type="text"
-              placeholder="Search by member, client, project, or task..."
+              placeholder="Search by teammate, client, project, or task..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all"
+              className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all"
             />
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-            {/* DATE FILTER */}
-            <div className="relative w-full sm:w-auto">
-              <input
-                type="date"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer [&::-webkit-calendar-picker-indicator]:dark:invert min-w-[160px]"
-              />
+            {/* DATE FILTER (Custom Dropdown matching Reference Image) */}
+            <div id="date-filter-dropdown-container" className="relative w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => setShowDateDropdown(!showDateDropdown)}
+                className="w-full sm:w-auto px-5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full flex items-center justify-between sm:justify-start gap-3 text-xs font-bold text-slate-705 dark:text-slate-205 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all cursor-pointer min-w-[130px] h-[38px]"
+              >
+                <div className="flex items-center gap-2">
+                  <FiFilter className="text-emerald-500 dark:text-emerald-400 font-bold" size={13} />
+                  <span>
+                    {dateRange === "Custom" && customDate
+                      ? new Date(customDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+                      : dateRangeLabelMap[dateRange]}
+                  </span>
+                </div>
+                <FiChevronDown className="text-slate-400 dark:text-slate-500 ml-1" size={12} />
+              </button>
+
+              {showDateDropdown && (
+                <div className="absolute right-0 sm:left-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 py-1.5 z-30 animate-in fade-in slide-in-from-top-2 duration-150">
+                  {dateRangeOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        setDateRange(opt.value);
+                        if (opt.value !== "Custom") {
+                          setShowDateDropdown(false);
+                        }
+                      }}
+                      className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors cursor-pointer ${
+                        dateRange === opt.value
+                          ? "bg-slate-50 dark:bg-slate-700/50 text-blue-650 dark:text-blue-400"
+                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-750"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                  
+                  {dateRange === "Custom" && (
+                    <div className="px-3 py-2 border-t border-slate-100 dark:border-slate-750 mt-1">
+                      <input
+                        type="date"
+                        value={customDate}
+                        onChange={(e) => {
+                          setCustomDate(e.target.value);
+                        }}
+                        className="w-full px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-[11px] font-medium text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer [&::-webkit-calendar-picker-indicator]:dark:invert"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowDateDropdown(false)}
+                        className="w-full mt-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-bold transition-colors cursor-pointer"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* STATUS FILTER */}
@@ -177,7 +425,7 @@ const AdminEodReports = () => {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full pl-4 pr-10 py-2.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-medium text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer appearance-none min-w-[160px] bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em]"
+                className="w-full pl-4 pr-10 py-2 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition-all cursor-pointer appearance-none min-w-[160px] bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em]"
               >
                 <option value="All">All Statuses</option>
                 <option value="On Track">On Track</option>
@@ -185,35 +433,34 @@ const AdminEodReports = () => {
                 <option value="In Progress">In Progress</option>
                 <option value="Delayed">Delayed</option>
                 <option value="Blocked">Blocked</option>
-                <option value="Pending">Pending</option>
               </select>
             </div>
           </div>
         </div>
 
         {/* TABLE SECTION */}
-        <div className="bg-white dark:bg-[#111827] shadow-sm overflow-hidden transition-colors rounded-xl border border-slate-200 dark:border-slate-800">
+        <div className="bg-white dark:bg-[#111827] shadow-sm overflow-hidden transition-colors rounded-xl">
           <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full min-w-[1000px] text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/50 dark:bg-[#0f172a]/50 border-b border-slate-200 dark:border-slate-800">
-                  <th className="px-5 py-3.5 min-w-[200px] text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Date</th>
-                  <th className="px-5 py-3.5 min-w-[200px] text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Team Member</th>
-                  <th className="px-5 py-3.5 min-w-[200px] text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Client Name</th>
-                  <th className="px-5 py-3.5 min-w-[200px] text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Projects Worked On (Task Name)</th>
-                  {activeTab === "designer" && (
+                <tr className="bg-slate-50/50 dark:bg-[#0f172a]/50 ">
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Date</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Team Member</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Client Name</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Task Name</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Task Assigned by</th>
+
+                  {activeTab === "Graphic Designer" && (
                     <>
-                      <th className="px-5 py-3.5 min-w-[200px] text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Number of Designs Completed</th>
-                      <th className="px-5 py-3.5 min-w-[200px] text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Submitted Links</th>
+                      <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Total Designs</th>
                     </>
                   )}
-                  <th className="px-5 py-3.5 min-w-[200px] text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Pending Tasks</th>
-                  <th className="px-5 py-3.5 min-w-[200px] text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Reason for Pending</th>
-                  <th className="px-5 py-3.5 min-w-[200px] text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Time Spent Today</th>
-                  <th className="px-5 py-3.5 min-w-[200px] text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Challenges Faced</th>
-                  <th className="px-5 py-3.5 min-w-[200px] text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Tomorrow Plan</th>
-                  <th className="px-5 py-3.5 min-w-[200px] text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Overall Status</th>
-                  <th className="px-5 py-3.5 min-w-[200px] text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center whitespace-nowrap">Actions</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Pending Tasks</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Reason for Pending</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap min-w-[250px]">Tomorrow Plan</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Total Time Spent</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Overall Status</th>
+                  <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
 
@@ -222,8 +469,8 @@ const AdminEodReports = () => {
                   <tr>
                     <td colSpan={totalColumnsCount} className="text-center py-16">
                       <div className="flex flex-col items-center gap-3">
-                        <div className="w-8 h-8 border-3 border-slate-200 dark:border-slate-700 border-t-blue-500 rounded-full animate-spin"></div>
-                        <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">Fetching reports...</p>
+                        <div className="w-6 h-6 border-2 border-slate-200 dark:border-slate-700 border-t-blue-500 rounded-full animate-spin"></div>
+                        <p className="text-slate-500 dark:text-slate-400 font-medium text-xs">Fetching EOD reports...</p>
                       </div>
                     </td>
                   </tr>
@@ -231,10 +478,10 @@ const AdminEodReports = () => {
                   <tr>
                     <td colSpan={totalColumnsCount} className="text-center py-16">
                       <div className="flex flex-col items-center gap-2">
-                        <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center border border-slate-100 dark:border-slate-800">
-                          <FiFile className="text-slate-400 dark:text-slate-500" size={20} />
+                        <div className="w-10 h-10 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center border border-slate-100 dark:border-slate-800">
+                          <FiFile className="text-slate-400 dark:text-slate-500" size={16} />
                         </div>
-                        <p className="text-slate-600 dark:text-slate-400 font-medium text-sm mt-2">No reports found.</p>
+                        <p className="text-slate-600 dark:text-slate-400 font-medium text-xs mt-2">No reports found.</p>
                       </div>
                     </td>
                   </tr>
@@ -242,114 +489,160 @@ const AdminEodReports = () => {
                   currentReports.map((report) => (
                     <tr key={report._id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors group">
                       {/* DATE */}
-                      <td className="px-5 py-3.5 whitespace-nowrap">
-                        <p className="text-[13px] font-semibold text-slate-700 dark:text-slate-300">
-                          {new Date(report.date).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
+                      <td className="px-5 py-3 whitespace-nowrap">
+                        <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          {new Date(report.date).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "2-digit",
+                            year: "numeric",
+                          })}
                         </p>
                       </td>
 
-                      {/* USER */}
-                      <td className="px-5 py-3.5">
+                      {/* TEAM MEMBER */}
+                      <td className="px-5 py-3">
                         <div className="flex items-center gap-3 min-w-[160px]">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-650 flex items-center justify-center text-white text-xs font-bold shadow-sm shrink-0">
-                            {report.user?.name?.charAt(0) || "U"}
+                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-650 flex items-center justify-center text-white text-[10px] font-bold shadow-sm shrink-0 overflow-hidden">
+                            {report.user?.profile?.profileImage?.url ? (
+                              <img
+                                src={report.user.profile.profileImage.url}
+                                alt={report.user?.name || "User"}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              report.user?.name?.charAt(0) || "U"
+                            )}
                           </div>
                           <div className="min-w-0 flex flex-col">
-                            <p className="text-[13px] font-bold text-slate-800 dark:text-slate-200 truncate">
+                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate text-left">
                               {report.user?.name || "Anonymous"}
                             </p>
-                            <p className="text-[10px] text-slate-450 dark:text-slate-500 uppercase tracking-widest font-semibold truncate mt-0.5">
+                            <p className="text-[9px] text-slate-450 dark:text-slate-500 uppercase tracking-widest font-bold truncate mt-0.5 text-left">
                               {report.user?.department || report.user?.role || "Team"}
                             </p>
                           </div>
                         </div>
                       </td>
 
-                      {/* CLIENT */}
-                      <td className="px-5 py-3.5 max-w-[150px] truncate" title={activeTab === "designer" && report.tasks ? [...new Set(report.tasks.map(t => t.client).filter(Boolean))].join(', ') : report.clientName}>
-                        <span className="text-[13px] font-bold text-slate-850 dark:text-slate-200">
-                          {activeTab === "designer" && report.tasks 
-                            ? [...new Set(report.tasks.map(t => t.client).filter(Boolean))].join(', ') || report.clientName || "-" 
+                      {/* CLIENT NAME */}
+                      <td
+                        className="px-5 py-3 max-w-[150px] truncate text-left"
+                        title={
+                          report.tasks
+                            ? [...new Set(report.tasks.map((t) => t.client).filter(Boolean))].join(", ")
+                            : report.clientName
+                        }
+                      >
+                        <span className="text-xs font-semibold text-slate-855 dark:text-slate-200">
+                          {report.tasks
+                            ? [...new Set(report.tasks.map((t) => t.client).filter(Boolean))].join(", ") || "-"
                             : report.clientName || "-"}
                         </span>
                       </td>
 
-                      {/* PROJECTS WORKED ON (TASK NAME) */}
-                      <td className="px-5 py-3.5 max-w-[200px] truncate" title={activeTab === "designer" && report.tasks ? [...new Set(report.tasks.map(t => t.project).filter(Boolean))].join(', ') : report.projectsWorkedOn}>
-                        <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200">
-                          {activeTab === "designer" && report.tasks 
-                            ? [...new Set(report.tasks.map(t => t.project).filter(Boolean))].join(', ') || report.projectsWorkedOn || "-" 
-                            : report.projectsWorkedOn || "N/A"}
+                      {/* TASK NAME */}
+                      <td className="px-5 py-3 max-w-[280px] text-left">
+                        {report.tasks && Array.isArray(report.tasks) ? (
+                          <div className="flex flex-col gap-1.5">
+                            {report.tasks.map((t, idx) => (
+                              <div key={idx} className="flex items-center gap-1.5 min-w-0">
+                                <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={t.title}>
+                                  {t.title || "-"}
+                                </span>
+                                {t.contentType && (
+                                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider shrink-0 ${getContentTypeStyle(t.contentType)}`}>
+                                    {t.contentType}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                            {report.tasks.length === 0 && <span className="text-xs text-slate-400">—</span>}
+                          </div>
+                        ) : (
+                          <span className="text-xs font-semibold text-slate-805 dark:text-slate-200 block truncate" title={report.projectsWorkedOn}>
+                            {report.projectsWorkedOn || "-"}
+                          </span>
+                        )}
+                      </td>
+
+                      {/* TASK ASSIGNED BY */}
+                      <td className="px-5 py-3 text-left whitespace-nowrap">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          {report.tasks && Array.isArray(report.tasks)
+                            ? [...new Set(report.tasks.map((t) => t.reviewedBy?.name).filter(Boolean))].join(", ") || "-"
+                            : "-"}
                         </span>
                       </td>
 
-                      {/* DESIGNER SPECIFIC FIELDS */}
-                      {activeTab === "designer" && (
+
+
+                      {/* DYNAMIC DESIGNER SPECIFIC FIELDS */}
+                      {activeTab === "Graphic Designer" && (
                         <>
-                          <td className="px-5 py-3.5 max-w-[150px] truncate">
-                            <span className="text-slate-655 dark:text-slate-400 text-[13px] leading-relaxed">
-                              {report.tasks 
-                                ? report.tasks.filter(t => t.statusAtEod === 'Completed').length 
+                          <td className="px-5 py-3 text-left">
+                            <span className="text-slate-655 dark:text-slate-400 text-xs">
+                              {report.tasks
+                                ? report.tasks.filter((t) => t.statusAtEod === "Completed").length
                                 : report.designCount || "-"}
-                            </span>
-                          </td>
-                          <td className="px-5 py-3.5 max-w-[200px] truncate" title={report.tasks ? report.tasks.map(t => t.outputLink).filter(Boolean).join(', ') : report.filesSubmitted}>
-                            <span className="text-slate-600 dark:text-slate-400 text-[13px] leading-relaxed">
-                              {report.tasks 
-                                ? report.tasks.map(t => t.outputLink).filter(Boolean).join(', ') || "-" 
-                                : report.filesSubmitted || "-"}
                             </span>
                           </td>
                         </>
                       )}
 
                       {/* PENDING TASKS */}
-                      <td className="px-5 py-3.5 max-w-[150px] truncate" title={activeTab === "designer" && report.tasks ? report.tasks.filter(t => t.statusAtEod !== 'Completed').map(t => t.title).join(', ') : report.pendingTasks}>
-                        {activeTab === "designer" && report.tasks 
-                          ? report.tasks.filter(t => t.statusAtEod !== 'Completed').map(t => t.title).join(', ') || "None" 
+                      <td
+                        className="px-5 py-3 max-w-[150px] truncate text-left text-xs text-slate-700 dark:text-slate-350"
+                        title={
+                          report.tasks
+                            ? report.tasks.filter((t) => t.statusAtEod !== "Completed").map((t) => t.title).join(", ")
+                            : report.pendingTasks
+                        }
+                      >
+                        {report.tasks
+                          ? report.tasks.filter((t) => t.statusAtEod !== "Completed").map((t) => t.title).join(", ") || "None"
                           : report.pendingTasks || "-"}
                       </td>
 
                       {/* REASON FOR PENDING */}
-                      <td className="px-5 py-3.5 max-w-[150px] truncate" title={activeTab === "designer" && report.tasks ? report.tasks.filter(t => t.reason).map(t => `${t.title}: ${t.reason}`).join(' | ') : report.reasonForPending}>
-                        {activeTab === "designer" && report.tasks 
-                          ? report.tasks.filter(t => t.reason).map(t => `${t.title}: ${t.reason}`).join(' | ') || "None" 
+                      <td
+                        className="px-5 py-3 max-w-[150px] truncate text-left text-xs text-slate-500 dark:text-slate-400"
+                        title={
+                          report.tasks
+                            ? report.tasks.filter((t) => t.reason).map((t) => `${t.title}: ${t.reason}`).join(" | ")
+                            : report.reasonForPending
+                        }
+                      >
+                        {report.tasks
+                          ? report.tasks.filter((t) => t.reason).map((t) => `${t.title}: ${t.reason}`).join(" | ") || "None"
                           : report.reasonForPending || "-"}
                       </td>
 
-                      {/* TIME SPENT */}
-                      <td className="px-5 py-3.5 max-w-[100px] truncate" title={activeTab === "designer" && report.tasks ? report.tasks.map(t => t.loggedTime).filter(Boolean).join(', ') : report.timeSpentToday}>
-                        {activeTab === "designer" && report.tasks 
-                          ? report.tasks.map(t => t.loggedTime).filter(Boolean).join(', ') || "0m" 
-                          : report.timeSpentToday || "-"}
-                      </td>
-
-                      {/* CHALLENGES */}
-                      <td className="px-5 py-3.5 max-w-[150px] truncate">
-                        {report.challengesFaced || "-"}
-                      </td>
-
                       {/* TOMORROW PLAN */}
-                      <td className="px-5 py-3.5 max-w-[150px] truncate">
+                      <td className="px-5 py-3 max-w-[300px] truncate text-left text-xs text-slate-500 dark:text-slate-400" title={report.tomorrowPlan}>
                         {report.tomorrowPlan || "-"}
                       </td>
 
-                      {/* STATUS */}
-                      <td className="px-5 py-3.5 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${getStatusBadgeStyle(report.overallStatus)}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${getStatusDotStyle(report.overallStatus)}`}></span>
+                      {/* TOTAL TIME SPENT */}
+                      <td className="px-5 py-3 text-left whitespace-nowrap text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        {calculateTotalLoggedTime(report)}
+                      </td>
+
+                      {/* OVERALL STATUS */}
+                      <td className="px-5 py-3 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${getStatusBadgeStyle(report.overallStatus)}`}>
+                          <span className={`w-1 h-1 rounded-full mr-1.5 ${getStatusDotStyle(report.overallStatus)}`}></span>
                           {report.overallStatus || "Completed"}
                         </span>
                       </td>
 
                       {/* ACTIONS */}
-                      <td className="px-5 py-3.5 text-center">
+                      <td className="px-5 py-3 text-center">
                         <button
                           onClick={() => handleView(report)}
                           title="View Details"
-                          className="w-8 h-8 rounded-lg bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center transition-all mx-auto"
+                          className="w-7 h-7 rounded-lg bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center transition-all mx-auto cursor-pointer"
                         >
-                          <FiEye size={14} />
+                          <FiEye size={13} />
                         </button>
                       </td>
                     </tr>
@@ -362,19 +655,21 @@ const AdminEodReports = () => {
           {/* PAGINATION */}
           {!loading && filteredReports.length > itemsPerPage && (
             <div className="px-5 py-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-[#111827] flex flex-col sm:flex-row items-center justify-between gap-4">
-              <p className="text-[12px] font-medium text-slate-500 dark:text-slate-400">
-                Showing <span className="font-semibold text-slate-700 dark:text-slate-300">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-semibold text-slate-700 dark:text-slate-300">{Math.min(currentPage * itemsPerPage, filteredReports.length)}</span> of <span className="font-semibold text-slate-700 dark:text-slate-300">{filteredReports.length}</span>
+              <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                Showing <span className="font-semibold text-slate-700 dark:text-slate-300">{(currentPage - 1) * itemsPerPage + 1}</span> to{" "}
+                <span className="font-semibold text-slate-700 dark:text-slate-300">{Math.min(currentPage * itemsPerPage, filteredReports.length)}</span> of{" "}
+                <span className="font-semibold text-slate-700 dark:text-slate-300">{filteredReports.length}</span> entries
               </p>
-              
+
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
-                  className="p-1.5 rounded text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-1 rounded text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 >
-                  <FiChevronLeft size={16} />
+                  <FiChevronLeft size={14} />
                 </button>
-                
+
                 <div className="flex items-center gap-1">
                   {Array.from({ length: totalPages }).map((_, idx) => {
                     const page = idx + 1;
@@ -383,9 +678,9 @@ const AdminEodReports = () => {
                         <button
                           key={page}
                           onClick={() => setCurrentPage(page)}
-                          className={`min-w-[28px] h-7 px-2 rounded text-[12px] font-bold transition-colors ${
-                            currentPage === page 
-                              ? "bg-blue-600 text-white" 
+                          className={`min-w-[24px] h-6 px-1.5 rounded text-[11px] font-bold transition-colors cursor-pointer ${
+                            currentPage === page
+                              ? "bg-blue-650 text-white"
                               : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
                           }`}
                         >
@@ -393,7 +688,7 @@ const AdminEodReports = () => {
                         </button>
                       );
                     } else if (page === currentPage - 2 || page === currentPage + 2) {
-                      return <span key={page} className="px-1 text-[12px] text-slate-400">...</span>;
+                      return <span key={page} className="px-1 text-[11px] text-slate-400">...</span>;
                     }
                     return null;
                   })}
@@ -402,9 +697,9 @@ const AdminEodReports = () => {
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
-                  className="p-1.5 rounded text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-1 rounded text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 >
-                  <FiChevronRight size={16} />
+                  <FiChevronRight size={14} />
                 </button>
               </div>
             </div>
@@ -415,129 +710,153 @@ const AdminEodReports = () => {
         {openViewModal && selectedReport && (
           <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
             <div className="bg-white dark:bg-slate-800 w-full max-w-[640px] rounded-2xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-700 flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
-              
               {/* HEADER */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
                 <div className="text-left">
-                  <h2 className="text-[16px] font-bold text-slate-800 dark:text-slate-100 tracking-tight">
-                    {activeTab === "designer" ? "Designer " : ""}EOD Report Details
+                  <h2 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 tracking-tight">
+                    {selectedReport.tasks ? "Graphic Designer " : ""}EOD Report Details
                   </h2>
-                  <p className="text-[11px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 flex items-center gap-1">
-                    <FiCalendar size={12} />
-                    Submitted by {selectedReport.user?.name || "Member"} on {new Date(selectedReport.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: '2-digit', year: 'numeric' })}
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5 flex items-center gap-1">
+                    <FiCalendar size={11} />
+                    Submitted on{" "}
+                    {new Date(selectedReport.date).toLocaleDateString("en-US", {
+                      weekday: "long",
+                      month: "short",
+                      day: "2-digit",
+                      year: "numeric",
+                    })}
                   </p>
                 </div>
                 <button
                   onClick={() => setOpenViewModal(false)}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                 >
-                  <FiX size={18} />
+                  <FiX size={16} />
                 </button>
               </div>
 
               {/* DETAILS CONTENT */}
-              <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar text-left">
-                
-                {/* User info header */}
+              <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar text-left">
+                {/* User Card */}
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/30 border border-slate-200/50 dark:border-slate-800/60">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-650 flex items-center justify-center text-white text-sm font-bold shadow-sm shrink-0">
-                    {selectedReport.user?.name?.charAt(0) || "U"}
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-650 flex items-center justify-center text-white text-xs font-bold shadow-sm shrink-0 overflow-hidden">
+                            {selectedReport.user?.profile?.profileImage?.url ? (
+                              <img
+                                src={selectedReport.user.profile.profileImage.url}
+                                alt={selectedReport.user?.name || "User"}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              selectedReport.user?.name?.charAt(0) || "U"
+                            )}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-855 dark:text-slate-100">
+                    <p className="text-xs font-extrabold text-slate-855 dark:text-slate-100">
                       {selectedReport.user?.name || "Anonymous Member"}
                     </p>
-                    <p className="text-[11px] text-slate-450 dark:text-slate-500 uppercase tracking-widest font-bold mt-0.5">
-                      {selectedReport.user?.department || selectedReport.user?.role || "Team Member"} • {selectedReport.user?.email || ""}
+                    <p className="text-[10px] text-slate-450 dark:text-slate-500 uppercase tracking-widest font-bold mt-0.5">
+                      {selectedReport.user?.department || "Team Member"} • {selectedReport.user?.email || ""}
                     </p>
                   </div>
-                </div>                {/* DETAILS CONTENT */}
-                {activeTab === "designer" && selectedReport.tasks && selectedReport.tasks.length > 0 ? (
-                  <div className="space-y-5">
-                    {/* Visual Progress / Stats */}
-                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/30 border border-slate-200/50 dark:border-slate-800/60 grid grid-cols-3 gap-4 text-center">
+                </div>
+
+                {selectedReport.tasks && selectedReport.tasks.length > 0 ? (
+                  /* GRAPHIC DESIGNER BREAKDOWN */
+                  <div className="space-y-4">
+                    {/* Visual Stats */}
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/30 border border-slate-200/50 dark:border-slate-800/60 grid grid-cols-3 gap-4 text-center">
                       <div>
-                        <span className="text-[9px] font-bold text-slate-450 uppercase tracking-wider block">Completed</span>
-                        <span className="text-md font-extrabold text-emerald-600 dark:text-emerald-400">
-                          {selectedReport.tasks.filter(t => t.statusAtEod === "Completed").length}
+                        <span className="text-[9px] font-black text-slate-450 uppercase tracking-wider block">Completed</span>
+                        <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-450">
+                          {selectedReport.tasks.filter((t) => t.statusAtEod === "Completed").length}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[9px] font-bold text-slate-450 uppercase tracking-wider block">Pending</span>
-                        <span className="text-md font-extrabold text-amber-600 dark:text-amber-400">
-                          {selectedReport.tasks.filter(t => t.statusAtEod === "Pending").length}
+                        <span className="text-[9px] font-black text-slate-450 uppercase tracking-wider block">Pending</span>
+                        <span className="text-sm font-extrabold text-amber-600 dark:text-amber-450">
+                          {selectedReport.tasks.filter((t) => t.statusAtEod === "Pending" || t.statusAtEod === "In Progress").length}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[9px] font-bold text-slate-450 uppercase tracking-wider block">Rejected</span>
-                        <span className="text-md font-extrabold text-rose-600 dark:text-rose-400">
-                          {selectedReport.tasks.filter(t => t.statusAtEod === "Rejected").length}
+                        <span className="text-[9px] font-black text-slate-450 uppercase tracking-wider block">Rejected</span>
+                        <span className="text-sm font-extrabold text-rose-600 dark:text-rose-450">
+                          {selectedReport.tasks.filter((t) => t.statusAtEod === "Rejected").length}
                         </span>
                       </div>
                     </div>
 
                     {/* Task List */}
-                    <div className="space-y-3">
-                      <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Logged Tasks</span>
-                      <div className="space-y-4">
+                    <div className="space-y-2">
+                      <span className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Logged Tasks</span>
+                      <div className="space-y-3">
                         {selectedReport.tasks.map((task, idx) => (
-                          <div key={idx} className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200/60 dark:border-slate-800 relative overflow-hidden">
-                            <div className={`absolute top-0 left-0 bottom-0 w-1 ${
-                              task.statusAtEod === "Completed"
-                                ? "bg-emerald-500"
-                                : task.statusAtEod === "Rejected"
-                                ? "bg-rose-500"
-                                : "bg-amber-500"
-                            }`} />
+                          <div
+                            key={idx}
+                            className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200/60 dark:border-slate-800 relative overflow-hidden"
+                          >
+                            <div
+                              className={`absolute top-0 left-0 bottom-0 w-1 ${
+                                task.statusAtEod === "Completed"
+                                  ? "bg-emerald-500"
+                                  : task.statusAtEod === "Rejected"
+                                  ? "bg-rose-500"
+                                  : "bg-amber-500"
+                              }`}
+                            />
 
                             <div className="flex justify-between items-start gap-3 pb-2 border-b border-slate-100 dark:border-slate-800">
                               <div>
-                                <h4 className="text-xs font-extrabold text-slate-800 dark:text-slate-100">
-                                  {task.title}
-                                </h4>
-                                <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">
-                                  Proj: {task.project || "Internal"} • Client: {task.client || "None"}
-                                  {task.createdAt && ` • Created: ${new Date(task.createdAt).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })} ${new Date(task.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`}
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                                    {task.title}
+                                  </h4>
+                                  {task.contentType && (
+                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${getContentTypeStyle(task.contentType)}`}>
+                                      {task.contentType}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+                                • Client: {task.client || "None"}
                                 </p>
                               </div>
-                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                              <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
                                 task.statusAtEod === "Completed"
-                                  ? "bg-emerald-55 text-emerald-600 border border-emerald-200/40 dark:bg-emerald-950/40 dark:text-emerald-400"
+                                  ? "bg-emerald-50 text-emerald-600 border border-emerald-200/40"
                                   : task.statusAtEod === "Rejected"
-                                  ? "bg-rose-55 text-rose-650 border border-rose-200/40 dark:bg-rose-955/40 dark:text-rose-400"
-                                  : "bg-amber-55 text-amber-600 border border-amber-200/40 dark:bg-amber-955/40 dark:text-amber-400"
+                                  ? "bg-rose-50 text-rose-600 border border-rose-200/40"
+                                  : "bg-amber-50 text-amber-600 border border-amber-200/40"
                               }`}>
                                 {task.statusAtEod}
                               </span>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-3 text-[11px]">
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2 text-[10px]">
                               <div>
-                                <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block font-bold">Time Logged</span>
-                                <span className="font-bold text-slate-700 dark:text-slate-300">{task.loggedTime || "0m"}</span>
+                                <span className="text-[8px] text-slate-400 uppercase tracking-wider block font-bold">Time Spent</span>
+                                <span className="font-bold text-slate-700 dark:text-slate-350">{task.loggedTime || "0m"}</span>
                               </div>
                               <div>
-                                <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block font-bold">Content Type</span>
-                                <span className="font-bold text-slate-700 dark:text-slate-300">{task.contentType || "IMAGE"}</span>
+                                <span className="text-[8px] text-slate-400 uppercase tracking-wider block font-bold">Content Type</span>
+                                <span className="font-bold text-slate-700 dark:text-slate-350">{task.contentType || "IMAGE"}</span>
                               </div>
                               {task.outputLink && (
                                 <div className="col-span-2">
-                                  <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider block font-bold">Output Link</span>
-                                  <a href={task.outputLink} target="_blank" rel="noopener noreferrer" className="text-indigo-650 hover:underline font-bold truncate block">
+                                  <span className="text-[8px] text-slate-400 uppercase tracking-wider block font-bold">Output Link</span>
+                                  <a
+                                    href={task.outputLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-500 hover:underline font-bold truncate block"
+                                  >
                                     {task.outputLink}
                                   </a>
                                 </div>
                               )}
                               {task.reason && (
-                                <div className="col-span-2 bg-amber-50/50 dark:bg-amber-955/10 p-2 rounded text-amber-700 dark:text-amber-400 font-semibold border border-amber-100/30">
-                                  <span className="text-[9px] text-amber-550 dark:text-amber-500 uppercase tracking-wider block font-extrabold">Reason</span>
+                                <div className="col-span-2 bg-amber-50/50 dark:bg-amber-950/10 p-2 rounded text-amber-700 dark:text-amber-400 font-semibold">
+                                  <span className="text-[8px] text-amber-600 uppercase tracking-wider block font-black">Reason</span>
                                   {task.reason}
-                                </div>
-                              )}
-                              {task.feedback && (
-                                <div className="col-span-2 bg-rose-50/50 dark:bg-rose-955/10 p-2 rounded text-rose-700 dark:text-rose-400 font-semibold border border-rose-100/30">
-                                  <span className="text-[9px] text-rose-550 dark:text-rose-500 uppercase tracking-wider block font-extrabold">Supervisor Feedback</span>
-                                  {task.feedback}
                                 </div>
                               )}
                             </div>
@@ -547,181 +866,125 @@ const AdminEodReports = () => {
                     </div>
 
                     {/* Operational Summary */}
-                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900/30 border border-slate-200/50 dark:border-slate-800/60 space-y-3">
-                      <span className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest block border-b border-slate-200/60 pb-1.5">Operational Summary</span>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[12px]">
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900/30 border border-slate-200/50 dark:border-slate-800/60 space-y-2">
+                      <span className="text-[9px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest block border-b border-slate-200/60 pb-1">Operational Summary</span>
+                      <div className="grid grid-cols-2 gap-2 text-[11px]">
                         <div>
-                          <span className="text-[9px] text-slate-400 uppercase tracking-wider block font-bold">Tools / Resource Issues</span>
-                          <span className="font-bold text-slate-700 dark:text-slate-300">{selectedReport.daySummary?.toolsIssues || "None"}</span>
+                          <span className="text-[8px] text-slate-400 uppercase tracking-wider block font-bold">Tools Issues</span>
+                          <span className="font-bold text-slate-700 dark:text-slate-350">{selectedReport.daySummary?.toolsIssues || "None"}</span>
                         </div>
                         <div>
-                          <span className="text-[9px] text-slate-400 uppercase tracking-wider block font-bold">Client Calls Attended</span>
-                          <span className="font-bold text-slate-700 dark:text-slate-300">{selectedReport.daySummary?.clientCalls || "None"}</span>
+                          <span className="text-[8px] text-slate-400 uppercase tracking-wider block font-bold">Client Calls</span>
+                          <span className="font-bold text-slate-700 dark:text-slate-350">{selectedReport.daySummary?.clientCalls || "None"}</span>
                         </div>
-                        {selectedReport.daySummary?.anythingElseOps && (
-                          <div className="col-span-2">
-                            <span className="text-[9px] text-slate-400 uppercase tracking-wider block font-bold">Additional Operations Notes</span>
-                            <p className="font-semibold text-slate-655 dark:text-slate-300 mt-0.5">{selectedReport.daySummary.anythingElseOps}</p>
-                          </div>
-                        )}
                       </div>
-                    </div>
-
-                    {/* Tomorrow Plan */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest block">Tomorrow Plan</span>
-                      <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-line leading-relaxed bg-blue-50/20 dark:bg-blue-900/10 p-3 rounded-lg border border-blue-100/30 dark:border-blue-900/20">{selectedReport.tomorrowPlan}</p>
-                    </div>
-
-                    {/* Overall Status */}
-                    <div className="space-y-1.5">
-                      <span className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest block">Overall Status</span>
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${getStatusBadgeStyle(selectedReport.overallStatus)}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${getStatusDotStyle(selectedReport.overallStatus)}`}></span>
-                        {selectedReport.overallStatus || "Completed"}
-                      </span>
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                    {/* Client Name */}
+                  /* GENERAL EOD BREAKDOWN */
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-xs font-semibold">
                     <div className="space-y-1">
-                      <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Client Name</span>
-                      <p className="text-[13px] font-bold text-slate-800 dark:text-slate-100">{selectedReport.clientName || "-"}</p>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Client Name</span>
+                      <p className="text-slate-800 dark:text-slate-200">{selectedReport.clientName || "-"}</p>
                     </div>
 
-                    {/* Projects Worked On */}
                     <div className="space-y-1 md:col-span-2">
-                      <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Projects Worked On (Task Name)</span>
-                      <p className="text-[13.5px] font-bold text-slate-800 dark:text-slate-100">{selectedReport.projectsWorkedOn || "N/A"}</p>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Projects Worked On (Task Name)</span>
+                      <p className="text-slate-800 dark:text-slate-200">{selectedReport.projectsWorkedOn || "-"}</p>
                     </div>
 
-                    {/* Design Count & Files Submitted (If designer) */}
-                    {selectedReport.designCount !== undefined && (
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest block">Number of Designs Completed</span>
-                        <p className="text-[13px] text-slate-700 dark:text-slate-300 font-bold">{selectedReport.designCount || "N/A"}</p>
-                      </div>
-                    )}
+                    <div className="space-y-1">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Time Spent Today</span>
+                      <p className="text-slate-800 dark:text-slate-200">{selectedReport.timeSpentToday || "-"}</p>
+                    </div>
 
-                    {selectedReport.filesSubmitted !== undefined && (
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Submitted Links</span>
-                        <p className="text-[13px] text-slate-700 dark:text-slate-300 font-bold truncate">{selectedReport.filesSubmitted || "N/A"}</p>
-                      </div>
-                    )}
-
-                    {/* Pending Tasks */}
                     <div className="space-y-1 md:col-span-2">
-                      <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Pending Tasks</span>
-                      <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-line leading-relaxed">{selectedReport.pendingTasks || "None"}</p>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Pending Tasks</span>
+                      <p className="text-slate-655 dark:text-slate-300 whitespace-pre-line leading-relaxed">{selectedReport.pendingTasks || "None"}</p>
                     </div>
 
-                    {/* Reason for Pending */}
                     {selectedReport.reasonForPending && (
                       <div className="space-y-1 md:col-span-2">
-                        <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Reason for Pending Work</span>
-                        <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium">{selectedReport.reasonForPending}</p>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Reason for Pending</span>
+                        <p className="text-slate-655 dark:text-slate-300">{selectedReport.reasonForPending}</p>
                       </div>
                     )}
 
-                    {/* Time Spent Today */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Time Spent Today</span>
-                      <p className="text-[13px] text-slate-705 dark:text-slate-300 font-bold">{selectedReport.timeSpentToday || "N/A"}</p>
-                    </div>
-
-                    {/* Challenges Faced */}
                     {selectedReport.challengesFaced && (
                       <div className="space-y-1 md:col-span-2">
-                        <span className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest block">Challenges Faced</span>
-                        <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium">{selectedReport.challengesFaced}</p>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Challenges Faced</span>
+                        <p className="text-slate-655 dark:text-slate-300">{selectedReport.challengesFaced}</p>
                       </div>
                     )}
 
-                    {/* Tomorrow Plan */}
-                    <div className="space-y-1 md:col-span-2">
-                      <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Tomorrow Plan</span>
-                      <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-line leading-relaxed bg-blue-50/20 dark:bg-blue-900/10 p-3 rounded-lg border border-blue-100/30 dark:border-blue-900/20">{selectedReport.tomorrowPlan}</p>
-                    </div>
-
-                    {/* Support Needed */}
                     {selectedReport.supportNeeded && (
                       <div className="space-y-1 md:col-span-2">
-                        <span className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest block">Support Needed</span>
-                        <p className="text-[13px] text-slate-700 dark:text-slate-300 font-medium">{selectedReport.supportNeeded}</p>
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Support Needed</span>
+                        <p className="text-slate-655 dark:text-slate-300">{selectedReport.supportNeeded}</p>
                       </div>
                     )}
-
-                    {/* Overall Status */}
-                    <div className="space-y-1.5 md:col-span-2">
-                      <span className="text-[10px] font-black text-slate-455 dark:text-slate-500 uppercase tracking-widest block">Overall Status</span>
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${getStatusBadgeStyle(selectedReport.overallStatus)}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${getStatusDotStyle(selectedReport.overallStatus)}`}></span>
-                        {selectedReport.overallStatus || "Completed"}
-                      </span>
-                    </div>
                   </div>
                 )}
 
-                {/* Attachments Display */}
+                {/* Common fields (Tomorrow plan and attachments) */}
+                <div className="space-y-1 pt-2">
+                  <span className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Tomorrow's Plan</span>
+                  <p className="text-xs text-slate-700 dark:text-slate-300 font-medium whitespace-pre-line leading-relaxed bg-blue-50/20 dark:bg-blue-900/10 p-3 rounded-lg border border-blue-100/30 dark:border-blue-900/20">
+                    {selectedReport.tomorrowPlan}
+                  </p>
+                </div>
+
                 {selectedReport.attachments?.length > 0 && (
                   <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-700/50">
-                    <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Attachments</span>
+                    <span className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest block">Attachments</span>
                     <div className="grid grid-cols-2 gap-3">
                       {selectedReport.attachments.map((att, i) => (
-                        <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg border border-slate-200/60 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 overflow-hidden">
+                        <div
+                          key={i}
+                          className="flex items-center gap-3 p-2 rounded-lg border border-slate-200/60 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60 overflow-hidden"
+                        >
                           <div className="text-slate-400 dark:text-slate-500 shrink-0">
-                            {att.fileType === "image" ? <FiImage size={18} /> : <FiFile size={18} />}
+                            {att.fileType === "image" ? <FiImage size={15} /> : <FiFile size={15} />}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <a 
-                              href={att.url} 
-                              target="_blank" 
+                            <a
+                              href={att.url}
+                              target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[12px] font-bold text-slate-700 dark:text-slate-300 hover:text-blue-650 truncate block"
+                              className="text-[11px] font-bold text-slate-700 dark:text-slate-300 hover:text-blue-550 truncate block text-left"
                             >
                               {att.filename}
                             </a>
-                            <span className="text-[9px] text-slate-400 uppercase tracking-wider block mt-0.5">{att.fileType || "File"}</span>
+                            <span className="text-[8px] text-slate-400 uppercase tracking-wider block mt-0.5 text-left">
+                              {att.fileType || "File"}
+                            </span>
                           </div>
                         </div>
                       ))}
                     </div>
                   </div>
                 )}
+
+                {/* Overall status display */}
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2">
+                  <span className="text-[9px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest">Overall Status:</span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${getStatusBadgeStyle(selectedReport.overallStatus)}`}>
+                    <span className={`w-1 h-1 rounded-full mr-1.5 ${getStatusDotStyle(selectedReport.overallStatus)}`}></span>
+                    {selectedReport.overallStatus || "Completed"}
+                  </span>
+                </div>
               </div>
 
               {/* FOOTER */}
-              <div className="flex items-center justify-end px-6 py-4 border-t border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
+              <div className="flex items-center justify-end px-6 py-3.5 border-t border-slate-100 dark:border-slate-700/50 bg-slate-50/50 dark:bg-slate-800/50">
                 <button
                   type="button"
                   onClick={() => setOpenViewModal(false)}
-                  className="px-5 py-2 rounded-lg bg-slate-200 dark:bg-slate-750 text-slate-700 dark:text-slate-300 font-bold text-[13px] hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+                  className="px-4 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-750 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                 >
                   Close
                 </button>
               </div>
-
-            </div>
-          </div>
-        )}
-
-        {/* IMAGE PREVIEW MODAL */}
-        {imagePreview && (
-          <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setImagePreview(null)}>
-            <div className="relative max-w-4xl w-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-              <button 
-                onClick={() => setImagePreview(null)} 
-                className="absolute -top-12 right-0 text-white/70 hover:text-white bg-black/50 hover:bg-black/80 p-2 rounded-full transition-all"
-              >
-                <FiX size={20} />
-              </button>
-              <img 
-                src={imagePreview} 
-                alt="Attachment Preview" 
-                className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl" 
-              />
             </div>
           </div>
         )}

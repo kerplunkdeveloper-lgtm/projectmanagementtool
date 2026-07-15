@@ -35,6 +35,7 @@ import {
   FiCompass,
   FiArrowLeft,
   FiX,
+  FiFileText,
 } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -86,6 +87,18 @@ const Navbar = ({ setSidebarOpen }) => {
         icon: FiUser,
         bgColor:
           "bg-indigo-50 dark:bg-indigo-950/20 text-indigo-650 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30",
+      };
+    }
+    if (
+      type === "report_submitted" ||
+      (message &&
+        (message.toLowerCase().includes("submitted a new designer eod report") ||
+         message.toLowerCase().includes("submitted a new eod report")))
+    ) {
+      return {
+        icon: FiFileText,
+        bgColor:
+          "bg-fuchsia-50 dark:bg-fuchsia-950/20 text-fuchsia-600 dark:text-fuchsia-400 border border-fuchsia-100/50 dark:border-fuchsia-900/30",
       };
     }
     switch (type) {
@@ -563,6 +576,13 @@ const Navbar = ({ setSidebarOpen }) => {
                               navigate(
                                 `/${user?.role}/chat?id=${n.chatRoomId}`,
                               );
+                            } else if (
+                              n.type === "report_submitted" ||
+                              (n.message &&
+                                (n.message.toLowerCase().includes("submitted a new designer eod report") ||
+                                 n.message.toLowerCase().includes("submitted a new eod report")))
+                            ) {
+                              navigate(`/${user?.role}/eod-reports`);
                             } else if (
                               n.type === "client_assigned" ||
                               (n.message &&

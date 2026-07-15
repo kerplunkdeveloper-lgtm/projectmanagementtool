@@ -23,12 +23,13 @@ import {
 const Notifications = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
-  
+
   // RTK Query hooks for Notifications API
-  const { data: notifications = [], isLoading: loading } = useGetNotificationsQuery(undefined, {
-    skip: !user,
-   pollingInterval: 60000,
-  });
+  const { data: notifications = [], isLoading: loading } =
+    useGetNotificationsQuery(undefined, {
+      skip: !user,
+      pollingInterval: 60000,
+    });
 
   const [markAsReadTrigger] = useMarkAsReadMutation();
   const [markAllAsReadTrigger] = useMarkAllAsReadMutation();
@@ -54,10 +55,26 @@ const Notifications = () => {
   const getNotificationDetails = (n) => {
     const type = n?.type;
     const message = n?.message || "";
-    if (type === "client_assigned" || message.toLowerCase().includes("client:")) {
+    if (
+      type === "client_assigned" ||
+      message.toLowerCase().includes("client:")
+    ) {
       return {
         icon: FiUser,
         bgColor: "bg-indigo-50 text-indigo-650 border-indigo-100",
+      };
+    }
+    if (
+      type === "report_submitted" ||
+      (message &&
+        (message
+          .toLowerCase()
+          .includes("submitted a new designer eod report") ||
+          message.toLowerCase().includes("submitted a new eod report")))
+    ) {
+      return {
+        icon: FiFileText,
+        bgColor: "bg-fuchsia-50 text-fuchsia-600 border-fuchsia-100",
       };
     }
     switch (type) {
@@ -105,14 +122,12 @@ const Notifications = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ">
         <div className="space-y-1">
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl  font-black text-slate-800">Notification Center</h1>
             {unreadCount > 0 && (
               <span className="bg-red-500 text-white text-[10px] font-black px-2.5 py-1 rounded-full animate-pulse uppercase tracking-wider">
                 {unreadCount} Unread
               </span>
             )}
           </div>
-          <p className="text-slate-500 text-xs">Stay updated on your workspace activities, assignments, and tasks</p>
         </div>
 
         {unreadCount > 0 && (
@@ -133,8 +148,8 @@ const Notifications = () => {
             tab === "All"
               ? notifications.length
               : tab === "Unread"
-              ? unreadCount
-              : notifications.length - unreadCount;
+                ? unreadCount
+                : notifications.length - unreadCount;
 
           return (
             <button
@@ -147,9 +162,13 @@ const Notifications = () => {
               }`}
             >
               <span>{tab}</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
-                filter === tab ? "bg-slate-150 text-slate-700" : "bg-slate-200/50 text-slate-500"
-              }`}>
+              <span
+                className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${
+                  filter === tab
+                    ? "bg-slate-150 text-slate-700"
+                    : "bg-slate-200/50 text-slate-500"
+                }`}
+              >
                 {count}
               </span>
             </button>
@@ -164,9 +183,16 @@ const Notifications = () => {
         </div>
       ) : filteredNotifications.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-3xl border border-slate-100 shadow-sm">
-          <FiInbox size={42} className="mx-auto text-slate-300 animate-bounce" />
-          <h3 className="mt-4 text-sm font-black text-slate-750">Clean Inbox!</h3>
-          <p className="text-slate-400 text-xs mt-1">No {filter.toLowerCase()} notifications found.</p>
+          <FiInbox
+            size={42}
+            className="mx-auto text-slate-300 animate-bounce"
+          />
+          <h3 className="mt-4 text-sm font-black text-slate-750">
+            Clean Inbox!
+          </h3>
+          <p className="text-slate-400 text-xs mt-1">
+            No {filter.toLowerCase()} notifications found.
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -186,21 +212,39 @@ const Notifications = () => {
                     }
                     if (n.type === "message_received" || n.chatRoomId) {
                       navigate(`/${user?.role}/chat?id=${n.chatRoomId}`);
-                    } else if (n.type === "report_submitted") {
+                    } else if (
+                      n.type === "report_submitted" ||
+                      (n.message &&
+                        (n.message
+                          .toLowerCase()
+                          .includes("submitted a new designer eod report") ||
+                          n.message
+                            .toLowerCase()
+                            .includes("submitted a new eod report")))
+                    ) {
                       navigate(`/${user?.role}/eod-reports`);
-                    } else if (n.type === "client_assigned" || (n.message && n.message.toLowerCase().includes("client:"))) {
+                    } else if (
+                      n.type === "client_assigned" ||
+                      (n.message && n.message.toLowerCase().includes("client:"))
+                    ) {
                       navigate(`/${user?.role}/clients`);
                     } else if (n.type === "task_assigned") {
                       navigate(`/${user?.role}/tasks`);
                     } else if (n.type?.startsWith("task_")) {
                       if (n.project) {
-                        const projectId = typeof n.project === 'object' ? n.project._id : n.project;
+                        const projectId =
+                          typeof n.project === "object"
+                            ? n.project._id
+                            : n.project;
                         navigate(`/${user?.role}/projects?id=${projectId}`);
                       } else {
                         navigate(`/${user?.role}/tasks`);
                       }
                     } else if (n.project) {
-                      const projectId = typeof n.project === 'object' ? n.project._id : n.project;
+                      const projectId =
+                        typeof n.project === "object"
+                          ? n.project._id
+                          : n.project;
                       navigate(`/${user?.role}/projects?id=${projectId}`);
                     } else {
                       navigate(`/${user?.role}/tasks`);
@@ -213,22 +257,35 @@ const Notifications = () => {
                   }`}
                 >
                   {/* TYPE ICON */}
-                  <div className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 shadow-sm ${details.bgColor}`}>
+                  <div
+                    className={`w-10 h-10 rounded-2xl border flex items-center justify-center shrink-0 shadow-sm ${details.bgColor}`}
+                  >
                     <Icon size={16} />
                   </div>
 
                   {/* MESSAGE AND TIME */}
                   <div className="flex-1 space-y-1 pr-6">
-                    <p className={`text-xs sm:text-sm font-semibold leading-relaxed ${
-                      !n.isRead ? "text-slate-800 font-extrabold" : "text-slate-600"
-                    }`}>
+                    <p
+                      className={`text-xs sm:text-sm font-semibold leading-relaxed ${
+                        !n.isRead
+                          ? "text-slate-800 font-extrabold"
+                          : "text-slate-600"
+                      }`}
+                    >
                       {n.message}
                     </p>
-                    
+
                     <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
                       <FiMail className="shrink-0 text-slate-350" size={11} />
-                      {new Date(n.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })} at{" "}
-                      {new Date(n.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(n.createdAt).toLocaleDateString([], {
+                        month: "short",
+                        day: "numeric",
+                      })}{" "}
+                      at{" "}
+                      {new Date(n.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                     </span>
                   </div>
 
