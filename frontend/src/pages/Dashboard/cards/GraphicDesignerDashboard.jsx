@@ -27,6 +27,7 @@ import {
   FiBriefcase,
   FiTrendingUp,
   FiXCircle,
+  FiFileText,
 } from "react-icons/fi";
 
 const GraphicDesignerDashboard = () => {
@@ -190,7 +191,6 @@ const GraphicDesignerDashboard = () => {
     "Pending",
     "In Progress",
     "Revision Pending",
-    "Revision",
     "Rejected",
     "Completed",
   ];
@@ -622,7 +622,7 @@ const GraphicDesignerDashboard = () => {
             LIVE SYNC
           </span>
         </div>
-        <div className="flex xl:grid xl:grid-cols-6 overflow-x-auto gap-3 pb-6 snap-x hide-scrollbar">
+        <div className="flex xl:grid xl:grid-cols-5 overflow-x-auto gap-3 pb-6 snap-x hide-scrollbar">
           {boardColumns.map((col, i) => (
             <div
               key={i}
@@ -658,18 +658,90 @@ const GraphicDesignerDashboard = () => {
                         className="bg-white dark:bg-[#1e293b]/90 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500/80 transition-all shadow-sm hover:shadow-md relative group"
                       >
                         <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-indigo-500 to-purple-600 rounded-l-xl opacity-80" />
-                        <p className="text-[9px] font-black text-slate-450 dark:text-slate-400 uppercase tracking-widest mb-1 truncate pl-1.5"></p>
-                        <p className="text-xs font-bold text-slate-700 dark:text-slate-100 leading-snug pl-1.5 break-words">
-                          {task.title}
-                        </p>
-                        {task.dueDate && (
-                          <div
-                            className={`mt-2 pl-1.5 flex items-center gap-1 text-[10px] font-bold ${isPast(parseISO(task.dueDate)) && task.status !== "Completed" ? "text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-1.5 py-0.5 rounded w-fit" : "text-slate-550 dark:text-slate-400"}`}
-                          >
-                            <FiClock size={11} />
-                            {format(parseISO(task.dueDate), "MMM dd, yyyy")}
+                        {/* Title row: icon + name on left, date on right */}
+                        <div className="flex items-start justify-between gap-2 pl-1.5 mb-2">
+                          <div className="flex items-start gap-1.5 min-w-0">
+                            <FiFileText size={12} className="text-indigo-400 dark:text-indigo-500 shrink-0 mt-0.5" />
+                            <p className="text-xs font-bold text-slate-700 dark:text-slate-100 leading-snug break-words">
+                              {task.title}
+                            </p>
                           </div>
-                        )}
+                          {task.dueDate && (
+                            <span
+                              className={`shrink-0 flex items-center gap-1 text-[9px] font-bold whitespace-nowrap ${isPast(parseISO(task.dueDate)) && task.status !== "Completed" ? "text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-1.5 py-0.5 rounded" : "text-slate-400 dark:text-slate-500"}`}
+                            >
+                              <FiClock size={9} />
+                              {format(parseISO(task.dueDate), "MMM dd")}
+                            </span>
+                          )}
+                        </div>
+                        {/* Assigned User */}
+                        {(() => {
+                          const aId = task.assignedTo
+                            ? typeof task.assignedTo === "object"
+                              ? task.assignedTo._id
+                              : task.assignedTo
+                            : null;
+                          const assignedUser = aId
+                            ? designers.find((d) => d._id === aId) ||
+                              (task.assignedTo &&
+                              typeof task.assignedTo === "object"
+                                ? task.assignedTo
+                                : null)
+                            : null;
+                          const assignedByName = task.createdBy
+                            ? typeof task.createdBy === "object"
+                              ? task.createdBy.name
+                              : null
+                            : null;
+                          if (!assignedUser && !assignedByName) return null;
+                          const profileImg =
+                            assignedUser?.profile?.profileImage?.url ||
+                            assignedUser?.profileImage?.url ||
+                            null;
+                          const initials = (assignedUser?.name || "")
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()
+                            .slice(0, 2);
+                          return (
+                            <div className="mt-2 pl-1 pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2">
+                              {/* Assigned To — left */}
+                              {assignedUser ? (
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  {profileImg ? (
+                                    <img
+                                      src={profileImg}
+                                      alt={assignedUser.name}
+                                      className="w-5 h-5 rounded-full object-cover ring-1 ring-indigo-400/40 shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-[8px] font-black ring-1 ring-indigo-400/30 shrink-0">
+                                      {initials}
+                                    </div>
+                                  )}
+                                  <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 truncate">
+                                    {assignedUser.name}
+                                  </span>
+                                </div>
+                              ) : (
+                                <div />
+                              )}
+                              {/* Assigned By — right */}
+                              {assignedByName && (
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <span className="text-[9px] font-black bg-yellow-500 p-2 rounded-full text-black  uppercase tracking-wider">
+                                    SM
+                                  </span>
+                                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                                    {assignedByName}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </motion.div>
                     );
                   })}
