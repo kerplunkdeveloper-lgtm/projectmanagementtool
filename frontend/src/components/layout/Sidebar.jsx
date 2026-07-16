@@ -1,12 +1,23 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useTheme } from "../../context/ThemeContext";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
-import { FiX, FiLogOut, FiFolder, FiList, FiLayers, FiShare2 } from "react-icons/fi";
+import {
+  FiX,
+  FiLogOut,
+  FiFolder,
+  FiList,
+  FiLayers,
+  FiShare2,
+} from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import { sidebarConfig } from "../../config/sidebarConfig";
-import { logoutUser, impersonateUser, exitImpersonation } from "../../features/auth/authSlice";
+import {
+  logoutUser,
+  impersonateUser,
+  exitImpersonation,
+} from "../../features/auth/authSlice";
 import { getProjects } from "../../features/projects/projectSlice";
 import { getUsers } from "../../features/users/userSlice";
 import { getPortfolios } from "../../features/portfolio/portfolioSlice";
@@ -39,49 +50,49 @@ const displayRole = (role) => {
 };
 
 const dropdownVariants = {
-  hidden: { 
-    opacity: 0, 
+  hidden: {
+    opacity: 0,
     y: 10,
     scale: 0.95,
     transition: {
       duration: 0.15,
-      ease: "easeInOut"
-    }
+      ease: "easeInOut",
+    },
   },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
+  visible: {
+    opacity: 1,
+    y: 0,
     scale: 1,
     transition: {
       type: "spring",
       stiffness: 300,
       damping: 22,
       staggerChildren: 0.04,
-      delayChildren: 0.05
-    }
+      delayChildren: 0.05,
+    },
   },
-  exit: { 
-    opacity: 0, 
-    y: 8, 
+  exit: {
+    opacity: 0,
+    y: 8,
     scale: 0.95,
     transition: {
       duration: 0.12,
-      ease: "easeInOut"
-    }
-  }
+      ease: "easeInOut",
+    },
+  },
 };
 
 const itemVariants = {
   hidden: { opacity: 0, y: 8 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: 0,
     transition: {
       type: "spring",
       stiffness: 300,
-      damping: 22
-    }
-  }
+      damping: 22,
+    },
+  },
 };
 
 const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
@@ -109,7 +120,9 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   const { projects } = useSelector((state) => state.projects);
   const { portfolios = [] } = useSelector((state) => state.portfolios || {});
   const { users } = useSelector((state) => state.users);
-  const { user: currentUser, originalAdminUser } = useSelector((state) => state.auth);
+  const { user: currentUser, originalAdminUser } = useSelector(
+    (state) => state.auth,
+  );
   const { profile } = useSelector((state) => state.profile);
   const { unreadCounts = {} } = useSelector((state) => state.chat);
   const totalUnreadChatCount = Object.values(unreadCounts).reduce(
@@ -139,7 +152,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
+      if (
+        userDropdownRef.current &&
+        !userDropdownRef.current.contains(event.target)
+      ) {
         setShowUserDropdown(false);
       }
     };
@@ -153,7 +169,11 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         ...prev,
         [activePortfolioId]: true,
       }));
-    } else if (activeProjectId && (projects || []).length > 0 && (portfolios || []).length > 0) {
+    } else if (
+      activeProjectId &&
+      (projects || []).length > 0 &&
+      (portfolios || []).length > 0
+    ) {
       const parentPortfolio = portfolios.find((p) => {
         const ids = (p.projectIds || []).map((pId) =>
           typeof pId === "object" && pId !== null ? pId._id : pId,
@@ -235,7 +255,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       <aside
         className={`
           fixed top-0 left-0 z-[100] h-screen
-          w-64 lg:w-60 xl:w-64
+          w-52 lg:w-52 xl:w-52
           sidebar-bg
           backdrop-blur-xl
           border-r border-slate-200/40 dark:border-white/5
@@ -277,207 +297,235 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         </div>
 
         {/* MENU */}
-        <nav className="flex-1 overflow-y-auto px-2.5 py-2 space-y-0.5 sidebar-scrollbar">
+        <nav className="flex-1 overflow-y-auto px-2 py-1.5 space-y-px sidebar-scrollbar">
           {(() => {
             let hasRenderedPortfoliosList = false;
 
-            const renderPortfolioDropdown = (title, icon, isOpen, setIsOpen, list) => {
+            const renderPortfolioDropdown = (
+              title,
+              icon,
+              isOpen,
+              setIsOpen,
+              list,
+            ) => {
               if (!list || list.length === 0) return null;
               return (
-              <div className="mt-0.5 mb-1">
-                {/* Dropdown Header Toggle */}
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(!isOpen)}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 text-left rounded-xl border border-transparent hover:bg-slate-100/60 dark:hover:bg-white/5 transition-all duration-200 cursor-pointer group text-slate-500 dark:text-slate-400 hover:theme-text-accent"
-                >
-                  {icon}
-                  <span className="text-[0.625rem] font-semibold uppercase tracking-wider whitespace-nowrap truncate flex-1 text-left transition-colors">
-                    {title}
-                  </span>
-                  <svg
-                    className={`w-3 h-3 shrink-0 transform transition-transform duration-200 transition-colors ${
-                      isOpen ? "rotate-180" : ""
-                    }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+                <div className="mt-0.5 mb-1">
+                  {/* Dropdown Header Toggle */}
+                  <button
+                    type="button"
+                    onClick={() => setIsOpen(!isOpen)}
+                    className="w-full flex items-center gap-2.5 px-3 py-1.5 text-left rounded-xl border border-transparent hover:bg-slate-100/60 dark:hover:bg-white/5 transition-all duration-200 cursor-pointer group text-slate-500 dark:text-slate-400 hover:theme-text-accent"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2.5}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
+                    {icon}
+                    <span className="text-[0.6rem] font-semibold uppercase tracking-wider whitespace-nowrap truncate flex-1 text-left transition-colors">
+                      {title}
+                    </span>
+                    <svg
+                      className={`w-3 h-3 shrink-0 transform transition-transform duration-200 transition-colors ${
+                        isOpen ? "rotate-180" : ""
+                      }`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.5}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </button>
 
-                {/* Portfolio List */}
-                {isOpen && (
-                  <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-white/8 space-y-0.5 overflow-y-auto max-h-[18.75rem] sidebar-scrollbar mt-0.5">
-                    {list.map((portfolio) => {
-                      const isActive = activePortfolioId === portfolio._id;
-                      const portfolioProjects = (projects || []).filter(
-                        (proj) => {
-                          const ids = (portfolio.projectIds || []).map((pId) =>
-                            typeof pId === "object" && pId !== null
-                              ? pId._id
-                              : pId,
-                          );
-                          return ids.includes(proj._id);
-                        },
-                      );
+                  {/* Portfolio List */}
+                  {isOpen && (
+                    <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-white/8 space-y-0.5 overflow-y-auto max-h-[18.75rem] sidebar-scrollbar mt-0.5">
+                      {list.map((portfolio) => {
+                        const isActive = activePortfolioId === portfolio._id;
+                        const portfolioProjects = (projects || []).filter(
+                          (proj) => {
+                            const ids = (portfolio.projectIds || []).map(
+                              (pId) =>
+                                typeof pId === "object" && pId !== null
+                                  ? pId._id
+                                  : pId,
+                            );
+                            return ids.includes(proj._id);
+                          },
+                        );
 
-                      return (
-                        <div key={portfolio._id}>
-                          {/* Portfolio Row */}
-                          {/* Portfolio Row */}
-                          <div className="flex items-center justify-between group rounded-lg transition-all duration-150 relative">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (window.innerWidth < 1024)
-                                  setSidebarOpen(false);
-                                navigate(
-                                  `/${role}/portfolio?id=${portfolio._id}`,
-                                );
-                                // If it's already active, toggle it. If not, expand it.
-                                setExpandedPortfolios((prev) => ({
-                                  ...prev,
-                                  [portfolio._id]: isActive ? !prev[portfolio._id] : true,
-                                }));
-                              }}
-                              className={`flex-1 flex items-center gap-2 text-left text-[0.6875rem] font-semibold py-1.5 pl-2.5 pr-1.5 transition-all duration-150 ${
-                                portfolioProjects.length > 0 ? "rounded-l-lg" : "rounded-lg pr-2.5"
-                              } ${
-                                isActive
-                                  ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent"
-                                  : "text-slate-600 dark:text-slate-500 hover:theme-text-accent hover:bg-slate-100/60 dark:hover:bg-white/5"
-                              }`}
-                              title={portfolio.name}
-                            >
-                              <svg
-                                viewBox="0 0 240 180"
-                                className="w-[1rem] h-[0.8125rem] shrink-0"
-                                style={{ fill: portfolio.color || "#ff80bf" }}
-                              >
-                                <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
-                              </svg>
-                              <span className="truncate flex-1 text-left">
-                                {portfolio.name}
-                              </span>
-                              {isActive && !portfolioProjects.length && (
-                                <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
-                              )}
-                            </button>
-
-                            {portfolioProjects.length > 0 && (
+                        return (
+                          <div key={portfolio._id}>
+                            {/* Portfolio Row */}
+                            {/* Portfolio Row */}
+                            <div className="flex items-center justify-between group rounded-lg transition-all duration-150 relative">
                               <button
                                 type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
+                                onClick={() => {
+                                  if (window.innerWidth < 1024)
+                                    setSidebarOpen(false);
+                                  navigate(
+                                    `/${role}/portfolio?id=${portfolio._id}`,
+                                  );
+                                  // If it's already active, toggle it. If not, expand it.
                                   setExpandedPortfolios((prev) => ({
                                     ...prev,
-                                    [portfolio._id]: !prev[portfolio._id],
+                                    [portfolio._id]: isActive
+                                      ? !prev[portfolio._id]
+                                      : true,
                                   }));
                                 }}
-                                className={`py-1.5 px-2 rounded-r-lg transition-all duration-150 flex items-center justify-center self-stretch cursor-pointer ${
+                                className={`flex-1 flex items-center gap-2 text-left text-[0.6875rem] font-semibold py-1.5 pl-2.5 pr-1.5 transition-all duration-150 ${
+                                  portfolioProjects.length > 0
+                                    ? "rounded-l-lg"
+                                    : "rounded-lg pr-2.5"
+                                } ${
                                   isActive
                                     ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent"
                                     : "text-slate-600 dark:text-slate-500 hover:theme-text-accent hover:bg-slate-100/60 dark:hover:bg-white/5"
                                 }`}
+                                title={portfolio.name}
                               >
                                 <svg
-                                  className={`w-3 h-3 shrink-0 transform transition-transform duration-200 ${
-                                    expandedPortfolios[portfolio._id] ? "rotate-180" : ""
-                                  }`}
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
+                                  viewBox="0 0 240 180"
+                                  className="w-[1rem] h-[0.8125rem] shrink-0"
+                                  style={{ fill: portfolio.color || "#ff80bf" }}
                                 >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2.5}
-                                    d="M19 9l-7 7-7-7"
-                                  />
+                                  <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
                                 </svg>
+                                <span className="truncate flex-1 text-left">
+                                  {portfolio.name}
+                                </span>
+                                {isActive && !portfolioProjects.length && (
+                                  <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
+                                )}
                               </button>
-                            )}
-                          </div>
 
-                          {/* Projects inside this Portfolio */}
-                          {portfolioProjects.length > 0 && expandedPortfolios[portfolio._id] && (
-                            <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-white/8 space-y-0.5 mt-0.5 mb-0.5">
-                              {portfolioProjects.map((project) => {
-                                const isProjectActive =
-                                  activeProjectId === project._id;
-                                return (
-                                  <button
-                                    key={project._id}
-                                    type="button"
-                                    onClick={() => {
-                                      if (window.innerWidth < 1024)
-                                        setSidebarOpen(false);
-                                      navigate(
-                                        `/${role}/projects?id=${project._id}`,
-                                      );
-                                    }}
-                                    className={`w-full flex items-center gap-2 text-left text-[0.625rem] font-semibold py-1 rounded-md px-2 transition-all duration-150 cursor-pointer ${
-                                      isProjectActive
-                                        ? "bg-slate-50 dark:bg-slate-800/60 theme-text-accent font-bold"
-                                        : "text-slate-500 dark:text-slate-600 hover:theme-text-accent hover:bg-slate-100/40 dark:hover:bg-white/5"
+                              {portfolioProjects.length > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpandedPortfolios((prev) => ({
+                                      ...prev,
+                                      [portfolio._id]: !prev[portfolio._id],
+                                    }));
+                                  }}
+                                  className={`py-1.5 px-2 rounded-r-lg transition-all duration-150 flex items-center justify-center self-stretch cursor-pointer ${
+                                    isActive
+                                      ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent"
+                                      : "text-slate-600 dark:text-slate-500 hover:theme-text-accent hover:bg-slate-100/60 dark:hover:bg-white/5"
+                                  }`}
+                                >
+                                  <svg
+                                    className={`w-3 h-3 shrink-0 transform transition-transform duration-200 ${
+                                      expandedPortfolios[portfolio._id]
+                                        ? "rotate-180"
+                                        : ""
                                     }`}
-                                    title={project.name}
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
                                   >
-                                    <ProjectIcon
-                                      name={project.name}
-                                      size="sm"
-                                      className="shrink-0"
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2.5}
+                                      d="M19 9l-7 7-7-7"
                                     />
-                                    <span className="truncate flex-1 text-left">
-                                      {project.name}
-                                    </span>
-                                    {isProjectActive && (
-                                      <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
-                                    )}
-                                  </button>
-                                );
-                              })}
+                                  </svg>
+                                </button>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )};
+
+                            {/* Projects inside this Portfolio */}
+                            {portfolioProjects.length > 0 &&
+                              expandedPortfolios[portfolio._id] && (
+                                <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-white/8 space-y-0.5 mt-0.5 mb-0.5">
+                                  {portfolioProjects.map((project) => {
+                                    const isProjectActive =
+                                      activeProjectId === project._id;
+                                    return (
+                                      <button
+                                        key={project._id}
+                                        type="button"
+                                        onClick={() => {
+                                          if (window.innerWidth < 1024)
+                                            setSidebarOpen(false);
+                                          navigate(
+                                            `/${role}/projects?id=${project._id}`,
+                                          );
+                                        }}
+                                        className={`w-full flex items-center gap-2 text-left text-[0.625rem] font-semibold py-1 rounded-md px-2 transition-all duration-150 cursor-pointer ${
+                                          isProjectActive
+                                            ? "bg-slate-50 dark:bg-slate-800/60 theme-text-accent font-bold"
+                                            : "text-slate-500 dark:text-slate-600 hover:theme-text-accent hover:bg-slate-100/40 dark:hover:bg-white/5"
+                                        }`}
+                                        title={project.name}
+                                      >
+                                        <ProjectIcon
+                                          name={project.name}
+                                          size="sm"
+                                          className="shrink-0"
+                                        />
+                                        <span className="truncate flex-1 text-left">
+                                          {project.name}
+                                        </span>
+                                        {isProjectActive && (
+                                          <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            };
 
             const renderPortfoliosList = () => {
-              const smeRoles = ["Social Media Executive", "Social Media Manager"];
+              const smeRoles = [
+                "Social Media Executive",
+                "Social Media Manager",
+              ];
               const smePortfolios = portfolios.filter(
-                (p) => smeRoles.includes(p.createdBy?.department) || smeRoles.includes(p.createdBy?.role)
+                (p) =>
+                  smeRoles.includes(p.createdBy?.department) ||
+                  smeRoles.includes(p.createdBy?.role),
               );
               const generalPortfolios = portfolios.filter(
-                (p) => !smeRoles.includes(p.createdBy?.department) && !smeRoles.includes(p.createdBy?.role)
+                (p) =>
+                  !smeRoles.includes(p.createdBy?.department) &&
+                  !smeRoles.includes(p.createdBy?.role),
               );
 
               return (
                 <>
                   {renderPortfolioDropdown(
                     "Portfolios",
-                    <FiLayers size={13} className="shrink-0 transition-colors" />,
+                    <FiLayers
+                      size={13}
+                      className="shrink-0 transition-colors"
+                    />,
                     isPortfoliosListOpen,
                     setIsPortfoliosListOpen,
-                    generalPortfolios
+                    generalPortfolios,
                   )}
                   {renderPortfolioDropdown(
                     "Social Media Executive",
-                    <FiShare2 size={13} className="shrink-0 transition-colors" />,
+                    <FiShare2
+                      size={13}
+                      className="shrink-0 transition-colors"
+                    />,
                     isSmePortfoliosListOpen,
                     setIsSmePortfoliosListOpen,
-                    smePortfolios
+                    smePortfolios,
                   )}
                 </>
               );
@@ -507,39 +555,59 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       >
                         {({ isActive }) => (
                           <motion.div
-                            className={`flex items-center gap-2.5 px-3 py-2 w-full rounded-xl relative overflow-hidden transition-all duration-200 ${
+                            className={`flex items-center gap-2 px-2.5 py-1 w-full rounded-xl relative overflow-hidden transition-all duration-200 ${
                               isActive
                                 ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)]"
                                 : "hover:bg-slate-100/60 dark:hover:bg-white/5"
                             }`}
                             whileHover={{ x: 2 }}
-                            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 400,
+                              damping: 25,
+                            }}
                           >
                             {/* Active left accent bar */}
                             {isActive && (
                               <motion.span
                                 layoutId="activeBar"
-                                className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full theme-bg-accent"
+                                className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r-full theme-bg-accent"
                                 initial={{ scaleY: 0 }}
                                 animate={{ scaleY: 1 }}
-                                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                                transition={{
+                                  type: "spring",
+                                  stiffness: 400,
+                                  damping: 25,
+                                }}
                               />
                             )}
 
-                            {/* Icon wrapper */}
+                            {/* Icon wrapper — fixed w-6 h-6 ensures all icons align on same column */}
                             <motion.div
-                              className={`shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-200 ${
+                              className={`shrink-0 w-6 h-6 rounded-md flex items-center justify-center relative overflow-hidden transition-colors duration-200 ${
                                 isActive
                                   ? "theme-bg-accent/15 dark:theme-bg-accent/20 shadow-sm"
                                   : "bg-slate-100/70 dark:bg-white/5 group-hover:bg-[var(--accent-light-bg-subtle)] dark:group-hover:bg-[var(--accent-dark-bg-subtle)]"
                               }`}
-                              whileHover={{ scale: 1.1, rotate: 3 }}
-                              whileTap={{ scale: 0.92 }}
-                              transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                              whileHover={{
+                                scale: 1.22,
+                                rotate: [0, -10, 7, -4, 0],
+                                y: -1,
+                                boxShadow: "0 0 0 3px rgba(99,102,241,0.25), 0 0 12px rgba(99,102,241,0.15)",
+                              }}
+                              whileTap={{ scale: 0.85 }}
+                              transition={{
+                                scale: { type: "spring", stiffness: 500, damping: 14 },
+                                rotate: { duration: 0.38, ease: "easeInOut" },
+                                y: { type: "spring", stiffness: 500, damping: 18 },
+                                boxShadow: { duration: 0.25 },
+                              }}
                             >
+                              {/* Shimmer burst on hover — CSS-only via group */}
+                              <span className="absolute inset-0 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.35)_0%,rgba(255,255,255,0)_70%)]" />
                               <Icon
-                                size={13}
-                                className={`transition-colors duration-200 ${
+                                size={12}
+                                className={`transition-colors duration-200 relative z-10 ${
                                   isActive
                                     ? "theme-text-accent"
                                     : "text-slate-500 dark:text-slate-400 group-hover:theme-text-accent"
@@ -549,7 +617,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
                             {/* Label */}
                             <span
-                              className={`text-[0.6875rem] font-semibold truncate flex-1 text-left transition-colors duration-200 ${
+                              className={`text-[0.6rem] font-semibold truncate flex-1 text-left transition-colors duration-200 ${
                                 isActive
                                   ? "theme-text-accent font-bold"
                                   : "text-slate-600 dark:text-slate-400 group-hover:theme-text-accent"
@@ -581,7 +649,11 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                   className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0"
                                   initial={{ scale: 0 }}
                                   animate={{ scale: 1 }}
-                                  transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                                  transition={{
+                                    type: "spring",
+                                    stiffness: 500,
+                                    damping: 20,
+                                  }}
                                 />
                               )}
                           </motion.div>
@@ -605,7 +677,9 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                 {!hasRenderedPortfoliosList &&
                   portfolios &&
                   portfolios.length > 0 &&
-                  (role === "admin" || currentUser?.permissions?.manage_portfolios?.read || currentUser?.permissions?.manage_portfolios === true) &&
+                  (role === "admin" ||
+                    currentUser?.permissions?.manage_portfolios?.read ||
+                    currentUser?.permissions?.manage_portfolios === true) &&
                   renderPortfoliosList()}
               </>
             );
@@ -614,7 +688,6 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
         {/* FOOTER */}
         <div className="p-3 border-t border-slate-200 dark:border-white/5 space-y-1.5">
-
           {/* Switch Back to Admin — shown when impersonating any user */}
           {originalAdminUser && (
             <button
@@ -635,149 +708,164 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   {originalAdminUser?.name}
                 </p>
               </div>
-              <svg className="w-3 h-3 text-indigo-400 dark:text-indigo-500 shrink-0 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+              <svg
+                className="w-3 h-3 text-indigo-400 dark:text-indigo-500 shrink-0 group-hover:translate-x-0.5 transition-transform"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"
+                />
               </svg>
             </button>
           )}
 
           {/* Switch User dropdown — shown only for the actual admin (not impersonating) */}
-          {role === "admin" && !originalAdminUser && users && users.length > 0 && (
-            <div ref={userDropdownRef} className="p-1.5 text-left relative">
-              <label className="block text-[0.5rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1 px-1">
-                Switch User
-              </label>
+          {role === "admin" &&
+            !originalAdminUser &&
+            users &&
+            users.length > 0 && (
+              <div ref={userDropdownRef} className="p-1.5 text-left relative">
+                <label className="block text-[0.5rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1 px-1">
+                  Switch User
+                </label>
 
-              {/* Trigger Button */}
-              <button
-                type="button"
-                onClick={() => setShowUserDropdown(!showUserDropdown)}
-                className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0f172a] border border-slate-200/50 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10 hover:bg-slate-100/50 dark:hover:bg-[#131d35] transition-all cursor-pointer shadow-sm text-left relative z-50"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  {/* Avatar */}
-                  <div className="w-6 h-6 rounded-lg overflow-hidden border border-indigo-500/20 dark:border-indigo-400/20 shrink-0 relative flex items-center justify-center bg-indigo-500/10 dark:bg-indigo-400/10 text-indigo-600 dark:text-indigo-400">
-                    {profile?.profileImage?.url ? (
-                      <img
-                        src={profile.profileImage.url}
-                        alt={currentUser?.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-[0.5625rem] font-black">
-                        {getInitials(currentUser?.name)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[0.625rem] font-bold theme-text-primary truncate leading-tight">
-                      {currentUser?.name}
-                    </p>
-                    <p className="text-[0.5rem] font-medium theme-text-secondary  leading-none mt-0.5">
-                      {currentUser?.role === "team" ? (currentUser?.department || "Team") : displayRole(currentUser?.role)}
-                    </p>
-                  </div>
-                </div>
-                <svg
-                  className={`w-3 h-3 text-slate-400 dark:text-slate-500 transform transition-transform duration-200 shrink-0 ${
-                    showUserDropdown ? "rotate-180" : ""
-                  }`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2.5}
+                {/* Trigger Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowUserDropdown(!showUserDropdown)}
+                  className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-[#0f172a] border border-slate-200/50 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10 hover:bg-slate-100/50 dark:hover:bg-[#131d35] transition-all cursor-pointer shadow-sm text-left relative z-50"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
-              </button>
-
-              {/* Dropdown Options List */}
-              <AnimatePresence>
-                {showUserDropdown && (
-                  <motion.div
-                    variants={dropdownVariants}
-                    initial="hidden"
-                    animate="visible"
-                    exit="hidden"
-                    className="absolute bottom-full left-1.5 right-1.5 mb-3 z-50 bg-white/95 dark:bg-[#0b1120]/95 backdrop-blur-xl border border-white/50 dark:border-white/10 rounded-2xl shadow-2xl shadow-indigo-500/10 dark:shadow-black/50 overflow-hidden flex flex-col p-2 max-h-[17.5rem] overflow-y-auto sidebar-scrollbar"
+                  <div className="flex items-center gap-2 min-w-0">
+                    {/* Avatar */}
+                    <div className="w-6 h-6 rounded-lg overflow-hidden border border-indigo-500/20 dark:border-indigo-400/20 shrink-0 relative flex items-center justify-center bg-indigo-500/10 dark:bg-indigo-400/10 text-indigo-600 dark:text-indigo-400">
+                      {profile?.profileImage?.url ? (
+                        <img
+                          src={profile.profileImage.url}
+                          alt={currentUser?.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-[0.5625rem] font-black">
+                          {getInitials(currentUser?.name)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[0.625rem] font-bold theme-text-primary truncate leading-tight">
+                        {currentUser?.name}
+                      </p>
+                      <p className="text-[0.5rem] font-medium theme-text-secondary  leading-none mt-0.5">
+                        {currentUser?.role === "team"
+                          ? currentUser?.department || "Team"
+                          : displayRole(currentUser?.role)}
+                      </p>
+                    </div>
+                  </div>
+                  <svg
+                    className={`w-3 h-3 text-slate-400 dark:text-slate-500 transform transition-transform duration-200 shrink-0 ${
+                      showUserDropdown ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
                   >
-                    {users.map((u) => {
-                      const isCurrent =
-                        u._id === (currentUser?._id || currentUser?.id);
-                      return (
-                        <motion.button
-                          key={u._id}
-                          variants={itemVariants}
-                          whileHover={{ scale: 1.02, x: 2 }}
-                          whileTap={{ scale: 0.98 }}
-                          type="button"
-                          onClick={() => {
-                            setShowUserDropdown(false);
-                            if (!isCurrent) {
-                              handleSwitchUser(u._id);
-                            }
-                          }}
-                          className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-300 cursor-pointer group mb-1 last:mb-0 ${
-                            isCurrent
-                              ? "bg-gradient-to-r from-indigo-50/80 to-blue-50/80 dark:from-indigo-500/10 dark:to-blue-500/5 border border-indigo-100 dark:border-indigo-500/20 shadow-sm"
-                              : "border border-transparent hover:bg-slate-50/80 dark:hover:bg-white/5 hover:border-slate-200/50 dark:hover:border-white/5 hover:shadow-sm"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
-                            {/* Avatar */}
-                            <div
-                              className={`w-8 h-8 rounded-full shrink-0 overflow-hidden shadow-sm flex items-center justify-center transition-transform duration-300 group-hover:scale-105 ${
-                                isCurrent
-                                  ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30"
-                                  : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50"
-                              }`}
-                            >
-                              {u.profile?.profileImage?.url ? (
-                                <img
-                                  src={u.profile.profileImage.url}
-                                  alt={u.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <span className="text-[0.625rem] font-black">
-                                  {getInitials(u.name)}
-                                </span>
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p
-                                className={`text-[0.6875rem] font-bold truncate leading-tight transition-colors ${
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+
+                {/* Dropdown Options List */}
+                <AnimatePresence>
+                  {showUserDropdown && (
+                    <motion.div
+                      variants={dropdownVariants}
+                      initial="hidden"
+                      animate="visible"
+                      exit="hidden"
+                      className="absolute bottom-full left-1.5 right-1.5 mb-3 z-50 bg-white/95 dark:bg-[#0b1120]/95 backdrop-blur-xl border border-white/50 dark:border-white/10 rounded-2xl shadow-2xl shadow-indigo-500/10 dark:shadow-black/50 overflow-hidden flex flex-col p-2 max-h-[17.5rem] overflow-y-auto sidebar-scrollbar"
+                    >
+                      {users.map((u) => {
+                        const isCurrent =
+                          u._id === (currentUser?._id || currentUser?.id);
+                        return (
+                          <motion.button
+                            key={u._id}
+                            variants={itemVariants}
+                            whileHover={{ scale: 1.02, x: 2 }}
+                            whileTap={{ scale: 0.98 }}
+                            type="button"
+                            onClick={() => {
+                              setShowUserDropdown(false);
+                              if (!isCurrent) {
+                                handleSwitchUser(u._id);
+                              }
+                            }}
+                            className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-300 cursor-pointer group mb-1 last:mb-0 ${
+                              isCurrent
+                                ? "bg-gradient-to-r from-indigo-50/80 to-blue-50/80 dark:from-indigo-500/10 dark:to-blue-500/5 border border-indigo-100 dark:border-indigo-500/20 shadow-sm"
+                                : "border border-transparent hover:bg-slate-50/80 dark:hover:bg-white/5 hover:border-slate-200/50 dark:hover:border-white/5 hover:shadow-sm"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              {/* Avatar */}
+                              <div
+                                className={`w-8 h-8 rounded-full shrink-0 overflow-hidden shadow-sm flex items-center justify-center transition-transform duration-300 group-hover:scale-105 ${
                                   isCurrent
-                                    ? "text-indigo-700 dark:text-indigo-300"
-                                    : "text-slate-700 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
+                                    ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50"
                                 }`}
                               >
-                                {u.name}
-                              </p>
-                              <p className="text-[0.5625rem] font-black opacity-70 uppercase tracking-widest mt-0.5 theme-text-secondary truncate">
-                                {u.role === "team"
-                                  ? (u.department || "Team")
-                                  : displayRole(u.role)}
-                              </p>
+                                {u.profile?.profileImage?.url ? (
+                                  <img
+                                    src={u.profile.profileImage.url}
+                                    alt={u.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="text-[0.625rem] font-black">
+                                    {getInitials(u.name)}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p
+                                  className={`text-[0.6875rem] font-bold truncate leading-tight transition-colors ${
+                                    isCurrent
+                                      ? "text-indigo-700 dark:text-indigo-300"
+                                      : "text-slate-700 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
+                                  }`}
+                                >
+                                  {u.name}
+                                </p>
+                                <p className="text-[0.5625rem] font-black opacity-70 uppercase tracking-widest mt-0.5 theme-text-secondary truncate">
+                                  {u.role === "team"
+                                    ? u.department || "Team"
+                                    : displayRole(u.role)}
+                                </p>
+                              </div>
                             </div>
-                          </div>
 
-                          {/* Active Indicator */}
-                          {isCurrent && (
-                            <div className="shrink-0 w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)] animate-pulse" />
-                          )}
-                        </motion.button>
-                      );
-                    })}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          )}
+                            {/* Active Indicator */}
+                            {isCurrent && (
+                              <div className="shrink-0 w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)] animate-pulse" />
+                            )}
+                          </motion.button>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
 
           <motion.button
             initial="initial"

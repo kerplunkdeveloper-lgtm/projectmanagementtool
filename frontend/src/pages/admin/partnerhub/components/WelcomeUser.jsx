@@ -362,11 +362,11 @@ const WelcomeUser = () => {
         </div>
 
         {/* Right Side: Responsive Reference Image Calendar & Clock Widget */}
-        <div className="flex flex-col sm:flex-row justify-between gap-3.5 bg-white dark:bg-[#070b13] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-4 shadow-xl w-full sm:w-[430px] min-w-0 relative z-10 backdrop-blur-sm shrink-0 select-none">
+        <div className="flex flex-col sm:flex-row justify-between gap-2 bg-white dark:bg-[#070b13] border border-slate-200/80 dark:border-slate-800/80 rounded-2xl p-2.5 shadow-xl w-full sm:w-[400px] min-w-0 relative z-10 backdrop-blur-sm shrink-0 select-none">
           {/* Left Side: Calendar picker */}
           <div className="flex-1 flex flex-col justify-between">
             {/* Calendar Header */}
-            <div className="flex items-center justify-between px-1 mb-1.5">
+            <div className="flex items-center justify-between px-1 mb-1">
               <button
                 onClick={handlePrevMonth}
                 className="w-5 h-5 flex items-center justify-center text-[12px] font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-[#3b82f6] hover:bg-slate-100 dark:hover:bg-white/5 rounded transition-all"
@@ -388,7 +388,7 @@ const WelcomeUser = () => {
             </div>
 
             {/* Weekdays */}
-            <div className="grid grid-cols-7 text-center text-[7px] font-black text-slate-900 dark:text-white mb-1.5 tracking-wider">
+            <div className="grid grid-cols-7 text-center text-[7px] font-black text-slate-900 dark:text-white mb-1 tracking-wider">
               <span>SUN</span>
               <span>MON</span>
               <span>TUE</span>
@@ -399,7 +399,7 @@ const WelcomeUser = () => {
             </div>
 
             {/* Days Grid */}
-            <div className="grid grid-cols-7 gap-y-1 gap-x-0.5 text-center text-[10px] font-bold">
+            <div className="grid grid-cols-7 gap-y-0.5 gap-x-0.5 text-center text-[10px] font-bold">
               {getCalendarDays().map((cell, idx) => {
                 const isSelected =
                   cell.isCurrentMonth &&
@@ -427,7 +427,7 @@ const WelcomeUser = () => {
             </div>
 
             {/* Calendar Footer */}
-            <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-850">
+            <div className="mt-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-850">
               <button
                 onClick={handleTodayClick}
                 className="text-[9px] font-extrabold text-blue-600 dark:text-indigo-400 border border-slate-200 dark:border-slate-800 rounded-md px-3 py-1 bg-white dark:bg-slate-950 shadow-sm hover:bg-slate-50 dark:hover:bg-white/5 active:scale-95 transition-all"
@@ -444,14 +444,14 @@ const WelcomeUser = () => {
           {/* Right Side: Current Time Widget */}
           <div className="flex-1 flex flex-col items-center  justify-center">
             {/* Header */}
-            <div className="text-[10px] font-black  mb-2.5 flex items-center gap-1.5">
+            <div className="text-[10px] font-black mb-1.5 flex items-center gap-1.5">
               Current Time
             </div>
 
             {/* Digital Clock Display */}
-            <div className="w-[110px] h-[110px] rounded-2xl theme-bg-accent opacity-90 border border-slate-200/80 dark:border-slate-800/80 flex flex-col items-center justify-center shadow-inner">
+            <div className="w-[88px] h-[88px] rounded-2xl theme-bg-accent opacity-90 border border-slate-200/80 dark:border-slate-800/80 flex flex-col items-center justify-center shadow-inner">
               {/* Digital Display: HH : MM */}
-              <div className="flex items-center text-white text-3xl font-bold my-0.5 tracking-tight leading-none">
+              <div className="flex items-center text-white text-2xl font-bold my-0.5 tracking-tight leading-none">
                 <span>
                   {String(currentTime.getHours() % 12 || 12).padStart(2, "0")}
                 </span>
@@ -462,7 +462,7 @@ const WelcomeUser = () => {
               </div>
 
               {/* AM/PM Pill */}
-              <div className="text-white text-[15px] font-black uppercase px-2.5 py-0.5 rounded mt-2 tracking-wider">
+              <div className="text-white text-[11px] font-black uppercase px-2 py-0 rounded mt-1 tracking-wider">
                 {currentTime.getHours() >= 12 ? "PM" : "AM"}
               </div>
             </div>

@@ -430,6 +430,8 @@ const Navbar = ({ setSidebarOpen }) => {
         flex items-center justify-between
            sidebar-bg
           backdrop-blur-xl
+          shadow-sm
+
           border-r border-slate-200/40 dark:border-white/5
           shadow-[0_8px_32px_0_rgba(0,0,0,0.02)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.25)]
            transition-all duration-300
@@ -454,7 +456,7 @@ const Navbar = ({ setSidebarOpen }) => {
         </button>
 
         {/* PAGE TITLE */}
-        <h1 className="text-xs md:text-[1.25rem] theme-text-accent font-medium shrink-0">
+        <h1 className="text-xs md:text-[1.05rem] theme-text-accent font-medium shrink-0">
           {pageTitle}
         </h1>
       </div>
