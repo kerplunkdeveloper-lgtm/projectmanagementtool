@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import toast from "react-hot-toast";
@@ -19,6 +19,14 @@ const DashboardLayout = ({ role }) => {
     () => window.innerWidth >= 1024,
   );
   const { user, originalAdminUser } = useSelector((state) => state.auth);
+  const mainContainerRef = useRef(null);
+
+  // Reset scroll position to top when navigating to a new page
+  useEffect(() => {
+    if (mainContainerRef.current) {
+      mainContainerRef.current.scrollTop = 0;
+    }
+  }, [location.pathname]);
 
   const handleSwitchBack = () => {
     dispatch(exitImpersonation());
@@ -81,6 +89,7 @@ const DashboardLayout = ({ role }) => {
 
         {/* SCROLLABLE CONTENT */}
         <main
+          ref={mainContainerRef}
           className={`flex-1 ${isChatPage ? "overflow-hidden p-0" : "overflow-y-auto "} theme-bg-main`}
         >
           <div
