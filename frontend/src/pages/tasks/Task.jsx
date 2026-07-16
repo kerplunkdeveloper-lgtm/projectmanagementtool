@@ -71,31 +71,37 @@ const TaskTitleInput = ({ task, handleTaskFieldChange, isCompleted }) => {
   );
 };
 
-const TimeTracker = ({ startTime, endTime, status, isBlocked, blockerPausedAt, blockerHistory }) => {
+const TimeTracker = ({
+  startTime,
+  endTime,
+  status,
+  isBlocked,
+  blockerPausedAt,
+  blockerHistory,
+}) => {
   const [elapsed, setElapsed] = useState(0);
+  const [blockedMs, setBlockedMs] = useState(0);
 
   useEffect(() => {
     if (!startTime) return;
 
-    const calculateElapsed = () => {
+    const calculateTime = () => {
       const start = new Date(startTime).getTime();
       const end = endTime ? new Date(endTime).getTime() : Date.now();
-      
-      // Calculate total historical pause duration in ms
+
       let totalPauseMs = 0;
       if (blockerHistory && blockerHistory.length > 0) {
-        blockerHistory.forEach(item => {
+        blockerHistory.forEach((item) => {
           if (item.pausedAt && item.resumedAt) {
             const p = new Date(item.pausedAt).getTime();
             const r = new Date(item.resumedAt).getTime();
             if (r >= p) {
-              totalPauseMs += (r - p);
+              totalPauseMs += r - p;
             }
           }
         });
       }
-      
-      // If currently blocked, add current pause duration since blockerPausedAt
+
       if (isBlocked && blockerPausedAt) {
         const pauseStart = new Date(blockerPausedAt).getTime();
         const currentPause = Date.now() - pauseStart;
@@ -104,16 +110,23 @@ const TimeTracker = ({ startTime, endTime, status, isBlocked, blockerPausedAt, b
         }
       }
 
-      const totalElapsedMs = (end - start) - totalPauseMs;
-      return Math.max(0, Math.floor(totalElapsedMs / 1000));
+      const totalElapsedMs = end - start - totalPauseMs;
+      return {
+        active: Math.max(0, Math.floor(totalElapsedMs / 1000)),
+        blocked: Math.max(0, Math.floor(totalPauseMs / 1000)),
+      };
     };
 
-    setElapsed(calculateElapsed());
+    const update = () => {
+      const { active, blocked } = calculateTime();
+      setElapsed(active);
+      setBlockedMs(blocked);
+    };
 
-    if (status === "In Progress" && !isBlocked && !endTime) {
-      const interval = setInterval(() => {
-        setElapsed(calculateElapsed());
-      }, 1000);
+    update();
+
+    if (status === "In Progress" && !endTime) {
+      const interval = setInterval(update, 1000);
       return () => clearInterval(interval);
     }
   }, [startTime, endTime, status, isBlocked, blockerPausedAt, blockerHistory]);
@@ -127,35 +140,33 @@ const TimeTracker = ({ startTime, endTime, status, isBlocked, blockerPausedAt, b
       </div>
     );
 
-  const hours = Math.floor(elapsed / 3600);
-  const minutes = Math.floor((elapsed % 3600) / 60);
-  const seconds = elapsed % 60;
+  const formatTime = (secs) => {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    return `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
+  };
 
-  const timeString = `${hours > 0 ? `${hours}h ` : ""}${minutes}m ${seconds}s`;
-
-  if (isBlocked) {
-    return (
-      <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded border text-[9px] font-bold tracking-wider bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20 shadow-sm">
-        <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
-        Paused: {timeString}
-      </div>
-    );
-  }
+  const activeStr = formatTime(elapsed);
+  const blockedStr = formatTime(blockedMs);
+  const totalStr = formatTime(elapsed + blockedMs);
 
   return (
-    <div
-      className={`mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded border text-[9px] font-bold tracking-wider ${
-        status === "In Progress" && !endTime
-          ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30 shadow-sm"
-          : "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
-      }`}
-    >
-      {status === "In Progress" && !endTime ? (
-        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#3b82f6] animate-pulse"></span>
-      ) : (
-        <FiClock size={10} />
+    <div className="flex flex-col gap-1 w-[120px] text-[9px] font-bold tracking-wide">
+      <div className="flex justify-between items-center bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/50 dark:border-emerald-500/20 px-1.5 py-0.5 rounded text-emerald-700 dark:text-emerald-400">
+        <span>Active:</span>
+        <span>{activeStr}</span>
+      </div>
+      {(blockedMs > 0 || isBlocked) && (
+        <div className="flex justify-between items-center bg-orange-50 dark:bg-orange-500/10 border border-orange-200/50 dark:border-orange-500/20 px-1.5 py-0.5 rounded text-orange-700 dark:text-orange-400">
+          <span>Blocked:</span>
+          <span>{blockedStr}</span>
+        </div>
       )}
-      {timeString}
+      <div className="flex justify-between items-center bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-600/50 px-1.5 py-0.5 rounded text-slate-800 dark:text-slate-100 shadow-sm">
+        <span>Total:</span>
+        <span>{totalStr}</span>
+      </div>
     </div>
   );
 };
@@ -523,12 +534,15 @@ const Task = () => {
     const resumedAt = new Date().toISOString();
     const totalPauseMinutes = Math.max(
       1,
-      Math.round((new Date(resumedAt).getTime() - new Date(pausedAt).getTime()) / 60000)
+      Math.round(
+        (new Date(resumedAt).getTime() - new Date(pausedAt).getTime()) / 60000,
+      ),
     );
 
     const newHistoryItem = {
       blockerType: task.blockerType || "Unknown",
-      blockerDescription: task.blockerDescription || task.blockerReason || "No details",
+      blockerDescription:
+        task.blockerDescription || task.blockerReason || "No details",
       blockerExpectedTime: task.blockerExpectedTime || "Unknown",
       blockerPriority: task.blockerPriority || "Normal",
       pausedAt: pausedAt,
@@ -886,7 +900,7 @@ const Task = () => {
   };
 
   return (
-    <div className="p-1 space-y-4 pb-16">
+    <div className="px-0 py-1 space-y-4 pb-16">
       {/* UNIFIED HEADER & CONTROLS */}
 
       <div className="flex flex-col xl:flex-row items-center justify-between gap-4 bg-white dark:bg-[#0f172a] p-2 relative z-20">
@@ -1403,48 +1417,48 @@ const Task = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="bg-white dark:bg-[#070b13] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)] overflow-hidden border border-slate-200/60 dark:border-[#1e293b]/50 transition-all">
+          <div className="bg-white dark:bg-[#070b13] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)] overflow-hidden border border-slate-300 dark:border-slate-600 transition-all">
             <div className="overflow-x-auto overflow-y-auto h-[calc(100vh-260px)] min-h-[500px] w-full scrollbar-thin">
-              <table className="w-full min-w-[1300px] text-left border-collapse table-auto border-0">
+              <table className="w-full min-w-[1300px] text-left border-collapse table-auto border border-slate-300 dark:border-slate-600">
                 <thead>
-                  <tr className="sticky top-0 z-20 uppercase text-center bg-slate-50 dark:bg-[#0f172a] text-slate-500 dark:text-slate-400 text-[10px] font-bold tracking-wider border-b border-slate-200/60 dark:border-[#1e293b]/50 shadow-sm">
-                    <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-16">
+                  <tr className="sticky top-0 z-20 uppercase text-center bg-slate-50 dark:bg-[#0f172a] text-slate-500 dark:text-slate-400 text-[9px] font-bold tracking-wider border-b border-slate-300 dark:border-slate-600 shadow-sm">
+                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-16">
                       ID
                     </th>
-                    <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-28">
+                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-20">
                       Priority
                     </th>
-                    <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 min-w-[180px] whitespace-nowrap">
+                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 min-w-[180px] whitespace-nowrap">
                       Task Name
                     </th>
-                    <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-36">
+                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-24">
                       Client
                     </th>
-                    <th className="px-3 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-32 whitespace-nowrap">
+                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-32 whitespace-nowrap">
                       Content-type
                     </th>
-                    <th className="px-5 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-40 min-w-[145px]">
+                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-40 min-w-[145px]">
                       Status
                     </th>
-                    <th className="px-5 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-44 min-w-[170px]">
+                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-32 min-w-[125px]">
                       Blocker
                     </th>
-                    <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-32 whitespace-nowrap">
+                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-32 whitespace-nowrap">
                       Time tracker
                     </th>
-                    <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-28">
+                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-28">
                       Revision
                     </th>
-                    <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-32">
+                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-32">
                       Start Date
                     </th>
-                    <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-32">
+                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-32">
                       End Date
                     </th>
-                    <th className="px-6 py-2 border-r border-slate-200/60 dark:border-[#1e293b]/40 w-44">
+                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-44">
                       Assigned By
                     </th>
-                    <th className="px-6 py-2 min-w-[200px] w-56">
+                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 min-w-[200px] w-56">
                       Created Time
                     </th>
                   </tr>
@@ -1462,7 +1476,10 @@ const Task = () => {
                   ) : (
                     sortedTasks.map((task) => {
                       const isCompleted = task.status === "Completed";
-                      const statusStyle = getStatusStyle(task.status, task.isBlocked);
+                      const statusStyle = getStatusStyle(
+                        task.status,
+                        task.isBlocked,
+                      );
                       const isExpanded = !!expandedTasks[task._id];
 
                       return (
@@ -1478,26 +1495,26 @@ const Task = () => {
                             onClick={() => setSelectedTaskId(task._id)}
                           >
                             {/* ID */}
-                            <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 font-bold text-[14px] text-slate-500 dark:text-slate-400">
+                            <td className="px-3 py-2 border border-slate-300 dark:border-slate-600 font-bold text-[11px] text-slate-500 dark:text-slate-400 text-center">
                               {getTaskDisplayId(task)}
                             </td>
 
                             {/* Priority Badge */}
-                            <td className="px-2 py-2 p-10 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40">
+                            <td className="px-3 py-2 border border-slate-300 dark:border-slate-600 text-center">
                               <span
-                                className={`inline-block text-center w-30 py-2 text-[14px] rounded-[15px] font-bold uppercase whitespace-nowrap ${getPriorityStyle(task.priority || "Medium")}`}
+                                className={`inline-block text-center w-16 py-1 text-[9px] rounded-[15px] font-bold uppercase whitespace-nowrap ${getPriorityStyle(task.priority || "Medium")}`}
                               >
                                 {task.priority || "Medium"}
                               </span>
                             </td>
 
                             {/* Title & Subtasks Dropdown */}
-                            <td className="px-6 py-2 font-bold border-r border-b border-slate-200/60 dark:border-[#1e293b]/40">
+                            <td className="px-3 py-2 font-bold border border-slate-300 dark:border-slate-600 text-left">
                               <div className="flex items-center gap-3">
                                 <span
-                                  className={`text-xs ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-white"}`}
+                                  className={`text-[11px] ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-white"}`}
                                 >
-                                  <span className="flex items-center gap-1 text-[16px] whitespace-nowrap">
+                                  <span className="flex items-center gap-1 text-[12px] whitespace-nowrap">
                                     <BiFile /> {task.title}
                                   </span>
                                 </span>
@@ -1531,7 +1548,7 @@ const Task = () => {
                             </td>
 
                             {/* Client Name */}
-                            <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40">
+                            <td className="px-3 py-2 border border-slate-300 dark:border-slate-600 text-center">
                               {(() => {
                                 const projId =
                                   task.project?._id || task.project;
@@ -1542,7 +1559,7 @@ const Task = () => {
                                   projectObj?.client || task.project?.client;
                                 if (client) {
                                   return (
-                                    <ClientBadge client={client} size="lg" />
+                                    <ClientBadge client={client} size="sm" />
                                   );
                                 }
                                 return (
@@ -1554,9 +1571,9 @@ const Task = () => {
                             </td>
 
                             {/* Content-type */}
-                            <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 whitespace-nowrap">
+                            <td className="px-3 py-2 border border-slate-300 dark:border-slate-600 whitespace-nowrap text-center">
                               <span
-                                className={`px-2 py-0.5 rounded-md text-[11px] font-bold tracking-wider uppercase border whitespace-nowrap ${(() => {
+                                className={`px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase border whitespace-nowrap ${(() => {
                                   const t = (
                                     task.contentType || ""
                                   ).toUpperCase();
@@ -1587,7 +1604,7 @@ const Task = () => {
 
                             {/* Status Select */}
                             <td
-                              className="px-1 py-1 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-40 min-w-[145px]"
+                              className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-40 min-w-[145px] text-center"
                               onClick={(e) => e.stopPropagation()}
                             >
                               {task.isBlocked ? (
@@ -1600,7 +1617,10 @@ const Task = () => {
                                   <select
                                     value={task.status}
                                     onChange={(e) =>
-                                      handleStatusChange(task._id, e.target.value)
+                                      handleStatusChange(
+                                        task._id,
+                                        e.target.value,
+                                      )
                                     }
                                     className={`appearance-none pl-2.5 pr-6 py-0.5 text-[9.5px] font-bold rounded-full border-2 cursor-pointer w-full text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-sm hover:shadow ${statusStyle.bg}`}
                                   >
@@ -1650,87 +1670,133 @@ const Task = () => {
                                   </div>
                                 </div>
                               )}
-                             </td>
+                            </td>
 
-                             {/* Blocker Column */}
-                             <td
-                               className="px-4 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-48 min-w-[190px]"
-                               onClick={(e) => e.stopPropagation()}
-                             >
-                               <div className="flex flex-col gap-1.5 w-full">
-                                 {task.isBlocked ? (
-                                   <div className="space-y-1.5 p-2 bg-rose-500/5 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-950/40 rounded-2xl">
-                                     <div className="flex justify-between items-center gap-1.5">
-                                       <span className="px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/30 text-rose-700 dark:text-rose-400 text-[8.5px] font-black uppercase tracking-wider truncate max-w-[100px]" title={task.blockerType}>
-                                         {task.blockerType}
-                                       </span>
-                                       <span className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase ${task.blockerPriority === 'Urgent' ? 'bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-transparent'}`}>
-                                         {task.blockerPriority}
-                                       </span>
-                                     </div>
-                                     <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium italic line-clamp-2 leading-tight" title={task.blockerDescription}>
-                                       "{task.blockerDescription}"
-                                     </p>
-                                     <div className="flex justify-between items-center text-[8.5px] font-bold text-slate-450 dark:text-slate-500">
-                                       <span>⏳ Exp: {task.blockerExpectedTime}</span>
-                                       <span>Paused: {formatDate(task.blockerPausedAt)}</span>
-                                     </div>
-                                     <button
-                                       onClick={() => handleResumeTask(task)}
-                                       className="w-full mt-1 flex items-center justify-center gap-1 px-2.5 py-1 rounded-xl text-[9px] font-black tracking-wider uppercase bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-500/10 hover:shadow transition-all cursor-pointer"
-                                     >
-                                       ✅ Resume Work
-                                     </button>
-                                   </div>
-                                 ) : (
-                                   <>
-                                     <button
-                                       onClick={() => handleOpenBlockerModal(task)}
-                                       className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl text-[9.5px] font-black tracking-wider uppercase bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-rose-500 hover:text-rose-500 transition-all w-full text-center cursor-pointer"
-                                     >
-                                       <FiPlus size={10} /> Add Blocker
-                                     </button>
-                                     {task.blockerHistory && task.blockerHistory.length > 0 && (
-                                       <div className="relative group/history mt-1 text-center">
-                                         <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-slate-400 dark:text-slate-500 hover:text-rose-500 cursor-pointer transition-colors">
-                                           ⏱️ Pause History ({task.blockerHistory.length})
-                                         </span>
-                                         {/* Tooltip containing details */}
-                                         <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover/history:block z-50 w-64 bg-white dark:bg-[#070b13] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-3 text-left space-y-2 pointer-events-none transition-all">
-                                           <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800/80 pb-1 flex justify-between">
-                                             <span>Pause Log</span>
-                                             <span>Total Pauses: {task.blockerHistory.length}</span>
-                                           </div>
-                                           <div className="max-h-40 overflow-y-auto space-y-2 scrollbar-thin pr-1">
-                                             {task.blockerHistory.map((hist, idx) => (
-                                               <div key={idx} className="text-[10px] space-y-0.5 border-b border-slate-50 dark:border-slate-900/50 pb-1.5 last:border-0 last:pb-0">
-                                                 <div className="flex justify-between font-black text-slate-700 dark:text-slate-350">
-                                                   <span className="text-rose-600 dark:text-rose-400">{hist.blockerType}</span>
-                                                   <span className="text-slate-500">{hist.totalPauseMinutes} mins</span>
-                                                 </div>
-                                                 {hist.blockerDescription && (
-                                                   <p className="text-slate-500 dark:text-slate-450 italic line-clamp-2">"{hist.blockerDescription}"</p>
-                                                 )}
-                                                 <div className="text-[8px] text-slate-400 dark:text-slate-500 flex justify-between">
-                                                   <span>In: {formatDateTime(hist.pausedAt)}</span>
-                                                   <span>Out: {formatDateTime(hist.resumedAt)}</span>
-                                                 </div>
-                                               </div>
-                                             ))}
-                                           </div>
-                                         </div>
-                                       </div>
-                                     )}
-                                   </>
-                                 )}
-                               </div>
-                             </td>
+                            {/* Blocker Column */}
+                            <td
+                              className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-32 min-w-[125px] hover:relative hover:z-50 text-center"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="flex flex-col gap-1.5 w-full">
+                                {task.isBlocked ? (
+                                  <div className="space-y-1.5 p-2 bg-rose-500/5 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-950/40 rounded-2xl">
+                                    <div className="flex justify-between items-center gap-1.5">
+                                      <span
+                                        className="px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/30 text-rose-700 dark:text-rose-400 text-[8.5px] font-black uppercase tracking-wider truncate max-w-[100px]"
+                                        title={task.blockerType}
+                                      >
+                                        {task.blockerType}
+                                      </span>
+                                      <span
+                                        className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase ${task.blockerPriority === "Urgent" ? "bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30" : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-transparent"}`}
+                                      >
+                                        {task.blockerPriority}
+                                      </span>
+                                    </div>
+                                    <p
+                                      className="text-[10px] text-slate-600 dark:text-slate-400 font-medium italic line-clamp-2 leading-tight"
+                                      title={task.blockerDescription}
+                                    >
+                                      "{task.blockerDescription}"
+                                    </p>
+                                    <div className="flex justify-between items-center text-[8.5px] font-bold text-slate-450 dark:text-slate-500">
+                                      <span>
+                                        ⏳ Exp: {task.blockerExpectedTime}
+                                      </span>
+                                      <span>
+                                        Paused:{" "}
+                                        {formatDate(task.blockerPausedAt)}
+                                      </span>
+                                    </div>
+                                    <button
+                                      onClick={() => handleResumeTask(task)}
+                                      className="w-full mt-1 flex items-center justify-center gap-1 px-2.5 py-1 rounded-xl text-[9px] font-black tracking-wider uppercase bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-500/10 hover:shadow transition-all cursor-pointer"
+                                    >
+                                      ✅ Resume Work
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <button
+                                      onClick={() =>
+                                        handleOpenBlockerModal(task)
+                                      }
+                                      className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl text-[9.5px] font-black tracking-wider uppercase bg-slate-100 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-600/50 text-slate-700 dark:text-slate-200 hover:border-rose-500 hover:text-rose-500 transition-all w-full text-center cursor-pointer shadow-sm"
+                                    >
+                                      <FiPlus size={10} /> Add Blocker
+                                    </button>
+                                    {task.blockerHistory &&
+                                      task.blockerHistory.length > 0 && (
+                                        <div className="relative group/history mt-1 text-center">
+                                          <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-slate-400 dark:text-slate-500 hover:text-rose-500 cursor-pointer transition-colors">
+                                            ⏱️ Pause History (
+                                            {task.blockerHistory.length})
+                                          </span>
+                                          {/* Tooltip containing details */}
+                                          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover/history:block z-50 w-64 bg-white dark:bg-[#070b13] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-3 text-left space-y-2 pointer-events-none transition-all">
+                                            <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800/80 pb-1 flex justify-between">
+                                              <span>Pause Log</span>
+                                              <span>
+                                                Total Pauses:{" "}
+                                                {task.blockerHistory.length}
+                                              </span>
+                                            </div>
+                                            <div className="max-h-40 overflow-y-auto space-y-2 scrollbar-thin pr-1">
+                                              {task.blockerHistory.map(
+                                                (hist, idx) => (
+                                                  <div
+                                                    key={idx}
+                                                    className="text-[10px] space-y-0.5 border-b border-slate-50 dark:border-slate-900/50 pb-1.5 last:border-0 last:pb-0"
+                                                  >
+                                                    <div className="flex justify-between font-black text-slate-700 dark:text-slate-350">
+                                                      <span className="text-rose-600 dark:text-rose-400">
+                                                        {hist.blockerType}
+                                                      </span>
+                                                      <span className="text-slate-500">
+                                                        {hist.totalPauseMinutes}{" "}
+                                                        mins
+                                                      </span>
+                                                    </div>
+                                                    {hist.blockerDescription && (
+                                                      <p className="text-slate-500 dark:text-slate-450 italic line-clamp-2">
+                                                        "
+                                                        {
+                                                          hist.blockerDescription
+                                                        }
+                                                        "
+                                                      </p>
+                                                    )}
+                                                    <div className="text-[8px] text-slate-400 dark:text-slate-500 flex justify-between">
+                                                      <span>
+                                                        In:{" "}
+                                                        {formatDateTime(
+                                                          hist.pausedAt,
+                                                        )}
+                                                      </span>
+                                                      <span>
+                                                        Out:{" "}
+                                                        {formatDateTime(
+                                                          hist.resumedAt,
+                                                        )}
+                                                      </span>
+                                                    </div>
+                                                  </div>
+                                                ),
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
+                                  </>
+                                )}
+                              </div>
+                            </td>
 
-                             {/* Timer Column */}
-                             <td
-                               className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-32 whitespace-nowrap"
-                               onClick={(e) => e.stopPropagation()}
-                             >
+                            {/* Timer Column */}
+                            <td
+                              className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-32 whitespace-nowrap text-center"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <TimeTracker
                                 startTime={task.actualStartTime}
                                 endTime={task.actualEndTime}
@@ -1743,11 +1809,11 @@ const Task = () => {
 
                             {/* Revision Column */}
                             <td
-                              className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-28"
+                              className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-28 text-center"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <div className="flex justify-center items-center gap-1.5">
-                                <span className="font-extrabold text-xs text-slate-800 dark:text-yellow-50 text-center">
+                                <span className="font-extrabold text-[11px] text-slate-800 dark:text-yellow-50 text-center">
                                   {task.revisions || 0}
                                 </span>
                                 {(task.revisions || 0) > 3 && (
@@ -1760,7 +1826,7 @@ const Task = () => {
                             </td>
 
                             {/* Start Date */}
-                            <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-32">
+                            <td className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-32 text-center">
                               <span
                                 className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap ${
                                   task.startDate
@@ -1773,7 +1839,7 @@ const Task = () => {
                               </span>
                             </td>
                             {/* End Date */}
-                            <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40 w-32">
+                            <td className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-32 text-center">
                               <span
                                 className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap ${
                                   task.dueDate
@@ -1787,10 +1853,10 @@ const Task = () => {
                             </td>
 
                             {/* Assigned By */}
-                            <td className="px-6 py-2 border-r border-b border-slate-200/60 dark:border-[#1e293b]/40">
+                            <td className="px-3 py-2 border border-slate-300 dark:border-slate-600 text-center">
                               {task.createdBy ? (
                                 <div className="flex items-center gap-2">
-                                  <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/35 flex items-center justify-center text-[10px] font-black text-blue-700 dark:text-blue-400 overflow-hidden">
+                                  <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/35 flex items-center justify-center text-[9px] font-black text-blue-700 dark:text-blue-400 overflow-hidden">
                                     {task.createdBy.profile?.profileImage
                                       ?.url ||
                                     task.createdBy.profileImage?.url ? (
@@ -1809,7 +1875,7 @@ const Task = () => {
                                         .toUpperCase()
                                     )}
                                   </div>
-                                  <span className="font-semibold text-slate-707 dark:text-slate-355">
+                                  <span className="font-semibold text-[11px] text-slate-700 dark:text-slate-300">
                                     {task.createdBy.name}
                                   </span>
                                 </div>
@@ -1821,8 +1887,8 @@ const Task = () => {
                             </td>
 
                             {/* Created Time */}
-                            <td className="px-6 py-2 border-b border-slate-200/60 dark:border-[#1e293b]/40">
-                              <span className="text-slate-500 dark:text-white font-semibold">
+                            <td className="px-3 py-2 border border-slate-300 dark:border-slate-600 text-center">
+                              <span className="text-slate-500 dark:text-white font-semibold text-[11px]">
                                 <CreatedTime time={task.createdAt} />
                               </span>
                             </td>
@@ -1837,13 +1903,13 @@ const Task = () => {
                               return (
                                 <tr
                                   key={sub._id || subIdx}
-                                  className={`bg-slate-50/5 dark:bg-[#111827]/15 hover:bg-slate-50/20 dark:hover:bg-[#1e293b]/25 transition-colors border-b border-slate-100/60 dark:border-[#1e293b]/30 ${
+                                  className={`bg-slate-50/5 dark:bg-[#111827]/15 hover:bg-slate-50/20 dark:hover:bg-[#1e293b]/25 transition-colors border-b border-slate-300 dark:border-slate-600 ${
                                     isSubCompleted
                                       ? "text-slate-400 dark:text-slate-500"
                                       : "text-slate-700 dark:text-slate-200"
                                   }`}
                                 >
-                                  <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30">
+                                  <td className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600">
                                     <span
                                       className={`px-2 py-0.5 rounded-lg border text-[9px] font-extrabold tracking-wider uppercase ${getPriorityStyle(sub.priority || "Medium")}`}
                                     >
@@ -1851,10 +1917,10 @@ const Task = () => {
                                     </span>
                                   </td>
                                   {/* Subtask ID */}
-                                  <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30 font-mono font-bold text-[9.5px] text-slate-400 dark:text-slate-500">
+                                  <td className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600 font-mono font-bold text-[9.5px] text-slate-400 dark:text-slate-500">
                                     {getTaskDisplayId(task)}.{subIdx + 1}
                                   </td>
-                                  <td className="px-6 py-1.5 font-bold border-r border-b border-slate-100/60 dark:border-[#1e293b]/30">
+                                  <td className="px-6 py-1.5 font-bold border-b border-slate-300 dark:border-slate-600">
                                     <div className="flex items-center gap-2 pl-4 border-l-2 border-slate-200 dark:border-[#1e293b]/50">
                                       <FiCornerDownRight
                                         className="text-slate-400 shrink-0"
@@ -1867,10 +1933,10 @@ const Task = () => {
                                       </span>
                                     </div>
                                   </td>
-                                  <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30" />
-                                  <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30" />
+                                  <td className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600" />
+                                  <td className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600" />
                                   <td
-                                    className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30 w-36"
+                                    className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600 w-36"
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <div className="flex flex-col items-start gap-1 w-full">
@@ -1981,9 +2047,9 @@ const Task = () => {
                                       />
                                     </div>
                                   </td>
-                                  <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30" />
-                                  <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30" />
-                                  <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30">
+                                  <td className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600" />
+                                  <td className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600" />
+                                  <td className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600">
                                     <span
                                       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold ${sub.startDate ? "bg-indigo-50/60 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-100/50 dark:border-indigo-900/30" : "text-slate-400 dark:text-slate-655 border border-dashed border-slate-200 dark:border-[#1e293b]/40"}`}
                                     >
@@ -1991,7 +2057,7 @@ const Task = () => {
                                       {formatDate(sub.startDate)}
                                     </span>
                                   </td>
-                                  <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30">
+                                  <td className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600">
                                     <span
                                       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold ${sub.dueDate ? "bg-indigo-50/60 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-100/50 dark:border-indigo-900/30" : "text-slate-400 dark:text-slate-650 border border-dashed border-slate-200 dark:border-[#1e293b]/40"}`}
                                     >
@@ -1999,12 +2065,12 @@ const Task = () => {
                                       {formatDate(sub.dueDate)}
                                     </span>
                                   </td>
-                                  <td className="px-6 py-1.5 border-r border-b border-slate-100/60 dark:border-[#1e293b]/30">
+                                  <td className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600">
                                     <span className="text-gray-405 dark:text-slate-600">
                                       —
                                     </span>
                                   </td>
-                                  <td className="px-6 py-1.5 border-b border-slate-100/60 dark:border-[#1e293b]/30">
+                                  <td className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600">
                                     <span className="text-slate-400">—</span>
                                   </td>
                                 </tr>
@@ -2282,19 +2348,19 @@ const Task = () => {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "tween", ease: "easeOut", duration: 0.3 }}
-              className="relative w-full max-w-md bg-white dark:bg-[#0f172a] h-full shadow-[0_0_50px_rgba(0,0,0,0.1)] dark:shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col z-10 border-l border-slate-100 dark:border-slate-800"
+              className="relative w-full max-w-2xl bg-white dark:bg-[#070b13] h-full shadow-[0_0_50px_rgba(0,0,0,0.1)] dark:shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col z-10 border-l border-slate-100 dark:border-slate-800"
             >
               {/* Drawer Header */}
-              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/30">
+              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-[#0c121e]">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm shrink-0">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-sm shrink-0">
                     <FiCheckSquare size={18} />
                   </div>
                   <div>
-                    <h2 className="text-sm font-black text-slate-800 dark:text-yellow-50  tracking-wider">
+                    <h2 className="text-sm font-black text-slate-800 dark:text-white tracking-wider">
                       Task Workspace
                     </h2>
-                    <p className="text-[10px] text-slate-450 font-bold  tracking-wider mt-0.5">
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-wider mt-0.5">
                       Preview & Modify Details
                     </p>
                   </div>
@@ -2310,22 +2376,82 @@ const Task = () => {
 
               {/* Drawer Content */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                {/* Title Input */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400  tracking-wider">
-                    Task Title
-                  </label>
-                  <div className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded-xl focus-within:bg-white dark:focus-within:bg-slate-950 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
-                    <TaskTitleInput
-                      task={selectedTask}
-                      handleTaskFieldChange={handleTaskFieldChange}
-                      isCompleted={selectedTask.status === "Completed"}
-                    />
+
+                {/* Read-Only Task Details List */}
+                <div className="bg-slate-50 dark:bg-[#111827] rounded-3xl p-5 border border-slate-100 dark:border-slate-800/80 space-y-4 shadow-sm relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-3 opacity-10 pointer-events-none">
+                    <FiCheckSquare size={100} />
+                  </div>
+                  
+                  <div className="flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-700 relative z-10">
+                    <div className="px-2.5 py-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-[10px] font-black tracking-wider uppercase">
+                      {getTaskDisplayId(selectedTask)}
+                    </div>
+                    <h3 className="text-sm font-black text-slate-800 dark:text-white">
+                      {selectedTask.title}
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-xs relative z-10">
+                    <div className="space-y-1">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Priority</span>
+                      <span className={`inline-block px-2 py-0.5 rounded border text-[10px] font-bold ${getPriorityStyle(selectedTask.priority || "Medium")}`}>
+                        {selectedTask.priority || "Medium"}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Client</span>
+                      <span className="font-bold text-slate-700 dark:text-white">
+                        {(() => {
+                          const projId = selectedTask.project?._id || selectedTask.project;
+                          const projectObj = projects.find((p) => p._id === projId);
+                          return projectObj?.clientName || "N/A";
+                        })()}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Project</span>
+                      <span className="font-bold text-slate-700 dark:text-white truncate block">
+                        {selectedTask.project?.name || "Internal task"}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Content Type</span>
+                      <span className="font-bold text-slate-700 dark:text-white">
+                        {(() => {
+                          const t = (selectedTask.title || "").toLowerCase();
+                          if (t.includes("reel")) return "Reels";
+                          if (t.includes("post") || t.includes("carousel")) return "Post";
+                          if (t.includes("story")) return "Story";
+                          if (t.includes("youtube") || t.includes("thumbnail")) return "YouTube";
+                          return "Design";
+                        })()}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Assigned By</span>
+                      <span className="font-bold text-slate-700 dark:text-white">
+                        {selectedTask.createdBy?.name || "Unknown"}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Timeline & Revisions</span>
+                      <span className="font-bold text-slate-700 dark:text-white text-[10px]">
+                        {selectedTask.startDate ? formatDate(selectedTask.startDate) : "N/A"} → {selectedTask.dueDate ? formatDate(selectedTask.dueDate) : "N/A"}
+                        <span className="text-slate-300 dark:text-slate-600 mx-1">|</span>
+                        <span className="text-rose-500 font-black">{selectedTask.revisions || 0} Rev</span>
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Metadata Fields Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50/50 dark:bg-slate-800/30 p-4 rounded-3xl border border-slate-100 dark:border-slate-800">
+                <div className="grid grid-cols-1 gap-4 bg-slate-50/50 dark:bg-[#111827] p-4 rounded-3xl border border-slate-100 dark:border-slate-800/80">
                   {/* Status Selection */}
                   <div className="space-y-1">
                     <label className="text-[10px] font-black text-slate-400  tracking-wider flex items-center gap-1.5">
@@ -2380,109 +2506,22 @@ const Task = () => {
                       </option>
                     </select>
                   </div>
-
-                  {/* Priority Selection */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400  tracking-wider flex items-center gap-1.5">
-                      <FiAlertCircle size={12} /> Priority
-                    </label>
-                    <select
-                      value={selectedTask.priority || "Medium"}
-                      onChange={(e) =>
-                        handleTaskFieldChange(selectedTask._id, {
-                          priority: e.target.value,
-                        })
-                      }
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value="Low">Low</option>
-                      <option value="Medium">Medium</option>
-                      <option value="High">High</option>
-                      <option value="Top High">Top High</option>
-                    </select>
-                  </div>
-
-                  {/* Start Date Picker */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400  tracking-wider flex items-center gap-1.5">
-                      <FiCalendar size={12} /> Start Date
-                    </label>
-                    <input
-                      type="date"
-                      value={
-                        selectedTask.startDate
-                          ? new Date(selectedTask.startDate)
-                              .toISOString()
-                              .split("T")[0]
-                          : ""
-                      }
-                      onChange={(e) =>
-                        handleTaskFieldChange(selectedTask._id, {
-                          startDate: e.target.value,
-                        })
-                      }
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {/* End Date (Due Date) Picker */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400  tracking-wider flex items-center gap-1.5">
-                      <FiCalendar size={12} /> End Date
-                    </label>
-                    <input
-                      type="date"
-                      value={
-                        selectedTask.dueDate
-                          ? new Date(selectedTask.dueDate)
-                              .toISOString()
-                              .split("T")[0]
-                          : ""
-                      }
-                      onChange={(e) =>
-                        handleTaskFieldChange(selectedTask._id, {
-                          dueDate: e.target.value,
-                        })
-                      }
-                      className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {/* Associated Project (Read-only badge style) */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400  tracking-wider flex items-center gap-1.5">
-                      <FiBriefcase size={12} /> Project
-                    </label>
-                    <div className="w-full bg-slate-100/60 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-extrabold text-slate-600 dark:text-slate-400 truncate">
-                      {selectedTask.project?.name || "Internal task"}
-                    </div>
-                  </div>
-
-                  {/* Revisions Count */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 tracking-wider flex items-center gap-1.5">
-                      Revisions
-                    </label>
-                    <div className="w-full bg-slate-100/60 dark:bg-slate-900 border border-slate-200/50 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-extrabold text-slate-700 dark:text-slate-350">
-                      {selectedTask.revisions || 0}
-                    </div>
-                  </div>
                 </div>
 
                 {/* Blocker Settings */}
-                <div className="p-4 bg-rose-500/5 dark:bg-rose-500/10 border border-rose-200/50 dark:border-rose-950/40 rounded-3xl space-y-4">
+                <div className="p-4 bg-rose-500/5 dark:bg-[#111827] border border-rose-200/50 dark:border-rose-900/30 rounded-3xl space-y-4">
                   <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black text-rose-600 dark:text-rose-455 tracking-wider flex items-center gap-1.5 uppercase">
+                    <label className="text-[10px] font-black text-rose-600 dark:text-rose-400 tracking-wider flex items-center gap-1.5 uppercase">
                       <FiAlertCircle size={14} /> Blocker & Pause Control
                     </label>
                     {selectedTask.isBlocked ? (
-                      <span className="px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 text-[9px] font-black uppercase tracking-wider animate-pulse">
+                      <span className="px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 text-[9px] font-black uppercase tracking-wider animate-pulse">
                         Paused - Blocked
                       </span>
                     ) : (
                       <button
                         onClick={() => handleOpenBlockerModal(selectedTask)}
-                        className="px-3 py-1 bg-slate-100 hover:bg-rose-600 dark:bg-slate-900 dark:hover:bg-rose-600 hover:text-white border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all cursor-pointer"
+                        className="px-3 py-1.5 bg-rose-100 hover:bg-rose-600 dark:bg-rose-500/10 dark:hover:bg-rose-600 hover:text-white text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all cursor-pointer shadow-sm"
                       >
                         + Add Blocker
                       </button>
@@ -2504,7 +2543,9 @@ const Task = () => {
                           <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
                             Priority
                           </span>
-                          <div className={`px-2.5 py-1.5 border font-extrabold rounded-xl ${selectedTask.blockerPriority === 'Urgent' ? 'bg-red-550/10 dark:bg-red-950/30 border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400' : 'bg-slate-55/50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300'}`}>
+                          <div
+                            className={`px-2.5 py-1.5 border font-extrabold rounded-xl ${selectedTask.blockerPriority === "Urgent" ? "bg-red-550/10 dark:bg-red-950/30 border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400" : "bg-slate-55/50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300"}`}
+                          >
                             {selectedTask.blockerPriority || "Normal"}
                           </div>
                         </div>
@@ -2515,7 +2556,11 @@ const Task = () => {
                           Blocker Description
                         </span>
                         <div className="p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-805 rounded-xl text-slate-650 dark:text-slate-350 italic font-medium leading-relaxed">
-                          "{selectedTask.blockerDescription || selectedTask.blockerReason || "No description provided"}"
+                          "
+                          {selectedTask.blockerDescription ||
+                            selectedTask.blockerReason ||
+                            "No description provided"}
+                          "
                         </div>
                       </div>
 
@@ -2548,359 +2593,45 @@ const Task = () => {
                   )}
 
                   {/* Historical Pauses */}
-                  {selectedTask.blockerHistory && selectedTask.blockerHistory.length > 0 && (
-                    <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-2">
-                      <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-                        Pause History ({selectedTask.blockerHistory.length})
-                      </span>
-                      <div className="space-y-2 max-h-40 overflow-y-auto pr-1 scrollbar-thin">
-                        {selectedTask.blockerHistory.map((hist, idx) => (
-                          <div key={idx} className="p-2.5 bg-slate-50/50 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-800/50 rounded-xl space-y-1">
-                            <div className="flex justify-between items-center text-[10px] font-black">
-                              <span className="text-rose-600 dark:text-rose-455 uppercase">{hist.blockerType}</span>
-                              <span className="text-slate-500 dark:text-slate-400">{hist.totalPauseMinutes} mins</span>
+                  {selectedTask.blockerHistory &&
+                    selectedTask.blockerHistory.length > 0 && (
+                      <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 space-y-2">
+                        <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                          Pause History ({selectedTask.blockerHistory.length})
+                        </span>
+                        <div className="space-y-2 max-h-40 overflow-y-auto pr-1 scrollbar-thin">
+                          {selectedTask.blockerHistory.map((hist, idx) => (
+                            <div
+                              key={idx}
+                              className="p-2.5 bg-slate-50/50 dark:bg-slate-900/30 border border-slate-100 dark:border-slate-800/50 rounded-xl space-y-1"
+                            >
+                              <div className="flex justify-between items-center text-[10px] font-black">
+                                <span className="text-rose-600 dark:text-rose-455 uppercase">
+                                  {hist.blockerType}
+                                </span>
+                                <span className="text-slate-500 dark:text-slate-400">
+                                  {hist.totalPauseMinutes} mins
+                                </span>
+                              </div>
+                              {hist.blockerDescription && (
+                                <p className="text-[10px] text-slate-500 dark:text-slate-455 italic">
+                                  "{hist.blockerDescription}"
+                                </p>
+                              )}
+                              <div className="text-[8px] text-slate-400 dark:text-slate-500 flex justify-between">
+                                <span>In: {formatDateTime(hist.pausedAt)}</span>
+                                <span>
+                                  Out: {formatDateTime(hist.resumedAt)}
+                                </span>
+                              </div>
                             </div>
-                            {hist.blockerDescription && (
-                              <p className="text-[10px] text-slate-500 dark:text-slate-455 italic">"{hist.blockerDescription}"</p>
-                            )}
-                            <div className="text-[8px] text-slate-400 dark:text-slate-500 flex justify-between">
-                              <span>In: {formatDateTime(hist.pausedAt)}</span>
-                              <span>Out: {formatDateTime(hist.resumedAt)}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Comments & Attachments */}
-                <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                  <h3 className="text-[10px] font-black text-slate-400  tracking-wider flex items-center gap-1.5">
-                    Discussion & Attachments
-                  </h3>
-
-                  {/* Attachments List */}
-                  {selectedTask.attachments?.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {selectedTask.attachments.map((att) => (
-                        <a
-                          key={att._id || att.url}
-                          href={att.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                        >
-                          <FiFile size={12} /> {att.filename}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Comments List */}
-                  <div className="space-y-3 max-h-40 overflow-y-auto pr-1">
-                    {selectedTask.comments?.map((comment, idx) => (
-                      <div key={idx} className="flex gap-2.5">
-                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0 text-[10px] font-bold text-blue-700 dark:text-blue-400">
-                          {comment.user?.name?.charAt(0) || "U"}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
-                              {comment.user?.name || "Unknown User"}
-                            </span>
-                            <span className="text-[9px] text-slate-400">
-                              {new Date(comment.createdAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <div className="text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 p-2 rounded-lg rounded-tl-none border border-slate-100 dark:border-slate-700">
-                            {comment.text}
-                          </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
-                    {selectedTask.comments?.length === 0 && (
-                      <div className="text-[10px] text-slate-400 italic">
-                        No comments yet.
-                      </div>
                     )}
-                  </div>
-
-                  {/* Add Comment / File Input */}
-                  <div className="flex items-end gap-2 mt-2">
-                    <div className="flex-1 relative">
-                      <textarea
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        placeholder="Add a comment..."
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none min-h-[40px]"
-                        rows={1}
-                      />
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <input
-                        type="file"
-                        id="my-task-attachment"
-                        className="hidden"
-                        onChange={handleUploadAttachment}
-                        disabled={isUploading}
-                      />
-                      <label
-                        htmlFor="my-task-attachment"
-                        className={`p-2 text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors ${isUploading ? "opacity-50 cursor-not-allowed" : ""}`}
-                      >
-                        <FiPaperclip size={14} />
-                      </label>
-                      <button
-                        onClick={handleAddComment}
-                        disabled={!newComment.trim() || isUploading}
-                        className="p-2 bg-blue-600 text-white rounded-lg disabled:opacity-50 hover:bg-blue-700 transition-colors"
-                      >
-                        <FiSend size={14} />
-                      </button>
-                    </div>
-                  </div>
                 </div>
 
-                {/* Subtask Workspace */}
-                <div className="space-y-3.5">
-                  <label className="text-[10px] font-black text-slate-400  tracking-wider flex items-center gap-1.5">
-                    <FiCornerDownRight size={13} /> Subtasks Board
-                  </label>
-
-                  {/* Continuous subtask addition input */}
-                  <div className="relative">
-                    <input
-                      type="text"
-                      ref={subtaskInputRef}
-                      value={drawerSubtaskTitle}
-                      onChange={(e) => setDrawerSubtaskTitle(e.target.value)}
-                      onKeyDown={handleAddSubtaskInDrawer}
-                      placeholder="Add subtask and press Enter..."
-                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-1 focus:ring-blue-500 focus:bg-white text-xs font-semibold placeholder-slate-400 transition-all"
-                    />
-                    <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                      <FiPlus size={14} />
-                    </div>
-                  </div>
-
-                  {/* Drawer subtask list items */}
-                  <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
-                    {!selectedTask.subtasks ||
-                    selectedTask.subtasks.length === 0 ? (
-                      <div className="text-center py-6 text-slate-400 italic text-[11px] font-bold">
-                        No subtasks assigned yet. Type above to add.
-                      </div>
-                    ) : (
-                      selectedTask.subtasks.map((sub) => {
-                        const isSubCompleted = sub.status === "Completed";
-                        const subStatusStyle = getStatusStyle(sub.status);
-                        return (
-                          <div
-                            key={sub._id}
-                            className="bg-slate-50/75 dark:bg-slate-900/60 p-3.5 rounded-2xl border border-slate-150 dark:border-slate-800/80 space-y-3 group"
-                          >
-                            {/* Top row: Checkbox, Title, Delete */}
-                            <div className="flex items-center gap-3">
-                              {/* Checkbox */}
-                              <button
-                                onClick={() =>
-                                  handleToggleSubtask(selectedTask, sub)
-                                }
-                                className={`w-4.5 h-4.5 rounded-full border flex items-center justify-center shrink-0 transition-all ${
-                                  isSubCompleted
-                                    ? "bg-emerald-500 border-emerald-500 text-white"
-                                    : "border-slate-350 dark:border-slate-700 hover:border-emerald-500 text-transparent"
-                                }`}
-                              >
-                                <FiCheck size={10} />
-                              </button>
-
-                              {/* Editable Title */}
-                              <input
-                                type="text"
-                                value={sub.title}
-                                onChange={(e) =>
-                                  handleUpdateSubtaskField(
-                                    selectedTask,
-                                    sub._id,
-                                    {
-                                      title: e.target.value,
-                                    },
-                                  )
-                                }
-                                className={`flex-1 min-w-0 bg-transparent border-0 font-extrabold text-xs text-slate-800 dark:text-white focus:ring-0 focus:outline-none p-0 ${
-                                  isSubCompleted
-                                    ? "line-through text-slate-400 font-medium"
-                                    : ""
-                                }`}
-                              />
-
-                              {/* Delete */}
-                              <button
-                                onClick={() =>
-                                  handleDeleteSubtask(selectedTask, sub._id)
-                                }
-                                className="text-slate-400 hover:text-rose-600 transition-colors duration-150 shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
-                              >
-                                <FiTrash2 size={13} />
-                              </button>
-                            </div>
-
-                            {/* Bottom row: Status, Priority, Start Date, End Date */}
-                            <div className="grid grid-cols-2 gap-2 text-[10px]">
-                              {/* Status Select */}
-                              <div className="space-y-1">
-                                <label className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                                  Status
-                                </label>
-                                <select
-                                  value={sub.status || "Pending"}
-                                  onChange={(e) =>
-                                    handleUpdateSubtaskField(
-                                      selectedTask,
-                                      sub._id,
-                                      {
-                                        status: e.target.value,
-                                      },
-                                    )
-                                  }
-                                  className={`w-full px-2 py-1 text-[9px] font-extrabold rounded-lg border tracking-wider cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors ${subStatusStyle.bg}`}
-                                >
-                                  <option
-                                    value="Pending"
-                                    className={getStatusStyle("Pending").bg}
-                                  >
-                                    Pending
-                                  </option>
-                                  <option
-                                    value="In Progress"
-                                    className={getStatusStyle("In Progress").bg}
-                                  >
-                                    In Progress
-                                  </option>
-                                  <option
-                                    value="IN-REVIEW"
-                                    className={getStatusStyle("IN-REVIEW").bg}
-                                  >
-                                    In Review
-                                  </option>
-                                  {sub.status === "Completed" && (
-                                    <option
-                                      value="Completed"
-                                      className={getStatusStyle("Completed").bg}
-                                    >
-                                      Completed
-                                    </option>
-                                  )}
-                                  <option
-                                    value="On Hold"
-                                    className={getStatusStyle("On Hold").bg}
-                                  >
-                                    On Hold
-                                  </option>
-                                  <option
-                                    value="Rejected"
-                                    className={getStatusStyle("Rejected").bg}
-                                  >
-                                    Rejected
-                                  </option>
-                                </select>
-                              </div>
-
-                              {/* Priority Select */}
-                              <div className="space-y-1">
-                                <label className="text-[8px] font-black text-slate-400 dark:text-slate-505 uppercase tracking-wider">
-                                  Priority
-                                </label>
-                                <select
-                                  value={sub.priority || "Medium"}
-                                  onChange={(e) =>
-                                    handleUpdateSubtaskField(
-                                      selectedTask,
-                                      sub._id,
-                                      {
-                                        priority: e.target.value,
-                                      },
-                                    )
-                                  }
-                                  className={`w-full px-2 py-1 text-[9px] font-extrabold rounded-lg border focus:outline-none cursor-pointer ${
-                                    sub.priority === "Top High"
-                                      ? "bg-purple-50 text-purple-700 border-purple-200/50"
-                                      : sub.priority === "High"
-                                        ? "bg-rose-50 text-rose-700 border-rose-200/50"
-                                        : sub.priority === "Medium"
-                                          ? "bg-amber-50 text-amber-700 border-amber-200/50"
-                                          : "bg-slate-50 text-slate-600 border-slate-200"
-                                  }`}
-                                >
-                                  <option value="Low">Low</option>
-                                  <option value="Medium">Medium</option>
-                                  <option value="High">High</option>
-                                  <option value="Top High">Top High</option>
-                                </select>
-                              </div>
-
-                              {/* Start Date Picker */}
-                              <div className="space-y-1">
-                                <label className="text-[8px] font-black text-slate-405 dark:text-slate-500 uppercase tracking-wider">
-                                  Start Date
-                                </label>
-                                <input
-                                  type="date"
-                                  value={
-                                    sub.startDate
-                                      ? new Date(sub.startDate)
-                                          .toISOString()
-                                          .split("T")[0]
-                                      : ""
-                                  }
-                                  onChange={(e) =>
-                                    handleUpdateSubtaskField(
-                                      selectedTask,
-                                      sub._id,
-                                      {
-                                        startDate: e.target.value || null,
-                                      },
-                                    )
-                                  }
-                                  className="w-full bg-indigo-50 dark:bg-indigo-500/20 border border-indigo-200/50 dark:border-indigo-500/40 text-indigo-700 dark:text-indigo-300 rounded-lg px-2 py-1 text-[10px] font-extrabold focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-colors cursor-pointer"
-                                />
-                              </div>
-
-                              {/* End Date Picker */}
-                              <div className="space-y-1">
-                                <label className="text-[8px] font-black text-slate-405 dark:text-slate-500 uppercase tracking-wider">
-                                  End Date
-                                </label>
-                                <input
-                                  type="date"
-                                  value={
-                                    sub.dueDate
-                                      ? new Date(sub.dueDate)
-                                          .toISOString()
-                                          .split("T")[0]
-                                      : ""
-                                  }
-                                  onChange={(e) =>
-                                    handleUpdateSubtaskField(
-                                      selectedTask,
-                                      sub._id,
-                                      {
-                                        dueDate: e.target.value || null,
-                                      },
-                                    )
-                                  }
-                                  className="w-full bg-rose-50 dark:bg-rose-500/20 border border-rose-200/50 dark:border-rose-500/40 text-rose-700 dark:text-rose-300 rounded-lg px-2 py-1 text-[10px] font-extrabold focus:outline-none focus:ring-1 focus:ring-rose-500 transition-colors cursor-pointer"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
+            
               </div>
             </motion.div>
           </div>
@@ -2964,8 +2695,12 @@ const Task = () => {
                   <option value="Urgent New Task">Urgent New Task</option>
                   <option value="Client Revision">Client Revision</option>
                   <option value="Internal Meeting">Internal Meeting</option>
-                  <option value="Waiting for Content">Waiting for Content</option>
-                  <option value="Waiting for Approval">Waiting for Approval</option>
+                  <option value="Waiting for Content">
+                    Waiting for Content
+                  </option>
+                  <option value="Waiting for Approval">
+                    Waiting for Approval
+                  </option>
                   <option value="Technical Issue">Technical Issue</option>
                   <option value="Other">Other</option>
                 </select>

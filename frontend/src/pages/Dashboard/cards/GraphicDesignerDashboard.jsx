@@ -186,6 +186,42 @@ const GraphicDesignerDashboard = () => {
     };
   }, [designerTasks, designers.length]);
 
+  const interruptions = useMemo(() => {
+    let totalBlockers = 0;
+    const counts = {
+      "Client Calls": 0,
+      "Urgent Tasks": 0,
+      "Revisions": 0,
+      "Meetings": 0,
+      "Other": 0
+    };
+
+    const processBlocker = (type) => {
+      totalBlockers++;
+      if (!type) {
+        counts["Other"]++;
+        return;
+      }
+      const t = type.toLowerCase();
+      if (t.includes("call") || t.includes("client")) counts["Client Calls"]++;
+      else if (t.includes("urgent")) counts["Urgent Tasks"]++;
+      else if (t.includes("revision")) counts["Revisions"]++;
+      else if (t.includes("meeting")) counts["Meetings"]++;
+      else counts["Other"]++;
+    };
+
+    designerTasks.forEach((task) => {
+      if (task.blockerHistory && Array.isArray(task.blockerHistory)) {
+        task.blockerHistory.forEach(b => processBlocker(b.blockerType));
+      }
+      if (task.isBlocked) {
+        processBlocker(task.blockerType);
+      }
+    });
+
+    return { total: totalBlockers, counts };
+  }, [designerTasks]);
+
   // 4. Board Data
   const boardColumns = [
     "Pending",
@@ -438,9 +474,9 @@ const GraphicDesignerDashboard = () => {
         <div className="relative">
           <button
             onClick={() => setShowDropdown(!showDropdown)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/50 dark:hover:bg-slate-700/50 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 transition-all shadow-sm backdrop-blur-md"
+            className="flex items-center gap-2 px-5 py-2.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-100  border border-slate-200 dark:border-slate-600/50 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-200 transition-all shadow-sm backdrop-blur-md"
           >
-            <FiFilter className="text-indigo-500 dark:text-indigo-400" />
+            <FiFilter className="text-emerald-500 dark:text-emerald-400" />
             {dateFilter}
             <FiChevronDown
               className={`transition-transform duration-200 ${showDropdown ? "rotate-180" : ""}`}
@@ -458,7 +494,7 @@ const GraphicDesignerDashboard = () => {
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-40 overflow-hidden backdrop-blur-xl"
+                  className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#070b13] border border-slate-200 dark:border-slate-800/80 rounded-xl shadow-2xl z-40 overflow-hidden backdrop-blur-xl"
                 >
                   {[
                     "Today",
@@ -473,7 +509,11 @@ const GraphicDesignerDashboard = () => {
                         setDateFilter(option);
                         setShowDropdown(false);
                       }}
-                      className={`w-full text-left px-4 py-3 text-sm font-bold transition-colors ${dateFilter === option ? "bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400" : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"}`}
+                      className={`w-full text-left px-4 py-3 text-sm font-black transition-colors ${
+                        dateFilter === option 
+                          ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" 
+                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-800 dark:hover:text-slate-100"
+                      }`}
                     >
                       {option}
                     </button>
@@ -611,6 +651,45 @@ const GraphicDesignerDashboard = () => {
         })}
       </div>
 
+      {/* Today's Interruptions */}
+      <div className="mb-8 relative z-10">
+        <div className="bg-slate-50 dark:bg-slate-100 p-5 rounded-3xl border border-slate-200 dark:border-slate-300 backdrop-blur-md shadow-lg">
+          <div className="flex flex-col md:flex-row md:items-center gap-6">
+            <div className="flex-shrink-0 min-w-[150px] border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-700 pb-4 md:pb-0 md:pr-6">
+              <h3 className="text-xs font-black tracking-widest text-slate-500 dark:text-slate-400 mb-2 uppercase flex items-center gap-2">
+                <FiAlertCircle className="text-orange-500" size={14} />
+                Interruptions
+              </h3>
+              <span className="text-4xl font-black text-slate-800 dark:text-white block leading-none">
+                {interruptions.total}
+              </span>
+              <span className="text-[10px] font-bold text-slate-500 uppercase mt-1.5 block">
+                Total Blockers Today
+              </span>
+            </div>
+            
+            <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 hover:border-blue-400 transition-colors group">
+                <span className="text-2xl font-black text-blue-600 dark:text-blue-400 block group-hover:scale-105 transition-transform origin-left">{interruptions.counts["Client Calls"]}</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 block">Client Calls</span>
+              </div>
+              <div className="bg-white dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 hover:border-rose-400 transition-colors group">
+                <span className="text-2xl font-black text-rose-600 dark:text-rose-400 block group-hover:scale-105 transition-transform origin-left">{interruptions.counts["Urgent Tasks"]}</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 block">Urgent Tasks</span>
+              </div>
+              <div className="bg-white dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 hover:border-purple-400 transition-colors group">
+                <span className="text-2xl font-black text-purple-600 dark:text-purple-400 block group-hover:scale-105 transition-transform origin-left">{interruptions.counts["Revisions"]}</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 block">Revisions</span>
+              </div>
+              <div className="bg-white dark:bg-slate-900/40 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50 hover:border-emerald-400 transition-colors group">
+                <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 block group-hover:scale-105 transition-transform origin-left">{interruptions.counts["Meetings"]}</span>
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1 block">Meetings</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Live Task Board */}
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4 px-1">
@@ -626,13 +705,13 @@ const GraphicDesignerDashboard = () => {
           {boardColumns.map((col, i) => (
             <div
               key={i}
-              className="min-w-[210px] xl:min-w-0 w-full flex-shrink-0 snap-start bg-slate-50 dark:bg-[#0f172a]/80 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/80 flex flex-col max-h-[450px] shadow-sm"
+              className="min-w-[210px] xl:min-w-0 w-full flex-shrink-0 snap-start bg-slate-50 dark:bg-[#0f172a] backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-300/80 flex flex-col max-h-[450px] shadow-sm"
             >
-              <div className="p-3 border-b border-slate-200 dark:border-slate-700/80 flex items-center justify-between bg-white dark:bg-transparent rounded-t-2xl">
-                <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 tracking-widest uppercase truncate max-w-[80%]">
+              <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-800/80 rounded-t-2xl backdrop-blur-md">
+                <span className="text-[10px] font-black text-slate-800 dark:text-black tracking-widest uppercase truncate max-w-[80%]">
                   {col}
                 </span>
-                <span className="text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 shrink-0">
+                <span className="text-[10px] font-black bg-slate-200 dark:bg-indigo-500/20 text-slate-700 dark:text-white px-2 py-0.5 rounded-md border border-slate-300 dark:border-indigo-500/30 shrink-0">
                   {tasksByColumn[col].length}
                 </span>
               </div>
@@ -655,14 +734,14 @@ const GraphicDesignerDashboard = () => {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
                         key={task._id}
-                        className="bg-white dark:bg-[#1e293b]/90 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-500/80 transition-all shadow-sm hover:shadow-md relative group"
+                        className="bg-white dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-400 transition-all shadow-sm hover:shadow-md relative group backdrop-blur-sm"
                       >
-                        <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-indigo-500 to-purple-600 rounded-l-xl opacity-80" />
+                        <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-indigo-500 to-purple-500 rounded-l-xl opacity-100" />
                         {/* Title row: icon + name on left, date on right */}
                         <div className="flex items-start justify-between gap-2 pl-1.5 mb-2">
                           <div className="flex items-start gap-1.5 min-w-0">
-                            <FiFileText size={12} className="text-indigo-400 dark:text-indigo-500 shrink-0 mt-0.5" />
-                            <p className="text-xs font-bold text-slate-700 dark:text-slate-100 leading-snug break-words">
+                            <FiFileText size={12} className="text-indigo-400 dark:text-indigo-400 shrink-0 mt-0.5" />
+                            <p className="text-xs font-bold text-slate-700 dark:text-white leading-snug break-words">
                               {task.title}
                             </p>
                           </div>
@@ -754,19 +833,19 @@ const GraphicDesignerDashboard = () => {
 
       <div className="relative z-10">
         {/* Team Performance */}
-        <div className="bg-white dark:bg-[#0f172a]/90 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden shadow-sm dark:shadow-xl">
-          <div className="p-5 border-b border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-transparent flex justify-between items-center">
-            <h3 className="text-sm font-medium  text-slate-800 dark:text-white tracking-widest ">
+        <div className="bg-white dark:bg-slate-900/60 backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm dark:shadow-2xl">
+          <div className="p-5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-transparent flex justify-between items-center">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-white tracking-widest ">
               Designer performance
             </h3>
-            <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-300 uppercase tracking-wider">
               {dateFilter}
             </span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/50 dark:bg-slate-900/80">
+                <tr className="bg-slate-50/50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700">
                   <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
                     Designer
                   </th>
@@ -793,57 +872,57 @@ const GraphicDesignerDashboard = () => {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700/80">
                 {teamPerformance.map((tp) => (
                   <tr
                     key={tp.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
                   >
-                    <td className="p-4 text-sm font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                    <td className="p-4 text-sm font-bold text-slate-700 dark:text-white flex items-center gap-2">
                       {tp.profileImage ? (
                         <img
                           src={tp.profileImage}
                           alt={tp.name}
-                          className="w-6 h-6 rounded-full object-cover"
+                          className="w-6 h-6 rounded-full object-cover border border-slate-600"
                         />
                       ) : (
-                        <div className="w-6 h-6 rounded-full bg-blue-900/90 dark:bg-blue-950 flex items-center justify-center text-white text-[9px] font-extrabold tracking-wider">
+                        <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-[9px] font-extrabold tracking-wider">
                           {getInitials(tp.name)}
                         </div>
                       )}
                       {tp.name}
                     </td>
-                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-300">
+                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-200">
                       {tp.assigned}
                     </td>
-                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-300">
+                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-200">
                       {tp.completed}
                     </td>
-                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-300">
+                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-200">
                       {tp.pending}
                     </td>
-                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-300">
+                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-200">
                       <div className="flex items-center gap-2.5 min-w-[110px]">
-                        <div className="w-14 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div className="w-14 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                           <div
                             className={`h-full rounded-full ${
                               tp.avgRevisions <= 1.5
-                                ? "bg-emerald-600 dark:bg-emerald-500"
+                                ? "bg-emerald-500"
                                 : tp.avgRevisions <= 3.0
-                                  ? "bg-amber-600 dark:bg-amber-500"
-                                  : "bg-rose-600 dark:bg-rose-500"
+                                  ? "bg-amber-500"
+                                  : "bg-rose-500"
                             }`}
                             style={{
                               width: `${Math.min(100, (tp.avgRevisions / 5) * 100)}%`,
                             }}
                           />
                         </div>
-                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                        <span className="text-[11px] font-bold text-slate-500 dark:text-slate-300">
                           {tp.avgRevisions.toFixed(1)} avg
                         </span>
                       </div>
                     </td>
-                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-300">
+                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-200">
                       {tp.totalHours.toFixed(1)}h
                     </td>
                     <td

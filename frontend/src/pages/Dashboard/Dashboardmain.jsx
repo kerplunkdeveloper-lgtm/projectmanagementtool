@@ -914,7 +914,7 @@ const Dashboardmain = () => {
           {/* Department Tabs */}
           <div className="flex justify-center w-full mb-8">
             <div
-              className={`flex gap-1.5 p-1.5  border rounded-full shadow-inner max-w-full overflow-x-auto scrollbar-hide backdrop-blur-md ${isDark ? "bg-slate-50 border-slate-100" : "bg-slate-100/80 border-slate-200/50"}`}
+              className={`flex gap-1.5 p-2.5  border rounded-full shadow-inner max-w-full overflow-x-auto scrollbar-hide backdrop-blur-md ${isDark ? "bg-slate-50 border-slate-100" : "bg-slate-100/80 border-slate-200/50"}`}
             >
               {uniqueDepartments.map((dept) => {
                 const isActive = activeDeptTab === dept;
@@ -922,7 +922,7 @@ const Dashboardmain = () => {
                   <button
                     key={dept}
                     onClick={() => setActiveDeptTab(dept)}
-                    className={`relative px-4 py-1.5 rounded-full text-[11px] font-bold transition-colors duration-300 whitespace-nowrap cursor-pointer z-10 ${
+                    className={`relative px-4 py-2 rounded-full text-[12px] font-bold transition-colors duration-300 whitespace-nowrap cursor-pointer z-10 ${
                       isActive
                         ? "text-white"
                         : isDark

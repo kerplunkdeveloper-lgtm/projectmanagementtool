@@ -975,7 +975,19 @@ const ProjectTaskBoard = ({
   const [selectedTaskId, setSelectedTaskId] = useState(null); // Live task ID for Drawer preview
   const [isAddingSection, setIsAddingSection] = useState(false);
   const [newSectionName, setNewSectionName] = useState("");
-  const [collapsedSections, setCollapsedSections] = useState({}); // sectionName -> boolean
+  const [collapsedSections, setCollapsedSections] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`collapsedSections_${activeProjectId}`);
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(`collapsedSections_${activeProjectId}`, JSON.stringify(collapsedSections));
+  }, [collapsedSections, activeProjectId]);
+
   const [openSectionMenu, setOpenSectionMenu] = useState(null); // sectionName
   const [editingSection, setEditingSection] = useState(null); // sectionName
   const [editSectionValue, setEditSectionValue] = useState("");
@@ -6359,108 +6371,7 @@ const ProjectTaskBoard = ({
                   </div>
                 </div>
 
-                {/* Comments & Attachments */}
-                <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
-                  <h3 className="text-xs font-bold text-slate-500  tracking-wider">
-                    Discussion & Attachments
-                  </h3>
-
-                  {/* Attachments List */}
-                  {selectedTask.attachments?.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {selectedTask.attachments.map((att) => (
-                        <a
-                          key={att._id || att.url}
-                          href={att.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center gap-2 px-3 py-1.5 bg-slate-55 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg text-[10px] font-bold text-blue-600 dark:text-[#3b82f6] hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
-                        >
-                          <FiFile size={12} /> {att.filename}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Comments List */}
-                  <div className="space-y-3 max-h-40 overflow-y-auto pr-1">
-                    {selectedTask.comments?.map((comment, idx) => (
-                      <div key={idx} className="flex gap-2.5">
-                        <div className="w-6 h-6 rounded-full bg-blue-100 dark:bg-[#3b82f6]/20 flex items-center justify-center shrink-0 text-[10px] font-bold text-blue-700 dark:text-[#3b82f6]">
-                          {comment.user?.name?.charAt(0) || "U"}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
-                              {comment.user?.name || "Unknown User"}
-                            </span>
-                            <span className="text-[9px] text-slate-400">
-                              {new Date(comment.createdAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <div className="text-xs text-slate-655 dark:text-slate-400 bg-slate-50 dark:bg-[#111] p-2 rounded-lg rounded-tl-none border border-slate-100 dark:border-white/5">
-                            {comment.text}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {selectedTask.comments?.length === 0 && (
-                      <div className="text-[10px] text-slate-400 italic">
-                        No comments yet.
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Add Comment / File Input */}
-                  {(() => {
-                    const isAssignee =
-                      selectedTask.assignedTo?._id === currentUser?._id ||
-                      selectedTask.assignedTo === currentUser?._id;
-                    const isCreator =
-                      selectedTask.createdBy?._id === currentUser?._id ||
-                      selectedTask.createdBy === currentUser?._id;
-                    const canInteract =
-                      isAdminOrManager || isAssignee || isCreator;
-
-                    return (
-                      canInteract && (
-                        <div className="flex items-end gap-2 mt-2">
-                          <div className="flex-1 relative">
-                            <textarea
-                              value={newComment}
-                              onChange={(e) => setNewComment(e.target.value)}
-                              placeholder="Add a comment..."
-                              className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3b82f6] resize-none min-h-[40px]"
-                              rows={1}
-                            />
-                          </div>
-                          <div className="flex items-center gap-1 shrink-0">
-                            <input
-                              type="file"
-                              id="task-attachment"
-                              className="hidden"
-                              onChange={handleUploadAttachment}
-                              disabled={isUploading}
-                            />
-                            <label
-                              htmlFor="task-attachment"
-                              className={`p-2 text-slate-400 hover:text-blue-600 dark:hover:text-[#3b82f6] cursor-pointer hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg transition-colors ${isUploading ? "opacity-55 cursor-not-allowed" : ""}`}
-                            >
-                              <FiPaperclip size={14} />
-                            </label>
-                            <button
-                              onClick={handleAddComment}
-                              disabled={!newComment.trim() || isUploading}
-                              className="p-2 bg-blue-600 dark:bg-[#3b82f6] text-white dark:text-black rounded-lg disabled:opacity-50 hover:bg-blue-700 dark:hover:bg-[#ccff00] transition-colors"
-                            >
-                              <FiSend size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      )
-                    );
-                  })()}
-                </div>
+               
               </div>
             </motion.div>
           </div>
