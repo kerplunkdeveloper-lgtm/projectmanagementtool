@@ -1417,48 +1417,48 @@ const Task = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="bg-white dark:bg-[#070b13] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)] overflow-hidden border border-slate-300 dark:border-slate-600 transition-all">
+          <div className="bg-white dark:bg-[#070b13] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)] overflow-hidden border border-slate-200 dark:border-slate-800/80 transition-all">
             <div className="overflow-x-auto overflow-y-auto h-[calc(100vh-260px)] min-h-[500px] w-full scrollbar-thin">
-              <table className="w-full min-w-[1300px] text-left border-collapse table-auto border border-slate-300 dark:border-slate-600">
+              <table className="w-full min-w-[1300px] text-left border-collapse table-auto border border-slate-200/70 dark:border-slate-800/70">
                 <thead>
-                  <tr className="sticky top-0 z-20 uppercase text-center bg-slate-50 dark:bg-[#0f172a] text-slate-500 dark:text-slate-400 text-[9px] font-bold tracking-wider border-b border-slate-300 dark:border-slate-600 shadow-sm">
-                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-16">
+                  <tr className="sticky top-0 z-20 uppercase text-center bg-slate-50 dark:bg-[#0f172a] text-slate-500 dark:text-slate-400 text-[9px] font-bold tracking-wider border-b border-slate-200/70 dark:border-slate-800/70 shadow-sm">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-16">
                       ID
                     </th>
-                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-20">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-20">
                       Priority
                     </th>
-                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 min-w-[180px] whitespace-nowrap">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 min-w-[180px] whitespace-nowrap">
                       Task Name
                     </th>
-                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-24">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-24">
                       Client
                     </th>
-                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-32 whitespace-nowrap">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-32 whitespace-nowrap">
                       Content-type
                     </th>
-                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-40 min-w-[145px]">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-40 min-w-[145px]">
                       Status
                     </th>
-                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-32 min-w-[125px]">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-32 min-w-[125px]">
                       Blocker
                     </th>
-                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-32 whitespace-nowrap">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-32 whitespace-nowrap">
                       Time tracker
                     </th>
-                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-28">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-28">
                       Revision
                     </th>
-                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-32">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-32">
                       Start Date
                     </th>
-                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-32">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-32">
                       End Date
                     </th>
-                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-44">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-44">
                       Assigned By
                     </th>
-                    <th className="px-3 py-2 border border-slate-300 dark:border-slate-600 min-w-[200px] w-56">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 min-w-[200px] w-56">
                       Created Time
                     </th>
                   </tr>
@@ -1495,21 +1495,21 @@ const Task = () => {
                             onClick={() => setSelectedTaskId(task._id)}
                           >
                             {/* ID */}
-                            <td className="px-3 py-2 border border-slate-300 dark:border-slate-600 font-bold text-[11px] text-slate-500 dark:text-slate-400 text-center">
+                            <td className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 font-bold text-[11px] text-slate-500 dark:text-slate-400 text-center">
                               {getTaskDisplayId(task)}
                             </td>
 
                             {/* Priority Badge */}
-                            <td className="px-3 py-2 border border-slate-300 dark:border-slate-600 text-center">
+                            <td className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 text-center">
                               <span
-                                className={`inline-block text-center w-16 py-1 text-[9px] rounded-[15px] font-bold uppercase whitespace-nowrap ${getPriorityStyle(task.priority || "Medium")}`}
+                                className={`inline-block text-center w-16  py-2 text-[10px] rounded-[15px] font-bold uppercase whitespace-nowrap ${getPriorityStyle(task.priority || "Medium")}`}
                               >
                                 {task.priority || "Medium"}
                               </span>
                             </td>
 
                             {/* Title & Subtasks Dropdown */}
-                            <td className="px-3 py-2 font-bold border border-slate-300 dark:border-slate-600 text-left">
+                            <td className="px-3 py-2 font-bold border border-slate-200/70 dark:border-slate-800/70 text-left">
                               <div className="flex items-center gap-3">
                                 <span
                                   className={`text-[11px] ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-white"}`}
@@ -1548,7 +1548,7 @@ const Task = () => {
                             </td>
 
                             {/* Client Name */}
-                            <td className="px-3 py-2 border border-slate-300 dark:border-slate-600 text-center">
+                            <td className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 text-center">
                               {(() => {
                                 const projId =
                                   task.project?._id || task.project;
@@ -1571,7 +1571,7 @@ const Task = () => {
                             </td>
 
                             {/* Content-type */}
-                            <td className="px-3 py-2 border border-slate-300 dark:border-slate-600 whitespace-nowrap text-center">
+                            <td className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 whitespace-nowrap text-center">
                               <span
                                 className={`px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase border whitespace-nowrap ${(() => {
                                   const t = (
@@ -1604,7 +1604,7 @@ const Task = () => {
 
                             {/* Status Select */}
                             <td
-                              className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-40 min-w-[145px] text-center"
+                              className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-40 min-w-[145px] text-center"
                               onClick={(e) => e.stopPropagation()}
                             >
                               {task.isBlocked ? (
@@ -1674,7 +1674,7 @@ const Task = () => {
 
                             {/* Blocker Column */}
                             <td
-                              className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-32 min-w-[125px] hover:relative hover:z-50 text-center"
+                              className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-32 min-w-[125px] hover:relative hover:z-50 text-center"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <div className="flex flex-col gap-1.5 w-full">
@@ -1794,7 +1794,7 @@ const Task = () => {
 
                             {/* Timer Column */}
                             <td
-                              className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-32 whitespace-nowrap text-center"
+                              className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-32 whitespace-nowrap text-center"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <TimeTracker
@@ -1809,7 +1809,7 @@ const Task = () => {
 
                             {/* Revision Column */}
                             <td
-                              className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-28 text-center"
+                              className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-28 text-center"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <div className="flex justify-center items-center gap-1.5">
@@ -1826,7 +1826,7 @@ const Task = () => {
                             </td>
 
                             {/* Start Date */}
-                            <td className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-32 text-center">
+                            <td className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-32 text-center">
                               <span
                                 className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap ${
                                   task.startDate
@@ -1839,7 +1839,7 @@ const Task = () => {
                               </span>
                             </td>
                             {/* End Date */}
-                            <td className="px-3 py-2 border border-slate-300 dark:border-slate-600 w-32 text-center">
+                            <td className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-32 text-center">
                               <span
                                 className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold whitespace-nowrap ${
                                   task.dueDate
@@ -1853,7 +1853,7 @@ const Task = () => {
                             </td>
 
                             {/* Assigned By */}
-                            <td className="px-3 py-2 border border-slate-300 dark:border-slate-600 text-center">
+                            <td className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 text-center">
                               {task.createdBy ? (
                                 <div className="flex items-center gap-2">
                                   <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/35 flex items-center justify-center text-[9px] font-black text-blue-700 dark:text-blue-400 overflow-hidden">
@@ -1887,7 +1887,7 @@ const Task = () => {
                             </td>
 
                             {/* Created Time */}
-                            <td className="px-3 py-2 border border-slate-300 dark:border-slate-600 text-center">
+                            <td className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 text-center">
                               <span className="text-slate-500 dark:text-white font-semibold text-[11px]">
                                 <CreatedTime time={task.createdAt} />
                               </span>
@@ -1903,13 +1903,13 @@ const Task = () => {
                               return (
                                 <tr
                                   key={sub._id || subIdx}
-                                  className={`bg-slate-50/5 dark:bg-[#111827]/15 hover:bg-slate-50/20 dark:hover:bg-[#1e293b]/25 transition-colors border-b border-slate-300 dark:border-slate-600 ${
+                                  className={`bg-slate-50/5 dark:bg-[#111827]/15 hover:bg-slate-50/20 dark:hover:bg-[#1e293b]/25 transition-colors border-b border-slate-200/70 dark:border-slate-800/70 ${
                                     isSubCompleted
                                       ? "text-slate-400 dark:text-slate-500"
                                       : "text-slate-700 dark:text-slate-200"
                                   }`}
                                 >
-                                  <td className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600">
+                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70">
                                     <span
                                       className={`px-2 py-0.5 rounded-lg border text-[9px] font-extrabold tracking-wider uppercase ${getPriorityStyle(sub.priority || "Medium")}`}
                                     >
@@ -1917,10 +1917,10 @@ const Task = () => {
                                     </span>
                                   </td>
                                   {/* Subtask ID */}
-                                  <td className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600 font-mono font-bold text-[9.5px] text-slate-400 dark:text-slate-500">
+                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70 font-mono font-bold text-[9.5px] text-slate-400 dark:text-slate-500">
                                     {getTaskDisplayId(task)}.{subIdx + 1}
                                   </td>
-                                  <td className="px-6 py-1.5 font-bold border-b border-slate-300 dark:border-slate-600">
+                                  <td className="px-6 py-1.5 font-bold border-b border-slate-200/70 dark:border-slate-800/70">
                                     <div className="flex items-center gap-2 pl-4 border-l-2 border-slate-200 dark:border-[#1e293b]/50">
                                       <FiCornerDownRight
                                         className="text-slate-400 shrink-0"
@@ -1933,10 +1933,10 @@ const Task = () => {
                                       </span>
                                     </div>
                                   </td>
-                                  <td className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600" />
-                                  <td className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600" />
+                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70" />
+                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70" />
                                   <td
-                                    className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600 w-36"
+                                    className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70 w-36"
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <div className="flex flex-col items-start gap-1 w-full">
@@ -2047,9 +2047,9 @@ const Task = () => {
                                       />
                                     </div>
                                   </td>
-                                  <td className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600" />
-                                  <td className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600" />
-                                  <td className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600">
+                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70" />
+                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70" />
+                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70">
                                     <span
                                       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold ${sub.startDate ? "bg-indigo-50/60 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-100/50 dark:border-indigo-900/30" : "text-slate-400 dark:text-slate-655 border border-dashed border-slate-200 dark:border-[#1e293b]/40"}`}
                                     >
@@ -2057,7 +2057,7 @@ const Task = () => {
                                       {formatDate(sub.startDate)}
                                     </span>
                                   </td>
-                                  <td className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600">
+                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70">
                                     <span
                                       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold ${sub.dueDate ? "bg-indigo-50/60 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-100/50 dark:border-indigo-900/30" : "text-slate-400 dark:text-slate-650 border border-dashed border-slate-200 dark:border-[#1e293b]/40"}`}
                                     >
@@ -2065,12 +2065,12 @@ const Task = () => {
                                       {formatDate(sub.dueDate)}
                                     </span>
                                   </td>
-                                  <td className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600">
+                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70">
                                     <span className="text-gray-405 dark:text-slate-600">
                                       —
                                     </span>
                                   </td>
-                                  <td className="px-6 py-1.5 border-b border-slate-300 dark:border-slate-600">
+                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70">
                                     <span className="text-slate-400">—</span>
                                   </td>
                                 </tr>

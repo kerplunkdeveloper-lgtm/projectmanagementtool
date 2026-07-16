@@ -268,6 +268,8 @@ const GraphicDesignerDashboard = () => {
       let over = 0;
       let totalRevisions = 0;
       let totalLoggedMs = 0;
+      let totalBlockerMs = 0;
+      const blockerTypesSet = new Set();
 
       myTasks.forEach((t) => {
         const s = t.status?.toLowerCase() || "";
@@ -284,6 +286,37 @@ const GraphicDesignerDashboard = () => {
             ? new Date(t.actualEndTime).getTime()
             : Date.now();
           totalLoggedMs += Math.max(0, end - start);
+        }
+
+        // Collect blockers and compute blocker time
+        if (t.blockerHistory && Array.isArray(t.blockerHistory)) {
+          t.blockerHistory.forEach((item) => {
+            if (item.blockerType) {
+              blockerTypesSet.add(item.blockerType);
+            }
+            if (item.pausedAt && item.resumedAt) {
+              const p = new Date(item.pausedAt).getTime();
+              const r = new Date(item.resumedAt).getTime();
+              if (r >= p) {
+                totalBlockerMs += r - p;
+              }
+            } else if (item.totalPauseMinutes) {
+              totalBlockerMs += item.totalPauseMinutes * 60 * 1000;
+            }
+          });
+        }
+        
+        if (t.isBlocked) {
+          if (t.blockerType) {
+            blockerTypesSet.add(t.blockerType);
+          }
+          if (t.blockerPausedAt) {
+            const pauseStart = new Date(t.blockerPausedAt).getTime();
+            const currentPause = Date.now() - pauseStart;
+            if (currentPause > 0) {
+              totalBlockerMs += currentPause;
+            }
+          }
         }
       });
 
@@ -369,6 +402,8 @@ const GraphicDesignerDashboard = () => {
         overdue: over,
         avgRevisions,
         totalHours,
+        blockers: blockerTypesSet.size > 0 ? Array.from(blockerTypesSet).join(", ") : "none",
+        blockerTimeMs: totalBlockerMs,
         lastSubmitted: lastSubmittedStr,
       };
     });
@@ -845,29 +880,35 @@ const GraphicDesignerDashboard = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-slate-50/50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700">
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                <tr className="bg-slate-50/50 dark:bg-slate-800/60">
+                  <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
                     Designer
                   </th>
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                  <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
                     Assigned
                   </th>
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                  <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
                     Completed
                   </th>
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                  <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
                     Pending
                   </th>
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                  <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
                     Revisions
                   </th>
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
-                    Hours
+                  <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                    Blockers
                   </th>
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                  <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                    Blocker Time
+                  </th>
+                  <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                    Total Hours
+                  </th>
+                  <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
                     Delay
                   </th>
-                  <th className="p-4 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                  <th className="p-4 border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
                     Last Submitted
                   </th>
                 </tr>
@@ -876,32 +917,34 @@ const GraphicDesignerDashboard = () => {
                 {teamPerformance.map((tp) => (
                   <tr
                     key={tp.id}
-                    className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                    className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
                   >
-                    <td className="p-4 text-sm font-bold text-slate-700 dark:text-white flex items-center gap-2">
-                      {tp.profileImage ? (
-                        <img
-                          src={tp.profileImage}
-                          alt={tp.name}
-                          className="w-6 h-6 rounded-full object-cover border border-slate-600"
-                        />
-                      ) : (
-                        <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-[9px] font-extrabold tracking-wider">
-                          {getInitials(tp.name)}
-                        </div>
-                      )}
-                      {tp.name}
+                    <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-bold text-slate-700 dark:text-white">
+                      <div className="flex items-center gap-2">
+                        {tp.profileImage ? (
+                          <img
+                            src={tp.profileImage}
+                            alt={tp.name}
+                            className="w-6 h-6 rounded-full object-cover border border-slate-400"
+                          />
+                        ) : (
+                          <div className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-[9px] font-extrabold tracking-wider">
+                            {getInitials(tp.name)}
+                          </div>
+                        )}
+                        {tp.name}
+                      </div>
                     </td>
-                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-200">
+                    <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black text-slate-650 dark:text-slate-200">
                       {tp.assigned}
                     </td>
-                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-200">
+                    <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black text-slate-650 dark:text-slate-200">
                       {tp.completed}
                     </td>
-                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-200">
+                    <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black text-slate-650 dark:text-slate-200">
                       {tp.pending}
                     </td>
-                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-200">
+                    <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black text-slate-600 dark:text-slate-200">
                       <div className="flex items-center gap-2.5 min-w-[110px]">
                         <div className="w-14 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                           <div
@@ -922,18 +965,66 @@ const GraphicDesignerDashboard = () => {
                         </span>
                       </div>
                     </td>
-                    <td className="p-4 text-sm font-black text-slate-600 dark:text-slate-200">
+                    <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm text-slate-600 dark:text-slate-200">
+                      {tp.blockers === "none" ? (
+                        <span className="text-slate-400 dark:text-slate-500 font-bold italic">none</span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1 max-w-[180px]">
+                          {tp.blockers.split(", ").map((b, idx) => (
+                            <span
+                              key={idx}
+                              className="px-2 py-0.5 text-[10px] font-bold rounded bg-orange-50 dark:bg-orange-500/10 text-orange-650 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20"
+                            >
+                              {b}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black text-slate-600 dark:text-slate-200">
+                      {tp.blockerTimeMs > 0 ? (
+                        <span className="text-orange-600 dark:text-orange-400">
+                          {(() => {
+                            const totalMinutes = Math.floor(tp.blockerTimeMs / (1000 * 60));
+                            const h = Math.floor(totalMinutes / 60);
+                            const m = totalMinutes % 60;
+                            return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                          })()}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 dark:text-slate-500 font-medium">0m</span>
+                      )}
+                    </td>
+                    <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black text-slate-600 dark:text-slate-200">
                       {tp.totalHours.toFixed(1)}h
                     </td>
-                    <td
-                      className={`p-4 text-sm font-black ${tp.overdue > 0 ? "text-rose-600 dark:text-rose-400" : "text-slate-500 dark:text-slate-400"}`}
-                    >
-                      {tp.overdue}
+                    <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black">
+                      {tp.overdue > 0 ? (
+                        <div className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-extrabold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                          <span>{tp.overdue} overdue</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 dark:text-slate-500 font-medium">0</span>
+                      )}
                     </td>
-                    <td
-                      className={`p-4 text-xs font-bold ${tp.lastSubmitted === "Not submitted" ? "text-slate-400 dark:text-slate-500 font-semibold" : "text-slate-700 dark:text-slate-300"}`}
-                    >
-                      {tp.lastSubmitted}
+                    <td className="p-4 border-b border-slate-100 dark:border-slate-700/60 text-xs font-bold">
+                      {tp.lastSubmitted === "Not submitted" ? (
+                        <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 font-semibold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
+                          <span>Not submitted</span>
+                        </div>
+                      ) : tp.lastSubmitted === "Draft" ? (
+                        <div className="flex items-center gap-1.5 text-amber-500 dark:text-amber-400 font-bold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                          <span>Draft</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-extrabold">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          <span>{tp.lastSubmitted}</span>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
