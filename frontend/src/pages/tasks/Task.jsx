@@ -1418,7 +1418,7 @@ const Task = () => {
       ) : (
         <div className="space-y-4">
           <div className="bg-white dark:bg-[#070b13] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)] overflow-hidden border border-slate-200 dark:border-slate-800/80 transition-all">
-            <div className="overflow-x-auto overflow-y-auto h-[calc(100vh-260px)] min-h-[500px] w-full scrollbar-thin">
+            <div className="overflow-x-auto overflow-y-auto h-[calc(100vh-200px)] min-h-[500px] w-full scrollbar-thin">
               <table className="w-full min-w-[1300px] text-left border-collapse table-auto border border-slate-200/70 dark:border-slate-800/70">
                 <thead>
                   <tr className="sticky top-0 z-20 uppercase text-center bg-slate-50 dark:bg-[#0f172a] text-slate-500 dark:text-slate-400 text-[10.5px] sm:text-[9px] font-black tracking-wider border-b border-slate-200/70 dark:border-slate-800/70 shadow-sm">
@@ -1437,7 +1437,7 @@ const Task = () => {
                     <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-32 whitespace-nowrap">
                       Content-type
                     </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-40 min-w-[145px]">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-48 min-w-[180px]">
                       Status
                     </th>
                     <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-32 min-w-[125px]">
@@ -1604,7 +1604,7 @@ const Task = () => {
 
                             {/* Status Select */}
                             <td
-                              className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-40 min-w-[145px] text-center"
+                              className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-48 min-w-[180px] text-center"
                               onClick={(e) => e.stopPropagation()}
                             >
                               {task.isBlocked ? (
@@ -1721,7 +1721,7 @@ const Task = () => {
                                       onClick={() =>
                                         handleOpenBlockerModal(task)
                                       }
-                                      className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl text-[11px] sm:text-[9.5px] font-black tracking-wider uppercase bg-slate-100 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-600/50 text-slate-700 dark:text-slate-200 hover:border-rose-500 hover:text-rose-500 transition-all w-full text-center cursor-pointer shadow-sm"
+                                      className="flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[9.5px] sm:text-[8px] font-black tracking-wider uppercase bg-slate-100 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-600/50 text-slate-700 dark:text-slate-200 hover:border-rose-500 hover:text-rose-500 transition-all w-full text-center cursor-pointer shadow-sm whitespace-nowrap"
                                     >
                                       <FiPlus size={10} /> Add Blocker
                                     </button>
@@ -1936,7 +1936,7 @@ const Task = () => {
                                   <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70" />
                                   <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70" />
                                   <td
-                                    className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70 w-36"
+                                    className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70 w-44"
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <div className="flex flex-col items-start gap-1 w-full">
