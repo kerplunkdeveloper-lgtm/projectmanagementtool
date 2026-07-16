@@ -1648,7 +1648,30 @@ td:first-child {
   --accent-dark-bg-subtle: rgba(251, 113, 133, 0.1);
 }
 
-/* Hide standard/Firefox scrollbars globally */
+/* DARK MAUVE */
+:root[data-accent="mauve"] {
+  --accent-color: #582c4d;
+  --accent-color-dark: #8b4f7a;
+  --accent-gradient: linear-gradient(135deg, #582c4d, #7d3f6b);
+  --accent-gradient-dark: linear-gradient(135deg, #7d3f6b, #a05c8a);
+  --accent-hover-shadow: rgba(88, 44, 77, 0.35);
+  --accent-hover-shadow-dark: rgba(139, 79, 122, 0.35);
+  --accent-light-bg-subtle: rgba(88, 44, 77, 0.1);
+  --accent-dark-bg-subtle: rgba(139, 79, 122, 0.12);
+}
+
+/* LAVENDER MIST */
+:root[data-accent="lavender"] {
+  --accent-color: #8f7dac;
+  --accent-color-dark: #d5cfe1;
+  --accent-gradient: linear-gradient(135deg, #8f7dac, #b8aecf);
+  --accent-gradient-dark: linear-gradient(135deg, #b8aecf, #d5cfe1);
+  --accent-hover-shadow: rgba(143, 125, 172, 0.35);
+  --accent-hover-shadow-dark: rgba(213, 207, 225, 0.25);
+  --accent-light-bg-subtle: rgba(143, 125, 172, 0.1);
+  --accent-dark-bg-subtle: rgba(213, 207, 225, 0.1);
+}
+
 * {
   scrollbar-width: none !important;
 }

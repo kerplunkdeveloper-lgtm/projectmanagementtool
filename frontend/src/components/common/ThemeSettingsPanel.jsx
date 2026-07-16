@@ -29,6 +29,8 @@ const ThemeSettingsPanel = () => {
     { id: "red", hex: "#dc2626", name: "Crimson Red" },
     { id: "indigo", hex: "#4f46e5", name: "Deep Indigo" },
     { id: "gold", hex: "#b45309", name: "Luxury Gold" },
+    { id: "mauve", hex: "#582c4d", name: "Dark Mauve" },
+    { id: "lavender", hex: "#d5cfe1", name: "Lavender Mist" },
   ];
 
   const fonts = [
