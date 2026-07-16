@@ -270,29 +270,7 @@ const GraphicDesignerDeadlines = ({ user }) => {
 
   return (
     <div className="theme-bg-card border theme-border rounded-2xl p-5 shadow-sm w-full">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b theme-border pb-4 mb-4">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-pink-50 dark:bg-pink-950/30 flex items-center justify-center text-pink-600 dark:text-pink-400 shrink-0 shadow-sm animate-pulse">
-            <FiClock size={16} />
-          </div>
-          <div>
-            <h2 className="text-[13px] font-black theme-text-primary uppercase tracking-wider">
-              My Design Deadlines
-            </h2>
-            <p className="text-[10px] theme-text-secondary font-bold">
-              Track and update your assigned graphic design tasks and due dates
-            </p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => navigate(`/${user?.role}/tasks`)}
-          className="inline-flex items-center gap-1 text-[10px] font-black text-blue-600 dark:text-[#3b82f6] hover:underline uppercase tracking-wider"
-        >
-          View Task Board <FiChevronRight size={12} />
-        </button>
-      </div>
+      
 
       {/* Stats Quick Filters & Search Control Row */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5 border-b theme-border pb-4">
@@ -384,71 +362,14 @@ const GraphicDesignerDeadlines = ({ user }) => {
           })}
         </div>
 
-        {/* Client & Date Filter Controls */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Client Filter Dropdown */}
-          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/50 border theme-border px-3 py-1.5 rounded-xl shadow-sm min-w-[150px]">
-            <FiSliders
-              size={12}
-              className="text-slate-400 dark:text-slate-500 shrink-0"
-            />
-            <div className="flex-1 flex flex-col items-start min-w-0">
-              <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-none mb-0.5">
-                Client
-              </span>
-              <select
-                value={selectedClient}
-                onChange={(e) => setSelectedClient(e.target.value)}
-                className="w-full bg-transparent text-[11px] font-bold theme-text-primary focus:outline-none cursor-pointer p-0"
-              >
-                <option
-                  value="all"
-                  className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
-                >
-                  All Clients
-                </option>
-                {uniqueClients.map((c) => (
-                  <option
-                    key={c.id}
-                    value={c.id}
-                    className="bg-white dark:bg-slate-900 text-slate-800 dark:text-white"
-                  >
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+       <button
+          onClick={() => navigate(`/${user?.role}/tasks`)}
+          className="inline-flex items-center gap-1 text-[10px] font-black text-blue-600 dark:text-[#3b82f6] hover:underline uppercase tracking-wider"
+        >
+          View Task Board <FiChevronRight size={12} />
+        </button>
 
-          {/* Date Filter Input */}
-          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900/50 border theme-border px-3 py-1.5 rounded-xl shadow-sm">
-            <FiCalendar
-              size={12}
-              className="text-slate-400 dark:text-slate-500 shrink-0"
-            />
-            <div className="flex flex-col items-start">
-              <span className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider leading-none mb-0.5">
-                Due Date
-              </span>
-              <div className="flex items-center gap-1.5">
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="bg-transparent text-[11px] font-bold theme-text-primary focus:outline-none cursor-pointer p-0 [color-scheme:light] dark:[color-scheme:dark]"
-                />
-                {selectedDate && (
-                  <button
-                    onClick={() => setSelectedDate("")}
-                    className="text-[9px] font-black text-rose-500 hover:text-rose-600 uppercase tracking-wider cursor-pointer pl-1 border-l theme-border"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+
       </div>
 
       {/* Task List */}
