@@ -254,8 +254,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
       <aside
         className={`
-          fixed top-0 left-0 z-[100] h-screen
-          w-52 lg:w-52 xl:w-52
+          fixed top-0 left-0 z-[100] h-[100dvh]
+          w-64 max-w-[80vw] lg:w-52
           sidebar-bg
           backdrop-blur-xl
           border-r border-slate-200/40 dark:border-white/5
@@ -315,10 +315,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   <button
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
-                    className="w-full flex items-center gap-2.5 px-3 py-1.5 text-left rounded-xl border border-transparent hover:bg-slate-100/60 dark:hover:bg-white/5 transition-all duration-200 cursor-pointer group text-slate-500 dark:text-slate-400 hover:theme-text-accent"
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 lg:py-1.5 text-left rounded-xl border border-transparent hover:bg-slate-100/60 dark:hover:bg-white/5 transition-all duration-200 cursor-pointer group text-slate-500 dark:text-slate-400 hover:theme-text-accent"
                   >
                     {icon}
-                    <span className="text-[0.6rem] font-semibold uppercase tracking-wider whitespace-nowrap truncate flex-1 text-left transition-colors">
+                    <span className="text-xs lg:text-[0.6rem] font-semibold uppercase tracking-wider whitespace-nowrap truncate flex-1 text-left transition-colors">
                       {title}
                     </span>
                     <svg
@@ -376,7 +376,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                       : true,
                                   }));
                                 }}
-                                className={`flex-1 flex items-center gap-2 text-left text-[0.6875rem] font-semibold py-1.5 pl-2.5 pr-1.5 transition-all duration-150 ${
+                                className={`flex-1 flex items-center gap-2 text-left text-xs lg:text-[0.6875rem] font-semibold py-2.5 lg:py-1.5 pl-2.5 pr-1.5 transition-all duration-150 ${
                                   portfolioProjects.length > 0
                                     ? "rounded-l-lg"
                                     : "rounded-lg pr-2.5"
@@ -412,7 +412,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                       [portfolio._id]: !prev[portfolio._id],
                                     }));
                                   }}
-                                  className={`py-1.5 px-2 rounded-r-lg transition-all duration-150 flex items-center justify-center self-stretch cursor-pointer ${
+                                  className={`py-2.5 px-2.5 lg:py-1.5 lg:px-2 rounded-r-lg transition-all duration-150 flex items-center justify-center self-stretch cursor-pointer ${
                                     isActive
                                       ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent"
                                       : "text-slate-600 dark:text-slate-500 hover:theme-text-accent hover:bg-slate-100/60 dark:hover:bg-white/5"
@@ -457,7 +457,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                             `/${role}/projects?id=${project._id}`,
                                           );
                                         }}
-                                        className={`w-full flex items-center gap-2 text-left text-[0.625rem] font-semibold py-1 rounded-md px-2 transition-all duration-150 cursor-pointer ${
+                                        className={`w-full flex items-center gap-2 text-left text-[11px] lg:text-[0.625rem] font-semibold py-2 lg:py-1 rounded-md px-2.5 lg:px-2 transition-all duration-150 cursor-pointer ${
                                           isProjectActive
                                             ? "bg-slate-50 dark:bg-slate-800/60 theme-text-accent font-bold"
                                             : "text-slate-500 dark:text-slate-600 hover:theme-text-accent hover:bg-slate-100/40 dark:hover:bg-white/5"
@@ -510,7 +510,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   {renderPortfolioDropdown(
                     "Portfolios",
                     <FiLayers
-                      size={13}
+                      size={14}
                       className="shrink-0 transition-colors"
                     />,
                     isPortfoliosListOpen,
@@ -520,7 +520,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   {renderPortfolioDropdown(
                     "Social Media Executive",
                     <FiShare2
-                      size={13}
+                      size={14}
                       className="shrink-0 transition-colors"
                     />,
                     isSmePortfoliosListOpen,
@@ -555,7 +555,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       >
                         {({ isActive }) => (
                           <motion.div
-                            className={`flex items-center gap-2 px-2.5 py-1 w-full rounded-xl relative overflow-hidden transition-all duration-200 ${
+                            className={`flex items-center gap-2 px-2.5 py-2.5 lg:py-1 w-full rounded-xl relative overflow-hidden transition-all duration-200 ${
                               isActive
                                 ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)]"
                                 : "hover:bg-slate-100/60 dark:hover:bg-white/5"
@@ -606,7 +606,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                               {/* Shimmer burst on hover — CSS-only via group */}
                               <span className="absolute inset-0 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.35)_0%,rgba(255,255,255,0)_70%)]" />
                               <Icon
-                                size={12}
+                                size={14}
                                 className={`transition-colors duration-200 relative z-10 ${
                                   isActive
                                     ? "theme-text-accent"
@@ -617,7 +617,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
                             {/* Label */}
                             <span
-                              className={`text-[0.6rem] font-semibold truncate flex-1 text-left transition-colors duration-200 ${
+                              className={`text-xs lg:text-[0.6rem] font-semibold truncate flex-1 text-left transition-colors duration-200 ${
                                 isActive
                                   ? "theme-text-accent font-bold"
                                   : "text-slate-600 dark:text-slate-400 group-hover:theme-text-accent"
@@ -730,7 +730,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             users &&
             users.length > 0 && (
               <div ref={userDropdownRef} className="p-1.5 text-left relative">
-                <label className="block text-[0.5rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1 px-1">
+                <label className="block text-[10px] lg:text-[0.5rem] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1 px-1">
                   Switch User
                 </label>
 
@@ -750,16 +750,16 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <span className="text-[0.5625rem] font-black">
+                        <span className="text-xs lg:text-[0.5625rem] font-black">
                           {getInitials(currentUser?.name)}
                         </span>
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[0.625rem] font-bold theme-text-primary truncate leading-tight">
+                      <p className="text-xs lg:text-[0.625rem] font-bold theme-text-primary truncate leading-tight">
                         {currentUser?.name}
                       </p>
-                      <p className="text-[0.5rem] font-medium theme-text-secondary  leading-none mt-0.5">
+                      <p className="text-[10px] lg:text-[0.5rem] font-medium theme-text-secondary  leading-none mt-0.5">
                         {currentUser?.role === "team"
                           ? currentUser?.department || "Team"
                           : displayRole(currentUser?.role)}
@@ -831,14 +831,14 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
-                                  <span className="text-[0.625rem] font-black">
+                                  <span className="text-xs lg:text-[0.625rem] font-black">
                                     {getInitials(u.name)}
                                   </span>
                                 )}
                               </div>
                               <div className="min-w-0 flex-1">
                                 <p
-                                  className={`text-[0.6875rem] font-bold truncate leading-tight transition-colors ${
+                                  className={`text-xs lg:text-[0.6875rem] font-bold truncate leading-tight transition-colors ${
                                     isCurrent
                                       ? "text-indigo-700 dark:text-indigo-300"
                                       : "text-slate-700 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
@@ -846,7 +846,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                 >
                                   {u.name}
                                 </p>
-                                <p className="text-[0.5625rem] font-black opacity-70 uppercase tracking-widest mt-0.5 theme-text-secondary truncate">
+                                <p className="text-[10px] lg:text-[0.5625rem] font-black opacity-70 uppercase tracking-widest mt-0.5 theme-text-secondary truncate">
                                   {u.role === "team"
                                     ? u.department || "Team"
                                     : displayRole(u.role)}

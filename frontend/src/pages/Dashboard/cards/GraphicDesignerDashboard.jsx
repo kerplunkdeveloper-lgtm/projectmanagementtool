@@ -490,7 +490,7 @@ const GraphicDesignerDashboard = () => {
   };
 
   return (
-    <div className="bg-white dark:bg-[#0b1120] py-4 md:py-4 px-0 md:px-0 space-y-8 font-sans mt-8 overflow-visible transition-colors duration-300 relative">
+    <div className="bg-white dark:bg-[#0b1120] py-4 md:py-4 px-0 md:px-0 space-y-8 font-sans  overflow-visible transition-colors duration-300 relative">
       {/* Header & Filter */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-20">
         <div className="space-y-1 ">
@@ -500,9 +500,6 @@ const GraphicDesignerDashboard = () => {
             </div>
             Graphic Designer Board
           </h2>
-          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-wider  pl-12">
-            Real-time analytics & task tracking
-          </p>
         </div>
 
         {/* Date Filter Dropdown */}
@@ -529,7 +526,7 @@ const GraphicDesignerDashboard = () => {
                   initial={{ opacity: 0, y: 10, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute right-0 mt-2 w-48 bg-white dark:bg-[#070b13] border border-slate-200 dark:border-slate-800/80 rounded-xl shadow-2xl z-40 overflow-hidden backdrop-blur-xl"
+                  className="absolute right-0  w-48 bg-white dark:bg-[#070b13] border border-slate-200 dark:border-slate-800/80 rounded-xl shadow-2xl z-40 overflow-hidden backdrop-blur-xl"
                 >
                   {[
                     "Today",

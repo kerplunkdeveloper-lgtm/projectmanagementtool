@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { updateUser } from "../features/users/userSlice";
 
@@ -6,7 +12,13 @@ const ThemeContext = createContext();
 
 // Helper: apply preferences object to localStorage + state setters
 const applyPrefs = (prefs, setters) => {
-  const { setThemeState, setAccentColorState, setSoundEnabledState, setFontFamilyState, setSidebarLayoutState } = setters;
+  const {
+    setThemeState,
+    setAccentColorState,
+    setSoundEnabledState,
+    setFontFamilyState,
+    setSidebarLayoutState,
+  } = setters;
 
   if (prefs.themePreference) {
     setThemeState(prefs.themePreference);
@@ -55,7 +67,13 @@ export const ThemeProvider = ({ children }) => {
     return localStorage.getItem("sidebarLayout") || "vertical";
   });
 
-  const setters = { setThemeState, setAccentColorState, setSoundEnabledState, setFontFamilyState, setSidebarLayoutState };
+  const setters = {
+    setThemeState,
+    setAccentColorState,
+    setSoundEnabledState,
+    setFontFamilyState,
+    setSidebarLayoutState,
+  };
 
   // Track previous user ID to detect user switches
   const prevUserIdRef = useRef(null);
@@ -79,13 +97,16 @@ export const ThemeProvider = ({ children }) => {
     // 2. Switched to a different user (impersonation)
     // 3. Exiting impersonation → restore original admin's preferences
     if (!prevUserId || userChanged || exitedImpersonation) {
-      applyPrefs({
-        themePreference: user.themePreference,
-        accentColor: user.accentColor,
-        soundEnabled: user.soundEnabled,
-        fontFamily: user.fontFamily,
-        sidebarLayout: user.sidebarLayout,
-      }, setters);
+      applyPrefs(
+        {
+          themePreference: user.themePreference,
+          accentColor: user.accentColor,
+          soundEnabled: user.soundEnabled,
+          fontFamily: user.fontFamily,
+          sidebarLayout: user.sidebarLayout,
+        },
+        setters,
+      );
     }
 
     prevUserIdRef.current = currentUserId;
@@ -142,7 +163,9 @@ export const ThemeProvider = ({ children }) => {
         // Already removed
       } else {
         // System preference
-        const isSystemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const isSystemDark = window.matchMedia(
+          "(prefers-color-scheme: dark)",
+        ).matches;
         if (isSystemDark) {
           root.classList.add("dark");
         }

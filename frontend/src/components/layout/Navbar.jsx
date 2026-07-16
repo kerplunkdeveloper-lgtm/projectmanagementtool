@@ -466,7 +466,7 @@ const Navbar = ({ setSidebarOpen }) => {
       <div className="flex items-center gap-2 shrink-0">
         {/* USER LOCATION */}
         <div
-          className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg border theme-border theme-bg-card text-xs font-bold theme-text-secondary shadow-sm hover:theme-text-primary hover:theme-bg-main transition-all duration-200"
+          className="hidden md:flex items-center gap-1.5 px-3 py-1.5   text-xs font-medium theme-text-secondary  hover:theme-text-primary hover:theme-bg-main transition-all duration-200"
           title={profile?.address || "No location set"}
         >
           <FiMapPin className="text-[0.8125rem]  text-red-600 shrink-0" />
