@@ -54,10 +54,12 @@ export const updateEodReport = createAsyncThunk(
 // ==========================================
 export const deleteEodReport = createAsyncThunk(
   "eodReports/deleteEodReport",
-  async (id, thunkAPI) => {
+  async (payload, thunkAPI) => {
+    const id = typeof payload === "string" ? payload : payload.id;
+    const silent = typeof payload === "string" ? false : !!payload.silent;
     try {
       await deleteEodReportAPI(id);
-      return id;
+      return { id, silent };
     } catch (err) {
       return thunkAPI.rejectWithValue(err.response.data.message);
     }
@@ -103,10 +105,13 @@ const eodReportSlice = createSlice({
 
       // DELETE EOD REPORT
       .addCase(deleteEodReport.fulfilled, (state, action) => {
+        const { id, silent } = action.payload;
         state.eodReports = state.eodReports.filter(
-          (report) => report._id !== action.payload
+          (report) => report._id !== id
         );
-        toast.success("EOD Report deleted successfully");
+        if (!silent) {
+          toast.success("EOD Report deleted successfully");
+        }
       });
   },
 });

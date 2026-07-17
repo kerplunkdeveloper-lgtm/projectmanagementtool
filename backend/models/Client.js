@@ -75,7 +75,7 @@ const clientSchema = new mongoose.Schema(
       default: 0,
     },
 
-    shoot: {
+    story: {
       type: Number,
       default: 0,
     },

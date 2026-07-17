@@ -2,6 +2,8 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getEodReports, deleteEodReport } from "../../features/eodReports/eodReportSlice";
 import { getDesignerEodReports, deleteDesignerEodReport } from "../../features/eodReports/designerEodReportSlice";
+import { motion, AnimatePresence } from "framer-motion";
+import toast from "react-hot-toast";
 import {
   FiImage,
   FiFile,
@@ -110,7 +112,14 @@ const AdminEodReports = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [openViewModal, setOpenViewModal] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [deleteConfirm, setDeleteConfirm] = useState({ show: false, target: null });
+  const [deleting, setDeleting] = useState(false);
   const itemsPerPage = 10;
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [activeTab]);
 
   const dateRangeOptions = [
     { value: "All", label: "All Dates" },
@@ -323,18 +332,45 @@ const AdminEodReports = () => {
   };
 
   const handleDelete = (report) => {
-    if (window.confirm("Are you sure you want to delete this EOD report? This action cannot be undone.")) {
-      if (activeTab === "Graphic Designer") {
-        dispatch(deleteDesignerEodReport(report._id));
-      } else {
-        dispatch(deleteEodReport(report._id));
+    setDeleteConfirm({ show: true, target: report });
+  };
+
+  const confirmDeleteAction = async () => {
+    setDeleting(true);
+    try {
+      if (deleteConfirm.target === "bulk") {
+        if (activeTab === "Graphic Designer") {
+          await Promise.all(
+            selectedIds.map((id) => dispatch(deleteDesignerEodReport({ id, silent: true })).unwrap())
+          );
+          toast.success("Designer EOD Reports deleted successfully");
+        } else {
+          await Promise.all(
+            selectedIds.map((id) => dispatch(deleteEodReport({ id, silent: true })).unwrap())
+          );
+          toast.success("EOD Reports deleted successfully");
+        }
+        setSelectedIds([]);
+      } else if (deleteConfirm.target) {
+        const id = deleteConfirm.target._id;
+        if (activeTab === "Graphic Designer") {
+          await dispatch(deleteDesignerEodReport(id)).unwrap();
+        } else {
+          await dispatch(deleteEodReport(id)).unwrap();
+        }
+        setSelectedIds((prev) => prev.filter((item) => item !== id));
       }
+      setDeleteConfirm({ show: false, target: null });
+    } catch (err) {
+      console.error("Deletion failed:", err);
+    } finally {
+      setDeleting(false);
     }
   };
 
   const loading =
     activeTab === "Graphic Designer" ? designerLoading : generalLoading;
-  const totalColumnsCount = activeTab === "Graphic Designer" ? 14 : 13;
+  const totalColumnsCount = activeTab === "Graphic Designer" ? 15 : 14;
 
   return (
     <div className="min-h-screen py-6 transition-colors duration-300">
@@ -553,6 +589,25 @@ const AdminEodReports = () => {
             <table className="w-full min-w-[1000px] text-left border-collapse border border-slate-200 dark:border-slate-850 [&_th]:border [&_th]:border-slate-200 [&_th]:dark:border-slate-850 [&_td]:border [&_td]:border-slate-200 [&_td]:dark:border-slate-850">
               <thead>
                 <tr className="bg-slate-50/50 dark:bg-[#0f172a]/50 ">
+                  <th className="px-4 py-3 text-center w-12 min-w-[48px]">
+                    <input
+                      type="checkbox"
+                      checked={
+                        currentReports.length > 0 &&
+                        currentReports.every((r) => selectedIds.includes(r._id))
+                      }
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          const pageIds = currentReports.map((r) => r._id);
+                          setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+                        } else {
+                          const pageIds = currentReports.map((r) => r._id);
+                          setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+                        }
+                      }}
+                      className="rounded border-slate-350 dark:border-slate-700 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 cursor-pointer transition-all"
+                    />
+                  </th>
                   <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap min-w-[120px]">
                     Date
                   </th>
@@ -648,6 +703,22 @@ const AdminEodReports = () => {
                               : ""
                       }`}
                     >
+                      {/* CHECKBOX */}
+                      <td className="px-4 py-3 text-center w-12 min-w-[48px]">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(report._id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedIds((prev) => [...prev, report._id]);
+                            } else {
+                              setSelectedIds((prev) => prev.filter((id) => id !== report._id));
+                            }
+                          }}
+                          className="rounded border-slate-350 dark:border-slate-700 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 cursor-pointer transition-all"
+                        />
+                      </td>
+
                       {/* DATE */}
                       <td className="px-5 py-3 whitespace-nowrap">
                         <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
@@ -1374,6 +1445,104 @@ const AdminEodReports = () => {
             </div>
           </div>
         )}
+
+        {/* BULK ACTION FLOATING BAR */}
+        <AnimatePresence>
+          {selectedIds.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 50, x: "-50%" }}
+              animate={{ opacity: 1, y: 0, x: "-50%" }}
+              exit={{ opacity: 0, y: 50, x: "-50%" }}
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              className="fixed bottom-6 left-1/2 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-5 py-3 rounded-2xl border border-slate-200/60 dark:border-slate-800/60 shadow-xl flex items-center gap-4"
+            >
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-blue-600 dark:bg-blue-500 text-white font-extrabold text-[10px] flex items-center justify-center shadow-sm">
+                  {selectedIds.length}
+                </span>
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                  Reports Selected
+                </span>
+              </div>
+              <div className="h-4 w-px bg-slate-200 dark:bg-slate-850" />
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSelectedIds([])}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                >
+                  Clear Selection
+                </button>
+                <button
+                  onClick={() => setDeleteConfirm({ show: true, target: "bulk" })}
+                  className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-sm hover:shadow-rose-500/20 hover:scale-[1.01] transition-all cursor-pointer"
+                >
+                  <FiTrash2 size={12} />
+                  Delete Selected
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* DELETE CONFIRMATION MODAL */}
+        <AnimatePresence>
+          {deleteConfirm.show && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => !deleting && setDeleteConfirm({ show: false, target: null })}
+                className="absolute inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-sm"
+              />
+
+              {/* Modal Card */}
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                transition={{ type: "spring", duration: 0.3 }}
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative z-10 p-6 flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-200"
+              >
+                <div className="w-12 h-12 rounded-full bg-rose-50 dark:bg-rose-950/20 text-rose-500 flex items-center justify-center mb-4 ring-4 ring-rose-500/10">
+                  <FiTrash2 size={22} className="animate-pulse" />
+                </div>
+
+                <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100 mb-2">
+                  {deleteConfirm.target === "bulk" ? "Confirm Bulk Deletion" : "Confirm Deletion"}
+                </h3>
+
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
+                  {deleteConfirm.target === "bulk"
+                    ? `Are you sure you want to permanently delete the ${selectedIds.length} selected EOD reports? This action will remove them from the database and cannot be undone.`
+                    : "Are you sure you want to delete this EOD report? This action will permanently remove the record from the database and cannot be undone."}
+                </p>
+
+                <div className="flex items-center gap-3 w-full">
+                  <button
+                    disabled={deleting}
+                    onClick={() => setDeleteConfirm({ show: false, target: null })}
+                    className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={deleting}
+                    onClick={confirmDeleteAction}
+                    className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm hover:shadow-rose-500/20 hover:scale-[1.01] transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {deleting ? (
+                      <div className="w-4.5 h-4.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      "Yes, Delete"
+                    )}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

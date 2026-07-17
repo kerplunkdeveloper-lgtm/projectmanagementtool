@@ -54,10 +54,12 @@ export const updateDesignerEodReport = createAsyncThunk(
 // ==========================================
 export const deleteDesignerEodReport = createAsyncThunk(
   "designerEodReports/deleteDesignerEodReport",
-  async (id, thunkAPI) => {
+  async (payload, thunkAPI) => {
+    const id = typeof payload === "string" ? payload : payload.id;
+    const silent = typeof payload === "string" ? false : !!payload.silent;
     try {
       await deleteDesignerEodReportAPI(id);
-      return id;
+      return { id, silent };
     } catch (err) {
       return thunkAPI.rejectWithValue(err.response?.data?.message || "Failed to delete designer report");
     }
@@ -112,10 +114,13 @@ const designerEodReportSlice = createSlice({
 
       // DELETE DESIGNER EOD REPORT
       .addCase(deleteDesignerEodReport.fulfilled, (state, action) => {
+        const { id, silent } = action.payload;
         state.designerEodReports = state.designerEodReports.filter(
-          (report) => report._id !== action.payload
+          (report) => report._id !== id
         );
-        toast.success("Designer EOD Report deleted successfully");
+        if (!silent) {
+          toast.success("Designer EOD Report deleted successfully");
+        }
       });
   },
 });

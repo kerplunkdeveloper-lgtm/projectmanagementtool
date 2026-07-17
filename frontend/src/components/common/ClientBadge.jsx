@@ -18,7 +18,7 @@ export const getClientBranding = (client) => {
     "#10b981", // emerald
     "#f43f5e", // rose
     "#f59e0b", // amber
-    "#06b6d4", // cyan
+  "#06b6d4", // cyan
     "#6366f1", // indigo
     "#ec4899", // pink
     "#eab308", // yellow
@@ -66,13 +66,13 @@ const ClientBadge = ({ client, size = "md", showName = true, className = "" }) =
   const sizeClasses = {
     sm: "px-1.5 py-0.5 text-[9px] gap-1 rounded",
     md: "px-2 py-1 text-[10px] gap-1.5 rounded-md",
-    lg: "px-2.5 py-1.5 text-xs gap-2 rounded-lg"
+    lg: "px-2.5 py-1 text-[10px] gap-2 rounded-lg"
   };
 
   const iconSizes = {
     sm: 9,
-    md: 11,
-    lg: 14
+    md: 9,
+    lg: 10
   };
 
   return (

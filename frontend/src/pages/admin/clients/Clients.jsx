@@ -274,7 +274,7 @@ const Clients = () => {
     service: [],
     reels: "",
     posts: "",
-    shoot: "",
+    story: "",
     needDslr: "",
     pages: "",
     onpage: false,
@@ -327,7 +327,7 @@ const Clients = () => {
       gst: formData.gst === "" ? 18 : Number(formData.gst),
       reels: formData.reels === "" ? 0 : Number(formData.reels),
       posts: formData.posts === "" ? 0 : Number(formData.posts),
-      shoot: formData.shoot === "" ? 0 : Number(formData.shoot),
+      story: formData.story === "" ? 0 : Number(formData.story),
       pages: formData.pages === "" ? 0 : Number(formData.pages),
       totalBudget: calculateTotal(),
     };
@@ -882,7 +882,7 @@ const Clients = () => {
                               )}
 
                               {/* Video Production */}
-                              {(client.shoot > 0 ||
+                              {(client.story > 0 ||
                                 (client.needDslr &&
                                   client.needDslr !== "No DSLR")) && (
                                 <div className="space-y-0.5">
@@ -890,10 +890,10 @@ const Clients = () => {
                                     Video Production
                                   </div>
                                   <div className="flex flex-wrap gap-1">
-                                    {client.shoot > 0 && (
+                                    {client.story > 0 && (
                                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-405 border border-rose-100 dark:border-rose-900/30 font-bold text-[9px]">
-                                        <FiVideo size={8.5} /> {client.shoot}{" "}
-                                        Shoots
+                                        <FiVideo size={8.5} /> {client.story}{" "}
+                                        storys
                                       </span>
                                     )}
                                     {client.needDslr &&
@@ -946,7 +946,7 @@ const Clients = () => {
                               {/* Empty State Fallback */}
                               {!client.posts &&
                                 !client.reels &&
-                                !client.shoot &&
+                                !client.story &&
                                 !client.pages &&
                                 !client.onpage &&
                                 !client.offpage && (
@@ -1373,7 +1373,7 @@ const Clients = () => {
                               Brand Identity Icon
                             </label>
                           </div>
-                          <div className="grid grid-cols-5 sm:grid-cols-8 gap-3 bg-slate-50/50 dark:bg-slate-800/30 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                          <div className="grid grid-cols-5 sm:grid-cols-10 gap-3 bg-slate-50 dark:bg-slate-800 p-4 rounded-3xl border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
                             {Object.entries(CLIENT_ICONS).map(
                               ([key, IconComponent]) => {
                                 const isSelected = formData.icon === key;
@@ -1621,12 +1621,12 @@ const Clients = () => {
 
                                   <div>
                                     <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                      Shoot
+                                      story
                                     </label>
                                     <input
                                       type="number"
-                                      name="shoot"
-                                      value={formData.shoot}
+                                      name="story"
+                                      value={formData.story}
                                       onChange={handleChange}
                                       placeholder="Count"
                                       className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
@@ -1725,12 +1725,12 @@ const Clients = () => {
                                 <div className="grid grid-cols-2 gap-3">
                                   <div>
                                     <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                      Shoot Count
+                                      story Count
                                     </label>
                                     <input
                                       type="number"
-                                      name="shoot"
-                                      value={formData.shoot}
+                                      name="story"
+                                      value={formData.story}
                                       onChange={handleChange}
                                       placeholder="Count"
                                       className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
