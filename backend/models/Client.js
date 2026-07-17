@@ -25,11 +25,14 @@ const clientSchema = new mongoose.Schema(
       trim: true,
     },
 
-    email: {
+    spoc: {
       type: String,
-      required: true,
       trim: true,
-      lowercase: true,
+    },
+
+    designation: {
+      type: String,
+      trim: true,
     },
 
     budget: {

@@ -266,7 +266,8 @@ const Clients = () => {
     industry: "",
     onboardingDate: new Date().toISOString().split("T")[0],
     phoneNumber: "",
-    email: "",
+    spoc: "",
+    designation: "",
     budget: "",
     gst: "",
     totalBudget: "",
@@ -351,6 +352,8 @@ const Clients = () => {
       ...client,
       color: client.color || "#3b82f6",
       icon: client.icon || "FaRegBuilding",
+      spoc: client.spoc || "",
+      designation: client.designation || "",
       onboardingDate: client.onboardingDate
         ? new Date(client.onboardingDate).toISOString().split("T")[0]
         : "",
@@ -490,7 +493,7 @@ const Clients = () => {
               placeholder="Search company or industry..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-250 dark:border-slate-800 bg-slate-50 dark:bg-white/5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+              className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-250 dark:border-slate-800 bg-slate-50 dark:bg-white/5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium placeholder:text-slate-300 dark:placeholder:text-slate-600"
             />
           </div>
 
@@ -712,6 +715,25 @@ const Clients = () => {
                           {/* Contact Info */}
                           <td className={cellClass}>
                             <div className="flex flex-col gap-1.5">
+                              {client.spoc && (
+                                <div className="text-[12px] font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                  <FiUser
+                                    size={11}
+                                    className="text-slate-400 shrink-0"
+                                  />
+                                  <span
+                                    className="truncate max-w-[150px]"
+                                    title={client.spoc}
+                                  >
+                                    {client.spoc}
+                                    {client.designation && (
+                                      <span className="text-[9.5px] text-slate-400 dark:text-slate-500 font-medium ml-1">
+                                        ({client.designation})
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+                              )}
                               {client.phoneNumber ? (
                                 <a
                                   href={`tel:${client.phoneNumber}`}
@@ -726,25 +748,6 @@ const Clients = () => {
                               ) : (
                                 <span className="text-[10.5px] text-slate-450 dark:text-slate-600 italic">
                                   No Phone
-                                </span>
-                              )}
-
-                              {client.email ? (
-                                <a
-                                  href={`mailto:${client.email}`}
-                                  className="inline-flex items-center gap-1.5 text-[11.5px] text-slate-655 dark:text-slate-300 hover:theme-text-accent font-semibold transition-colors group/link"
-                                >
-                                  <FiMail
-                                    size={11}
-                                    className="text-slate-400 group-hover/link:theme-text-accent transition-colors"
-                                  />
-                                  <span className="truncate max-w-[150px]">
-                                    {client.email}
-                                  </span>
-                                </a>
-                              ) : (
-                                <span className="text-[10.5px] text-slate-450 dark:text-slate-600 italic">
-                                  No Email
                                 </span>
                               )}
                             </div>
@@ -1138,55 +1141,75 @@ const Clients = () => {
       {/* CREATE & EDIT CLIENT MODAL */}
       <AnimatePresence>
         {showModal && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3"
+          >
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 15 }}
-              transition={{ duration: 0.2 }}
+              transition={{ type: "spring", stiffness: 350, damping: 28 }}
               className="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl border border-slate-200/50 dark:border-slate-800 h-[85vh] sm:h-auto min-h-[500px] sm:min-h-[560px] md:min-h-[600px] max-h-[90vh] flex flex-col"
             >
               {/* MODAL HEADER */}
               <div className="px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-black/25">
                 <div>
-                  <h2 className="text-[15px] md:text-[20px] font-bold theme-text-accent  flex items-center gap-2">
-                    <FiUsers
-                      size={16}
-                      md:size={40}
-                      className="theme-text-accent"
-                    />
+                  <h2 className="text-[13px] md:text-[14px] font-bold theme-text-accent  flex items-center gap-2">
+                    <FiUsers size={16} className="theme-text-accent" />
                     {editId ? "Update Client details" : "Register New Client"}
                   </h2>
                 </div>
 
                 <button
                   onClick={() => setShowModal(false)}
-                  className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-transparent flex items-center justify-center text-slate-400 dark:text-slate-350 hover:text-rose-500 dark:hover:text-rose-400 hover:border-rose-100 transition-all cursor-pointer shadow-sm"
+                  className="w-5 h-5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-transparent flex items-center justify-center text-slate-400 dark:text-slate-350 hover:text-rose-500 dark:hover:text-rose-400 hover:border-rose-100 transition-all cursor-pointer shadow-sm"
                 >
                   <FiX size={14} className="stroke-[3]" />
                 </button>
               </div>
 
               {/* MODERN TAB NAVIGATION */}
-              <div className="flex border-b border-slate-100 dark:border-slate-800 px-5 bg-[var(--accent-color)]/20 dark:bg-[var(--accent-color-dark)]/20">
-                {["profile", "service", "finance"].map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setActiveTab(tab)}
-                    className={`px-4 py-3.5 text-[13px] font-bold capitalize  border-b-2 transition-all cursor-pointer ${
-                      activeTab === tab
-                        ? "border-[var(--accent-color)] dark:border-[var(--accent-color-dark)] theme-text-accent font-black"
-                        : "border-transparent text-slate-400 dark:text-slate-500 hover:text-slate-650"
-                    }`}
-                  >
-                    {tab === "profile"
-                      ? "1. Company Details"
-                      : tab === "service"
-                        ? "2. Service Plan"
-                        : "3. Budget Settings"}
-                  </button>
-                ))}
+              <div className="flex border-b border-slate-100 dark:border-slate-800 px-5 bg-[var(--accent-color)]/20 dark:bg-[var(--accent-color-dark)]/20 relative">
+                {["profile", "branding", "service", "finance"].map((tab) => {
+                  const isActive = activeTab === tab;
+                  return (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setActiveTab(tab)}
+                      className={`relative px-4 py-3.5 text-[10px] md:text-[10.5px] font-extrabold capitalize transition-all cursor-pointer ${
+                        isActive
+                          ? "theme-text-accent font-black"
+                          : "text-slate-400 dark:text-slate-500 hover:theme-text-accent"
+                      }`}
+                    >
+                      <span className="relative z-10">
+                        {tab === "profile"
+                          ? "1. Company Details"
+                          : tab === "branding"
+                            ? "2. Brand Identity"
+                            : tab === "service"
+                              ? "3. Service Plan"
+                              : "4. Budget Settings"}
+                      </span>
+                      {isActive && (
+                        <motion.div
+                          layoutId="activeModalTabIndicator"
+                          className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--accent-color)] dark:bg-[var(--accent-color-dark)]"
+                          transition={{
+                            type: "spring",
+                            stiffness: 380,
+                            damping: 30,
+                          }}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* MODAL FORM */}
@@ -1194,93 +1217,152 @@ const Clients = () => {
                 onSubmit={handleSubmit}
                 className="flex-1 overflow-y-auto p-5 space-y-4"
               >
-                {/* TAB 1: BASIC INFORMATION */}
-                {activeTab === "profile" && (
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="space-y-4 min-h-[280px] sm:min-h-[340px]"
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1 flex items-center gap-1.5">
-                          <FaRegBuilding size={11} className="opacity-80" />
-                          Company Name
-                        </label>
-                        <input
-                          type="text"
-                          name="companyName"
-                          value={formData.companyName}
-                          onChange={handleChange}
-                          placeholder="Enter Client or Company Name"
-                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all font-semibold"
-                          required
-                        />
-                      </div>
+                <AnimatePresence mode="wait">
+                  {/* TAB 1: BASIC INFORMATION */}
+                  {activeTab === "profile" && (
+                    <motion.div
+                      key="profile"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 350,
+                        damping: 28,
+                      }}
+                      className="space-y-4 min-h-[280px] sm:min-h-[340px]"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Company Name */}
+                        <div>
+                          <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">
+                            Company Name
+                          </label>
+                          <div className="flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-black rounded-xl focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 dark:focus-within:ring-[var(--accent-color-dark)]/20 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color-dark)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 shadow-sm group">
+                            <FaRegBuilding size={12} className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250" />
+                            <input
+                              type="text"
+                              name="companyName"
+                              value={formData.companyName}
+                              onChange={handleChange}
+                              placeholder="Enter Client or Company Name"
+                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-xs text-slate-850 dark:text-slate-100 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                              required
+                            />
+                          </div>
+                        </div>
 
-                      <div>
-                        <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1">
-                          Industry Sector
-                        </label>
-                        <input
-                          type="text"
-                          name="industry"
-                          value={formData.industry}
-                          onChange={handleChange}
-                          placeholder="e.g. Technology / Retail"
-                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all font-semibold"
-                          required
-                        />
-                      </div>
+                        {/* Industry Sector */}
+                        <div>
+                          <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">
+                            Industry Sector
+                          </label>
+                          <div className="flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-black rounded-xl focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 dark:focus-within:ring-[var(--accent-color-dark)]/20 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color-dark)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 shadow-sm group">
+                            <FiLayers size={12} className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250" />
+                            <input
+                              type="text"
+                              name="industry"
+                              value={formData.industry}
+                              onChange={handleChange}
+                              placeholder="e.g. Technology / Retail"
+                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-xs text-slate-850 dark:text-slate-100 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                              required
+                            />
+                          </div>
+                        </div>
 
-                      <div>
-                        <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1 flex items-center gap-1.5">
-                          <FiCalendar size={11} className="opacity-80" />
-                          Onboarding Date
-                        </label>
-                        <input
-                          type="date"
-                          name="onboardingDate"
-                          value={formData.onboardingDate}
-                          onChange={handleChange}
-                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all font-semibold"
-                          required
-                        />
-                      </div>
+                        {/* Onboarding Date */}
+                        <div>
+                          <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">
+                            Onboarding Date
+                          </label>
+                          <div className="flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-black rounded-xl focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 dark:focus-within:ring-[var(--accent-color-dark)]/20 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color-dark)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 shadow-sm group">
+                            <FiCalendar size={12} className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250" />
+                            <input
+                              type="date"
+                              name="onboardingDate"
+                              value={formData.onboardingDate}
+                              onChange={handleChange}
+                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-xs text-slate-850 dark:text-slate-100 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600 cursor-pointer"
+                              required
+                            />
+                          </div>
+                        </div>
 
-                      <div>
-                        <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1">
-                          Phone Number
-                        </label>
-                        <input
-                          type="tel"
-                          maxLength={10}
-                          name="phoneNumber"
-                          value={formData.phoneNumber}
-                          onChange={handleChange}
-                          placeholder="Enter Phone Number"
-                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all font-semibold"
-                          required
-                        />
-                      </div>
+                        {/* SPOC Name */}
+                        <div>
+                          <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">
+                            SPOC Name
+                          </label>
+                          <div className="flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-black rounded-xl focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 dark:focus-within:ring-[var(--accent-color-dark)]/20 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color-dark)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 shadow-sm group">
+                            <FiUser size={12} className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250" />
+                            <input
+                              type="text"
+                              name="spoc"
+                              value={formData.spoc}
+                              onChange={handleChange}
+                              placeholder="Representative Name"
+                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-xs text-slate-850 dark:text-slate-100 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                            />
+                          </div>
+                        </div>
 
-                      <div>
-                        <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1">
-                          Corporate Email ID
-                        </label>
-                        <input
-                          type="email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleChange}
-                          placeholder="Enter Client Email Address"
-                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all font-semibold"
-                          required
-                        />
-                      </div>
+                        {/* Designation */}
+                        <div>
+                          <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">
+                            Designation
+                          </label>
+                          <div className="flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-black rounded-xl focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 dark:focus-within:ring-[var(--accent-color-dark)]/20 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color-dark)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 shadow-sm group">
+                            <FiBriefcase size={12} className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250" />
+                            <input
+                              type="text"
+                              name="designation"
+                              value={formData.designation}
+                              onChange={handleChange}
+                              placeholder="e.g. Marketing Manager"
+                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-xs text-slate-850 dark:text-slate-100 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                            />
+                          </div>
+                        </div>
 
-                      {/* Branding Controls */}
-                      <div className="md:col-span-2 pt-6 mt-4 border-t border-slate-100 dark:border-slate-800/60 space-y-5">
+                        {/* Phone Number */}
+                        <div>
+                          <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">
+                            Phone Number
+                          </label>
+                          <div className="flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-black rounded-xl focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 dark:focus-within:ring-[var(--accent-color-dark)]/20 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color-dark)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 shadow-sm group">
+                            <FiPhone size={12} className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250" />
+                            <input
+                              type="tel"
+                              maxLength={10}
+                              name="phoneNumber"
+                              value={formData.phoneNumber}
+                              onChange={handleChange}
+                              placeholder="Enter Phone Number"
+                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-xs text-slate-850 dark:text-slate-100 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* TAB 2: BRAND IDENTITY */}
+                  {activeTab === "branding" && (
+                    <motion.div
+                      key="branding"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 350,
+                        damping: 28,
+                      }}
+                      className="space-y-6 min-h-[280px] sm:min-h-[340px]"
+                    >
+                      <div className="space-y-6">
                         {/* Icon Selection */}
                         <div>
                           <div className="flex items-center justify-between mb-3">
@@ -1338,7 +1420,7 @@ const Clients = () => {
                         {/* Color Selection */}
                         <div>
                           <div className="flex items-center justify-between mb-3">
-                            <label className="text-[11px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                            <label className="text-[11px] font-black text-slate-705 dark:text-slate-300 uppercase tracking-widest flex items-center gap-2">
                               <span className="w-5 h-5 rounded flex items-center justify-center bg-purple-50 dark:bg-purple-500/10 text-purple-500">
                                 <div className="w-2.5 h-2.5 rounded-full bg-current" />
                               </span>
@@ -1428,396 +1510,418 @@ const Clients = () => {
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                )}
+                    </motion.div>
+                  )}
 
-                {/* TAB 2: SERVICE CATEGORIES & COMMITMENTS */}
-                {activeTab === "service" && (
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="space-y-4 min-h-[280px] sm:min-h-[340px] pb-32"
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <MultiSelect
-                        label="Core Contract Service"
-                        placeholder="Select Service Areas"
-                        options={[
-                          {
-                            value: "Digital Marketing",
-                            label: "Digital Marketing",
-                          },
-                          { value: "Website", label: "Website Development" },
-                          { value: "SEO", label: "SEO Strategy" },
-                          {
-                            value: "Additional work",
-                            label: "Additional work",
-                          },
-                          {
-                            value: "Video Production",
-                            label: "Video Production",
-                          },
-                          { value: "Others", label: "Others" },
-                        ]}
-                        selectedValues={formData.service || []}
-                        onChange={handleServiceChange}
-                        icon={FiLayers}
-                      />
+                  {/* TAB 3: SERVICE CATEGORIES & COMMITMENTS */}
+                  {activeTab === "service" && (
+                    <motion.div
+                      key="service"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 350,
+                        damping: 28,
+                      }}
+                      className="space-y-4 min-h-[280px] sm:min-h-[340px] pb-32"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <MultiSelect
+                          label="Core Contract Service"
+                          placeholder="Select Service Areas"
+                          options={[
+                            {
+                              value: "Digital Marketing",
+                              label: "Digital Marketing",
+                            },
+                            { value: "Website", label: "Website Development" },
+                            { value: "SEO", label: "SEO Strategy" },
+                            {
+                              value: "Additional work",
+                              label: "Additional work",
+                            },
+                            {
+                              value: "Video Production",
+                              label: "Video Production",
+                            },
+                            { value: "Others", label: "Others" },
+                          ]}
+                          selectedValues={formData.service || []}
+                          onChange={handleServiceChange}
+                          icon={FiLayers}
+                        />
 
-                      <MultiSelect
-                        label="Assign to members"
-                        placeholder="Select members"
-                        options={allUsers.map((u) => ({
-                          value: u._id,
-                          label: u.name,
-                          subLabel: u.email,
-                          group: u.department
-                            ? u.department.toUpperCase()
-                            : "UNASSIGNED",
-                        }))}
-                        selectedValues={formData.assignedTo || []}
-                        onChange={handleAssignedChange}
-                        icon={FiUsers}
-                      />
-                    </div>
+                        <MultiSelect
+                          label="Assign to members"
+                          placeholder="Select members"
+                          options={allUsers.map((u) => ({
+                            value: u._id,
+                            label: u.name,
+                            subLabel: u.email,
+                            group: u.department
+                              ? u.department.toUpperCase()
+                              : "UNASSIGNED",
+                          }))}
+                          selectedValues={formData.assignedTo || []}
+                          onChange={handleAssignedChange}
+                          icon={FiUsers}
+                        />
+                      </div>
 
-                    {/* Commitments Dynamic Blocks */}
-                    {formData.service &&
-                      (Array.isArray(formData.service)
-                        ? formData.service.length > 0
-                        : formData.service) && (
-                        <div className="pt-2 space-y-4">
-                          <label className="block text-[10px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-widest mb-2 flex items-center gap-1.5 font-bold">
-                            <FiBookOpen size={11} />
-                            Deliverables Setup
+                      {/* Commitments Dynamic Blocks */}
+                      {formData.service &&
+                        (Array.isArray(formData.service)
+                          ? formData.service.length > 0
+                          : formData.service) && (
+                          <div className="pt-2 space-y-4">
+                            <label className="block text-[10px] font-black text-slate-400 dark:text-slate-550 uppercase tracking-widest mb-2 flex items-center gap-1.5 font-bold">
+                              <FiBookOpen size={11} />
+                              Deliverables Setup
+                            </label>
+
+                            {/* Digital Marketing commitments */}
+                            {((Array.isArray(formData.service) &&
+                              formData.service.includes("Digital Marketing")) ||
+                              formData.service === "Digital Marketing") && (
+                              <div className="bg-blue-50/30 dark:bg-black/40 border border-blue-100/50 dark:border-blue-900/20 rounded-2xl p-4 space-y-3.5">
+                                <h4 className="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                                  <FiLayers size={12} /> Digital Marketing
+                                  Deliverables
+                                </h4>
+                                <div className="grid grid-cols-3 gap-3">
+                                  <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                                      Reels
+                                    </label>
+                                    <input
+                                      type="number"
+                                      name="reels"
+                                      value={formData.reels}
+                                      onChange={handleChange}
+                                      placeholder="Count"
+                                      className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                                      Posts
+                                    </label>
+                                    <input
+                                      type="number"
+                                      name="posts"
+                                      value={formData.posts}
+                                      onChange={handleChange}
+                                      placeholder="Count"
+                                      className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                                      Shoot
+                                    </label>
+                                    <input
+                                      type="number"
+                                      name="shoot"
+                                      value={formData.shoot}
+                                      onChange={handleChange}
+                                      placeholder="Count"
+                                      className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5">
+                                    DSLR requirement
+                                  </label>
+                                  <select
+                                    name="needDslr"
+                                    value={formData.needDslr}
+                                    onChange={handleChange}
+                                    className="h-10 px-3.5 py-0 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold cursor-pointer w-full md:w-52 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em] pr-8"
+                                  >
+                                    <option value="">Select Option</option>
+                                    <option value="Need DSLR">Need DSLR</option>
+                                    <option value="No DSLR">No DSLR</option>
+                                  </select>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Website commitments */}
+                            {((Array.isArray(formData.service) &&
+                              formData.service.includes("Website")) ||
+                              formData.service === "Website") && (
+                              <div className="bg-emerald-50/30 dark:bg-black/40 border border-emerald-100/50 dark:border-emerald-900/20 rounded-2xl p-4">
+                                <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 mb-2.5">
+                                  <FiGlobe size={12} /> Website Deliverables
+                                </h4>
+                                <div className="w-full md:w-1/2">
+                                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                                    Estimated Web Pages
+                                  </label>
+                                  <input
+                                    type="number"
+                                    name="pages"
+                                    value={formData.pages}
+                                    onChange={handleChange}
+                                    placeholder="e.g. 5 Pages"
+                                    className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/25 dark:focus:ring-[#3b82f6]/25 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                            {/* SEO commitments */}
+                            {((Array.isArray(formData.service) &&
+                              formData.service.includes("SEO")) ||
+                              formData.service === "SEO") && (
+                              <div className="bg-purple-50/30 dark:bg-black/40 border border-purple-100/50 dark:border-purple-900/20 rounded-2xl p-4">
+                                <h4 className="text-xs font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1.5 mb-2.5">
+                                  <FiSearch size={12} /> SEO Deliverables
+                                </h4>
+                                <label className="block text-[10px] font-bold text-slate-550 dark:text-slate-350 mb-2">
+                                  Select Deliverables
+                                </label>
+                                <div className="flex flex-wrap gap-3">
+                                  <label className="flex items-center gap-2.5 bg-white dark:bg-black px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 cursor-pointer hover:border-purple-400 dark:hover:border-purple-500 transition-all font-semibold">
+                                    <input
+                                      type="checkbox"
+                                      name="onpage"
+                                      checked={formData.onpage}
+                                      onChange={handleChange}
+                                      className="rounded text-purple-650 focus:ring-purple-500"
+                                    />
+                                    On-Page SEO
+                                  </label>
+
+                                  <label className="flex items-center gap-2.5 bg-white dark:bg-black px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 cursor-pointer hover:border-purple-400 dark:hover:border-purple-500 transition-all font-semibold">
+                                    <input
+                                      type="checkbox"
+                                      name="offpage"
+                                      checked={formData.offpage}
+                                      onChange={handleChange}
+                                      className="rounded text-purple-650 focus:ring-purple-500"
+                                    />
+                                    Off-Page Link Building
+                                  </label>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Video Production commitments */}
+                            {((Array.isArray(formData.service) &&
+                              formData.service.includes("Video Production")) ||
+                              formData.service === "Video Production") && (
+                              <div className="bg-rose-50/30 dark:bg-black/40 border border-rose-100/50 dark:border-rose-900/20 rounded-2xl p-4 space-y-3.5">
+                                <h4 className="text-xs font-bold text-rose-600 dark:text-rose-405 flex items-center gap-1.5">
+                                  <FiVideo size={12} /> Video Production
+                                  Deliverables
+                                </h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                                      Shoot Count
+                                    </label>
+                                    <input
+                                      type="number"
+                                      name="shoot"
+                                      value={formData.shoot}
+                                      onChange={handleChange}
+                                      placeholder="Count"
+                                      className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                                    />
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
+                                      Reels Count
+                                    </label>
+                                    <input
+                                      type="number"
+                                      name="reels"
+                                      value={formData.reels}
+                                      onChange={handleChange}
+                                      placeholder="Count"
+                                      className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5">
+                                    DSLR requirement
+                                  </label>
+                                  <select
+                                    name="needDslr"
+                                    value={formData.needDslr}
+                                    onChange={handleChange}
+                                    className="h-10 px-3.5 py-0 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold cursor-pointer w-full md:w-52 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em] pr-8"
+                                  >
+                                    <option value="">Select Option</option>
+                                    <option value="Need DSLR">Need DSLR</option>
+                                    <option value="No DSLR">No DSLR</option>
+                                  </select>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Additional work commitments */}
+                            {((Array.isArray(formData.service) &&
+                              formData.service.includes("Additional work")) ||
+                              formData.service === "Additional work") && (
+                              <div className="bg-amber-50/30 dark:bg-black/40 border border-amber-100/50 dark:border-amber-900/20 rounded-2xl p-4">
+                                <h4 className="text-xs font-bold text-amber-600 dark:text-amber-455 flex items-center gap-1.5 mb-2.5">
+                                  <FiPlusCircle size={12} /> Additional Work
+                                  Details
+                                </h4>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
+                                  Additional deliverables and project-specific
+                                  tasks can be added directly via the project
+                                  boards or EOD notes.
+                                </p>
+                              </div>
+                            )}
+
+                            {/* Others commitments */}
+                            {((Array.isArray(formData.service) &&
+                              formData.service.includes("Others")) ||
+                              formData.service === "Others") && (
+                              <div className="bg-teal-50/30 dark:bg-black/40 border border-teal-100/50 dark:border-teal-900/20 rounded-2xl p-4">
+                                <h4 className="text-xs font-bold text-teal-605 dark:text-teal-400 flex items-center gap-1.5 mb-2.5">
+                                  <FiHelpCircle size={12} /> Custom Service
+                                  Deliverables
+                                </h4>
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
+                                  Configure specific milestones and guidelines
+                                  directly with the assigned team members.
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                    </motion.div>
+                  )}
+
+                  {/* TAB 4: FINANCIALS & GST SETUP */}
+                  {activeTab === "finance" && (
+                    <motion.div
+                      key="finance"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 350,
+                        damping: 28,
+                      }}
+                      className="space-y-4 min-h-[280px] sm:min-h-[340px]"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1 flex items-center gap-1">
+                            <FiDollarSign
+                              size={10}
+                              className="text-slate-450"
+                            />
+                            Base Budget (INR)
                           </label>
-
-                          {/* Digital Marketing commitments */}
-                          {((Array.isArray(formData.service) &&
-                            formData.service.includes("Digital Marketing")) ||
-                            formData.service === "Digital Marketing") && (
-                            <div className="bg-blue-50/30 dark:bg-black/40 border border-blue-100/50 dark:border-blue-900/20 rounded-2xl p-4 space-y-3.5">
-                              <h4 className="text-xs font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
-                                <FiLayers size={12} /> Digital Marketing
-                                Deliverables
-                              </h4>
-                              <div className="grid grid-cols-3 gap-3">
-                                <div>
-                                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                    Reels
-                                  </label>
-                                  <input
-                                    type="number"
-                                    name="reels"
-                                    value={formData.reels}
-                                    onChange={handleChange}
-                                    placeholder="Count"
-                                    className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                    Posts
-                                  </label>
-                                  <input
-                                    type="number"
-                                    name="posts"
-                                    value={formData.posts}
-                                    onChange={handleChange}
-                                    placeholder="Count"
-                                    className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                    Shoot
-                                  </label>
-                                  <input
-                                    type="number"
-                                    name="shoot"
-                                    value={formData.shoot}
-                                    onChange={handleChange}
-                                    placeholder="Count"
-                                    className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold"
-                                  />
-                                </div>
-                              </div>
-
-                              <div>
-                                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5">
-                                  DSLR requirement
-                                </label>
-                                <select
-                                  name="needDslr"
-                                  value={formData.needDslr}
-                                  onChange={handleChange}
-                                  className="h-10 px-3.5 py-0 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold cursor-pointer w-full md:w-52 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em] pr-8"
-                                >
-                                  <option value="">Select Option</option>
-                                  <option value="Need DSLR">Need DSLR</option>
-                                  <option value="No DSLR">No DSLR</option>
-                                </select>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Website commitments */}
-                          {((Array.isArray(formData.service) &&
-                            formData.service.includes("Website")) ||
-                            formData.service === "Website") && (
-                            <div className="bg-emerald-50/30 dark:bg-black/40 border border-emerald-100/50 dark:border-emerald-900/20 rounded-2xl p-4">
-                              <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5 mb-2.5">
-                                <FiGlobe size={12} /> Website Deliverables
-                              </h4>
-                              <div className="w-full md:w-1/2">
-                                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                  Estimated Web Pages
-                                </label>
-                                <input
-                                  type="number"
-                                  name="pages"
-                                  value={formData.pages}
-                                  onChange={handleChange}
-                                  placeholder="e.g. 5 Pages"
-                                  className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/25 dark:focus:ring-[#3b82f6]/25 font-semibold"
-                                />
-                              </div>
-                            </div>
-                          )}
-
-                          {/* SEO commitments */}
-                          {((Array.isArray(formData.service) &&
-                            formData.service.includes("SEO")) ||
-                            formData.service === "SEO") && (
-                            <div className="bg-purple-50/30 dark:bg-black/40 border border-purple-100/50 dark:border-purple-900/20 rounded-2xl p-4">
-                              <h4 className="text-xs font-bold text-purple-600 dark:text-purple-400 flex items-center gap-1.5 mb-2.5">
-                                <FiSearch size={12} /> SEO Deliverables
-                              </h4>
-                              <label className="block text-[10px] font-bold text-slate-550 dark:text-slate-350 mb-2">
-                                Select Deliverables
-                              </label>
-                              <div className="flex flex-wrap gap-3">
-                                <label className="flex items-center gap-2.5 bg-white dark:bg-black px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 cursor-pointer hover:border-purple-400 dark:hover:border-purple-500 transition-all font-semibold">
-                                  <input
-                                    type="checkbox"
-                                    name="onpage"
-                                    checked={formData.onpage}
-                                    onChange={handleChange}
-                                    className="rounded text-purple-650 focus:ring-purple-500"
-                                  />
-                                  On-Page SEO
-                                </label>
-
-                                <label className="flex items-center gap-2.5 bg-white dark:bg-black px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 cursor-pointer hover:border-purple-400 dark:hover:border-purple-500 transition-all font-semibold">
-                                  <input
-                                    type="checkbox"
-                                    name="offpage"
-                                    checked={formData.offpage}
-                                    onChange={handleChange}
-                                    className="rounded text-purple-650 focus:ring-purple-500"
-                                  />
-                                  Off-Page Link Building
-                                </label>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Video Production commitments */}
-                          {((Array.isArray(formData.service) &&
-                            formData.service.includes("Video Production")) ||
-                            formData.service === "Video Production") && (
-                            <div className="bg-rose-50/30 dark:bg-black/40 border border-rose-100/50 dark:border-rose-900/20 rounded-2xl p-4 space-y-3.5">
-                              <h4 className="text-xs font-bold text-rose-600 dark:text-rose-405 flex items-center gap-1.5">
-                                <FiVideo size={12} /> Video Production
-                                Deliverables
-                              </h4>
-                              <div className="grid grid-cols-2 gap-3">
-                                <div>
-                                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                    Shoot Count
-                                  </label>
-                                  <input
-                                    type="number"
-                                    name="shoot"
-                                    value={formData.shoot}
-                                    onChange={handleChange}
-                                    placeholder="Count"
-                                    className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1">
-                                    Reels Count
-                                  </label>
-                                  <input
-                                    type="number"
-                                    name="reels"
-                                    value={formData.reels}
-                                    onChange={handleChange}
-                                    placeholder="Count"
-                                    className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold"
-                                  />
-                                </div>
-                              </div>
-
-                              <div>
-                                <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5">
-                                  DSLR requirement
-                                </label>
-                                <select
-                                  name="needDslr"
-                                  value={formData.needDslr}
-                                  onChange={handleChange}
-                                  className="h-10 px-3.5 py-0 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 font-semibold cursor-pointer w-full md:w-52 appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E')] bg-no-repeat bg-[position:right_0.75rem_center] bg-[length:0.85em_0.85em] pr-8"
-                                >
-                                  <option value="">Select Option</option>
-                                  <option value="Need DSLR">Need DSLR</option>
-                                  <option value="No DSLR">No DSLR</option>
-                                </select>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Additional work commitments */}
-                          {((Array.isArray(formData.service) &&
-                            formData.service.includes("Additional work")) ||
-                            formData.service === "Additional work") && (
-                            <div className="bg-amber-50/30 dark:bg-black/40 border border-amber-100/50 dark:border-amber-900/20 rounded-2xl p-4">
-                              <h4 className="text-xs font-bold text-amber-600 dark:text-amber-455 flex items-center gap-1.5 mb-2.5">
-                                <FiPlusCircle size={12} /> Additional Work
-                                Details
-                              </h4>
-                              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
-                                Additional deliverables and project-specific
-                                tasks can be added directly via the project
-                                boards or EOD notes.
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Others commitments */}
-                          {((Array.isArray(formData.service) &&
-                            formData.service.includes("Others")) ||
-                            formData.service === "Others") && (
-                            <div className="bg-teal-50/30 dark:bg-black/40 border border-teal-100/50 dark:border-teal-900/20 rounded-2xl p-4">
-                              <h4 className="text-xs font-bold text-teal-605 dark:text-teal-400 flex items-center gap-1.5 mb-2.5">
-                                <FiHelpCircle size={12} /> Custom Service
-                                Deliverables
-                              </h4>
-                              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
-                                Configure specific milestones and guidelines
-                                directly with the assigned team members.
-                              </p>
-                            </div>
-                          )}
+                          <input
+                            type="number"
+                            name="budget"
+                            value={formData.budget}
+                            onChange={handleChange}
+                            placeholder="e.g. 50000"
+                            className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                            required
+                          />
                         </div>
-                      )}
-                  </motion.div>
-                )}
 
-                {/* TAB 3: FINANCIALS & GST SETUP */}
-                {activeTab === "finance" && (
-                  <motion.div
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="space-y-4 min-h-[280px] sm:min-h-[340px]"
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1 flex items-center gap-1">
-                          <FiDollarSign size={10} className="text-slate-450" />
-                          Base Budget (INR)
-                        </label>
-                        <input
-                          type="number"
-                          name="budget"
-                          value={formData.budget}
-                          onChange={handleChange}
-                          placeholder="e.g. 50000"
-                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all font-semibold"
-                          required
-                        />
-                      </div>
+                        <div>
+                          <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1 flex items-center gap-1">
+                            <FiPercent size={10} className="text-slate-450" />
+                            GST Slab (%)
+                          </label>
+                          <input
+                            type="number"
+                            name="gst"
+                            value={formData.gst}
+                            onChange={handleChange}
+                            placeholder="e.g. 18"
+                            className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                          />
+                        </div>
 
-                      <div>
-                        <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1 flex items-center gap-1">
-                          <FiPercent size={10} className="text-slate-450" />
-                          GST Slab (%)
-                        </label>
-                        <input
-                          type="number"
-                          name="gst"
-                          value={formData.gst}
-                          onChange={handleChange}
-                          placeholder="e.g. 18"
-                          className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-black px-3.5 text-xs text-slate-800 dark:text-slate-150 outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-[#3b82f6]/20 focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all font-semibold"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1">
-                          Grand Total (Inc. GST)
-                        </label>
-                        <div className="w-full h-10 rounded-xl bg-emerald-555/5 dark:bg-emerald-950/20 border border-emerald-500/10 dark:border-emerald-900/30 px-3.5 flex items-center text-emerald-600 dark:text-emerald-400 font-extrabold text-xs">
-                          ₹{Number(calculateTotal()).toLocaleString("en-IN")}
+                        <div>
+                          <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-405 uppercase tracking-wide mb-1">
+                            Grand Total (Inc. GST)
+                          </label>
+                          <div className="w-full h-10 rounded-xl bg-emerald-555/5 dark:bg-emerald-950/20 border border-emerald-500/10 dark:border-emerald-900/30 px-3.5 flex items-center text-emerald-600 dark:text-emerald-400 font-extrabold text-xs">
+                            ₹{Number(calculateTotal()).toLocaleString("en-IN")}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* ACTION FOOTER */}
                 <div className="border-t border-slate-100 dark:border-white/5 pt-5 mt-3">
                   {/* Step Progress Indicator */}
                   <div className="flex items-center justify-center gap-2 mb-5">
-                    {["profile", "service", "finance"].map((step, i) => {
-                      const stepIndex = [
-                        "profile",
-                        "service",
-                        "finance",
-                      ].indexOf(activeTab);
-                      const isCurrent = step === activeTab;
-                      const isDone = i < stepIndex;
-                      return (
-                        <div key={step} className="flex items-center gap-2">
-                          <div
-                            className={`flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-black transition-all duration-300 ${
-                              isCurrent
-                                ? "theme-bg-accent text-white dark:text-black shadow-lg scale-110"
-                                : isDone
-                                  ? "bg-emerald-500 text-white shadow-sm"
-                                  : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600"
-                            }`}
-                          >
-                            {isDone ? "✓" : i + 1}
-                          </div>
-                          <span
-                            className={`text-[9px] font-bold hidden sm:block ${
-                              isCurrent
-                                ? "theme-text-accent"
-                                : isDone
-                                  ? "text-emerald-500"
-                                  : "text-slate-400 dark:text-slate-600"
-                            }`}
-                          >
-                            {step === "profile"
-                              ? "Company"
-                              : step === "service"
-                                ? "Service"
-                                : "Finance"}
-                          </span>
-                          {i < 2 && (
+                    {["profile", "branding", "service", "finance"].map(
+                      (step, i) => {
+                        const stepIndex = [
+                          "profile",
+                          "branding",
+                          "service",
+                          "finance",
+                        ].indexOf(activeTab);
+                        const isCurrent = step === activeTab;
+                        const isDone = i < stepIndex;
+                        return (
+                          <div key={step} className="flex items-center gap-2">
                             <div
-                              className={`w-8 h-[2px] rounded-full ${isDone ? "bg-emerald-400" : "bg-slate-200 dark:bg-slate-800"}`}
-                            />
-                          )}
-                        </div>
-                      );
-                    })}
+                              className={`flex items-center justify-center w-6 h-6 rounded-full text-[9px] font-black transition-all duration-300 ${
+                                isCurrent
+                                  ? "theme-bg-accent text-white dark:text-black shadow-lg scale-110"
+                                  : isDone
+                                    ? "bg-emerald-500 text-white shadow-sm"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600"
+                              }`}
+                            >
+                              {isDone ? "✓" : i + 1}
+                            </div>
+                            <span
+                              className={`text-[9px] font-bold hidden sm:block ${
+                                isCurrent
+                                  ? "theme-text-accent"
+                                  : isDone
+                                    ? "text-emerald-500"
+                                    : "text-slate-400 dark:text-slate-600"
+                              }`}
+                            >
+                              {step === "profile"
+                                ? "Company"
+                                : step === "branding"
+                                  ? "Brand"
+                                  : step === "service"
+                                    ? "Service"
+                                    : "Finance"}
+                            </span>
+                            {i < 3 && (
+                              <div
+                                className={`w-8 h-[2px] rounded-full ${isDone ? "bg-emerald-400" : "bg-slate-200 dark:bg-slate-800"}`}
+                              />
+                            )}
+                          </div>
+                        );
+                      },
+                    )}
                   </div>
 
                   <div className="flex justify-between items-center gap-3">
@@ -1830,6 +1934,8 @@ const Clients = () => {
                             if (activeTab === "finance")
                               setActiveTab("service");
                             else if (activeTab === "service")
+                              setActiveTab("branding");
+                            else if (activeTab === "branding")
                               setActiveTab("profile");
                           }}
                           className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold transition-all text-xs cursor-pointer shadow-sm group"
@@ -1882,6 +1988,8 @@ const Clients = () => {
                           type="button"
                           onClick={() => {
                             if (activeTab === "profile")
+                              setActiveTab("branding");
+                            else if (activeTab === "branding")
                               setActiveTab("service");
                             else if (activeTab === "service")
                               setActiveTab("finance");
@@ -1935,7 +2043,7 @@ const Clients = () => {
                 </div>
               </form>
             </motion.div>
-          </div>
+          </motion.div>
         )}
       </AnimatePresence>
 

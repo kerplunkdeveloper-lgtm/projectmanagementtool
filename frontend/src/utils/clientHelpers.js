@@ -11,6 +11,9 @@ import {
   FiTarget,
   FiUsers
 } from "react-icons/fi";
+import { MdLocalHospital, MdSportsBar, MdGames, MdOutlineFastfood } from "react-icons/md";
+import { FaComputer } from "react-icons/fa6";
+import { BiDrink } from "react-icons/bi";
 
 export const getClientIconComponent = (iconName) => {
   return CLIENT_ICONS[iconName] || FaRegBuilding;
@@ -31,7 +34,12 @@ export const CLIENT_COLORS = [
 
 export const CLIENT_ICONS = {
   FaRegBuilding,
+  BiDrink,
+  MdSportsBar,
+  FaComputer,
   FiBriefcase,
+  MdGames,
+  MdOutlineFastfood,
   FiGlobe,
   FiLayers,
   FiVideo,
@@ -40,5 +48,7 @@ export const CLIENT_ICONS = {
   FiCode,
   FiCpu,
   FiTarget,
-  FiUsers
+  FiUsers,
+  MdLocalHospital
+
 };
