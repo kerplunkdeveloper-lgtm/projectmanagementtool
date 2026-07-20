@@ -828,24 +828,24 @@ const Clients = () => {
                                       return (
                                         <div
                                           key={member._id || member}
-                                          className="flex items-center gap-2 p-1 pr-3.5 rounded-full border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800 shadow-sm transition-transform hover:scale-105 w-max max-w-full overflow-hidden"
+                                          className="flex items-center gap-2 p-1 pr-3.5 rounded-full border border-slate-100 dark:border-slate-700 bg-white dark:bg-[#0B1120] shadow-sm transition-transform hover:scale-105 w-max max-w-full overflow-hidden"
                                           title={member.name || member.email}
                                         >
                                           {avatarUrl ? (
-                                            <img src={avatarUrl} alt={member.name || "User"} className="w-6 h-6 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700" />
+                                            <img src={avatarUrl} alt={member.name || "User"} className="w-6 h-6 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-800" />
                                           ) : (
                                             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${uCol.bg} ${uCol.text} border ${uCol.border}`}>
                                               {initial}
                                             </div>
                                           )}
                                           <div className="flex items-center gap-2">
-                                            <span className="text-[10.5px] font-extrabold text-slate-800 dark:text-slate-100 truncate max-w-[90px]">
+                                            <span className="text-[10.5px] font-extrabold text-slate-800 dark:text-slate-400 truncate max-w-[90px]">
                                               {member.name || member.email}
                                             </span>
                                             {dept && (
                                               <>
-                                                <span className="w-[1.5px] h-3 bg-slate-200 dark:bg-slate-600 block"></span>
-                                                <span className="text-[8.2px] font-bold text-[#c2410c] dark:text-orange-500 truncate max-w-[95px]">
+                                                <span className="w-[1.5px] h-3 bg-slate-200 dark:bg-slate-700 block"></span>
+                                                <span className="text-[8.2px] font-bold text-[#c2410c] dark:text-[#ea580c] truncate max-w-[95px]">
                                                   {dept}
                                                 </span>
                                               </>
@@ -869,24 +869,24 @@ const Clients = () => {
                                         : "?";
                                       return (
                                         <div
-                                          className="flex items-center gap-2 p-1 pr-3.5 rounded-full border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800 shadow-sm transition-transform hover:scale-105 w-max"
+                                          className="flex items-center gap-2 p-1 pr-3.5 rounded-full border border-slate-100 dark:border-slate-700 bg-white dark:bg-[#0B1120] shadow-sm transition-transform hover:scale-105 w-max max-w-full overflow-hidden"
                                           title={singleMember.name || singleMember.email}
                                         >
                                           {avatarUrl ? (
-                                            <img src={avatarUrl} alt={singleMember.name || "User"} className="w-6 h-6 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700" />
+                                            <img src={avatarUrl} alt={singleMember.name || "User"} className="w-6 h-6 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-800" />
                                           ) : (
                                             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${uCol.bg} ${uCol.text} border ${uCol.border}`}>
                                               {initial}
                                             </div>
                                           )}
                                           <div className="flex items-center gap-2">
-                                            <span className="text-[10.5px] font-extrabold text-slate-800 dark:text-slate-100 truncate max-w-[90px]">
+                                            <span className="text-[10.5px] font-extrabold text-slate-800 dark:text-slate-400 truncate max-w-[90px]">
                                               {singleMember.name || singleMember.email}
                                             </span>
                                             {dept && (
                                               <>
-                                                <span className="w-[1.5px] h-3 bg-slate-200 dark:bg-slate-600 block"></span>
-                                                <span className="text-[8.2px] font-bold text-[#c2410c] dark:text-orange-500 truncate max-w-[95px]">
+                                                <span className="w-[1.5px] h-3 bg-slate-200 dark:bg-slate-700 block"></span>
+                                                <span className="text-[8.2px] font-bold text-[#c2410c] dark:text-[#ea580c] truncate max-w-[95px]">
                                                   {dept}
                                                 </span>
                                               </>
