@@ -1385,7 +1385,7 @@ const Clients = () => {
                             <FiPhone size={12} className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250" />
                             <input
                               type="tel"
-                              maxLength={10}
+                              maxLength={15}
                               name="phoneNumber"
                               value={formData.phoneNumber}
                               onChange={handleChange}
