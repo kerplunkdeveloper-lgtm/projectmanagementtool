@@ -563,34 +563,34 @@ const Clients = () => {
       {!loading && (
         <motion.div
           layout
-          className="overflow-hidden theme-bg-card theme-border border rounded-2xl shadow-sm"
+          className="overflow-hidden theme-bg-card border border-slate-200 dark:border-slate-700/60 rounded-2xl shadow-sm"
         >
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1100px] text-xs">
               <thead>
-                <tr className="border-b theme-border text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-widest text-[9.5px]">
-                  <th className="px-5 py-4 font-extrabold bg-transparent border-r theme-border">
-                    <div className="flex items-center gap-1.5">
+                <tr className="border-b border-slate-200 dark:border-slate-700/60 text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-widest text-[9.5px]">
+                  <th className="px-5 py-4 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60">
+                    <div className="flex items-center justify-center gap-1.5">
                       <FaRegBuilding size={11} className="opacity-70" />
                       Client Profile
                     </div>
                   </th>
-                  <th className="px-5 py-4 font-extrabold bg-transparent border-r theme-border">
+                  <th className="px-5 py-4 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60">
                     Contact Info
                   </th>
-                  <th className="px-5 py-4 font-extrabold bg-transparent border-r theme-border">
+                  <th className="px-5 py-4 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60">
                     Service & Members
                   </th>
-                  <th className="px-5 py-4 font-extrabold bg-transparent w-48 border-r theme-border">
+                  <th className="px-5 py-4 font-extrabold bg-transparent text-center w-48 border-r border-slate-200 dark:border-slate-700/60">
                     Deliverables
                   </th>
                   {user?.role === "team" && (
-                    <th className="px-5 py-4 font-extrabold bg-transparent border-r theme-border last:border-r-0">
+                    <th className="px-5 py-4 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60 last:border-r-0">
                       Assigned By
                     </th>
                   )}
                   {user?.role !== "team" && (
-                    <th className="px-5 py-4 font-extrabold bg-transparent border-r theme-border last:border-r-0">
+                    <th className="px-5 py-4 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60 last:border-r-0">
                       Financials (INR)
                     </th>
                   )}
@@ -602,7 +602,7 @@ const Clients = () => {
                   )}
                 </tr>
               </thead>
-              <tbody className="divide-y theme-border">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-700/60">
                 <AnimatePresence>
                   {filteredClients.length > 0 ? (
                     paginatedClients.map((client, index) => {
@@ -613,7 +613,7 @@ const Clients = () => {
                       const ServiceIcon = conf.icon;
 
                       const cellClass =
-                        "px-5 py-4 bg-transparent transition-colors border-r theme-border last:border-r-0";
+                        "px-5 py-4 bg-transparent transition-colors border-r border-slate-200 dark:border-slate-700/60 last:border-r-0";
 
                       const nameColors = [
                         "text-blue-900 dark:text-blue-400",
@@ -662,7 +662,7 @@ const Clients = () => {
                           exit={{ opacity: 0, scale: 0.95 }}
                           transition={{ duration: 0.2, delay: index * 0.02 }}
                           key={client._id}
-                          className="group transition-colors hover:bg-slate-50/40 dark:hover:bg-[#16223f]/40 border-b theme-border"
+                          className="group transition-colors hover:bg-slate-50/40 dark:hover:bg-[#16223f]/40 border-b border-slate-200 dark:border-slate-700/60"
                         >
                           {/* Client Info */}
                           <td className={`${cellClass} relative`}>
@@ -686,7 +686,7 @@ const Clients = () => {
                               })()}
                               <div className="min-w-[120px]">
                                 <h2
-                                  className="font-bold transition-colors text-[14px] truncate max-w-[200px]"
+                                  className="font-bold transition-colors text-[14px]  truncate max-w-[200px]"
                                   style={{ color: clientColor }}
                                 >
                                   {client.companyName}
@@ -696,7 +696,7 @@ const Clients = () => {
                                     {client.industry}
                                   </span>
                                   {client.onboardingDate && (
-                                    <span className="text-[9.5px] text-slate-400 dark:text-slate-500 font-medium flex items-center gap-1">
+                                    <span className="text-[10px] text-black dark:text-white p-2 bg-slate-100 rounded-md dark:bg-[#16223f] font-medium flex items-center gap-1">
                                       <FiCalendar size={9} />
                                       {new Date(
                                         client.onboardingDate,
@@ -787,13 +787,17 @@ const Clients = () => {
                                     })()}
                               </div>
 
-                              <div className="flex flex-wrap gap-1 max-w-[220px]">
+                              <div className="grid grid-cols-1 xl:grid-cols-2 gap-1.5 min-w-[350px]">
                                 {client.assignedTo &&
                                 (Array.isArray(client.assignedTo)
                                   ? client.assignedTo.length > 0
                                   : true) ? (
                                   Array.isArray(client.assignedTo) ? (
                                     client.assignedTo.map((member) => {
+                                      const fullUser = allUsers.find(u => u._id === (member._id || member));
+                                      const avatarUrl = fullUser?.profile?.profileImage?.url;
+                                      const dept = fullUser?.department || "";
+
                                       const uCol = getUserColor(
                                         member._id || member,
                                       );
@@ -801,47 +805,63 @@ const Clients = () => {
                                         ? member.name.charAt(0).toUpperCase()
                                         : "?";
                                       return (
-                                        <span
+                                        <div
                                           key={member._id || member}
-                                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${uCol.bg} ${uCol.text} border ${uCol.border} font-bold text-[9.5px] shadow-sm`}
+                                          className="grid grid-cols-[auto_auto_1fr] items-center gap-1.5 p-1 pr-2.5 rounded-full border border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-800/40 shadow-sm transition-transform hover:scale-105 w-max"
                                           title={member.name || member.email}
                                         >
-                                          <span className="w-3.5 h-3.5 rounded-full bg-white/40 dark:bg-black/25 flex items-center justify-center text-[7.5px] font-black shrink-0">
-                                            {initial}
-                                          </span>
-                                          <span className="max-w-[70px] truncate">
+                                          {avatarUrl ? (
+                                            <img src={avatarUrl} alt={member.name || "User"} className="w-5 h-5 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700" />
+                                          ) : (
+                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 ${uCol.bg} ${uCol.text} border ${uCol.border}`}>
+                                              {initial}
+                                            </div>
+                                          )}
+                                          <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 truncate max-w-[85px]">
                                             {member.name || member.email}
                                           </span>
-                                        </span>
+                                          {dept && (
+                                            <span className="text-[8.5px] font-semibold text-blue-500 dark:text-blue-400 truncate max-w-[75px] border-l border-slate-300 dark:border-slate-600 pl-1.5">
+                                              {dept}
+                                            </span>
+                                          )}
+                                        </div>
                                       );
                                     })
                                   ) : (
                                     (() => {
+                                      const singleMember = client.assignedTo;
+                                      const fullUser = allUsers.find(u => u._id === (singleMember._id || singleMember));
+                                      const avatarUrl = fullUser?.profile?.profileImage?.url;
+                                      const dept = fullUser?.department || "";
+
                                       const uCol = getUserColor(
-                                        client.assignedTo._id ||
-                                          client.assignedTo,
+                                        singleMember._id || singleMember,
                                       );
-                                      const initial = client.assignedTo.name
-                                        ? client.assignedTo.name
-                                            .charAt(0)
-                                            .toUpperCase()
+                                      const initial = singleMember.name
+                                        ? singleMember.name.charAt(0).toUpperCase()
                                         : "?";
                                       return (
-                                        <span
-                                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${uCol.bg} ${uCol.text} border ${uCol.border} font-bold text-[9.5px] shadow-sm`}
-                                          title={
-                                            client.assignedTo.name ||
-                                            client.assignedTo.email
-                                          }
+                                        <div
+                                          className="grid grid-cols-[auto_auto_1fr] items-center gap-1.5 p-1 pr-2.5 rounded-full border border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-800/40 shadow-sm transition-transform hover:scale-105 w-max"
+                                          title={singleMember.name || singleMember.email}
                                         >
-                                          <span className="w-3.5 h-3.5 rounded-full bg-white/40 dark:bg-black/25 flex items-center justify-center text-[7.5px] font-black shrink-0">
-                                            {initial}
+                                          {avatarUrl ? (
+                                            <img src={avatarUrl} alt={singleMember.name || "User"} className="w-5 h-5 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700" />
+                                          ) : (
+                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 ${uCol.bg} ${uCol.text} border ${uCol.border}`}>
+                                              {initial}
+                                            </div>
+                                          )}
+                                          <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 truncate max-w-[85px]">
+                                            {singleMember.name || singleMember.email}
                                           </span>
-                                          <span className="max-w-[70px] truncate">
-                                            {client.assignedTo.name ||
-                                              client.assignedTo.email}
-                                          </span>
-                                        </span>
+                                          {dept && (
+                                            <span className="text-[8.5px] font-semibold text-blue-500 dark:text-blue-400 truncate max-w-[75px] border-l border-slate-300 dark:border-slate-600 pl-1.5">
+                                              {dept}
+                                            </span>
+                                          )}
+                                        </div>
                                       );
                                     })()
                                   )
@@ -1016,21 +1036,21 @@ const Clients = () => {
                           {(user?.role === "admin" ||
                             user?.role === "operationmanager") && (
                             <td className={`${cellClass} text-center`}>
-                              <div className="flex items-center justify-center gap-1.5">
+                              <div className="flex items-center justify-center gap-2.5">
                                 <button
                                   onClick={() => handleEdit(client)}
-                                  className="w-7 h-7 flex items-center justify-center bg-slate-50 hover:bg-amber-50 dark:bg-slate-800/50 dark:hover:bg-amber-955/20 text-slate-450 hover:text-amber-600 dark:hover:text-amber-400 border theme-border hover:border-amber-200 dark:hover:border-amber-900 rounded-lg transition-all active:scale-95 cursor-pointer"
+                                  className="w-8 h-8 flex items-center justify-center bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 rounded-[9px] transition-all shadow-sm hover:shadow active:scale-95 cursor-pointer"
                                   title="Edit Record"
                                 >
-                                  <FiEdit size={12} className="stroke-[2.5]" />
+                                  <FiEdit size={14.5} className="stroke-[2.5]" />
                                 </button>
                                 <button
                                   onClick={() => setClientToDelete(client)}
-                                  className="w-7 h-7 flex items-center justify-center bg-slate-50 hover:bg-rose-50 dark:bg-slate-800/50 dark:hover:bg-rose-955/20 text-slate-450 hover:text-rose-600 dark:hover:text-rose-400 border theme-border hover:border-rose-200 dark:hover:border-rose-900 rounded-lg transition-all active:scale-95 cursor-pointer"
+                                  className="w-8 h-8 flex items-center justify-center bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 rounded-[9px] transition-all shadow-sm hover:shadow active:scale-95 cursor-pointer"
                                   title="Delete Record"
                                 >
                                   <FiTrash2
-                                    size={12}
+                                    size={14.5}
                                     className="stroke-[2.5]"
                                   />
                                 </button>
