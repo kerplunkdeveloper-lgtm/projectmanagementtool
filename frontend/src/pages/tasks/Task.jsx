@@ -31,6 +31,7 @@ import {
   useGetTasksQuery,
   useUpdateTaskMutation,
   useGetProjectsQuery,
+  useDeleteTaskMutation,
 } from "../../features/api/apiSlice";
 import axiosInstance from "../../services/axiosInstance";
 import toast from "react-hot-toast";
@@ -226,6 +227,8 @@ const Task = () => {
   });
 
   const [updateTaskTrigger] = useUpdateTaskMutation();
+  const [deleteTask] = useDeleteTaskMutation();
+  const [selectedTasks, setSelectedTasks] = useState([]);
 
   const [priorityFilter, setPriorityFilter] = useState("All");
   const [projectFilter, setProjectFilter] = useState("All");
@@ -759,6 +762,33 @@ const Task = () => {
     setExpandedTasks((prev) => ({ ...prev, [taskId]: !prev[taskId] }));
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedTasks.length === 0) return;
+    if (window.confirm(`Are you sure you want to delete ${selectedTasks.length} selected task(s)?`)) {
+      try {
+        await Promise.all(selectedTasks.map(id => deleteTask(id).unwrap()));
+        setSelectedTasks([]);
+        toast.success("Tasks deleted successfully!");
+      } catch (err) {
+        toast.error("Failed to delete some tasks");
+      }
+    }
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedTasks(sortedTasks.map(t => t._id));
+    } else {
+      setSelectedTasks([]);
+    }
+  };
+
+  const handleSelectTask = (taskId) => {
+    setSelectedTasks(prev => 
+      prev.includes(taskId) ? prev.filter(id => id !== taskId) : [...prev, taskId]
+    );
+  };
+
   const getStatusStyle = (status, isBlocked) => {
     if (isBlocked) {
       return {
@@ -903,18 +933,34 @@ const Task = () => {
     <div className="px-0 py-1 space-y-4 pb-16">
       {/* UNIFIED HEADER & CONTROLS */}
 
-      <div className="flex flex-col xl:flex-row items-center justify-between gap-4 bg-white dark:bg-[#0f172a] p-2 relative z-20">
+      <div className="flex flex-col xl:flex-row items-center justify-between gap-4 bg-white dark:bg-[#11131e] p-2 relative z-20">
+        {/* Left: Bulk Actions */}
+        <div className="flex items-center w-full xl:w-auto min-h-[36px]">
+          {selectedTasks.length > 0 && (
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{selectedTasks.length} selected</span>
+              <button
+                onClick={handleBulkDelete}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors text-xs font-bold shadow-sm"
+              >
+                <FiTrash2 size={12} />
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Center: View Toggle */}
         <div className="flex bg-slate-50 dark:bg-black p-1 rounded-xl shrink-0 w-full xl:w-auto mx-auto justify-center">
           <button
             onClick={() => setViewType("list")}
-            className={`flex items-center justify-center gap-2 px-6 py-1.5 rounded-lg text-xs font-bold transition-all ${viewType === "list" ? "bg-white dark:bg-[#0f172a] text-blue-600 dark:text-[#3b82f6] shadow-sm border theme-border-accent" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+            className={`flex items-center justify-center gap-2 px-6 py-1.5 rounded-lg text-xs font-bold transition-all ${viewType === "list" ? "bg-white dark:bg-[#11131e] text-blue-600 dark:text-[#3b82f6] shadow-sm border theme-border-accent" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
           >
             <FiList size={14} /> List
           </button>
           <button
             onClick={() => setViewType("kanban")}
-            className={`flex items-center justify-center gap-2 px-6 py-1.5 rounded-lg text-xs font-bold transition-all ${viewType === "kanban" ? "bg-white dark:bg-[#0f172a] text-blue-600 dark:text-[#3b82f6] shadow-sm border theme-border-accent" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
+            className={`flex items-center justify-center gap-2 px-6 py-1.5 rounded-lg text-xs font-bold transition-all ${viewType === "kanban" ? "bg-white dark:bg-[#11131e] text-blue-600 dark:text-[#3b82f6] shadow-sm border theme-border-accent" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}
           >
             <FiGrid size={14} /> Kanban
           </button>
@@ -1243,7 +1289,7 @@ const Task = () => {
           <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-500 border-t-transparent"></div>
         </div>
       ) : filteredTasks.length === 0 ? (
-        <div className="text-center py-20 bg-white dark:bg-[#0f172a] rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)]">
+        <div className="text-center py-20 bg-white dark:bg-[#11131e] rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)]">
           <FiCheckSquare
             size={36}
             className="mx-auto text-slate-300 dark:text-slate-600"
@@ -1299,7 +1345,7 @@ const Task = () => {
 
                 <div className="flex flex-col gap-3 h-full min-h-[200px]">
                   {colTasks.length === 0 ? (
-                    <div className="bg-white/50 dark:bg-[#0f172a]/30 border-2 border-slate-200/50 dark:border-slate-800/40 border-dashed rounded-2xl h-32 flex flex-col items-center justify-center text-center px-4 transition-colors">
+                    <div className="bg-white/50 dark:bg-[#11131e]/30 border-2 border-slate-200/50 dark:border-slate-800/40 border-dashed rounded-2xl h-32 flex flex-col items-center justify-center text-center px-4 transition-colors">
                       <span className="text-[11px] font-bold text-slate-400 tracking-wider">
                         Drop tasks here
                       </span>
@@ -1313,7 +1359,7 @@ const Task = () => {
                           draggable
                           onDragStart={(e) => handleDragStart(e, task._id)}
                           onDragEnd={() => setDraggedTaskId(null)}
-                          className={`bg-white dark:bg-[#0f172a] shadow-sm hover:shadow-lg dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-5 border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-500/60 transition-all cursor-grab active:cursor-grabbing group flex flex-col gap-3 ${
+                          className={`bg-white dark:bg-[#11131e] shadow-sm hover:shadow-lg dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] rounded-2xl p-5 border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-500/60 transition-all cursor-grab active:cursor-grabbing group flex flex-col gap-3 ${
                             draggedTaskId === task._id
                               ? "opacity-50 scale-95 border-blue-500"
                               : ""
@@ -1417,48 +1463,51 @@ const Task = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="bg-white dark:bg-[#070b13] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)] overflow-hidden border border-slate-200 dark:border-slate-800/80 transition-all">
+          <div className="bg-white dark:bg-[#0f111a] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)] overflow-hidden border border-slate-200 dark:border-slate-800/80 transition-all">
             <div className="overflow-x-auto overflow-y-auto h-[calc(100vh-200px)] min-h-[500px] w-full scrollbar-thin">
-              <table className="w-full min-w-[1300px] text-left border-collapse table-auto border border-slate-200/70 dark:border-slate-800/70">
+              <table className="w-full min-w-[1300px] text-left border-collapse table-auto border border-slate-200/70 dark:border-transparent">
                 <thead>
-                  <tr className="sticky top-0 z-20 uppercase text-center bg-slate-50 dark:bg-[#0f172a] text-slate-500 dark:text-slate-400 text-[10.5px] sm:text-[9px] font-black tracking-wider border-b border-slate-200/70 dark:border-slate-800/70 shadow-sm">
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-16">
+                  <tr className="sticky top-0 z-20 uppercase text-center bg-slate-50 dark:bg-[#11131e] text-slate-500 dark:text-slate-400 text-[10.5px] sm:text-[9px] font-black tracking-wider border-b border-slate-200/70 dark:border-transparent shadow-sm">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-16">
                       ID
                     </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-20">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-20">
                       Priority
                     </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 min-w-[180px] whitespace-nowrap">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] whitespace-nowrap">
                       Task Name
                     </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-24">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[250px] md:min-w-[400px] w-auto whitespace-nowrap">
+                      Content Copy
+                    </th>
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-24">
                       Client
                     </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-32 whitespace-nowrap">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap">
                       Content-type
                     </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-48 min-w-[180px]">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-48 min-w-[180px]">
                       Status
                     </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-32 min-w-[125px]">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 min-w-[125px]">
                       Blocker
                     </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-32 whitespace-nowrap">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap">
                       Time tracker
                     </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-28">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-28">
                       Revision
                     </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-32">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32">
                       Start Date
                     </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-32">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32">
                       End Date
                     </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-44">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-44">
                       Assigned By
                     </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 min-w-[200px] w-56">
+                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[200px] w-56">
                       Created Time
                     </th>
                   </tr>
@@ -1467,7 +1516,7 @@ const Task = () => {
                   {sortedTasks.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={13}
+                        colSpan={14}
                         className="px-6 py-8 text-center text-slate-450 dark:text-slate-500 font-bold bg-slate-50/5 dark:bg-slate-900/5 text-xs"
                       >
                         No tasks found.
@@ -1485,7 +1534,7 @@ const Task = () => {
                       return (
                         <React.Fragment key={task._id}>
                           <tr
-                            className={`hover:bg-slate-50/40 dark:hover:bg-[#1e293b]/20 transition-colors group cursor-pointer ${
+                            className={`hover:bg-slate-50/40 dark:hover:bg-[#1a1d2d] transition-colors group cursor-pointer ${
                               isCompleted
                                 ? "bg-slate-50/20 text-slate-400 dark:text-slate-500"
                                 : task.priority === "Top High"
@@ -1495,12 +1544,12 @@ const Task = () => {
                             onClick={() => setSelectedTaskId(task._id)}
                           >
                             {/* ID */}
-                            <td className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 font-bold text-[11px] text-slate-500 dark:text-slate-400 text-center">
+                            <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent font-bold text-[11px] text-slate-500 dark:text-slate-400 text-center">
                               {getTaskDisplayId(task)}
                             </td>
 
                             {/* Priority Badge */}
-                            <td className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 text-center">
+                            <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center">
                               <span
                                 className={`inline-block text-center w-16  py-2 text-[11px] sm:text-[10px] rounded-[15px] font-bold uppercase whitespace-nowrap ${getPriorityStyle(task.priority || "Medium")}`}
                               >
@@ -1509,7 +1558,7 @@ const Task = () => {
                             </td>
 
                             {/* Title & Subtasks Dropdown */}
-                            <td className="px-3 py-2 font-bold border border-slate-200/70 dark:border-slate-800/70 text-left">
+                            <td className="px-3 py-2 font-bold border border-slate-200/70 dark:border-transparent text-left">
                               <div className="flex items-center gap-3">
                                 <span
                                   className={`text-xs sm:text-[11px] ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-700 dark:text-white"}`}
@@ -1547,8 +1596,15 @@ const Task = () => {
                               </div>
                             </td>
 
+                            {/* Content Copy */}
+                            <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent">
+                              <div className="text-xs sm:text-[11px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap break-words min-w-[200px] w-full">
+                                {task.contentCopy || <span className="text-slate-400 italic font-normal">—</span>}
+                              </div>
+                            </td>
+
                             {/* Client Name */}
-                            <td className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 text-center">
+                            <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center">
                               {(() => {
                                 const projId =
                                   task.project?._id || task.project;
@@ -1571,7 +1627,7 @@ const Task = () => {
                             </td>
 
                             {/* Content-type */}
-                            <td className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 whitespace-nowrap text-center">
+                            <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent whitespace-nowrap text-center">
                               <span
                                 className={`px-2 py-0.5 rounded-md text-xs sm:text-[10px] font-bold tracking-wider uppercase border whitespace-nowrap ${(() => {
                                   const t = (
@@ -1604,7 +1660,7 @@ const Task = () => {
 
                             {/* Status Select */}
                             <td
-                              className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-48 min-w-[180px] text-center"
+                              className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-48 min-w-[180px] text-center"
                               onClick={(e) => e.stopPropagation()}
                             >
                               {task.isBlocked ? (
@@ -1626,40 +1682,40 @@ const Task = () => {
                                   >
                                     <option
                                       value="Pending"
-                                      className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                                      className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
                                     >
                                       Pending
                                     </option>
                                     <option
                                       value="In Progress"
-                                      className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                                      className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
                                     >
                                       In Progress
                                     </option>
                                     <option
                                       value="IN-REVIEW"
-                                      className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                                      className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
                                     >
                                       In Review
                                     </option>
                                     {task.status === "Completed" && (
                                       <option
                                         value="Completed"
-                                        className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                                        className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
                                       >
                                         Completed
                                       </option>
                                     )}
                                     <option
                                       value="On Hold"
-                                      className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                                      className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
                                     >
                                       On Hold
                                     </option>
                                     {task.status === "Rejected" && (
                                       <option
                                         value="Rejected"
-                                        className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                                        className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
                                       >
                                         Rejected
                                       </option>
@@ -1674,7 +1730,7 @@ const Task = () => {
 
                             {/* Blocker Column */}
                             <td
-                              className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-32 min-w-[125px] hover:relative hover:z-50 text-center"
+                              className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 min-w-[125px] hover:relative hover:z-50 text-center"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <div className="flex flex-col gap-1.5 w-full">
@@ -1733,7 +1789,7 @@ const Task = () => {
                                             {task.blockerHistory.length})
                                           </span>
                                           {/* Tooltip containing details */}
-                                          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover/history:block z-50 w-64 bg-white dark:bg-[#070b13] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-3 text-left space-y-2 pointer-events-none transition-all">
+                                          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover/history:block z-50 w-64 bg-white dark:bg-[#0f111a] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-3 text-left space-y-2 pointer-events-none transition-all">
                                             <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800/80 pb-1 flex justify-between">
                                               <span>Pause Log</span>
                                               <span>
@@ -1794,7 +1850,7 @@ const Task = () => {
 
                             {/* Timer Column */}
                             <td
-                              className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-32 whitespace-nowrap text-center"
+                              className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap text-center"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <TimeTracker
@@ -1809,7 +1865,7 @@ const Task = () => {
 
                             {/* Revision Column */}
                             <td
-                              className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-28 text-center"
+                              className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-28 text-center"
                               onClick={(e) => e.stopPropagation()}
                             >
                               <div className="flex justify-center items-center gap-1.5">
@@ -1826,7 +1882,7 @@ const Task = () => {
                             </td>
 
                             {/* Start Date */}
-                            <td className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-32 text-center">
+                            <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 text-center">
                               <span
                                 className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-[10px] font-bold whitespace-nowrap ${
                                   task.startDate
@@ -1839,7 +1895,7 @@ const Task = () => {
                               </span>
                             </td>
                             {/* End Date */}
-                            <td className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 w-32 text-center">
+                            <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 text-center">
                               <span
                                 className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-[10px] font-bold whitespace-nowrap ${
                                   task.dueDate
@@ -1853,7 +1909,7 @@ const Task = () => {
                             </td>
 
                             {/* Assigned By */}
-                            <td className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 text-center">
+                            <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center">
                               {task.createdBy ? (
                                 <div className="flex items-center gap-2">
                                   <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/35 flex items-center justify-center text-[9px] font-black text-blue-700 dark:text-blue-400 overflow-hidden">
@@ -1887,7 +1943,7 @@ const Task = () => {
                             </td>
 
                             {/* Created Time */}
-                            <td className="px-3 py-2 border border-slate-200/70 dark:border-slate-800/70 text-center">
+                            <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center">
                               <span className="text-slate-500 dark:text-white font-semibold text-[11px]">
                                 <CreatedTime time={task.createdAt} />
                               </span>
@@ -1903,13 +1959,13 @@ const Task = () => {
                               return (
                                 <tr
                                   key={sub._id || subIdx}
-                                  className={`bg-slate-50/5 dark:bg-[#111827]/15 hover:bg-slate-50/20 dark:hover:bg-[#1e293b]/25 transition-colors border-b border-slate-200/70 dark:border-slate-800/70 ${
+                                  className={`bg-slate-50/5 dark:bg-[#131522] hover:bg-slate-50/20 dark:hover:bg-[#1c1f30] transition-colors border-b border-slate-200/70 dark:border-transparent ${
                                     isSubCompleted
                                       ? "text-slate-400 dark:text-slate-500"
                                       : "text-slate-700 dark:text-slate-200"
                                   }`}
                                 >
-                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70">
+                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-transparent">
                                     <span
                                       className={`px-2 py-0.5 rounded-lg border text-[10px] sm:text-[9px] font-extrabold tracking-wider uppercase ${getPriorityStyle(sub.priority || "Medium")}`}
                                     >
@@ -1917,10 +1973,10 @@ const Task = () => {
                                     </span>
                                   </td>
                                   {/* Subtask ID */}
-                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70 font-mono font-bold text-[10px] sm:text-[9.5px] text-slate-400 dark:text-slate-500">
+                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-transparent font-mono font-bold text-[10px] sm:text-[9.5px] text-slate-400 dark:text-slate-500">
                                     {getTaskDisplayId(task)}.{subIdx + 1}
                                   </td>
-                                  <td className="px-6 py-1.5 font-bold border-b border-slate-200/70 dark:border-slate-800/70">
+                                  <td className="px-6 py-1.5 font-bold border-b border-slate-200/70 dark:border-transparent">
                                     <div className="flex items-center gap-2 pl-4 border-l-2 border-slate-200 dark:border-[#1e293b]/50">
                                       <FiCornerDownRight
                                         className="text-slate-400 shrink-0"
@@ -1933,10 +1989,15 @@ const Task = () => {
                                       </span>
                                     </div>
                                   </td>
-                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70" />
-                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70" />
+                                  <td className="px-3 py-2 border-b border-slate-200/70 dark:border-transparent">
+                                    <div className="text-xs sm:text-[11px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap break-words min-w-[200px] w-full">
+                                      {sub.contentCopy || <span className="text-slate-400 italic font-normal">—</span>}
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-transparent" />
+                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-transparent" />
                                   <td
-                                    className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70 w-44"
+                                    className="px-6 py-1.5 border-b border-slate-200/70 dark:border-transparent w-44"
                                     onClick={(e) => e.stopPropagation()}
                                   >
                                     <div className="flex flex-col items-start gap-1 w-full">
@@ -1971,7 +2032,7 @@ const Task = () => {
                                                 setOpenDropdown(null)
                                               }
                                             />
-                                            <div className="absolute left-0 mt-1 w-max min-w-full bg-white dark:bg-[#0f172a] border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-lg p-1 z-50">
+                                            <div className="absolute left-0 mt-1 w-max min-w-full bg-white dark:bg-[#11131e] border border-slate-200/80 dark:border-slate-800 rounded-xl shadow-lg p-1 z-50">
                                               {[
                                                 {
                                                   name: "Pending",
@@ -2047,9 +2108,9 @@ const Task = () => {
                                       />
                                     </div>
                                   </td>
-                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70" />
-                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70" />
-                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70">
+                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-transparent" />
+                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-transparent" />
+                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-transparent">
                                     <span
                                       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs sm:text-[10px] font-bold ${sub.startDate ? "bg-indigo-50/60 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-100/50 dark:border-indigo-900/30" : "text-slate-400 dark:text-slate-655 border border-dashed border-slate-200 dark:border-[#1e293b]/40"}`}
                                     >
@@ -2057,7 +2118,7 @@ const Task = () => {
                                       {formatDate(sub.startDate)}
                                     </span>
                                   </td>
-                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70">
+                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-transparent">
                                     <span
                                       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs sm:text-[10px] font-bold ${sub.dueDate ? "bg-indigo-50/60 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 border border-indigo-100/50 dark:border-indigo-900/30" : "text-slate-400 dark:text-slate-650 border border-dashed border-slate-200 dark:border-[#1e293b]/40"}`}
                                     >
@@ -2065,12 +2126,12 @@ const Task = () => {
                                       {formatDate(sub.dueDate)}
                                     </span>
                                   </td>
-                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70">
+                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-transparent">
                                     <span className="text-gray-405 dark:text-slate-600">
                                       —
                                     </span>
                                   </td>
-                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-slate-800/70">
+                                  <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-transparent">
                                     <span className="text-slate-400">—</span>
                                   </td>
                                 </tr>
@@ -2087,7 +2148,7 @@ const Task = () => {
 
           {/* Pagination Controls (disabled as list view shows all tasks grouped by section) */}
           {false && totalItems > itemsPerPage && (
-            <div className="px-6 py-4 bg-slate-50/50 dark:bg-[#0f172a]/40 border-t border-slate-100 dark:border-slate-800/60 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="px-6 py-4 bg-slate-50/50 dark:bg-[#11131e]/40 border-t border-slate-100 dark:border-slate-800/60 flex flex-col sm:flex-row items-center justify-between gap-4">
               {/* Left Side: Info */}
               <div className="text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
                 Showing{" "}
@@ -2213,27 +2274,27 @@ const Task = () => {
                         >
                           <option
                             value="Pending"
-                            className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                            className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
                           >
                             Pending
                           </option>
                           <option
                             value="In Progress"
-                            className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                            className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
                           >
                             In Progress
                           </option>
                           {task.status === "Completed" && (
                             <option
                               value="Completed"
-                              className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                              className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
                             >
                               Completed
                             </option>
                           )}
                           <option
                             value="On Hold"
-                            className="bg-white dark:bg-[#0f172a] text-slate-700 dark:text-slate-200"
+                            className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
                           >
                             On Hold
                           </option>
@@ -2348,7 +2409,7 @@ const Task = () => {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "tween", ease: "easeOut", duration: 0.3 }}
-              className="relative w-full max-w-2xl bg-white dark:bg-[#070b13] h-full shadow-[0_0_50px_rgba(0,0,0,0.1)] dark:shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col z-10 border-l border-slate-100 dark:border-slate-800"
+              className="relative w-full max-w-2xl bg-white dark:bg-[#0f111a] h-full shadow-[0_0_50px_rgba(0,0,0,0.1)] dark:shadow-[0_0_50px_rgba(0,0,0,0.5)] flex flex-col z-10 border-l border-slate-100 dark:border-slate-800"
             >
               {/* Drawer Header */}
               <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-[#0c121e]">
@@ -2402,34 +2463,49 @@ const Task = () => {
 
                     <div className="space-y-1">
                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Client</span>
-                      <span className="font-bold text-slate-700 dark:text-white">
+                      <div className="font-bold text-slate-700 dark:text-white mt-1">
                         {(() => {
                           const projId = selectedTask.project?._id || selectedTask.project;
                           const projectObj = projects.find((p) => p._id === projId);
-                          return projectObj?.clientName || "N/A";
+                          const client = projectObj?.client || selectedTask.project?.client;
+                          if (client) {
+                            return <ClientBadge client={client} size="sm" />;
+                          }
+                          return <span className="text-slate-400 italic font-normal">—</span>;
                         })()}
-                      </span>
+                      </div>
                     </div>
 
                     <div className="space-y-1">
                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Project</span>
-                      <span className="font-bold text-slate-700 dark:text-white truncate block">
+                      <span className="font-bold text-slate-700 dark:text-white truncate block mt-1.5">
                         {selectedTask.project?.name || "Internal task"}
                       </span>
                     </div>
 
                     <div className="space-y-1">
                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Content Type</span>
-                      <span className="font-bold text-slate-700 dark:text-white">
-                        {(() => {
-                          const t = (selectedTask.title || "").toLowerCase();
-                          if (t.includes("reel")) return "Reels";
-                          if (t.includes("post") || t.includes("carousel")) return "Post";
-                          if (t.includes("story")) return "Story";
-                          if (t.includes("youtube") || t.includes("thumbnail")) return "YouTube";
-                          return "Design";
-                        })()}
-                      </span>
+                      <div className="mt-1">
+                        <span
+                          className={`px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase border whitespace-nowrap ${(() => {
+                            const t = (selectedTask.title || "").toLowerCase();
+                            if (t.includes("reel")) return "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20";
+                            if (t.includes("post") || t.includes("carousel")) return "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20";
+                            if (t.includes("story")) return "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20";
+                            if (t.includes("youtube") || t.includes("thumbnail")) return "bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20";
+                            return "bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20";
+                          })()}`}
+                        >
+                          {(() => {
+                            const t = (selectedTask.title || "").toLowerCase();
+                            if (t.includes("reel")) return "Reel";
+                            if (t.includes("post") || t.includes("carousel")) return "Post";
+                            if (t.includes("story")) return "Story";
+                            if (t.includes("youtube") || t.includes("thumbnail")) return "YouTube";
+                            return "Image";
+                          })()}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="space-y-1">
@@ -2656,7 +2732,7 @@ const Task = () => {
               initial={{ scale: 0.95, y: 20, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
               exit={{ scale: 0.95, y: 20, opacity: 0 }}
-              className="relative w-full max-w-md bg-white dark:bg-[#0f172a] rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xl p-6 z-10 space-y-5"
+              className="relative w-full max-w-md bg-white dark:bg-[#11131e] rounded-3xl border border-slate-100 dark:border-slate-800 shadow-2xl p-6 z-10 space-y-5"
             >
               {/* Header */}
               <div className="flex justify-between items-center pb-2">

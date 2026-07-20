@@ -30,6 +30,10 @@ const SubtaskSchema = new mongoose.Schema({
     type: String,
     default: "",
   },
+  contentCopy: {
+    type: String,
+    default: "",
+  },
   actualStartTime: {
     type: Date,
   },
@@ -79,6 +83,10 @@ const TaskSchema = new mongoose.Schema(
       default: "Recently assigned",
     },
     contentType: {
+      type: String,
+      default: "",
+    },
+    contentCopy: {
       type: String,
       default: "",
     },

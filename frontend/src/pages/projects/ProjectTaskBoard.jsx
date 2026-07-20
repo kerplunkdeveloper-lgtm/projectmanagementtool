@@ -34,6 +34,7 @@ import {
   FiActivity,
   FiAlertCircle,
   FiMessageSquare,
+  FiFileText,
 } from "react-icons/fi";
 import axiosInstance from "../../services/axiosInstance";
 import toast from "react-hot-toast";
@@ -757,6 +758,7 @@ const AssigneeDropdown = ({
               align === "right" ? "right-0" : "left-0"
             }`}
             onClick={(e) => e.stopPropagation()}
+            onWheel={(e) => e.stopPropagation()}
           >
             <div className="px-2 pb-2 mb-1 border-b border-slate-100 dark:border-white/5">
               <input
@@ -838,6 +840,43 @@ const AssigneeDropdown = ({
           document.body,
         )}
     </div>
+  );
+};
+
+const ContentCopyInput = ({
+  value,
+  onChange,
+  placeholder = "Content copy...",
+}) => {
+  const [val, setVal] = useState(value || "");
+
+  useEffect(() => {
+    setVal(value || "");
+  }, [value]);
+
+  return (
+    <input
+      type="text"
+      value={val}
+      onChange={(e) => setVal(e.target.value)}
+      onClick={(e) => e.stopPropagation()}
+      onBlur={() => {
+        if (val !== (value || "")) {
+          onChange(val);
+        }
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          if (val !== (value || "")) {
+            onChange(val);
+          }
+          e.target.blur();
+        }
+      }}
+      placeholder={placeholder}
+      className="w-full bg-transparent border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300 outline-none focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all placeholder:font-normal hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-[#0f172a] shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] focus:shadow-[0_0_0_2px_rgba(59,130,246,0.15)]"
+    />
   );
 };
 
@@ -2622,7 +2661,7 @@ const ProjectTaskBoard = ({
                       </div>
                     </td>
                     <td
-                      colSpan={10}
+                      colSpan={12}
                       className="px-3 py-1 border-b border-slate-300 dark:border-slate-700"
                       style={{ ...bBottom, ...bRight }}
                     />
@@ -2659,6 +2698,10 @@ const ProjectTaskBoard = ({
                   <div
                     className="overflow-x-auto overflow-y-auto h-[calc(100vh-220px)] min-h-[400px] w-full bg-white dark:bg-[#111115] border border-slate-200 dark:border-slate-800 rounded-xl relative scrollbar-thin"
                     onWheel={(e) => {
+                      if (e.target.closest(".md\\:sticky")) {
+                        // Let native vertical scroll happen when hovering the sticky left area
+                        return;
+                      }
                       if (e.deltaY !== 0 && !e.shiftKey) {
                         e.currentTarget.scrollLeft += e.deltaY;
                       }
@@ -2729,6 +2772,9 @@ const ProjectTaskBoard = ({
                                 }}
                               >
                                 Task Name
+                              </th>
+                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[250px] md:min-w-[400px] w-auto">
+                                Content Copy
                               </th>
                               <th className="px-3 py-1 border-b  border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[140px]">
                                 Client
@@ -3313,7 +3359,7 @@ const ProjectTaskBoard = ({
                                           </td>
                                           {/* Empty Column Cells merged into one to remove vertical gridlines */}
                                           <td
-                                            colSpan={10}
+                                            colSpan={12}
                                             className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b]"
                                             style={{
                                               borderRight: `2.5px solid ${sColor.hex}`,
@@ -3618,6 +3664,20 @@ const ProjectTaskBoard = ({
                                                               size={14}
                                                             />
                                                           </button>
+                                                        </div>
+                                                      </td>
+
+                                                      {/* Content Copy */}
+                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                        <div onClick={(e) => e.stopPropagation()} className="w-full">
+                                                          <ContentCopyInput
+                                                            value={task.contentCopy}
+                                                            onChange={(newVal) =>
+                                                              handleTaskFieldChange(task._id, {
+                                                                contentCopy: newVal,
+                                                              })
+                                                            }
+                                                          />
                                                         </div>
                                                       </td>
 
@@ -4589,6 +4649,20 @@ const ProjectTaskBoard = ({
                                                                       size={12}
                                                                     />
                                                                   </button>
+                                                                </div>
+                                                              </td>
+
+                                                              {/* Content Copy Column */}
+                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                                <div onClick={(e) => e.stopPropagation()} className="w-full">
+                                                                  <ContentCopyInput
+                                                                    value={sub.contentCopy}
+                                                                    onChange={(newVal) =>
+                                                                      handleSubtaskFieldChange(task, sub._id, {
+                                                                        contentCopy: newVal,
+                                                                      })
+                                                                    }
+                                                                  />
                                                                 </div>
                                                               </td>
 
@@ -6175,6 +6249,23 @@ const ProjectTaskBoard = ({
                           : "N/A"}
                       </div>
                     )}
+                  </div>
+
+                  {/* Content Copy */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400  tracking-wider flex items-center gap-1.5">
+                      <FiFileText size={12} /> Content Copy
+                    </label>
+                    <div className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-1 py-0.5">
+                      <ContentCopyInput
+                        value={selectedTask.contentCopy}
+                        onChange={(newVal) =>
+                          handleTaskFieldChange(selectedTask._id, {
+                            contentCopy: newVal,
+                          })
+                        }
+                      />
+                    </div>
                   </div>
 
                   {/* Priority Selection */}
