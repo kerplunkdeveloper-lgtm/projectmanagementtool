@@ -254,6 +254,7 @@ const Clients = () => {
   const [editId, setEditId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [serviceFilter, setServiceFilter] = useState("All");
+  const [clientNameFilter, setClientNameFilter] = useState("All");
   const [clientToDelete, setClientToDelete] = useState(null);
   const [activeTab, setActiveTab] = useState("profile"); // 'profile', 'service', 'finance'
 
@@ -377,6 +378,12 @@ const Clients = () => {
     return users || [];
   }, [users]);
 
+  const uniqueClientNames = useMemo(() => {
+    if (!clients) return [];
+    const names = clients.map(c => c.companyName).filter(Boolean);
+    return [...new Set(names)].sort((a, b) => a.localeCompare(b));
+  }, [clients]);
+
   const filteredClients = useMemo(() => {
     return (clients || []).filter((client) => {
       const matchesSearch =
@@ -394,14 +401,16 @@ const Clients = () => {
             ? client.service.includes(serviceFilter)
             : client.service === serviceFilter;
 
-      return matchesSearch && matchesService;
+      const matchesClientName = clientNameFilter === "All" ? true : client.companyName === clientNameFilter;
+
+      return matchesSearch && matchesService && matchesClientName;
     });
-  }, [clients, searchTerm, serviceFilter]);
+  }, [clients, searchTerm, serviceFilter, clientNameFilter]);
 
   // Reset pagination to page 1 when search or filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, serviceFilter]);
+  }, [searchTerm, serviceFilter, clientNameFilter]);
 
   const totalItems = filteredClients.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -495,6 +504,31 @@ const Clients = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-250 dark:border-slate-800 bg-slate-50 dark:bg-white/5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium placeholder:text-slate-300 dark:placeholder:text-slate-600"
             />
+          </div>
+
+          {/* CLIENT NAME FILTER */}
+          <div className="relative w-full sm:w-52">
+            <select
+              value={clientNameFilter}
+              onChange={(e) => setClientNameFilter(e.target.value)}
+              className="w-full h-10 pl-3.5 pr-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-white/5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold cursor-pointer appearance-none"
+            >
+              <option value="All">All Clients</option>
+              {uniqueClientNames.map((name, idx) => (
+                <option key={idx} value={name}>{name}</option>
+              ))}
+            </select>
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
 
           {/* SERVICE FILTER */}
@@ -756,38 +790,25 @@ const Clients = () => {
                           {/* Service Info */}
                           <td className={cellClass}>
                             <div className="flex flex-col gap-2">
-                              <div className="flex flex-wrap gap-1 max-w-[220px]">
-                                {Array.isArray(client.service)
-                                  ? client.service.map((srv) => {
-                                      const sConf = getServiceStyles(srv);
-                                      const SIcon = sConf.icon;
-                                      return (
-                                        <span
-                                          key={srv}
-                                          className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase border ${sConf.pill} items-center gap-1 shadow-sm`}
-                                        >
-                                          <SIcon size={9} />
-                                          {srv}
-                                        </span>
-                                      );
-                                    })
-                                  : (() => {
-                                      const sConf = getServiceStyles(
-                                        client.service || "",
-                                      );
-                                      const SIcon = sConf.icon;
-                                      return (
-                                        <span
-                                          className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase border ${sConf.pill} items-center gap-1 shadow-sm`}
-                                        >
-                                          <SIcon size={9} />
-                                          {client.service || "Contract"}
-                                        </span>
-                                      );
-                                    })()}
+                              <div className="flex flex-wrap gap-2 mb-2.5">
+                                {client.service &&
+                                  (Array.isArray(client.service) ? client.service : [client.service || "Contract"]).map((svc, idx) => {
+                                    if (!svc) return null;
+                                    const sConf = getServiceStyles(svc);
+                                    const SIcon = sConf.icon;
+                                    return (
+                                      <span
+                                        key={idx}
+                                        className={`inline-flex px-3 py-1 rounded-full text-[9px] font-extrabold tracking-wider uppercase border ${sConf.pill} items-center gap-1.5 shadow-sm`}
+                                      >
+                                        <SIcon size={10} />
+                                        {svc}
+                                      </span>
+                                    );
+                                  })}
                               </div>
 
-                              <div className="grid grid-cols-1 xl:grid-cols-2 gap-1.5 min-w-[350px]">
+                              <div className="grid grid-cols-2 gap-3 min-w-[420px]">
                                 {client.assignedTo &&
                                 (Array.isArray(client.assignedTo)
                                   ? client.assignedTo.length > 0
@@ -807,24 +828,29 @@ const Clients = () => {
                                       return (
                                         <div
                                           key={member._id || member}
-                                          className="grid grid-cols-[auto_auto_1fr] items-center gap-1.5 p-1 pr-2.5 rounded-full border border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-800/40 shadow-sm transition-transform hover:scale-105 w-max"
+                                          className="flex items-center gap-2 p-1 pr-3.5 rounded-full border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800 shadow-sm transition-transform hover:scale-105 w-max max-w-full overflow-hidden"
                                           title={member.name || member.email}
                                         >
                                           {avatarUrl ? (
-                                            <img src={avatarUrl} alt={member.name || "User"} className="w-5 h-5 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700" />
+                                            <img src={avatarUrl} alt={member.name || "User"} className="w-6 h-6 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700" />
                                           ) : (
-                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 ${uCol.bg} ${uCol.text} border ${uCol.border}`}>
+                                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${uCol.bg} ${uCol.text} border ${uCol.border}`}>
                                               {initial}
                                             </div>
                                           )}
-                                          <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 truncate max-w-[85px]">
-                                            {member.name || member.email}
-                                          </span>
-                                          {dept && (
-                                            <span className="text-[8.5px] font-semibold text-blue-500 dark:text-blue-400 truncate max-w-[75px] border-l border-slate-300 dark:border-slate-600 pl-1.5">
-                                              {dept}
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-[10.5px] font-extrabold text-slate-800 dark:text-slate-100 truncate max-w-[90px]">
+                                              {member.name || member.email}
                                             </span>
-                                          )}
+                                            {dept && (
+                                              <>
+                                                <span className="w-[1.5px] h-3 bg-slate-200 dark:bg-slate-600 block"></span>
+                                                <span className="text-[8.2px] font-bold text-[#c2410c] dark:text-orange-500 truncate max-w-[95px]">
+                                                  {dept}
+                                                </span>
+                                              </>
+                                            )}
+                                          </div>
                                         </div>
                                       );
                                     })
@@ -843,24 +869,29 @@ const Clients = () => {
                                         : "?";
                                       return (
                                         <div
-                                          className="grid grid-cols-[auto_auto_1fr] items-center gap-1.5 p-1 pr-2.5 rounded-full border border-slate-200 dark:border-slate-700/60 bg-slate-50 dark:bg-slate-800/40 shadow-sm transition-transform hover:scale-105 w-max"
+                                          className="flex items-center gap-2 p-1 pr-3.5 rounded-full border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800 shadow-sm transition-transform hover:scale-105 w-max"
                                           title={singleMember.name || singleMember.email}
                                         >
                                           {avatarUrl ? (
-                                            <img src={avatarUrl} alt={singleMember.name || "User"} className="w-5 h-5 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700" />
+                                            <img src={avatarUrl} alt={singleMember.name || "User"} className="w-6 h-6 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700" />
                                           ) : (
-                                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 ${uCol.bg} ${uCol.text} border ${uCol.border}`}>
+                                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${uCol.bg} ${uCol.text} border ${uCol.border}`}>
                                               {initial}
                                             </div>
                                           )}
-                                          <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 truncate max-w-[85px]">
-                                            {singleMember.name || singleMember.email}
-                                          </span>
-                                          {dept && (
-                                            <span className="text-[8.5px] font-semibold text-blue-500 dark:text-blue-400 truncate max-w-[75px] border-l border-slate-300 dark:border-slate-600 pl-1.5">
-                                              {dept}
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-[10.5px] font-extrabold text-slate-800 dark:text-slate-100 truncate max-w-[90px]">
+                                              {singleMember.name || singleMember.email}
                                             </span>
-                                          )}
+                                            {dept && (
+                                              <>
+                                                <span className="w-[1.5px] h-3 bg-slate-200 dark:bg-slate-600 block"></span>
+                                                <span className="text-[8.2px] font-bold text-[#c2410c] dark:text-orange-500 truncate max-w-[95px]">
+                                                  {dept}
+                                                </span>
+                                              </>
+                                            )}
+                                          </div>
                                         </div>
                                       );
                                     })()
