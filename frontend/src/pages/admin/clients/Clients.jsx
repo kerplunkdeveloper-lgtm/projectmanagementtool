@@ -380,7 +380,7 @@ const Clients = () => {
 
   const uniqueClientNames = useMemo(() => {
     if (!clients) return [];
-    const names = clients.map(c => c.companyName).filter(Boolean);
+    const names = clients.map((c) => c.companyName).filter(Boolean);
     return [...new Set(names)].sort((a, b) => a.localeCompare(b));
   }, [clients]);
 
@@ -401,7 +401,10 @@ const Clients = () => {
             ? client.service.includes(serviceFilter)
             : client.service === serviceFilter;
 
-      const matchesClientName = clientNameFilter === "All" ? true : client.companyName === clientNameFilter;
+      const matchesClientName =
+        clientNameFilter === "All"
+          ? true
+          : client.companyName === clientNameFilter;
 
       return matchesSearch && matchesService && matchesClientName;
     });
@@ -515,7 +518,9 @@ const Clients = () => {
             >
               <option value="All">All Clients</option>
               {uniqueClientNames.map((name, idx) => (
-                <option key={idx} value={name}>{name}</option>
+                <option key={idx} value={name}>
+                  {name}
+                </option>
               ))}
             </select>
             <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
@@ -526,7 +531,11 @@ const Clients = () => {
                 stroke="currentColor"
                 strokeWidth={2.5}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </div>
           </div>
@@ -603,19 +612,19 @@ const Clients = () => {
             <table className="w-full text-left border-collapse whitespace-nowrap min-w-[1100px] text-xs">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-700/60 text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-widest text-[9.5px]">
-                  <th className="px-5 py-4 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60">
-                    <div className="flex items-center justify-center gap-1.5">
+                  <th className="px-5 py-4 font-extrabold bg-transparent text-left w-[260px] border-r border-slate-200 dark:border-slate-700/60">
+                    <div className="flex items-center justify-start gap-1.5">
                       <FaRegBuilding size={11} className="opacity-70" />
                       Client Profile
                     </div>
                   </th>
-                  <th className="px-5 py-4 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60">
+                  <th className="px-5 py-4 font-extrabold bg-transparent text-left border-r border-slate-200 dark:border-slate-700/60">
                     Contact Info
                   </th>
-                  <th className="px-5 py-4 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60">
+                  <th className="px-5 py-4 font-extrabold bg-transparent text-left border-r border-slate-200 dark:border-slate-700/60">
                     Service & Members
                   </th>
-                  <th className="px-5 py-4 font-extrabold bg-transparent text-center w-48 border-r border-slate-200 dark:border-slate-700/60">
+                  <th className="px-5 py-4 font-extrabold bg-transparent text-left w-48 border-r border-slate-200 dark:border-slate-700/60">
                     Deliverables
                   </th>
                   {user?.role === "team" && (
@@ -792,7 +801,10 @@ const Clients = () => {
                             <div className="flex flex-col gap-2">
                               <div className="flex flex-wrap gap-2 mb-2.5">
                                 {client.service &&
-                                  (Array.isArray(client.service) ? client.service : [client.service || "Contract"]).map((svc, idx) => {
+                                  (Array.isArray(client.service)
+                                    ? client.service
+                                    : [client.service || "Contract"]
+                                  ).map((svc, idx) => {
                                     if (!svc) return null;
                                     const sConf = getServiceStyles(svc);
                                     const SIcon = sConf.icon;
@@ -808,15 +820,18 @@ const Clients = () => {
                                   })}
                               </div>
 
-                              <div className="grid grid-cols-2 gap-3 min-w-[420px]">
+                              <div className="flex flex-col gap-2 min-w-[200px] max-w-[240px]">
                                 {client.assignedTo &&
                                 (Array.isArray(client.assignedTo)
                                   ? client.assignedTo.length > 0
                                   : true) ? (
                                   Array.isArray(client.assignedTo) ? (
                                     client.assignedTo.map((member) => {
-                                      const fullUser = allUsers.find(u => u._id === (member._id || member));
-                                      const avatarUrl = fullUser?.profile?.profileImage?.url;
+                                      const fullUser = allUsers.find(
+                                        (u) => u._id === (member._id || member),
+                                      );
+                                      const avatarUrl =
+                                        fullUser?.profile?.profileImage?.url;
                                       const dept = fullUser?.department || "";
 
                                       const uCol = getUserColor(
@@ -828,24 +843,30 @@ const Clients = () => {
                                       return (
                                         <div
                                           key={member._id || member}
-                                          className="flex items-center gap-2 p-1 pr-3.5 rounded-full border border-slate-100 dark:border-slate-700 bg-white dark:bg-[#0B1120] shadow-sm transition-transform hover:scale-105 w-max max-w-full overflow-hidden"
+                                          className="flex items-center gap-1.5 p-1 pr-3 rounded-full border border-slate-100 dark:border-slate-700 bg-white dark:bg-[#0B1120] shadow-sm transition-transform hover:scale-105 w-max max-w-full overflow-hidden"
                                           title={member.name || member.email}
                                         >
                                           {avatarUrl ? (
-                                            <img src={avatarUrl} alt={member.name || "User"} className="w-6 h-6 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-800" />
+                                            <img
+                                              src={avatarUrl}
+                                              alt={member.name || "User"}
+                                              className="w-5 h-5 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-800"
+                                            />
                                           ) : (
-                                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${uCol.bg} ${uCol.text} border ${uCol.border}`}>
+                                            <div
+                                              className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 ${uCol.bg} ${uCol.text} border ${uCol.border}`}
+                                            >
                                               {initial}
                                             </div>
                                           )}
-                                          <div className="flex items-center gap-2">
-                                            <span className="text-[10.5px] font-extrabold text-slate-800 dark:text-slate-400 truncate max-w-[90px]">
+                                          <div className="flex items-center gap-1.5">
+                                            <span className="text-[9.5px] font-bold text-slate-800 dark:text-slate-400 truncate max-w-[85px]">
                                               {member.name || member.email}
                                             </span>
                                             {dept && (
                                               <>
-                                                <span className="w-[1.5px] h-3 bg-slate-200 dark:bg-slate-700 block"></span>
-                                                <span className="text-[8.2px] font-bold text-[#c2410c] dark:text-[#ea580c] truncate max-w-[95px]">
+                                                <span className="w-[1px] h-2.5 bg-slate-200 dark:bg-slate-700 block"></span>
+                                                <span className="text-[7.5px] font-bold text-[#c2410c] dark:text-[#ea580c] truncate max-w-[80px]">
                                                   {dept}
                                                 </span>
                                               </>
@@ -857,36 +878,53 @@ const Clients = () => {
                                   ) : (
                                     (() => {
                                       const singleMember = client.assignedTo;
-                                      const fullUser = allUsers.find(u => u._id === (singleMember._id || singleMember));
-                                      const avatarUrl = fullUser?.profile?.profileImage?.url;
+                                      const fullUser = allUsers.find(
+                                        (u) =>
+                                          u._id ===
+                                          (singleMember._id || singleMember),
+                                      );
+                                      const avatarUrl =
+                                        fullUser?.profile?.profileImage?.url;
                                       const dept = fullUser?.department || "";
 
                                       const uCol = getUserColor(
                                         singleMember._id || singleMember,
                                       );
                                       const initial = singleMember.name
-                                        ? singleMember.name.charAt(0).toUpperCase()
+                                        ? singleMember.name
+                                            .charAt(0)
+                                            .toUpperCase()
                                         : "?";
                                       return (
                                         <div
-                                          className="flex items-center gap-2 p-1 pr-3.5 rounded-full border border-slate-100 dark:border-slate-700 bg-white dark:bg-[#0B1120] shadow-sm transition-transform hover:scale-105 w-max max-w-full overflow-hidden"
-                                          title={singleMember.name || singleMember.email}
+                                          className="flex items-center gap-1.5 p-1 pr-3 rounded-full border border-slate-100 dark:border-slate-700 bg-white dark:bg-[#0B1120] shadow-sm transition-transform hover:scale-105 w-max max-w-full overflow-hidden"
+                                          title={
+                                            singleMember.name ||
+                                            singleMember.email
+                                          }
                                         >
                                           {avatarUrl ? (
-                                            <img src={avatarUrl} alt={singleMember.name || "User"} className="w-6 h-6 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-800" />
+                                            <img
+                                              src={avatarUrl}
+                                              alt={singleMember.name || "User"}
+                                              className="w-5 h-5 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-800"
+                                            />
                                           ) : (
-                                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 ${uCol.bg} ${uCol.text} border ${uCol.border}`}>
+                                            <div
+                                              className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 ${uCol.bg} ${uCol.text} border ${uCol.border}`}
+                                            >
                                               {initial}
                                             </div>
                                           )}
-                                          <div className="flex items-center gap-2">
-                                            <span className="text-[10.5px] font-extrabold text-slate-800 dark:text-slate-400 truncate max-w-[90px]">
-                                              {singleMember.name || singleMember.email}
+                                          <div className="flex items-center gap-1.5">
+                                            <span className="text-[9.5px] font-bold text-slate-800 dark:text-slate-400 truncate max-w-[85px]">
+                                              {singleMember.name ||
+                                                singleMember.email}
                                             </span>
                                             {dept && (
                                               <>
-                                                <span className="w-[1.5px] h-3 bg-slate-200 dark:bg-slate-700 block"></span>
-                                                <span className="text-[8.2px] font-bold text-[#c2410c] dark:text-[#ea580c] truncate max-w-[95px]">
+                                                <span className="w-[1px] h-2.5 bg-slate-200 dark:bg-slate-700 block"></span>
+                                                <span className="text-[7.5px] font-bold text-[#c2410c] dark:text-[#ea580c] truncate max-w-[80px]">
                                                   {dept}
                                                 </span>
                                               </>
@@ -1073,7 +1111,10 @@ const Clients = () => {
                                   className="w-8 h-8 flex items-center justify-center bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 rounded-[9px] transition-all shadow-sm hover:shadow active:scale-95 cursor-pointer"
                                   title="Edit Record"
                                 >
-                                  <FiEdit size={14.5} className="stroke-[2.5]" />
+                                  <FiEdit
+                                    size={14.5}
+                                    className="stroke-[2.5]"
+                                  />
                                 </button>
                                 <button
                                   onClick={() => setClientToDelete(client)}
@@ -1290,7 +1331,10 @@ const Clients = () => {
                             Company Name
                           </label>
                           <div className="flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-black rounded-xl focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 dark:focus-within:ring-[var(--accent-color-dark)]/20 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color-dark)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 shadow-sm group">
-                            <FaRegBuilding size={12} className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250" />
+                            <FaRegBuilding
+                              size={12}
+                              className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250"
+                            />
                             <input
                               type="text"
                               name="companyName"
@@ -1309,7 +1353,10 @@ const Clients = () => {
                             Industry Sector
                           </label>
                           <div className="flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-black rounded-xl focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 dark:focus-within:ring-[var(--accent-color-dark)]/20 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color-dark)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 shadow-sm group">
-                            <FiLayers size={12} className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250" />
+                            <FiLayers
+                              size={12}
+                              className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250"
+                            />
                             <input
                               type="text"
                               name="industry"
@@ -1328,7 +1375,10 @@ const Clients = () => {
                             Onboarding Date
                           </label>
                           <div className="flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-black rounded-xl focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 dark:focus-within:ring-[var(--accent-color-dark)]/20 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color-dark)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 shadow-sm group">
-                            <FiCalendar size={12} className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250" />
+                            <FiCalendar
+                              size={12}
+                              className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250"
+                            />
                             <input
                               type="date"
                               name="onboardingDate"
@@ -1346,7 +1396,10 @@ const Clients = () => {
                             SPOC Name
                           </label>
                           <div className="flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-black rounded-xl focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 dark:focus-within:ring-[var(--accent-color-dark)]/20 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color-dark)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 shadow-sm group">
-                            <FiUser size={12} className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250" />
+                            <FiUser
+                              size={12}
+                              className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250"
+                            />
                             <input
                               type="text"
                               name="spoc"
@@ -1364,7 +1417,10 @@ const Clients = () => {
                             Designation
                           </label>
                           <div className="flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-black rounded-xl focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 dark:focus-within:ring-[var(--accent-color-dark)]/20 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color-dark)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 shadow-sm group">
-                            <FiBriefcase size={12} className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250" />
+                            <FiBriefcase
+                              size={12}
+                              className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250"
+                            />
                             <input
                               type="text"
                               name="designation"
@@ -1382,7 +1438,10 @@ const Clients = () => {
                             Phone Number
                           </label>
                           <div className="flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-black rounded-xl focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 dark:focus-within:ring-[var(--accent-color-dark)]/20 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color-dark)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 shadow-sm group">
-                            <FiPhone size={12} className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250" />
+                            <FiPhone
+                              size={12}
+                              className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250"
+                            />
                             <input
                               type="tel"
                               maxLength={15}

@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 import lightlogin from "../../assets/logo.png";
-import darklogin from "../../assets/logo.png";
+import loginleft from "../../assets/loginleft.png";
 
 const Login = () => {
   const dispatch = useDispatch();
@@ -69,19 +69,18 @@ const Login = () => {
       {/* TOP / LEFT SIDE IMAGE SECTION */}
       <div
         id="login-image-section"
-        className=" relative w-full h-[39vh] sm:h-[45vh] md:h-screen md:w-[55%] xl:w-[60%] overflow-hidden flex items-center justify-center shrink-0 z-0"
-        style={{ background: "var(--color-brand-gradient)" }}
+        className="relative w-full h-[39vh] sm:h-[45vh] md:h-screen md:w-[55%] xl:w-[60%] overflow-hidden flex items-center justify-center shrink-0 z-0"
       >
         <img
           src={lightlogin}
-          alt="Project Management Light"
-          className="w-[600px] md:w-auto md:h-full mt-0 md:mt-30 h-auto object-contain block dark:hidden"
+          alt="Project Management Background"
+          className="absolute inset-0 w-full h-full object-cover z-0"
         />
-        <img
-          src={darklogin}
-          alt="Project Management Dark"
-          className="w-[600px] md:w-auto md:h-full h-auto mt-0 md:mt-30 object-contain hidden dark:block"
-        />
+        {/* Color Overlay */}
+        <div
+          className="absolute inset-0 opacity-60 z-10"
+          style={{ background: "var(--color-brand-gradient, linear-gradient(to right, #1e3a8a, #3b82f6))" }}
+        ></div>
       </div>
 
       {/* BOTTOM / RIGHT SIDE LOGIN FORM */}
