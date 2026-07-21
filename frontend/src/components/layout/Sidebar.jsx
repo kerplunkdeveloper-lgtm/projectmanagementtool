@@ -881,7 +881,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       initial="hidden"
                       animate="visible"
                       exit="hidden"
-                      className="absolute bottom-full left-0 right-0 mb-2.5 z-[100] w-full bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] backdrop-blur-2xl border border-slate-200/50 dark:border-white/10 rounded-2xl shadow-2xl shadow-indigo-500/10 dark:shadow-black/50 overflow-hidden flex flex-col origin-bottom "
+                      className="absolute bottom-full left-0 right-0 mb-2.5 z-[100] w-full bg-white/95 dark:bg-[#0b1120]/95 backdrop-blur-xl border border-slate-200/50 dark:border-white/10 rounded-2xl shadow-2xl shadow-indigo-500/10 dark:shadow-black/50 overflow-hidden flex flex-col origin-bottom"
                     >
                       <div className="p-2  border-b border-slate-100 dark:border-white/5 shrink-0 bg-slate-50/50 dark:bg-white/5 backdrop-blur-md">
                         <div className="relative flex items-center">
