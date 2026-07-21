@@ -77,9 +77,11 @@ const TimeTracker = ({
   endTime,
   status,
   pausedAt,
+  savedPausedMs = 0,
   isBlocked,
   blockerPausedAt,
   blockerHistory,
+  fullWidth = false,
 }) => {
   const [elapsed, setElapsed] = useState(0);
   const [blockedMs, setBlockedMs] = useState(0);
@@ -127,7 +129,11 @@ const TimeTracker = ({
         }
       }
 
-      const totalElapsedMs = end - start - totalPauseMs;
+ const totalElapsedMs =
+  end -
+  start -
+  (savedPausedMs || 0) -
+  totalPauseMs;
       return {
         active: Math.max(0, Math.floor(totalElapsedMs / 1000)),
         blocked: Math.max(0, Math.floor(totalPauseMs / 1000)),
@@ -177,7 +183,7 @@ const TimeTracker = ({
   const totalStr = formatTime(elapsed + blockedMs);
 
   return (
-    <div className="flex flex-col gap-1 w-[120px] text-[9px] font-bold tracking-wide">
+    <div className={`flex flex-col gap-1 ${fullWidth ? 'w-full' : 'w-[120px]'} text-[9px] font-bold tracking-wide`}>
       <div className="flex justify-between items-center bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/50 dark:border-emerald-500/20 px-1.5 py-0.5 rounded text-emerald-700 dark:text-emerald-400">
         <span>Active:</span>
         <span>{activeStr}</span>
@@ -239,6 +245,25 @@ const CreatedTime = ({ time }) => {
   return <span>{formatted}</span>;
 };
 
+const ResizableHeader = ({ id, label, colWidths, handleMouseDown, defaultClassName }) => {
+  return (
+    <th
+      className={`${defaultClassName} relative group`}
+      style={{
+        width: colWidths[id] !== undefined ? `${colWidths[id]}px` : undefined,
+        minWidth: colWidths[id] !== undefined ? `${colWidths[id]}px` : undefined,
+        maxWidth: colWidths[id] !== undefined ? `${colWidths[id]}px` : undefined,
+      }}
+    >
+      {label}
+      <div
+        onMouseDown={(e) => handleMouseDown(e, id)}
+        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-indigo-500/50 active:bg-indigo-500 z-10 transition-colors opacity-0 group-hover:opacity-100"
+      />
+    </th>
+  );
+};
+
 const Task = () => {
   const { user } = useSelector((state) => state.auth);
 
@@ -275,6 +300,36 @@ const Task = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const [colWidths, setColWidths] = useState({});
+  const resizingRef = useRef(null);
+
+  const handleMouseDown = (e, colId) => {
+    e.preventDefault();
+    const thElement = e.target.parentElement;
+    resizingRef.current = {
+      colId,
+      startX: e.clientX,
+      startWidth: thElement.offsetWidth,
+    };
+
+    const handleMouseMove = (eMove) => {
+      if (!resizingRef.current) return;
+      const { colId, startX, startWidth } = resizingRef.current;
+      const newWidth = Math.max(50, startWidth + (eMove.clientX - startX));
+      setColWidths((prev) => ({ ...prev, [colId]: newWidth }));
+    };
+
+    const handleMouseUp = () => {
+      resizingRef.current = null;
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  };
+
   const [viewType, setViewType] = useState("list");
   const [expandedTasks, setExpandedTasks] = useState({});
   const [collapsedSections, setCollapsedSections] = useState({});
@@ -1500,48 +1555,20 @@ const Task = () => {
               <table className="w-full min-w-[1300px] text-left border-collapse table-auto border border-slate-200/70 dark:border-transparent">
                 <thead>
                   <tr className="sticky top-0 z-20 uppercase text-center bg-slate-50 dark:bg-[#11131e] text-slate-500 dark:text-slate-400 text-[10.5px] sm:text-[9px] font-black tracking-wider border-b border-slate-200/70 dark:border-transparent shadow-sm">
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-16">
-                      ID
-                    </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-20">
-                      Priority
-                    </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] whitespace-nowrap">
-                      Task Name
-                    </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[250px] md:min-w-[400px] w-auto whitespace-nowrap">
-                      Content Copy
-                    </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-24">
-                      Client
-                    </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap">
-                      Content-type
-                    </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-48 min-w-[180px]">
-                      Status
-                    </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 min-w-[125px]">
-                      Blocker
-                    </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap">
-                      Time tracker
-                    </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-28">
-                      Revision
-                    </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32">
-                      Start Date
-                    </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32">
-                      End Date
-                    </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-44">
-                      Assigned By
-                    </th>
-                    <th className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[200px] w-56">
-                      Created Time
-                    </th>
+                    <ResizableHeader id="id" label="ID" colWidths={colWidths} handleMouseDown={handleMouseDown} defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-16" />
+                    <ResizableHeader id="priority" label="Priority" colWidths={colWidths} handleMouseDown={handleMouseDown} defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-20" />
+                    <ResizableHeader id="taskName" label="Task Name" colWidths={colWidths} handleMouseDown={handleMouseDown} defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] whitespace-nowrap" />
+                    <ResizableHeader id="contentCopy" label="Content Copy" colWidths={colWidths} handleMouseDown={handleMouseDown} defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[150px] max-w-[250px] w-auto whitespace-nowrap" />
+                    <ResizableHeader id="client" label="Client" colWidths={colWidths} handleMouseDown={handleMouseDown} defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-24" />
+                    <ResizableHeader id="contentType" label="Content-type" colWidths={colWidths} handleMouseDown={handleMouseDown} defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap" />
+                    <ResizableHeader id="status" label="Status" colWidths={colWidths} handleMouseDown={handleMouseDown} defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-48 min-w-[180px]" />
+                    <ResizableHeader id="blocker" label="Blocker" colWidths={colWidths} handleMouseDown={handleMouseDown} defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 min-w-[125px]" />
+                    <ResizableHeader id="timeTracker" label="Time tracker" colWidths={colWidths} handleMouseDown={handleMouseDown} defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap" />
+                    <ResizableHeader id="revision" label="Revision" colWidths={colWidths} handleMouseDown={handleMouseDown} defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-28" />
+                    <ResizableHeader id="startDate" label="Start Date" colWidths={colWidths} handleMouseDown={handleMouseDown} defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32" />
+                    <ResizableHeader id="endDate" label="End Date" colWidths={colWidths} handleMouseDown={handleMouseDown} defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32" />
+                    <ResizableHeader id="assignedBy" label="Assigned By" colWidths={colWidths} handleMouseDown={handleMouseDown} defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-44" />
+                    <ResizableHeader id="createdTime" label="Created Time" colWidths={colWidths} handleMouseDown={handleMouseDown} defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[200px] w-56" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
@@ -1630,7 +1657,7 @@ const Task = () => {
 
                             {/* Content Copy */}
                             <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent">
-                              <div className="text-xs sm:text-[11px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap break-words min-w-[200px] w-full">
+                              <div className="text-xs sm:text-[11px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap break-words w-full max-w-[250px]">
                                 {task.contentCopy || (
                                   <span className="text-slate-400 italic font-normal">
                                     —
@@ -1893,6 +1920,7 @@ const Task = () => {
   startTime={task.actualStartTime}
   endTime={task.actualEndTime}
   pausedAt={task.pausedAt}
+   savedPausedMs={task.totalPausedMs}
   status={task.status}
   isBlocked={task.isBlocked}
   blockerPausedAt={task.blockerPausedAt}
@@ -2027,7 +2055,7 @@ const Task = () => {
                                     </div>
                                   </td>
                                   <td className="px-3 py-2 border-b border-slate-200/70 dark:border-transparent">
-                                    <div className="text-xs sm:text-[11px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap break-words min-w-[200px] w-full">
+                                    <div className="text-xs sm:text-[11px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap break-words w-full max-w-[250px]">
                                       {sub.contentCopy || (
                                         <span className="text-slate-400 italic font-normal">
                                           —
@@ -2143,6 +2171,7 @@ const Task = () => {
                                         startTime={sub.actualStartTime}
                                         endTime={sub.actualEndTime}
                                         pausedAt={sub.pausedAt}
+                                        savedPausedMs={sub.totalPausedMs}
                                         status={sub.status}
                                         isBlocked={false}
                                         blockerPausedAt={null}
@@ -2667,6 +2696,60 @@ const Task = () => {
                       </option>
                     </select>
                   </div>
+
+                  {/* Time Tracker Display */}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-400 tracking-wider flex items-center gap-1.5 uppercase">
+                      <FiClock size={12} /> Time Tracker
+                    </label>
+                    <div className="bg-white dark:bg-[#0c121e] border border-slate-200/60 dark:border-slate-700/50 rounded-xl p-3 shadow-sm flex items-center justify-center">
+                      <TimeTracker
+                        startTime={selectedTask.actualStartTime}
+                        endTime={selectedTask.actualEndTime}
+                        status={selectedTask.status}
+                        pausedAt={selectedTask.pausedAt}
+                        isBlocked={selectedTask.isBlocked}
+                        blockerPausedAt={selectedTask.blockerPausedAt}
+                        blockerHistory={selectedTask.blockerHistory}
+                        fullWidth={true}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Rejection History Data */}
+                  {selectedTask.rejectionHistory && selectedTask.rejectionHistory.length > 0 && (
+                    <div className="space-y-2 pt-1">
+                      <label className="text-[10px] font-black text-red-500 tracking-wider flex items-center gap-1.5 uppercase">
+                        <FiAlertCircle size={12} /> Rejection History ({selectedTask.rejectionHistory.length})
+                      </label>
+                      <div className="max-h-48 overflow-y-auto scrollbar-thin border border-red-200 dark:border-red-500/30 rounded-xl overflow-hidden shadow-sm">
+                        <table className="w-full text-left border-collapse text-xs">
+                          <thead className="bg-red-50 dark:bg-red-500/10 text-[9px] uppercase font-black text-red-500 dark:text-red-400 tracking-wider sticky top-0 z-10">
+                            <tr>
+                              <th className="px-3 py-2 border-b border-red-200 dark:border-red-500/30 whitespace-nowrap">Rev</th>
+                              <th className="px-3 py-2 border-b border-red-200 dark:border-red-500/30">Reason</th>
+                              <th className="px-3 py-2 border-b border-red-200 dark:border-red-500/30 whitespace-nowrap text-right">Time</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-red-100 dark:divide-red-500/20 bg-white dark:bg-[#0c121e]">
+                            {[...selectedTask.rejectionHistory].reverse().map((rejection, idx) => (
+                              <tr key={rejection._id || idx} className="hover:bg-red-50/50 dark:hover:bg-red-500/5 transition-colors">
+                                <td className="px-3 py-2 font-black text-red-400 whitespace-nowrap text-center">
+                                  {selectedTask.rejectionHistory.length - idx}
+                                </td>
+                                <td className="px-3 py-2 font-bold text-slate-700 dark:text-slate-300">
+                                  {rejection.reason}
+                                </td>
+                                <td className="px-3 py-2 font-bold text-[10px] text-slate-500 dark:text-slate-400 whitespace-nowrap text-right">
+                                  {rejection.rejectedAt ? <CreatedTime time={rejection.rejectedAt} /> : "—"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Blocker Settings */}

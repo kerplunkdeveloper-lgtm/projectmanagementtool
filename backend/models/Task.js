@@ -45,6 +45,13 @@ const SubtaskSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+
+  totalPausedMs: {
+  type: Number,
+  default: 0,
+},
+
+
   rejectionHistory: [
     {
       reason: String,
@@ -119,6 +126,10 @@ const TaskSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    totalPausedMs: {
+  type: Number,
+  default: 0,
+},
 
     isBlocked: {
       type: Boolean,

@@ -184,12 +184,19 @@ if (req.body.status && req.body.status !== previousStatus) {
       req.body.pausedAt = null;
       break;
 
-    case "In Progress":
-      if (!task.actualStartTime) {
-        req.body.actualStartTime = Date.now();
-      }
-      req.body.pausedAt = null;
-      break;
+ case "In Progress":
+  if (!task.actualStartTime) {
+    req.body.actualStartTime = Date.now();
+  }
+
+  if (task.pausedAt) {
+    req.body.totalPausedMs =
+      (task.totalPausedMs || 0) +
+      (Date.now() - new Date(task.pausedAt).getTime());
+  }
+
+  req.body.pausedAt = null;
+  break;
 
     case "Completed":
       if (!task.actualEndTime) {
@@ -232,12 +239,19 @@ if (req.body.subtasks) {
           sub.pausedAt = null;
           break;
 
-        case "In Progress":
-          if (!prevSub.actualStartTime && !sub.actualStartTime) {
-            sub.actualStartTime = Date.now();
-          }
-          sub.pausedAt = null;
-          break;
+       case "In Progress":
+  if (!prevSub.actualStartTime && !sub.actualStartTime) {
+    sub.actualStartTime = Date.now();
+  }
+
+  if (prevSub.pausedAt) {
+    sub.totalPausedMs =
+      (prevSub.totalPausedMs || 0) +
+      (Date.now() - new Date(prevSub.pausedAt).getTime());
+  }
+
+  sub.pausedAt = null;
+  break;
 
         case "Completed":
           if (!prevSub.actualEndTime && !sub.actualEndTime) {
@@ -250,6 +264,7 @@ if (req.body.subtasks) {
         case "In Review":
         case "IN-REVIEW":
         case "IN-Review":
+        case "In Review":
         case "Rejected":
           if (!prevSub.pausedAt) {
             sub.pausedAt = Date.now();

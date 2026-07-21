@@ -63,7 +63,14 @@ const StrictModeDroppable = ({ children, ...props }) => {
   return <Droppable {...props}>{children}</Droppable>;
 };
 
-const TimeTracker = ({ startTime, endTime,pausedAt, status, variant = "default" }) => {
+const TimeTracker = ({
+  startTime,
+  endTime,
+  pausedAt,
+  status,
+  savedPausedMs = 0,
+  variant = "default"
+}) => {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -83,7 +90,12 @@ if (endTime) {
 } else {
   end = Date.now();
 }
-      return Math.max(0, Math.floor((end - start) / 1000));
+      const elapsedMs =
+  end -
+  start -
+  (savedPausedMs || 0);
+
+return Math.max(0, Math.floor(elapsedMs / 1000));
     };
 
     setElapsed(calculateElapsed());
@@ -4667,6 +4679,7 @@ const ProjectTaskBoard = ({
                                                             task.actualEndTime
                                                           }
                                                             pausedAt={task.pausedAt}
+                                                            savedPausedMs={task.totalPausedMs}
                                                           status={task.status}
                                                         />
                                                       </td>
@@ -5734,6 +5747,7 @@ const ProjectTaskBoard = ({
                                                                     sub.actualEndTime
                                                                   }
                                                                   pausedAt={sub.pausedAt}
+                                                                  savedPausedMs={sub.totalPausedMs}
                                                                   status={
                                                                     sub.status
                                                                   }
