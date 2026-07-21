@@ -76,6 +76,7 @@ app.use(cookieParser());
 const allowedOrigins = [
   "http://localhost:5173",
   "https://projectmanagementtool-azure.vercel.app",
+  "https://tasks.kerplunkmedia.com",
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
@@ -123,7 +124,7 @@ const messageRoutes = require("./routes/messageRoutes");
 const portfolioRoutes = require("./routes/portfolioRoutes");
 
 app.get("/", (req, res) => {
-  res.send("hello");
+  res.send("Hello my projectmanagement tool Backend is Live is working lets Celebrate ");
 });
 
 app.get("/health", (req, res) => {
