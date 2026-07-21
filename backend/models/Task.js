@@ -40,6 +40,24 @@ const SubtaskSchema = new mongoose.Schema({
   actualEndTime: {
     type: Date,
   },
+
+  pausedAt: {
+    type: Date,
+    default: null,
+  },
+  rejectionHistory: [
+    {
+      reason: String,
+      rejectedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+      rejectedAt: {
+        type: Date,
+        default: Date.now,
+      },
+    }
+  ],
 });
 
 const TaskSchema = new mongoose.Schema(
@@ -96,6 +114,12 @@ const TaskSchema = new mongoose.Schema(
     actualEndTime: {
       type: Date,
     },
+
+    pausedAt: {
+      type: Date,
+      default: null,
+    },
+
     isBlocked: {
       type: Boolean,
       default: false,
@@ -141,6 +165,19 @@ const TaskSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    rejectionHistory: [
+      {
+        reason: String,
+        rejectedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        rejectedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      }
+    ],
     comments: [
       {
         user: {

@@ -158,7 +158,7 @@ exports.updateTask = async (req, res) => {
   try {
     const currentUserId = req.user._id ? req.user._id.toString() : req.user.id;
     
-    // Prevent overriding read-only fields on update
+    // .........................................Prevent overriding read-only fields on update..........................................      
     delete req.body.createdBy;
     delete req.body.project;
 
@@ -172,41 +172,95 @@ exports.updateTask = async (req, res) => {
     const previousAssignee = task.assignedTo;
     const previousSubtasks = task.subtasks ? JSON.parse(JSON.stringify(task.subtasks)) : [];
 
-    // Time tracking logic for parent task
-    if (req.body.status && req.body.status !== previousStatus) {
-      if (req.body.status === "Pending") {
-        req.body.actualStartTime = null;
-        req.body.actualEndTime = null;
-      } else if (req.body.status === "In Progress" && !task.actualStartTime) {
+   
+   // .........................................Time tracking logic for parent task...........................................
+if (req.body.status && req.body.status !== previousStatus) {
+
+  switch (req.body.status) {
+
+    case "Pending":
+      req.body.actualStartTime = null;
+      req.body.actualEndTime = null;
+      req.body.pausedAt = null;
+      break;
+
+    case "In Progress":
+      if (!task.actualStartTime) {
         req.body.actualStartTime = Date.now();
-      } else if (req.body.status === "Completed" && !task.actualEndTime) {
+      }
+      req.body.pausedAt = null;
+      break;
+
+    case "Completed":
+      if (!task.actualEndTime) {
         req.body.actualEndTime = Date.now();
       }
+      req.body.pausedAt = null;
+      break;
 
-      if (req.body.status === "Rejected" && previousStatus !== "Rejected") {
-        req.body.revisions = (task.revisions || 0) + 1;
+    case "On Hold":
+    case "In Review":
+    case "IN-REVIEW":
+    case "IN-Review":
+    case "Rejected":
+      if (!task.pausedAt) {
+        req.body.pausedAt = Date.now();
+      }
+      break;
+  }
+
+  if (req.body.status === "Rejected" && previousStatus !== "Rejected") {
+    req.body.revisions = (task.revisions || 0) + 1;
+  }
+}
+    // .........................................Time tracking logic for subtasks...........................................    
+   // .........................................Time tracking logic for subtasks...........................................
+if (req.body.subtasks) {
+  req.body.subtasks = req.body.subtasks.map((sub) => {
+
+    const prevSub = previousSubtasks.find(
+      (p) => p._id && sub._id && p._id.toString() === sub._id.toString()
+    );
+
+    if (prevSub && sub.status && sub.status !== prevSub.status) {
+
+      switch (sub.status) {
+
+        case "Pending":
+          sub.actualStartTime = null;
+          sub.actualEndTime = null;
+          sub.pausedAt = null;
+          break;
+
+        case "In Progress":
+          if (!prevSub.actualStartTime && !sub.actualStartTime) {
+            sub.actualStartTime = Date.now();
+          }
+          sub.pausedAt = null;
+          break;
+
+        case "Completed":
+          if (!prevSub.actualEndTime && !sub.actualEndTime) {
+            sub.actualEndTime = Date.now();
+          }
+          sub.pausedAt = null;
+          break;
+
+        case "On Hold":
+        case "In Review":
+        case "IN-REVIEW":
+        case "IN-Review":
+        case "Rejected":
+          if (!prevSub.pausedAt) {
+            sub.pausedAt = Date.now();
+          }
+          break;
       }
     }
 
-    // Time tracking logic for subtasks
-    if (req.body.subtasks) {
-      req.body.subtasks = req.body.subtasks.map((sub) => {
-        const prevSub = previousSubtasks.find(
-          (p) => p._id && sub._id && p._id.toString() === sub._id.toString()
-        );
-        if (prevSub && sub.status && sub.status !== prevSub.status) {
-          if (sub.status === "Pending") {
-            sub.actualStartTime = null;
-            sub.actualEndTime = null;
-          } else if (sub.status === "In Progress" && !prevSub.actualStartTime && !sub.actualStartTime) {
-            sub.actualStartTime = Date.now();
-          } else if (sub.status === "Completed" && !prevSub.actualEndTime && !sub.actualEndTime) {
-            sub.actualEndTime = Date.now();
-          }
-        }
-        return sub;
-      });
-    }
+    return sub;
+  });
+}
 
     task = await Task.findByIdAndUpdate(req.params.id, req.body, {
       new: true,

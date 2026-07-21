@@ -76,6 +76,7 @@ const TimeTracker = ({
   startTime,
   endTime,
   status,
+  pausedAt,
   isBlocked,
   blockerPausedAt,
   blockerHistory,
@@ -88,14 +89,29 @@ const TimeTracker = ({
 
     const calculateTime = () => {
       const start = new Date(startTime).getTime();
-      const end = endTime ? new Date(endTime).getTime() : Date.now();
+      let end;
+
+      if (endTime) {
+        end = new Date(endTime).getTime();
+      } else if (
+        pausedAt &&
+        ["On Hold", "Rejected", "IN-REVIEW", "In Review", "IN-Review"].includes(
+          status,
+        )
+      ) {
+        end = new Date(pausedAt).getTime();
+      } else {
+        end = Date.now();
+      }
 
       let totalPauseMs = 0;
       if (blockerHistory && blockerHistory.length > 0) {
         blockerHistory.forEach((item) => {
-          if (item.pausedAt && item.resumedAt) {
+          if (item.pausedAt) {
             const p = new Date(item.pausedAt).getTime();
-            const r = new Date(item.resumedAt).getTime();
+            const r = item.resumedAt
+              ? new Date(item.resumedAt).getTime()
+              : Date.now();
             if (r >= p) {
               totalPauseMs += r - p;
             }
@@ -130,7 +146,15 @@ const TimeTracker = ({
       const interval = setInterval(update, 1000);
       return () => clearInterval(interval);
     }
-  }, [startTime, endTime, status, isBlocked, blockerPausedAt, blockerHistory]);
+  }, [
+  startTime,
+  endTime,
+  pausedAt,
+  status,
+  isBlocked,
+  blockerPausedAt,
+  blockerHistory,
+]);
 
   if (!startTime && status !== "In Progress") return null;
   if (!startTime && status === "In Progress")
@@ -764,9 +788,13 @@ const Task = () => {
 
   const handleBulkDelete = async () => {
     if (selectedTasks.length === 0) return;
-    if (window.confirm(`Are you sure you want to delete ${selectedTasks.length} selected task(s)?`)) {
+    if (
+      window.confirm(
+        `Are you sure you want to delete ${selectedTasks.length} selected task(s)?`,
+      )
+    ) {
       try {
-        await Promise.all(selectedTasks.map(id => deleteTask(id).unwrap()));
+        await Promise.all(selectedTasks.map((id) => deleteTask(id).unwrap()));
         setSelectedTasks([]);
         toast.success("Tasks deleted successfully!");
       } catch (err) {
@@ -777,15 +805,17 @@ const Task = () => {
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedTasks(sortedTasks.map(t => t._id));
+      setSelectedTasks(sortedTasks.map((t) => t._id));
     } else {
       setSelectedTasks([]);
     }
   };
 
   const handleSelectTask = (taskId) => {
-    setSelectedTasks(prev => 
-      prev.includes(taskId) ? prev.filter(id => id !== taskId) : [...prev, taskId]
+    setSelectedTasks((prev) =>
+      prev.includes(taskId)
+        ? prev.filter((id) => id !== taskId)
+        : [...prev, taskId],
     );
   };
 
@@ -938,7 +968,9 @@ const Task = () => {
         <div className="flex items-center w-full xl:w-auto min-h-[36px]">
           {selectedTasks.length > 0 && (
             <div className="flex items-center gap-3">
-              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">{selectedTasks.length} selected</span>
+              <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                {selectedTasks.length} selected
+              </span>
               <button
                 onClick={handleBulkDelete}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-colors text-xs font-bold shadow-sm"
@@ -1599,7 +1631,11 @@ const Task = () => {
                             {/* Content Copy */}
                             <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent">
                               <div className="text-xs sm:text-[11px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap break-words min-w-[200px] w-full">
-                                {task.contentCopy || <span className="text-slate-400 italic font-normal">—</span>}
+                                {task.contentCopy || (
+                                  <span className="text-slate-400 italic font-normal">
+                                    —
+                                  </span>
+                                )}
                               </div>
                             </td>
 
@@ -1853,14 +1889,15 @@ const Task = () => {
                               className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap text-center"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <TimeTracker
-                                startTime={task.actualStartTime}
-                                endTime={task.actualEndTime}
-                                status={task.status}
-                                isBlocked={task.isBlocked}
-                                blockerPausedAt={task.blockerPausedAt}
-                                blockerHistory={task.blockerHistory}
-                              />
+                             <TimeTracker
+  startTime={task.actualStartTime}
+  endTime={task.actualEndTime}
+  pausedAt={task.pausedAt}
+  status={task.status}
+  isBlocked={task.isBlocked}
+  blockerPausedAt={task.blockerPausedAt}
+  blockerHistory={task.blockerHistory}
+/>
                             </td>
 
                             {/* Revision Column */}
@@ -1991,7 +2028,11 @@ const Task = () => {
                                   </td>
                                   <td className="px-3 py-2 border-b border-slate-200/70 dark:border-transparent">
                                     <div className="text-xs sm:text-[11px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap break-words min-w-[200px] w-full">
-                                      {sub.contentCopy || <span className="text-slate-400 italic font-normal">—</span>}
+                                      {sub.contentCopy || (
+                                        <span className="text-slate-400 italic font-normal">
+                                          —
+                                        </span>
+                                      )}
                                     </div>
                                   </td>
                                   <td className="px-6 py-1.5 border-b border-slate-200/70 dark:border-transparent" />
@@ -2101,6 +2142,7 @@ const Task = () => {
                                       <TimeTracker
                                         startTime={sub.actualStartTime}
                                         endTime={sub.actualEndTime}
+                                        pausedAt={sub.pausedAt}
                                         status={sub.status}
                                         isBlocked={false}
                                         blockerPausedAt={null}
@@ -2437,13 +2479,12 @@ const Task = () => {
 
               {/* Drawer Content */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
-
                 {/* Read-Only Task Details List */}
                 <div className="bg-slate-50 dark:bg-[#111827] rounded-3xl p-5 border border-slate-100 dark:border-slate-800/80 space-y-4 shadow-sm relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-3 opacity-10 pointer-events-none">
                     <FiCheckSquare size={100} />
                   </div>
-                  
+
                   <div className="flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-700 relative z-10">
                     <div className="px-2.5 py-1 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-[10px] font-black tracking-wider uppercase">
                       {getTaskDisplayId(selectedTask)}
@@ -2455,53 +2496,83 @@ const Task = () => {
 
                   <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-xs relative z-10">
                     <div className="space-y-1">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Priority</span>
-                      <span className={`inline-block px-2 py-0.5 rounded border text-[10px] font-bold ${getPriorityStyle(selectedTask.priority || "Medium")}`}>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
+                        Priority
+                      </span>
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded border text-[10px] font-bold ${getPriorityStyle(selectedTask.priority || "Medium")}`}
+                      >
                         {selectedTask.priority || "Medium"}
                       </span>
                     </div>
 
                     <div className="space-y-1">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Client</span>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
+                        Client
+                      </span>
                       <div className="font-bold text-slate-700 dark:text-white mt-1">
                         {(() => {
-                          const projId = selectedTask.project?._id || selectedTask.project;
-                          const projectObj = projects.find((p) => p._id === projId);
-                          const client = projectObj?.client || selectedTask.project?.client;
+                          const projId =
+                            selectedTask.project?._id || selectedTask.project;
+                          const projectObj = projects.find(
+                            (p) => p._id === projId,
+                          );
+                          const client =
+                            projectObj?.client || selectedTask.project?.client;
                           if (client) {
                             return <ClientBadge client={client} size="sm" />;
                           }
-                          return <span className="text-slate-400 italic font-normal">—</span>;
+                          return (
+                            <span className="text-slate-400 italic font-normal">
+                              —
+                            </span>
+                          );
                         })()}
                       </div>
                     </div>
 
                     <div className="space-y-1">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Project</span>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
+                        Project
+                      </span>
                       <span className="font-bold text-slate-700 dark:text-white truncate block mt-1.5">
                         {selectedTask.project?.name || "Internal task"}
                       </span>
                     </div>
 
                     <div className="space-y-1">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Content Type</span>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
+                        Content Type
+                      </span>
                       <div className="mt-1">
                         <span
                           className={`px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wider uppercase border whitespace-nowrap ${(() => {
                             const t = (selectedTask.title || "").toLowerCase();
-                            if (t.includes("reel")) return "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20";
-                            if (t.includes("post") || t.includes("carousel")) return "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20";
-                            if (t.includes("story")) return "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20";
-                            if (t.includes("youtube") || t.includes("thumbnail")) return "bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20";
+                            if (t.includes("reel"))
+                              return "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20";
+                            if (t.includes("post") || t.includes("carousel"))
+                              return "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20";
+                            if (t.includes("story"))
+                              return "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20";
+                            if (
+                              t.includes("youtube") ||
+                              t.includes("thumbnail")
+                            )
+                              return "bg-red-50 text-red-600 border-red-200 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20";
                             return "bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20";
                           })()}`}
                         >
                           {(() => {
                             const t = (selectedTask.title || "").toLowerCase();
                             if (t.includes("reel")) return "Reel";
-                            if (t.includes("post") || t.includes("carousel")) return "Post";
+                            if (t.includes("post") || t.includes("carousel"))
+                              return "Post";
                             if (t.includes("story")) return "Story";
-                            if (t.includes("youtube") || t.includes("thumbnail")) return "YouTube";
+                            if (
+                              t.includes("youtube") ||
+                              t.includes("thumbnail")
+                            )
+                              return "YouTube";
                             return "Image";
                           })()}
                         </span>
@@ -2509,18 +2580,32 @@ const Task = () => {
                     </div>
 
                     <div className="space-y-1">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Assigned By</span>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
+                        Assigned By
+                      </span>
                       <span className="font-bold text-slate-700 dark:text-white">
                         {selectedTask.createdBy?.name || "Unknown"}
                       </span>
                     </div>
 
                     <div className="space-y-1">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Timeline & Revisions</span>
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
+                        Timeline & Revisions
+                      </span>
                       <span className="font-bold text-slate-700 dark:text-white text-[10px]">
-                        {selectedTask.startDate ? formatDate(selectedTask.startDate) : "N/A"} → {selectedTask.dueDate ? formatDate(selectedTask.dueDate) : "N/A"}
-                        <span className="text-slate-300 dark:text-slate-600 mx-1">|</span>
-                        <span className="text-rose-500 font-black">{selectedTask.revisions || 0} Rev</span>
+                        {selectedTask.startDate
+                          ? formatDate(selectedTask.startDate)
+                          : "N/A"}{" "}
+                        →{" "}
+                        {selectedTask.dueDate
+                          ? formatDate(selectedTask.dueDate)
+                          : "N/A"}
+                        <span className="text-slate-300 dark:text-slate-600 mx-1">
+                          |
+                        </span>
+                        <span className="text-rose-500 font-black">
+                          {selectedTask.revisions || 0} Rev
+                        </span>
                       </span>
                     </div>
                   </div>
@@ -2706,8 +2791,6 @@ const Task = () => {
                       </div>
                     )}
                 </div>
-
-            
               </div>
             </motion.div>
           </div>

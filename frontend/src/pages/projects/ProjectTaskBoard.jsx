@@ -63,7 +63,7 @@ const StrictModeDroppable = ({ children, ...props }) => {
   return <Droppable {...props}>{children}</Droppable>;
 };
 
-const TimeTracker = ({ startTime, endTime, status }) => {
+const TimeTracker = ({ startTime, endTime,pausedAt, status, variant = "default" }) => {
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -71,7 +71,18 @@ const TimeTracker = ({ startTime, endTime, status }) => {
 
     const calculateElapsed = () => {
       const start = new Date(startTime).getTime();
-      const end = endTime ? new Date(endTime).getTime() : Date.now();
+    let end;
+
+if (endTime) {
+  end = new Date(endTime).getTime();
+} else if (
+  pausedAt &&
+  ["On Hold", "Rejected", "In Review", "IN-REVIEW"].includes(status)
+) {
+  end = new Date(pausedAt).getTime();
+} else {
+  end = Date.now();
+}
       return Math.max(0, Math.floor((end - start) / 1000));
     };
 
@@ -83,10 +94,12 @@ const TimeTracker = ({ startTime, endTime, status }) => {
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [startTime, endTime, status]);
+ }, [startTime, endTime, pausedAt, status]);
 
   if (!startTime && status !== "In Progress") return null;
   if (!startTime && status === "In Progress")
+
+
     return (
       <div className="inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold tracking-wider bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30 shadow-sm w-full">
         <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#3b82f6] animate-pulse"></span>
@@ -99,6 +112,35 @@ const TimeTracker = ({ startTime, endTime, status }) => {
   const seconds = elapsed % 60;
 
   const timeString = `${hours > 0 ? `${hours}h ` : ""}${minutes}m ${seconds}s`;
+
+  if (variant === "premium") {
+    return (
+      <div className="flex flex-col">
+        <div className="flex items-baseline gap-1 text-slate-800 dark:text-white">
+          {hours > 0 && (
+            <>
+              <span className="text-3xl font-black tracking-tight">
+                {hours}
+              </span>
+              <span className="text-xs font-bold text-slate-400 mr-1">h</span>
+            </>
+          )}
+          <span className="text-3xl font-black tracking-tight">{minutes}</span>
+          <span className="text-xs font-bold text-slate-400 mr-1">m</span>
+          <span className="text-xl font-bold tracking-tight text-emerald-500">
+            {seconds}
+          </span>
+          <span className="text-[10px] font-bold text-emerald-500/70">s</span>
+        </div>
+        {status === "In Progress" && !endTime && (
+          <div className="flex items-center gap-1.5 mt-1 text-[9px] font-bold text-[#3b82f6] uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] animate-pulse"></span>
+            Timer Running
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -880,6 +922,146 @@ const ContentCopyInput = ({
   );
 };
 
+const RejectionModal = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  task,
+  subtaskId,
+  users = [],
+}) => {
+  const [reason, setReason] = useState("");
+
+  if (!isOpen) return null;
+
+  const target = subtaskId
+    ? task?.subtasks?.find((s) => s._id === subtaskId)
+    : task;
+  const history = target?.rejectionHistory || [];
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!reason.trim())
+      return toast.error("Please enter a reason for rejection");
+    onSubmit(reason.trim());
+    setReason("");
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-[#151518] rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02]">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400">
+              <FiAlertTriangle size={20} />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-slate-800 dark:text-white">
+                Reason for Rejection
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate max-w-[200px]">
+                {target?.title || "Task"}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors"
+          >
+            <FiX size={20} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-6">
+          {/* Input Form */}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              Why is this task being rejected?{" "}
+              <span className="text-rose-500">*</span>
+            </label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Provide a detailed explanation..."
+              className="w-full bg-slate-50 dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-rose-500 dark:focus:border-rose-500/50 focus:ring-4 focus:ring-rose-500/10 dark:focus:ring-rose-500/10 transition-all resize-none h-28"
+              autoFocus
+            />
+            <div className="flex justify-end gap-3 mt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/30 transition-all flex items-center gap-2"
+              >
+                <FiCheck size={16} />
+                Confirm Rejection
+              </button>
+            </div>
+          </form>
+
+          {/* History */}
+          {history.length > 0 && (
+            <div className="border-t border-slate-100 dark:border-white/5 pt-6">
+              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
+                <FiClock className="text-slate-400" />
+                Previous Rejections ({history.length})
+              </h4>
+              <div className="flex flex-col gap-3">
+                {history
+                  .slice()
+                  .reverse()
+                  .map((item, idx) => {
+                    const userObj = users?.find(
+                      (u) =>
+                        u._id === (item.rejectedBy?._id || item.rejectedBy),
+                    );
+                    const userName =
+                      userObj?.name || item.rejectedBy?.name || "Unknown User";
+                    return (
+                      <div
+                        key={idx}
+                        className="bg-slate-50 dark:bg-white/[0.02] border border-slate-100 dark:border-white/5 rounded-xl p-4"
+                      >
+                        <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                          "{item.reason}"
+                        </p>
+                        <div className="flex items-center justify-between mt-3 text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                          <span className="flex items-center gap-1.5">
+                            <FiUser size={10} />
+                            {userName}
+                          </span>
+                          <span>
+                            {new Date(item.rejectedAt).toLocaleString(
+                              undefined,
+                              {
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+};
+
 const ProjectTaskBoard = ({
   activeProjectId,
   activeProject,
@@ -922,6 +1104,10 @@ const ProjectTaskBoard = ({
   const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
   const [activeDateSelectionField, setActiveDateSelectionField] =
     useState("start"); // "start" | "due"
+
+  // Rejection Modal State
+  const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
+  const [taskToReject, setTaskToReject] = useState(null); // { taskId, subtaskId, previousStatus, taskObj }
 
   // Helper to format date range beautifully (e.g. Jun 2 - 4)
   const formatDateRange = (startStr, endStr) => {
@@ -1016,7 +1202,9 @@ const ProjectTaskBoard = ({
   const [newSectionName, setNewSectionName] = useState("");
   const [collapsedSections, setCollapsedSections] = useState(() => {
     try {
-      const saved = localStorage.getItem(`collapsedSections_${activeProjectId}`);
+      const saved = localStorage.getItem(
+        `collapsedSections_${activeProjectId}`,
+      );
       return saved ? JSON.parse(saved) : {};
     } catch (e) {
       return {};
@@ -1024,7 +1212,10 @@ const ProjectTaskBoard = ({
   });
 
   useEffect(() => {
-    localStorage.setItem(`collapsedSections_${activeProjectId}`, JSON.stringify(collapsedSections));
+    localStorage.setItem(
+      `collapsedSections_${activeProjectId}`,
+      JSON.stringify(collapsedSections),
+    );
   }, [collapsedSections, activeProjectId]);
 
   const [openSectionMenu, setOpenSectionMenu] = useState(null); // sectionName
@@ -1310,6 +1501,18 @@ const ProjectTaskBoard = ({
     }
 
     if (activeTab === "Kanban") {
+      if (destination.droppableId === "Rejected") {
+        const taskObj = localTasks.find((t) => t._id === draggableId);
+        setTaskToReject({
+          taskId: draggableId,
+          subtaskId: null,
+          previousStatus: taskObj?.status,
+          taskObj,
+        });
+        setRejectionModalOpen(true);
+        return;
+      }
+
       // Optimistically update local UI for status
       const updatedTasks = localTasks.map((t) =>
         t._id === draggableId ? { ...t, status: destination.droppableId } : t,
@@ -1537,6 +1740,19 @@ const ProjectTaskBoard = ({
 
   // Update Task fields inline / autosave
   const handleTaskFieldChange = async (taskId, fields) => {
+    // Intercept rejection status
+    if (fields.status === "Rejected") {
+      const taskObj = localTasks.find((t) => t._id === taskId);
+      setTaskToReject({
+        taskId,
+        subtaskId: null,
+        previousStatus: taskObj?.status,
+        taskObj,
+      });
+      setRejectionModalOpen(true);
+      return;
+    }
+
     const sanitizedFields = { ...fields };
     if (sanitizedFields.assignedTo === "") sanitizedFields.assignedTo = null;
     if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
@@ -1714,6 +1930,19 @@ const ProjectTaskBoard = ({
 
   // Update specific subtask fields
   const handleSubtaskFieldChange = async (task, subtaskId, updatedFields) => {
+    // Intercept rejection status
+    if (updatedFields.status === "Rejected") {
+      const subtaskObj = task.subtasks?.find((s) => s._id === subtaskId);
+      setTaskToReject({
+        taskId: task._id,
+        subtaskId,
+        previousStatus: subtaskObj?.status,
+        taskObj: task,
+      });
+      setRejectionModalOpen(true);
+      return;
+    }
+
     const sanitizedFields = { ...updatedFields };
     if (sanitizedFields.assignedTo === "") sanitizedFields.assignedTo = null;
     if (sanitizedFields.startDate === "") sanitizedFields.startDate = null;
@@ -1757,6 +1986,82 @@ const ProjectTaskBoard = ({
     } catch (err) {
       console.error("Failed to update subtask:", err);
     }
+  };
+
+  // Handle Submission of Rejection Modal
+  const handleRejectSubmit = async (reason) => {
+    if (!taskToReject) return;
+
+    const rejectionData = {
+      reason,
+      rejectedBy: currentUser?._id,
+      rejectedAt: new Date().toISOString(),
+    };
+
+    if (taskToReject.subtaskId) {
+      // Subtask Rejection
+      const task = taskToReject.taskObj;
+      const subtaskObj = task.subtasks?.find(
+        (s) => s._id === taskToReject.subtaskId,
+      );
+      const currentHistory = subtaskObj?.rejectionHistory || [];
+      const updatedHistory = [...currentHistory, rejectionData];
+
+      const updatedSubtasks = task.subtasks.map((sub) =>
+        sub._id === taskToReject.subtaskId
+          ? { ...sub, status: "Rejected", rejectionHistory: updatedHistory }
+          : sub,
+      );
+
+      try {
+        await updateTaskMutation({
+          id: task._id,
+          taskData: { subtasks: updatedSubtasks },
+        }).unwrap();
+        toast.success("Subtask marked as Rejected");
+      } catch (err) {
+        console.error("Failed to reject subtask:", err);
+      }
+    } else {
+      // Task Rejection
+      const task = taskToReject.taskObj;
+      const currentHistory = task?.rejectionHistory || [];
+      const updatedHistory = [...currentHistory, rejectionData];
+
+      // Optimistic update
+      setLocalTasks((prev) =>
+        prev.map((t) =>
+          t._id === task._id
+            ? { ...t, status: "Rejected", rejectionHistory: updatedHistory }
+            : t,
+        ),
+      );
+
+      try {
+        await updateTaskMutation({
+          id: task._id,
+          taskData: { status: "Rejected", rejectionHistory: updatedHistory },
+        }).unwrap();
+        toast.success("Task marked as Rejected");
+      } catch (err) {
+        console.error("Failed to reject task:", err);
+        // revert local change if needed
+        setLocalTasks((prev) =>
+          prev.map((t) =>
+            t._id === task._id
+              ? {
+                  ...t,
+                  status: taskToReject.previousStatus,
+                  rejectionHistory: currentHistory,
+                }
+              : t,
+          ),
+        );
+      }
+    }
+
+    setRejectionModalOpen(false);
+    setTaskToReject(null);
   };
 
   // Insert new subtask on Enter key press
@@ -3669,13 +3974,26 @@ const ProjectTaskBoard = ({
 
                                                       {/* Content Copy */}
                                                       <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                        <div onClick={(e) => e.stopPropagation()} className="w-full">
+                                                        <div
+                                                          onClick={(e) =>
+                                                            e.stopPropagation()
+                                                          }
+                                                          className="w-full"
+                                                        >
                                                           <ContentCopyInput
-                                                            value={task.contentCopy}
-                                                            onChange={(newVal) =>
-                                                              handleTaskFieldChange(task._id, {
-                                                                contentCopy: newVal,
-                                                              })
+                                                            value={
+                                                              task.contentCopy
+                                                            }
+                                                            onChange={(
+                                                              newVal,
+                                                            ) =>
+                                                              handleTaskFieldChange(
+                                                                task._id,
+                                                                {
+                                                                  contentCopy:
+                                                                    newVal,
+                                                                },
+                                                              )
                                                             }
                                                           />
                                                         </div>
@@ -4318,13 +4636,23 @@ const ProjectTaskBoard = ({
                                                       </td>
 
                                                       {/* Revision Column */}
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700" onClick={(e) => e.stopPropagation()}>
+                                                      <td
+                                                        className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700"
+                                                        onClick={(e) =>
+                                                          e.stopPropagation()
+                                                        }
+                                                      >
                                                         <div className="flex justify-center items-center gap-1.5">
                                                           <span className="font-extrabold text-xs text-slate-800 dark:text-yellow-50 text-center">
-                                                            {task.revisions || 0}
+                                                            {task.revisions ||
+                                                              0}
                                                           </span>
-                                                          {(task.revisions || 0) > 3 && (
-                                                            <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)] animate-pulse" title="More than 3 revisions" />
+                                                          {(task.revisions ||
+                                                            0) > 3 && (
+                                                            <span
+                                                              className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)] animate-pulse"
+                                                              title="More than 3 revisions"
+                                                            />
                                                           )}
                                                         </div>
                                                       </td>
@@ -4338,6 +4666,7 @@ const ProjectTaskBoard = ({
                                                           endTime={
                                                             task.actualEndTime
                                                           }
+                                                            pausedAt={task.pausedAt}
                                                           status={task.status}
                                                         />
                                                       </td>
@@ -4654,13 +4983,29 @@ const ProjectTaskBoard = ({
 
                                                               {/* Content Copy Column */}
                                                               <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                                <div onClick={(e) => e.stopPropagation()} className="w-full">
+                                                                <div
+                                                                  onClick={(
+                                                                    e,
+                                                                  ) =>
+                                                                    e.stopPropagation()
+                                                                  }
+                                                                  className="w-full"
+                                                                >
                                                                   <ContentCopyInput
-                                                                    value={sub.contentCopy}
-                                                                    onChange={(newVal) =>
-                                                                      handleSubtaskFieldChange(task, sub._id, {
-                                                                        contentCopy: newVal,
-                                                                      })
+                                                                    value={
+                                                                      sub.contentCopy
+                                                                    }
+                                                                    onChange={(
+                                                                      newVal,
+                                                                    ) =>
+                                                                      handleSubtaskFieldChange(
+                                                                        task,
+                                                                        sub._id,
+                                                                        {
+                                                                          contentCopy:
+                                                                            newVal,
+                                                                        },
+                                                                      )
                                                                     }
                                                                   />
                                                                 </div>
@@ -5388,6 +5733,7 @@ const ProjectTaskBoard = ({
                                                                   endTime={
                                                                     sub.actualEndTime
                                                                   }
+                                                                  pausedAt={sub.pausedAt}
                                                                   status={
                                                                     sub.status
                                                                   }
@@ -6325,6 +6671,106 @@ const ProjectTaskBoard = ({
                     )}
                   </div>
                 </div>
+
+                {/* Rejection History Display */}
+                {selectedTask.rejectionHistory &&
+                  selectedTask.rejectionHistory.length > 0 && (
+                    <div className="bg-rose-50/50 dark:bg-rose-500/[0.02] border border-rose-100 dark:border-rose-500/10 rounded-2xl p-4 space-y-3">
+                      <h3 className="text-xs font-bold text-rose-800 dark:text-rose-400 flex items-center gap-2">
+                        <FiAlertTriangle size={14} /> Rejection History
+                      </h3>
+                      <div className="flex flex-col gap-2.5">
+                        {selectedTask.rejectionHistory
+                          .slice()
+                          .reverse()
+                          .map((item, idx) => {
+                            const userObj = users?.find(
+                              (u) =>
+                                u._id ===
+                                (item.rejectedBy?._id || item.rejectedBy),
+                            );
+                            const userName =
+                              userObj?.name ||
+                              item.rejectedBy?.name ||
+                              "Unknown User";
+                            return (
+                              <div
+                                key={idx}
+                                className="bg-white dark:bg-[#111111] border border-rose-100/50 dark:border-rose-500/10 rounded-xl p-3"
+                              >
+                                <p className="text-xs text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                                  "{item.reason}"
+                                </p>
+                                <div className="flex items-center justify-between mt-2 text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+                                  <span className="flex items-center gap-1.5">
+                                    <FiUser size={10} />
+                                    {userName}
+                                  </span>
+                                  <span>
+                                    {new Date(item.rejectedAt).toLocaleString(
+                                      undefined,
+                                      {
+                                        month: "short",
+                                        day: "numeric",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                      },
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  )}
+
+                {/* Metrics Showcase (Revisions & Time Tracker) */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Revisions Card */}
+                  <div className="relative overflow-hidden bg-gradient-to-br from-violet-50 to-fuchsia-50 dark:from-violet-950/20 dark:to-fuchsia-900/20 border border-violet-100/50 dark:border-violet-500/10 rounded-2xl p-5 group transition-all hover:shadow-lg hover:shadow-violet-500/5">
+                    <div className="absolute -right-4 -top-4 w-16 h-16 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-full opacity-10 group-hover:scale-150 transition-transform duration-500 blur-xl" />
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-8 h-8 rounded-xl bg-white dark:bg-[#111] shadow-sm flex items-center justify-center text-violet-600 dark:text-violet-400">
+                        <FiLayers size={16} />
+                      </div>
+                      <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                        Revisions
+                      </h3>
+                    </div>
+                    <div className="flex items-baseline gap-2 relative z-10">
+                      <span className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">
+                        {selectedTask.revisions || 0}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Times
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Total Hours Card */}
+                  <div className="relative overflow-hidden bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-900/20 border border-emerald-100/50 dark:border-emerald-500/10 rounded-2xl p-5 group transition-all hover:shadow-lg hover:shadow-emerald-500/5">
+                    <div className="absolute -right-4 -top-4 w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full opacity-10 group-hover:scale-150 transition-transform duration-500 blur-xl" />
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-8 h-8 rounded-xl bg-white dark:bg-[#111] shadow-sm flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                        <FiActivity size={16} />
+                      </div>
+                      <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                        Time Tracked
+                      </h3>
+                    </div>
+                    <div className="relative z-10">
+                      <TimeTracker
+                        startTime={selectedTask.actualStartTime}
+                        endTime={selectedTask.actualEndTime}
+                        pausedAt={selectedTask.pausedAt}
+                        status={selectedTask.status}
+                        variant="premium"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* ── Asana-style Subtask Workspace ── */}
                 <div
                   id="drawer-subtasks-section"
@@ -6461,13 +6907,21 @@ const ProjectTaskBoard = ({
                     )}
                   </div>
                 </div>
-
-               
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
+      <RejectionModal
+        isOpen={rejectionModalOpen}
+        onClose={() => {
+          setRejectionModalOpen(false);
+          setTaskToReject(null);
+        }}
+        onSubmit={handleRejectSubmit}
+        task={taskToReject?.taskObj}
+        subtaskId={taskToReject?.subtaskId}
+      />
     </div>
   );
 };
