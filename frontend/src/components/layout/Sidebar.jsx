@@ -131,6 +131,20 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   );
 
   const menuItems = (sidebarConfig[role] || []).filter((item) => {
+    // Hide Projects Overview for Social Media Manager department
+    if (
+      item.name === "Projects Overview" &&
+      (currentUser?.department === "Social Media Manager" ||
+        currentUser?.department === "Social Media Executive")
+    ) {
+      return false;
+    }
+
+    // Hide Chat when admin is impersonating another user
+    if (item.name === "Chat" && originalAdminUser) {
+      return false;
+    }
+
     if (role === "admin") return true;
     if (item.permissionKey === "manage_clients") return true;
     if (!item.permissionKey) return true;
@@ -147,6 +161,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     location.pathname.includes("/portfolio"),
   );
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
   const [expandedPortfolios, setExpandedPortfolios] = useState({});
   const userDropdownRef = useRef(null);
 
@@ -307,8 +322,211 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
               isOpen,
               setIsOpen,
               list,
+              groupByUser = false,
             ) => {
               if (!list || list.length === 0) return null;
+
+              const renderPortfolioItems = (portfoliosToRender) => {
+                return portfoliosToRender.map((portfolio) => {
+                  const isActive = activePortfolioId === portfolio._id;
+                  const portfolioProjects = (projects || []).filter((proj) => {
+                    const ids = (portfolio.projectIds || []).map((pId) =>
+                      typeof pId === "object" && pId !== null ? pId._id : pId,
+                    );
+                    return ids.includes(proj._id);
+                  });
+
+                  return (
+                    <div key={portfolio._id}>
+                      {/* Portfolio Row */}
+                      {/* Portfolio Row */}
+                      <div className="flex items-center justify-between group rounded-lg transition-all duration-150 relative">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.innerWidth < 1024) setSidebarOpen(false);
+                            navigate(`/${role}/portfolio?id=${portfolio._id}`);
+                            // If it's already active, toggle it. If not, expand it.
+                            setExpandedPortfolios((prev) => ({
+                              ...prev,
+                              [portfolio._id]: isActive
+                                ? !prev[portfolio._id]
+                                : true,
+                            }));
+                          }}
+                          className={`flex-1 flex items-center gap-2 text-left text-xs lg:text-[0.6875rem] font-semibold py-2.5 lg:py-1.5 pl-2.5 pr-1.5 transition-all duration-150 ${
+                            portfolioProjects.length > 0
+                              ? "rounded-l-lg"
+                              : "rounded-lg pr-2.5"
+                          } ${
+                            isActive
+                              ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent"
+                              : "text-slate-600 dark:text-slate-500 hover:theme-text-accent hover:bg-slate-100/60 dark:hover:bg-white/5"
+                          }`}
+                          title={portfolio.name}
+                        >
+                          <svg
+                            viewBox="0 0 240 180"
+                            className="w-[1rem] h-[0.8125rem] shrink-0"
+                            style={{ fill: portfolio.color || "#ff80bf" }}
+                          >
+                            <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
+                          </svg>
+                          <span className="truncate flex-1 text-left">
+                            {portfolio.name}
+                          </span>
+                          {isActive && !portfolioProjects.length && (
+                            <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
+                          )}
+                        </button>
+
+                        {portfolioProjects.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedPortfolios((prev) => ({
+                                ...prev,
+                                [portfolio._id]: !prev[portfolio._id],
+                              }));
+                            }}
+                            className={`py-2.5 px-2.5 lg:py-1.5 lg:px-2 rounded-r-lg transition-all duration-150 flex items-center justify-center self-stretch cursor-pointer ${
+                              isActive
+                                ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent"
+                                : "text-slate-600 dark:text-slate-500 hover:theme-text-accent hover:bg-slate-100/60 dark:hover:bg-white/5"
+                            }`}
+                          >
+                            <svg
+                              className={`w-3 h-3 shrink-0 transform transition-transform duration-200 ${
+                                expandedPortfolios[portfolio._id]
+                                  ? "rotate-180"
+                                  : ""
+                              }`}
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2.5}
+                                d="M19 9l-7 7-7-7"
+                              />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Projects inside this Portfolio */}
+                      {portfolioProjects.length > 0 &&
+                        expandedPortfolios[portfolio._id] && (
+                          <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-white/8 space-y-0.5 mt-0.5 mb-0.5">
+                            {portfolioProjects.map((project) => {
+                              const isProjectActive =
+                                activeProjectId === project._id;
+                              return (
+                                <button
+                                  key={project._id}
+                                  type="button"
+                                  onClick={() => {
+                                    if (window.innerWidth < 1024)
+                                      setSidebarOpen(false);
+                                    navigate(
+                                      `/${role}/projects?id=${project._id}`,
+                                    );
+                                  }}
+                                  className={`w-full flex items-center gap-2 text-left text-[11px] lg:text-[0.625rem] font-semibold py-2 lg:py-1 rounded-md px-2.5 lg:px-2 transition-all duration-150 cursor-pointer ${
+                                    isProjectActive
+                                      ? "bg-slate-50 dark:bg-slate-800/60 theme-text-accent font-bold"
+                                      : "text-slate-500 dark:text-slate-600 hover:theme-text-accent hover:bg-slate-100/40 dark:hover:bg-white/5"
+                                  }`}
+                                  title={project.name}
+                                >
+                                  <ProjectIcon
+                                    name={project.name}
+                                    size="sm"
+                                    className="shrink-0"
+                                  />
+                                  <span className="truncate flex-1 text-left">
+                                    {project.name}
+                                  </span>
+                                  {isProjectActive && (
+                                    <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                    </div>
+                  );
+                });
+              };
+
+              let content;
+              if (groupByUser) {
+                const grouped = {};
+                list.forEach((p) => {
+                  const userName = p.createdBy?.name || "Unknown User";
+                  if (!grouped[userName]) grouped[userName] = [];
+                  grouped[userName].push(p);
+                });
+
+                content = Object.entries(grouped).map(
+                  ([userName, userPortfolios]) => {
+                    const folderId = `user-folder-${userName}`;
+                    return (
+                      <div key={folderId} className="mb-1">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedPortfolios((prev) => ({
+                              ...prev,
+                              [folderId]: !prev[folderId],
+                            }));
+                          }}
+                          className="w-full flex items-center gap-2 text-left text-xs lg:text-[0.6875rem] font-bold py-2 lg:py-1.5 px-2.5 rounded-lg hover:bg-slate-100/60 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400 group transition-all"
+                        >
+                          <svg
+                            className="w-3.5 h-3.5 shrink-0 text-amber-500 group-hover:text-amber-600"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path d="M2 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                          </svg>
+                          <span className="truncate flex-1 group-hover:theme-text-accent">
+                            {userName}
+                          </span>
+                          <svg
+                            className={`w-3 h-3 shrink-0 transform transition-transform duration-200 ${
+                              expandedPortfolios[folderId] ? "rotate-180" : ""
+                            }`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2.5}
+                              d="M19 9l-7 7-7-7"
+                            />
+                          </svg>
+                        </button>
+                        {expandedPortfolios[folderId] && (
+                          <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-white/8 mt-0.5 space-y-0.5">
+                            {renderPortfolioItems(userPortfolios)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  },
+                );
+              } else {
+                content = renderPortfolioItems(list);
+              }
+
               return (
                 <div className="mt-0.5 mb-1">
                   {/* Dropdown Header Toggle */}
@@ -341,148 +559,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   {/* Portfolio List */}
                   {isOpen && (
                     <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-white/8 space-y-0.5 overflow-y-auto max-h-[18.75rem] sidebar-scrollbar mt-0.5">
-                      {list.map((portfolio) => {
-                        const isActive = activePortfolioId === portfolio._id;
-                        const portfolioProjects = (projects || []).filter(
-                          (proj) => {
-                            const ids = (portfolio.projectIds || []).map(
-                              (pId) =>
-                                typeof pId === "object" && pId !== null
-                                  ? pId._id
-                                  : pId,
-                            );
-                            return ids.includes(proj._id);
-                          },
-                        );
-
-                        return (
-                          <div key={portfolio._id}>
-                            {/* Portfolio Row */}
-                            {/* Portfolio Row */}
-                            <div className="flex items-center justify-between group rounded-lg transition-all duration-150 relative">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (window.innerWidth < 1024)
-                                    setSidebarOpen(false);
-                                  navigate(
-                                    `/${role}/portfolio?id=${portfolio._id}`,
-                                  );
-                                  // If it's already active, toggle it. If not, expand it.
-                                  setExpandedPortfolios((prev) => ({
-                                    ...prev,
-                                    [portfolio._id]: isActive
-                                      ? !prev[portfolio._id]
-                                      : true,
-                                  }));
-                                }}
-                                className={`flex-1 flex items-center gap-2 text-left text-xs lg:text-[0.6875rem] font-semibold py-2.5 lg:py-1.5 pl-2.5 pr-1.5 transition-all duration-150 ${
-                                  portfolioProjects.length > 0
-                                    ? "rounded-l-lg"
-                                    : "rounded-lg pr-2.5"
-                                } ${
-                                  isActive
-                                    ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent"
-                                    : "text-slate-600 dark:text-slate-500 hover:theme-text-accent hover:bg-slate-100/60 dark:hover:bg-white/5"
-                                }`}
-                                title={portfolio.name}
-                              >
-                                <svg
-                                  viewBox="0 0 240 180"
-                                  className="w-[1rem] h-[0.8125rem] shrink-0"
-                                  style={{ fill: portfolio.color || "#ff80bf" }}
-                                >
-                                  <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
-                                </svg>
-                                <span className="truncate flex-1 text-left">
-                                  {portfolio.name}
-                                </span>
-                                {isActive && !portfolioProjects.length && (
-                                  <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
-                                )}
-                              </button>
-
-                              {portfolioProjects.length > 0 && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setExpandedPortfolios((prev) => ({
-                                      ...prev,
-                                      [portfolio._id]: !prev[portfolio._id],
-                                    }));
-                                  }}
-                                  className={`py-2.5 px-2.5 lg:py-1.5 lg:px-2 rounded-r-lg transition-all duration-150 flex items-center justify-center self-stretch cursor-pointer ${
-                                    isActive
-                                      ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent"
-                                      : "text-slate-600 dark:text-slate-500 hover:theme-text-accent hover:bg-slate-100/60 dark:hover:bg-white/5"
-                                  }`}
-                                >
-                                  <svg
-                                    className={`w-3 h-3 shrink-0 transform transition-transform duration-200 ${
-                                      expandedPortfolios[portfolio._id]
-                                        ? "rotate-180"
-                                        : ""
-                                    }`}
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2.5}
-                                      d="M19 9l-7 7-7-7"
-                                    />
-                                  </svg>
-                                </button>
-                              )}
-                            </div>
-
-                            {/* Projects inside this Portfolio */}
-                            {portfolioProjects.length > 0 &&
-                              expandedPortfolios[portfolio._id] && (
-                                <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-white/8 space-y-0.5 mt-0.5 mb-0.5">
-                                  {portfolioProjects.map((project) => {
-                                    const isProjectActive =
-                                      activeProjectId === project._id;
-                                    return (
-                                      <button
-                                        key={project._id}
-                                        type="button"
-                                        onClick={() => {
-                                          if (window.innerWidth < 1024)
-                                            setSidebarOpen(false);
-                                          navigate(
-                                            `/${role}/projects?id=${project._id}`,
-                                          );
-                                        }}
-                                        className={`w-full flex items-center gap-2 text-left text-[11px] lg:text-[0.625rem] font-semibold py-2 lg:py-1 rounded-md px-2.5 lg:px-2 transition-all duration-150 cursor-pointer ${
-                                          isProjectActive
-                                            ? "bg-slate-50 dark:bg-slate-800/60 theme-text-accent font-bold"
-                                            : "text-slate-500 dark:text-slate-600 hover:theme-text-accent hover:bg-slate-100/40 dark:hover:bg-white/5"
-                                        }`}
-                                        title={project.name}
-                                      >
-                                        <ProjectIcon
-                                          name={project.name}
-                                          size="sm"
-                                          className="shrink-0"
-                                        />
-                                        <span className="truncate flex-1 text-left">
-                                          {project.name}
-                                        </span>
-                                        {isProjectActive && (
-                                          <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
-                                        )}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                          </div>
-                        );
-                      })}
+                      {content}
                     </div>
                   )}
                 </div>
@@ -526,6 +603,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                     isSmePortfoliosListOpen,
                     setIsSmePortfoliosListOpen,
                     smePortfolios,
+                    !(
+                      currentUser?.department === "Social Media Manager" ||
+                      currentUser?.department === "Social Media Executive"
+                    ),
                   )}
                 </>
               );
@@ -593,13 +674,22 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                 scale: 1.22,
                                 rotate: [0, -10, 7, -4, 0],
                                 y: -1,
-                                boxShadow: "0 0 0 3px rgba(99,102,241,0.25), 0 0 12px rgba(99,102,241,0.15)",
+                                boxShadow:
+                                  "0 0 0 3px rgba(99,102,241,0.25), 0 0 12px rgba(99,102,241,0.15)",
                               }}
                               whileTap={{ scale: 0.85 }}
                               transition={{
-                                scale: { type: "spring", stiffness: 500, damping: 14 },
+                                scale: {
+                                  type: "spring",
+                                  stiffness: 500,
+                                  damping: 14,
+                                },
                                 rotate: { duration: 0.38, ease: "easeInOut" },
-                                y: { type: "spring", stiffness: 500, damping: 18 },
+                                y: {
+                                  type: "spring",
+                                  stiffness: 500,
+                                  damping: 18,
+                                },
                                 boxShadow: { duration: 0.25 },
                               }}
                             >
@@ -791,76 +881,134 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       initial="hidden"
                       animate="visible"
                       exit="hidden"
-                      className="absolute bottom-full left-1.5 right-1.5 mb-3 z-50 bg-white/95 dark:bg-[#0b1120]/95 backdrop-blur-xl border border-white/50 dark:border-white/10 rounded-2xl shadow-2xl shadow-indigo-500/10 dark:shadow-black/50 overflow-hidden flex flex-col p-2 max-h-[17.5rem] overflow-y-auto sidebar-scrollbar"
+                      className="absolute bottom-full left-0 right-0 mb-2.5 z-[100] w-full bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] backdrop-blur-2xl border border-slate-200/50 dark:border-white/10 rounded-2xl shadow-2xl shadow-indigo-500/10 dark:shadow-black/50 overflow-hidden flex flex-col origin-bottom "
                     >
-                      {users.map((u) => {
-                        const isCurrent =
-                          u._id === (currentUser?._id || currentUser?.id);
-                        return (
-                          <motion.button
-                            key={u._id}
-                            variants={itemVariants}
-                            whileHover={{ scale: 1.02, x: 2 }}
-                            whileTap={{ scale: 0.98 }}
-                            type="button"
-                            onClick={() => {
-                              setShowUserDropdown(false);
-                              if (!isCurrent) {
-                                handleSwitchUser(u._id);
-                              }
-                            }}
-                            className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-300 cursor-pointer group mb-1 last:mb-0 ${
-                              isCurrent
-                                ? "bg-gradient-to-r from-indigo-50/80 to-blue-50/80 dark:from-indigo-500/10 dark:to-blue-500/5 border border-indigo-100 dark:border-indigo-500/20 shadow-sm"
-                                : "border border-transparent hover:bg-slate-50/80 dark:hover:bg-white/5 hover:border-slate-200/50 dark:hover:border-white/5 hover:shadow-sm"
-                            }`}
-                          >
-                            <div className="flex items-center gap-3 min-w-0 flex-1">
-                              {/* Avatar */}
-                              <div
-                                className={`w-8 h-8 rounded-full shrink-0 overflow-hidden shadow-sm flex items-center justify-center transition-transform duration-300 group-hover:scale-105 ${
-                                  isCurrent
-                                    ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30"
-                                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50"
-                                }`}
-                              >
-                                {u.profile?.profileImage?.url ? (
-                                  <img
-                                    src={u.profile.profileImage.url}
-                                    alt={u.name}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <span className="text-xs lg:text-[0.625rem] font-black">
-                                    {getInitials(u.name)}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <p
-                                  className={`text-xs lg:text-[0.6875rem] font-bold truncate leading-tight transition-colors ${
-                                    isCurrent
-                                      ? "text-indigo-700 dark:text-indigo-300"
-                                      : "text-slate-700 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
-                                  }`}
-                                >
-                                  {u.name}
-                                </p>
-                                <p className="text-[10px] lg:text-[0.5625rem] font-black opacity-70 uppercase tracking-widest mt-0.5 theme-text-secondary truncate">
-                                  {u.role === "team"
-                                    ? u.department || "Team"
-                                    : displayRole(u.role)}
-                                </p>
-                              </div>
-                            </div>
+                      <div className="p-2  border-b border-slate-100 dark:border-white/5 shrink-0 bg-slate-50/50 dark:bg-white/5 backdrop-blur-md">
+                        <div className="relative flex items-center">
+                          <input
+                            type="text"
+                            placeholder="Search users..."
+                            value={userSearchQuery}
+                            onChange={(e) => setUserSearchQuery(e.target.value)}
+                            className="w-full bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-white/10 rounded-xl pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                      </div>
 
-                            {/* Active Indicator */}
-                            {isCurrent && (
-                              <div className="shrink-0 w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)] animate-pulse" />
-                            )}
-                          </motion.button>
-                        );
-                      })}
+                      <div className="p-2 max-h-[22rem] overflow-y-auto sidebar-scrollbar flex flex-col gap-1">
+                        {(() => {
+                          const filteredUsers = users.filter((u) => {
+                            const searchStr = userSearchQuery.toLowerCase();
+                            return (
+                              u.name.toLowerCase().includes(searchStr) ||
+                              (u.department || "")
+                                .toLowerCase()
+                                .includes(searchStr) ||
+                              displayRole(u.role)
+                                .toLowerCase()
+                                .includes(searchStr)
+                            );
+                          });
+
+                          if (filteredUsers.length === 0) {
+                            return (
+                              <div className="py-6 text-center text-xs text-slate-500 dark:text-slate-400">
+                                No users found matching "{userSearchQuery}"
+                              </div>
+                            );
+                          }
+
+                          // Group by department
+                          const groupedUsers = filteredUsers.reduce(
+                            (acc, u) => {
+                              const dept = u.department || displayRole(u.role);
+                              if (!acc[dept]) acc[dept] = [];
+                              acc[dept].push(u);
+                              return acc;
+                            },
+                            {},
+                          );
+
+                          return Object.entries(groupedUsers).map(
+                            ([dept, deptUsers]) => (
+                              <div
+                                key={dept}
+                                className="space-y-0.5 mb-1 last:mb-0"
+                              >
+                                {deptUsers.map((u) => {
+                                  const isCurrent =
+                                    u._id ===
+                                    (currentUser?._id || currentUser?.id);
+                                  return (
+                                    <motion.button
+                                      key={u._id}
+                                      variants={itemVariants}
+                                      whileHover={{ scale: 1.02, x: 2 }}
+                                      whileTap={{ scale: 0.98 }}
+                                      type="button"
+                                      onClick={() => {
+                                        setShowUserDropdown(false);
+                                        if (!isCurrent) {
+                                          handleSwitchUser(u._id);
+                                        }
+                                      }}
+                                      className={`w-full flex items-center justify-between gap-2.5 px-2.5 py-2 rounded-xl text-left transition-all duration-300 cursor-pointer group mb-1 last:mb-0 ${
+                                        isCurrent
+                                          ? "bg-gradient-to-r from-indigo-50/80 to-blue-50/80 dark:from-indigo-500/10 dark:to-blue-500/5 border border-indigo-100 dark:border-indigo-500/20 shadow-sm"
+                                          : "border border-transparent hover:bg-slate-50/80 dark:hover:bg-white/5 hover:border-slate-200/50 dark:hover:border-white/5 hover:shadow-sm"
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                        {/* Avatar */}
+                                        <div
+                                          className={`w-7 h-7 rounded-full shrink-0 overflow-hidden shadow-sm flex items-center justify-center transition-transform duration-300 group-hover:scale-105 ${
+                                            isCurrent
+                                              ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30"
+                                              : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50"
+                                          }`}
+                                        >
+                                          {u.profile?.profileImage?.url ? (
+                                            <img
+                                              src={u.profile.profileImage.url}
+                                              alt={u.name}
+                                              className="w-full h-full object-cover"
+                                            />
+                                          ) : (
+                                            <span className="text-xs lg:text-[0.625rem] font-black">
+                                              {getInitials(u.name)}
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                          <p
+                                            className={`text-[11px] lg:text-[0.625rem] font-bold truncate leading-tight transition-colors ${
+                                              isCurrent
+                                                ? "text-indigo-700 dark:text-indigo-300"
+                                                : "text-slate-700 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400"
+                                            }`}
+                                          >
+                                            {u.name}
+                                          </p>
+                                          <p className="text-[9px] lg:text-[0.5rem] font-black opacity-70 uppercase tracking-widest mt-[1px] theme-text-secondary truncate">
+                                            {u.role === "team"
+                                              ? u.department || "Team"
+                                              : displayRole(u.role)}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      {/* Active Indicator */}
+                                      {isCurrent && (
+                                        <div className="shrink-0 w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)] animate-pulse" />
+                                      )}
+                                    </motion.button>
+                                  );
+                                })}
+                              </div>
+                            ),
+                          );
+                        })()}
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
