@@ -153,17 +153,68 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     return perm?.read;
   });
 
-  const [isWorkOpen, setIsWorkOpen] = useState(false);
-  const [isProjectsListOpen, setIsProjectsListOpen] = useState(true);
-  const [isPortfoliosListOpen, setIsPortfoliosListOpen] = useState(false);
-  const [isSmePortfoliosListOpen, setIsSmePortfoliosListOpen] = useState(false);
-  const [isPortfolioDropdownOpen, setIsPortfolioDropdownOpen] = useState(
-    location.pathname.includes("/portfolio"),
-  );
+  const [isPortfoliosListOpen, setIsPortfoliosListOpen] = useState(() => {
+    try {
+      const saved = localStorage.getItem("sidebar_portfolios_open");
+      return saved !== null ? JSON.parse(saved) : false;
+    } catch {
+      return false;
+    }
+  });
+
+  const [isSmePortfoliosListOpen, setIsSmePortfoliosListOpen] = useState(() => {
+    try {
+      const saved = localStorage.getItem("sidebar_sme_portfolios_open");
+      return saved !== null ? JSON.parse(saved) : false;
+    } catch {
+      return false;
+    }
+  });
+
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [userSearchQuery, setUserSearchQuery] = useState("");
-  const [expandedPortfolios, setExpandedPortfolios] = useState({});
+  const [expandedPortfolios, setExpandedPortfolios] = useState(() => {
+    try {
+      const saved = localStorage.getItem("sidebar_expanded_portfolios");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
   const userDropdownRef = useRef(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "sidebar_portfolios_open",
+        JSON.stringify(isPortfoliosListOpen),
+      );
+    } catch (e) {
+      console.error(e);
+    }
+  }, [isPortfoliosListOpen]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "sidebar_sme_portfolios_open",
+        JSON.stringify(isSmePortfoliosListOpen),
+      );
+    } catch (e) {
+      console.error(e);
+    }
+  }, [isSmePortfoliosListOpen]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "sidebar_expanded_portfolios",
+        JSON.stringify(expandedPortfolios),
+      );
+    } catch (e) {
+      console.error(e);
+    }
+  }, [expandedPortfolios]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -180,9 +231,16 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
   useEffect(() => {
     if (activePortfolioId) {
+      const parentPortfolio = (portfolios || []).find(
+        (p) => p._id === activePortfolioId,
+      );
+      const userName = parentPortfolio?.createdBy?.name;
+      const folderId = userName ? `user-folder-${userName}` : null;
+
       setExpandedPortfolios((prev) => ({
         ...prev,
         [activePortfolioId]: true,
+        ...(folderId ? { [folderId]: true } : {}),
       }));
     } else if (
       activeProjectId &&
@@ -196,19 +254,17 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
         return ids.includes(activeProjectId);
       });
       if (parentPortfolio) {
+        const userName = parentPortfolio.createdBy?.name;
+        const folderId = userName ? `user-folder-${userName}` : null;
+
         setExpandedPortfolios((prev) => ({
           ...prev,
           [parentPortfolio._id]: true,
+          ...(folderId ? { [folderId]: true } : {}),
         }));
       }
     }
   }, [activePortfolioId, activeProjectId, projects, portfolios]);
-
-  useEffect(() => {
-    if (location.pathname.includes("/portfolio")) {
-      setIsPortfolioDropdownOpen(true);
-    }
-  }, [location.pathname]);
 
   useEffect(() => {
     dispatch(getProjects());

@@ -33,6 +33,7 @@ exports.getTasks = async (req, res) => {
       query.$or = [
         { createdBy: req.user._id },
         { assignedTo: req.user._id },
+        { "subtasks.assignedTo": req.user._id },
         { project: { $in: projectIds } }
       ];
     }

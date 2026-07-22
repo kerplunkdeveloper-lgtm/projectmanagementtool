@@ -1405,9 +1405,10 @@ const ProjectTaskBoard = ({
   }, [inlineAddingSectionUnder]);
 
   // Filter tasks for this project using localTasks for optimistic UI
-  const activeProjectTasks = localTasks.filter(
-    (t) => t.project?._id === activeProjectId || t.project === activeProjectId,
-  );
+  const activeProjectTasks = localTasks.filter((t) => {
+    const projId = t.project?._id || t.project;
+    return String(projId) === String(activeProjectId);
+  });
 
   const filteredTasks = activeProjectTasks.filter((task) => {
     // 1. Search text (matches title)
@@ -3131,8 +3132,22 @@ const ProjectTaskBoard = ({
                           {(() => {
                             const projectSections =
                               activeProject.sections || [];
+                            const taskSections = sortedTasks.map(
+                              (t) => t.section || "General",
+                            );
+                            const rawSections = [
+                              ...projectSections,
+                              ...taskSections,
+                            ];
+                            const sectionsToRender = Array.from(
+                              new Set(
+                                rawSections.length > 0
+                                  ? rawSections
+                                  : ["General"],
+                              ),
+                            );
                             const hasNoSectionsAndNoTasks =
-                              projectSections.length === 0 &&
+                              sectionsToRender.length === 0 &&
                               sortedTasks.length === 0;
                             if (hasNoSectionsAndNoTasks) {
                               return (
@@ -3141,11 +3156,7 @@ const ProjectTaskBoard = ({
                                 </tbody>
                               );
                             }
-                            const sectionsToRender =
-                              projectSections.length > 0
-                                ? projectSections
-                                : ["General"];
-                            return Array.from(new Set(sectionsToRender)).map(
+                            return sectionsToRender.map(
                               (sectionName, sectionIndex) => {
                                 const sectionTasks = sortedTasks.filter(
                                   (t) =>
