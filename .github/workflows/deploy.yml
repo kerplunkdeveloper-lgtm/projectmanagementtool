@@ -1,4 +1,4 @@
-name: Deploy Backend to VPS
+name: Deploy Project to VPS
 
 on:
   push:
@@ -18,10 +18,23 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
+          port: 22
           script: |
             cd /var/www/projectmanagementtool
+
             git pull origin main
+
+            echo "===== Backend ====="
             cd backend
             npm install
             pm2 restart backend
             pm2 save
+
+            echo "===== Frontend ====="
+            cd ../frontend
+            npm install
+            npm run build
+
+            sudo systemctl reload nginx
+
+            echo "Deployment completed successfully!"
