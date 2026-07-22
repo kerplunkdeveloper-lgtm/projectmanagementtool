@@ -78,7 +78,7 @@ const Login = () => {
         />
         {/* Color Overlay */}
         <div
-          className="absolute inset-0 opacity-60 z-10"
+          className="absolute inset-0 opacity-45 z-10"
           style={{ background: "var(--color-brand-gradient, linear-gradient(to right, #1e3a8a, #3b82f6))" }}
         ></div>
       </div>
