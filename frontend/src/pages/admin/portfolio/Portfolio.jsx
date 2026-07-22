@@ -17,6 +17,8 @@ import {
   FiX,
   FiArrowRight,
   FiFolder,
+  FiFilter,
+  FiUser,
 } from "react-icons/fi";
 import {
   LuPlus,
@@ -221,9 +223,102 @@ const Portfolio = () => {
     }));
   }, [rawPortfolios]);
 
+  // Helper for generating user initials
+  const getInitials = (name) => {
+    if (!name) return "U";
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
+
+  // Helper for generating deterministic avatar colors
+  const getAvatarColor = (name) => {
+    const colors = [
+      "bg-blue-600",
+      "bg-indigo-600",
+      "bg-purple-600",
+      "bg-pink-600",
+      "bg-emerald-600",
+      "bg-amber-600",
+      "bg-teal-600",
+      "bg-cyan-600",
+    ];
+    if (!name) return colors[0];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+  };
+
   // Local UI state
   const location = useLocation();
   const role = user?.role || "admin";
+  const isAdminOrManager = role === "admin" || role === "operationmanager";
+  const [selectedUserFilter, setSelectedUserFilter] = useState("all");
+
+  // Filter users list to include Social Media Executives / Social Media Managers
+  const socialMediaUsers = useMemo(() => {
+    if (!users || !Array.isArray(users)) return [];
+    return users.filter((u) => {
+      const roleStr = String(u.role || "").toLowerCase();
+      const deptStr = String(u.department || "").toLowerCase();
+
+      const isSocialMedia =
+        roleStr.includes("social") ||
+        roleStr.includes("media") ||
+        roleStr.includes("sme") ||
+        deptStr.includes("social") ||
+        deptStr.includes("media") ||
+        deptStr.includes("sme");
+
+      const hasCreatedPortfolio = portfolios.some((p) => {
+        const creatorId = p.createdBy?._id || p.createdBy;
+        return String(creatorId) === String(u._id);
+      });
+
+      return isSocialMedia || hasCreatedPortfolio;
+    });
+  }, [users, portfolios]);
+
+  // Filter portfolios by selected team member for Admin and Operation Manager
+  const filteredPortfolios = useMemo(() => {
+    if (!isAdminOrManager || selectedUserFilter === "all") {
+      return portfolios;
+    }
+    return portfolios.filter((p) => {
+      const creatorId = p.createdBy?._id || p.createdBy;
+      return String(creatorId) === String(selectedUserFilter);
+    });
+  }, [portfolios, selectedUserFilter, isAdminOrManager]);
+
+  // Group portfolios by user for Admin and Operation Manager view
+  const groupedPortfoliosByUser = useMemo(() => {
+    const groupsMap = {};
+    filteredPortfolios.forEach((portfolio) => {
+      const creator = portfolio.createdBy;
+      const userId = creator?._id || creator || "unassigned";
+      const userName = creator?.name || "Unassigned";
+      const userDept =
+        creator?.department || creator?.role || "Team Member";
+      const profileImage = creator?.profile?.profileImage?.url;
+
+      if (!groupsMap[userId]) {
+        groupsMap[userId] = {
+          userId,
+          userName,
+          userDept,
+          profileImage,
+          portfolios: [],
+        };
+      }
+      groupsMap[userId].portfolios.push(portfolio);
+    });
+    return Object.values(groupsMap);
+  }, [filteredPortfolios]);
   const selectedPortfolioId = new URLSearchParams(location.search).get("id");
   const activePortfolio = portfolios.find((p) => p._id === selectedPortfolioId);
   const [showAddProjectDropdown, setShowAddProjectDropdown] = useState(false);
@@ -473,136 +568,380 @@ const Portfolio = () => {
             exit={{ opacity: 0, y: -15 }}
             className="space-y-6"
           >
-            <div>
-              <h1 className="text-xl font-extrabold text-slate-800 dark:text-white">
-                Portfolios Dashboard
-              </h1>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-xl font-extrabold text-slate-800 dark:text-white">
+                  Portfolios Dashboard
+                </h1>
+              </div>
+
+              {/* Team Member Filter Dropdown — Admin & Operation Manager Only */}
+              {isAdminOrManager && (
+                <div className="flex items-center gap-2.5 bg-white dark:bg-slate-800/80 px-3.5 py-2 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-sm">
+                  <FiFilter className="text-blue-500 dark:text-blue-400 text-sm shrink-0" />
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                    Team Member:
+                  </span>
+                  <select
+                    value={selectedUserFilter}
+                    onChange={(e) => setSelectedUserFilter(e.target.value)}
+                    className="bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-blue-500/30 transition-all cursor-pointer"
+                  >
+                    <option value="all">All Social Media Team</option>
+                    {(socialMediaUsers || []).map((u) => (
+                      <option key={u._id} value={u._id}>
+                        {u.name} ({u.department || u.role})
+                      </option>
+                    ))}
+                  </select>
+                  {selectedUserFilter !== "all" && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedUserFilter("all")}
+                      className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                      title="Clear Filter"
+                    >
+                      <FiX size={14} />
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-              {/* "+ New portfolio" Card */}
-              <button
-                onClick={handleOpenCreateModal}
-                className="group flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500 bg-slate-50/40 hover:bg-blue-50/10 dark:bg-slate-900/10 rounded-[2.5rem] h-60 transition-all duration-300 cursor-pointer shadow-sm relative"
-              >
-                <div className="w-12 h-12 rounded-xl border border-slate-250 dark:border-slate-750 flex items-center justify-center text-slate-400 group-hover:text-blue-500 group-hover:border-blue-300 dark:group-hover:border-blue-800 transition-all shadow-inner">
-                  <FiPlus
-                    size={22}
-                    className="group-hover:scale-110 transition-transform"
-                  />
-                </div>
-                <span className="text-xs font-black text-slate-655 dark:text-slate-300 mt-4 group-hover:text-blue-500 transition-colors uppercase tracking-wider">
-                  New portfolio
-                </span>
-              </button>
-
-              {portfolios.map((portfolio) => {
-                return (
-                  <div
-                    key={portfolio._id}
-                    onDoubleClick={() => {
-                      navigate(`/${role}/portfolio?id=${portfolio._id}`);
-                    }}
-                    className="group flex flex-col items-center justify-center p-2 transition-all duration-300 cursor-pointer relative text-center"
-                  >
-                    {/* Folder Container */}
-                    <div className="relative w-36 h-28 flex items-center justify-center shrink-0">
-                      <svg
-                        viewBox="0 0 240 180"
-                        className="w-full h-full drop-shadow-md transition-transform duration-300 group-hover:scale-105"
-                        style={{ fill: portfolio.color || "#ff80bf" }}
-                      >
-                        <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
-                      </svg>
-
-                      {/* Star Icon (Top-Left inside folder) */}
-                      <button
-                        onClick={(e) => handleToggleFavorite(e, portfolio)}
-                        className="absolute top-7 left-4 text-white/85 hover:text-white transition-colors cursor-pointer"
-                      >
-                        <FiStar
-                          size={15}
-                          className={
-                            portfolio.isFavorite ? "fill-white text-white" : ""
-                          }
+            {isAdminOrManager ? (
+              /* ========================================================
+                 ADMIN & OPERATION MANAGER: TOP CONTAINER + USER GROUPS
+                 ======================================================== */
+              <div className="space-y-6">
+                {/* TOP DEDICATED CONTAINER: Create New Portfolio */}
+                <div className="bg-white dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/10 rounded-3xl p-5 shadow-sm">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                    <button
+                      type="button"
+                      onClick={handleOpenCreateModal}
+                      className="group flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300/80 dark:border-slate-700/60 hover:border-blue-500 dark:hover:border-blue-500 bg-slate-50/40 hover:bg-blue-50/20 dark:bg-slate-900/30 dark:hover:bg-blue-500/10 rounded-2xl transition-all duration-300 cursor-pointer shadow-sm relative text-center min-h-[160px]"
+                    >
+                      <div className="w-12 h-12 rounded-2xl border border-slate-250 dark:border-slate-700 flex items-center justify-center text-slate-400 group-hover:text-blue-500 group-hover:border-blue-400 dark:group-hover:border-blue-500 transition-all shadow-sm bg-white dark:bg-slate-800">
+                        <FiPlus
+                          size={22}
+                          className="group-hover:scale-110 transition-transform text-slate-500 group-hover:text-blue-500"
                         />
-                      </button>
+                      </div>
+                      <span className="text-xs font-black text-slate-655 dark:text-slate-300 mt-3 group-hover:text-blue-500 transition-colors uppercase tracking-wider">
+                        New portfolio
+                      </span>
+                    </button>
+                  </div>
+                </div>
 
-                      {/* Actions Menu Trigger (Top-Right inside folder) */}
-                      <div
-                        className="absolute top-7 right-4"
-                        onClick={(e) => e.stopPropagation()}
+                {/* USER-GROUPED PORTFOLIOS SECTIONS */}
+                {groupedPortfoliosByUser.length === 0 ? (
+                  <div className="py-12 text-center bg-white dark:bg-slate-900/60 rounded-3xl border border-slate-200/80 dark:border-white/10 p-8 shadow-sm">
+                    <FiFolder className="mx-auto h-10 w-10 text-slate-400 mb-3" />
+                    <p className="text-sm font-bold text-slate-600 dark:text-slate-300">
+                      No portfolios found for the selected team member.
+                    </p>
+                    {selectedUserFilter !== "all" && (
+                      <button
+                        onClick={() => setSelectedUserFilter("all")}
+                        className="mt-4 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline uppercase tracking-wider"
                       >
-                        <button
-                          onClick={() =>
-                            setMenuOpenId(
-                              menuOpenId === portfolio._id
-                                ? null
-                                : portfolio._id,
-                            )
-                          }
-                          className="text-white/85 hover:text-white transition-colors cursor-pointer flex items-center justify-center p-0.5"
-                        >
-                          <FiMoreHorizontal size={18} />
-                        </button>
-
-                        {/* Dropdown Menu */}
-                        {menuOpenId === portfolio._id && (
-                          <div className="absolute right-0 mt-1.5 w-28 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-150 dark:border-slate-700 py-1 z-30">
-                            <button
-                              onClick={() => {
-                                handleOpenEditModal(portfolio);
-                                setMenuOpenId(null);
-                              }}
-                              className="w-full text-left px-3 py-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 flex items-center gap-2"
-                            >
-                              <FiEdit3 size={12} className="text-slate-400" />{" "}
-                              Edit
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                handleDeletePortfolio(e, portfolio._id);
-                                setMenuOpenId(null);
-                              }}
-                              className="w-full text-left px-3 py-1.5 text-[11px] font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 flex items-center gap-2"
-                            >
-                              <FiTrash2 size={12} className="text-red-400" />{" "}
-                              Delete
-                            </button>
+                        Clear Filter
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  groupedPortfoliosByUser.map((group) => (
+                    <div
+                      key={group.userId}
+                      className="bg-white dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/10 rounded-3xl p-5 shadow-sm space-y-4 hover:border-slate-300 dark:hover:border-white/20 transition-colors"
+                    >
+                      {/* User Container Header */}
+                      <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-9 h-9 rounded-2xl overflow-hidden shadow-sm flex items-center justify-center text-white text-xs font-bold shrink-0 ${getAvatarColor(
+                              group.userName,
+                            )}`}
+                          >
+                            {group.profileImage ? (
+                              <img
+                                src={group.profileImage}
+                                alt={group.userName}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              getInitials(group.userName)
+                            )}
                           </div>
-                        )}
+                          <div>
+                            <h3 className="text-sm font-extrabold text-slate-800 dark:text-white">
+                              {group.userName}
+                            </h3>
+                            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                              {group.userDept}
+                            </p>
+                          </div>
+                        </div>
+
+                        <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-white/5">
+                          {group.portfolios.length} Portfolio
+                          {group.portfolios.length !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+
+                      {/* User's Portfolios Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                        {group.portfolios.map((portfolio) => {
+                          const projectCount = (
+                            portfolio.projectIdsList || []
+                          ).filter((id) =>
+                            projects.some((p) => p._id === id),
+                          ).length;
+
+                          return (
+                            <div
+                              key={portfolio._id}
+                              onDoubleClick={() => {
+                                navigate(
+                                  `/${role}/portfolio?id=${portfolio._id}`,
+                                );
+                              }}
+                              className="group flex flex-col items-center justify-center p-3 rounded-2xl hover:bg-slate-50/80 dark:hover:bg-white/[0.03] border border-transparent hover:border-slate-200/60 dark:hover:border-white/5 transition-all duration-200 cursor-pointer relative text-center"
+                            >
+                              {/* Folder Container */}
+                              <div className="relative w-36 h-28 flex items-center justify-center shrink-0">
+                                <svg
+                                  viewBox="0 0 240 180"
+                                  className="w-full h-full drop-shadow-md transition-transform duration-300 group-hover:scale-105"
+                                  style={{ fill: portfolio.color || "#ff80bf" }}
+                                >
+                                  <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
+                                </svg>
+
+                                {/* Star Icon */}
+                                <button
+                                  type="button"
+                                  onClick={(e) =>
+                                    handleToggleFavorite(e, portfolio)
+                                  }
+                                  className="absolute top-7 left-4 text-white/85 hover:text-white transition-colors cursor-pointer"
+                                >
+                                  <FiStar
+                                    size={15}
+                                    className={
+                                      portfolio.isFavorite
+                                        ? "fill-white text-white"
+                                        : ""
+                                    }
+                                  />
+                                </button>
+
+                                {/* Actions Menu Trigger */}
+                                <div
+                                  className="absolute top-7 right-4"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setMenuOpenId(
+                                        menuOpenId === portfolio._id
+                                          ? null
+                                          : portfolio._id,
+                                      )
+                                    }
+                                    className="text-white/85 hover:text-white transition-colors cursor-pointer flex items-center justify-center p-0.5"
+                                  >
+                                    <FiMoreHorizontal size={18} />
+                                  </button>
+
+                                  {/* Dropdown Menu */}
+                                  {menuOpenId === portfolio._id && (
+                                    <div className="absolute right-0 mt-1.5 w-28 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-150 dark:border-slate-700 py-1 z-30">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          handleOpenEditModal(portfolio);
+                                          setMenuOpenId(null);
+                                        }}
+                                        className="w-full text-left px-3 py-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 flex items-center gap-2"
+                                      >
+                                        <FiEdit3
+                                          size={12}
+                                          className="text-slate-400"
+                                        />{" "}
+                                        Edit
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          handleDeletePortfolio(
+                                            e,
+                                            portfolio._id,
+                                          );
+                                          setMenuOpenId(null);
+                                        }}
+                                        className="w-full text-left px-3 py-1.5 text-[11px] font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 flex items-center gap-2"
+                                      >
+                                        <FiTrash2
+                                          size={12}
+                                          className="text-red-400"
+                                        />{" "}
+                                        Delete
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Title */}
+                              <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider truncate mt-3 w-full px-1">
+                                {portfolio.name}
+                              </h3>
+
+                              {/* Project count */}
+                              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase mt-0.5">
+                                {projectCount} Project
+                                {projectCount !== 1 ? "s" : ""}
+                              </p>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-
-                    {/* Title */}
-                    <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider truncate mt-4 w-full px-2">
-                      {portfolio.name}
-                    </h3>
-
-                    {/* Project count — only count IDs that still exist in Redux */}
-                    <p className="text-[10px] text-slate-400 dark:text-slate-550 font-bold uppercase mt-1">
-                      {
-                        (portfolio.projectIdsList || []).filter((id) =>
-                          projects.some((p) => p._id === id),
-                        ).length
-                      }{" "}
-                      Project
-                      {(portfolio.projectIdsList || []).filter((id) =>
-                        projects.some((p) => p._id === id),
-                      ).length !== 1
-                        ? "s"
-                        : ""}
-                    </p>
-
-                    {/* Created by info */}
-                    <p className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold uppercase mt-0.5">
-                      {portfolio.createdBy?.name || "N/A"} (
-                      {portfolio.createdBy?.department || "N/A"})
-                    </p>
+                  ))
+                )}
+              </div>
+            ) : (
+              /* ========================================================
+                 REGULAR TEAM MEMBER: FLAT GRID DIRECTORY
+                 ======================================================== */
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                {/* "+ New portfolio" Card */}
+                <button
+                  onClick={handleOpenCreateModal}
+                  className="group flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500 bg-slate-50/40 hover:bg-blue-50/10 dark:bg-slate-900/10 rounded-[2.5rem] h-60 transition-all duration-300 cursor-pointer shadow-sm relative"
+                >
+                  <div className="w-12 h-12 rounded-xl border border-slate-250 dark:border-slate-750 flex items-center justify-center text-slate-400 group-hover:text-blue-500 group-hover:border-blue-300 dark:group-hover:border-blue-800 transition-all shadow-inner">
+                    <FiPlus
+                      size={22}
+                      className="group-hover:scale-110 transition-transform"
+                    />
                   </div>
-                );
-              })}
-            </div>
+                  <span className="text-xs font-black text-slate-655 dark:text-slate-300 mt-4 group-hover:text-blue-500 transition-colors uppercase tracking-wider">
+                    New portfolio
+                  </span>
+                </button>
+
+                {filteredPortfolios.map((portfolio) => {
+                  return (
+                    <div
+                      key={portfolio._id}
+                      onDoubleClick={() => {
+                        navigate(`/${role}/portfolio?id=${portfolio._id}`);
+                      }}
+                      className="group flex flex-col items-center justify-center p-2 transition-all duration-300 cursor-pointer relative text-center"
+                    >
+                      {/* Folder Container */}
+                      <div className="relative w-36 h-28 flex items-center justify-center shrink-0">
+                        <svg
+                          viewBox="0 0 240 180"
+                          className="w-full h-full drop-shadow-md transition-transform duration-300 group-hover:scale-105"
+                          style={{ fill: portfolio.color || "#ff80bf" }}
+                        >
+                          <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
+                        </svg>
+
+                        {/* Star Icon */}
+                        <button
+                          onClick={(e) => handleToggleFavorite(e, portfolio)}
+                          className="absolute top-7 left-4 text-white/85 hover:text-white transition-colors cursor-pointer"
+                        >
+                          <FiStar
+                            size={15}
+                            className={
+                              portfolio.isFavorite ? "fill-white text-white" : ""
+                            }
+                          />
+                        </button>
+
+                        {/* Actions Menu Trigger */}
+                        <div
+                          className="absolute top-7 right-4"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            onClick={() =>
+                              setMenuOpenId(
+                                menuOpenId === portfolio._id
+                                  ? null
+                                  : portfolio._id,
+                              )
+                            }
+                            className="text-white/85 hover:text-white transition-colors cursor-pointer flex items-center justify-center p-0.5"
+                          >
+                            <FiMoreHorizontal size={18} />
+                          </button>
+
+                          {/* Dropdown Menu */}
+                          {menuOpenId === portfolio._id && (
+                            <div className="absolute right-0 mt-1.5 w-28 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-150 dark:border-slate-700 py-1 z-30">
+                              <button
+                                onClick={() => {
+                                  handleOpenEditModal(portfolio);
+                                  setMenuOpenId(null);
+                                }}
+                                className="w-full text-left px-3 py-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 flex items-center gap-2"
+                              >
+                                <FiEdit3 size={12} className="text-slate-400" />{" "}
+                                Edit
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  handleDeletePortfolio(e, portfolio._id);
+                                  setMenuOpenId(null);
+                                }}
+                                className="w-full text-left px-3 py-1.5 text-[11px] font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 flex items-center gap-2"
+                              >
+                                <FiTrash2 size={12} className="text-red-400" />{" "}
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Title */}
+                      <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider truncate mt-4 w-full px-2">
+                        {portfolio.name}
+                      </h3>
+
+                      {/* Project count */}
+                      <p className="text-[10px] text-slate-400 dark:text-slate-550 font-bold uppercase mt-1">
+                        {
+                          (portfolio.projectIdsList || []).filter((id) =>
+                            projects.some((p) => p._id === id),
+                          ).length
+                        }{" "}
+                        Project
+                        {(portfolio.projectIdsList || []).filter((id) =>
+                          projects.some((p) => p._id === id),
+                        ).length !== 1
+                          ? "s"
+                          : ""}
+                      </p>
+
+                      {/* Created by info */}
+                      <p className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold uppercase mt-0.5">
+                        {portfolio.createdBy?.name || "N/A"} (
+                        {portfolio.createdBy?.department || "N/A"})
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </motion.div>
         ) : (
           /* ========================================================
