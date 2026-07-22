@@ -393,16 +393,14 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   });
 
                   return (
-                    <div key={portfolio._id}>
+                    <div key={portfolio._id} className="w-full text-left">
                       {/* Portfolio Row */}
-                      {/* Portfolio Row */}
-                      <div className="flex items-center justify-between group rounded-lg transition-all duration-150 relative">
+                      <div className="flex items-center justify-between group rounded-lg transition-all duration-150 relative w-full text-left">
                         <button
                           type="button"
                           onClick={() => {
                             if (window.innerWidth < 1024) setSidebarOpen(false);
                             navigate(`/${role}/portfolio?id=${portfolio._id}`);
-                            // If it's already active, toggle it. If not, expand it.
                             setExpandedPortfolios((prev) => ({
                               ...prev,
                               [portfolio._id]: isActive
@@ -410,24 +408,22 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                 : true,
                             }));
                           }}
-                          className={`flex-1 flex items-center gap-2 text-left text-xs lg:text-[0.6875rem] font-semibold py-2.5 lg:py-1.5 pl-2.5 pr-1.5 transition-all duration-150 ${
-                            portfolioProjects.length > 0
-                              ? "rounded-l-lg"
-                              : "rounded-lg pr-2.5"
-                          } ${
+                          className={`flex-1 flex items-center gap-2 text-left text-xs lg:text-[0.6875rem] font-semibold py-1.5 px-2 transition-all duration-150 rounded-lg ${
                             isActive
-                              ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent"
-                              : "text-slate-600 dark:text-slate-500 hover:theme-text-accent hover:bg-slate-100/60 dark:hover:bg-white/5"
+                              ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent font-bold"
+                              : "text-slate-600 dark:text-slate-400 hover:theme-text-accent hover:bg-slate-100/60 dark:hover:bg-white/5"
                           }`}
                           title={portfolio.name}
                         >
-                          <svg
-                            viewBox="0 0 240 180"
-                            className="w-[1rem] h-[0.8125rem] shrink-0"
-                            style={{ fill: portfolio.color || "#ff80bf" }}
-                          >
-                            <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
-                          </svg>
+                          <div className="w-4 h-4 shrink-0 flex items-center justify-center">
+                            <svg
+                              viewBox="0 0 240 180"
+                              className="w-3.5 h-3 shrink-0"
+                              style={{ fill: portfolio.color || "#ff80bf" }}
+                            >
+                              <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
+                            </svg>
+                          </div>
                           <span className="truncate flex-1 text-left">
                             {portfolio.name}
                           </span>
@@ -446,10 +442,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                 [portfolio._id]: !prev[portfolio._id],
                               }));
                             }}
-                            className={`py-2.5 px-2.5 lg:py-1.5 lg:px-2 rounded-r-lg transition-all duration-150 flex items-center justify-center self-stretch cursor-pointer ${
+                            className={`py-1.5 px-1.5 rounded-r-lg transition-all duration-150 flex items-center justify-center cursor-pointer ${
                               isActive
                                 ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent"
-                                : "text-slate-600 dark:text-slate-500 hover:theme-text-accent hover:bg-slate-100/60 dark:hover:bg-white/5"
+                                : "text-slate-500 dark:text-slate-400 hover:theme-text-accent hover:bg-slate-100/60 dark:hover:bg-white/5"
                             }`}
                           >
                             <svg
@@ -476,7 +472,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       {/* Projects inside this Portfolio */}
                       {portfolioProjects.length > 0 &&
                         expandedPortfolios[portfolio._id] && (
-                          <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-white/8 space-y-0.5 mt-0.5 mb-0.5">
+                          <div className="ml-2.5 pl-2 border-l border-slate-200/60 dark:border-white/10 space-y-0.5 my-0.5 text-left">
                             {portfolioProjects.map((project) => {
                               const isProjectActive =
                                 activeProjectId === project._id;
@@ -491,18 +487,19 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                       `/${role}/projects?id=${project._id}`,
                                     );
                                   }}
-                                  className={`w-full flex items-center gap-2 text-left text-[11px] lg:text-[0.625rem] font-semibold py-2 lg:py-1 rounded-md px-2.5 lg:px-2 transition-all duration-150 cursor-pointer ${
+                                  className={`w-full flex items-center gap-2 text-left text-[11px] lg:text-[0.625rem] font-semibold py-1 px-1.5 rounded-md transition-all duration-150 cursor-pointer ${
                                     isProjectActive
-                                      ? "bg-slate-50 dark:bg-slate-800/60 theme-text-accent font-bold"
-                                      : "text-slate-500 dark:text-slate-600 hover:theme-text-accent hover:bg-slate-100/40 dark:hover:bg-white/5"
+                                      ? "bg-slate-100 dark:bg-slate-800/80 theme-text-accent font-bold"
+                                      : "text-slate-500 dark:text-slate-400 hover:theme-text-accent hover:bg-slate-100/50 dark:hover:bg-white/5"
                                   }`}
                                   title={project.name}
                                 >
-                                  <ProjectIcon
-                                    name={project.name}
-                                    size="sm"
-                                    className="shrink-0"
-                                  />
+                                  <div className="w-4 h-4 shrink-0 flex items-center justify-center">
+                                    <ProjectIcon
+                                      name={project.name}
+                                      size="sm"
+                                    />
+                                  </div>
                                   <span className="truncate flex-1 text-left">
                                     {project.name}
                                   </span>
@@ -532,7 +529,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   ([userName, userPortfolios]) => {
                     const folderId = `user-folder-${userName}`;
                     return (
-                      <div key={folderId} className="mb-1">
+                      <div key={folderId} className="mb-0.5 text-left">
                         <button
                           type="button"
                           onClick={(e) => {
@@ -542,16 +539,18 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                               [folderId]: !prev[folderId],
                             }));
                           }}
-                          className="w-full flex items-center gap-2 text-left text-xs lg:text-[0.6875rem] font-bold py-2 lg:py-1.5 px-2.5 rounded-lg hover:bg-slate-100/60 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400 group transition-all"
+                          className="w-full flex items-center gap-2 text-left text-xs lg:text-[0.6875rem] font-bold py-1.5 px-2 rounded-lg hover:bg-slate-100/60 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400 group transition-all"
                         >
-                          <svg
-                            className="w-3.5 h-3.5 shrink-0 text-amber-500 group-hover:text-amber-600"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path d="M2 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                          </svg>
-                          <span className="truncate flex-1 group-hover:theme-text-accent">
+                          <div className="w-4 h-4 shrink-0 flex items-center justify-center">
+                            <svg
+                              className="w-3.5 h-3.5 text-amber-500 group-hover:text-amber-600"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M2 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                            </svg>
+                          </div>
+                          <span className="truncate flex-1 text-left group-hover:theme-text-accent">
                             {userName}
                           </span>
                           <svg
@@ -571,7 +570,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           </svg>
                         </button>
                         {expandedPortfolios[folderId] && (
-                          <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-white/8 mt-0.5 space-y-0.5">
+                          <div className="ml-2.5 pl-2 border-l border-slate-200/60 dark:border-white/10 mt-0.5 space-y-0.5 text-left">
                             {renderPortfolioItems(userPortfolios)}
                           </div>
                         )}
@@ -584,15 +583,17 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
               }
 
               return (
-                <div className="mt-0.5 mb-1">
+                <div className="my-0.5 text-left">
                   {/* Dropdown Header Toggle */}
                   <button
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
-                    className="w-full flex items-center gap-2.5 px-3 py-2.5 lg:py-1.5 text-left rounded-xl border border-transparent hover:bg-slate-100/60 dark:hover:bg-white/5 transition-all duration-200 cursor-pointer group text-slate-500 dark:text-slate-400 hover:theme-text-accent"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 lg:py-1.5 text-left rounded-xl border border-transparent hover:bg-slate-100/60 dark:hover:bg-white/5 transition-all duration-200 cursor-pointer group text-slate-500 dark:text-slate-400 hover:theme-text-accent"
                   >
-                    {icon}
-                    <span className="text-xs lg:text-[0.6rem] font-semibold uppercase tracking-wider whitespace-nowrap truncate flex-1 text-left transition-colors">
+                    <div className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center bg-slate-100/70 dark:bg-white/5 group-hover:bg-[var(--accent-light-bg-subtle)] dark:group-hover:bg-[var(--accent-dark-bg-subtle)] transition-colors">
+                      {icon}
+                    </div>
+                    <span className="text-xs lg:text-[0.625rem] font-bold uppercase tracking-wider whitespace-nowrap truncate flex-1 text-left transition-colors">
                       {title}
                     </span>
                     <svg
@@ -614,7 +615,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
                   {/* Portfolio List */}
                   {isOpen && (
-                    <div className="ml-3 pl-2.5 border-l border-slate-200 dark:border-white/8 space-y-0.5 overflow-y-auto max-h-[18.75rem] sidebar-scrollbar mt-0.5">
+                    <div className="ml-3 pl-2 border-l border-slate-200/60 dark:border-white/10 space-y-0.5 overflow-y-auto max-h-[18.75rem] sidebar-scrollbar mt-0.5 text-left">
                       {content}
                     </div>
                   )}
@@ -692,7 +693,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       >
                         {({ isActive }) => (
                           <motion.div
-                            className={`flex items-center gap-2 px-2.5 py-2.5 lg:py-1 w-full rounded-xl relative overflow-hidden transition-all duration-200 ${
+                            className={`flex items-center gap-2.5 px-3 py-2 lg:py-1.5 w-full rounded-xl relative overflow-hidden transition-all duration-200 text-left ${
                               isActive
                                 ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)]"
                                 : "hover:bg-slate-100/60 dark:hover:bg-white/5"
@@ -708,7 +709,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                             {isActive && (
                               <motion.span
                                 layoutId="activeBar"
-                                className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r-full theme-bg-accent"
+                                className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4.5 rounded-r-full theme-bg-accent"
                                 initial={{ scaleY: 0 }}
                                 animate={{ scaleY: 1 }}
                                 transition={{
@@ -721,7 +722,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
                             {/* Icon wrapper — fixed w-6 h-6 ensures all icons align on same column */}
                             <motion.div
-                              className={`shrink-0 w-6 h-6 rounded-md flex items-center justify-center relative overflow-hidden transition-colors duration-200 ${
+                              className={`shrink-0 w-6 h-6 rounded-lg flex items-center justify-center relative overflow-hidden transition-colors duration-200 ${
                                 isActive
                                   ? "theme-bg-accent/15 dark:theme-bg-accent/20 shadow-sm"
                                   : "bg-slate-100/70 dark:bg-white/5 group-hover:bg-[var(--accent-light-bg-subtle)] dark:group-hover:bg-[var(--accent-dark-bg-subtle)]"
@@ -749,7 +750,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                 boxShadow: { duration: 0.25 },
                               }}
                             >
-                              {/* Shimmer burst on hover — CSS-only via group */}
+                              {/* Shimmer burst on hover */}
                               <span className="absolute inset-0 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.35)_0%,rgba(255,255,255,0)_70%)]" />
                               <Icon
                                 size={14}
@@ -763,9 +764,9 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
                             {/* Label */}
                             <span
-                              className={`text-xs lg:text-[0.6rem] font-semibold truncate flex-1 text-left transition-colors duration-200 ${
+                              className={`text-xs lg:text-[0.6875rem] font-bold truncate flex-1 text-left transition-colors duration-200 ${
                                 isActive
-                                  ? "theme-text-accent font-bold"
+                                  ? "theme-text-accent"
                                   : "text-slate-600 dark:text-slate-400 group-hover:theme-text-accent"
                               }`}
                             >
