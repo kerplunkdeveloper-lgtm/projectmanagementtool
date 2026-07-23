@@ -701,29 +701,6 @@ const Task = () => {
 
   // General field change update
   const handleTaskFieldChange = (taskId, fields) => {
-    if (fields.status === "In Progress") {
-      const currentTask = tasks.find((t) => t._id === taskId);
-      const taskAssigneeId =
-        currentTask?.assignedTo?._id ||
-        currentTask?.assignedTo ||
-        currentUserId;
-
-      const otherInProgressTasks = tasks.filter((t) => {
-        if (t._id === taskId) return false;
-        const s = t.status || "Pending";
-        if (s !== "In Progress") return false;
-        const assignee = t.assignedTo?._id || t.assignedTo || currentUserId;
-        return assignee?.toString() === taskAssigneeId?.toString();
-      });
-
-      otherInProgressTasks.forEach((otherTask) => {
-        updateTaskTrigger({
-          id: otherTask._id,
-          taskData: { status: "On Hold" },
-        });
-      });
-    }
-
     const sanitizedFields = { ...fields };
     if (sanitizedFields.startDate === "") sanitizedFields.startDate = null;
     if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
@@ -887,29 +864,6 @@ const Task = () => {
 
   // Handle task status change from dropdown or drag-drop
   const handleStatusChange = (taskId, newStatus) => {
-    if (newStatus === "In Progress") {
-      const currentTask = tasks.find((t) => t._id === taskId);
-      const taskAssigneeId =
-        currentTask?.assignedTo?._id ||
-        currentTask?.assignedTo ||
-        currentUserId;
-
-      const otherInProgressTasks = tasks.filter((t) => {
-        if (t._id === taskId) return false;
-        const s = t.status || "Pending";
-        if (s !== "In Progress") return false;
-        const assignee = t.assignedTo?._id || t.assignedTo || currentUserId;
-        return assignee?.toString() === taskAssigneeId?.toString();
-      });
-
-      otherInProgressTasks.forEach((otherTask) => {
-        updateTaskTrigger({
-          id: otherTask._id,
-          taskData: { status: "On Hold" },
-        });
-      });
-    }
-
     updateTaskTrigger({ id: taskId, taskData: { status: newStatus } });
   };
 
