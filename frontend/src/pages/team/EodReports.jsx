@@ -104,11 +104,26 @@ const safeFormatDateTime = (timeStr, formatPattern = "MMM dd, yyyy h:mm a") => {
   }
 };
 
-const formatElapsed = (startTime, endTime) => {
+const formatElapsed = (
+  startTime,
+  endTime,
+  pausedAt = null,
+  totalPausedMs = 0,
+) => {
   if (!startTime) return "";
   const start = new Date(startTime).getTime();
-  const end = endTime ? new Date(endTime).getTime() : Date.now();
-  const elapsed = Math.max(0, Math.floor((end - start) / 1000));
+  const end = endTime
+    ? new Date(endTime).getTime()
+    : pausedAt
+      ? new Date(pausedAt).getTime()
+      : Date.now();
+
+  let paused = totalPausedMs || 0;
+  if (pausedAt && !endTime) {
+    paused += Math.max(0, Date.now() - new Date(pausedAt).getTime());
+  }
+
+  const elapsed = Math.max(0, Math.floor((end - start - paused) / 1000));
   const hours = Math.floor(elapsed / 3600);
   const minutes = Math.floor((elapsed % 3600) / 60);
   const seconds = elapsed % 60;
@@ -151,15 +166,21 @@ const getStatusBadgeStyle = (status) => {
 
 const calculateTotalLoggedTime = (tasks) => {
   let totalMinutes = 0;
-  tasks.forEach((t) => {
+  (tasks || []).forEach((t) => {
     const timeStr = t.time || "";
     const hoursMatch = timeStr.match(/(\d+)\s*h/i);
     const minsMatch = timeStr.match(/(\d+)\s*m/i);
+    const secsMatch = timeStr.match(/(\d+)\s*s/i);
+
     if (hoursMatch) {
       totalMinutes += parseInt(hoursMatch[1], 10) * 60;
     }
     if (minsMatch) {
       totalMinutes += parseInt(minsMatch[1], 10);
+    }
+    if (secsMatch && !hoursMatch && !minsMatch) {
+      const secs = parseInt(secsMatch[1], 10);
+      if (secs > 0) totalMinutes += Math.ceil(secs / 60);
     }
   });
 
@@ -355,7 +376,12 @@ const EodReports = () => {
         const unsavedMapped = newUnsavedTasks.map((t) => {
           const clientName = t.project?.client?.companyName || "Internal";
           const projectName = t.project?.name || "Internal";
-          const elapsedStr = formatElapsed(t.actualStartTime, t.actualEndTime);
+          const elapsedStr = formatElapsed(
+            t.actualStartTime,
+            t.actualEndTime,
+            t.pausedAt,
+            t.totalPausedMs,
+          );
           const taskCode = getTaskDisplayId(t);
 
           const creator = t.createdBy;
@@ -402,6 +428,8 @@ const EodReports = () => {
             const elapsedStr = formatElapsed(
               t.actualStartTime,
               t.actualEndTime,
+              t.pausedAt,
+              t.totalPausedMs,
             );
             const taskCode = getTaskDisplayId(t);
 
@@ -448,7 +476,12 @@ const EodReports = () => {
         myTasks.map((t) => {
           const clientName = t.project?.client?.companyName || "Internal";
           const projectName = t.project?.name || "Internal";
-          const elapsedStr = formatElapsed(t.actualStartTime, t.actualEndTime);
+          const elapsedStr = formatElapsed(
+            t.actualStartTime,
+            t.actualEndTime,
+            t.pausedAt,
+            t.totalPausedMs,
+          );
           const taskCode = getTaskDisplayId(t);
 
           const creator = t.createdBy;
@@ -523,6 +556,8 @@ const EodReports = () => {
             const elapsedStr = formatElapsed(
               correspondingTask.actualStartTime,
               correspondingTask.actualEndTime,
+              correspondingTask.pausedAt,
+              correspondingTask.totalPausedMs,
             );
             const taskCode = getTaskDisplayId(correspondingTask);
 

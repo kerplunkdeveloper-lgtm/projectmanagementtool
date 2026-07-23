@@ -19,20 +19,29 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
   ).sort();
 
   useEffect(() => {
-    if (editUser) {
-      setFormData({
-        name: editUser.name || "",
-        email: editUser.email || "",
-        password: "",
-        role: editUser.role || "team",
-        department: editUser.department || ""
-      });
-      setIsCustomDept(false);
-    } else {
-      setFormData({ name: "", email: "", password: "", role: "team", department: "" });
-      setIsCustomDept(false);
+    if (openModal) {
+      if (editUser) {
+        setFormData({
+          name: editUser.name || "",
+          email: editUser.email || "",
+          password: "",
+          role: editUser.role || "team",
+          department: editUser.department || "",
+        });
+        setIsCustomDept(false);
+      } else {
+        setFormData({
+          name: "",
+          email: "",
+          password: "",
+          role: "team",
+          department: "",
+        });
+        setIsCustomDept(false);
+      }
+      setShowPassword(false);
     }
-  }, [editUser]);
+  }, [openModal, editUser]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
