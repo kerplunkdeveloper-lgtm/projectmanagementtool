@@ -1642,10 +1642,31 @@ const ProjectTaskBoard = ({
       }
 
       // Optimistically update local UI for status
-      const updatedTasks = localTasks.map((t) =>
-        t._id === draggableId ? { ...t, status: destination.droppableId } : t,
-      );
+      const isNewStatusInProgress = destination.droppableId === "In Progress";
+      const updatedTasks = localTasks.map((t) => {
+        if (t._id === draggableId) {
+          return { ...t, status: destination.droppableId };
+        }
+        if (
+          isNewStatusInProgress &&
+          (t.status === "In Progress" || t.status === "In-Progress")
+        ) {
+          return { ...t, status: "On Hold" };
+        }
+        return t;
+      });
       setLocalTasks(updatedTasks);
+
+      if (isNewStatusInProgress) {
+        (localTasks || []).forEach((t) => {
+          if (
+            t._id !== draggableId &&
+            (t.status === "In Progress" || t.status === "In-Progress")
+          ) {
+            updateTaskMutation({ id: t._id, taskData: { status: "On Hold" } });
+          }
+        });
+      }
 
       try {
         await updateTaskMutation({
@@ -1915,9 +1936,32 @@ const ProjectTaskBoard = ({
       }
     }
 
+    const isNewStatusInProgress = sanitizedFields.status === "In Progress";
     setLocalTasks((prev) =>
-      prev.map((t) => (t._id === taskId ? { ...t, ...sanitizedFields } : t)),
+      prev.map((t) => {
+        if (t._id === taskId) {
+          return { ...t, ...sanitizedFields };
+        }
+        if (
+          isNewStatusInProgress &&
+          (t.status === "In Progress" || t.status === "In-Progress")
+        ) {
+          return { ...t, status: "On Hold" };
+        }
+        return t;
+      }),
     );
+
+    if (isNewStatusInProgress) {
+      (localTasks || []).forEach((t) => {
+        if (
+          t._id !== taskId &&
+          (t.status === "In Progress" || t.status === "In-Progress")
+        ) {
+          updateTaskMutation({ id: t._id, taskData: { status: "On Hold" } });
+        }
+      });
+    }
 
     if (String(taskId).startsWith("temp-")) {
       return;

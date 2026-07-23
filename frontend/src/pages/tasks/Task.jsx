@@ -704,6 +704,16 @@ const Task = () => {
     const sanitizedFields = { ...fields };
     if (sanitizedFields.startDate === "") sanitizedFields.startDate = null;
     if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
+    if (sanitizedFields.status === "In Progress") {
+      (tasks || []).forEach((t) => {
+        if (
+          t._id !== taskId &&
+          (t.status === "In Progress" || t.status === "In-Progress")
+        ) {
+          updateTaskTrigger({ id: t._id, taskData: { status: "On Hold" } });
+        }
+      });
+    }
     updateTaskTrigger({ id: taskId, taskData: sanitizedFields });
   };
 
@@ -864,6 +874,16 @@ const Task = () => {
 
   // Handle task status change from dropdown or drag-drop
   const handleStatusChange = (taskId, newStatus) => {
+    if (newStatus === "In Progress") {
+      (tasks || []).forEach((t) => {
+        if (
+          t._id !== taskId &&
+          (t.status === "In Progress" || t.status === "In-Progress")
+        ) {
+          updateTaskTrigger({ id: t._id, taskData: { status: "On Hold" } });
+        }
+      });
+    }
     updateTaskTrigger({ id: taskId, taskData: { status: newStatus } });
   };
 

@@ -177,6 +177,24 @@ exports.updateTask = async (req, res) => {
    // .........................................Time tracking logic for parent task...........................................
 if (req.body.status && req.body.status !== previousStatus) {
 
+  if (req.body.status === "In Progress") {
+    const otherFilter = {
+      _id: { $ne: task._id },
+      status: { $in: ["In Progress", "In-Progress"] },
+    };
+    if (task.assignedTo) {
+      otherFilter.assignedTo = task.assignedTo;
+    } else if (task.project) {
+      otherFilter.project = task.project;
+    }
+    await Task.updateMany(otherFilter, {
+      $set: {
+        status: "On Hold",
+        pausedAt: Date.now(),
+      },
+    });
+  }
+
   switch (req.body.status) {
 
     case "Pending":
