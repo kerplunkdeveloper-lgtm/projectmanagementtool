@@ -479,8 +479,11 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                             {portfolioProjects.map((project) => {
                               const isProjectActive =
                                 activeProjectId === project._id;
-                              const _clientId1 = project.client?._id || project.client;
-                              const _clientObj1 = clients.find((c) => c._id === _clientId1) || null;
+                              const _clientId1 =
+                                project.client?._id || project.client;
+                              const _clientObj1 =
+                                clients.find((c) => c._id === _clientId1) ||
+                                null;
                               return (
                                 <button
                                   key={project._id}
@@ -540,9 +543,11 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                 const groupedUsers = {};
                 list.forEach((p) => {
                   const userName = p.createdBy?.name || "Unknown User";
-                  if (!groupedUsers[userName]) groupedUsers[userName] = new Set();
+                  if (!groupedUsers[userName])
+                    groupedUsers[userName] = new Set();
                   (p.projectIds || []).forEach((pId) => {
-                    const id = typeof pId === "object" && pId !== null ? pId._id : pId;
+                    const id =
+                      typeof pId === "object" && pId !== null ? pId._id : pId;
                     if (id) groupedUsers[userName].add(id);
                   });
                 });
@@ -601,8 +606,11 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                               userProjects.map((project) => {
                                 const isProjectActive =
                                   activeProjectId === project._id;
-                                const _clientId2 = project.client?._id || project.client;
-                                const _clientObj2 = clients.find((c) => c._id === _clientId2) || null;
+                                const _clientId2 =
+                                  project.client?._id || project.client;
+                                const _clientObj2 =
+                                  clients.find((c) => c._id === _clientId2) ||
+                                  null;
                                 return (
                                   <button
                                     key={project._id}
@@ -636,7 +644,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                         <span
                                           className="text-[8px] font-bold truncate block w-fit max-w-full rounded px-1.5 py-0.5 leading-tight text-left self-start"
                                           style={{
-                                            color: _clientObj2.color || "#6366f1",
+                                            color:
+                                              _clientObj2.color || "#6366f1",
                                             backgroundColor: `${_clientObj2.color || "#6366f1"}18`,
                                           }}
                                         >
@@ -663,14 +672,16 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                 );
               } else {
                 // If title is Works or MyPortfolios, list projects directly without middle portfolio folders
-                if (title === "Works" || title === "MyPortfolios" || title === "Portfolios") {
+                if (
+                  title === "Works" ||
+                  title === "MyPortfolios" ||
+                  title === "Portfolios"
+                ) {
                   const allProjectIds = new Set();
                   list.forEach((port) => {
                     (port.projectIds || []).forEach((pId) => {
                       const id =
-                        typeof pId === "object" && pId !== null
-                          ? pId._id
-                          : pId;
+                        typeof pId === "object" && pId !== null ? pId._id : pId;
                       if (id) allProjectIds.add(id);
                     });
                   });
@@ -685,8 +696,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         {matchedProjects.map((project) => {
                           const isProjectActive =
                             activeProjectId === project._id;
-                          const _clientId3 = project.client?._id || project.client;
-                          const _clientObj3 = clients.find((c) => c._id === _clientId3) || null;
+                          const _clientId3 =
+                            project.client?._id || project.client;
+                          const _clientObj3 =
+                            clients.find((c) => c._id === _clientId3) || null;
                           return (
                             <button
                               key={project._id}

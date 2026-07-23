@@ -35,6 +35,10 @@ import {
   FiAlertCircle,
   FiMessageSquare,
   FiFileText,
+  FiMoreVertical,
+  FiEye,
+  FiEyeOff,
+  FiColumns,
 } from "react-icons/fi";
 import axiosInstance from "../../services/axiosInstance";
 import toast from "react-hot-toast";
@@ -69,7 +73,7 @@ const TimeTracker = ({
   pausedAt,
   status,
   savedPausedMs = 0,
-  variant = "default"
+  variant = "default",
 }) => {
   const [elapsed, setElapsed] = useState(0);
 
@@ -78,24 +82,21 @@ const TimeTracker = ({
 
     const calculateElapsed = () => {
       const start = new Date(startTime).getTime();
-    let end;
+      let end;
 
-if (endTime) {
-  end = new Date(endTime).getTime();
-} else if (
-  pausedAt &&
-  ["On Hold", "Rejected", "In Review", "IN-REVIEW"].includes(status)
-) {
-  end = new Date(pausedAt).getTime();
-} else {
-  end = Date.now();
-}
-      const elapsedMs =
-  end -
-  start -
-  (savedPausedMs || 0);
+      if (endTime) {
+        end = new Date(endTime).getTime();
+      } else if (
+        pausedAt &&
+        ["On Hold", "Rejected", "In Review", "IN-REVIEW"].includes(status)
+      ) {
+        end = new Date(pausedAt).getTime();
+      } else {
+        end = Date.now();
+      }
+      const elapsedMs = end - start - (savedPausedMs || 0);
 
-return Math.max(0, Math.floor(elapsedMs / 1000));
+      return Math.max(0, Math.floor(elapsedMs / 1000));
     };
 
     setElapsed(calculateElapsed());
@@ -106,12 +107,10 @@ return Math.max(0, Math.floor(elapsedMs / 1000));
       }, 1000);
       return () => clearInterval(interval);
     }
- }, [startTime, endTime, pausedAt, status]);
+  }, [startTime, endTime, pausedAt, status]);
 
   if (!startTime && status !== "In Progress") return null;
   if (!startTime && status === "In Progress")
-
-
     return (
       <div className="inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold tracking-wider bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30 shadow-sm w-full">
         <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#3b82f6] animate-pulse"></span>
@@ -531,7 +530,7 @@ const SubtaskRow = ({
 
 const AssigneeDropdown = ({
   selectedUser,
-  users,
+  users = [],
   onChange,
   isAdminOrManager,
   getAvatarColor,
@@ -549,14 +548,14 @@ const AssigneeDropdown = ({
       const dropdownWidth = 224; // w-56 is 14rem = 224px
 
       // Check if left alignment would go off-screen
-      let left = rect.left + window.scrollX;
+      let left = rect.left;
       if (rect.left + dropdownWidth > window.innerWidth) {
         // Right align instead: align right edge of dropdown with right edge of trigger
-        left = rect.right - dropdownWidth + window.scrollX;
+        left = Math.max(10, rect.right - dropdownWidth);
       }
 
       setCoords({
-        top: rect.bottom + window.scrollY,
+        top: rect.bottom,
         left: left,
         width: rect.width,
       });
@@ -595,7 +594,7 @@ const AssigneeDropdown = ({
 
   const selectedUserObj =
     typeof selectedUser === "string"
-      ? users.find((u) => u._id === selectedUser)
+      ? (users || []).find((u) => u && u._id === selectedUser)
       : selectedUser;
 
   const handleSelect = (user) => {
@@ -603,10 +602,29 @@ const AssigneeDropdown = ({
     setIsOpen(false);
   };
 
+  const safeGetAvatarColor = (name) => {
+    if (typeof getAvatarColor === "function") {
+      return getAvatarColor(name);
+    }
+    const colors = [
+      "from-blue-500 to-indigo-600",
+      "from-emerald-500 to-teal-600",
+      "from-purple-500 to-pink-600",
+      "from-amber-500 to-orange-600",
+      "from-rose-500 to-red-600",
+    ];
+    if (!name) return colors[0];
+    let sum = 0;
+    for (let i = 0; i < name.length; i++) sum += name.charCodeAt(i);
+    return colors[sum % colors.length];
+  };
+
   const getInitials = (name) => {
+    if (!name || typeof name !== "string") return "U";
     return (
       name
-        ?.split(" ")
+        .trim()
+        .split(/\s+/)
         .map((n) => n[0])
         .join("")
         .toUpperCase() || "U"
@@ -645,16 +663,16 @@ const AssigneeDropdown = ({
             avatarUrl ? (
               <img
                 src={avatarUrl}
-                alt={selectedUserObj.name}
+                alt={selectedUserObj?.name || "User"}
                 className="w-full h-full object-cover"
               />
             ) : (
               <div
-                className={`w-full h-full flex items-center justify-center text-white text-[8px] font-bold bg-gradient-to-br ${getAvatarColor(
-                  selectedUserObj.name || "U",
+                className={`w-full h-full flex items-center justify-center text-white text-[8px] font-bold bg-gradient-to-br ${safeGetAvatarColor(
+                  selectedUserObj?.name || "U",
                 )}`}
               >
-                {getInitials(selectedUserObj.name)}
+                {getInitials(selectedUserObj?.name)}
               </div>
             )
           ) : (
@@ -682,20 +700,20 @@ const AssigneeDropdown = ({
                 {avatarUrl ? (
                   <img
                     src={avatarUrl}
-                    alt={selectedUserObj.name}
+                    alt={selectedUserObj?.name || "User"}
                     className="w-5 h-5 rounded-full object-cover shrink-0"
                   />
                 ) : (
                   <div
-                    className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
-                      selectedUserObj.name || "U",
+                    className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${safeGetAvatarColor(
+                      selectedUserObj?.name || "U",
                     )}`}
                   >
-                    {getInitials(selectedUserObj.name)}
+                    {getInitials(selectedUserObj?.name)}
                   </div>
                 )}
                 <span className="truncate">
-                  {selectedUserObj.name}{" "}
+                  {selectedUserObj?.name || "Assigned User"}{" "}
                   {dept && (
                     <span className="text-[10px] text-slate-400 dark:text-slate-550 font-normal">
                       ({dept})
@@ -728,21 +746,21 @@ const AssigneeDropdown = ({
           {avatarUrl ? (
             <img
               src={avatarUrl}
-              alt={selectedUserObj.name}
+              alt={selectedUserObj?.name || "User"}
               className="w-7 h-7 rounded-full object-cover border border-slate-250 dark:border-white/10 shrink-0"
             />
           ) : (
             <div
-              className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-black text-[10px] bg-gradient-to-br shrink-0 ${getAvatarColor(
-                selectedUserObj.name || "Unknown",
+              className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-black text-[10px] bg-gradient-to-br shrink-0 ${safeGetAvatarColor(
+                selectedUserObj?.name || "Unknown",
               )}`}
             >
-              {getInitials(selectedUserObj.name)}
+              {getInitials(selectedUserObj?.name)}
             </div>
           )}
           <div className="flex-1 min-w-0 flex flex-col text-left">
             <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate leading-tight">
-              {selectedUserObj.name}
+              {selectedUserObj?.name || "Assigned User"}
             </span>
             {dept && (
               <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 truncate leading-none mt-0.5">
@@ -803,14 +821,12 @@ const AssigneeDropdown = ({
         createPortal(
           <div
             style={{
-              position: "absolute",
+              position: "fixed",
               top: `${coords.top}px`,
               left: `${coords.left}px`,
               zIndex: 999999,
             }}
-            className={`assignee-dropdown-portal mt-1 w-56 rounded-xl bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-2xl py-1.5 max-h-60 overflow-y-auto ${
-              align === "right" ? "right-0" : "left-0"
-            }`}
+            className="assignee-dropdown-portal mt-1 w-56 rounded-xl bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-2xl py-1.5 max-h-60 overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
             onWheel={(e) => e.stopPropagation()}
           >
@@ -835,11 +851,12 @@ const AssigneeDropdown = ({
               <span>Unassigned</span>
             </button>
 
-            {users
+            {(users || [])
               .filter(
                 (u) =>
-                  !searchTerm ||
-                  u.name?.toLowerCase().includes(searchTerm.toLowerCase()),
+                  u &&
+                  (!searchTerm ||
+                    u.name?.toLowerCase().includes(searchTerm.toLowerCase())),
               )
               .map((u) => {
                 const isSelected = selectedUserObj?._id === u._id;
@@ -1326,6 +1343,27 @@ const ProjectTaskBoard = ({
     custom: "Custom",
   };
 
+  // Hidden Columns State
+  const [hiddenColumns, setHiddenColumns] = useState(() => {
+    try {
+      const saved = localStorage.getItem("ptb_hidden_columns");
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      return {};
+    }
+  });
+  const [openColMenu, setOpenColMenu] = useState(null); // "contentCopy" | "revision" | null
+  const [isColsOpen, setIsColsOpen] = useState(false);
+  const colsDropdownRef = useRef(null);
+
+  const toggleColumnHide = (colId) => {
+    setHiddenColumns((prev) => {
+      const next = { ...prev, [colId]: !prev[colId] };
+      localStorage.setItem("ptb_hidden_columns", JSON.stringify(next));
+      return next;
+    });
+  };
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -1345,6 +1383,15 @@ const ProjectTaskBoard = ({
         !dateDropdownRef.current.contains(event.target)
       ) {
         setIsDateDropdownOpen(false);
+      }
+      if (
+        colsDropdownRef.current &&
+        !colsDropdownRef.current.contains(event.target)
+      ) {
+        setIsColsOpen(false);
+      }
+      if (!event.target.closest(".col-header-menu")) {
+        setOpenColMenu(null);
       }
       if (!event.target.closest(".section-menu-container")) {
         setOpenSectionMenu(null);
@@ -2440,11 +2487,31 @@ const ProjectTaskBoard = ({
                   }`}
                 >
                   {/* Funnel Icon */}
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${datePreset !== "all" ? "text-emerald-500 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500"}`}>
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`shrink-0 ${datePreset !== "all" ? "text-emerald-500 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500"}`}
+                  >
                     <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
                   </svg>
                   <span>{DATE_PRESET_LABELS[datePreset] || "Date"}</span>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 transition-transform duration-200 ${isDateDropdownOpen ? "rotate-180" : ""}`}>
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`shrink-0 transition-transform duration-200 ${isDateDropdownOpen ? "rotate-180" : ""}`}
+                  >
                     <polyline points="6 9 12 15 18 9" />
                   </svg>
                 </button>
@@ -2484,11 +2551,23 @@ const ProjectTaskBoard = ({
                               : "text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-white/5"
                           }`}
                         >
-                          <span className="text-sm leading-none">{opt.icon}</span>
+                          <span className="text-sm leading-none">
+                            {opt.icon}
+                          </span>
                           {opt.label}
                           {datePreset === opt.id && (
                             <span className="ml-auto">
-                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500">
+                              <svg
+                                width="10"
+                                height="10"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="3.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="text-emerald-500"
+                              >
                                 <polyline points="20 6 9 17 4 12" />
                               </svg>
                             </span>
@@ -2830,45 +2909,32 @@ const ProjectTaskBoard = ({
                 </AnimatePresence>
               </div>
 
-              {/* Sort Trigger Button */}
-              <div className="relative" ref={sortDropdownRef}>
+              {/* Columns Trigger Button */}
+              <div className="relative" ref={colsDropdownRef}>
                 <button
+                  type="button"
                   onClick={() => {
-                    setIsSortOpen(!isSortOpen);
+                    setIsColsOpen(!isColsOpen);
                     setIsFilterOpen(false);
+                    setIsSortOpen(false);
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 ${
-                    isSortOpen || sortBy !== "none"
+                    isColsOpen || Object.values(hiddenColumns).some(Boolean)
                       ? "bg-blue-50 dark:bg-[#3b82f6]/10 border-blue-200 dark:border-transparent text-blue-600 dark:text-[#3b82f6]"
                       : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
                   }`}
                 >
-                  <svg
-                    width="13"
-                    height="13"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="shrink-0"
-                  >
-                    <line x1="17" y1="4" x2="17" y2="20" />
-                    <polyline points="13 8 17 4 21 8" />
-                    <line x1="7" y1="20" x2="7" y2="4" />
-                    <polyline points="3 16 7 20 11 16" />
-                  </svg>
-                  <span>Sort</span>
-                  {sortBy !== "none" && (
-                    <span className="text-[10px] font-bold text-blue-600 dark:text-[#3b82f6] ml-0.5">
-                      ({sortOrder === "asc" ? "▲" : "▼"})
+                  <FiColumns className="shrink-0" size={13} />
+                  <span>Hide Columns</span>
+                  {Object.values(hiddenColumns).filter(Boolean).length > 0 && (
+                    <span className="text-[10px] font-bold bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center ml-0.5">
+                      {Object.values(hiddenColumns).filter(Boolean).length}
                     </span>
                   )}
                 </button>
 
                 <AnimatePresence>
-                  {isSortOpen && (
+                  {isColsOpen && (
                     <motion.div
                       initial={{ opacity: 0, y: 8, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -2877,57 +2943,57 @@ const ProjectTaskBoard = ({
                       className="absolute right-0 mt-2 w-52 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-transparent rounded-2xl shadow-2xl p-2.5 z-50 space-y-1.5 backdrop-blur-md"
                     >
                       <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2 px-1">
-                        <span className="text-xs font-bold text-slate-800 dark:text-white  tracking-wider">
-                          Sort By
+                        <span className="text-xs font-bold text-slate-800 dark:text-white tracking-wider">
+                          Toggle Columns
                         </span>
-                        {sortBy !== "none" && (
+                        {Object.values(hiddenColumns).some(Boolean) && (
                           <button
+                            type="button"
                             onClick={() => {
-                              setSortBy("none");
-                              setSortOrder("asc");
+                              setHiddenColumns({});
+                              localStorage.removeItem("ptb_hidden_columns");
                             }}
-                            className="text-[10px] font-bold  text-rose-500 hover:text-rose-600 cursor-pointer"
+                            className="text-[10px] font-bold text-blue-500 hover:text-blue-600 cursor-pointer"
                           >
-                            Reset
+                            Show All
                           </button>
                         )}
                       </div>
 
                       <div className="space-y-1 pt-1">
                         {[
-                          { id: "none", label: "No Sort" },
-                          { id: "name", label: "Name" },
+                          { id: "contentCopy", label: "Content Copy" },
+                          { id: "client", label: "Client" },
+                          { id: "createdBy", label: "Task Created By" },
+                          { id: "assignee", label: "Assignee" },
+                          { id: "contentType", label: "Content Type" },
                           { id: "startDate", label: "Start Date" },
-                          { id: "dueDate", label: "End Date" },
+                          { id: "endDate", label: "End Date" },
                           { id: "priority", label: "Priority" },
                           { id: "status", label: "Status" },
-                        ].map((option) => {
-                          const isSelected = sortBy === option.id;
+                          { id: "revision", label: "Revision" },
+                          { id: "totalHours", label: "Total Hours" },
+                        ].map((col) => {
+                          const isHidden = !!hiddenColumns[col.id];
                           return (
                             <button
-                              key={option.id}
-                              onClick={() => {
-                                if (isSelected) {
-                                  // Toggle sort order
-                                  setSortOrder((prev) =>
-                                    prev === "asc" ? "desc" : "asc",
-                                  );
-                                } else {
-                                  setSortBy(option.id);
-                                  setSortOrder("asc");
-                                }
-                              }}
+                              key={col.id}
+                              type="button"
+                              onClick={() => toggleColumnHide(col.id)}
                               className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
-                                isSelected
-                                  ? "bg-blue-50 dark:bg-[#3b82f6]/10 text-blue-600 dark:text-[#3b82f6]"
-                                  : "text-slate-650 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-white/5"
+                                !isHidden
+                                  ? "bg-slate-100 dark:bg-white/10 text-slate-800 dark:text-slate-100"
+                                  : "text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-white/5 line-through"
                               }`}
                             >
-                              <span>{option.label}</span>
-                              {isSelected && (
-                                <span className="text-[10px] font-bold ">
-                                  {sortOrder === "asc" ? "▲ Asc" : "▼ Desc"}
-                                </span>
+                              <span>{col.label}</span>
+                              {!isHidden ? (
+                                <FiEye size={13} className="text-emerald-500" />
+                              ) : (
+                                <FiEyeOff
+                                  size={13}
+                                  className="text-slate-400"
+                                />
                               )}
                             </button>
                           );
@@ -3234,9 +3300,50 @@ const ProjectTaskBoard = ({
                               >
                                 Task Name
                               </th>
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[250px] md:min-w-[400px] w-auto">
-                                Content Copy
-                              </th>
+                              {/* Content Copy Column */}
+                              {!hiddenColumns.contentCopy && (
+                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[250px] md:min-w-[400px] w-auto group relative">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span>Content Copy</span>
+                                    <div className="relative col-header-menu">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setOpenColMenu(
+                                            openColMenu === "contentCopy"
+                                              ? null
+                                              : "contentCopy",
+                                          );
+                                        }}
+                                        className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 opacity-70 group-hover:opacity-100 transition-opacity rounded cursor-pointer"
+                                        title="Column options"
+                                      >
+                                        <FiMoreVertical size={13} />
+                                      </button>
+                                      {openColMenu === "contentCopy" && (
+                                        <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#18181b] border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl py-1 px-1 z-50 min-w-[130px] font-normal text-left">
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              toggleColumnHide("contentCopy");
+                                              setOpenColMenu(null);
+                                            }}
+                                            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+                                          >
+                                            <FiEyeOff
+                                              size={13}
+                                              className="text-slate-400"
+                                            />
+                                            <span>Hide Column</span>
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </th>
+                              )}
                               <th className="px-3 py-1 border-b  border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[140px]">
                                 Client
                               </th>
@@ -3261,9 +3368,50 @@ const ProjectTaskBoard = ({
                               <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
                                 Status
                               </th>
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[100px]">
-                                Revision
-                              </th>
+                              {/* Revision Column */}
+                              {!hiddenColumns.revision && (
+                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[100px] group relative">
+                                  <div className="flex items-center justify-between gap-1.5">
+                                    <span>Revision</span>
+                                    <div className="relative col-header-menu">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setOpenColMenu(
+                                            openColMenu === "revision"
+                                              ? null
+                                              : "revision",
+                                          );
+                                        }}
+                                        className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 opacity-70 group-hover:opacity-100 transition-opacity rounded cursor-pointer"
+                                        title="Column options"
+                                      >
+                                        <FiMoreVertical size={13} />
+                                      </button>
+                                      {openColMenu === "revision" && (
+                                        <div className="absolute right-0 top-full mt-1 bg-white dark:bg-[#18181b] border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl py-1 px-1 z-50 min-w-[130px] font-normal text-left">
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              toggleColumnHide("revision");
+                                              setOpenColMenu(null);
+                                            }}
+                                            className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+                                          >
+                                            <FiEyeOff
+                                              size={13}
+                                              className="text-slate-400"
+                                            />
+                                            <span>Hide Column</span>
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </th>
+                              )}
                               <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
                                 Total Hours
                               </th>
@@ -4139,7 +4287,7 @@ const ProjectTaskBoard = ({
                                                       </td>
 
                                                       {/* Content Copy */}
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                      <td className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 ${hiddenColumns.contentCopy ? 'hidden' : ''}`}>
                                                         <div
                                                           onClick={(e) =>
                                                             e.stopPropagation()
@@ -4802,26 +4950,28 @@ const ProjectTaskBoard = ({
                                                       </td>
 
                                                       {/* Revision Column */}
-                                                      <td
-                                                        className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700"
-                                                        onClick={(e) =>
-                                                          e.stopPropagation()
-                                                        }
-                                                      >
-                                                        <div className="flex justify-center items-center gap-1.5">
-                                                          <span className="font-extrabold text-xs text-slate-800 dark:text-yellow-50 text-center">
-                                                            {task.revisions ||
-                                                              0}
-                                                          </span>
-                                                          {(task.revisions ||
-                                                            0) > 3 && (
-                                                            <span
-                                                              className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)] animate-pulse"
-                                                              title="More than 3 revisions"
-                                                            />
-                                                          )}
-                                                        </div>
-                                                      </td>
+                                                      {!hiddenColumns.revision && (
+                                                        <td
+                                                          className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700"
+                                                          onClick={(e) =>
+                                                            e.stopPropagation()
+                                                          }
+                                                        >
+                                                          <div className="flex justify-center items-center gap-1.5">
+                                                            <span className="font-extrabold text-xs text-slate-800 dark:text-yellow-50 text-center">
+                                                              {task.revisions ||
+                                                                0}
+                                                            </span>
+                                                            {(task.revisions ||
+                                                              0) > 3 && (
+                                                              <span
+                                                                className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)] animate-pulse"
+                                                                title="More than 3 revisions"
+                                                              />
+                                                            )}
+                                                          </div>
+                                                        </td>
+                                                      )}
 
                                                       {/* Total Hours */}
                                                       <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
@@ -4832,8 +4982,12 @@ const ProjectTaskBoard = ({
                                                           endTime={
                                                             task.actualEndTime
                                                           }
-                                                            pausedAt={task.pausedAt}
-                                                            savedPausedMs={task.totalPausedMs}
+                                                          pausedAt={
+                                                            task.pausedAt
+                                                          }
+                                                          savedPausedMs={
+                                                            task.totalPausedMs
+                                                          }
                                                           status={task.status}
                                                         />
                                                       </td>
@@ -5149,34 +5303,34 @@ const ProjectTaskBoard = ({
                                                               </td>
 
                                                               {/* Content Copy Column */}
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                                <div
-                                                                  onClick={(
-                                                                    e,
-                                                                  ) =>
-                                                                    e.stopPropagation()
-                                                                  }
-                                                                  className="w-full"
-                                                                >
-                                                                  <ContentCopyInput
-                                                                    value={
-                                                                      sub.contentCopy
-                                                                    }
-                                                                    onChange={(
-                                                                      newVal,
+                                                              <td className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 ${hiddenColumns.contentCopy ? 'hidden' : ''}`}>
+                                                                  <div
+                                                                    onClick={(
+                                                                      e,
                                                                     ) =>
-                                                                      handleSubtaskFieldChange(
-                                                                        task,
-                                                                        sub._id,
-                                                                        {
-                                                                          contentCopy:
-                                                                            newVal,
-                                                                        },
-                                                                      )
+                                                                      e.stopPropagation()
                                                                     }
-                                                                  />
-                                                                </div>
-                                                              </td>
+                                                                    className="w-full"
+                                                                  >
+                                                                    <ContentCopyInput
+                                                                      value={
+                                                                        sub.contentCopy
+                                                                      }
+                                                                      onChange={(
+                                                                        newVal,
+                                                                      ) =>
+                                                                        handleSubtaskFieldChange(
+                                                                          task,
+                                                                          sub._id,
+                                                                          {
+                                                                            contentCopy:
+                                                                              newVal,
+                                                                          },
+                                                                        )
+                                                                      }
+                                                                    />
+                                                                  </div>
+                                                                </td>
 
                                                               {/* 2. Client Column */}
                                                               <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-slate-450 opacity-60">
@@ -5885,11 +6039,13 @@ const ProjectTaskBoard = ({
                                                               </td>
 
                                                               {/* Subtask Revision Column (Placeholder to align columns) */}
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center text-slate-450 opacity-60">
-                                                                <span className="text-slate-400 dark:text-slate-555 text-[9px] font-normal">
-                                                                  -
-                                                                </span>
-                                                              </td>
+                                                              {!hiddenColumns.revision && (
+                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center text-slate-450 opacity-60">
+                                                                  <span className="text-slate-400 dark:text-slate-555 text-[9px] font-normal">
+                                                                    -
+                                                                  </span>
+                                                                </td>
+                                                              )}
 
                                                               {/* Total Hours Column */}
                                                               <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
@@ -5900,8 +6056,12 @@ const ProjectTaskBoard = ({
                                                                   endTime={
                                                                     sub.actualEndTime
                                                                   }
-                                                                  pausedAt={sub.pausedAt}
-                                                                  savedPausedMs={sub.totalPausedMs}
+                                                                  pausedAt={
+                                                                    sub.pausedAt
+                                                                  }
+                                                                  savedPausedMs={
+                                                                    sub.totalPausedMs
+                                                                  }
                                                                   status={
                                                                     sub.status
                                                                   }

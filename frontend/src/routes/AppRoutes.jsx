@@ -216,6 +216,11 @@ const AppRoutes = () => {
           element={<CalendarPage />}
         />
 
+        <Route
+          path="template-library"
+          element={<ProtectedRoute requiredPermission="manage_settings"><Templatelib /></ProtectedRoute>}
+        />
+
 
 
         <Route
