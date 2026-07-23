@@ -32,8 +32,6 @@ import {
   FiSliders,
   FiSearch,
   FiActivity,
-  FiAlertCircle,
-  FiMessageSquare,
   FiFileText,
   FiMoreVertical,
   FiEye,
@@ -1907,6 +1905,52 @@ const ProjectTaskBoard = ({
     if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
     if (sanitizedFields.startDate === "") sanitizedFields.startDate = null;
 
+    // Check date requirement before assigning member
+    if (sanitizedFields.assignedTo) {
+      const currentTask = localTasks.find((t) => t._id === taskId);
+      const effectiveStart =
+        sanitizedFields.startDate !== undefined
+          ? sanitizedFields.startDate
+          : currentTask?.startDate;
+      const effectiveEnd =
+        sanitizedFields.dueDate !== undefined
+          ? sanitizedFields.dueDate
+          : currentTask?.dueDate;
+
+      if (!effectiveStart || !effectiveEnd) {
+        toast.custom(
+          (t) => (
+            <div
+              className={`${
+                t.visible ? "animate-enter" : "animate-leave"
+              } max-w-md w-full bg-slate-900/95 dark:bg-[#121217] text-white shadow-2xl rounded-2xl pointer-events-auto flex ring-2 ring-amber-500/50 p-4 gap-3.5 items-center border border-amber-500/40 backdrop-blur-xl z-[99999]`}
+            >
+              <div className="text-3xl animate-bounce shrink-0">🗓️</div>
+              <div className="flex-1 text-xs">
+                <p className="font-extrabold text-amber-400 text-sm flex items-center gap-1.5">
+                  <span>Please assign Start Date & End Date first!</span>
+                  <span>✨</span>
+                </p>
+                <p className="text-slate-300 font-medium mt-1 leading-snug">
+                  Please assign Start Date and End Date before assigning a team
+                  member.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => toast.dismiss(t.id)}
+                className="shrink-0 p-1 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-all cursor-pointer"
+              >
+                <FiX size={16} />
+              </button>
+            </div>
+          ),
+          { duration: 4500 },
+        );
+        return;
+      }
+    }
+
     // If startDate is being set, auto-clear dueDate if it falls before the new startDate
     if (sanitizedFields.startDate) {
       const currentTask = localTasks.find((t) => t._id === taskId);
@@ -2121,6 +2165,51 @@ const ProjectTaskBoard = ({
     if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
 
     const currentSub = task.subtasks?.find((s) => s._id === subtaskId);
+
+    // Check date requirement before assigning member on subtask
+    if (sanitizedFields.assignedTo) {
+      const effectiveStart =
+        sanitizedFields.startDate !== undefined
+          ? sanitizedFields.startDate
+          : currentSub?.startDate || task?.startDate;
+      const effectiveEnd =
+        sanitizedFields.dueDate !== undefined
+          ? sanitizedFields.dueDate
+          : currentSub?.dueDate || task?.dueDate;
+
+      if (!effectiveStart || !effectiveEnd) {
+        toast.custom(
+          (t) => (
+            <div
+              className={`${
+                t.visible ? "animate-enter" : "animate-leave"
+              } max-w-md w-full bg-slate-900/95 dark:bg-[#121217] text-white shadow-2xl rounded-2xl pointer-events-auto flex ring-2 ring-amber-500/50 p-4 gap-3.5 items-center border border-amber-500/40 backdrop-blur-xl z-[99999]`}
+            >
+              <div className="text-3xl animate-bounce shrink-0">🗓️</div>
+              <div className="flex-1 text-xs">
+                <p className="font-extrabold text-amber-400 text-sm flex items-center gap-1.5">
+                  <span>Please assign Start Date & End Date first!</span>
+                  <span>✨</span>
+                </p>
+                <p className="text-slate-300 font-medium mt-1 leading-snug">
+                  Please assign Start Date and End Date before assigning a team
+                  member.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => toast.dismiss(t.id)}
+                className="shrink-0 p-1 text-slate-400 hover:text-white rounded-lg hover:bg-white/10 transition-all cursor-pointer"
+              >
+                <FiX size={16} />
+              </button>
+            </div>
+          ),
+          { duration: 4500 },
+        );
+        return;
+      }
+    }
 
     // If startDate is being set, auto-clear dueDate if it falls before the new startDate
     if (sanitizedFields.startDate && currentSub?.dueDate) {
@@ -3388,30 +3477,54 @@ const ProjectTaskBoard = ({
                                   </div>
                                 </th>
                               )}
-                              <th className="px-3 py-1 border-b  border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[140px]">
-                                Client
-                              </th>
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[140px]">
-                                Task Created By
-                              </th>
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[190px]">
-                                Assignee
-                              </th>
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[130px]">
-                                Content Type
-                              </th>
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
-                                Start Date
-                              </th>
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
-                                End Date
-                              </th>
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
-                                Priority
-                              </th>
-                              <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
-                                Status
-                              </th>
+                              {/* Client Column */}
+                              {!hiddenColumns.client && (
+                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[140px]">
+                                  Client
+                                </th>
+                              )}
+                              {/* Created By Column */}
+                              {!hiddenColumns.createdBy && (
+                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[140px]">
+                                  Task Created By
+                                </th>
+                              )}
+                              {/* Start Date Column */}
+                              {!hiddenColumns.startDate && (
+                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
+                                  Start Date
+                                </th>
+                              )}
+                              {/* End Date Column */}
+                              {!hiddenColumns.endDate && (
+                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
+                                  End Date
+                                </th>
+                              )}
+                              {/* Assignee Column */}
+                              {!hiddenColumns.assignee && (
+                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[190px]">
+                                  Assignee
+                                </th>
+                              )}
+                              {/* Content Type Column */}
+                              {!hiddenColumns.contentType && (
+                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[130px]">
+                                  Content Type
+                                </th>
+                              )}
+                              {/* Priority Column */}
+                              {!hiddenColumns.priority && (
+                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
+                                  Priority
+                                </th>
+                              )}
+                              {/* Status Column */}
+                              {!hiddenColumns.status && (
+                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
+                                  Status
+                                </th>
+                              )}
                               {/* Revision Column */}
                               {!hiddenColumns.revision && (
                                 <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[100px] group relative">
@@ -4331,7 +4444,9 @@ const ProjectTaskBoard = ({
                                                       </td>
 
                                                       {/* Content Copy */}
-                                                      <td className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 ${hiddenColumns.contentCopy ? 'hidden' : ''}`}>
+                                                      <td
+                                                        className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 ${hiddenColumns.contentCopy ? "hidden" : ""}`}
+                                                      >
                                                         <div
                                                           onClick={(e) =>
                                                             e.stopPropagation()
@@ -4358,640 +4473,663 @@ const ProjectTaskBoard = ({
                                                       </td>
 
                                                       {/* Client Column */}
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-medium">
-                                                        {activeProject?.client ? (
-                                                          <ClientBadge
-                                                            client={
-                                                              activeProject.client
-                                                            }
-                                                            size="md"
-                                                          />
-                                                        ) : (
-                                                          <span className="text-slate-400 dark:text-slate-500 text-[10px] font-normal">
-                                                            N/A
-                                                          </span>
-                                                        )}
-                                                      </td>
+                                                      {!hiddenColumns.client && (
+                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-medium">
+                                                          {activeProject?.client ? (
+                                                            <ClientBadge
+                                                              client={
+                                                                activeProject.client
+                                                              }
+                                                              size="md"
+                                                            />
+                                                          ) : (
+                                                            <span className="text-slate-400 dark:text-slate-500 text-[10px] font-normal">
+                                                              N/A
+                                                            </span>
+                                                          )}
+                                                        </td>
+                                                      )}
 
                                                       {/* Created By Column */}
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                        {task.createdBy ? (
-                                                          <div className="flex items-center gap-2">
-                                                            {task.createdBy
-                                                              .profile
-                                                              ?.profileImage
-                                                              ?.url ||
-                                                            task.createdBy
-                                                              .profileImage
-                                                              ?.url ||
-                                                            task.createdBy
-                                                              .profile
-                                                              ?.avatar ||
-                                                            task.createdBy
-                                                              .avatar ? (
-                                                              <img
-                                                                src={
-                                                                  task.createdBy
-                                                                    .profile
-                                                                    ?.profileImage
-                                                                    ?.url ||
-                                                                  task.createdBy
-                                                                    .profileImage
-                                                                    ?.url ||
-                                                                  task.createdBy
-                                                                    .profile
-                                                                    ?.avatar ||
-                                                                  task.createdBy
-                                                                    .avatar
-                                                                }
-                                                                alt={
+                                                      {!hiddenColumns.createdBy && (
+                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                          {task.createdBy ? (
+                                                            <div className="flex items-center gap-2">
+                                                              {task.createdBy
+                                                                .profile
+                                                                ?.profileImage
+                                                                ?.url ||
+                                                              task.createdBy
+                                                                .profileImage
+                                                                ?.url ||
+                                                              task.createdBy
+                                                                .profile
+                                                                ?.avatar ||
+                                                              task.createdBy
+                                                                .avatar ? (
+                                                                <img
+                                                                  src={
+                                                                    task
+                                                                      .createdBy
+                                                                      .profile
+                                                                      ?.profileImage
+                                                                      ?.url ||
+                                                                    task
+                                                                      .createdBy
+                                                                      .profileImage
+                                                                      ?.url ||
+                                                                    task
+                                                                      .createdBy
+                                                                      .profile
+                                                                      ?.avatar ||
+                                                                    task
+                                                                      .createdBy
+                                                                      .avatar
+                                                                  }
+                                                                  alt={
+                                                                    task
+                                                                      .createdBy
+                                                                      .name
+                                                                  }
+                                                                  className="w-5 h-5 rounded-full object-cover border border-slate-250 dark:border-white/10 shrink-0"
+                                                                />
+                                                              ) : (
+                                                                <div
+                                                                  className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
+                                                                    task
+                                                                      .createdBy
+                                                                      .name ||
+                                                                      "U",
+                                                                  )}`}
+                                                                >
+                                                                  {getInitials(
+                                                                    task
+                                                                      .createdBy
+                                                                      .name ||
+                                                                      "U",
+                                                                  )}
+                                                                </div>
+                                                              )}
+                                                              <span
+                                                                className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[100px]"
+                                                                title={
                                                                   task.createdBy
                                                                     .name
                                                                 }
-                                                                className="w-5 h-5 rounded-full object-cover border border-slate-250 dark:border-white/10 shrink-0"
-                                                              />
-                                                            ) : (
-                                                              <div
-                                                                className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
-                                                                  task.createdBy
-                                                                    .name ||
-                                                                    "U",
-                                                                )}`}
                                                               >
-                                                                {getInitials(
-                                                                  task.createdBy
-                                                                    .name ||
-                                                                    "U",
-                                                                )}
-                                                              </div>
-                                                            )}
-                                                            <span
-                                                              className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[100px]"
-                                                              title={
-                                                                task.createdBy
-                                                                  .name
-                                                              }
-                                                            >
-                                                              {
-                                                                task.createdBy
-                                                                  .name
-                                                              }
-                                                            </span>
-                                                          </div>
-                                                        ) : (
-                                                          <span className="text-slate-400 dark:text-slate-550 text-[10px] font-normal">
-                                                            N/A
-                                                          </span>
-                                                        )}
-                                                      </td>
-
-                                                      {/* Assignee Selection */}
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                        <div
-                                                          className="flex items-center gap-1.5"
-                                                          onClick={(e) =>
-                                                            e.stopPropagation()
-                                                          }
-                                                        >
-                                                          <AssigneeDropdown
-                                                            selectedUser={
-                                                              task.assignedTo
-                                                            }
-                                                            users={users}
-                                                            onChange={(
-                                                              userId,
-                                                            ) =>
-                                                              handleTaskFieldChange(
-                                                                task._id,
                                                                 {
-                                                                  assignedTo:
-                                                                    userId,
-                                                                },
-                                                              )
-                                                            }
-                                                            isAdminOrManager={
-                                                              isAdminOrManager
-                                                            }
-                                                            getAvatarColor={
-                                                              getAvatarColor
-                                                            }
-                                                            size="md"
-                                                          />
-                                                        </div>
-                                                      </td>
-
-                                                      {/* Content Type Column */}
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                        <div
-                                                          onClick={(e) =>
-                                                            e.stopPropagation()
-                                                          }
-                                                        >
-                                                          {isAdminOrManager ? (
-                                                            <select
-                                                              value={
-                                                                task.contentType ||
-                                                                ""
-                                                              }
-                                                              onChange={(e) =>
-                                                                handleTaskFieldChange(
-                                                                  task._id,
-                                                                  {
-                                                                    contentType:
-                                                                      e.target
-                                                                        .value,
-                                                                  },
-                                                                )
-                                                              }
-                                                              className={`badge-select ${
-                                                                task.contentType ===
-                                                                "VIDEO"
-                                                                  ? "badge-type-video"
-                                                                  : task.contentType ===
-                                                                      "IMAGE"
-                                                                    ? "badge-type-image"
-                                                                    : task.contentType ===
-                                                                        "CAROUSEL"
-                                                                      ? "badge-type-carousel"
-                                                                      : task.contentType ===
-                                                                          "REEL"
-                                                                        ? "badge-type-reel"
-                                                                        : task.contentType ===
-                                                                            "POST"
-                                                                          ? "badge-type-post"
-                                                                          : task.contentType ===
-                                                                              "STORY"
-                                                                            ? "badge-type-story"
-                                                                            : task.contentType ===
-                                                                                "Website"
-                                                                              ? "badge-type-video"
-                                                                              : task.contentType ===
-                                                                                  "SEO"
-                                                                                ? "badge-type-image"
-                                                                                : task.contentType ===
-                                                                                    "Video shoot"
-                                                                                  ? "badge-type-carousel"
-                                                                                  : "badge-type-none"
-                                                              }`}
-                                                            >
-                                                              <option value="">
-                                                                NONE
-                                                              </option>
-                                                              <option value="VIDEO">
-                                                                VIDEO
-                                                              </option>
-                                                              <option value="IMAGE">
-                                                                IMAGE
-                                                              </option>
-                                                              <option value="CAROUSEL">
-                                                                CAROUSEL
-                                                              </option>
-                                                              <option value="REEL">
-                                                                REEL
-                                                              </option>
-                                                              <option value="POST">
-                                                                POST
-                                                              </option>
-                                                              <option value="STORY">
-                                                                STORY
-                                                              </option>
-                                                              <option value="Website">
-                                                                Website
-                                                              </option>
-                                                              <option value="SEO">
-                                                                SEO
-                                                              </option>
-                                                              <option value="Video shoot">
-                                                                Video shoot
-                                                              </option>
-                                                            </select>
+                                                                  task.createdBy
+                                                                    .name
+                                                                }
+                                                              </span>
+                                                            </div>
                                                           ) : (
-                                                            <span
-                                                              className={`badge-span ${
-                                                                task.contentType ===
-                                                                "VIDEO"
-                                                                  ? "badge-type-video"
-                                                                  : task.contentType ===
-                                                                      "IMAGE"
-                                                                    ? "badge-type-image"
-                                                                    : task.contentType ===
-                                                                        "CAROUSEL"
-                                                                      ? "badge-type-carousel"
-                                                                      : task.contentType ===
-                                                                          "REEL"
-                                                                        ? "badge-type-reel"
-                                                                        : task.contentType ===
-                                                                            "POST"
-                                                                          ? "badge-type-post"
-                                                                          : task.contentType ===
-                                                                              "STORY"
-                                                                            ? "badge-type-story"
-                                                                            : task.contentType ===
-                                                                                "Website"
-                                                                              ? "badge-type-video"
-                                                                              : task.contentType ===
-                                                                                  "SEO"
-                                                                                ? "badge-type-image"
-                                                                                : task.contentType ===
-                                                                                    "Video shoot"
-                                                                                  ? "badge-type-carousel"
-                                                                                  : "badge-type-none"
-                                                              }`}
-                                                            >
-                                                              {task.contentType ||
-                                                                "NONE"}
+                                                            <span className="text-slate-400 dark:text-slate-550 text-[10px] font-normal">
+                                                              N/A
                                                             </span>
                                                           )}
-                                                        </div>
-                                                      </td>
+                                                        </td>
+                                                      )}
 
                                                       {/* Start Date */}
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                        <div
-                                                          className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            const input =
-                                                              e.currentTarget.querySelector(
-                                                                'input[type="date"]',
-                                                              );
-                                                            if (
-                                                              input &&
-                                                              typeof input.showPicker ===
-                                                                "function"
-                                                            ) {
-                                                              input.showPicker();
-                                                            }
-                                                          }}
-                                                        >
-                                                          {task.startDate ? (
-                                                            <div className="flex items-center flex-nowrap gap-1.5 px-2.5 py-1 rounded-md border border-blue-300 dark:border-blue-800/85 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-855 dark:text-blue-300 text-[14px] font-bold bg-blue-100 dark:bg-blue-900 transition-all shadow-sm">
-                                                              <FiCalendar
-                                                                size={10.5}
-                                                                className="text-blue-900 dark:text-blue-900 shrink-0"
-                                                              />
-                                                              <span className="whitespace-nowrap">
-                                                                {new Date(
-                                                                  task.startDate,
-                                                                ).toLocaleDateString(
-                                                                  undefined,
-                                                                  {
-                                                                    month:
-                                                                      "short",
-                                                                    day: "numeric",
-                                                                  },
+                                                      {!hiddenColumns.startDate && (
+                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                          <div
+                                                            className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              const input =
+                                                                e.currentTarget.querySelector(
+                                                                  'input[type="date"]',
+                                                                );
+                                                              if (
+                                                                input &&
+                                                                typeof input.showPicker ===
+                                                                  "function"
+                                                              ) {
+                                                                input.showPicker();
+                                                              }
+                                                            }}
+                                                          >
+                                                            {task.startDate ? (
+                                                              <div className="flex items-center flex-nowrap gap-1.5 px-2.5 py-1 rounded-md border border-blue-300 dark:border-blue-800/85 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-855 dark:text-blue-300 text-[14px] font-bold bg-blue-100 dark:bg-blue-900 transition-all shadow-sm">
+                                                                <FiCalendar
+                                                                  size={10.5}
+                                                                  className="text-blue-900 dark:text-blue-900 shrink-0"
+                                                                />
+                                                                <span className="whitespace-nowrap">
+                                                                  {new Date(
+                                                                    task.startDate,
+                                                                  ).toLocaleDateString(
+                                                                    undefined,
+                                                                    {
+                                                                      month:
+                                                                        "short",
+                                                                      day: "numeric",
+                                                                    },
+                                                                  )}
+                                                                </span>
+                                                                {isAdminOrManager && (
+                                                                  <button
+                                                                    type="button"
+                                                                    onClick={(
+                                                                      e,
+                                                                    ) => {
+                                                                      e.stopPropagation();
+                                                                      handleTaskFieldChange(
+                                                                        task._id,
+                                                                        {
+                                                                          startDate:
+                                                                            null,
+                                                                        },
+                                                                      );
+                                                                    }}
+                                                                    className="ml-1 text-blue-505 hover:text-rose-600 dark:text-blue-450 dark:hover:text-rose-455 relative z-10 transition-colors cursor-pointer"
+                                                                  >
+                                                                    <FiX
+                                                                      size={10}
+                                                                    />
+                                                                  </button>
                                                                 )}
-                                                              </span>
-                                                              {isAdminOrManager && (
-                                                                <button
-                                                                  type="button"
-                                                                  onClick={(
-                                                                    e,
-                                                                  ) => {
-                                                                    e.stopPropagation();
-                                                                    handleTaskFieldChange(
-                                                                      task._id,
-                                                                      {
-                                                                        startDate:
-                                                                          null,
-                                                                      },
-                                                                    );
-                                                                  }}
-                                                                  className="ml-1 text-blue-505 hover:text-rose-600 dark:text-blue-450 dark:hover:text-rose-455 relative z-10 transition-colors cursor-pointer"
-                                                                >
-                                                                  <FiX
-                                                                    size={10}
-                                                                  />
-                                                                </button>
-                                                              )}
-                                                            </div>
-                                                          ) : (
-                                                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-blue-600 dark:border-blue-800/80 text-white  dark:text-blue-400/90   bg-blue-400 dark:bg-blue-400 transition-all text-[9px] font-bold">
-                                                              <FiCalendar
-                                                                size={10.5}
+                                                              </div>
+                                                            ) : (
+                                                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-blue-600 dark:border-blue-800/80 text-white  dark:text-blue-400/90   bg-blue-400 dark:bg-blue-400 transition-all text-[9px] font-bold">
+                                                                <FiCalendar
+                                                                  size={10.5}
+                                                                />
+                                                                <span>
+                                                                  + Start Date
+                                                                </span>
+                                                              </div>
+                                                            )}
+                                                            {isAdminOrManager && (
+                                                              <input
+                                                                type="date"
+                                                                value={
+                                                                  task.startDate
+                                                                    ? new Date(
+                                                                        task.startDate,
+                                                                      )
+                                                                        .toISOString()
+                                                                        .split(
+                                                                          "T",
+                                                                        )[0]
+                                                                    : ""
+                                                                }
+                                                                onChange={(e) =>
+                                                                  handleTaskFieldChange(
+                                                                    task._id,
+                                                                    {
+                                                                      startDate:
+                                                                        e.target
+                                                                          .value ||
+                                                                        null,
+                                                                    },
+                                                                  )
+                                                                }
+                                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                                               />
-                                                              <span>
-                                                                + Start Date
-                                                              </span>
-                                                            </div>
-                                                          )}
-                                                          {isAdminOrManager && (
-                                                            <input
-                                                              type="date"
-                                                              value={
-                                                                task.startDate
-                                                                  ? new Date(
-                                                                      task.startDate,
-                                                                    )
-                                                                      .toISOString()
-                                                                      .split(
-                                                                        "T",
-                                                                      )[0]
-                                                                  : ""
-                                                              }
-                                                              onChange={(e) =>
-                                                                handleTaskFieldChange(
-                                                                  task._id,
-                                                                  {
-                                                                    startDate:
-                                                                      e.target
-                                                                        .value ||
-                                                                      null,
-                                                                  },
-                                                                )
-                                                              }
-                                                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                            />
-                                                          )}
-                                                        </div>
-                                                      </td>
+                                                            )}
+                                                          </div>
+                                                        </td>
+                                                      )}
 
                                                       {/* End Date */}
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                        <div
-                                                          className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            const input =
-                                                              e.currentTarget.querySelector(
-                                                                'input[type="date"]',
-                                                              );
-                                                            if (
-                                                              input &&
-                                                              typeof input.showPicker ===
-                                                                "function"
-                                                            ) {
-                                                              input.showPicker();
-                                                            }
-                                                          }}
-                                                        >
-                                                          {task.dueDate ? (
-                                                            <div className="flex items-center flex-nowrap gap-1.5 px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-700/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-855 dark:text-rose-100 text-[14px] font-bold bg-rose-100 dark:bg-rose-800 transition-all shadow-sm">
-                                                              <FiCalendar
-                                                                size={10.5}
-                                                                className="text-rose-600 dark:text-rose-400 shrink-0"
-                                                              />
-                                                              <span className="whitespace-nowrap">
-                                                                {new Date(
-                                                                  task.dueDate,
-                                                                ).toLocaleDateString(
-                                                                  undefined,
-                                                                  {
-                                                                    month:
-                                                                      "short",
-                                                                    day: "numeric",
-                                                                  },
+                                                      {!hiddenColumns.endDate && (
+                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                          <div
+                                                            className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              const input =
+                                                                e.currentTarget.querySelector(
+                                                                  'input[type="date"]',
+                                                                );
+                                                              if (
+                                                                input &&
+                                                                typeof input.showPicker ===
+                                                                  "function"
+                                                              ) {
+                                                                input.showPicker();
+                                                              }
+                                                            }}
+                                                          >
+                                                            {task.dueDate ? (
+                                                              <div className="flex items-center flex-nowrap gap-1.5 px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-700/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-855 dark:text-rose-100 text-[14px] font-bold bg-rose-100 dark:bg-rose-800 transition-all shadow-sm">
+                                                                <FiCalendar
+                                                                  size={10.5}
+                                                                  className="text-rose-600 dark:text-rose-400 shrink-0"
+                                                                />
+                                                                <span className="whitespace-nowrap">
+                                                                  {new Date(
+                                                                    task.dueDate,
+                                                                  ).toLocaleDateString(
+                                                                    undefined,
+                                                                    {
+                                                                      month:
+                                                                        "short",
+                                                                      day: "numeric",
+                                                                    },
+                                                                  )}
+                                                                </span>
+                                                                {isAdminOrManager && (
+                                                                  <button
+                                                                    type="button"
+                                                                    onClick={(
+                                                                      e,
+                                                                    ) => {
+                                                                      e.stopPropagation();
+                                                                      handleTaskFieldChange(
+                                                                        task._id,
+                                                                        {
+                                                                          dueDate:
+                                                                            null,
+                                                                        },
+                                                                      );
+                                                                    }}
+                                                                    className="ml-1 text-rose-505 hover:text-rose-755 dark:text-rose-400 dark:hover:text-rose-300 relative z-10 transition-colors cursor-pointer"
+                                                                  >
+                                                                    <FiX
+                                                                      size={10}
+                                                                    />
+                                                                  </button>
                                                                 )}
-                                                              </span>
-                                                              {isAdminOrManager && (
-                                                                <button
-                                                                  type="button"
-                                                                  onClick={(
-                                                                    e,
-                                                                  ) => {
-                                                                    e.stopPropagation();
-                                                                    handleTaskFieldChange(
-                                                                      task._id,
-                                                                      {
-                                                                        dueDate:
-                                                                          null,
-                                                                      },
-                                                                    );
-                                                                  }}
-                                                                  className="ml-1 text-rose-505 hover:text-rose-755 dark:text-rose-400 dark:hover:text-rose-300 relative z-10 transition-colors cursor-pointer"
-                                                                >
-                                                                  <FiX
-                                                                    size={10}
-                                                                  />
-                                                                </button>
-                                                              )}
-                                                            </div>
-                                                          ) : (
-                                                            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-rose-300 dark:border-rose-800/80 text-rose-605 dark:text-rose-400/90 hover:border-rose-400 hover:text-rose-750 dark:hover:text-rose-300 dark:hover:border-rose-600/85 bg-rose-50/50 dark:bg-rose-955/20 hover:bg-rose-100 dark:hover:bg-rose-955/50 transition-all text-[9.5px] font-bold">
-                                                              <FiCalendar
-                                                                size={10.5}
+                                                              </div>
+                                                            ) : (
+                                                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-rose-300 dark:border-rose-800/80 text-rose-605 dark:text-rose-400/90 hover:border-rose-400 hover:text-rose-750 dark:hover:text-rose-300 dark:hover:border-rose-600/85 bg-rose-50/50 dark:bg-rose-955/20 hover:bg-rose-100 dark:hover:bg-rose-955/50 transition-all text-[9.5px] font-bold">
+                                                                <FiCalendar
+                                                                  size={10.5}
+                                                                />
+                                                                <span>
+                                                                  + End Date
+                                                                </span>
+                                                              </div>
+                                                            )}
+                                                            {isAdminOrManager && (
+                                                              <input
+                                                                type="date"
+                                                                value={
+                                                                  task.dueDate
+                                                                    ? new Date(
+                                                                        task.dueDate,
+                                                                      )
+                                                                        .toISOString()
+                                                                        .split(
+                                                                          "T",
+                                                                        )[0]
+                                                                    : ""
+                                                                }
+                                                                min={
+                                                                  task.startDate
+                                                                    ? new Date(
+                                                                        task.startDate,
+                                                                      )
+                                                                        .toISOString()
+                                                                        .split(
+                                                                          "T",
+                                                                        )[0]
+                                                                    : ""
+                                                                }
+                                                                onChange={(e) =>
+                                                                  handleTaskFieldChange(
+                                                                    task._id,
+                                                                    {
+                                                                      dueDate:
+                                                                        e.target
+                                                                          .value ||
+                                                                        null,
+                                                                    },
+                                                                  )
+                                                                }
+                                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                                               />
-                                                              <span>
-                                                                + End Date
-                                                              </span>
-                                                            </div>
-                                                          )}
-                                                          {isAdminOrManager && (
-                                                            <input
-                                                              type="date"
-                                                              value={
-                                                                task.dueDate
-                                                                  ? new Date(
-                                                                      task.dueDate,
-                                                                    )
-                                                                      .toISOString()
-                                                                      .split(
-                                                                        "T",
-                                                                      )[0]
-                                                                  : ""
+                                                            )}
+                                                          </div>
+                                                        </td>
+                                                      )}
+
+                                                      {/* Assignee Selection */}
+                                                      {!hiddenColumns.assignee && (
+                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                          <div
+                                                            className="flex items-center gap-1.5"
+                                                            onClick={(e) =>
+                                                              e.stopPropagation()
+                                                            }
+                                                          >
+                                                            <AssigneeDropdown
+                                                              selectedUser={
+                                                                task.assignedTo
                                                               }
-                                                              min={
-                                                                task.startDate
-                                                                  ? new Date(
-                                                                      task.startDate,
-                                                                    )
-                                                                      .toISOString()
-                                                                      .split(
-                                                                        "T",
-                                                                      )[0]
-                                                                  : ""
-                                                              }
-                                                              onChange={(e) =>
+                                                              users={users}
+                                                              onChange={(
+                                                                userId,
+                                                              ) =>
                                                                 handleTaskFieldChange(
                                                                   task._id,
                                                                   {
-                                                                    dueDate:
-                                                                      e.target
-                                                                        .value ||
-                                                                      null,
+                                                                    assignedTo:
+                                                                      userId,
                                                                   },
                                                                 )
                                                               }
-                                                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                              isAdminOrManager={
+                                                                isAdminOrManager
+                                                              }
+                                                              getAvatarColor={
+                                                                getAvatarColor
+                                                              }
+                                                              size="md"
                                                             />
-                                                          )}
-                                                        </div>
-                                                      </td>
+                                                          </div>
+                                                        </td>
+                                                      )}
+
+                                                      {/* Content Type Column */}
+                                                      {!hiddenColumns.contentType && (
+                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                          <div
+                                                            onClick={(e) =>
+                                                              e.stopPropagation()
+                                                            }
+                                                          >
+                                                            {isAdminOrManager ? (
+                                                              <select
+                                                                value={
+                                                                  task.contentType ||
+                                                                  ""
+                                                                }
+                                                                onChange={(e) =>
+                                                                  handleTaskFieldChange(
+                                                                    task._id,
+                                                                    {
+                                                                      contentType:
+                                                                        e.target
+                                                                          .value,
+                                                                    },
+                                                                  )
+                                                                }
+                                                                className={`badge-select ${
+                                                                  task.contentType ===
+                                                                  "VIDEO"
+                                                                    ? "badge-type-video"
+                                                                    : task.contentType ===
+                                                                        "IMAGE"
+                                                                      ? "badge-type-image"
+                                                                      : task.contentType ===
+                                                                          "CAROUSEL"
+                                                                        ? "badge-type-carousel"
+                                                                        : task.contentType ===
+                                                                            "REEL"
+                                                                          ? "badge-type-reel"
+                                                                          : task.contentType ===
+                                                                              "POST"
+                                                                            ? "badge-type-post"
+                                                                            : task.contentType ===
+                                                                                "STORY"
+                                                                              ? "badge-type-story"
+                                                                              : task.contentType ===
+                                                                                  "Website"
+                                                                                ? "badge-type-video"
+                                                                                : task.contentType ===
+                                                                                    "SEO"
+                                                                                  ? "badge-type-image"
+                                                                                  : task.contentType ===
+                                                                                      "Video shoot"
+                                                                                    ? "badge-type-carousel"
+                                                                                    : "badge-type-none"
+                                                                }`}
+                                                              >
+                                                                <option value="">
+                                                                  NONE
+                                                                </option>
+                                                                <option value="VIDEO">
+                                                                  VIDEO
+                                                                </option>
+                                                                <option value="IMAGE">
+                                                                  IMAGE
+                                                                </option>
+                                                                <option value="CAROUSEL">
+                                                                  CAROUSEL
+                                                                </option>
+                                                                <option value="REEL">
+                                                                  REEL
+                                                                </option>
+                                                                <option value="POST">
+                                                                  POST
+                                                                </option>
+                                                                <option value="STORY">
+                                                                  STORY
+                                                                </option>
+                                                                <option value="Website">
+                                                                  Website
+                                                                </option>
+                                                                <option value="SEO">
+                                                                  SEO
+                                                                </option>
+                                                                <option value="Video shoot">
+                                                                  Video shoot
+                                                                </option>
+                                                              </select>
+                                                            ) : (
+                                                              <span
+                                                                className={`badge-span ${
+                                                                  task.contentType ===
+                                                                  "VIDEO"
+                                                                    ? "badge-type-video"
+                                                                    : task.contentType ===
+                                                                        "IMAGE"
+                                                                      ? "badge-type-image"
+                                                                      : task.contentType ===
+                                                                          "CAROUSEL"
+                                                                        ? "badge-type-carousel"
+                                                                        : task.contentType ===
+                                                                            "REEL"
+                                                                          ? "badge-type-reel"
+                                                                          : task.contentType ===
+                                                                              "POST"
+                                                                            ? "badge-type-post"
+                                                                            : task.contentType ===
+                                                                                "STORY"
+                                                                              ? "badge-type-story"
+                                                                              : task.contentType ===
+                                                                                  "Website"
+                                                                                ? "badge-type-video"
+                                                                                : task.contentType ===
+                                                                                    "SEO"
+                                                                                  ? "badge-type-image"
+                                                                                  : task.contentType ===
+                                                                                      "Video shoot"
+                                                                                    ? "badge-type-carousel"
+                                                                                    : "badge-type-none"
+                                                                }`}
+                                                              >
+                                                                {task.contentType ||
+                                                                  "NONE"}
+                                                              </span>
+                                                            )}
+                                                          </div>
+                                                        </td>
+                                                      )}
 
                                                       {/* Priority */}
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                        <div
-                                                          onClick={(e) =>
-                                                            e.stopPropagation()
-                                                          }
-                                                        >
-                                                          {isAdminOrManager ? (
-                                                            <select
-                                                              value={
-                                                                task.priority ||
-                                                                "Medium"
-                                                              }
-                                                              onChange={(e) =>
-                                                                handleTaskFieldChange(
-                                                                  task._id,
-                                                                  {
-                                                                    priority:
-                                                                      e.target
-                                                                        .value,
-                                                                  },
-                                                                )
-                                                              }
-                                                              className={`badge-select ${
-                                                                task.priority ===
-                                                                "Top High"
-                                                                  ? "badge-priority-top-high"
-                                                                  : task.priority ===
-                                                                      "High"
-                                                                    ? "badge-priority-high"
+                                                      {!hiddenColumns.priority && (
+                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                          <div
+                                                            onClick={(e) =>
+                                                              e.stopPropagation()
+                                                            }
+                                                          >
+                                                            {isAdminOrManager ? (
+                                                              <select
+                                                                value={
+                                                                  task.priority ||
+                                                                  "Medium"
+                                                                }
+                                                                onChange={(e) =>
+                                                                  handleTaskFieldChange(
+                                                                    task._id,
+                                                                    {
+                                                                      priority:
+                                                                        e.target
+                                                                          .value,
+                                                                    },
+                                                                  )
+                                                                }
+                                                                className={`badge-select ${
+                                                                  task.priority ===
+                                                                  "Top High"
+                                                                    ? "badge-priority-top-high"
                                                                     : task.priority ===
-                                                                        "Medium"
-                                                                      ? "badge-priority-medium"
-                                                                      : "badge-priority-low"
-                                                              }`}
-                                                            >
-                                                              <option value="Low">
-                                                                Low
-                                                              </option>
-                                                              <option value="Medium">
-                                                                Medium
-                                                              </option>
-                                                              <option value="High">
-                                                                High
-                                                              </option>
-                                                              <option value="Top High">
-                                                                Top High
-                                                              </option>
-                                                            </select>
-                                                          ) : (
-                                                            <span
-                                                              className={`badge-span ${
-                                                                task.priority ===
-                                                                "Top High"
-                                                                  ? "badge-priority-top-high"
-                                                                  : task.priority ===
-                                                                      "High"
-                                                                    ? "badge-priority-high"
+                                                                        "High"
+                                                                      ? "badge-priority-high"
+                                                                      : task.priority ===
+                                                                          "Medium"
+                                                                        ? "badge-priority-medium"
+                                                                        : "badge-priority-low"
+                                                                }`}
+                                                              >
+                                                                <option value="Low">
+                                                                  Low
+                                                                </option>
+                                                                <option value="Medium">
+                                                                  Medium
+                                                                </option>
+                                                                <option value="High">
+                                                                  High
+                                                                </option>
+                                                                <option value="Top High">
+                                                                  Top High
+                                                                </option>
+                                                              </select>
+                                                            ) : (
+                                                              <span
+                                                                className={`badge-span ${
+                                                                  task.priority ===
+                                                                  "Top High"
+                                                                    ? "badge-priority-top-high"
                                                                     : task.priority ===
-                                                                        "Medium"
-                                                                      ? "badge-priority-medium"
-                                                                      : "badge-priority-low"
-                                                              }`}
-                                                            >
-                                                              {task.priority ||
-                                                                "Medium"}
-                                                            </span>
-                                                          )}
-                                                        </div>
-                                                      </td>
+                                                                        "High"
+                                                                      ? "badge-priority-high"
+                                                                      : task.priority ===
+                                                                          "Medium"
+                                                                        ? "badge-priority-medium"
+                                                                        : "badge-priority-low"
+                                                                }`}
+                                                              >
+                                                                {task.priority ||
+                                                                  "Medium"}
+                                                              </span>
+                                                            )}
+                                                          </div>
+                                                        </td>
+                                                      )}
 
                                                       {/* Status */}
-                                                      <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                        <div
-                                                          onClick={(e) =>
-                                                            e.stopPropagation()
-                                                          }
-                                                        >
-                                                          {isAdminOrManager ? (
-                                                            <select
-                                                              value={
-                                                                task.status ||
-                                                                "Pending"
-                                                              }
-                                                              onChange={(e) =>
-                                                                handleTaskFieldChange(
-                                                                  task._id,
-                                                                  {
-                                                                    status:
-                                                                      e.target
-                                                                        .value,
-                                                                  },
-                                                                )
-                                                              }
-                                                              className={`badge-select ${
-                                                                task.status ===
-                                                                "Completed"
-                                                                  ? "badge-status-completed"
-                                                                  : task.status ===
-                                                                      "In Progress"
-                                                                    ? "badge-status-in-progress"
+                                                      {!hiddenColumns.status && (
+                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                          <div
+                                                            onClick={(e) =>
+                                                              e.stopPropagation()
+                                                            }
+                                                          >
+                                                            {isAdminOrManager ? (
+                                                              <select
+                                                                value={
+                                                                  task.status ||
+                                                                  "Pending"
+                                                                }
+                                                                onChange={(e) =>
+                                                                  handleTaskFieldChange(
+                                                                    task._id,
+                                                                    {
+                                                                      status:
+                                                                        e.target
+                                                                          .value,
+                                                                    },
+                                                                  )
+                                                                }
+                                                                className={`badge-select ${
+                                                                  task.status ===
+                                                                  "Completed"
+                                                                    ? "badge-status-completed"
                                                                     : task.status ===
-                                                                          "IN-REVIEW" ||
-                                                                        task.status ===
-                                                                          "In Review" ||
-                                                                        task.status ===
-                                                                          "IN-Review"
-                                                                      ? "badge-status-in-review"
+                                                                        "In Progress"
+                                                                      ? "badge-status-in-progress"
                                                                       : task.status ===
-                                                                          "On Hold"
-                                                                        ? "badge-status-on-hold"
+                                                                            "IN-REVIEW" ||
+                                                                          task.status ===
+                                                                            "In Review" ||
+                                                                          task.status ===
+                                                                            "IN-Review"
+                                                                        ? "badge-status-in-review"
                                                                         : task.status ===
-                                                                            "Rejected"
-                                                                          ? "badge-status-rejected"
-                                                                          : "badge-status-pending"
-                                                              }`}
-                                                            >
-                                                              <option value="Pending">
-                                                                Pending
-                                                              </option>
-                                                              <option value="In Progress">
-                                                                In Progress
-                                                              </option>
-                                                              <option value="IN-REVIEW">
-                                                                In Review
-                                                              </option>
-                                                              <option value="Completed">
-                                                                Completed
-                                                              </option>
-                                                              <option value="On Hold">
-                                                                On Hold
-                                                              </option>
-                                                              <option value="Rejected">
-                                                                Rejected
-                                                              </option>
-                                                            </select>
-                                                          ) : (
-                                                            <span
-                                                              className={`badge-span ${
-                                                                task.status ===
-                                                                "Completed"
-                                                                  ? "badge-status-completed"
-                                                                  : task.status ===
-                                                                      "In Progress"
-                                                                    ? "badge-status-in-progress"
+                                                                            "On Hold"
+                                                                          ? "badge-status-on-hold"
+                                                                          : task.status ===
+                                                                              "Rejected"
+                                                                            ? "badge-status-rejected"
+                                                                            : "badge-status-pending"
+                                                                }`}
+                                                              >
+                                                                <option value="Pending">
+                                                                  Pending
+                                                                </option>
+                                                                <option value="In Progress">
+                                                                  In Progress
+                                                                </option>
+                                                                <option value="IN-REVIEW">
+                                                                  In Review
+                                                                </option>
+                                                                <option value="Completed">
+                                                                  Completed
+                                                                </option>
+                                                                <option value="On Hold">
+                                                                  On Hold
+                                                                </option>
+                                                                <option value="Rejected">
+                                                                  Rejected
+                                                                </option>
+                                                              </select>
+                                                            ) : (
+                                                              <span
+                                                                className={`badge-span ${
+                                                                  task.status ===
+                                                                  "Completed"
+                                                                    ? "badge-status-completed"
                                                                     : task.status ===
-                                                                          "IN-REVIEW" ||
-                                                                        task.status ===
-                                                                          "In Review" ||
-                                                                        task.status ===
-                                                                          "IN-Review"
-                                                                      ? "badge-status-in-review"
+                                                                        "In Progress"
+                                                                      ? "badge-status-in-progress"
                                                                       : task.status ===
-                                                                          "On Hold"
-                                                                        ? "badge-status-on-hold"
+                                                                            "IN-REVIEW" ||
+                                                                          task.status ===
+                                                                            "In Review" ||
+                                                                          task.status ===
+                                                                            "IN-Review"
+                                                                        ? "badge-status-in-review"
                                                                         : task.status ===
-                                                                            "Rejected"
-                                                                          ? "badge-status-rejected"
-                                                                          : "badge-status-pending"
-                                                              }`}
-                                                            >
-                                                              {task.status ===
-                                                                "IN-REVIEW" ||
-                                                              task.status ===
-                                                                "In Review" ||
-                                                              task.status ===
-                                                                "IN-Review"
-                                                                ? "In Review"
-                                                                : task.status ||
-                                                                  "Pending"}
-                                                            </span>
-                                                          )}
-                                                        </div>
-                                                      </td>
+                                                                            "On Hold"
+                                                                          ? "badge-status-on-hold"
+                                                                          : task.status ===
+                                                                              "Rejected"
+                                                                            ? "badge-status-rejected"
+                                                                            : "badge-status-pending"
+                                                                }`}
+                                                              >
+                                                                {task.status ===
+                                                                  "IN-REVIEW" ||
+                                                                task.status ===
+                                                                  "In Review" ||
+                                                                task.status ===
+                                                                  "IN-Review"
+                                                                  ? "In Review"
+                                                                  : task.status ||
+                                                                    "Pending"}
+                                                              </span>
+                                                            )}
+                                                          </div>
+                                                        </td>
+                                                      )}
 
                                                       {/* Revision Column */}
                                                       {!hiddenColumns.revision && (
@@ -5347,740 +5485,761 @@ const ProjectTaskBoard = ({
                                                               </td>
 
                                                               {/* Content Copy Column */}
-                                                              <td className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 ${hiddenColumns.contentCopy ? 'hidden' : ''}`}>
+                                                              <td
+                                                                className={`px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 ${hiddenColumns.contentCopy ? "hidden" : ""}`}
+                                                              >
+                                                                <div
+                                                                  onClick={(
+                                                                    e,
+                                                                  ) =>
+                                                                    e.stopPropagation()
+                                                                  }
+                                                                  className="w-full"
+                                                                >
+                                                                  <ContentCopyInput
+                                                                    value={
+                                                                      sub.contentCopy
+                                                                    }
+                                                                    onChange={(
+                                                                      newVal,
+                                                                    ) =>
+                                                                      handleSubtaskFieldChange(
+                                                                        task,
+                                                                        sub._id,
+                                                                        {
+                                                                          contentCopy:
+                                                                            newVal,
+                                                                        },
+                                                                      )
+                                                                    }
+                                                                  />
+                                                                </div>
+                                                              </td>
+
+                                                              {/* 2. Client Column */}
+                                                              {!hiddenColumns.client && (
+                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-slate-450 opacity-60">
+                                                                  {activeProject
+                                                                    ?.client
+                                                                    ?.companyName ? (
+                                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-50/70 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30">
+                                                                      {
+                                                                        activeProject
+                                                                          .client
+                                                                          .companyName
+                                                                      }
+                                                                    </span>
+                                                                  ) : (
+                                                                    <span className="text-slate-400 dark:text-slate-555 text-[9px] font-normal">
+                                                                      N/A
+                                                                    </span>
+                                                                  )}
+                                                                </td>
+                                                              )}
+
+                                                              {/* Created By Column */}
+                                                              {!hiddenColumns.createdBy && (
+                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 opacity-60">
+                                                                  {task.createdBy ? (
+                                                                    <div className="flex items-center gap-2">
+                                                                      {task
+                                                                        .createdBy
+                                                                        .profile
+                                                                        ?.profileImage
+                                                                        ?.url ||
+                                                                      task
+                                                                        .createdBy
+                                                                        .profileImage
+                                                                        ?.url ||
+                                                                      task
+                                                                        .createdBy
+                                                                        .profile
+                                                                        ?.avatar ||
+                                                                      task
+                                                                        .createdBy
+                                                                        .avatar ? (
+                                                                        <img
+                                                                          src={
+                                                                            task
+                                                                              .createdBy
+                                                                              .profile
+                                                                              ?.profileImage
+                                                                              ?.url ||
+                                                                            task
+                                                                              .createdBy
+                                                                              .profileImage
+                                                                              ?.url ||
+                                                                            task
+                                                                              .createdBy
+                                                                              .profile
+                                                                              ?.avatar ||
+                                                                            task
+                                                                              .createdBy
+                                                                              .avatar
+                                                                          }
+                                                                          alt={
+                                                                            task
+                                                                              .createdBy
+                                                                              .name
+                                                                          }
+                                                                          className="w-5 h-5 rounded-full object-cover border border-slate-200 dark:border-white/10 shrink-0"
+                                                                        />
+                                                                      ) : (
+                                                                        <div
+                                                                          className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
+                                                                            task
+                                                                              .createdBy
+                                                                              .name ||
+                                                                              "U",
+                                                                          )}`}
+                                                                        >
+                                                                          {getInitials(
+                                                                            task
+                                                                              .createdBy
+                                                                              .name ||
+                                                                              "U",
+                                                                          )}
+                                                                        </div>
+                                                                      )}
+                                                                      <span
+                                                                        className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[100px]"
+                                                                        title={
+                                                                          task
+                                                                            .createdBy
+                                                                            .name
+                                                                        }
+                                                                      >
+                                                                        {
+                                                                          task
+                                                                            .createdBy
+                                                                            .name
+                                                                        }
+                                                                      </span>
+                                                                    </div>
+                                                                  ) : (
+                                                                    <span className="text-slate-400 dark:text-slate-550 text-[9px] font-normal">
+                                                                      N/A
+                                                                    </span>
+                                                                  )}
+                                                                </td>
+                                                              )}
+
+                                                              {/* 3. Start Date Column */}
+                                                              {!hiddenColumns.startDate && (
+                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                                  <div
+                                                                    className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
+                                                                    onClick={(
+                                                                      e,
+                                                                    ) => {
+                                                                      e.stopPropagation();
+                                                                      const input =
+                                                                        e.currentTarget.querySelector(
+                                                                          'input[type="date"]',
+                                                                        );
+                                                                      if (
+                                                                        input &&
+                                                                        typeof input.showPicker ===
+                                                                          "function"
+                                                                      ) {
+                                                                        input.showPicker();
+                                                                      }
+                                                                    }}
+                                                                  >
+                                                                    {sub.startDate ? (
+                                                                      <div className="flex items-center flex-nowrap gap-1.5 px-2.5 py-1 rounded-md border border-blue-300 dark:border-blue-800/80 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-855 dark:text-blue-200 text-[10px] font-bold bg-blue-100/90 dark:bg-blue-955/75 transition-all shadow-sm">
+                                                                        <FiCalendar
+                                                                          size={
+                                                                            10.5
+                                                                          }
+                                                                          className="text-blue-600 dark:text-blue-450 shrink-0"
+                                                                        />
+                                                                        <span className="whitespace-nowrap">
+                                                                          {new Date(
+                                                                            sub.startDate,
+                                                                          ).toLocaleDateString(
+                                                                            undefined,
+                                                                            {
+                                                                              month:
+                                                                                "short",
+                                                                              day: "numeric",
+                                                                            },
+                                                                          )}
+                                                                        </span>
+                                                                        {isAdminOrManager && (
+                                                                          <button
+                                                                            type="button"
+                                                                            onClick={(
+                                                                              e,
+                                                                            ) => {
+                                                                              e.stopPropagation();
+                                                                              handleSubtaskFieldChange(
+                                                                                task,
+                                                                                sub._id,
+                                                                                {
+                                                                                  startDate:
+                                                                                    null,
+                                                                                },
+                                                                              );
+                                                                            }}
+                                                                            className="ml-1 text-blue-505 hover:text-rose-600 dark:text-blue-450 dark:hover:text-rose-455 relative z-10 transition-colors cursor-pointer"
+                                                                          >
+                                                                            <FiX
+                                                                              size={
+                                                                                10
+                                                                              }
+                                                                            />
+                                                                          </button>
+                                                                        )}
+                                                                      </div>
+                                                                    ) : (
+                                                                      <div className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-md border border-dashed border-blue-300 dark:border-blue-800/80 text-blue-605 dark:text-blue-400/90 hover:border-blue-400 hover:text-blue-755 dark:hover:text-blue-305 dark:hover:border-blue-600/80 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-955/50 transition-all text-[8px] font-bold">
+                                                                        <FiCalendar
+                                                                          size={
+                                                                            10.5
+                                                                          }
+                                                                        />
+                                                                        <span>
+                                                                          +
+                                                                          Start
+                                                                          Date
+                                                                        </span>
+                                                                      </div>
+                                                                    )}
+                                                                    {isAdminOrManager && (
+                                                                      <input
+                                                                        type="date"
+                                                                        value={
+                                                                          sub.startDate
+                                                                            ? new Date(
+                                                                                sub.startDate,
+                                                                              )
+                                                                                .toISOString()
+                                                                                .split(
+                                                                                  "T",
+                                                                                )[0]
+                                                                            : ""
+                                                                        }
+                                                                        onChange={(
+                                                                          e,
+                                                                        ) =>
+                                                                          handleSubtaskFieldChange(
+                                                                            task,
+                                                                            sub._id,
+                                                                            {
+                                                                              startDate:
+                                                                                e
+                                                                                  .target
+                                                                                  .value ||
+                                                                                null,
+                                                                            },
+                                                                          )
+                                                                        }
+                                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                                      />
+                                                                    )}
+                                                                  </div>
+                                                                </td>
+                                                              )}
+
+                                                              {/* 4. End Date Column */}
+                                                              {!hiddenColumns.endDate && (
+                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                                  <div
+                                                                    className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
+                                                                    onClick={(
+                                                                      e,
+                                                                    ) => {
+                                                                      e.stopPropagation();
+                                                                      const input =
+                                                                        e.currentTarget.querySelector(
+                                                                          'input[type="date"]',
+                                                                        );
+                                                                      if (
+                                                                        input &&
+                                                                        typeof input.showPicker ===
+                                                                          "function"
+                                                                      ) {
+                                                                        input.showPicker();
+                                                                      }
+                                                                    }}
+                                                                  >
+                                                                    {sub.dueDate ? (
+                                                                      <div className="flex items-center flex-nowrap gap-1.5 px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-750/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-850 dark:text-rose-200 text-[10px] font-bold bg-rose-100/90 dark:bg-rose-955/75 transition-all shadow-sm">
+                                                                        <FiCalendar
+                                                                          size={
+                                                                            10.5
+                                                                          }
+                                                                          className="text-rose-600 dark:text-rose-400 shrink-0"
+                                                                        />
+                                                                        <span className="whitespace-nowrap">
+                                                                          {new Date(
+                                                                            sub.dueDate,
+                                                                          ).toLocaleDateString(
+                                                                            undefined,
+                                                                            {
+                                                                              month:
+                                                                                "short",
+                                                                              day: "numeric",
+                                                                            },
+                                                                          )}
+                                                                        </span>
+                                                                        {isAdminOrManager && (
+                                                                          <button
+                                                                            type="button"
+                                                                            onClick={(
+                                                                              e,
+                                                                            ) => {
+                                                                              e.stopPropagation();
+                                                                              handleSubtaskFieldChange(
+                                                                                task,
+                                                                                sub._id,
+                                                                                {
+                                                                                  dueDate:
+                                                                                    null,
+                                                                                },
+                                                                              );
+                                                                            }}
+                                                                            className="ml-1 text-rose-505 hover:text-rose-650 dark:text-rose-455 dark:hover:text-rose-455 relative z-10 transition-colors cursor-pointer"
+                                                                          >
+                                                                            <FiX
+                                                                              size={
+                                                                                10
+                                                                              }
+                                                                            />
+                                                                          </button>
+                                                                        )}
+                                                                      </div>
+                                                                    ) : (
+                                                                      <div className="flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-rose-300 dark:border-rose-800/80 text-rose-605 dark:text-rose-400/90 hover:border-rose-400 hover:text-rose-750 dark:hover:text-rose-300 dark:hover:border-rose-600/80 bg-rose-50/50 dark:bg-rose-955/20 hover:bg-rose-100 dark:hover:bg-rose-955/50 transition-all text-[8px] font-bold">
+                                                                        <FiCalendar
+                                                                          size={
+                                                                            10.5
+                                                                          }
+                                                                        />
+                                                                        <span>
+                                                                          + End
+                                                                          Date
+                                                                        </span>
+                                                                      </div>
+                                                                    )}
+                                                                    {isAdminOrManager && (
+                                                                      <input
+                                                                        type="date"
+                                                                        value={
+                                                                          sub.dueDate
+                                                                            ? new Date(
+                                                                                sub.dueDate,
+                                                                              )
+                                                                                .toISOString()
+                                                                                .split(
+                                                                                  "T",
+                                                                                )[0]
+                                                                            : ""
+                                                                        }
+                                                                        min={
+                                                                          sub.startDate
+                                                                            ? new Date(
+                                                                                sub.startDate,
+                                                                              )
+                                                                                .toISOString()
+                                                                                .split(
+                                                                                  "T",
+                                                                                )[0]
+                                                                            : ""
+                                                                        }
+                                                                        onChange={(
+                                                                          e,
+                                                                        ) =>
+                                                                          handleSubtaskFieldChange(
+                                                                            task,
+                                                                            sub._id,
+                                                                            {
+                                                                              dueDate:
+                                                                                e
+                                                                                  .target
+                                                                                  .value ||
+                                                                                null,
+                                                                            },
+                                                                          )
+                                                                        }
+                                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                                      />
+                                                                    )}
+                                                                  </div>
+                                                                </td>
+                                                              )}
+
+                                                              {/* 5. Assignee Column */}
+                                                              {!hiddenColumns.assignee && (
+                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                                  <div
+                                                                    className="flex items-center gap-1.5"
+                                                                    onClick={(
+                                                                      e,
+                                                                    ) =>
+                                                                      e.stopPropagation()
+                                                                    }
+                                                                  >
+                                                                    <AssigneeDropdown
+                                                                      selectedUser={
+                                                                        sub.assignedTo
+                                                                      }
+                                                                      users={
+                                                                        users
+                                                                      }
+                                                                      onChange={(
+                                                                        userId,
+                                                                      ) =>
+                                                                        handleSubtaskFieldChange(
+                                                                          task,
+                                                                          sub._id,
+                                                                          {
+                                                                            assignedTo:
+                                                                              userId,
+                                                                          },
+                                                                        )
+                                                                      }
+                                                                      isAdminOrManager={
+                                                                        isAdminOrManager
+                                                                      }
+                                                                      getAvatarColor={
+                                                                        getAvatarColor
+                                                                      }
+                                                                      size="md"
+                                                                    />
+                                                                  </div>
+                                                                </td>
+                                                              )}
+
+                                                              {/* 6. Content Type Column */}
+                                                              {!hiddenColumns.contentType && (
+                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                                                   <div
                                                                     onClick={(
                                                                       e,
                                                                     ) =>
                                                                       e.stopPropagation()
                                                                     }
-                                                                    className="w-full"
                                                                   >
-                                                                    <ContentCopyInput
-                                                                      value={
-                                                                        sub.contentCopy
-                                                                      }
-                                                                      onChange={(
-                                                                        newVal,
-                                                                      ) =>
-                                                                        handleSubtaskFieldChange(
-                                                                          task,
-                                                                          sub._id,
-                                                                          {
-                                                                            contentCopy:
-                                                                              newVal,
-                                                                          },
-                                                                        )
-                                                                      }
-                                                                    />
+                                                                    {isAdminOrManager ? (
+                                                                      <select
+                                                                        value={
+                                                                          sub.contentType ||
+                                                                          ""
+                                                                        }
+                                                                        onChange={(
+                                                                          e,
+                                                                        ) =>
+                                                                          handleSubtaskFieldChange(
+                                                                            task,
+                                                                            sub._id,
+                                                                            {
+                                                                              contentType:
+                                                                                e
+                                                                                  .target
+                                                                                  .value,
+                                                                            },
+                                                                          )
+                                                                        }
+                                                                        className={`badge-select ${
+                                                                          sub.contentType ===
+                                                                          "VIDEO"
+                                                                            ? "badge-type-video"
+                                                                            : sub.contentType ===
+                                                                                "IMAGE"
+                                                                              ? "badge-type-image"
+                                                                              : sub.contentType ===
+                                                                                  "CAROUSEL"
+                                                                                ? "badge-type-carousel"
+                                                                                : sub.contentType ===
+                                                                                    "REEL"
+                                                                                  ? "badge-type-reel"
+                                                                                  : sub.contentType ===
+                                                                                      "POST"
+                                                                                    ? "badge-type-post"
+                                                                                    : sub.contentType ===
+                                                                                        "STORY"
+                                                                                      ? "badge-type-story"
+                                                                                      : sub.contentType ===
+                                                                                          "Website"
+                                                                                        ? "badge-type-video"
+                                                                                        : sub.contentType ===
+                                                                                            "SEO"
+                                                                                          ? "badge-type-image"
+                                                                                          : sub.contentType ===
+                                                                                              "Video shoot"
+                                                                                            ? "badge-type-carousel"
+                                                                                            : "badge-type-none"
+                                                                        }`}
+                                                                      >
+                                                                        <option value="">
+                                                                          NONE
+                                                                        </option>
+                                                                        <option value="VIDEO">
+                                                                          VIDEO
+                                                                        </option>
+                                                                        <option value="IMAGE">
+                                                                          IMAGE
+                                                                        </option>
+                                                                        <option value="CAROUSEL">
+                                                                          CAROUSEL
+                                                                        </option>
+                                                                        <option value="REEL">
+                                                                          REEL
+                                                                        </option>
+                                                                        <option value="POST">
+                                                                          POST
+                                                                        </option>
+                                                                        <option value="STORY">
+                                                                          STORY
+                                                                        </option>
+                                                                        <option value="Website">
+                                                                          Website
+                                                                        </option>
+                                                                        <option value="SEO">
+                                                                          SEO
+                                                                        </option>
+                                                                        <option value="Video shoot">
+                                                                          Video
+                                                                          shoot
+                                                                        </option>
+                                                                      </select>
+                                                                    ) : (
+                                                                      <span
+                                                                        className={`badge-span ${
+                                                                          sub.contentType ===
+                                                                          "VIDEO"
+                                                                            ? "badge-type-video"
+                                                                            : sub.contentType ===
+                                                                                "IMAGE"
+                                                                              ? "badge-type-image"
+                                                                              : sub.contentType ===
+                                                                                  "CAROUSEL"
+                                                                                ? "badge-type-carousel"
+                                                                                : sub.contentType ===
+                                                                                    "REEL"
+                                                                                  ? "badge-type-reel"
+                                                                                  : sub.contentType ===
+                                                                                      "POST"
+                                                                                    ? "badge-type-post"
+                                                                                    : sub.contentType ===
+                                                                                        "STORY"
+                                                                                      ? "badge-type-story"
+                                                                                      : sub.contentType ===
+                                                                                          "Website"
+                                                                                        ? "badge-type-video"
+                                                                                        : sub.contentType ===
+                                                                                            "SEO"
+                                                                                          ? "badge-type-image"
+                                                                                          : sub.contentType ===
+                                                                                              "Video shoot"
+                                                                                            ? "badge-type-carousel"
+                                                                                            : "badge-type-none"
+                                                                        }`}
+                                                                      >
+                                                                        {sub.contentType ||
+                                                                          "NONE"}
+                                                                      </span>
+                                                                    )}
                                                                   </div>
                                                                 </td>
-
-                                                              {/* 2. Client Column */}
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-slate-450 opacity-60">
-                                                                {activeProject
-                                                                  ?.client
-                                                                  ?.companyName ? (
-                                                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold bg-indigo-50/70 text-indigo-700 dark:bg-indigo-950/20 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30">
-                                                                    {
-                                                                      activeProject
-                                                                        .client
-                                                                        .companyName
-                                                                    }
-                                                                  </span>
-                                                                ) : (
-                                                                  <span className="text-slate-400 dark:text-slate-555 text-[9px] font-normal">
-                                                                    N/A
-                                                                  </span>
-                                                                )}
-                                                              </td>
-
-                                                              {/* Created By Column */}
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 opacity-60">
-                                                                {task.createdBy ? (
-                                                                  <div className="flex items-center gap-2">
-                                                                    {task
-                                                                      .createdBy
-                                                                      .profile
-                                                                      ?.profileImage
-                                                                      ?.url ||
-                                                                    task
-                                                                      .createdBy
-                                                                      .profileImage
-                                                                      ?.url ||
-                                                                    task
-                                                                      .createdBy
-                                                                      .profile
-                                                                      ?.avatar ||
-                                                                    task
-                                                                      .createdBy
-                                                                      .avatar ? (
-                                                                      <img
-                                                                        src={
-                                                                          task
-                                                                            .createdBy
-                                                                            .profile
-                                                                            ?.profileImage
-                                                                            ?.url ||
-                                                                          task
-                                                                            .createdBy
-                                                                            .profileImage
-                                                                            ?.url ||
-                                                                          task
-                                                                            .createdBy
-                                                                            .profile
-                                                                            ?.avatar ||
-                                                                          task
-                                                                            .createdBy
-                                                                            .avatar
-                                                                        }
-                                                                        alt={
-                                                                          task
-                                                                            .createdBy
-                                                                            .name
-                                                                        }
-                                                                        className="w-5 h-5 rounded-full object-cover border border-slate-200 dark:border-white/10 shrink-0"
-                                                                      />
-                                                                    ) : (
-                                                                      <div
-                                                                        className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
-                                                                          task
-                                                                            .createdBy
-                                                                            .name ||
-                                                                            "U",
-                                                                        )}`}
-                                                                      >
-                                                                        {getInitials(
-                                                                          task
-                                                                            .createdBy
-                                                                            .name ||
-                                                                            "U",
-                                                                        )}
-                                                                      </div>
-                                                                    )}
-                                                                    <span
-                                                                      className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[100px]"
-                                                                      title={
-                                                                        task
-                                                                          .createdBy
-                                                                          .name
-                                                                      }
-                                                                    >
-                                                                      {
-                                                                        task
-                                                                          .createdBy
-                                                                          .name
-                                                                      }
-                                                                    </span>
-                                                                  </div>
-                                                                ) : (
-                                                                  <span className="text-slate-400 dark:text-slate-550 text-[9px] font-normal">
-                                                                    N/A
-                                                                  </span>
-                                                                )}
-                                                              </td>
-
-                                                              {/* 3. Assignee Column */}
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                                <div
-                                                                  className="flex items-center gap-1.5"
-                                                                  onClick={(
-                                                                    e,
-                                                                  ) =>
-                                                                    e.stopPropagation()
-                                                                  }
-                                                                >
-                                                                  <AssigneeDropdown
-                                                                    selectedUser={
-                                                                      sub.assignedTo
-                                                                    }
-                                                                    users={
-                                                                      users
-                                                                    }
-                                                                    onChange={(
-                                                                      userId,
-                                                                    ) =>
-                                                                      handleSubtaskFieldChange(
-                                                                        task,
-                                                                        sub._id,
-                                                                        {
-                                                                          assignedTo:
-                                                                            userId,
-                                                                        },
-                                                                      )
-                                                                    }
-                                                                    isAdminOrManager={
-                                                                      isAdminOrManager
-                                                                    }
-                                                                    getAvatarColor={
-                                                                      getAvatarColor
-                                                                    }
-                                                                    size="md"
-                                                                  />
-                                                                </div>
-                                                              </td>
-
-                                                              {/* 4. Content Type Column */}
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                                <div
-                                                                  onClick={(
-                                                                    e,
-                                                                  ) =>
-                                                                    e.stopPropagation()
-                                                                  }
-                                                                >
-                                                                  {isAdminOrManager ? (
-                                                                    <select
-                                                                      value={
-                                                                        sub.contentType ||
-                                                                        ""
-                                                                      }
-                                                                      onChange={(
-                                                                        e,
-                                                                      ) =>
-                                                                        handleSubtaskFieldChange(
-                                                                          task,
-                                                                          sub._id,
-                                                                          {
-                                                                            contentType:
-                                                                              e
-                                                                                .target
-                                                                                .value,
-                                                                          },
-                                                                        )
-                                                                      }
-                                                                      className={`badge-select ${
-                                                                        sub.contentType ===
-                                                                        "VIDEO"
-                                                                          ? "badge-type-video"
-                                                                          : sub.contentType ===
-                                                                              "IMAGE"
-                                                                            ? "badge-type-image"
-                                                                            : sub.contentType ===
-                                                                                "CAROUSEL"
-                                                                              ? "badge-type-carousel"
-                                                                              : sub.contentType ===
-                                                                                  "REEL"
-                                                                                ? "badge-type-reel"
-                                                                                : sub.contentType ===
-                                                                                    "POST"
-                                                                                  ? "badge-type-post"
-                                                                                  : sub.contentType ===
-                                                                                      "STORY"
-                                                                                    ? "badge-type-story"
-                                                                                    : sub.contentType ===
-                                                                                        "Website"
-                                                                                      ? "badge-type-video"
-                                                                                      : sub.contentType ===
-                                                                                          "SEO"
-                                                                                        ? "badge-type-image"
-                                                                                        : sub.contentType ===
-                                                                                            "Video shoot"
-                                                                                          ? "badge-type-carousel"
-                                                                                          : "badge-type-none"
-                                                                      }`}
-                                                                    >
-                                                                      <option value="">
-                                                                        NONE
-                                                                      </option>
-                                                                      <option value="VIDEO">
-                                                                        VIDEO
-                                                                      </option>
-                                                                      <option value="IMAGE">
-                                                                        IMAGE
-                                                                      </option>
-                                                                      <option value="CAROUSEL">
-                                                                        CAROUSEL
-                                                                      </option>
-                                                                      <option value="REEL">
-                                                                        REEL
-                                                                      </option>
-                                                                      <option value="POST">
-                                                                        POST
-                                                                      </option>
-                                                                      <option value="STORY">
-                                                                        STORY
-                                                                      </option>
-                                                                      <option value="Website">
-                                                                        Website
-                                                                      </option>
-                                                                      <option value="SEO">
-                                                                        SEO
-                                                                      </option>
-                                                                      <option value="Video shoot">
-                                                                        Video
-                                                                        shoot
-                                                                      </option>
-                                                                    </select>
-                                                                  ) : (
-                                                                    <span
-                                                                      className={`badge-span ${
-                                                                        sub.contentType ===
-                                                                        "VIDEO"
-                                                                          ? "badge-type-video"
-                                                                          : sub.contentType ===
-                                                                              "IMAGE"
-                                                                            ? "badge-type-image"
-                                                                            : sub.contentType ===
-                                                                                "CAROUSEL"
-                                                                              ? "badge-type-carousel"
-                                                                              : sub.contentType ===
-                                                                                  "REEL"
-                                                                                ? "badge-type-reel"
-                                                                                : sub.contentType ===
-                                                                                    "POST"
-                                                                                  ? "badge-type-post"
-                                                                                  : sub.contentType ===
-                                                                                      "STORY"
-                                                                                    ? "badge-type-story"
-                                                                                    : sub.contentType ===
-                                                                                        "Website"
-                                                                                      ? "badge-type-video"
-                                                                                      : sub.contentType ===
-                                                                                          "SEO"
-                                                                                        ? "badge-type-image"
-                                                                                        : sub.contentType ===
-                                                                                            "Video shoot"
-                                                                                          ? "badge-type-carousel"
-                                                                                          : "badge-type-none"
-                                                                      }`}
-                                                                    >
-                                                                      {sub.contentType ||
-                                                                        "NONE"}
-                                                                    </span>
-                                                                  )}
-                                                                </div>
-                                                              </td>
-
-                                                              {/* 5. Start Date Column */}
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                                <div
-                                                                  className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
-                                                                  onClick={(
-                                                                    e,
-                                                                  ) => {
-                                                                    e.stopPropagation();
-                                                                    const input =
-                                                                      e.currentTarget.querySelector(
-                                                                        'input[type="date"]',
-                                                                      );
-                                                                    if (
-                                                                      input &&
-                                                                      typeof input.showPicker ===
-                                                                        "function"
-                                                                    ) {
-                                                                      input.showPicker();
-                                                                    }
-                                                                  }}
-                                                                >
-                                                                  {sub.startDate ? (
-                                                                    <div className="flex items-center flex-nowrap gap-1.5 px-2.5 py-1 rounded-md border border-blue-300 dark:border-blue-800/80 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-855 dark:text-blue-200 text-[10px] font-bold bg-blue-100/90 dark:bg-blue-955/75 transition-all shadow-sm">
-                                                                      <FiCalendar
-                                                                        size={
-                                                                          10.5
-                                                                        }
-                                                                        className="text-blue-600 dark:text-blue-450 shrink-0"
-                                                                      />
-                                                                      <span className="whitespace-nowrap">
-                                                                        {new Date(
-                                                                          sub.startDate,
-                                                                        ).toLocaleDateString(
-                                                                          undefined,
-                                                                          {
-                                                                            month:
-                                                                              "short",
-                                                                            day: "numeric",
-                                                                          },
-                                                                        )}
-                                                                      </span>
-                                                                      {isAdminOrManager && (
-                                                                        <button
-                                                                          type="button"
-                                                                          onClick={(
-                                                                            e,
-                                                                          ) => {
-                                                                            e.stopPropagation();
-                                                                            handleSubtaskFieldChange(
-                                                                              task,
-                                                                              sub._id,
-                                                                              {
-                                                                                startDate:
-                                                                                  null,
-                                                                              },
-                                                                            );
-                                                                          }}
-                                                                          className="ml-1 text-blue-505 hover:text-rose-600 dark:text-blue-450 dark:hover:text-rose-455 relative z-10 transition-colors cursor-pointer"
-                                                                        >
-                                                                          <FiX
-                                                                            size={
-                                                                              10
-                                                                            }
-                                                                          />
-                                                                        </button>
-                                                                      )}
-                                                                    </div>
-                                                                  ) : (
-                                                                    <div className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-md border border-dashed border-blue-300 dark:border-blue-800/80 text-blue-605 dark:text-blue-400/90 hover:border-blue-400 hover:text-blue-755 dark:hover:text-blue-305 dark:hover:border-blue-600/80 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-955/50 transition-all text-[8px] font-bold">
-                                                                      <FiCalendar
-                                                                        size={
-                                                                          10.5
-                                                                        }
-                                                                      />
-                                                                      <span>
-                                                                        + Start
-                                                                        Date
-                                                                      </span>
-                                                                    </div>
-                                                                  )}
-                                                                  {isAdminOrManager && (
-                                                                    <input
-                                                                      type="date"
-                                                                      value={
-                                                                        sub.startDate
-                                                                          ? new Date(
-                                                                              sub.startDate,
-                                                                            )
-                                                                              .toISOString()
-                                                                              .split(
-                                                                                "T",
-                                                                              )[0]
-                                                                          : ""
-                                                                      }
-                                                                      onChange={(
-                                                                        e,
-                                                                      ) =>
-                                                                        handleSubtaskFieldChange(
-                                                                          task,
-                                                                          sub._id,
-                                                                          {
-                                                                            startDate:
-                                                                              e
-                                                                                .target
-                                                                                .value ||
-                                                                              null,
-                                                                          },
-                                                                        )
-                                                                      }
-                                                                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                                    />
-                                                                  )}
-                                                                </div>
-                                                              </td>
-
-                                                              {/* 6. End Date Column */}
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                                <div
-                                                                  className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
-                                                                  onClick={(
-                                                                    e,
-                                                                  ) => {
-                                                                    e.stopPropagation();
-                                                                    const input =
-                                                                      e.currentTarget.querySelector(
-                                                                        'input[type="date"]',
-                                                                      );
-                                                                    if (
-                                                                      input &&
-                                                                      typeof input.showPicker ===
-                                                                        "function"
-                                                                    ) {
-                                                                      input.showPicker();
-                                                                    }
-                                                                  }}
-                                                                >
-                                                                  {sub.dueDate ? (
-                                                                    <div className="flex items-center flex-nowrap gap-1.5 px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-750/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-850 dark:text-rose-200 text-[10px] font-bold bg-rose-100/90 dark:bg-rose-955/75 transition-all shadow-sm">
-                                                                      <FiCalendar
-                                                                        size={
-                                                                          10.5
-                                                                        }
-                                                                        className="text-rose-600 dark:text-rose-400 shrink-0"
-                                                                      />
-                                                                      <span className="whitespace-nowrap">
-                                                                        {new Date(
-                                                                          sub.dueDate,
-                                                                        ).toLocaleDateString(
-                                                                          undefined,
-                                                                          {
-                                                                            month:
-                                                                              "short",
-                                                                            day: "numeric",
-                                                                          },
-                                                                        )}
-                                                                      </span>
-                                                                      {isAdminOrManager && (
-                                                                        <button
-                                                                          type="button"
-                                                                          onClick={(
-                                                                            e,
-                                                                          ) => {
-                                                                            e.stopPropagation();
-                                                                            handleSubtaskFieldChange(
-                                                                              task,
-                                                                              sub._id,
-                                                                              {
-                                                                                dueDate:
-                                                                                  null,
-                                                                              },
-                                                                            );
-                                                                          }}
-                                                                          className="ml-1 text-rose-505 hover:text-rose-650 dark:text-rose-455 dark:hover:text-rose-455 relative z-10 transition-colors cursor-pointer"
-                                                                        >
-                                                                          <FiX
-                                                                            size={
-                                                                              10
-                                                                            }
-                                                                          />
-                                                                        </button>
-                                                                      )}
-                                                                    </div>
-                                                                  ) : (
-                                                                    <div className="flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-rose-300 dark:border-rose-800/80 text-rose-605 dark:text-rose-400/90 hover:border-rose-400 hover:text-rose-750 dark:hover:text-rose-300 dark:hover:border-rose-600/80 bg-rose-50/50 dark:bg-rose-955/20 hover:bg-rose-100 dark:hover:bg-rose-955/50 transition-all text-[8px] font-bold">
-                                                                      <FiCalendar
-                                                                        size={
-                                                                          10.5
-                                                                        }
-                                                                      />
-                                                                      <span>
-                                                                        + End
-                                                                        Date
-                                                                      </span>
-                                                                    </div>
-                                                                  )}
-                                                                  {isAdminOrManager && (
-                                                                    <input
-                                                                      type="date"
-                                                                      value={
-                                                                        sub.dueDate
-                                                                          ? new Date(
-                                                                              sub.dueDate,
-                                                                            )
-                                                                              .toISOString()
-                                                                              .split(
-                                                                                "T",
-                                                                              )[0]
-                                                                          : ""
-                                                                      }
-                                                                      min={
-                                                                        sub.startDate
-                                                                          ? new Date(
-                                                                              sub.startDate,
-                                                                            )
-                                                                              .toISOString()
-                                                                              .split(
-                                                                                "T",
-                                                                              )[0]
-                                                                          : ""
-                                                                      }
-                                                                      onChange={(
-                                                                        e,
-                                                                      ) =>
-                                                                        handleSubtaskFieldChange(
-                                                                          task,
-                                                                          sub._id,
-                                                                          {
-                                                                            dueDate:
-                                                                              e
-                                                                                .target
-                                                                                .value ||
-                                                                              null,
-                                                                          },
-                                                                        )
-                                                                      }
-                                                                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                                    />
-                                                                  )}
-                                                                </div>
-                                                              </td>
+                                                              )}
 
                                                               {/* 7. Priority Column */}
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                                <div
-                                                                  onClick={(
-                                                                    e,
-                                                                  ) =>
-                                                                    e.stopPropagation()
-                                                                  }
-                                                                >
-                                                                  {isAdminOrManager ? (
-                                                                    <select
-                                                                      value={
-                                                                        sub.priority ||
-                                                                        "Medium"
-                                                                      }
-                                                                      onChange={(
-                                                                        e,
-                                                                      ) =>
-                                                                        handleSubtaskFieldChange(
-                                                                          task,
-                                                                          sub._id,
-                                                                          {
-                                                                            priority:
-                                                                              e
-                                                                                .target
-                                                                                .value,
-                                                                          },
-                                                                        )
-                                                                      }
-                                                                      className={`badge-select ${
-                                                                        sub.priority ===
-                                                                        "Top High"
-                                                                          ? "badge-priority-top-high"
-                                                                          : sub.priority ===
-                                                                              "High"
-                                                                            ? "badge-priority-high"
+                                                              {!hiddenColumns.priority && (
+                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                                  <div
+                                                                    onClick={(
+                                                                      e,
+                                                                    ) =>
+                                                                      e.stopPropagation()
+                                                                    }
+                                                                  >
+                                                                    {isAdminOrManager ? (
+                                                                      <select
+                                                                        value={
+                                                                          sub.priority ||
+                                                                          "Medium"
+                                                                        }
+                                                                        onChange={(
+                                                                          e,
+                                                                        ) =>
+                                                                          handleSubtaskFieldChange(
+                                                                            task,
+                                                                            sub._id,
+                                                                            {
+                                                                              priority:
+                                                                                e
+                                                                                  .target
+                                                                                  .value,
+                                                                            },
+                                                                          )
+                                                                        }
+                                                                        className={`badge-select ${
+                                                                          sub.priority ===
+                                                                          "Top High"
+                                                                            ? "badge-priority-top-high"
                                                                             : sub.priority ===
-                                                                                "Medium"
-                                                                              ? "badge-priority-medium"
-                                                                              : "badge-priority-low"
-                                                                      }`}
-                                                                    >
-                                                                      <option value="Low">
-                                                                        Low
-                                                                      </option>
-                                                                      <option value="Medium">
-                                                                        Medium
-                                                                      </option>
-                                                                      <option value="High">
-                                                                        High
-                                                                      </option>
-                                                                      <option value="Top High">
-                                                                        Top High
-                                                                      </option>
-                                                                    </select>
-                                                                  ) : (
-                                                                    <span
-                                                                      className={`badge-span ${
-                                                                        sub.priority ===
-                                                                        "Top High"
-                                                                          ? "badge-priority-top-high"
-                                                                          : sub.priority ===
-                                                                              "High"
-                                                                            ? "badge-priority-high"
+                                                                                "High"
+                                                                              ? "badge-priority-high"
+                                                                              : sub.priority ===
+                                                                                  "Medium"
+                                                                                ? "badge-priority-medium"
+                                                                                : "badge-priority-low"
+                                                                        }`}
+                                                                      >
+                                                                        <option value="Low">
+                                                                          Low
+                                                                        </option>
+                                                                        <option value="Medium">
+                                                                          Medium
+                                                                        </option>
+                                                                        <option value="High">
+                                                                          High
+                                                                        </option>
+                                                                        <option value="Top High">
+                                                                          Top
+                                                                          High
+                                                                        </option>
+                                                                      </select>
+                                                                    ) : (
+                                                                      <span
+                                                                        className={`badge-span ${
+                                                                          sub.priority ===
+                                                                          "Top High"
+                                                                            ? "badge-priority-top-high"
                                                                             : sub.priority ===
-                                                                                "Medium"
-                                                                              ? "badge-priority-medium"
-                                                                              : "badge-priority-low"
-                                                                      }`}
-                                                                    >
-                                                                      {sub.priority ||
-                                                                        "Medium"}
-                                                                    </span>
-                                                                  )}
-                                                                </div>
-                                                              </td>
+                                                                                "High"
+                                                                              ? "badge-priority-high"
+                                                                              : sub.priority ===
+                                                                                  "Medium"
+                                                                                ? "badge-priority-medium"
+                                                                                : "badge-priority-low"
+                                                                        }`}
+                                                                      >
+                                                                        {sub.priority ||
+                                                                          "Medium"}
+                                                                      </span>
+                                                                    )}
+                                                                  </div>
+                                                                </td>
+                                                              )}
 
                                                               {/* 8. Status Column */}
-                                                              <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                                <div
-                                                                  onClick={(
-                                                                    e,
-                                                                  ) =>
-                                                                    e.stopPropagation()
-                                                                  }
-                                                                >
-                                                                  {isAdminOrManager ? (
-                                                                    <select
-                                                                      value={
-                                                                        sub.status ||
-                                                                        "Pending"
-                                                                      }
-                                                                      onChange={(
-                                                                        e,
-                                                                      ) =>
-                                                                        handleSubtaskFieldChange(
-                                                                          task,
-                                                                          sub._id,
-                                                                          {
-                                                                            status:
-                                                                              e
-                                                                                .target
-                                                                                .value,
-                                                                          },
-                                                                        )
-                                                                      }
-                                                                      className={`badge-select ${
-                                                                        sub.status ===
-                                                                        "Completed"
-                                                                          ? "badge-status-completed"
-                                                                          : sub.status ===
-                                                                              "In Progress"
-                                                                            ? "badge-status-in-progress"
+                                                              {!hiddenColumns.status && (
+                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                                  <div
+                                                                    onClick={(
+                                                                      e,
+                                                                    ) =>
+                                                                      e.stopPropagation()
+                                                                    }
+                                                                  >
+                                                                    {isAdminOrManager ? (
+                                                                      <select
+                                                                        value={
+                                                                          sub.status ||
+                                                                          "Pending"
+                                                                        }
+                                                                        onChange={(
+                                                                          e,
+                                                                        ) =>
+                                                                          handleSubtaskFieldChange(
+                                                                            task,
+                                                                            sub._id,
+                                                                            {
+                                                                              status:
+                                                                                e
+                                                                                  .target
+                                                                                  .value,
+                                                                            },
+                                                                          )
+                                                                        }
+                                                                        className={`badge-select ${
+                                                                          sub.status ===
+                                                                          "Completed"
+                                                                            ? "badge-status-completed"
                                                                             : sub.status ===
-                                                                                  "IN-REVIEW" ||
-                                                                                sub.status ===
-                                                                                  "In Review" ||
-                                                                                sub.status ===
-                                                                                  "IN-Review"
-                                                                              ? "badge-status-in-review"
+                                                                                "In Progress"
+                                                                              ? "badge-status-in-progress"
                                                                               : sub.status ===
-                                                                                  "On Hold"
-                                                                                ? "badge-status-on-hold"
+                                                                                    "IN-REVIEW" ||
+                                                                                  sub.status ===
+                                                                                    "In Review" ||
+                                                                                  sub.status ===
+                                                                                    "IN-Review"
+                                                                                ? "badge-status-in-review"
                                                                                 : sub.status ===
-                                                                                    "Rejected"
-                                                                                  ? "badge-status-rejected"
-                                                                                  : "badge-status-pending"
-                                                                      }`}
-                                                                    >
-                                                                      <option value="Pending">
-                                                                        Pending
-                                                                      </option>
-                                                                      <option value="In Progress">
-                                                                        In
-                                                                        Progress
-                                                                      </option>
-                                                                      <option value="IN-REVIEW">
-                                                                        In
-                                                                        Review
-                                                                      </option>
-                                                                      <option value="Completed">
-                                                                        Completed
-                                                                      </option>
-                                                                      <option value="On Hold">
-                                                                        On Hold
-                                                                      </option>
-                                                                      <option value="Rejected">
-                                                                        Rejected
-                                                                      </option>
-                                                                    </select>
-                                                                  ) : (
-                                                                    <span
-                                                                      className={`badge-span ${
-                                                                        sub.status ===
-                                                                        "Completed"
-                                                                          ? "badge-status-completed"
-                                                                          : sub.status ===
-                                                                              "In Progress"
-                                                                            ? "badge-status-in-progress"
+                                                                                    "On Hold"
+                                                                                  ? "badge-status-on-hold"
+                                                                                  : sub.status ===
+                                                                                      "Rejected"
+                                                                                    ? "badge-status-rejected"
+                                                                                    : "badge-status-pending"
+                                                                        }`}
+                                                                      >
+                                                                        <option value="Pending">
+                                                                          Pending
+                                                                        </option>
+                                                                        <option value="In Progress">
+                                                                          In
+                                                                          Progress
+                                                                        </option>
+                                                                        <option value="IN-REVIEW">
+                                                                          In
+                                                                          Review
+                                                                        </option>
+                                                                        <option value="Completed">
+                                                                          Completed
+                                                                        </option>
+                                                                        <option value="On Hold">
+                                                                          On
+                                                                          Hold
+                                                                        </option>
+                                                                        <option value="Rejected">
+                                                                          Rejected
+                                                                        </option>
+                                                                      </select>
+                                                                    ) : (
+                                                                      <span
+                                                                        className={`badge-span ${
+                                                                          sub.status ===
+                                                                          "Completed"
+                                                                            ? "badge-status-completed"
                                                                             : sub.status ===
-                                                                                  "IN-REVIEW" ||
-                                                                                sub.status ===
-                                                                                  "In Review" ||
-                                                                                sub.status ===
-                                                                                  "IN-Review"
-                                                                              ? "badge-status-in-review"
+                                                                                "In Progress"
+                                                                              ? "badge-status-in-progress"
                                                                               : sub.status ===
-                                                                                  "On Hold"
-                                                                                ? "badge-status-on-hold"
+                                                                                    "IN-REVIEW" ||
+                                                                                  sub.status ===
+                                                                                    "In Review" ||
+                                                                                  sub.status ===
+                                                                                    "IN-Review"
+                                                                                ? "badge-status-in-review"
                                                                                 : sub.status ===
-                                                                                    "Rejected"
-                                                                                  ? "badge-status-rejected"
-                                                                                  : "badge-status-pending"
-                                                                      }`}
-                                                                    >
-                                                                      {sub.status ===
-                                                                        "IN-REVIEW" ||
-                                                                      sub.status ===
-                                                                        "In Review" ||
-                                                                      sub.status ===
-                                                                        "IN-Review"
-                                                                        ? "In Review"
-                                                                        : sub.status ||
-                                                                          "Pending"}
-                                                                    </span>
-                                                                  )}
-                                                                </div>
-                                                              </td>
+                                                                                    "On Hold"
+                                                                                  ? "badge-status-on-hold"
+                                                                                  : sub.status ===
+                                                                                      "Rejected"
+                                                                                    ? "badge-status-rejected"
+                                                                                    : "badge-status-pending"
+                                                                        }`}
+                                                                      >
+                                                                        {sub.status ===
+                                                                          "IN-REVIEW" ||
+                                                                        sub.status ===
+                                                                          "In Review" ||
+                                                                        sub.status ===
+                                                                          "IN-Review"
+                                                                          ? "In Review"
+                                                                          : sub.status ||
+                                                                            "Pending"}
+                                                                      </span>
+                                                                    )}
+                                                                  </div>
+                                                                </td>
+                                                              )}
 
                                                               {/* Subtask Revision Column (Placeholder to align columns) */}
                                                               {!hiddenColumns.revision && (
