@@ -576,15 +576,6 @@ const EodReports = () => {
   const handleSave = async (isDraftSubmit) => {
     // Validation on Submission (Not Draft)
     if (!isDraftSubmit) {
-      if (
-        !daySummary.toolsIssues ||
-        daySummary.toolsIssues.trim() === "" ||
-        daySummary.toolsIssues === "None"
-      ) {
-        toast.error("please fill fields");
-        return;
-      }
-
       if (!overallStatus || overallStatus.trim() === "") {
         toast.error("Overall Status cannot be empty.");
         return;
@@ -1030,7 +1021,7 @@ const EodReports = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
             <div>
               <label className="text-[10px] font-bold theme-text-secondary uppercase tracking-wider block">
-                Issues faced <span className="text-rose-500">*</span>
+                Issues faced
               </label>
               <div className="relative mt-2">
                 <select

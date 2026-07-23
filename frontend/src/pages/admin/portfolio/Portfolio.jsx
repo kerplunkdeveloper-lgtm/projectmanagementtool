@@ -260,10 +260,11 @@ const Portfolio = () => {
   const isAdminOrManager = role === "admin" || role === "operationmanager";
   const [selectedUserFilter, setSelectedUserFilter] = useState("all");
 
-  // Filter users list to include Social Media Executives / Social Media Managers
+  // Filter users list to include Social Media Executives / Social Media Managers (Logged-in user comes first)
   const socialMediaUsers = useMemo(() => {
     if (!users || !Array.isArray(users)) return [];
-    return users.filter((u) => {
+    const currentUserId = String(user?._id || user?.id || "");
+    const filtered = users.filter((u) => {
       const roleStr = String(u.role || "").toLowerCase();
       const deptStr = String(u.department || "").toLowerCase();
 
@@ -282,7 +283,15 @@ const Portfolio = () => {
 
       return isSocialMedia || hasCreatedPortfolio;
     });
-  }, [users, portfolios]);
+
+    return [...filtered].sort((a, b) => {
+      const aIsMe = String(a._id) === currentUserId;
+      const bIsMe = String(b._id) === currentUserId;
+      if (aIsMe) return -1;
+      if (bIsMe) return 1;
+      return 0;
+    });
+  }, [users, portfolios, user]);
 
   // Filter portfolios by selected team member for Admin and Operation Manager
   const filteredPortfolios = useMemo(() => {
@@ -295,7 +304,7 @@ const Portfolio = () => {
     });
   }, [portfolios, selectedUserFilter, isAdminOrManager]);
 
-  // Group portfolios by user for Admin and Operation Manager view
+  // Group portfolios by user for Admin and Operation Manager view (Logged-in user group comes first)
   const groupedPortfoliosByUser = useMemo(() => {
     const groupsMap = {};
     filteredPortfolios.forEach((portfolio) => {
@@ -317,8 +326,18 @@ const Portfolio = () => {
       }
       groupsMap[userId].portfolios.push(portfolio);
     });
-    return Object.values(groupsMap);
-  }, [filteredPortfolios]);
+
+    const currentUserId = String(user?._id || user?.id || "");
+    const groupsList = Object.values(groupsMap);
+
+    return groupsList.sort((a, b) => {
+      const aIsMe = String(a.userId) === currentUserId;
+      const bIsMe = String(b.userId) === currentUserId;
+      if (aIsMe) return -1;
+      if (bIsMe) return 1;
+      return 0;
+    });
+  }, [filteredPortfolios, user]);
   const selectedPortfolioId = new URLSearchParams(location.search).get("id");
   const activePortfolio = portfolios.find((p) => p._id === selectedPortfolioId);
   const [showAddProjectDropdown, setShowAddProjectDropdown] = useState(false);
@@ -590,7 +609,11 @@ const Portfolio = () => {
                     <option value="all">All Social Media Team</option>
                     {(socialMediaUsers || []).map((u) => (
                       <option key={u._id} value={u._id}>
-                        {u.name} ({u.department || u.role})
+                        {u.name}
+                        {String(u._id) === String(user?._id || user?.id)
+                          ? " (You)"
+                          : ""}{" "}
+                        ({u.department || u.role})
                       </option>
                     ))}
                   </select>

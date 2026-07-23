@@ -548,7 +548,21 @@ const Task = () => {
 
   const filteredTasks = React.useMemo(() => {
     const list = filteredTasksWithoutStatus.filter((task) => {
-      return statusFilter === "All" || task.status === statusFilter;
+      if (statusFilter === "All") return true;
+      if (
+        statusFilter === "Pending,In Progress,In Review,On Hold" ||
+        statusFilter === "Pending,In Progress,In Review"
+      ) {
+        const s = (task.status || "Pending").toUpperCase();
+        return (
+          s === "PENDING" ||
+          s === "IN PROGRESS" ||
+          s === "IN-REVIEW" ||
+          s === "IN REVIEW" ||
+          s === "ON HOLD"
+        );
+      }
+      return task.status === statusFilter;
     });
     return [...list].sort((a, b) => {
       const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
@@ -1159,6 +1173,11 @@ const Task = () => {
                         name: "All",
                         label: "All Statuses",
                         color: "bg-slate-400",
+                      },
+                      {
+                        name: "Pending,In Progress,In Review,On Hold",
+                        label: "Pending / In Progress / In Review / On Hold",
+                        color: "bg-indigo-500",
                       },
                       {
                         name: "Pending",
