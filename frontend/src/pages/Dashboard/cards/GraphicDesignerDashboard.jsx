@@ -30,7 +30,7 @@ import {
   FiFileText,
 } from "react-icons/fi";
 
-const GraphicDesignerDashboard = () => {
+const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   const dispatch = useDispatch();
   const { theme } = useTheme();
   const isDarkMode =
@@ -68,14 +68,23 @@ const GraphicDesignerDashboard = () => {
     dispatch(getDesignerEodReports(params));
   }, [dispatch, dateFilter]);
 
-  // 1. Filter Graphic Designers
+  // 1. Filter Department Members dynamically based on targetDept
   const designers = useMemo(() => {
+    const deptLower = targetDept.toLowerCase();
     const baseDesigners =
-      users?.filter(
-        (u) =>
-          u.department?.toLowerCase().includes("graphic") ||
-          u.department?.toLowerCase().includes("design"),
-      ) || [];
+      users?.filter((u) => {
+        const uDept = u.department?.toLowerCase() || "";
+        if (deptLower.includes("graphic")) {
+          return uDept.includes("graphic") || uDept.includes("design");
+        }
+        if (deptLower.includes("videographer") || deptLower.includes("video")) {
+          return uDept.includes("videographer") || uDept.includes("video");
+        }
+        if (deptLower.includes("editor")) {
+          return uDept.includes("editor") || uDept.includes("edit");
+        }
+        return uDept === deptLower || uDept.includes(deptLower);
+      }) || [];
 
     const isSocialMediaManager =
       user?.department?.toLowerCase() === "social media manager";
@@ -101,7 +110,7 @@ const GraphicDesignerDashboard = () => {
     }
 
     return baseDesigners;
-  }, [users, allTasks, user]);
+  }, [users, allTasks, user, targetDept]);
 
   const designerIds = useMemo(() => designers.map((d) => d._id), [designers]);
 

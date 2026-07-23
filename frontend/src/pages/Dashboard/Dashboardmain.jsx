@@ -655,7 +655,8 @@ const Dashboardmain = () => {
   }, [clients, clientSearchQuery]);
 
   const uniqueDepartments = React.useMemo(() => {
-    if (!users || users.length === 0) return ["Graphic Designer"];
+    if (!users || users.length === 0)
+      return ["Graphic Designer", "VideoGrapher", "Editor"];
     const depts = users
       .map((u) => u.department)
       .filter((d) => d && d.trim() !== "");
@@ -668,13 +669,23 @@ const Dashboardmain = () => {
       if (
         !lower.includes("managing partner") &&
         !lower.includes("operation manager") &&
-        d !== "Graphic Designer"
+        !lower.includes("graphic designer") &&
+        !lower.includes("videographer") &&
+        !lower.includes("editor")
       ) {
         middleDepts.push(d);
       }
     });
 
-    return ["Graphic Designer", ...middleDepts];
+    // Priority Order: 1. Graphic Designer, 2. VideoGrapher, 3. Editor, followed by others
+    const ordered = ["Graphic Designer", "VideoGrapher", "Editor"];
+    middleDepts.forEach((d) => {
+      if (!ordered.includes(d)) {
+        ordered.push(d);
+      }
+    });
+
+    return ordered;
   }, [users]);
 
   const getInitials = (name) => {
@@ -870,8 +881,10 @@ const Dashboardmain = () => {
           </div>
 
           {/* Tab Content */}
-          {activeDeptTab === "Graphic Designer" ? (
-            <GraphicDesignerDashboard />
+          {["Graphic Designer", "VideoGrapher", "Editor"].includes(
+            activeDeptTab,
+          ) ? (
+            <GraphicDesignerDashboard targetDept={activeDeptTab} />
           ) : (
             <div className="theme-bg-card border theme-border border-dashed rounded-2xl p-12 text-center flex flex-col items-center justify-center min-h-[200px]">
               <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400 border theme-border">
@@ -890,12 +903,14 @@ const Dashboardmain = () => {
       )}
       {/* end................................................................................................... */}
 
-      {/* status shortut for grahics designer */}
-      {user?.department?.toLowerCase() === "graphic designer" && (
-        <div className="w-full mt-4">
-          <GraphicDesignerDeadlines user={user} />
-        </div>
-      )}
+      {/* Task status shortcut widget for non-admin team members */}
+      {user &&
+        user?.role !== "admin" &&
+        user?.role !== "operationmanager" && (
+          <div className="w-full mt-4">
+            <GraphicDesignerDeadlines user={user} />
+          </div>
+        )}
 
       {/* user details list name and email */}
       {(user?.role === "admin" || user?.role === "operationmanager") && (

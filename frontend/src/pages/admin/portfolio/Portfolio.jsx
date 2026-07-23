@@ -599,14 +599,14 @@ const Portfolio = () => {
                 <div className="flex items-center gap-2.5 bg-white dark:bg-slate-800/80 px-3.5 py-2 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-sm">
                   <FiFilter className="text-blue-500 dark:text-blue-400 text-sm shrink-0" />
                   <span className="text-xs font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                    Team Member:
+                    Members:
                   </span>
                   <select
                     value={selectedUserFilter}
                     onChange={(e) => setSelectedUserFilter(e.target.value)}
                     className="bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-blue-500/30 transition-all cursor-pointer"
                   >
-                    <option value="all">All Social Media Team</option>
+                    <option value="all">All</option>
                     {(socialMediaUsers || []).map((u) => (
                       <option key={u._id} value={u._id}>
                         {u.name}
