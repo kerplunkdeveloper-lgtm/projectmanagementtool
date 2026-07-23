@@ -21,6 +21,7 @@ import {
 import { getProjects } from "../../features/projects/projectSlice";
 import { getUsers } from "../../features/users/userSlice";
 import { getPortfolios } from "../../features/portfolio/portfolioSlice";
+import { getClients } from "../../features/clients/clientslice";
 import { apiSlice } from "../../features/api/apiSlice";
 import ProjectIcon from "../common/ProjectIcon";
 
@@ -120,6 +121,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   const { projects } = useSelector((state) => state.projects);
   const { portfolios = [] } = useSelector((state) => state.portfolios || {});
   const { users } = useSelector((state) => state.users);
+  const { clients = [] } = useSelector((state) => state.clients || {});
   const { user: currentUser, originalAdminUser } = useSelector(
     (state) => state.auth,
   );
@@ -269,6 +271,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   useEffect(() => {
     dispatch(getProjects());
     dispatch(getPortfolios());
+    dispatch(getClients());
     if (role === "admin") {
       dispatch(getUsers());
     }
@@ -326,7 +329,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       <aside
         className={`
           fixed top-0 left-0 z-[100] h-[100dvh]
-          w-64 max-w-[80vw] lg:w-52
+          w-64 max-w-[80vw] lg:w-60
           sidebar-bg
           backdrop-blur-xl
           border-r border-slate-200/40 dark:border-white/5
@@ -476,6 +479,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                             {portfolioProjects.map((project) => {
                               const isProjectActive =
                                 activeProjectId === project._id;
+                              const _clientId1 = project.client?._id || project.client;
+                              const _clientObj1 = clients.find((c) => c._id === _clientId1) || null;
                               return (
                                 <button
                                   key={project._id}
@@ -494,15 +499,29 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                   }`}
                                   title={project.name}
                                 >
-                                  <div className="w-4 h-4 shrink-0 flex items-center justify-center">
+                                  <div className="w-6 h-6 shrink-0 flex items-center justify-center">
                                     <ProjectIcon
+                                      client={_clientObj1}
                                       name={project.name}
                                       size="sm"
                                     />
                                   </div>
-                                  <span className="truncate flex-1 text-left">
-                                    {project.name}
-                                  </span>
+                                  <div className="flex-1 min-w-0 flex flex-col items-start gap-0.5 text-left">
+                                    <span className="truncate text-left block w-full">
+                                      {project.name}
+                                    </span>
+                                    {_clientObj1 && (
+                                      <span
+                                        className="text-[8px] font-bold truncate block w-fit max-w-full rounded px-1.5 py-0.5 leading-tight text-left self-start"
+                                        style={{
+                                          color: _clientObj1.color || "#6366f1",
+                                          backgroundColor: `${_clientObj1.color || "#6366f1"}18`,
+                                        }}
+                                      >
+                                        {_clientObj1.companyName}
+                                      </span>
+                                    )}
+                                  </div>
                                   {isProjectActive && (
                                     <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
                                   )}
@@ -518,16 +537,23 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
               let content;
               if (groupByUser) {
-                const grouped = {};
+                const groupedUsers = {};
                 list.forEach((p) => {
                   const userName = p.createdBy?.name || "Unknown User";
-                  if (!grouped[userName]) grouped[userName] = [];
-                  grouped[userName].push(p);
+                  if (!groupedUsers[userName]) groupedUsers[userName] = new Set();
+                  (p.projectIds || []).forEach((pId) => {
+                    const id = typeof pId === "object" && pId !== null ? pId._id : pId;
+                    if (id) groupedUsers[userName].add(id);
+                  });
                 });
 
-                content = Object.entries(grouped).map(
-                  ([userName, userPortfolios]) => {
+                content = Object.entries(groupedUsers).map(
+                  ([userName, projIdSet]) => {
                     const folderId = `user-folder-${userName}`;
+                    const userProjects = (projects || []).filter((proj) =>
+                      projIdSet.has(proj._id),
+                    );
+
                     return (
                       <div key={folderId} className="mb-0.5 text-left">
                         <button
@@ -571,7 +597,64 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         </button>
                         {expandedPortfolios[folderId] && (
                           <div className="ml-2.5 pl-2 border-l border-slate-200/60 dark:border-white/10 mt-0.5 space-y-0.5 text-left">
-                            {renderPortfolioItems(userPortfolios)}
+                            {userProjects.length > 0 ? (
+                              userProjects.map((project) => {
+                                const isProjectActive =
+                                  activeProjectId === project._id;
+                                const _clientId2 = project.client?._id || project.client;
+                                const _clientObj2 = clients.find((c) => c._id === _clientId2) || null;
+                                return (
+                                  <button
+                                    key={project._id}
+                                    type="button"
+                                    onClick={() => {
+                                      if (window.innerWidth < 1024)
+                                        setSidebarOpen(false);
+                                      navigate(
+                                        `/${role}/projects?id=${project._id}`,
+                                      );
+                                    }}
+                                    className={`w-full flex items-center gap-2 text-left text-[11px] lg:text-[0.625rem] font-semibold py-1.5 px-2 rounded-lg transition-all duration-150 cursor-pointer ${
+                                      isProjectActive
+                                        ? "bg-slate-100 dark:bg-slate-800/80 theme-text-accent font-bold"
+                                        : "text-slate-600 dark:text-slate-400 hover:theme-text-accent hover:bg-slate-100/50 dark:hover:bg-white/5"
+                                    }`}
+                                    title={project.name}
+                                  >
+                                    <div className="w-6 h-6 shrink-0 flex items-center justify-center">
+                                      <ProjectIcon
+                                        client={_clientObj2}
+                                        name={project.name}
+                                        size="sm"
+                                      />
+                                    </div>
+                                    <div className="flex-1 min-w-0 flex flex-col items-start gap-0.5 text-left">
+                                      <span className="truncate text-left block w-full">
+                                        {project.name}
+                                      </span>
+                                      {_clientObj2 && (
+                                        <span
+                                          className="text-[8px] font-bold truncate block w-fit max-w-full rounded px-1.5 py-0.5 leading-tight text-left self-start"
+                                          style={{
+                                            color: _clientObj2.color || "#6366f1",
+                                            backgroundColor: `${_clientObj2.color || "#6366f1"}18`,
+                                          }}
+                                        >
+                                          {_clientObj2.companyName}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {isProjectActive && (
+                                      <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
+                                    )}
+                                  </button>
+                                );
+                              })
+                            ) : (
+                              <div className="text-[10px] text-slate-400 px-2 py-1 italic">
+                                No projects found
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -579,7 +662,85 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   },
                 );
               } else {
-                content = renderPortfolioItems(list);
+                // If title is Works or MyPortfolios, list projects directly without middle portfolio folders
+                if (title === "Works" || title === "MyPortfolios" || title === "Portfolios") {
+                  const allProjectIds = new Set();
+                  list.forEach((port) => {
+                    (port.projectIds || []).forEach((pId) => {
+                      const id =
+                        typeof pId === "object" && pId !== null
+                          ? pId._id
+                          : pId;
+                      if (id) allProjectIds.add(id);
+                    });
+                  });
+
+                  const matchedProjects = (projects || []).filter((proj) =>
+                    allProjectIds.has(proj._id),
+                  );
+
+                  content =
+                    matchedProjects.length > 0 ? (
+                      <div className="space-y-0.5 my-0.5 text-left">
+                        {matchedProjects.map((project) => {
+                          const isProjectActive =
+                            activeProjectId === project._id;
+                          const _clientId3 = project.client?._id || project.client;
+                          const _clientObj3 = clients.find((c) => c._id === _clientId3) || null;
+                          return (
+                            <button
+                              key={project._id}
+                              type="button"
+                              onClick={() => {
+                                if (window.innerWidth < 1024)
+                                  setSidebarOpen(false);
+                                navigate(`/${role}/projects?id=${project._id}`);
+                              }}
+                              className={`w-full flex items-center gap-2 text-left text-[11px] lg:text-[0.625rem] font-semibold py-1.5 px-2 rounded-lg transition-all duration-150 cursor-pointer ${
+                                isProjectActive
+                                  ? "bg-slate-100 dark:bg-slate-800/80 theme-text-accent font-bold"
+                                  : "text-slate-600 dark:text-slate-400 hover:theme-text-accent hover:bg-slate-100/50 dark:hover:bg-white/5"
+                              }`}
+                              title={project.name}
+                            >
+                              <div className="w-6 h-6 shrink-0 flex items-center justify-center">
+                                <ProjectIcon
+                                  client={_clientObj3}
+                                  name={project.name}
+                                  size="sm"
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0 flex flex-col items-start gap-0.5 text-left">
+                                <span className="truncate text-left block w-full">
+                                  {project.name}
+                                </span>
+                                {_clientObj3 && (
+                                  <span
+                                    className="text-[8px] font-bold truncate block w-fit max-w-full rounded px-1.5 py-0.5 leading-tight text-left self-start"
+                                    style={{
+                                      color: _clientObj3.color || "#6366f1",
+                                      backgroundColor: `${_clientObj3.color || "#6366f1"}18`,
+                                    }}
+                                  >
+                                    {_clientObj3.companyName}
+                                  </span>
+                                )}
+                              </div>
+                              {isProjectActive && (
+                                <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-slate-400 px-2 py-1 italic">
+                        No projects found
+                      </div>
+                    );
+                } else {
+                  content = renderPortfolioItems(list);
+                }
               }
 
               return (
@@ -639,31 +800,34 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   !smeRoles.includes(p.createdBy?.role),
               );
 
+              const isAdminOrOpManager =
+                currentUser?.role === "admin" ||
+                currentUser?.role === "operationmanager" ||
+                currentUser?.role === "managingpartner";
+
               return (
                 <>
+                  {isAdminOrOpManager &&
+                    renderPortfolioDropdown(
+                      "MyPortfolios",
+                      <FiLayers
+                        size={14}
+                        className="shrink-0 transition-colors"
+                      />,
+                      isPortfoliosListOpen,
+                      setIsPortfoliosListOpen,
+                      generalPortfolios,
+                      false, // Disable user name folder dropdown under MyPortfolios
+                    )}
                   {renderPortfolioDropdown(
-                    "Portfolios",
-                    <FiLayers
-                      size={14}
-                      className="shrink-0 transition-colors"
-                    />,
-                    isPortfoliosListOpen,
-                    setIsPortfoliosListOpen,
-                    generalPortfolios,
-                  )}
-                  {renderPortfolioDropdown(
-                    "Social Media Executive",
-                    <FiShare2
-                      size={14}
-                      className="shrink-0 transition-colors"
-                    />,
+                    "Works",
+                    <div className="w-5 h-5 rounded-full bg-amber-500 text-black font-extrabold text-[8px] flex items-center justify-center tracking-tighter leading-none shrink-0 shadow-2xs">
+                      SM
+                    </div>,
                     isSmePortfoliosListOpen,
                     setIsSmePortfoliosListOpen,
                     smePortfolios,
-                    !(
-                      currentUser?.department === "Social Media Manager" ||
-                      currentUser?.department === "Social Media Executive"
-                    ),
+                    isAdminOrOpManager, // Show SM User Name Folders for Admin & Operation Manager
                   )}
                 </>
               );

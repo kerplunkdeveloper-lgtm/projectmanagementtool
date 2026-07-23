@@ -943,7 +943,7 @@ const EodReports = () => {
                 {calculateTotalLoggedTime(tasksState)}
               </span>
               <span className="text-[10px] font-black theme-text-secondary uppercase tracking-widest mt-1.5 block relative z-10">
-                Total Logged
+                Today total timetaken
               </span>
             </div>
           </div>

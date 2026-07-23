@@ -610,27 +610,26 @@ select.badge-select option {
   background: transparent !important;
 }
 
-/* Dedicated Sidebar Scrollbar Styling - Visible but Subtle */
 .sidebar-scrollbar::-webkit-scrollbar {
   display: block !important;
-  width: 3px !important;
-  height: 3px !important;
+  width: 6px !important;
+  height: 6px !important;
 }
 .sidebar-scrollbar::-webkit-scrollbar-track {
   background: transparent !important;
 }
 .sidebar-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.35) !important;
+  background: rgba(148, 163, 184, 0.45) !important;
   border-radius: 9999px !important;
 }
 .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.6) !important;
+  background: rgba(100, 116, 139, 0.75) !important;
 }
 .dark .sidebar-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.28) !important;
 }
 .dark .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3) !important;
+  background: rgba(255, 255, 255, 0.55) !important;
 }
 
 /* Placeholder for contentEditable elements */
@@ -1406,20 +1405,7 @@ button[type="submit"]:active {
   border-color: var(--accent-color-dark) !important;
 }
 
-/* Premium Glassmorphic scrollbars */
-.sidebar-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-.sidebar-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.sidebar-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.15);
-  border-radius: 9999px;
-}
-.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.35);
-}
+/* Premium Glassmorphic scrollbars - managed in dedicated section above */
 
 
 

@@ -52,9 +52,11 @@ export const sidebarConfig = {
     { name: "Portfolio", path: "/team/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
     { name: "Projects Overview", path: "/team/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
     { name: "My Tasks", path: "/team/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
+  
     { name: "Reports", path: "/team/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
     { name: "Users", path: "/team/users", icon: LuUsers, permissionKey: "manage_users" },
     { name: "Profile", path: "/team/profile", icon: FiUser },
+      { name: "Calendar", path: "/team/calendar", icon: LuCalendarDays },
     { name: "Chat", path: "/team/chat", icon: LuMessagesSquare },
     { name: "Settings", path: "/team/settings", icon: FiSettings },
   ],

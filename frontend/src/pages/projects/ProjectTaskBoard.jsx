@@ -1261,8 +1261,70 @@ const ProjectTaskBoard = ({
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
+  const [datePreset, setDatePreset] = useState("all"); // "all" | "today" | "yesterday" | "thisWeek" | "thisMonth" | "lastMonth" | "custom"
   const filterDropdownRef = useRef(null);
   const sortDropdownRef = useRef(null);
+  const dateDropdownRef = useRef(null);
+
+  // Helper to apply date preset
+  const applyDatePreset = (preset) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const fmt = (d) => d.toISOString().split("T")[0];
+    if (preset === "today") {
+      setFilterStartDate(fmt(today));
+      setFilterEndDate(fmt(today));
+    } else if (preset === "yesterday") {
+      const y = new Date(today);
+      y.setDate(y.getDate() - 1);
+      setFilterStartDate(fmt(y));
+      setFilterEndDate(fmt(y));
+    } else if (preset === "thisWeek") {
+      const day = today.getDay();
+      const mon = new Date(today);
+      mon.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
+      const sun = new Date(mon);
+      sun.setDate(mon.getDate() + 6);
+      setFilterStartDate(fmt(mon));
+      setFilterEndDate(fmt(sun));
+    } else if (preset === "lastWeek") {
+      const day = today.getDay();
+      const thisMonday = new Date(today);
+      thisMonday.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
+      const lastMon = new Date(thisMonday);
+      lastMon.setDate(thisMonday.getDate() - 7);
+      const lastSun = new Date(lastMon);
+      lastSun.setDate(lastMon.getDate() + 6);
+      setFilterStartDate(fmt(lastMon));
+      setFilterEndDate(fmt(lastSun));
+    } else if (preset === "thisMonth") {
+      const start = new Date(today.getFullYear(), today.getMonth(), 1);
+      const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      setFilterStartDate(fmt(start));
+      setFilterEndDate(fmt(end));
+    } else if (preset === "lastMonth") {
+      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+      const end = new Date(today.getFullYear(), today.getMonth(), 0);
+      setFilterStartDate(fmt(start));
+      setFilterEndDate(fmt(end));
+    } else if (preset === "all") {
+      setFilterStartDate("");
+      setFilterEndDate("");
+    }
+    // For "custom" — don't auto-set dates, let user pick from filter panel
+  };
+
+  const DATE_PRESET_LABELS = {
+    all: "Date",
+    today: "Today",
+    yesterday: "Yesterday",
+    thisWeek: "This Week",
+    lastWeek: "Last Week",
+    thisMonth: "This Month",
+    lastMonth: "Last Month",
+    custom: "Custom",
+  };
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -1277,6 +1339,12 @@ const ProjectTaskBoard = ({
         !sortDropdownRef.current.contains(event.target)
       ) {
         setIsSortOpen(false);
+      }
+      if (
+        dateDropdownRef.current &&
+        !dateDropdownRef.current.contains(event.target)
+      ) {
+        setIsDateDropdownOpen(false);
       }
       if (!event.target.closest(".section-menu-container")) {
         setOpenSectionMenu(null);
@@ -2357,6 +2425,81 @@ const ProjectTaskBoard = ({
         <div className="flex items-center justify-between lg:justify-end gap-2 w-full lg:w-1/4 order-3 lg:order-none relative">
           {activeTab === "List" ? (
             <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
+              {/* Date Preset Dropdown */}
+              <div className="relative shrink-0" ref={dateDropdownRef}>
+                <button
+                  onClick={() => {
+                    setIsDateDropdownOpen(!isDateDropdownOpen);
+                    setIsFilterOpen(false);
+                    setIsSortOpen(false);
+                  }}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 ${
+                    datePreset !== "all"
+                      ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                      : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                  }`}
+                >
+                  {/* Funnel Icon */}
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 ${datePreset !== "all" ? "text-emerald-500 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500"}`}>
+                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+                  </svg>
+                  <span>{DATE_PRESET_LABELS[datePreset] || "Date"}</span>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className={`shrink-0 transition-transform duration-200 ${isDateDropdownOpen ? "rotate-180" : ""}`}>
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+
+                <AnimatePresence>
+                  {isDateDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-44 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-white/10 rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.12)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.35)] p-1.5 z-50 backdrop-blur-xl"
+                    >
+                      {[
+                        { id: "all", label: "All Dates", icon: "🗓️" },
+                        { id: "today", label: "Today", icon: "📅" },
+                        { id: "yesterday", label: "Yesterday", icon: "⏮️" },
+                        { id: "thisWeek", label: "This Week", icon: "📆" },
+                        { id: "lastWeek", label: "Last Week", icon: "◀️" },
+                        { id: "thisMonth", label: "This Month", icon: "🗃️" },
+                        { id: "lastMonth", label: "Last Month", icon: "📁" },
+                        { id: "custom", label: "Custom Range", icon: "✏️" },
+                      ].map((opt) => (
+                        <button
+                          key={opt.id}
+                          onClick={() => {
+                            setDatePreset(opt.id);
+                            applyDatePreset(opt.id);
+                            if (opt.id === "custom") {
+                              setIsFilterOpen(true);
+                            }
+                            setIsDateDropdownOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 text-[11px] font-semibold rounded-xl transition-all cursor-pointer text-left ${
+                            datePreset === opt.id
+                              ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                              : "text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-white/5"
+                          }`}
+                        >
+                          <span className="text-sm leading-none">{opt.icon}</span>
+                          {opt.label}
+                          {datePreset === opt.id && (
+                            <span className="ml-auto">
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               {/* Filter Trigger Button */}
               <div className="relative" ref={filterDropdownRef}>
                 <button

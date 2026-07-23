@@ -281,6 +281,11 @@ const AppRoutes = () => {
         />
 
         <Route
+          path="calendar"
+          element={<CalendarPage />}
+        />
+
+        <Route
           path="eod-reports"
           element={<ProtectedRoute requiredPermission="view_reports"><EodReports /></ProtectedRoute>}
         />

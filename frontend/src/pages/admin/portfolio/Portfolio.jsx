@@ -1150,10 +1150,14 @@ const Portfolio = () => {
                                 }
                               >
                                 <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2.5">
                                     <ProjectIcon
+                                      client={(() => {
+                                        const clientId = project.client?._id || project.client;
+                                        return clients.find((c) => c._id === clientId) || null;
+                                      })()}
                                       name={project.name}
-                                      size="sm"
+                                      size="md"
                                     />
                                     <span className="font-semibold text-slate-800 dark:text-slate-600 hover:text-blue-600 dark:hover:text-[#3b82f6] transition-colors">
                                       {project.name}

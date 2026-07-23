@@ -283,6 +283,9 @@ const Task = () => {
   const [projectFilter, setProjectFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [clientFilter, setClientFilter] = useState("All");
+  const [dateFilter, setDateFilter] = useState("All"); // "All" | "Today" | "Yesterday" | "This Week" | "This Month"
+  const [showDateDropdown, setShowDateDropdown] = useState(false);
+  const dateDropdownRef = useRef(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
@@ -295,6 +298,12 @@ const Task = () => {
     const handleClickOutside = (event) => {
       if (filterRef.current && !filterRef.current.contains(event.target)) {
         setOpenDropdown(null);
+      }
+      if (
+        dateDropdownRef.current &&
+        !dateDropdownRef.current.contains(event.target)
+      ) {
+        setShowDateDropdown(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -516,8 +525,63 @@ const Task = () => {
         projectName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         clientName.toLowerCase().includes(searchTerm.toLowerCase());
 
+      // Date filter (based on dueDate or createdAt)
+      let matchesDate = true;
+      if (dateFilter !== "All") {
+        const targetDate = task.dueDate
+          ? new Date(task.dueDate)
+          : task.createdAt
+            ? new Date(task.createdAt)
+            : null;
+
+        if (!targetDate || isNaN(targetDate.getTime())) {
+          matchesDate = false;
+        } else {
+          const now = new Date();
+          const todayStart = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+          );
+          const todayEnd = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+            23,
+            59,
+            59,
+            999,
+          );
+
+          if (dateFilter === "Today") {
+            matchesDate = targetDate >= todayStart && targetDate <= todayEnd;
+          } else if (dateFilter === "Yesterday") {
+            const yesterdayStart = new Date(todayStart);
+            yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+            const yesterdayEnd = new Date(todayEnd);
+            yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+            matchesDate =
+              targetDate >= yesterdayStart && targetDate <= yesterdayEnd;
+          } else if (dateFilter === "This Week") {
+            const dayOfWeek = now.getDay(); // 0 is Sunday
+            const startOfWeek = new Date(todayStart);
+            startOfWeek.setDate(
+              startOfWeek.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1),
+            );
+            matchesDate = targetDate >= startOfWeek && targetDate <= todayEnd;
+          } else if (dateFilter === "This Month") {
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            matchesDate = targetDate >= startOfMonth && targetDate <= todayEnd;
+          }
+        }
+      }
+
       return (
-        matchesPriority && matchesProject && matchesClient && matchesSearch
+        matchesPriority &&
+        matchesProject &&
+        matchesClient &&
+        matchesSearch &&
+        matchesDate
       );
     });
   }, [
@@ -525,6 +589,7 @@ const Task = () => {
     priorityFilter,
     projectFilter,
     clientFilter,
+    dateFilter,
     searchTerm,
     projects,
   ]);
@@ -1032,7 +1097,7 @@ const Task = () => {
     <div className="px-0 py-1 space-y-4 pb-16">
       {/* UNIFIED HEADER & CONTROLS */}
 
-      <div className="flex flex-col xl:flex-row items-center justify-between gap-4 bg-white dark:bg-[#11131e] p-2 relative z-20">
+      <div className="flex flex-col xl:flex-row items-center justify-between gap-4 bg-white dark:bg-[#11131e] p-2 relative z-30">
         {/* Left: Bulk Actions */}
         <div className="flex items-center w-full xl:w-auto min-h-[36px]">
           {selectedTasks.length > 0 && (
@@ -1069,6 +1134,67 @@ const Task = () => {
 
         {/* Right: Filter Action */}
         <div className="flex items-center justify-end gap-2.5 w-full xl:w-auto">
+          {/* Date Quick Filter Pill */}
+          <div className="relative" ref={dateDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setShowDateDropdown((prev) => !prev)}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-2xl border text-xs font-extrabold transition-all shadow-2xs cursor-pointer ${
+                dateFilter !== "All"
+                  ? "bg-emerald-50/80 border-emerald-300 text-emerald-800 dark:bg-emerald-950/30 dark:border-emerald-500/40 dark:text-emerald-300"
+                  : "bg-white dark:bg-[#151725] border-slate-200/90 dark:border-white/10 text-slate-800 dark:text-slate-200 hover:border-emerald-500/50"
+              }`}
+            >
+              <FiFilter className="text-emerald-500 text-sm" />
+              <span>{dateFilter === "All" ? "Filter Date" : dateFilter}</span>
+              <FiChevronDown
+                size={13}
+                className={`text-slate-400 transition-transform duration-200 ${
+                  showDateDropdown ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            <AnimatePresence>
+              {showDateDropdown && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-[#151725] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-1.5 z-[70] flex flex-col gap-0.5"
+                >
+                  {[
+                    { label: "All Dates", value: "All" },
+                    { label: "Today", value: "Today" },
+                    { label: "Yesterday", value: "Yesterday" },
+                    { label: "This Week", value: "This Week" },
+                    { label: "This Month", value: "This Month" },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        setDateFilter(option.value);
+                        setShowDateDropdown(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
+                        dateFilter === option.value
+                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-extrabold"
+                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5"
+                      }`}
+                    >
+                      <span>{option.label}</span>
+                      {dateFilter === option.value && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      )}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
           <button
             onClick={() => setFilterPanelOpen(true)}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${
@@ -1135,22 +1261,24 @@ const Task = () => {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  {(priorityFilter !== "All" ||
-                    projectFilter !== "All" ||
-                    statusFilter !== "All" ||
-                    clientFilter !== "All") && (
-                    <button
-                      onClick={() => {
-                        setPriorityFilter("All");
-                        setProjectFilter("All");
-                        setStatusFilter("All");
-                        setClientFilter("All");
-                      }}
-                      className="text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-500/10 px-2.5 py-1 rounded-lg hover:bg-rose-100 transition-colors"
-                    >
-                      Clear All
-                    </button>
-                  )}
+                    {(priorityFilter !== "All" ||
+                      projectFilter !== "All" ||
+                      statusFilter !== "All" ||
+                      clientFilter !== "All" ||
+                      dateFilter !== "All") && (
+                      <button
+                        onClick={() => {
+                          setPriorityFilter("All");
+                          setProjectFilter("All");
+                          setStatusFilter("All");
+                          setClientFilter("All");
+                          setDateFilter("All");
+                        }}
+                        className="text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-500/10 px-2.5 py-1 rounded-lg hover:bg-rose-100 transition-colors"
+                      >
+                        Clear All
+                      </button>
+                    )}
                   <button
                     onClick={() => setFilterPanelOpen(false)}
                     className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
