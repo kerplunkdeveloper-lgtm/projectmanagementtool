@@ -186,6 +186,23 @@ if (req.body.status && req.body.status !== previousStatus) {
       break;
 
  case "In Progress":
+  const targetUserId = task.assignedTo ? task.assignedTo.toString() : currentUserId;
+  if (targetUserId) {
+    await Task.updateMany(
+      {
+        _id: { $ne: task._id },
+        $or: [{ assignedTo: targetUserId }, { createdBy: targetUserId }],
+        status: "In Progress",
+      },
+      {
+        $set: {
+          status: "On Hold",
+          pausedAt: Date.now(),
+        },
+      }
+    );
+  }
+
   if (!task.actualStartTime) {
     req.body.actualStartTime = Date.now();
   }
