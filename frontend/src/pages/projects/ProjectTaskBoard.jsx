@@ -3245,42 +3245,7 @@ const ProjectTaskBoard = ({
                         </div>
                       </div>
 
-                      {/* Date Range */}
-                      <div className="space-y-1.5 border-t border-slate-100 dark:border-white/5 pt-3">
-                        <label className="text-[10px] font-bold text-slate-450 dark:text-slate-500 uppercase tracking-wider">
-                          Date Range
-                        </label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="flex items-center gap-1.5 bg-slate-50/50 dark:bg-[#18181b]/50 border border-slate-200/60 dark:border-white/10 rounded-xl px-2.5 py-1.5 text-slate-500 transition-all focus-within:border-blue-550 dark:focus-within:border-[#3b82f6]">
-                            <FiCalendar
-                              size={11}
-                              className="shrink-0 text-slate-400 dark:text-slate-550"
-                            />
-                            <input
-                              type="date"
-                              value={filterStartDate}
-                              onChange={(e) =>
-                                setFilterStartDate(e.target.value)
-                              }
-                              className="bg-transparent border-none p-0 text-[10px] font-semibold text-slate-700 dark:text-slate-300 outline-none cursor-pointer focus:ring-0 w-full"
-                              title="Start Date"
-                            />
-                          </div>
-                          <div className="flex items-center gap-1.5 bg-slate-50/50 dark:bg-[#18181b]/50 border border-slate-200/60 dark:border-white/10 rounded-xl px-2.5 py-1.5 text-slate-500 transition-all focus-within:border-blue-550 dark:focus-within:border-[#3b82f6]">
-                            <FiCalendar
-                              size={11}
-                              className="shrink-0 text-slate-400 dark:text-slate-550"
-                            />
-                            <input
-                              type="date"
-                              value={filterEndDate}
-                              onChange={(e) => setFilterEndDate(e.target.value)}
-                              className="bg-transparent border-none p-0 text-[10px] font-semibold text-slate-700 dark:text-slate-300 outline-none cursor-pointer focus:ring-0 w-full"
-                              title="End Date"
-                            />
-                          </div>
-                        </div>
-                      </div>
+
                     </motion.div>
                   )}
                 </AnimatePresence>

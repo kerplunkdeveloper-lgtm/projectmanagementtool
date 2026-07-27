@@ -22,6 +22,7 @@ import {
   FiColumns,
   FiTag,
   FiCopy,
+  FiMessageSquare,
 } from "react-icons/fi";
 import {
   useUpdateTaskMutation,
@@ -308,6 +309,11 @@ const MyTasksTab = ({
   const [blockerExpectedTime, setBlockerExpectedTime] = useState("15 mins");
   const [blockerPriority, setBlockerPriority] = useState("Normal");
 
+  // Feedback Modal states
+  const [feedbackModalTask, setFeedbackModalTask] = useState(null);
+  const [feedbackModalMode, setFeedbackModalMode] = useState("add"); // "add" or "view"
+  const [feedbackText, setFeedbackText] = useState("");
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (filterRef.current && !filterRef.current.contains(event.target)) {
@@ -342,7 +348,9 @@ const MyTasksTab = ({
         projectFilter === "All" || taskProjectId === projectFilter;
 
       const projectObj = projects.find((p) => p._id === taskProjectId);
-      const clientObj = task.project?.client?.companyName ? task.project.client : (projectObj?.client || task.project?.client);
+      const clientObj = task.project?.client?.companyName
+        ? task.project.client
+        : projectObj?.client || task.project?.client;
       const clientId = clientObj?._id || clientObj?.id;
       const matchesClient = clientFilter === "All" || clientId === clientFilter;
 
@@ -355,11 +363,7 @@ const MyTasksTab = ({
 
       let matchesDate = true;
       if (dateFilter !== "All") {
-        const targetDate = task.dueDate
-          ? new Date(task.dueDate)
-          : task.createdAt
-            ? new Date(task.createdAt)
-            : null;
+        const targetDate = task.createdAt ? new Date(task.createdAt) : null;
 
         if (!targetDate || isNaN(targetDate.getTime())) {
           matchesDate = false;
@@ -502,6 +506,38 @@ const MyTasksTab = ({
     setBlockerDescription("");
     setBlockerExpectedTime("15 mins");
     setBlockerPriority("Normal");
+  };
+
+  const handleOpenFeedbackModal = (task, mode) => {
+    setFeedbackModalTask(task);
+    setFeedbackModalMode(mode);
+    setFeedbackText("");
+  };
+
+  const handleSubmitFeedback = () => {
+    if (!feedbackModalTask) return;
+    if (!feedbackText.trim()) {
+      toast.error("Please enter your feedback");
+      return;
+    }
+
+    const newFeedback = {
+      text: feedbackText.trim(),
+      addedAt: new Date().toISOString(),
+      addedBy: currentUserId,
+    };
+
+    const updatedFeedbacks = [
+      ...(feedbackModalTask.feedbacks || []),
+      newFeedback,
+    ];
+
+    handleTaskFieldChange(feedbackModalTask._id, {
+      feedbacks: updatedFeedbacks,
+    });
+    setFeedbackModalTask(null);
+    setFeedbackText("");
+    toast.success("Feedback added successfully");
   };
 
   const handleSubmitBlocker = () => {
@@ -800,7 +836,9 @@ const MyTasksTab = ({
     activeTasksList.forEach((t) => {
       const projId = t.project?._id || t.project;
       const projectObj = projects.find((p) => p._id === projId);
-      const client = t.project?.client?.companyName ? t.project.client : (projectObj?.client || t.project?.client);
+      const client = t.project?.client?.companyName
+        ? t.project.client
+        : projectObj?.client || t.project?.client;
       if (client) {
         const cId = client._id || client.id;
         clientsMap[cId] = {
@@ -1394,7 +1432,9 @@ const MyTasksTab = ({
                                 const projectObj = projects.find(
                                   (p) => p._id === projId,
                                 );
-                                const client = task.project?.client?.companyName ? task.project.client : (projectObj?.client || task.project?.client);
+                                const client = task.project?.client?.companyName
+                                  ? task.project.client
+                                  : projectObj?.client || task.project?.client;
                                 if (client?.companyName) {
                                   return (
                                     <ClientBadge client={client} size="sm" />
@@ -1532,6 +1572,13 @@ const MyTasksTab = ({
                       defaultClassName="px-20 py-2 border border-slate-200/70 dark:border-transparent w-60"
                     />
                     <ResizableHeader
+                      id="feedback"
+                      label="Feedback"
+                      colWidths={colWidths}
+                      handleMouseDown={handleMouseDown}
+                      defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-72"
+                    />
+                    <ResizableHeader
                       id="createdTime"
                       label="Created Time"
                       colWidths={colWidths}
@@ -1625,7 +1672,10 @@ const MyTasksTab = ({
                             </td>
 
                             {/* Content Copy */}
-                            <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent" onClick={(e) => e.stopPropagation()}>
+                            <td
+                              className="px-3 py-2 border border-slate-200/70 dark:border-transparent"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <div className="flex items-center gap-2 group/copy text-xs sm:text-[11px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap break-words w-full max-w-[250px]">
                                 {task.contentCopy ? (
                                   <>
@@ -1633,8 +1683,12 @@ const MyTasksTab = ({
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        navigator.clipboard.writeText(task.contentCopy);
-                                        toast.success("Content copied to clipboard!");
+                                        navigator.clipboard.writeText(
+                                          task.contentCopy,
+                                        );
+                                        toast.success(
+                                          "Content copied to clipboard!",
+                                        );
                                       }}
                                       className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-blue-500 transition-all cursor-pointer shrink-0"
                                       title="Copy to clipboard"
@@ -1658,7 +1712,9 @@ const MyTasksTab = ({
                                 const projectObj = projects.find(
                                   (p) => p._id === projId,
                                 );
-                                const client = task.project?.client?.companyName ? task.project.client : (projectObj?.client || task.project?.client);
+                                const client = task.project?.client?.companyName
+                                  ? task.project.client
+                                  : projectObj?.client || task.project?.client;
                                 if (client) {
                                   return (
                                     <ClientBadge client={client} size="sm" />
@@ -1949,73 +2005,110 @@ const MyTasksTab = ({
                             </td>
 
                             {/* Assigned By */}
-                             <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-44 text-left">
-                               <div className="flex items-center gap-2">
-                                 <div className="relative shrink-0">
-                                   {(() => {
-                                     const assignerUser = task.assignedBy || task.createdBy;
-                                     const avatarUrl =
-                                       (typeof assignerUser?.profile?.profileImage === "object"
-                                         ? assignerUser?.profile?.profileImage?.url
-                                         : assignerUser?.profile?.profileImage) ||
-                                       (typeof assignerUser?.profileImage === "object"
-                                         ? assignerUser?.profileImage?.url
-                                         : assignerUser?.profileImage) ||
-                                       assignerUser?.profilePic ||
-                                       assignerUser?.avatar ||
-                                       assignerUser?.profile?.profilePic ||
-                                       assignerUser?.profile?.avatar;
+                            <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-44 text-left">
+                              <div className="flex items-center gap-2">
+                                <div className="relative shrink-0">
+                                  {(() => {
+                                    const assignerUser =
+                                      task.assignedBy || task.createdBy;
+                                    const avatarUrl =
+                                      (typeof assignerUser?.profile
+                                        ?.profileImage === "object"
+                                        ? assignerUser?.profile?.profileImage
+                                            ?.url
+                                        : assignerUser?.profile
+                                            ?.profileImage) ||
+                                      (typeof assignerUser?.profileImage ===
+                                      "object"
+                                        ? assignerUser?.profileImage?.url
+                                        : assignerUser?.profileImage) ||
+                                      assignerUser?.profilePic ||
+                                      assignerUser?.avatar ||
+                                      assignerUser?.profile?.profilePic ||
+                                      assignerUser?.profile?.avatar;
 
-                                     if (avatarUrl) {
-                                       return (
-                                         <img
-                                           src={avatarUrl}
-                                           alt={assignerUser?.name || "Assigner"}
-                                           className="w-8 h-8 rounded-full object-cover border border-slate-200/80 dark:border-white/10 shadow-sm"
-                                         />
-                                       );
-                                     }
+                                    if (avatarUrl) {
+                                      return (
+                                        <img
+                                          src={avatarUrl}
+                                          alt={assignerUser?.name || "Assigner"}
+                                          className="w-8 h-8 rounded-full object-cover border border-slate-200/80 dark:border-white/10 shadow-sm"
+                                        />
+                                      );
+                                    }
 
-                                     // Fallback colored gradient avatar with initials
-                                     const initials = (assignerUser?.name || "I")
-                                       .split(" ")
-                                       .map((n) => n[0])
-                                       .join("")
-                                       .substring(0, 2)
-                                       .toUpperCase();
-                                     
-                                     const AVATAR_COLORS = [
-                                       "from-violet-500 to-indigo-600",
-                                       "from-cyan-500 to-blue-600",
-                                       "from-emerald-500 to-teal-600",
-                                       "from-orange-500 to-amber-600",
-                                       "from-pink-500 to-rose-600",
-                                     ];
-                                     const colorClass =
-                                       AVATAR_COLORS[
-                                         ((assignerUser?.name || "I").charCodeAt(0) || 0) %
-                                           AVATAR_COLORS.length
-                                       ];
+                                    // Fallback colored gradient avatar with initials
+                                    const initials = (assignerUser?.name || "I")
+                                      .split(" ")
+                                      .map((n) => n[0])
+                                      .join("")
+                                      .substring(0, 2)
+                                      .toUpperCase();
 
-                                     return (
-                                       <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-white font-black text-[9px] border border-white/10 shadow-sm`}>
-                                         {initials}
-                                       </div>
-                                     );
-                                   })()}
-                                 </div>
-                                 <div className="flex flex-col">
-                                   <span className="font-extrabold text-[11px] text-slate-800 dark:text-slate-200">
-                                     {task.assignedBy?.name ||
-                                       task.createdBy?.name ||
-                                       "Internal"}
-                                   </span>
-                                   <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">
-                                     {(task.assignedBy || task.createdBy)?.department || "Management"}
-                                   </span>
-                                 </div>
-                               </div>
-                             </td>
+                                    const AVATAR_COLORS = [
+                                      "from-violet-500 to-indigo-600",
+                                      "from-cyan-500 to-blue-600",
+                                      "from-emerald-500 to-teal-600",
+                                      "from-orange-500 to-amber-600",
+                                      "from-pink-500 to-rose-600",
+                                    ];
+                                    const colorClass =
+                                      AVATAR_COLORS[
+                                        ((assignerUser?.name || "I").charCodeAt(
+                                          0,
+                                        ) || 0) % AVATAR_COLORS.length
+                                      ];
+
+                                    return (
+                                      <div
+                                        className={`w-8 h-8 rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-white font-black text-[9px] border border-white/10 shadow-sm`}
+                                      >
+                                        {initials}
+                                      </div>
+                                    );
+                                  })()}
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="font-extrabold text-[11px] text-slate-800 dark:text-slate-200">
+                                    {task.assignedBy?.name ||
+                                      task.createdBy?.name ||
+                                      "Internal"}
+                                  </span>
+                                  <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">
+                                    {(task.assignedBy || task.createdBy)
+                                      ?.department || "Management"}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Feedback Column */}
+                            <td
+                              className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-72 text-center"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="flex items-center justify-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleOpenFeedbackModal(task, "add")
+                                  }
+                                  className="px-2 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 text-[10px] font-bold rounded flex items-center gap-1 transition-colors cursor-pointer"
+                                >
+                                  <FiPlus size={10} /> Add
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleOpenFeedbackModal(task, "view")
+                                  }
+                                  className="px-2 py-1 bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 text-[10px] font-bold rounded flex items-center gap-1 transition-colors cursor-pointer"
+                                >
+                                  <FiMessageSquare size={10} /> View (
+                                  {(task.feedbacks || []).length})
+                                </button>
+                              </div>
+                            </td>
 
                             {/* Created Time */}
                             <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center font-bold text-slate-500 dark:text-slate-400 text-xs sm:text-[11.5px]">
@@ -2285,7 +2378,7 @@ const MyTasksTab = ({
                   </div>
                   <div>
                     <h2 className="text-sm font-black text-slate-800 dark:text-white tracking-wider">
-                      Task Workspace 
+                      Task Workspace
                     </h2>
                     <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold tracking-wider mt-0.5">
                       Preview & Modify Details
@@ -2367,9 +2460,11 @@ const MyTasksTab = ({
                       <div className="flex items-center gap-2 mt-1">
                         <div className="relative shrink-0">
                           {(() => {
-                            const assignerUser = selectedTask.assignedBy || selectedTask.createdBy;
+                            const assignerUser =
+                              selectedTask.assignedBy || selectedTask.createdBy;
                             const avatarUrl =
-                              (typeof assignerUser?.profile?.profileImage === "object"
+                              (typeof assignerUser?.profile?.profileImage ===
+                              "object"
                                 ? assignerUser?.profile?.profileImage?.url
                                 : assignerUser?.profile?.profileImage) ||
                               (typeof assignerUser?.profileImage === "object"
@@ -2407,13 +2502,15 @@ const MyTasksTab = ({
                             ];
                             const colorClass =
                               AVATAR_COLORS[
-                                ((assignerUser?.name || "I").charCodeAt(0) || 0) %
-                                  AVATAR_COLORS.length
+                                ((assignerUser?.name || "I").charCodeAt(0) ||
+                                  0) % AVATAR_COLORS.length
                               ];
 
                             return (
-                              <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-white font-black text-[10px] border border-white/10 shadow-sm`}>
-                                  {initials}
+                              <div
+                                className={`w-8 h-8 rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-white font-black text-[10px] border border-white/10 shadow-sm`}
+                              >
+                                {initials}
                               </div>
                             );
                           })()}
@@ -2425,7 +2522,8 @@ const MyTasksTab = ({
                               "Internal"}
                           </span>
                           <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400">
-                            {(selectedTask.assignedBy || selectedTask.createdBy)?.department || "Management"}
+                            {(selectedTask.assignedBy || selectedTask.createdBy)
+                              ?.department || "Management"}
                           </span>
                         </div>
                       </div>
@@ -2622,6 +2720,103 @@ const MyTasksTab = ({
                       </div>
                     )}
                 </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Feedback Modal */}
+      <AnimatePresence>
+        {feedbackModalTask && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setFeedbackModalTask(null)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm cursor-pointer"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white dark:bg-[#161826] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-slate-200 dark:border-white/10"
+            >
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
+                <h2 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                  {feedbackModalMode === "add"
+                    ? "Add Feedback"
+                    : "View Feedbacks"}
+                </h2>
+                <button
+                  onClick={() => setFeedbackModalTask(null)}
+                  className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-white/10 dark:hover:text-white transition-colors cursor-pointer"
+                >
+                  <FiX size={16} />
+                </button>
+              </div>
+              <div className="p-6">
+                <div className="mb-4">
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
+                    Task: {feedbackModalTask.title}
+                  </span>
+                </div>
+                {feedbackModalMode === "add" ? (
+                  <div className="space-y-4">
+                    <div className="space-y-2 text-left">
+                      <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+                        Your Feedback
+                      </label>
+                      <textarea
+                        value={feedbackText}
+                        onChange={(e) => setFeedbackText(e.target.value)}
+                        rows={4}
+                        placeholder="Enter feedback details here..."
+                        className="w-full bg-slate-50 dark:bg-[#1a1d2d] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all resize-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                      />
+                    </div>
+                    <div className="pt-2">
+                      <button
+                        onClick={handleSubmitFeedback}
+                        className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-black tracking-wider uppercase text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 shadow-lg shadow-blue-500/25 transition-all cursor-pointer"
+                      >
+                        Submit Feedback
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-80 overflow-y-auto pr-2 scrollbar-thin">
+                    {!feedbackModalTask.feedbacks ||
+                    feedbackModalTask.feedbacks.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-xs font-bold text-slate-400 dark:text-slate-500">
+                          No feedbacks yet.
+                        </p>
+                      </div>
+                    ) : (
+                      feedbackModalTask.feedbacks
+                        .slice()
+                        .reverse()
+                        .map((fb, idx) => (
+                          <div
+                            key={idx}
+                            className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 text-left space-y-1.5"
+                          >
+                            <div className="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400">
+                              <span>
+                                {new Date(fb.addedAt).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-700 dark:text-slate-200 font-medium break-words">
+                              {fb.text}
+                            </p>
+                          </div>
+                        ))
+                    )}
+                  </div>
+                )}
               </div>
             </motion.div>
           </div>

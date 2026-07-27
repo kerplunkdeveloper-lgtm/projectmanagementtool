@@ -452,13 +452,7 @@ const TaskOverviewTab = ({
         }
 
         if (dateFilter !== "All") {
-          const targetDate = task.startDate
-            ? new Date(task.startDate)
-            : task.dueDate
-              ? new Date(task.dueDate)
-              : task.createdAt
-                ? new Date(task.createdAt)
-                : null;
+          const targetDate = task.createdAt ? new Date(task.createdAt) : null;
 
           if (!targetDate || isNaN(targetDate.getTime())) {
             return false;

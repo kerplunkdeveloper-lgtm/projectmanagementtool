@@ -125,7 +125,7 @@ const Project = () => {
   // Submit Create Project
   const handleCreateSubmit = (e) => {
     e.preventDefault();
-    if (!name) return;
+    if (!name || !client) return;
     dispatch(
       createProject({
         name,
@@ -699,12 +699,13 @@ const Project = () => {
                   {/* Client Select field */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
-                      Client
+                      Client <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <select
                         value={client}
                         onChange={(e) => setClient(e.target.value)}
+                        required
                         className="w-full px-4 py-3 pr-10 rounded-2xl bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-155 dark:border-white/10 focus:outline-none focus:border-blue-500 dark:focus:border-[#3b82f6] focus:bg-white dark:focus:bg-[#111111] text-sm text-slate-700 dark:text-white cursor-pointer appearance-none transition-all focus:shadow-sm"
                       >
                         <option value="" className="dark:bg-[#111111]">
