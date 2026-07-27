@@ -787,7 +787,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   <button
                     type="button"
                     onClick={() => setIsOpen(!isOpen)}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 lg:py-1.5 text-left rounded-xl border border-transparent hover:bg-slate-100/60 dark:hover:bg-white/5 transition-all duration-200 cursor-pointer group text-slate-500 dark:text-slate-400 hover:theme-text-accent"
+                    className="w-full flex items-center gap-2.5 px-3 py-2 lg:py-1.5 text-left rounded-xl border border-transparent hover:bg-slate-100/60 dark:hover:bg-white/5 transition-all duration-200 cursor-pointer group text-slate-500 dark:text-white hover:theme-text-accent"
                   >
                     <div className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center bg-slate-100/70 dark:bg-white/5 group-hover:bg-[var(--accent-light-bg-subtle)] dark:group-hover:bg-[var(--accent-dark-bg-subtle)] transition-colors">
                       {icon}
@@ -937,7 +937,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                 className={`transition-colors duration-200 relative z-10 ${
                                   isActive
                                     ? "text-white dark:text-slate-900"
-                                    : "text-slate-700 dark:text-white/90 group-hover:text-slate-900 dark:group-hover:text-white"
+                                    : "text-slate-700 dark:text-white group-hover:text-slate-900 dark:group-hover:text-white"
                                 }`}
                               />
                             </motion.div>
@@ -947,7 +947,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                               className={`text-xs lg:text-[0.6875rem] truncate flex-1 text-left transition-colors duration-200 ${
                                 isActive
                                   ? "text-slate-900 dark:text-white font-black"
-                                  : "text-slate-700 dark:text-white/90 font-bold group-hover:text-slate-900 dark:group-hover:text-white"
+                                  : "text-slate-700 dark:text-white font-bold group-hover:text-slate-900 dark:group-hover:text-white"
                               }`}
                             >
                               {item.name}
