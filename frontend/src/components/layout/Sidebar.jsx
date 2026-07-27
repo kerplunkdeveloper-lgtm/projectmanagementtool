@@ -823,9 +823,14 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             };
 
             const renderPortfoliosList = () => {
+              const canSeeMyProject =
+                currentUser?.role?.toLowerCase() === "managingpartner" ||
+                currentUser?.role?.toLowerCase() === "operationmanager" ||
+                currentUser?.department?.toLowerCase() === "social media manager";
+
               return (
                 <>
-                  {renderPortfolioDropdown(
+                  {canSeeMyProject && renderPortfolioDropdown(
                     "My Project",
                     <FiLayers
                       size={14}
