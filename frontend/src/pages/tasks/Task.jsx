@@ -31,7 +31,7 @@ const Task = () => {
   }, [canSeeTaskOverview, activeTab]);
 
   // Common quick date filter state passed to TaskOverviewTab
-  const [dateFilter, setDateFilter] = useState("Today");
+  const [dateFilter, setDateFilter] = useState("All");
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const dateDropdownRef = useRef(null);
 
