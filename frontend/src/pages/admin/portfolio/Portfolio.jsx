@@ -19,6 +19,10 @@ import {
   FiFolder,
   FiFilter,
   FiUser,
+  FiLock,
+  FiChevronDown,
+  FiGrid,
+  FiList,
 } from "react-icons/fi";
 import {
   LuPlus,
@@ -196,7 +200,9 @@ import {
   updatePortfolio,
   deletePortfolio,
   addProjectsToPortfolio,
+  addPortfoliosToPortfolio,
   removeProjectFromPortfolio,
+  removePortfolioFromPortfolio,
 } from "../../../features/portfolio/portfolioSlice";
 
 const Portfolio = () => {
@@ -219,6 +225,9 @@ const Portfolio = () => {
       ...p,
       projectIdsList: (p.projectIds || []).map((proj) =>
         typeof proj === "object" && proj !== null ? proj._id : proj,
+      ),
+      portfolioIdsList: (p.portfolioIds || []).map((port) =>
+        typeof port === "object" && port !== null ? port._id : port,
       ),
     }));
   }, [rawPortfolios]);
@@ -259,6 +268,8 @@ const Portfolio = () => {
   const role = user?.role || "admin";
   const isAdminOrManager = role === "admin" || role === "operationmanager";
   const [selectedUserFilter, setSelectedUserFilter] = useState("all");
+  const [viewMode, setViewMode] = useState("tiles"); // "tiles" or "list"
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
 
   // Filter users list to include Social Media Executives / Social Media Managers (Logged-in user comes first)
   const socialMediaUsers = useMemo(() => {
@@ -341,6 +352,7 @@ const Portfolio = () => {
   const selectedPortfolioId = new URLSearchParams(location.search).get("id");
   const activePortfolio = portfolios.find((p) => p._id === selectedPortfolioId);
   const [showAddProjectDropdown, setShowAddProjectDropdown] = useState(false);
+  const [isAddingWork, setIsAddingWork] = useState(false);
   const [projectSearchQuery, setProjectSearchQuery] = useState("");
   const [selectedAddProjects, setSelectedAddProjects] = useState([]);
 
@@ -364,13 +376,16 @@ const Portfolio = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [portfolioName, setPortfolioName] = useState("");
   const [portfolioColor, setPortfolioColor] = useState("#ff80bf");
+  const [portfolioAccess, setPortfolioAccess] = useState("Private");
   const [portfolioId, setPortfolioId] = useState(null);
-  const [selectedClientId, setSelectedClientId] = useState("");
   const [menuOpenId, setMenuOpenId] = useState(null);
 
   // Close menus on click outside
   useEffect(() => {
-    const handleOutsideClick = () => setMenuOpenId(null);
+    const handleOutsideClick = () => {
+      setMenuOpenId(null);
+      setShowAddProjectDropdown(false);
+    };
     window.addEventListener("click", handleOutsideClick);
     return () => window.removeEventListener("click", handleOutsideClick);
   }, []);
@@ -380,26 +395,22 @@ const Portfolio = () => {
     dispatch(getProjects());
     dispatch(getTasks());
     dispatch(getUsers());
-    dispatch(getClients());
+    dispatch(getClients()); 
     dispatch(getPortfolios());
   }, [dispatch]);
 
-  // Set default client selection once clients are loaded or active portfolio changes
+  // Set default client selection once clients are loaded
   useEffect(() => {
     if (clients && clients.length > 0) {
-      const targetClientId =
-        activePortfolio?.client?._id ||
-        activePortfolio?.client ||
-        clients[0]._id;
-      setNewProjectClientId(targetClientId);
+      setNewProjectClientId(clients[0]._id);
     }
-  }, [clients, activePortfolio]);
+  }, [clients]);
 
   // Open create modal
   const handleOpenCreateModal = () => {
     setPortfolioName("");
     setPortfolioColor("#ff80bf");
-    setSelectedClientId(clients && clients.length > 0 ? clients[0]._id : "");
+    setPortfolioAccess("Private");
     setIsEditMode(false);
     setIsModalOpen(true);
   };
@@ -409,7 +420,7 @@ const Portfolio = () => {
     setPortfolioId(p._id);
     setPortfolioName(p.name);
     setPortfolioColor(p.color || "#ff80bf");
-    setSelectedClientId(p.client?._id || p.client || "");
+    setPortfolioAccess(p.access || "Private");
     setIsEditMode(true);
     setIsModalOpen(true);
   };
@@ -417,27 +428,25 @@ const Portfolio = () => {
   // Save portfolio from modal (create or update)
   const handleSavePortfolio = (e) => {
     e.preventDefault();
-    if (!selectedClientId) return;
-    const clientObj = clients.find((c) => c._id === selectedClientId);
-    const finalName = clientObj ? clientObj.companyName : "Portfolio";
+    if (!portfolioName.trim()) return;
 
     if (isEditMode) {
       dispatch(
         updatePortfolio({
           id: portfolioId,
           data: {
-            name: finalName,
-            client: selectedClientId,
+            name: portfolioName.trim(),
             color: portfolioColor,
+            access: portfolioAccess,
           },
         }),
       );
     } else {
       dispatch(
         createPortfolio({
-          name: finalName,
-          client: selectedClientId,
+          name: portfolioName.trim(),
           color: portfolioColor,
+          access: portfolioAccess,
         }),
       );
     }
@@ -488,6 +497,14 @@ const Portfolio = () => {
     );
   };
 
+  // Remove portfolio from current portfolio
+  const handleRemovePortfolio = (childPortfolioId) => {
+    if (!activePortfolio) return;
+    dispatch(
+      removePortfolioFromPortfolio({ id: activePortfolio._id, childPortfolioId }),
+    );
+  };
+
   // Create or edit a project
   const handleCreateAndAddProject = async () => {
     if (!newProjectName.trim() || !newProjectClientId) return;
@@ -529,11 +546,7 @@ const Portfolio = () => {
     } finally {
       setCreatingProject(false);
       setNewProjectName("");
-      const targetClientId =
-        activePortfolio?.client?._id ||
-        activePortfolio?.client ||
-        clients[0]?._id ||
-        "";
+      const targetClientId = clients[0]?._id || "";
       setNewProjectClientId(targetClientId);
       setNewProjectStatus("Active");
       setEditingProject(null);
@@ -587,384 +600,267 @@ const Portfolio = () => {
             exit={{ opacity: 0, y: -15 }}
             className="space-y-6"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h1 className="text-xl font-extrabold text-slate-800 dark:text-white">
-                  Portfolios Dashboard
-                </h1>
+            {/* ========================================================
+                 UNIFIED FLAT GRID/LIST DIRECTORY
+                 ======================================================== */}
+            <div className="space-y-6">
+              {/* Header with View Toggle */}
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                  <FiChevronDown size={18} />
+                  <h2 className="text-[15px] font-bold">Recent portfolios</h2>
+                </div>
+                
+                <div className="relative">
+                  <button onClick={() => setViewMenuOpen(!viewMenuOpen)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md text-slate-500 transition-colors">
+                    {viewMode === "tiles" ? <FiGrid size={18} /> : <FiList size={18} />}
+                  </button>
+                  {viewMenuOpen && (
+                    <div className="absolute right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-lg shadow-lg w-36 py-1 z-30">
+                      <button onClick={() => { setViewMode('tiles'); setViewMenuOpen(false); }} className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2">
+                        {viewMode === 'tiles' ? <FiCheck size={14} className="text-blue-500" /> : <div className="w-[14px]"></div>}
+                        View as tiles
+                      </button>
+                      <button onClick={() => { setViewMode('list'); setViewMenuOpen(false); }} className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2">
+                        {viewMode === 'list' ? <FiCheck size={14} className="text-blue-500" /> : <div className="w-[14px]"></div>}
+                        View as list
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Team Member Filter Dropdown — Admin & Operation Manager Only */}
-              {isAdminOrManager && (
-                <div className="flex items-center gap-2.5 bg-white dark:bg-slate-800/80 px-3.5 py-2 rounded-2xl border border-slate-200/80 dark:border-white/10 shadow-sm">
-                  <FiFilter className="text-blue-500 dark:text-blue-400 text-sm shrink-0" />
-                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300 whitespace-nowrap">
-                    Members:
-                  </span>
-                  <select
-                    value={selectedUserFilter}
-                    onChange={(e) => setSelectedUserFilter(e.target.value)}
-                    className="bg-slate-50 dark:bg-slate-900 border border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-slate-200 text-xs font-semibold rounded-xl px-3 py-1.5 outline-none focus:ring-2 focus:ring-blue-500/30 transition-all cursor-pointer"
+              {viewMode === "tiles" ? (
+                <div className="flex flex-wrap gap-8 sm:gap-10 items-start">
+                  {/* "+ New portfolio" Card */}
+                  <div className="flex flex-col items-center group w-36 cursor-pointer" onClick={handleOpenCreateModal}>
+                    <div className="w-36 h-28 border-[1.5px] border-dashed border-slate-300 dark:border-slate-700 rounded-3xl flex items-center justify-center bg-white hover:bg-slate-50 dark:bg-slate-900/40 dark:hover:bg-slate-800 transition-colors">
+                      <FiPlus
+                        size={28}
+                        className="text-slate-400 group-hover:text-blue-500 transition-colors stroke-2"
+                      />
+                    </div>
+                    <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200 mt-3 group-hover:text-blue-600 transition-colors text-center w-full truncate">
+                      New portfolio
+                    </span>
+                  </div>
+
+                  {filteredPortfolios.map((portfolio) => {
+                    return (
+                      <div
+                        key={portfolio._id}
+                        onDoubleClick={() => {
+                          navigate(`/${role}/portfolio?id=${portfolio._id}`);
+                        }}
+                        className="flex flex-col items-center group w-36 relative"
+                      >
+                        {/* Folder Container */}
+                        <div className="relative w-36 h-28 flex justify-center cursor-pointer">
+                          <svg
+                            viewBox="0 0 240 180"
+                            className="w-full h-full drop-shadow-sm transition-transform duration-300 group-hover:scale-[1.02]"
+                            style={{ fill: portfolio.color || "#ff80bf" }}
+                          >
+                            <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
+                          </svg>
+
+                          {/* Avatar Badge overlapping folder bottom center */}
+                          <div 
+                            className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full border-[1.5px] border-white dark:border-slate-900 flex items-center justify-center text-[10px] font-extrabold shadow-sm z-10 text-white"
+                            style={{ backgroundColor: '#F5BE4F' }}
+                          >
+                            {getInitials(portfolio.createdBy?.name || "U")}
+                          </div>
+
+                          {/* Star Icon (Hidden by default, shown on hover or if favorited) */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleFavorite(e, portfolio);
+                            }}
+                            className={`absolute top-2 left-2 p-1 rounded transition-opacity ${
+                              portfolio.isFavorite ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                            }`}
+                          >
+                            <FiStar
+                              size={16}
+                              className={portfolio.isFavorite ? "fill-amber-400 text-amber-400 drop-shadow-md" : "text-white drop-shadow-md"}
+                            />
+                          </button>
+
+                          {/* Actions Menu Trigger (Hidden by default, shown on hover) */}
+                          <div
+                            className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              onClick={() =>
+                                setMenuOpenId(
+                                  menuOpenId === portfolio._id ? null : portfolio._id,
+                                )
+                              }
+                              className="text-white hover:bg-black/10 rounded-full p-1 transition-colors"
+                            >
+                              <FiMoreHorizontal size={16} className="drop-shadow-md" />
+                            </button>
+
+                            {/* Dropdown Menu */}
+                            {menuOpenId === portfolio._id && (
+                              <div className="absolute right-0 mt-1 w-28 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 py-1 z-30">
+                                <button
+                                  onClick={() => {
+                                    handleOpenEditModal(portfolio);
+                                    setMenuOpenId(null);
+                                  }}
+                                  className="w-full text-left px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 flex items-center gap-2"
+                                >
+                                  <FiEdit3 size={12} className="text-slate-400" />{" "}
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    handleDeletePortfolio(e, portfolio._id);
+                                    setMenuOpenId(null);
+                                  }}
+                                  className="w-full text-left px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 flex items-center gap-2"
+                                >
+                                  <FiTrash2 size={12} className="text-red-400" />{" "}
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Title */}
+                        <h3 className="text-[13px] font-bold text-slate-800 dark:text-slate-200 mt-4 w-full truncate flex justify-center items-center gap-1.5 cursor-pointer" onDoubleClick={() => navigate(`/${role}/portfolio?id=${portfolio._id}`)}>
+                          {portfolio.name}
+                          {portfolio.access === "Private" && (
+                            <span title="Private Portfolio" className="text-slate-400 shrink-0">
+                              <FiLock size={12} />
+                            </span>
+                          )}
+                        </h3>
+
+                        {/* Project count */}
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 text-center">
+                          {
+                            (portfolio.projectIdsList || []).filter((id) =>
+                              projects.some((p) => p._id === id),
+                            ).length
+                          }{" "}
+                          project{
+                            (portfolio.projectIdsList || []).filter((id) =>
+                              projects.some((p) => p._id === id),
+                            ).length !== 1 ? "s" : ""
+                          }
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col w-full divide-y divide-slate-100 dark:divide-slate-800/60 mt-4">
+                  {/* "+ New portfolio" Row */}
+                  <div 
+                    onClick={handleOpenCreateModal}
+                    className="flex items-center gap-4 py-3 cursor-pointer group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 px-2 -mx-2 rounded-lg transition-colors"
                   >
-                    <option value="all">All</option>
-                    {(socialMediaUsers || []).map((u) => (
-                      <option key={u._id} value={u._id}>
-                        {u.name}
-                        {String(u._id) === String(user?._id || user?.id)
-                          ? " (You)"
-                          : ""}{" "}
-                        ({u.department || u.role})
-                      </option>
-                    ))}
-                  </select>
-                  {selectedUserFilter !== "all" && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedUserFilter("all")}
-                      className="text-slate-400 hover:text-red-500 transition-colors p-1"
-                      title="Clear Filter"
-                    >
-                      <FiX size={14} />
-                    </button>
-                  )}
+                    <div className="w-10 h-10 border-[1.5px] border-dashed border-slate-300 dark:border-slate-700 rounded-xl flex items-center justify-center bg-white group-hover:bg-slate-50 transition-colors">
+                      <FiPlus size={20} className="text-slate-400 group-hover:text-blue-500 stroke-2" />
+                    </div>
+                    <span className="text-[13px] font-semibold text-slate-500 group-hover:text-blue-600 transition-colors">
+                      New portfolio
+                    </span>
+                  </div>
+
+                  {filteredPortfolios.map((portfolio) => {
+                    const projectCount = (portfolio.projectIdsList || []).filter((id) =>
+                      projects.some((p) => p._id === id)
+                    ).length;
+
+                    return (
+                      <div
+                        key={portfolio._id}
+                        onDoubleClick={() => navigate(`/${role}/portfolio?id=${portfolio._id}`)}
+                        className="flex items-center justify-between py-3 cursor-pointer group hover:bg-slate-50/50 dark:hover:bg-slate-800/50 px-2 -mx-2 rounded-lg transition-colors relative"
+                      >
+                         <div className="flex items-center gap-4">
+                           {/* Folder SVG */}
+                           <div className="w-10 h-8 flex items-center justify-center shrink-0">
+                             <svg
+                               viewBox="0 0 240 180"
+                               className="w-full h-full drop-shadow-sm group-hover:scale-[1.02] transition-transform"
+                               style={{ fill: portfolio.color || "#ff80bf" }}
+                             >
+                               <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
+                             </svg>
+                           </div>
+                           
+                           {/* Text Details */}
+                           <div className="flex flex-col">
+                             <span className="text-[13px] font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                               {portfolio.name}
+                               {portfolio.access === "Private" && (
+                                 <span title="Private Portfolio" className="text-slate-400 shrink-0">
+                                   <FiLock size={12} />
+                                 </span>
+                               )}
+                             </span>
+                             <span className="text-[11px] text-slate-500 mt-0.5">
+                               Visited today · {projectCount} project{projectCount !== 1 ? 's' : ''}
+                             </span>
+                           </div>
+                         </div>
+                         
+                         {/* Right Side Avatar & Actions */}
+                         <div className="flex items-center gap-3">
+                            {/* Actions Menu Trigger (Hidden by default) */}
+                            <div
+                              className="relative opacity-0 group-hover:opacity-100 transition-opacity flex items-center"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                onClick={() => setMenuOpenId(menuOpenId === portfolio._id ? null : portfolio._id)}
+                                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                              >
+                                <FiMoreHorizontal size={16} />
+                              </button>
+
+                              {/* Dropdown Menu */}
+                              {menuOpenId === portfolio._id && (
+                                <div className="absolute right-0 top-full mt-1 w-28 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 py-1 z-30">
+                                  <button
+                                    onClick={() => { handleOpenEditModal(portfolio); setMenuOpenId(null); }}
+                                    className="w-full text-left px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 flex items-center gap-2"
+                                  >
+                                    <FiEdit3 size={12} className="text-slate-400" /> Edit
+                                  </button>
+                                  <button
+                                    onClick={(e) => { handleDeletePortfolio(e, portfolio._id); setMenuOpenId(null); }}
+                                    className="w-full text-left px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 flex items-center gap-2"
+                                  >
+                                    <FiTrash2 size={12} className="text-red-400" /> Delete
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Avatar Badge */}
+                            <div 
+                              className="w-[26px] h-[26px] rounded-full border border-white dark:border-slate-900 flex items-center justify-center text-[10px] font-extrabold shadow-sm text-white"
+                              style={{ backgroundColor: '#F5BE4F' }}
+                              title={portfolio.createdBy?.name || "User"}
+                            >
+                              {getInitials(portfolio.createdBy?.name || "U")}
+                            </div>
+                         </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
-
-            {isAdminOrManager ? (
-              /* ========================================================
-                 ADMIN & OPERATION MANAGER: TOP CONTAINER + USER GROUPS
-                 ======================================================== */
-              <div className="space-y-6">
-                {/* TOP DEDICATED CONTAINER: Create New Portfolio */}
-                <div className="bg-white dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/10 rounded-3xl p-5 shadow-sm">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                    <button
-                      type="button"
-                      onClick={handleOpenCreateModal}
-                      className="group flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300/80 dark:border-slate-700/60 hover:border-blue-500 dark:hover:border-blue-500 bg-slate-50/40 hover:bg-blue-50/20 dark:bg-slate-900/30 dark:hover:bg-blue-500/10 rounded-2xl transition-all duration-300 cursor-pointer shadow-sm relative text-center min-h-[160px]"
-                    >
-                      <div className="w-12 h-12 rounded-2xl border border-slate-250 dark:border-slate-700 flex items-center justify-center text-slate-400 group-hover:text-blue-500 group-hover:border-blue-400 dark:group-hover:border-blue-500 transition-all shadow-sm bg-white dark:bg-slate-800">
-                        <FiPlus
-                          size={22}
-                          className="group-hover:scale-110 transition-transform text-slate-500 group-hover:text-blue-500"
-                        />
-                      </div>
-                      <span className="text-xs font-black text-slate-655 dark:text-slate-300 mt-3 group-hover:text-blue-500 transition-colors uppercase tracking-wider">
-                        New portfolio
-                      </span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* USER-GROUPED PORTFOLIOS SECTIONS */}
-                {groupedPortfoliosByUser.length === 0 ? (
-                  <div className="py-12 text-center bg-white dark:bg-slate-900/60 rounded-3xl border border-slate-200/80 dark:border-white/10 p-8 shadow-sm">
-                    <FiFolder className="mx-auto h-10 w-10 text-slate-400 mb-3" />
-                    <p className="text-sm font-bold text-slate-600 dark:text-slate-300">
-                      No portfolios found for the selected team member.
-                    </p>
-                    {selectedUserFilter !== "all" && (
-                      <button
-                        onClick={() => setSelectedUserFilter("all")}
-                        className="mt-4 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline uppercase tracking-wider"
-                      >
-                        Clear Filter
-                      </button>
-                    )}
-                  </div>
-                ) : (
-                  groupedPortfoliosByUser.map((group) => (
-                    <div
-                      key={group.userId}
-                      className="bg-white dark:bg-slate-900/60 border border-slate-200/80 dark:border-white/10 rounded-3xl p-5 shadow-sm space-y-4 hover:border-slate-300 dark:hover:border-white/20 transition-colors"
-                    >
-                      {/* User Container Header */}
-                      <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-white/5">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-9 h-9 rounded-2xl overflow-hidden shadow-sm flex items-center justify-center text-white text-xs font-bold shrink-0 ${getAvatarColor(
-                              group.userName,
-                            )}`}
-                          >
-                            {group.profileImage ? (
-                              <img
-                                src={group.profileImage}
-                                alt={group.userName}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              getInitials(group.userName)
-                            )}
-                          </div>
-                          <div>
-                            <h3 className="text-sm font-extrabold text-slate-800 dark:text-white">
-                              {group.userName}
-                            </h3>
-                            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                              {group.userDept}
-                            </p>
-                          </div>
-                        </div>
-
-                        <span className="text-xs font-bold px-3 py-1 rounded-full bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 border border-slate-200/50 dark:border-white/5">
-                          {group.portfolios.length} Portfolio
-                          {group.portfolios.length !== 1 ? "s" : ""}
-                        </span>
-                      </div>
-
-                      {/* User's Portfolios Grid */}
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                        {group.portfolios.map((portfolio) => {
-                          const projectCount = (
-                            portfolio.projectIdsList || []
-                          ).filter((id) =>
-                            projects.some((p) => p._id === id),
-                          ).length;
-
-                          return (
-                            <div
-                              key={portfolio._id}
-                              onDoubleClick={() => {
-                                navigate(
-                                  `/${role}/portfolio?id=${portfolio._id}`,
-                                );
-                              }}
-                              className="group flex flex-col items-center justify-center p-3 rounded-2xl hover:bg-slate-50/80 dark:hover:bg-white/[0.03] border border-transparent hover:border-slate-200/60 dark:hover:border-white/5 transition-all duration-200 cursor-pointer relative text-center"
-                            >
-                              {/* Folder Container */}
-                              <div className="relative w-36 h-28 flex items-center justify-center shrink-0">
-                                <svg
-                                  viewBox="0 0 240 180"
-                                  className="w-full h-full drop-shadow-md transition-transform duration-300 group-hover:scale-105"
-                                  style={{ fill: portfolio.color || "#ff80bf" }}
-                                >
-                                  <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
-                                </svg>
-
-                                {/* Star Icon */}
-                                <button
-                                  type="button"
-                                  onClick={(e) =>
-                                    handleToggleFavorite(e, portfolio)
-                                  }
-                                  className="absolute top-7 left-4 text-white/85 hover:text-white transition-colors cursor-pointer"
-                                >
-                                  <FiStar
-                                    size={15}
-                                    className={
-                                      portfolio.isFavorite
-                                        ? "fill-white text-white"
-                                        : ""
-                                    }
-                                  />
-                                </button>
-
-                                {/* Actions Menu Trigger */}
-                                <div
-                                  className="absolute top-7 right-4"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setMenuOpenId(
-                                        menuOpenId === portfolio._id
-                                          ? null
-                                          : portfolio._id,
-                                      )
-                                    }
-                                    className="text-white/85 hover:text-white transition-colors cursor-pointer flex items-center justify-center p-0.5"
-                                  >
-                                    <FiMoreHorizontal size={18} />
-                                  </button>
-
-                                  {/* Dropdown Menu */}
-                                  {menuOpenId === portfolio._id && (
-                                    <div className="absolute right-0 mt-1.5 w-28 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-150 dark:border-slate-700 py-1 z-30">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          handleOpenEditModal(portfolio);
-                                          setMenuOpenId(null);
-                                        }}
-                                        className="w-full text-left px-3 py-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 flex items-center gap-2"
-                                      >
-                                        <FiEdit3
-                                          size={12}
-                                          className="text-slate-400"
-                                        />{" "}
-                                        Edit
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          handleDeletePortfolio(
-                                            e,
-                                            portfolio._id,
-                                          );
-                                          setMenuOpenId(null);
-                                        }}
-                                        className="w-full text-left px-3 py-1.5 text-[11px] font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 flex items-center gap-2"
-                                      >
-                                        <FiTrash2
-                                          size={12}
-                                          className="text-red-400"
-                                        />{" "}
-                                        Delete
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Title */}
-                              <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider truncate mt-3 w-full px-1">
-                                {portfolio.name}
-                              </h3>
-
-                              {/* Project count */}
-                              <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase mt-0.5">
-                                {projectCount} Project
-                                {projectCount !== 1 ? "s" : ""}
-                              </p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            ) : (
-              /* ========================================================
-                 REGULAR TEAM MEMBER: FLAT GRID DIRECTORY
-                 ======================================================== */
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                {/* "+ New portfolio" Card */}
-                <button
-                  onClick={handleOpenCreateModal}
-                  className="group flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500 bg-slate-50/40 hover:bg-blue-50/10 dark:bg-slate-900/10 rounded-[2.5rem] h-60 transition-all duration-300 cursor-pointer shadow-sm relative"
-                >
-                  <div className="w-12 h-12 rounded-xl border border-slate-250 dark:border-slate-750 flex items-center justify-center text-slate-400 group-hover:text-blue-500 group-hover:border-blue-300 dark:group-hover:border-blue-800 transition-all shadow-inner">
-                    <FiPlus
-                      size={22}
-                      className="group-hover:scale-110 transition-transform"
-                    />
-                  </div>
-                  <span className="text-xs font-black text-slate-655 dark:text-slate-300 mt-4 group-hover:text-blue-500 transition-colors uppercase tracking-wider">
-                    New portfolio
-                  </span>
-                </button>
-
-                {filteredPortfolios.map((portfolio) => {
-                  return (
-                    <div
-                      key={portfolio._id}
-                      onDoubleClick={() => {
-                        navigate(`/${role}/portfolio?id=${portfolio._id}`);
-                      }}
-                      className="group flex flex-col items-center justify-center p-2 transition-all duration-300 cursor-pointer relative text-center"
-                    >
-                      {/* Folder Container */}
-                      <div className="relative w-36 h-28 flex items-center justify-center shrink-0">
-                        <svg
-                          viewBox="0 0 240 180"
-                          className="w-full h-full drop-shadow-md transition-transform duration-300 group-hover:scale-105"
-                          style={{ fill: portfolio.color || "#ff80bf" }}
-                        >
-                          <path d="M 16 0 A 16 16 0 0 0 0 16 L 0 144 A 16 16 0 0 0 16 160 L 224 160 A 16 16 0 0 0 240 144 L 240 48 A 16 16 0 0 0 224 32 L 120 32 L 96 6 A 16 16 0 0 0 80 0 Z" />
-                        </svg>
-
-                        {/* Star Icon */}
-                        <button
-                          onClick={(e) => handleToggleFavorite(e, portfolio)}
-                          className="absolute top-7 left-4 text-white/85 hover:text-white transition-colors cursor-pointer"
-                        >
-                          <FiStar
-                            size={15}
-                            className={
-                              portfolio.isFavorite ? "fill-white text-white" : ""
-                            }
-                          />
-                        </button>
-
-                        {/* Actions Menu Trigger */}
-                        <div
-                          className="absolute top-7 right-4"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            onClick={() =>
-                              setMenuOpenId(
-                                menuOpenId === portfolio._id
-                                  ? null
-                                  : portfolio._id,
-                              )
-                            }
-                            className="text-white/85 hover:text-white transition-colors cursor-pointer flex items-center justify-center p-0.5"
-                          >
-                            <FiMoreHorizontal size={18} />
-                          </button>
-
-                          {/* Dropdown Menu */}
-                          {menuOpenId === portfolio._id && (
-                            <div className="absolute right-0 mt-1.5 w-28 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-150 dark:border-slate-700 py-1 z-30">
-                              <button
-                                onClick={() => {
-                                  handleOpenEditModal(portfolio);
-                                  setMenuOpenId(null);
-                                }}
-                                className="w-full text-left px-3 py-1.5 text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 flex items-center gap-2"
-                              >
-                                <FiEdit3 size={12} className="text-slate-400" />{" "}
-                                Edit
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  handleDeletePortfolio(e, portfolio._id);
-                                  setMenuOpenId(null);
-                                }}
-                                className="w-full text-left px-3 py-1.5 text-[11px] font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 flex items-center gap-2"
-                              >
-                                <FiTrash2 size={12} className="text-red-400" />{" "}
-                                Delete
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Title */}
-                      <h3 className="text-xs font-black text-slate-800 dark:text-white uppercase tracking-wider truncate mt-4 w-full px-2">
-                        {portfolio.name}
-                      </h3>
-
-                      {/* Project count */}
-                      <p className="text-[10px] text-slate-400 dark:text-slate-550 font-bold uppercase mt-1">
-                        {
-                          (portfolio.projectIdsList || []).filter((id) =>
-                            projects.some((p) => p._id === id),
-                          ).length
-                        }{" "}
-                        Project
-                        {(portfolio.projectIdsList || []).filter((id) =>
-                          projects.some((p) => p._id === id),
-                        ).length !== 1
-                          ? "s"
-                          : ""}
-                      </p>
-
-                      {/* Created by info */}
-                      <p className="text-[9px] text-slate-500 dark:text-slate-400 font-semibold uppercase mt-0.5">
-                        {portfolio.createdBy?.name || "N/A"} (
-                        {portfolio.createdBy?.department || "N/A"})
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </motion.div>
         ) : (
           /* ========================================================
@@ -1015,44 +911,30 @@ const Portfolio = () => {
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   onClick={() => {
-                    setNewProjectName("");
-                    const targetClientId =
-                      activePortfolio?.client?._id ||
-                      activePortfolio?.client ||
-                      clients[0]?._id ||
-                      "";
-                    setNewProjectClientId(targetClientId);
-                    setShowCreateProjectForm(true);
+                    setIsAddingWork(true);
+                    setShowAddProjectDropdown(true);
                   }}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-slate-50/60 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-755 dark:text-slate-200 hover:bg-slate-105 dark:hover:bg-slate-850 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-sm active:scale-95 cursor-pointer"
+                  className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm"
                 >
-                  <LuPlus
-                    size={14}
-                    className="text-slate-500 dark:text-slate-400"
-                  />
-                  Create New Project
+                  <FiPlus size={14} />
+                  Add group
                 </button>
               </div>
             </div>
-            <div className="min-h-[350px] space-y-4">
+            <div className="min-h-[calc(100vh-200px)] space-y-4 flex flex-col">
               {/* Grouped Projects Table (Image 2) */}
               {(() => {
                 const validProjects = (activePortfolio.projectIdsList || [])
                   .map((projId) => projects.find((p) => p._id === projId))
                   .filter(Boolean);
 
-                if (validProjects.length === 0) {
-                  return (
-                    <div className="px-6 py-12 text-center text-slate-400 dark:text-slate-505 italic bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-850  shadow-sm">
-                      No projects added. Choose "+ Add work" or search below to
-                      group projects inside this portfolio.
-                    </div>
-                  );
-                }
+                const validPortfolios = (activePortfolio.portfolioIdsList || [])
+                  .map((portId) => portfolios.find((p) => p._id === portId))
+                  .filter(Boolean);
 
                 return (
-                  <div className="overflow-x-auto bg-white dark:bg-slate-900/30">
-                    <table className="w-full text-left border-collapse text-xs">
+                  <div className="overflow-x-auto bg-white dark:bg-slate-900/30 flex-1 h-full">
+                    <table className="w-full h-full text-left border-collapse text-xs">
                       <thead>
                         <tr className="bg-slate-50/50 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 font-bold uppercase tracking-wider text-[10px]">
                           <th className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
@@ -1077,7 +959,126 @@ const Portfolio = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {validProjects.map((project, index) => {
+                        {validProjects.length === 0 && validPortfolios.length === 0 ? (
+                          <>
+                            <tr
+                              className="bg-slate-50/60 dark:bg-slate-800/60 h-10 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer text-[11px] relative"
+                              onClick={(e) => { e.stopPropagation(); setShowAddProjectDropdown(!showAddProjectDropdown); }}
+                            >
+                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 relative">
+                                Add a project or portfolio by name
+
+                                <AnimatePresence>
+                                  {showAddProjectDropdown && (
+                                    <motion.div
+                                      initial={{ opacity: 0, y: -5 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      exit={{ opacity: 0, y: -5 }}
+                                      className="absolute left-0 top-full mt-1 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden cursor-default"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <div className="px-3 py-2 text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700">
+                                        Projects
+                                      </div>
+                                      <div className="max-h-48 overflow-y-auto">
+                                        {projects
+                                          .filter((p) => !(activePortfolio.projectIdsList || []).includes(p._id))
+                                          .map((p) => {
+                                            const pIcon = getProjectIcon(p.name, p._id);
+                                            const IconCmp = pIcon.icon;
+                                            return (
+                                              <button
+                                                key={p._id}
+                                                type="button"
+                                                onClick={() => {
+                                                  dispatch(addProjectsToPortfolio({ id: activePortfolio._id, projectIds: [p._id] }));
+                                                  setShowAddProjectDropdown(false);
+                                                  setIsAddingWork(false);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                                              >
+                                                <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${pIcon.bg}`}>
+                                                  <IconCmp size={10} />
+                                                </div>
+                                                <span className="truncate">{p.name}</span>
+                                              </button>
+                                            );
+                                          })}
+                                        {projects.filter((p) => !(activePortfolio.projectIdsList || []).includes(p._id)).length === 0 && (
+                                          <div className="px-3 py-3 text-center text-[10px] text-slate-400 italic">
+                                            No projects available
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      <div className="px-3 py-2 text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 border-b border-t border-slate-100 dark:border-slate-700">
+                                        Portfolios
+                                      </div>
+                                      <div className="max-h-48 overflow-y-auto">
+                                        {portfolios
+                                          .filter((p) => p._id !== activePortfolio._id && !(activePortfolio.portfolioIdsList || []).includes(p._id))
+                                          .map((p) => {
+                                            const pIcon = getProjectIcon(p.name, p._id);
+                                            const IconCmp = pIcon.icon;
+                                            return (
+                                              <button
+                                                key={p._id}
+                                                type="button"
+                                                onClick={() => {
+                                                  dispatch(addPortfoliosToPortfolio({ id: activePortfolio._id, portfolioIds: [p._id] }));
+                                                  setShowAddProjectDropdown(false);
+                                                  setIsAddingWork(false);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                                              >
+                                                <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${pIcon.bg}`}>
+                                                  <FiFolder size={10} />
+                                                </div>
+                                                <span className="truncate">{p.name}</span>
+                                              </button>
+                                            );
+                                          })}
+                                        {portfolios.filter((p) => p._id !== activePortfolio._id && !(activePortfolio.portfolioIdsList || []).includes(p._id)).length === 0 && (
+                                          <div className="px-3 py-3 text-center text-[10px] text-slate-400 italic">
+                                            No portfolios available
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="border-t border-slate-100 dark:border-slate-700 flex flex-col">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setShowAddProjectDropdown(false);
+                                            setIsAddingWork(false);
+                                            navigate(`/${role}/projects`);
+                                          }}
+                                          className="w-full flex items-center gap-2 px-3 py-2.5 text-left text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                                        >
+                                          <FiPlus size={14} />
+                                          Create new project
+                                        </button>
+                                      </div>
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </td>
+                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800"></td>
+                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800"></td>
+                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800"></td>
+                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800"></td>
+                              <td className="px-4 py-2 border-b border-slate-200 dark:border-slate-800"></td>
+                            </tr>
+                            <tr className="bg-white dark:bg-slate-900/30 h-full">
+                              <td className="px-4 py-2 border-r border-slate-200 dark:border-slate-800"></td>
+                              <td className="px-4 py-2 border-r border-slate-200 dark:border-slate-800"></td>
+                              <td className="px-4 py-2 border-r border-slate-200 dark:border-slate-800"></td>
+                              <td className="px-4 py-2 border-r border-slate-200 dark:border-slate-800"></td>
+                              <td className="px-4 py-2 border-r border-slate-200 dark:border-slate-800"></td>
+                              <td className="px-4 py-2 border-slate-200 dark:border-slate-800"></td>
+                            </tr>
+                          </>
+                        ) : (
+                          validProjects.map((project, index) => {
                           const projId = project._id;
 
                           // Calculate progress percentage
@@ -1205,21 +1206,7 @@ const Portfolio = () => {
                               {/* Actions */}
                               <td className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-center">
                                 <div className="flex items-center justify-center gap-1.5">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setEditingProject(project);
-                                      setNewProjectName(project.name);
-                                      setNewProjectStatus(project.status || "Active");
-                                      const targetClientId = project.client?._id || project.client || "";
-                                      setNewProjectClientId(targetClientId);
-                                      setShowCreateProjectForm(true);
-                                    }}
-                                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500 rounded transition-colors"
-                                    title="Edit project"
-                                  >
-                                    <FiEdit3 size={12} />
-                                  </button>
+
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -1234,7 +1221,198 @@ const Portfolio = () => {
                               </td>
                             </tr>
                           );
+                        })
+                        )}
+                        {validPortfolios.map((portfolio, index) => {
+                          const portId = portfolio._id;
+                          return (
+                            <tr
+                              key={portId}
+                              className={`group transition-colors ${
+                                (index + validProjects.length) % 2 === 0
+                                  ? "bg-white dark:bg-slate-800/40"
+                                  : "bg-slate-50/40 dark:bg-slate-900/10"
+                              } hover:bg-blue-50/20 dark:hover:bg-[#3b82f6]/5`}
+                            >
+                              <td
+                                className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800 cursor-pointer"
+                                onClick={() => navigate(`/${user?.role || "admin"}/portfolio?id=${portId}`)}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="w-6 h-6 rounded flex items-center justify-center bg-blue-500/10 text-blue-500 shrink-0">
+                                      <FiFolder size={12} />
+                                    </div>
+                                    <span className="font-semibold text-slate-800 dark:text-slate-600 hover:text-blue-600 dark:hover:text-[#3b82f6] transition-colors">
+                                      {portfolio.name}
+                                    </span>
+                                  </div>
+                                  <FiChevronRight
+                                    size={12}
+                                    className="text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                                  />
+                                </div>
+                              </td>
+                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                                <span className="font-semibold text-slate-705 dark:text-slate-400">
+                                  {portfolio.createdBy?.name || "N/A"}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                                -
+                              </td>
+                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                                -
+                              </td>
+                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800">
+                                -
+                              </td>
+                              <td className="px-4 py-2 border-b border-slate-200 dark:border-slate-800 text-center">
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRemovePortfolio(portId);
+                                    }}
+                                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-red-500 rounded transition-colors"
+                                    title="Remove from group"
+                                  >
+                                    <FiTrash2 size={12} />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
                         })}
+                        {validProjects.length > 0 && isAddingWork && (
+                          <>
+                            <tr
+                              className="bg-slate-50/60 dark:bg-slate-800/60 h-10 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer text-[11px] relative"
+                              onClick={(e) => { e.stopPropagation(); setShowAddProjectDropdown(!showAddProjectDropdown); }}
+                            >
+                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800 text-slate-400 dark:text-slate-500 relative">
+                                Add a project or portfolio by name
+
+                                <AnimatePresence>
+                                  {showAddProjectDropdown && (
+                                    <motion.div
+                                      initial={{ opacity: 0, y: -5 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      exit={{ opacity: 0, y: -5 }}
+                                      className="absolute left-0 top-full mt-1 w-64 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 overflow-hidden cursor-default"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <div className="px-3 py-2 text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700">
+                                        Projects
+                                      </div>
+                                      <div className="max-h-48 overflow-y-auto">
+                                        {projects
+                                          .filter((p) => !(activePortfolio.projectIdsList || []).includes(p._id))
+                                          .map((p) => {
+                                            const pIcon = getProjectIcon(p.name, p._id);
+                                            const IconCmp = pIcon.icon;
+                                            return (
+                                              <button
+                                                key={p._id}
+                                                type="button"
+                                                onClick={() => {
+                                                  dispatch(addProjectsToPortfolio({ id: activePortfolio._id, projectIds: [p._id] }));
+                                                  setShowAddProjectDropdown(false);
+                                                  setIsAddingWork(false);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                                              >
+                                                <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${pIcon.bg}`}>
+                                                  <IconCmp size={10} />
+                                                </div>
+                                                <span className="truncate">{p.name}</span>
+                                              </button>
+                                            );
+                                          })}
+                                        {projects.filter((p) => !(activePortfolio.projectIdsList || []).includes(p._id)).length === 0 && (
+                                          <div className="px-3 py-3 text-center text-[10px] text-slate-400 italic">
+                                            No projects available
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      <div className="px-3 py-2 text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 border-b border-t border-slate-100 dark:border-slate-700">
+                                        Portfolios
+                                      </div>
+                                      <div className="max-h-48 overflow-y-auto">
+                                        {portfolios
+                                          .filter((p) => p._id !== activePortfolio._id && !(activePortfolio.portfolioIdsList || []).includes(p._id))
+                                          .map((p) => {
+                                            const pIcon = getProjectIcon(p.name, p._id);
+                                            const IconCmp = pIcon.icon;
+                                            return (
+                                              <button
+                                                key={p._id}
+                                                type="button"
+                                                onClick={() => {
+                                                  dispatch(addPortfoliosToPortfolio({ id: activePortfolio._id, portfolioIds: [p._id] }));
+                                                  setShowAddProjectDropdown(false);
+                                                  setIsAddingWork(false);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-3 py-2 text-left text-[11px] font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                                              >
+                                                <div className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${pIcon.bg}`}>
+                                                  <FiFolder size={10} />
+                                                </div>
+                                                <span className="truncate">{p.name}</span>
+                                              </button>
+                                            );
+                                          })}
+                                        {portfolios.filter((p) => p._id !== activePortfolio._id && !(activePortfolio.portfolioIdsList || []).includes(p._id)).length === 0 && (
+                                          <div className="px-3 py-3 text-center text-[10px] text-slate-400 italic">
+                                            No portfolios available
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="border-t border-slate-100 dark:border-slate-700 flex flex-col">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setShowAddProjectDropdown(false);
+                                            setIsAddingWork(false);
+                                            navigate(`/${role}/projects`);
+                                          }}
+                                          className="w-full flex items-center gap-2 px-3 py-2.5 text-left text-[11px] font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                                        >
+                                          <FiPlus size={14} />
+                                          Create new project
+                                        </button>
+                                      </div>
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </td>
+                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800"></td>
+                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800"></td>
+                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800"></td>
+                              <td className="px-4 py-2 border-r border-b border-slate-200 dark:border-slate-800"></td>
+                              <td className="px-4 py-2 border-b border-slate-200 dark:border-slate-800"></td>
+                            </tr>
+                            <tr className="bg-white dark:bg-slate-900/30 h-full">
+                              <td className="px-4 py-2 border-r border-slate-200 dark:border-slate-800"></td>
+                              <td className="px-4 py-2 border-r border-slate-200 dark:border-slate-800"></td>
+                              <td className="px-4 py-2 border-r border-slate-200 dark:border-slate-800"></td>
+                              <td className="px-4 py-2 border-r border-slate-200 dark:border-slate-800"></td>
+                              <td className="px-4 py-2 border-r border-slate-200 dark:border-slate-800"></td>
+                              <td className="px-4 py-2 border-slate-200 dark:border-slate-800"></td>
+                            </tr>
+                          </>
+                        )}
+                        {validProjects.length > 0 && !isAddingWork && (
+                          <tr className="h-full">
+                            <td className="px-4 py-2 border-r border-slate-200 dark:border-slate-800"></td>
+                            <td className="px-4 py-2 border-r border-slate-200 dark:border-slate-800"></td>
+                            <td className="px-4 py-2 border-r border-slate-200 dark:border-slate-800"></td>
+                            <td className="px-4 py-2 border-r border-slate-200 dark:border-slate-800"></td>
+                            <td className="px-4 py-2 border-r border-slate-200 dark:border-slate-800"></td>
+                            <td className="px-4 py-2 border-slate-200 dark:border-slate-800"></td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -1270,33 +1448,37 @@ const Portfolio = () => {
               </h2>
 
               <form onSubmit={handleSavePortfolio} className="space-y-6">
-                {/* Client Select Field */}
+                {/* Portfolio Name Field */}
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
-                    Client Name
+                    Portfolio Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={portfolioName}
+                    onChange={(e) => setPortfolioName(e.target.value)}
+                    placeholder="Enter portfolio name..."
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600"
+                  />
+                </div>
+
+                {/* Access Selection Field */}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 block">
+                    Access
                   </label>
                   <div className="relative">
                     <select
-                      required
-                      value={selectedClientId}
-                      onChange={(e) => setSelectedClientId(e.target.value)}
-                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 pr-10 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500 transition-all appearance-none cursor-pointer"
+                      value={portfolioAccess}
+                      onChange={(e) => setPortfolioAccess(e.target.value)}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl px-4 py-3 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500 transition-all appearance-none cursor-pointer"
                     >
-                      <option value="" disabled>
-                        Select Client...
-                      </option>
-                      {clients.map((c) => (
-                        <option
-                          key={c._id}
-                          value={c._id}
-                          className="dark:bg-slate-900"
-                        >
-                          {c.companyName}
-                        </option>
-                      ))}
+                      <option value="Private">Private - Only visible to you</option>
+                      <option value="Public">Public - Visible to all</option>
                     </select>
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                      <FiChevronRight size={14} className="rotate-90" />
+                      <FiChevronDown size={14} />
                     </div>
                   </div>
                 </div>
@@ -1378,189 +1560,7 @@ const Portfolio = () => {
         )}
       </AnimatePresence>
 
-      {/* CREATE NEW PROJECT OFFCANVAS DRAWER */}
-      <AnimatePresence>
-        {showCreateProjectForm && activePortfolio && (
-          <div className="fixed inset-0 z-50 flex justify-end">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowCreateProjectForm(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
 
-            {/* Side Sheet Drawer */}
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "tween", ease: "easeOut", duration: 0.3 }}
-              className="relative w-full max-w-md bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col z-10 border-l border-slate-100 dark:border-slate-800"
-            >
-              {/* Header */}
-              <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-[#3b82f6]/10 border border-blue-100 dark:border-[#3b82f6]/20 flex items-center justify-center text-blue-600 dark:text-[#3b82f6]">
-                    <LuBriefcase size={20} />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-black text-slate-800 dark:text-white">
-                      {editingProject ? "Edit Project" : "Add New Project"}
-                    </h2>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
-                      {editingProject ? "Update Project Details" : "Project Details"}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowCreateProjectForm(false)}
-                  className="w-8 h-8 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 flex items-center justify-center text-slate-400 hover:text-slate-650 dark:hover:text-white transition-colors cursor-pointer"
-                >
-                  <FiX size={18} />
-                </button>
-              </div>
-
-              {/* Form Content */}
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleCreateAndAddProject();
-                }}
-                className="flex-1 flex flex-col overflow-hidden"
-              >
-                <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-                  {/* Name Field */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-650 dark:text-slate-400 uppercase tracking-wide">
-                      Project Name
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      autoFocus
-                      value={newProjectName}
-                      onChange={(e) => setNewProjectName(e.target.value)}
-                      placeholder="Enter project name..."
-                      className="w-full bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500 transition-all placeholder:text-slate-450 focus:shadow-sm"
-                    />
-                  </div>
-
-                  {/* Client Select Field */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-650 dark:text-slate-400 uppercase tracking-wide block">
-                      Client Name
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={newProjectClientId}
-                        onChange={(e) => setNewProjectClientId(e.target.value)}
-                        className="w-full bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 pr-10 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500 transition-all appearance-none cursor-pointer focus:shadow-sm"
-                      >
-                        {(() => {
-                          const targetClientId =
-                            activePortfolio?.client?._id ||
-                            activePortfolio?.client;
-                          const mappedClient = clients.find(
-                            (c) => c._id === targetClientId,
-                          );
-                          if (mappedClient) {
-                            return (
-                              <option
-                                value={mappedClient._id}
-                                className="dark:bg-slate-900"
-                              >
-                                {mappedClient.companyName}
-                              </option>
-                            );
-                          }
-                          return clients.map((c) => (
-                            <option
-                              key={c._id}
-                              value={c._id}
-                              className="dark:bg-slate-900"
-                            >
-                              {c.companyName}
-                            </option>
-                          ));
-                        })()}
-                      </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                        <FiChevronRight size={14} className="rotate-90" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Status Select Field */}
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-650 dark:text-slate-400 uppercase tracking-wide block">
-                      Status
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={newProjectStatus}
-                        onChange={(e) => setNewProjectStatus(e.target.value)}
-                        className="w-full bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-3 pr-10 text-xs font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-500 transition-all appearance-none cursor-pointer focus:shadow-sm"
-                      >
-                        <option value="Active" className="dark:bg-slate-900">
-                          Active
-                        </option>
-                        <option value="On Hold" className="dark:bg-slate-900">
-                          On Hold
-                        </option>
-                        <option value="Completed" className="dark:bg-slate-900">
-                          Completed
-                        </option>
-                        <option value="Inactive" className="dark:bg-slate-900">
-                          Inactive
-                        </option>
-                      </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                        <FiChevronRight size={14} className="rotate-90" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sticky Footer */}
-                <div className="p-6 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/30 dark:bg-slate-900/50 flex justify-end gap-3 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setShowCreateProjectForm(false)}
-                    className="px-5 py-3 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-605 dark:text-slate-300 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-white/5 active:scale-95 transition-all cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={
-                      creatingProject ||
-                      !newProjectName.trim() ||
-                      !newProjectClientId
-                    }
-                    className={`px-5 py-3 rounded-2xl text-sm font-bold shadow-md transition-all active:scale-95 bg-blue-600 dark:bg-[#3b82f6] hover:bg-blue-500 dark:hover:bg-[#ccff00] text-white dark:text-black shadow-blue-500/10 dark:shadow-[#3b82f6]/20 ${
-                      creatingProject ||
-                      !newProjectName.trim() ||
-                      !newProjectClientId
-                        ? "opacity-50 cursor-not-allowed shadow-none"
-                        : "cursor-pointer"
-                    }`}
-                  >
-                    {creatingProject
-                      ? editingProject
-                        ? "Saving..."
-                        : "Creating..."
-                      : editingProject
-                        ? "Save Changes"
-                        : "Create Project"}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };

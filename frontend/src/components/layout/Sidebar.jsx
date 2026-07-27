@@ -23,6 +23,8 @@ import { getUsers } from "../../features/users/userSlice";
 import { getPortfolios } from "../../features/portfolio/portfolioSlice";
 import { getClients } from "../../features/clients/clientslice";
 import { apiSlice } from "../../features/api/apiSlice";
+import { markAllChatAsRead } from "../../features/notifications/notificationSlice";
+import { clearAllUnreadCounts } from "../../features/chat/chatSlice";
 import ProjectIcon from "../common/ProjectIcon";
 
 const projectColors = [
@@ -127,10 +129,16 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   );
   const { profile } = useSelector((state) => state.profile);
   const { unreadCounts = {} } = useSelector((state) => state.chat);
-  const totalUnreadChatCount = Object.values(unreadCounts).reduce(
+  const localUnreadChatCount = Object.values(unreadCounts).reduce(
     (sum, val) => sum + (val || 0),
     0,
   );
+  const dbUnreadChatCount = notifications
+    ? notifications.filter((n) => !n.isRead && n.type === "message_received").length
+    : 0;
+  
+  // Use the database notifications count as the source of truth if it exists, otherwise fallback to local session state
+  const totalUnreadChatCount = Math.max(localUnreadChatCount, dbUnreadChatCount);
 
   const menuItems = (sidebarConfig[role] || []).filter((item) => {
     // Hide Projects Overview for Social Media Manager department
@@ -232,6 +240,13 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   }, []);
 
   useEffect(() => {
+    if (!showUserDropdown) {
+      const timer = setTimeout(() => setUserSearchQuery(""), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [showUserDropdown]);
+
+  useEffect(() => {
     if (activePortfolioId) {
       const parentPortfolio = (portfolios || []).find(
         (p) => p._id === activePortfolioId,
@@ -329,10 +344,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       <aside
         className={`
           fixed top-0 left-0 z-[100] h-[100dvh]
-          w-64 max-w-[80vw] lg:w-60
+          w-64 max-w-[80vw] lg:w-52
           sidebar-bg
           backdrop-blur-xl
-          border-r border-slate-200/40 dark:border-white/5
+        
           shadow-[0_8px_32px_0_rgba(0,0,0,0.02)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.25)]
           flex flex-col
           transition-transform duration-300 ease-in-out
@@ -383,7 +398,11 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
               list,
               groupByUser = false,
             ) => {
-              if (!list || list.length === 0) return null;
+              if (title === "My Projects" || title === "My Project") {
+                if (!projects || projects.length === 0) return null;
+              } else {
+                if (!list || list.length === 0) return null;
+              }
 
               const renderPortfolioItems = (portfoliosToRender) => {
                 return portfoliosToRender.map((portfolio) => {
@@ -411,10 +430,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                 : true,
                             }));
                           }}
-                          className={`flex-1 flex items-center gap-2 text-left text-xs lg:text-[0.6875rem] font-semibold py-1.5 px-2 transition-all duration-150 rounded-lg ${
+                          className={`flex-1 flex items-center gap-2 text-left text-xs lg:text-[0.6875rem] py-1.5 px-2 transition-all duration-150 rounded-lg border ${
                             isActive
-                              ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent font-bold"
-                              : "text-slate-600 dark:text-slate-400 hover:theme-text-accent hover:bg-slate-100/60 dark:hover:bg-white/5"
+                              ? "bg-slate-900/10 dark:bg-white/10 text-slate-900 dark:text-white font-black shadow-sm border-slate-900/5 dark:border-white/5"
+                              : "text-slate-700 dark:text-slate-300 font-semibold border-transparent hover:text-slate-900 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/5"
                           }`}
                           title={portfolio.name}
                         >
@@ -431,7 +450,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                             {portfolio.name}
                           </span>
                           {isActive && !portfolioProjects.length && (
-                            <span className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0" />
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-900 dark:bg-white shrink-0" />
                           )}
                         </button>
 
@@ -447,8 +466,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                             }}
                             className={`py-1.5 px-1.5 rounded-r-lg transition-all duration-150 flex items-center justify-center cursor-pointer ${
                               isActive
-                                ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)] theme-text-accent"
-                                : "text-slate-500 dark:text-slate-400 hover:theme-text-accent hover:bg-slate-100/60 dark:hover:bg-white/5"
+                                ? "bg-slate-900/10 dark:bg-white/10 text-slate-900 dark:text-white"
+                                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-900/5 dark:hover:bg-white/5"
                             }`}
                           >
                             <svg
@@ -498,7 +517,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                   className={`w-full flex items-center gap-2 text-left text-[11px] lg:text-[0.625rem] font-semibold py-1 px-1.5 rounded-md transition-all duration-150 cursor-pointer ${
                                     isProjectActive
                                       ? "bg-slate-100 dark:bg-slate-800/80 theme-text-accent font-bold"
-                                      : "text-slate-500 dark:text-slate-400 hover:theme-text-accent hover:bg-slate-100/50 dark:hover:bg-white/5"
+                                      : "text-slate-500 dark:text-white/80 hover:theme-text-accent hover:bg-slate-100/50 dark:hover:bg-white/5"
                                   }`}
                                   title={project.name}
                                 >
@@ -570,7 +589,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                               [folderId]: !prev[folderId],
                             }));
                           }}
-                          className="w-full flex items-center gap-2 text-left text-xs lg:text-[0.6875rem] font-bold py-1.5 px-2 rounded-lg hover:bg-slate-100/60 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400 group transition-all"
+                          className="w-full flex items-center gap-2 text-left text-xs lg:text-[0.6875rem] font-bold py-1.5 px-2 rounded-lg hover:bg-slate-100/60 dark:hover:bg-white/5 text-slate-600 dark:text-white/90 group transition-all"
                         >
                           <div className="w-4 h-4 shrink-0 flex items-center justify-center">
                             <svg
@@ -625,7 +644,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                     className={`w-full flex items-center gap-2 text-left text-[11px] lg:text-[0.625rem] font-semibold py-1.5 px-2 rounded-lg transition-all duration-150 cursor-pointer ${
                                       isProjectActive
                                         ? "bg-slate-100 dark:bg-slate-800/80 theme-text-accent font-bold"
-                                        : "text-slate-600 dark:text-slate-400 hover:theme-text-accent hover:bg-slate-100/50 dark:hover:bg-white/5"
+                                        : "text-slate-600 dark:text-white/80 hover:theme-text-accent hover:bg-slate-100/50 dark:hover:bg-white/5"
                                     }`}
                                     title={project.name}
                                   >
@@ -671,24 +690,30 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                   },
                 );
               } else {
-                // If title is Works or MyPortfolios, list projects directly without middle portfolio folders
+                // If title is Works or My Projects, list projects directly without middle portfolio folders
                 if (
                   title === "Works" ||
-                  title === "MyPortfolios" ||
+                  title === "My Projects" ||
+                  title === "My Project" ||
                   title === "Portfolios"
                 ) {
-                  const allProjectIds = new Set();
-                  list.forEach((port) => {
-                    (port.projectIds || []).forEach((pId) => {
-                      const id =
-                        typeof pId === "object" && pId !== null ? pId._id : pId;
-                      if (id) allProjectIds.add(id);
+                  let matchedProjects = [];
+                  if (title === "My Projects" || title === "My Project") {
+                    matchedProjects = projects || [];
+                  } else {
+                    const allProjectIds = new Set();
+                    list.forEach((port) => {
+                      (port.projectIds || []).forEach((pId) => {
+                        const id =
+                          typeof pId === "object" && pId !== null ? pId._id : pId;
+                        if (id) allProjectIds.add(id);
+                      });
                     });
-                  });
 
-                  const matchedProjects = (projects || []).filter((proj) =>
-                    allProjectIds.has(proj._id),
-                  );
+                    matchedProjects = (projects || []).filter((proj) =>
+                      allProjectIds.has(proj._id),
+                    );
+                  }
 
                   content =
                     matchedProjects.length > 0 ? (
@@ -712,7 +737,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                               className={`w-full flex items-center gap-2 text-left text-[11px] lg:text-[0.625rem] font-semibold py-1.5 px-2 rounded-lg transition-all duration-150 cursor-pointer ${
                                 isProjectActive
                                   ? "bg-slate-100 dark:bg-slate-800/80 theme-text-accent font-bold"
-                                  : "text-slate-600 dark:text-slate-400 hover:theme-text-accent hover:bg-slate-100/50 dark:hover:bg-white/5"
+                                  : "text-slate-600 dark:text-white/80 hover:theme-text-accent hover:bg-slate-100/50 dark:hover:bg-white/5"
                               }`}
                               title={project.name}
                             >
@@ -798,49 +823,18 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             };
 
             const renderPortfoliosList = () => {
-              const smeRoles = [
-                "Social Media Executive",
-                "Social Media Manager",
-              ];
-              const smePortfolios = portfolios.filter(
-                (p) =>
-                  smeRoles.includes(p.createdBy?.department) ||
-                  smeRoles.includes(p.createdBy?.role),
-              );
-              const generalPortfolios = portfolios.filter(
-                (p) =>
-                  !smeRoles.includes(p.createdBy?.department) &&
-                  !smeRoles.includes(p.createdBy?.role),
-              );
-
-              const isAdminOrOpManager =
-                currentUser?.role === "admin" ||
-                currentUser?.role === "operationmanager" ||
-                currentUser?.role === "managingpartner";
-
               return (
                 <>
-                  {isAdminOrOpManager &&
-                    renderPortfolioDropdown(
-                      "MyPortfolios",
-                      <FiLayers
-                        size={14}
-                        className="shrink-0 transition-colors"
-                      />,
-                      isPortfoliosListOpen,
-                      setIsPortfoliosListOpen,
-                      generalPortfolios,
-                      false, // Disable user name folder dropdown under MyPortfolios
-                    )}
                   {renderPortfolioDropdown(
-                    "Works",
-                    <div className="w-5 h-5 rounded-full bg-amber-500 text-black font-extrabold text-[8px] flex items-center justify-center tracking-tighter leading-none shrink-0 shadow-2xs">
-                      SM
-                    </div>,
-                    isSmePortfoliosListOpen,
-                    setIsSmePortfoliosListOpen,
-                    smePortfolios,
-                    isAdminOrOpManager, // Show SM User Name Folders for Admin & Operation Manager
+                    "My Project",
+                    <FiLayers
+                      size={14}
+                      className="shrink-0 transition-colors"
+                    />,
+                    isPortfoliosListOpen,
+                    setIsPortfoliosListOpen,
+                    [], // list not used for My Project
+                    false, // Disable user name folder dropdown under My Project
                   )}
                 </>
               );
@@ -858,6 +852,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                         to={item.path}
                         onClick={() => {
                           if (window.innerWidth < 1024) setSidebarOpen(false);
+                          if (item.name === "Chat") {
+                            dispatch(clearAllUnreadCounts());
+                            dispatch(markAllChatAsRead());
+                          }
                         }}
                         end={
                           item.path === "/admin" ||
@@ -870,10 +868,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       >
                         {({ isActive }) => (
                           <motion.div
-                            className={`flex items-center gap-2.5 px-3 py-2 lg:py-1.5 w-full rounded-xl relative overflow-hidden transition-all duration-200 text-left ${
+                            className={`flex items-center gap-2.5 px-3 py-2 lg:py-1.5 w-full rounded-xl relative overflow-hidden transition-all duration-200 text-left border ${
                               isActive
-                                ? "bg-[var(--accent-light-bg-subtle)] dark:bg-[var(--accent-dark-bg-subtle)]"
-                                : "hover:bg-slate-100/60 dark:hover:bg-white/5"
+                                ? "bg-slate-900/10 dark:bg-white/20 shadow-sm border-slate-900/5 dark:border-white/10"
+                                : "hover:bg-slate-900/5 dark:hover:bg-white/10 border-transparent"
                             }`}
                             whileHover={{ x: 2 }}
                             transition={{
@@ -901,8 +899,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                             <motion.div
                               className={`shrink-0 w-6 h-6 rounded-lg flex items-center justify-center relative overflow-hidden transition-colors duration-200 ${
                                 isActive
-                                  ? "theme-bg-accent/15 dark:theme-bg-accent/20 shadow-sm"
-                                  : "bg-slate-100/70 dark:bg-white/5 group-hover:bg-[var(--accent-light-bg-subtle)] dark:group-hover:bg-[var(--accent-dark-bg-subtle)]"
+                                  ? "bg-slate-900 dark:bg-white shadow-md shadow-slate-900/20 dark:shadow-black/50"
+                                  : "bg-slate-900/5 dark:bg-white/10 group-hover:bg-slate-900/10 dark:group-hover:bg-white/20"
                               }`}
                               whileHover={{
                                 scale: 1.22,
@@ -933,18 +931,18 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                 size={14}
                                 className={`transition-colors duration-200 relative z-10 ${
                                   isActive
-                                    ? "theme-text-accent"
-                                    : "text-slate-500 dark:text-slate-400 group-hover:theme-text-accent"
+                                    ? "text-white dark:text-slate-900"
+                                    : "text-slate-700 dark:text-white/90 group-hover:text-slate-900 dark:group-hover:text-white"
                                 }`}
                               />
                             </motion.div>
 
                             {/* Label */}
                             <span
-                              className={`text-xs lg:text-[0.6875rem] font-bold truncate flex-1 text-left transition-colors duration-200 ${
+                              className={`text-xs lg:text-[0.6875rem] truncate flex-1 text-left transition-colors duration-200 ${
                                 isActive
-                                  ? "theme-text-accent"
-                                  : "text-slate-600 dark:text-slate-400 group-hover:theme-text-accent"
+                                  ? "text-slate-900 dark:text-white font-black"
+                                  : "text-slate-700 dark:text-white/90 font-bold group-hover:text-slate-900 dark:group-hover:text-white"
                               }`}
                             >
                               {item.name}
@@ -970,7 +968,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                               item.name !== "Notifications" &&
                               item.name !== "Chat" && (
                                 <motion.span
-                                  className="w-1.5 h-1.5 rounded-full theme-bg-accent shrink-0"
+                                  className="w-1.5 h-1.5 rounded-full bg-slate-900 dark:bg-white shrink-0"
                                   initial={{ scale: 0 }}
                                   animate={{ scale: 1 }}
                                   transition={{
@@ -985,8 +983,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       </NavLink>
 
                       {isPortfoliosItem &&
-                        portfolios &&
-                        portfolios.length > 0 &&
+                        ((portfolios && portfolios.length > 0) || (projects && projects.length > 0)) &&
                         (() => {
                           hasRenderedPortfoliosList = true;
                           return renderPortfoliosList();
@@ -999,11 +996,11 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
                 {/* Fallback at the bottom if items were not in the menu list */}
                 {!hasRenderedPortfoliosList &&
-                  portfolios &&
-                  portfolios.length > 0 &&
+                  ((portfolios && portfolios.length > 0) || (projects && projects.length > 0)) &&
                   (role === "admin" ||
                     currentUser?.permissions?.manage_portfolios?.read ||
-                    currentUser?.permissions?.manage_portfolios === true) &&
+                    currentUser?.permissions?.manage_portfolios === true ||
+                    (projects && projects.length > 0)) &&
                   renderPortfoliosList()}
               </>
             );
@@ -1133,16 +1130,17 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       <div className="p-2 max-h-[22rem] overflow-y-auto sidebar-scrollbar flex flex-col gap-1">
                         {(() => {
                           const filteredUsers = users.filter((u) => {
-                            const searchStr = userSearchQuery.toLowerCase();
-                            return (
-                              u.name.toLowerCase().includes(searchStr) ||
-                              (u.department || "")
-                                .toLowerCase()
-                                .includes(searchStr) ||
+                            const searchStr = userSearchQuery.toLowerCase().trim();
+                            if (!searchStr) return true;
+                            
+                            const searchTerms = searchStr.split(/\s+/);
+                            const searchableText = [
+                              u.name,
+                              u.department || "",
                               displayRole(u.role)
-                                .toLowerCase()
-                                .includes(searchStr)
-                            );
+                            ].join(" ").toLowerCase();
+
+                            return searchTerms.every(term => searchableText.includes(term));
                           });
 
                           if (filteredUsers.length === 0) {

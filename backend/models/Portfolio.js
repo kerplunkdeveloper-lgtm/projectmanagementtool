@@ -15,16 +15,23 @@ const PortfolioSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    access: {
+      type: String,
+      enum: ["Public", "Private"],
+      default: "Public",
+    },
     projectIds: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Project",
       },
     ],
-    client: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Client",
-    },
+    portfolioIds: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Portfolio",
+      },
+    ],
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",

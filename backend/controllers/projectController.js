@@ -1,5 +1,7 @@
 const Project = require("../models/Project");
 const User = require("../models/User");
+const Task = require("../models/Task");
+const Client = require("../models/Client");
 
 // @desc    Get all projects
 // @route   GET /api/projects
@@ -8,48 +10,42 @@ exports.getProjects = async (req, res) => {
   try {
     let query = {};
     if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
-      const Client = require("../models/Client");
-      const assignedClients = await Client.find({ assignedTo: req.user._id }).select("_id");
-      const clientIds = assignedClients.map(c => c._id);
+      const userClients = await Client.find({ assignedTo: req.user._id }).select("_id");
+      const userClientIds = userClients.map(c => c._id);
 
-      const orConditions = [
-        { client: { $in: clientIds } }
-      ];
-
-      if (req.user.department) {
-        if (req.user.department.toLowerCase() === "social media manager") {
-          orConditions.push({ createdBy: req.user._id });
-        } else {
-          const usersInSameDept = await User.find({ department: req.user.department }).select("_id");
-          const userIds = usersInSameDept.map(u => u._id);
-          orConditions.push({ createdBy: { $in: userIds } });
-        }
-      } else {
-        orConditions.push({ createdBy: req.user._id });
-      }
-
-      query = { $or: orConditions };
+      query = {
+        $or: [
+          { 
+            access: "Public",
+            $or: [
+              { client: { $in: userClientIds } },
+              { client: null },
+              { client: { $exists: false } }
+            ]
+          },
+          { 
+            access: { $exists: false },
+            $or: [
+              { client: { $in: userClientIds } },
+              { client: null },
+              { client: { $exists: false } }
+            ]
+          },
+          { createdBy: req.user._id }
+        ]
+      };
     }
     const projects = await Project.find(query)
-      .populate("client", "companyName industry primaryContact color icon")
-      .populate("createdBy", "name department");
-
-    // Filter projects: If created by a Social Media Manager, only allow the creator to view it (bypassed for admin/operationmanager)
-    let filteredProjects = projects;
-    if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
-      filteredProjects = projects.filter(project => {
-        const creator = project.createdBy;
-        if (creator && creator.department?.toLowerCase() === "social media manager") {
-          return creator._id.toString() === req.user._id.toString();
-        }
-        return true;
+      .populate({
+        path: "createdBy",
+        select: "name department profile profileImage profilePic avatar",
+        populate: { path: "profile" }
       });
-    }
 
     res.status(200).json({
       success: true,
-      count: filteredProjects.length,
-      data: filteredProjects,
+      count: projects.length,
+      data: projects,
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -67,8 +63,11 @@ exports.createProject = async (req, res) => {
     });
 
     const populatedProject = await Project.findById(project._id)
-      .populate("client", "companyName industry primaryContact color icon")
-      .populate("createdBy", "name department");
+      .populate({
+        path: "createdBy",
+        select: "name department profile profileImage profilePic avatar",
+        populate: { path: "profile" }
+      });
 
     res.status(201).json({
       success: true,
@@ -90,26 +89,19 @@ exports.updateProject = async (req, res) => {
       return res.status(404).json({ success: false, message: "Project not found" });
     }
 
-    if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
-      const creator = await User.findById(project.createdBy);
-      if (!creator) {
-        return res.status(403).json({ success: false, message: "You are not authorized" });
-      }
-      if (creator.department?.toLowerCase() === "social media manager") {
-        if (project.createdBy.toString() !== req.user._id.toString()) {
-          return res.status(403).json({ success: false, message: "You are not authorized to edit this project" });
-        }
-      } else if (creator.department !== req.user.department) {
-        return res.status(403).json({ success: false, message: "You are not authorized to edit projects outside your department" });
-      }
+    if (req.user.role !== "admin" && req.user.role !== "operationmanager" && project.access === "Private" && project.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "You are not authorized to edit this private project" });
     }
 
     project = await Project.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
     })
-      .populate("client", "companyName industry primaryContact color icon")
-      .populate("createdBy", "name department");
+      .populate({
+        path: "createdBy",
+        select: "name department profile profileImage profilePic avatar",
+        populate: { path: "profile" }
+      });
 
     res.status(200).json({
       success: true,
@@ -131,20 +123,11 @@ exports.deleteProject = async (req, res) => {
       return res.status(404).json({ success: false, message: "Project not found" });
     }
 
-    if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
-      const creator = await User.findById(project.createdBy);
-      if (!creator) {
-        return res.status(403).json({ success: false, message: "You are not authorized" });
-      }
-      if (creator.department?.toLowerCase() === "social media manager") {
-        if (project.createdBy.toString() !== req.user._id.toString()) {
-          return res.status(403).json({ success: false, message: "You are not authorized to delete this project" });
-        }
-      } else if (creator.department !== req.user.department) {
-        return res.status(403).json({ success: false, message: "You are not authorized to delete projects outside your department" });
-      }
+    if (req.user.role !== "admin" && req.user.role !== "operationmanager" && project.access === "Private" && project.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "You are not authorized to delete this private project" });
     }
 
+    await Task.deleteMany({ project: req.params.id });
     await project.deleteOne();
 
     res.status(200).json({
