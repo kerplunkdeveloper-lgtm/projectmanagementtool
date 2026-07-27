@@ -119,7 +119,11 @@ const TimeTracker = ({
     blockerHistory,
   ]);
 
-  if (!startTime && status !== "In Progress") return null;
+  if (!startTime && status !== "In Progress") {
+    return (
+      <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs">—</span>
+    );
+  }
   if (!startTime && status === "In Progress")
     return (
       <div className="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded border text-[9px] font-bold tracking-wider bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30 shadow-sm">
@@ -357,6 +361,17 @@ const MyTasksTab = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    priorityFilter,
+    projectFilter,
+    statusFilter,
+    clientFilter,
+    dateFilter,
+    searchTerm,
+  ]);
+
   // Filter tasks based on "My Tasks" (assigned to current user)
   const activeTasksList = React.useMemo(() => {
     return tasks.filter((task) => {
@@ -507,7 +522,7 @@ const MyTasksTab = ({
     return filteredTasks.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredTasks, currentPage, itemsPerPage]);
 
-  const sortedTasks = filteredTasks;
+  const sortedTasks = paginatedTasks;
   const selectedTask = tasks.find((t) => t._id === selectedTaskId);
 
   const handleTaskFieldChange = (taskId, fields) => {

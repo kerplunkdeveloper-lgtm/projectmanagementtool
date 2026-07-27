@@ -67,7 +67,8 @@ const Task = () => {
   }, [tasks, currentUserId]);
 
   const assignedTasksCount = React.useMemo(() => {
-    if (user?.role === "Admin" || user?.role === "OperationManager") {
+    const role = user?.role?.toLowerCase();
+    if (role === "admin" || role === "operationmanager" || role === "managingpartner") {
       return tasks.length;
     }
     return tasks.filter((task) => {
