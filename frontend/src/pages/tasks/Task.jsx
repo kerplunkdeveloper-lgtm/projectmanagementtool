@@ -147,6 +147,8 @@ const Task = () => {
           currentUserId={currentUserId}
           user={user}
           loading={loading}
+          dateFilter={dateFilter}
+          setDateFilter={setDateFilter}
         />
       )}
     </div>

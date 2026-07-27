@@ -118,10 +118,7 @@ const formatElapsed = (
       ? new Date(pausedAt).getTime()
       : Date.now();
 
-  let paused = totalPausedMs || 0;
-  if (pausedAt && !endTime) {
-    paused += Math.max(0, Date.now() - new Date(pausedAt).getTime());
-  }
+  const paused = totalPausedMs || 0;
 
   const elapsed = Math.max(0, Math.floor((end - start - paused) / 1000));
   const hours = Math.floor(elapsed / 3600);
@@ -775,7 +772,7 @@ const EodReports = () => {
           </p>
         </div>
       ) : (
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
           {tasksState.map((task) => (
             <div
               key={task.id}

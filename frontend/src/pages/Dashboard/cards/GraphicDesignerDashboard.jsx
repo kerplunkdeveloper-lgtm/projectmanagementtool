@@ -293,8 +293,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           const start = new Date(t.actualStartTime).getTime();
           const end = t.actualEndTime
             ? new Date(t.actualEndTime).getTime()
-            : Date.now();
-          totalLoggedMs += Math.max(0, end - start);
+            : t.pausedAt
+              ? new Date(t.pausedAt).getTime()
+              : Date.now();
+          const paused = t.totalPausedMs || 0;
+          totalLoggedMs += Math.max(0, end - start - paused);
         }
 
         // Collect blockers and compute blocker time

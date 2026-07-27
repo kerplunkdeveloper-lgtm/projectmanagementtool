@@ -238,6 +238,8 @@ const MyTasksTab = ({
   user,
   setSelectedTaskId,
   loading,
+  dateFilter: dateFilterProp,
+  setDateFilter: setDateFilterProp,
 }) => {
   const navigate = useNavigate();
 
@@ -249,7 +251,32 @@ const MyTasksTab = ({
   const [projectFilter, setProjectFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [clientFilter, setClientFilter] = useState("All");
-  const [dateFilter, setDateFilter] = useState("All");
+  
+  const [localDateFilter, setLocalDateFilter] = useState(() => {
+    try {
+      const saved = localStorage.getItem("task_date_filter");
+      return saved || "All";
+    } catch {
+      return "All";
+    }
+  });
+
+  const dateFilter = dateFilterProp !== undefined ? dateFilterProp : localDateFilter;
+
+  const setDateFilter = (val) => {
+    const nextVal = typeof val === "function" ? val(dateFilter) : val;
+    if (setDateFilterProp) {
+      setDateFilterProp(nextVal);
+    } else {
+      setLocalDateFilter(nextVal);
+    }
+    try {
+      localStorage.setItem("task_date_filter", nextVal);
+    } catch (e) {
+      console.error("Failed to save date filter:", e);
+    }
+  };
+
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const dateDropdownRef = useRef(null);
   const [searchTerm, setSearchTerm] = useState("");
