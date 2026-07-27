@@ -342,7 +342,7 @@ const MyTasksTab = ({
         projectFilter === "All" || taskProjectId === projectFilter;
 
       const projectObj = projects.find((p) => p._id === taskProjectId);
-      const clientObj = projectObj?.client || task.project?.client;
+      const clientObj = task.project?.client?.companyName ? task.project.client : (projectObj?.client || task.project?.client);
       const clientId = clientObj?._id || clientObj?.id;
       const matchesClient = clientFilter === "All" || clientId === clientFilter;
 
@@ -800,7 +800,7 @@ const MyTasksTab = ({
     activeTasksList.forEach((t) => {
       const projId = t.project?._id || t.project;
       const projectObj = projects.find((p) => p._id === projId);
-      const client = projectObj?.client || t.project?.client;
+      const client = t.project?.client?.companyName ? t.project.client : (projectObj?.client || t.project?.client);
       if (client) {
         const cId = client._id || client.id;
         clientsMap[cId] = {
@@ -1394,8 +1394,7 @@ const MyTasksTab = ({
                                 const projectObj = projects.find(
                                   (p) => p._id === projId,
                                 );
-                                const client =
-                                  projectObj?.client || task.project?.client;
+                                const client = task.project?.client?.companyName ? task.project.client : (projectObj?.client || task.project?.client);
                                 if (client?.companyName) {
                                   return (
                                     <ClientBadge client={client} size="sm" />
@@ -1659,8 +1658,7 @@ const MyTasksTab = ({
                                 const projectObj = projects.find(
                                   (p) => p._id === projId,
                                 );
-                                const client =
-                                  projectObj?.client || task.project?.client;
+                                const client = task.project?.client?.companyName ? task.project.client : (projectObj?.client || task.project?.client);
                                 if (client) {
                                   return (
                                     <ClientBadge client={client} size="sm" />
