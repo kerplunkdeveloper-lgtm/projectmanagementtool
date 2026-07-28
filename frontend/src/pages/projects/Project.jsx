@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -44,14 +44,51 @@ const Project = () => {
   const { user: currentUser } = useSelector((state) => state.auth);
 
   // Local State
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [createdByFilter, setCreatedByFilter] = useState("All");
-  const [clientFilter, setClientFilter] = useState("All");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState(() => {
+    return localStorage.getItem("project_searchTerm") || "";
+  });
+  const [statusFilter, setStatusFilter] = useState(() => {
+    return localStorage.getItem("project_statusFilter") || "All";
+  });
+  const [createdByFilter, setCreatedByFilter] = useState(() => {
+    return localStorage.getItem("project_createdByFilter") || "All";
+  });
+  const [clientFilter, setClientFilter] = useState(() => {
+    return localStorage.getItem("project_clientFilter") || "All";
+  });
+  const [currentPage, setCurrentPage] = useState(() => {
+    const saved = localStorage.getItem("project_currentPage");
+    return saved ? parseInt(saved, 10) : 1;
+  });
   const itemsPerPage = 15;
 
+  const isFirstRender = useRef(true);
+
   useEffect(() => {
+    localStorage.setItem("project_searchTerm", searchTerm);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    localStorage.setItem("project_statusFilter", statusFilter);
+  }, [statusFilter]);
+
+  useEffect(() => {
+    localStorage.setItem("project_createdByFilter", createdByFilter);
+  }, [createdByFilter]);
+
+  useEffect(() => {
+    localStorage.setItem("project_clientFilter", clientFilter);
+  }, [clientFilter]);
+
+  useEffect(() => {
+    localStorage.setItem("project_currentPage", currentPage.toString());
+  }, [currentPage]);
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
     setCurrentPage(1);
   }, [searchTerm, statusFilter, createdByFilter, clientFilter]);
 

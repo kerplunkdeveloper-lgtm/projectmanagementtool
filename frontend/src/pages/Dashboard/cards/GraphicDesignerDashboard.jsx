@@ -572,7 +572,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       </div>
 
       {/* Premium Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3 lg:gap-2 relative z-10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-3 lg:gap-2 relative z-10">
         {[
           {
             label:
@@ -648,18 +648,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             iconBg:
               "bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-500/20",
             iconColor: "text-emerald-600 dark:text-emerald-400",
-          },
-          {
-            label: "Revision",
-            value: metrics.totalRevisions,
-            icon: FiTrendingUp,
-            glow: "hover:shadow-[0_4px_20px_rgba(139,92,246,0.15)]",
-            bg: "bg-gradient-to-br from-indigo-500 to-indigo-600 dark:from-indigo-800 dark:to-indigo-950 border border-indigo-200/50 dark:border-indigo-900/30",
-            labelColor: "text-white dark:text-white",
-            valueColor: "text-slate-100 dark:text-white",
-            iconBg:
-              "bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-500/20",
-            iconColor: "text-indigo-600 dark:text-indigo-400",
           },
           {
             label: "Overdue",

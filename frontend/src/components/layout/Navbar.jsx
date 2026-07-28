@@ -426,9 +426,10 @@ const Navbar = ({ setSidebarOpen }) => {
       className="
         sticky top-0 z-50
         h-14
-        bg-white dark:bg-slate-900
+      bg-white  dark:bg-black
         px-3 md:px-5
         flex items-center justify-between
+      
       
 
     
