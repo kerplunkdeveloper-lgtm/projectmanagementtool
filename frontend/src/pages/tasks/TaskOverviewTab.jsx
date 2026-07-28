@@ -345,6 +345,10 @@ const TaskOverviewTab = ({
 
   const [overviewStatusFilter, setOverviewStatusFilter] = useState("All");
   const [overviewPriorityFilter, setOverviewPriorityFilter] = useState("All");
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+  const statusDropdownRef = useRef(null);
+  const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
+  const priorityDropdownRef = useRef(null);
   const [overviewStartDateFilter, setOverviewStartDateFilter] = useState("");
   const [overviewEndDateFilter, setOverviewEndDateFilter] = useState("");
   const [showOverviewFilter, setShowOverviewFilter] = useState(false);
@@ -381,6 +385,18 @@ const TaskOverviewTab = ({
         !assigneeDropdownRef.current.contains(event.target)
       ) {
         setShowAssigneeDropdown(false);
+      }
+      if (
+        statusDropdownRef.current &&
+        !statusDropdownRef.current.contains(event.target)
+      ) {
+        setShowStatusDropdown(false);
+      }
+      if (
+        priorityDropdownRef.current &&
+        !priorityDropdownRef.current.contains(event.target)
+      ) {
+        setShowPriorityDropdown(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -694,40 +710,40 @@ const TaskOverviewTab = ({
             />
           )}
         </div>
-          <div className="relative w-full sm:w-64">
-            <input
-              type="text"
-              placeholder="Search task name or details..."
-              value={projectSearch}
-              onChange={(e) => setProjectSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:border-blue-500 text-slate-800 dark:text-slate-200"
-            />
-          </div>
+
 
           <div className="flex items-center justify-end gap-2.5 w-full sm:w-auto">
             <div className="relative" ref={clientDropdownRef}>
-              <button
-                type="button"
-                onClick={() => setShowClientDropdown((prev) => !prev)}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-2xl border text-xs font-extrabold transition-all shadow-2xs cursor-pointer ${
+              <div className="relative rounded-full p-[2px] overflow-hidden group inline-block shadow-sm">
+                <div className="absolute inset-[-100%] bg-[conic-gradient(transparent_0deg,#3b82f6_90deg,transparent_180deg)] animate-[spin_2s_linear_infinite] group-hover:bg-[conic-gradient(transparent_0deg,#6366f1_90deg,transparent_180deg)] transition-colors duration-300" />
+                <div className={`absolute inset-[1px] rounded-full z-0 ${
                   overviewClientFilter !== "All"
-                    ? "bg-blue-50/80 border-blue-300 text-blue-800 dark:bg-blue-950/30 dark:border-blue-500/40 dark:text-blue-300"
-                    : "bg-white dark:bg-[#151725] border-slate-200/90 dark:border-white/10 text-slate-800 dark:text-slate-200 hover:border-blue-500/50"
-                }`}
-              >
-                <span className="truncate max-w-[90px]">
-                  {overviewClientFilter === "All"
-                    ? "All Clients"
-                    : clients?.find((c) => c._id === overviewClientFilter)
-                        ?.companyName || "Client"}
-                </span>
-                <FiChevronDown
-                  size={13}
-                  className={`text-slate-400 transition-transform duration-200 ${
-                    showClientDropdown ? "rotate-180" : ""
+                    ? "bg-blue-50/80 dark:bg-blue-950/30"
+                    : "bg-white dark:bg-[#151725]"
+                }`} />
+                <button
+                  type="button"
+                  onClick={() => setShowClientDropdown((prev) => !prev)}
+                  className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer z-10 bg-transparent outline-none border-none tracking-wide ${
+                    overviewClientFilter !== "All"
+                      ? "text-blue-800 dark:text-blue-300"
+                      : "text-slate-800 dark:text-slate-200"
                   }`}
-                />
-              </button>
+                >
+                  <span className="truncate max-w-[90px]">
+                    {overviewClientFilter === "All"
+                      ? "All Clients"
+                      : clients?.find((c) => c._id === overviewClientFilter)
+                          ?.companyName || "Client"}
+                  </span>
+                  <FiChevronDown
+                    size={13}
+                    className={`text-slate-400 transition-transform duration-200 ${
+                      showClientDropdown ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+              </div>
 
               <AnimatePresence>
                 {showClientDropdown && (
@@ -801,30 +817,38 @@ const TaskOverviewTab = ({
 
             {/* Created By Filter */}
             <div className="relative" ref={createdByDropdownRef}>
-              <button
-                type="button"
-                onClick={() => setShowCreatedByDropdown((prev) => !prev)}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-2xl border text-xs font-extrabold transition-all shadow-2xs cursor-pointer ${
+              <div className="relative rounded-full p-[2px] overflow-hidden group inline-block shadow-sm">
+                <div className="absolute inset-[-100%] bg-[conic-gradient(transparent_0deg,#a855f7_90deg,transparent_180deg)] animate-[spin_2s_linear_infinite] group-hover:bg-[conic-gradient(transparent_0deg,#ec4899_90deg,transparent_180deg)] transition-colors duration-300" />
+                <div className={`absolute inset-[1px] rounded-full z-0 ${
                   overviewCreatedByFilter !== "All"
-                    ? "bg-blue-50/80 border-blue-300 text-blue-800 dark:bg-blue-950/30 dark:border-blue-500/40 dark:text-blue-300"
-                    : "bg-white dark:bg-[#151725] border-slate-200/90 dark:border-white/10 text-slate-800 dark:text-slate-200 hover:border-blue-500/50"
-                }`}
-              >
-                {overviewCreatedByFilter !== "All" &&
-                  renderUserAvatarSmall(uniqueCreators.find((u) => (u._id || u.id) === overviewCreatedByFilter))
-                }
-                <span className="truncate max-w-[90px]">
-                  {overviewCreatedByFilter === "All"
-                    ? "Created By"
-                    : uniqueCreators.find((u) => (u._id || u.id) === overviewCreatedByFilter)?.name || "Creator"}
-                </span>
-                <FiChevronDown
-                  size={13}
-                  className={`text-slate-400 transition-transform duration-200 ${
-                    showCreatedByDropdown ? "rotate-180" : ""
+                    ? "bg-blue-50/80 dark:bg-blue-950/30"
+                    : "bg-white dark:bg-[#151725]"
+                }`} />
+                <button
+                  type="button"
+                  onClick={() => setShowCreatedByDropdown((prev) => !prev)}
+                  className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer z-10 bg-transparent outline-none border-none tracking-wide ${
+                    overviewCreatedByFilter !== "All"
+                      ? "text-blue-800 dark:text-blue-300"
+                      : "text-slate-800 dark:text-slate-200"
                   }`}
-                />
-              </button>
+                >
+                  {overviewCreatedByFilter !== "All" &&
+                    renderUserAvatarSmall(uniqueCreators.find((u) => (u._id || u.id) === overviewCreatedByFilter))
+                  }
+                  <span className="truncate max-w-[90px]">
+                    {overviewCreatedByFilter === "All"
+                      ? "Created By"
+                      : uniqueCreators.find((u) => (u._id || u.id) === overviewCreatedByFilter)?.name || "Creator"}
+                  </span>
+                  <FiChevronDown
+                    size={13}
+                    className={`text-slate-400 transition-transform duration-200 ${
+                      showCreatedByDropdown ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+              </div>
 
               <AnimatePresence>
                 {showCreatedByDropdown && (
@@ -898,30 +922,38 @@ const TaskOverviewTab = ({
 
             {/* Assignee Filter */}
             <div className="relative" ref={assigneeDropdownRef}>
-              <button
-                type="button"
-                onClick={() => setShowAssigneeDropdown((prev) => !prev)}
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-2xl border text-xs font-extrabold transition-all shadow-2xs cursor-pointer ${
+              <div className="relative rounded-full p-[2px] overflow-hidden group inline-block shadow-sm">
+                <div className="absolute inset-[-100%] bg-[conic-gradient(transparent_0deg,#e11d48_90deg,transparent_180deg)] animate-[spin_2s_linear_infinite] group-hover:bg-[conic-gradient(transparent_0deg,#f43f5e_90deg,transparent_180deg)] transition-colors duration-300" />
+                <div className={`absolute inset-[1px] rounded-full z-0 ${
                   overviewAssigneeFilter !== "All"
-                    ? "bg-blue-50/80 border-blue-300 text-blue-800 dark:bg-blue-950/30 dark:border-blue-500/40 dark:text-blue-300"
-                    : "bg-white dark:bg-[#151725] border-slate-200/90 dark:border-white/10 text-slate-800 dark:text-slate-200 hover:border-blue-500/50"
-                }`}
-              >
-                {overviewAssigneeFilter !== "All" &&
-                  renderUserAvatarSmall(uniqueAssignees.find((u) => (u._id || u.id) === overviewAssigneeFilter))
-                }
-                <span className="truncate max-w-[90px]">
-                  {overviewAssigneeFilter === "All"
-                    ? "Assignee"
-                    : uniqueAssignees.find((u) => (u._id || u.id) === overviewAssigneeFilter)?.name || "Assignee"}
-                </span>
-                <FiChevronDown
-                  size={13}
-                  className={`text-slate-400 transition-transform duration-200 ${
-                    showAssigneeDropdown ? "rotate-180" : ""
+                    ? "bg-blue-50/80 dark:bg-blue-950/30"
+                    : "bg-white dark:bg-[#151725]"
+                }`} />
+                <button
+                  type="button"
+                  onClick={() => setShowAssigneeDropdown((prev) => !prev)}
+                  className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer z-10 bg-transparent outline-none border-none tracking-wide ${
+                    overviewAssigneeFilter !== "All"
+                      ? "text-blue-800 dark:text-blue-300"
+                      : "text-slate-800 dark:text-slate-200"
                   }`}
-                />
-              </button>
+                >
+                  {overviewAssigneeFilter !== "All" &&
+                    renderUserAvatarSmall(uniqueAssignees.find((u) => (u._id || u.id) === overviewAssigneeFilter))
+                  }
+                  <span className="truncate max-w-[90px]">
+                    {overviewAssigneeFilter === "All"
+                      ? "Assignee"
+                      : uniqueAssignees.find((u) => (u._id || u.id) === overviewAssigneeFilter)?.name || "Assignee"}
+                  </span>
+                  <FiChevronDown
+                    size={13}
+                    className={`text-slate-400 transition-transform duration-200 ${
+                      showAssigneeDropdown ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+              </div>
 
               <AnimatePresence>
                 {showAssigneeDropdown && (
@@ -993,20 +1025,165 @@ const TaskOverviewTab = ({
               </AnimatePresence>
             </div>
 
+            {/* Status Filter */}
+            <div className="relative" ref={statusDropdownRef}>
+              <div className="relative rounded-full p-[2px] overflow-hidden group inline-block shadow-sm">
+                <div className="absolute inset-[-100%] bg-[conic-gradient(transparent_0deg,#0ea5e9_90deg,transparent_180deg)] animate-[spin_2s_linear_infinite] group-hover:bg-[conic-gradient(transparent_0deg,#2563eb_90deg,transparent_180deg)] transition-colors duration-300" />
+                <div className={`absolute inset-[1px] rounded-full z-0 ${
+                  overviewStatusFilter !== "All"
+                    ? "bg-blue-50/80 dark:bg-blue-950/30"
+                    : "bg-white dark:bg-[#151725]"
+                }`} />
+                <button
+                  type="button"
+                  onClick={() => setShowStatusDropdown((prev) => !prev)}
+                  className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer z-10 bg-transparent outline-none border-none tracking-wide ${
+                    overviewStatusFilter !== "All"
+                      ? "text-blue-800 dark:text-blue-300"
+                      : "text-slate-800 dark:text-slate-200"
+                  }`}
+                >
+                  <span className="truncate max-w-[90px]">
+                    {overviewStatusFilter === "All" ? "Status" : overviewStatusFilter}
+                  </span>
+                  <FiChevronDown
+                    size={13}
+                    className={`text-slate-400 transition-transform duration-200 ${
+                      showStatusDropdown ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {showStatusDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-[#151725] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-1.5 z-[70] flex flex-col gap-0.5"
+                  >
+                    {[
+                      "All",
+                      "Pending",
+                      "In Progress",
+                      "IN-REVIEW",
+                      "On Hold",
+                      "Completed",
+                      "Rejected",
+                    ].map((st) => (
+                      <button
+                        key={st}
+                        type="button"
+                        onClick={() => {
+                          setOverviewStatusFilter(st);
+                          setShowStatusDropdown(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
+                          overviewStatusFilter === st
+                            ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 font-extrabold"
+                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5"
+                        }`}
+                      >
+                        <span>{st === "All" ? "All Statuses" : st}</span>
+                        {overviewStatusFilter === st && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                        )}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Priority Filter */}
+            <div className="relative" ref={priorityDropdownRef}>
+              <div className="relative rounded-full p-[2px] overflow-hidden group inline-block shadow-sm">
+                <div className="absolute inset-[-100%] bg-[conic-gradient(transparent_0deg,#f59e0b_90deg,transparent_180deg)] animate-[spin_2s_linear_infinite] group-hover:bg-[conic-gradient(transparent_0deg,#ea580c_90deg,transparent_180deg)] transition-colors duration-300" />
+                <div className={`absolute inset-[1px] rounded-full z-0 ${
+                  overviewPriorityFilter !== "All"
+                    ? "bg-blue-50/80 dark:bg-blue-950/30"
+                    : "bg-white dark:bg-[#151725]"
+                }`} />
+                <button
+                  type="button"
+                  onClick={() => setShowPriorityDropdown((prev) => !prev)}
+                  className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer z-10 bg-transparent outline-none border-none tracking-wide ${
+                    overviewPriorityFilter !== "All"
+                      ? "text-blue-800 dark:text-blue-300"
+                      : "text-slate-800 dark:text-slate-200"
+                  }`}
+                >
+                  <span className="truncate max-w-[90px]">
+                    {overviewPriorityFilter === "All" ? "Priority" : overviewPriorityFilter}
+                  </span>
+                  <FiChevronDown
+                    size={13}
+                    className={`text-slate-400 transition-transform duration-200 ${
+                      showPriorityDropdown ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {showPriorityDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-full mt-2 w-44 bg-white dark:bg-[#151725] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-1.5 z-[70] flex flex-col gap-0.5"
+                  >
+                    {["All", "Top High", "High", "Medium", "Low"].map((pr) => (
+                      <button
+                        key={pr}
+                        type="button"
+                        onClick={() => {
+                          setOverviewPriorityFilter(pr);
+                          setShowPriorityDropdown(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-bold transition-all text-left cursor-pointer ${
+                          overviewPriorityFilter === pr
+                            ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 font-extrabold"
+                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5"
+                        }`}
+                      >
+                        <span>{pr === "All" ? "All Priorities" : pr}</span>
+                        {overviewPriorityFilter === pr && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                        )}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Date Filter */}
             <div className="relative" ref={dateDropdownRef}>
               <div className="relative rounded-full p-[2px] overflow-hidden group inline-block shadow-sm">
                 <div className="absolute inset-[-100%] bg-[conic-gradient(transparent_0deg,#10b981_90deg,transparent_180deg)] animate-[spin_2s_linear_infinite] group-hover:bg-[conic-gradient(transparent_0deg,#0ea5e9_90deg,transparent_180deg)] transition-colors duration-300" />
-                <div className="absolute inset-[1px] bg-white dark:bg-[#151725] rounded-full z-0" />
+                <div className={`absolute inset-[1px] rounded-full z-0 ${
+                  dateFilter !== "All"
+                    ? "bg-blue-50/80 dark:bg-blue-950/30"
+                    : "bg-white dark:bg-[#151725]"
+                }`} />
                 <button
                   type="button"
                   onClick={() => setShowDateDropdown((prev) => !prev)}
-                  className="relative flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[13px] font-black transition-all cursor-pointer z-10 bg-transparent outline-none border-none text-[#131c30] dark:text-white tracking-wide"
+                  className={`relative flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all cursor-pointer z-10 bg-transparent outline-none border-none tracking-wide ${
+                    dateFilter !== "All"
+                      ? "text-blue-800 dark:text-blue-300"
+                      : "text-slate-800 dark:text-slate-200"
+                  }`}
                 >
-                  <FiFilter size={15} className="text-[#10b981] stroke-[3]" />
+                  <FiFilter size={13} className="text-[#10b981] stroke-[3]" />
                   <span>{dateFilter === "All" ? "Date" : dateFilter}</span>
                   <FiChevronDown
-                    size={15}
-                    className={`text-slate-400 stroke-[3] transition-transform duration-200 ${
+                    size={13}
+                    className={`text-slate-400 transition-transform duration-200 ${
                       showDateDropdown ? "rotate-180" : ""
                     }`}
                   />
@@ -1150,9 +1327,9 @@ const TaskOverviewTab = ({
         </div>
 
         <div className="overflow-x-auto overflow-y-auto custom-scrollbar flex-1 relative bg-white dark:bg-[#11131e]">
-          <table className="w-full text-left border-collapse min-w-[1225px] table-fixed">
+          <table className="w-full text-left border-collapse min-w-[1305px] table-fixed">
             <thead className="sticky top-0 z-20 bg-slate-50 dark:bg-[#161826] shadow-sm">
-              <tr className="border-b border-slate-200/80 dark:border-white/10 text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              <tr className="border-b border-slate-200/80 dark:border-white/10 text-[9.5px] font-black text-slate-550 dark:text-slate-400 uppercase tracking-wider">
                 {!hiddenColumns.taskName && (
                   <th className="py-2.5 px-3.5 w-[220px]">TASK NAME</th>
                 )}
@@ -1162,11 +1339,11 @@ const TaskOverviewTab = ({
                 )}
 
                 {!hiddenColumns.createdBy && (
-                  <th className="py-2.5 px-3.5 w-[140px]">CREATED BY</th>
+                  <th className="py-2.5 px-3.5 w-[180px]">CREATED BY</th>
                 )}
 
                 {!hiddenColumns.assignee && (
-                  <th className="py-2.5 px-3.5 w-[140px]">ASSIGNEE</th>
+                  <th className="py-2.5 px-3.5 w-[180px]">ASSIGNEE</th>
                 )}
                 {!hiddenColumns.startDate && (
                   <th className="py-2.5 px-3.5 text-center w-[100px]">
@@ -1244,7 +1421,7 @@ const TaskOverviewTab = ({
                         onClick={() => setSelectedTaskId(task._id)}
                       >
                         {!hiddenColumns.taskName && (
-                          <td className="py-2 px-3.5 font-extrabold text-left">
+                          <td className="py-2.5 px-3.5 font-extrabold text-left">
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
@@ -1276,7 +1453,7 @@ const TaskOverviewTab = ({
                                 size={13}
                               />
                               <span
-                                className={`truncate max-w-[180px] text-[11px] ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : ""}`}
+                                className={`truncate max-w-[180px] text-xs ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : ""}`}
                                 title={task.title}
                               >
                                 {task.title}
@@ -1286,11 +1463,11 @@ const TaskOverviewTab = ({
                         )}
 
                         {!hiddenColumns.clientName && (
-                          <td className="py-2 px-3 text-left">
+                          <td className="py-2.5 px-3 text-left">
                             {clientObj && clientObj.companyName ? (
                               <ClientBadge client={clientObj} size="sm" />
                             ) : (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[7px] font-bold bg-pink-50 text-pink-600 border border-pink-100 dark:bg-pink-950/30 dark:text-pink-400 dark:border-pink-900/30">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[7.5px] font-bold bg-pink-50 text-pink-600 border border-pink-100 dark:bg-pink-950/30 dark:text-pink-400 dark:border-pink-900/30">
                                 {clientName}
                               </span>
                             )}
@@ -1298,7 +1475,7 @@ const TaskOverviewTab = ({
                         )}
 
                         {!hiddenColumns.createdBy && (
-                          <td className="py-2 px-3.5 text-left">
+                          <td className="py-2.5 px-3.5 text-left">
                             <div className="flex items-center gap-2.5">
                               <div className="relative shrink-0">
                                 {(() => {
@@ -1335,11 +1512,11 @@ const TaskOverviewTab = ({
                                     .toUpperCase();
 
                                   const AVATAR_COLORS = [
-                                    "from-violet-500 to-indigo-600",
-                                    "from-cyan-500 to-blue-600",
-                                    "from-emerald-500 to-teal-600",
-                                    "from-orange-500 to-amber-600",
-                                    "from-pink-500 to-rose-600",
+                                    "from-violet-500 to-indigo-650",
+                                    "from-cyan-500 to-blue-650",
+                                    "from-emerald-500 to-teal-650",
+                                    "from-orange-500 to-amber-650",
+                                    "from-pink-500 to-rose-650",
                                   ];
                                   const colorClass =
                                     AVATAR_COLORS[
@@ -1358,10 +1535,10 @@ const TaskOverviewTab = ({
                                 })()}
                               </div>
                               <div className="flex flex-col">
-                                <span className="font-extrabold text-[11px] text-slate-800 dark:text-slate-200">
+                                <span className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
                                   {task.createdBy?.name || "Unknown"}
                                 </span>
-                                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">
+                                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">
                                   {task.createdBy?.department || "Creator"}
                                 </span>
                               </div>
@@ -1370,7 +1547,7 @@ const TaskOverviewTab = ({
                         )}
 
                         {!hiddenColumns.assignee && (
-                          <td className="py-2 px-3.5 text-left">
+                          <td className="py-2.5 px-3.5 text-left">
                             <div className="flex items-center gap-2.5">
                               <div className="relative shrink-0">
                                 {(() => {
@@ -1407,11 +1584,11 @@ const TaskOverviewTab = ({
                                     .toUpperCase();
 
                                   const AVATAR_COLORS = [
-                                    "from-violet-500 to-indigo-600",
-                                    "from-cyan-500 to-blue-600",
-                                    "from-emerald-500 to-teal-600",
-                                    "from-orange-500 to-amber-600",
-                                    "from-pink-500 to-rose-600",
+                                    "from-violet-500 to-indigo-650",
+                                    "from-cyan-500 to-blue-650",
+                                    "from-emerald-500 to-teal-650",
+                                    "from-orange-500 to-amber-650",
+                                    "from-pink-500 to-rose-655",
                                   ];
                                   const colorClass =
                                     AVATAR_COLORS[
@@ -1430,19 +1607,17 @@ const TaskOverviewTab = ({
                                 })()}
                               </div>
                               <div className="flex flex-col">
-                                <span className="font-extrabold text-[11px] text-slate-800 dark:text-slate-200">
+                                <span className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
                                   {task.assignedTo?.name || "Unassigned"}
                                 </span>
-                                <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">
+                                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">
                                   {task.assignedTo?.department || "Team Member"}
                                 </span>
                               </div>
                             </div>
                           </td>
-                        )}
-
-                        {!hiddenColumns.startDate && (
-                          <td className="py-2 px-3.5 text-center whitespace-nowrap">
+                        )}                        {!hiddenColumns.startDate && (
+                          <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
                             {task.startDate ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200/50 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/20 shadow-2xs">
                                 <FiCalendar size={10} className="shrink-0" />
@@ -1457,9 +1632,9 @@ const TaskOverviewTab = ({
                         )}
 
                         {!hiddenColumns.dueDate && (
-                          <td className="py-2 px-3.5 text-center whitespace-nowrap">
+                          <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
                             {task.dueDate ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200/50 dark:bg-rose-500/10 dark:text-rose-350 dark:border-rose-500/20 shadow-2xs">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200/50 dark:bg-rose-500/10 dark:text-rose-350 dark:border-rose-550/20 shadow-2xs">
                                 <FiCalendar size={10} className="shrink-0" />
                                 {formatDate(task.dueDate)}
                               </span>
@@ -1473,7 +1648,7 @@ const TaskOverviewTab = ({
 
                         {!hiddenColumns.priority && (
                           <td
-                            className="py-2 px-1 text-center whitespace-nowrap"
+                            className="py-2.5 px-1 text-center whitespace-nowrap"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <select
@@ -1487,13 +1662,13 @@ const TaskOverviewTab = ({
                             >
                               <option
                                 value="Top High"
-                                className="bg-white dark:bg-[#151725] text-red-600"
+                                className="bg-white dark:bg-[#151725] text-red-650"
                               >
                                 Top High
                               </option>
                               <option
                                 value="High"
-                                className="bg-white dark:bg-[#151725] text-orange-600"
+                                className="bg-white dark:bg-[#151725] text-orange-650"
                               >
                                 High
                               </option>
@@ -1515,7 +1690,7 @@ const TaskOverviewTab = ({
 
                         {!hiddenColumns.status && (
                           <td
-                            className="py-2 px-3 text-center whitespace-nowrap"
+                            className="py-2.5 px-3 text-center whitespace-nowrap"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <select
@@ -1581,7 +1756,7 @@ const TaskOverviewTab = ({
                         )}
 
                         {!hiddenColumns.totalHours && (
-                          <td className="py-2 px-3.5 text-center whitespace-nowrap">
+                          <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
                             <SimpleTimeTracker
                               startTime={task.actualStartTime}
                               endTime={task.actualEndTime}
@@ -1597,7 +1772,7 @@ const TaskOverviewTab = ({
 
                         {!hiddenColumns.action && (
                           <td
-                            className="py-2 px-3.5 text-right"
+                            className="py-2.5 px-3.5 text-right"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <div className="flex items-center justify-end gap-2">

@@ -23,6 +23,7 @@ import {
   FiTag,
   FiCopy,
   FiMessageSquare,
+  FiEdit,
 } from "react-icons/fi";
 import {
   useUpdateTaskMutation,
@@ -340,10 +341,10 @@ const MyTasksTab = ({
   const [blockerExpectedTime, setBlockerExpectedTime] = useState("15 mins");
   const [blockerPriority, setBlockerPriority] = useState("Normal");
 
-  // Feedback Modal states
-  const [feedbackModalTask, setFeedbackModalTask] = useState(null);
-  const [feedbackModalMode, setFeedbackModalMode] = useState("add"); // "add" or "view"
+  // Feedback states
   const [feedbackText, setFeedbackText] = useState("");
+  const [editingFeedbackId, setEditingFeedbackId] = useState(null);
+  const [editingFeedbackText, setEditingFeedbackText] = useState("");
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -550,37 +551,7 @@ const MyTasksTab = ({
     setBlockerPriority("Normal");
   };
 
-  const handleOpenFeedbackModal = (task, mode) => {
-    setFeedbackModalTask(task);
-    setFeedbackModalMode(mode);
-    setFeedbackText("");
-  };
 
-  const handleSubmitFeedback = () => {
-    if (!feedbackModalTask) return;
-    if (!feedbackText.trim()) {
-      toast.error("Please enter your feedback");
-      return;
-    }
-
-    const newFeedback = {
-      text: feedbackText.trim(),
-      addedAt: new Date().toISOString(),
-      addedBy: currentUserId,
-    };
-
-    const updatedFeedbacks = [
-      ...(feedbackModalTask.feedbacks || []),
-      newFeedback,
-    ];
-
-    handleTaskFieldChange(feedbackModalTask._id, {
-      feedbacks: updatedFeedbacks,
-    });
-    setFeedbackModalTask(null);
-    setFeedbackText("");
-    toast.success("Feedback added successfully");
-  };
 
   const handleSubmitBlocker = () => {
     if (!blockerModalTask) return;
@@ -1442,7 +1413,7 @@ const MyTasksTab = ({
                             )}
                           </div>
                           <h4
-                            className={`text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug flex flex-col gap-1.5 ${isCompleted ? "line-through text-slate-405" : ""}`}
+                            className={`text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug flex flex-col gap-1.5 ${isCompleted ? "line-through decoration-green-600 dark:decoration-green-500 decoration-2 text-slate-405" : ""}`}
                           >
                             <span>{task.title}</span>
                             {task.isBlocked && task.blockerReason && (
@@ -1614,13 +1585,6 @@ const MyTasksTab = ({
                       defaultClassName="px-20 py-2 border border-slate-200/70 dark:border-transparent w-60"
                     />
                     <ResizableHeader
-                      id="feedback"
-                      label="Feedback"
-                      colWidths={colWidths}
-                      handleMouseDown={handleMouseDown}
-                      defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-72"
-                    />
-                    <ResizableHeader
                       id="createdTime"
                       label="Created Time"
                       colWidths={colWidths}
@@ -1633,7 +1597,7 @@ const MyTasksTab = ({
                   {sortedTasks.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={14}
+                        colSpan={13}
                         className="px-6 py-8 text-center text-slate-450 dark:text-slate-500 font-bold bg-slate-50/5 dark:bg-slate-900/5 text-xs"
                       >
                         No tasks found.
@@ -1678,7 +1642,7 @@ const MyTasksTab = ({
                             <td className="px-3 py-2 font-bold border border-slate-200/70 dark:border-transparent text-left">
                               <div className="flex items-center gap-3">
                                 <span
-                                  className={`text-xs sm:text-[11px] ${isCompleted ? "line-through text-slate-400 dark:text-slate-505" : "text-slate-700 dark:text-white"}`}
+                                  className={`text-xs sm:text-[11px] ${isCompleted ? "line-through decoration-green-600 dark:decoration-green-500 decoration-2 text-slate-400 dark:text-slate-555" : "text-slate-700 dark:text-white"}`}
                                 >
                                   <span className="flex items-center gap-1 text-[12.5px] sm:text-[12px] whitespace-nowrap">
                                     <BiFile /> {task.title}
@@ -2124,34 +2088,6 @@ const MyTasksTab = ({
                               </div>
                             </td>
 
-                            {/* Feedback Column */}
-                            <td
-                              className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-72 text-center"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="flex items-center justify-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleOpenFeedbackModal(task, "add")
-                                  }
-                                  className="px-2 py-1 bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20 text-[10px] font-bold rounded flex items-center gap-1 transition-colors cursor-pointer"
-                                >
-                                  <FiPlus size={10} /> Add
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleOpenFeedbackModal(task, "view")
-                                  }
-                                  className="px-2 py-1 bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 text-[10px] font-bold rounded flex items-center gap-1 transition-colors cursor-pointer"
-                                >
-                                  <FiMessageSquare size={10} /> View (
-                                  {(task.feedbacks || []).length})
-                                </button>
-                              </div>
-                            </td>
-
                             {/* Created Time */}
                             <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center font-bold text-slate-500 dark:text-slate-400 text-xs sm:text-[11.5px]">
                               <CreatedTime time={task.createdAt} />
@@ -2164,7 +2100,7 @@ const MyTasksTab = ({
                             task.subtasks.length > 0 && (
                               <tr>
                                 <td
-                                  colSpan={14}
+                                  colSpan={13}
                                   className="bg-slate-50/[0.15] dark:bg-[#121522]/30 px-6 py-4"
                                 >
                                   <div className="space-y-2 border-l-2 border-blue-500/60 dark:border-blue-500/40 pl-6">
@@ -2195,7 +2131,7 @@ const MyTasksTab = ({
                                                 )}
                                               </button>
                                               <span
-                                                className={`text-xs font-bold text-slate-700 dark:text-slate-200 ${subCompleted ? "line-through text-slate-400 dark:text-slate-500" : ""}`}
+                                                className={`text-xs font-bold text-slate-700 dark:text-slate-200 ${subCompleted ? "line-through decoration-green-600 dark:decoration-green-500 decoration-2 text-slate-400 dark:text-slate-500" : ""}`}
                                               >
                                                 {sub.title}
                                               </span>
@@ -2761,6 +2697,164 @@ const MyTasksTab = ({
                         </div>
                       </div>
                     )}
+
+                  {/* Feedbacks Section */}
+                  <div className="p-4 bg-blue-500/5 dark:bg-[#111827] border border-blue-200/50 dark:border-rose-900/30 rounded-3xl space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-black text-blue-600 dark:text-blue-400 tracking-wider flex items-center gap-1.5 uppercase">
+                        <FiMessageSquare size={14} /> Feedbacks ({(selectedTask.feedbacks || []).length})
+                      </label>
+                    </div>
+
+                    {/* Add Feedback inline form */}
+                    <div className="space-y-2">
+                      <textarea
+                        value={feedbackText}
+                        onChange={(e) => setFeedbackText(e.target.value)}
+                        placeholder="Type a new feedback..."
+                        rows={2}
+                        className="w-full bg-white dark:bg-[#1a1d2d] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all resize-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                      />
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!feedbackText.trim()) {
+                              toast.error("Feedback text cannot be empty");
+                              return;
+                            }
+                            const newFeedback = {
+                              _id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
+                              text: feedbackText.trim(),
+                              addedAt: new Date().toISOString(),
+                              addedBy: currentUserId,
+                            };
+                            const updated = [...(selectedTask.feedbacks || []), newFeedback];
+                            handleTaskFieldChange(selectedTask._id, { feedbacks: updated });
+                            setFeedbackText("");
+                            toast.success("Feedback added successfully");
+                          }}
+                          className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-xl text-[10px] font-black tracking-wider uppercase transition-all cursor-pointer shadow-sm"
+                        >
+                          Submit
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* List of Feedbacks */}
+                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
+                      {!(selectedTask.feedbacks) || selectedTask.feedbacks.length === 0 ? (
+                        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 italic text-center py-2">
+                          No feedbacks added yet.
+                        </p>
+                      ) : (
+                        selectedTask.feedbacks
+                          .slice()
+                          .reverse()
+                          .map((fb, idx) => {
+                            const fbId = fb._id || fb.addedAt;
+                            const isEditing = editingFeedbackId === fbId;
+                            return (
+                              <div
+                                key={fbId || idx}
+                                className="group p-2.5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl space-y-1.5"
+                              >
+                                {isEditing ? (
+                                  <div className="space-y-1.5">
+                                    <textarea
+                                      value={editingFeedbackText}
+                                      onChange={(e) => setEditingFeedbackText(e.target.value)}
+                                      rows={2}
+                                      className="w-full bg-slate-50 dark:bg-[#1a1d2d] border border-slate-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-blue-500 transition-all resize-none"
+                                    />
+                                    <div className="flex justify-end gap-2 text-[8.5px] font-extrabold uppercase">
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditingFeedbackId(null)}
+                                        className="px-2 py-0.5 text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          if (!editingFeedbackText.trim()) {
+                                            toast.error("Feedback text cannot be empty");
+                                            return;
+                                          }
+                                          const updated = (selectedTask.feedbacks || []).map((item) => {
+                                            const isTarget = item._id ? item._id === fb._id : item.addedAt === fb.addedAt;
+                                            if (isTarget) {
+                                              return {
+                                                ...item,
+                                                text: editingFeedbackText.trim(),
+                                                updatedAt: new Date().toISOString(),
+                                              };
+                                            }
+                                            return item;
+                                          });
+                                          handleTaskFieldChange(selectedTask._id, { feedbacks: updated });
+                                          setEditingFeedbackId(null);
+                                          setEditingFeedbackText("");
+                                          toast.success("Feedback updated successfully");
+                                        }}
+                                        className="px-2 py-0.5 bg-blue-600 dark:bg-blue-500 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors cursor-pointer"
+                                      >
+                                        Save
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="flex justify-between items-center text-[8.5px] text-slate-500 dark:text-slate-400">
+                                      <span>
+                                        {new Date(fb.addedAt).toLocaleString()}
+                                      </span>
+                                      <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setEditingFeedbackId(fbId);
+                                            setEditingFeedbackText(fb.text);
+                                          }}
+                                          className="p-0.5 hover:text-blue-500 transition-colors cursor-pointer"
+                                          title="Edit Feedback"
+                                        >
+                                          <FiEdit size={10} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            if (!window.confirm("Are you sure you want to delete this feedback?")) return;
+                                            const updated = (selectedTask.feedbacks || []).filter((item) => {
+                                              return item._id ? item._id !== fb._id : item.addedAt !== fb.addedAt;
+                                            });
+                                            handleTaskFieldChange(selectedTask._id, { feedbacks: updated });
+                                            toast.success("Feedback deleted successfully");
+                                          }}
+                                          className="p-0.5 hover:text-rose-500 transition-colors cursor-pointer"
+                                          title="Delete Feedback"
+                                        >
+                                          <FiTrash2 size={10} />
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <p className="text-xs text-slate-700 dark:text-slate-200 font-medium break-words leading-relaxed">
+                                      {fb.text}
+                                    </p>
+                                    {fb.updatedAt && (
+                                      <div className="text-[8px] text-slate-400 dark:text-slate-500 text-right italic">
+                                        Edited: {new Date(fb.updatedAt).toLocaleString()}
+                                      </div>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -2768,102 +2862,6 @@ const MyTasksTab = ({
         )}
       </AnimatePresence>
 
-      {/* Feedback Modal */}
-      <AnimatePresence>
-        {feedbackModalTask && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setFeedbackModalTask(null)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm cursor-pointer"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-md bg-white dark:bg-[#161826] rounded-3xl shadow-2xl overflow-hidden flex flex-col border border-slate-200 dark:border-white/10"
-            >
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-white/[0.02]">
-                <h2 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                  {feedbackModalMode === "add"
-                    ? "Add Feedback"
-                    : "View Feedbacks"}
-                </h2>
-                <button
-                  onClick={() => setFeedbackModalTask(null)}
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-white/10 dark:hover:text-white transition-colors cursor-pointer"
-                >
-                  <FiX size={16} />
-                </button>
-              </div>
-              <div className="p-6">
-                <div className="mb-4">
-                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                    Task: {feedbackModalTask.title}
-                  </span>
-                </div>
-                {feedbackModalMode === "add" ? (
-                  <div className="space-y-4">
-                    <div className="space-y-2 text-left">
-                      <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-                        Your Feedback
-                      </label>
-                      <textarea
-                        value={feedbackText}
-                        onChange={(e) => setFeedbackText(e.target.value)}
-                        rows={4}
-                        placeholder="Enter feedback details here..."
-                        className="w-full bg-slate-50 dark:bg-[#1a1d2d] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all resize-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                      />
-                    </div>
-                    <div className="pt-2">
-                      <button
-                        onClick={handleSubmitFeedback}
-                        className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-xs font-black tracking-wider uppercase text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 shadow-lg shadow-blue-500/25 transition-all cursor-pointer"
-                      >
-                        Submit Feedback
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3 max-h-80 overflow-y-auto pr-2 scrollbar-thin">
-                    {!feedbackModalTask.feedbacks ||
-                    feedbackModalTask.feedbacks.length === 0 ? (
-                      <div className="text-center py-8">
-                        <p className="text-xs font-bold text-slate-400 dark:text-slate-500">
-                          No feedbacks yet.
-                        </p>
-                      </div>
-                    ) : (
-                      feedbackModalTask.feedbacks
-                        .slice()
-                        .reverse()
-                        .map((fb, idx) => (
-                          <div
-                            key={idx}
-                            className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 text-left space-y-1.5"
-                          >
-                            <div className="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400">
-                              <span>
-                                {new Date(fb.addedAt).toLocaleString()}
-                              </span>
-                            </div>
-                            <p className="text-xs text-slate-700 dark:text-slate-200 font-medium break-words">
-                              {fb.text}
-                            </p>
-                          </div>
-                        ))
-                    )}
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </>
   );
 };

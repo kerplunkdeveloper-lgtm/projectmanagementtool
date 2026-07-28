@@ -815,11 +815,6 @@ const EodReports = () => {
                         <span>Time spent: {task.time}</span>
                       </div>
                     )}
-                    {task.createdAt && (
-                      <span className="bg-slate-50 text-slate-500 border border-slate-200/60 dark:bg-slate-900/10 dark:text-slate-400 dark:border-slate-800/60 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
-                        Created: {safeFormatDateTime(task.createdAt)}
-                      </span>
-                    )}
                   </div>
                 </div>
 

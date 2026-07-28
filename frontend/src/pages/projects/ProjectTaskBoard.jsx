@@ -1537,7 +1537,6 @@ const ProjectTaskBoard = ({
   });
   const [openColMenu, setOpenColMenu] = useState(null); // "contentCopy" | "revision" | null
   const [isColsOpen, setIsColsOpen] = useState(false);
-  const [feedbackModal, setFeedbackModal] = useState({ isOpen: false, task: null, subtaskId: null, initialFeedback: "" });
   const colsDropdownRef = useRef(null);
 
   const toggleColumnHide = (colId) => {
@@ -2844,7 +2843,6 @@ const ProjectTaskBoard = ({
                           { id: "status", label: "Status" },
                           { id: "revision", label: "Revision" },
                           { id: "totalHours", label: "Total Hours" },
-                          { id: "feedback", label: "Feedback" },
                         ].map((col) => {
                           const isHidden = !!hiddenColumns[col.id];
                           return (
@@ -3060,7 +3058,7 @@ const ProjectTaskBoard = ({
                       </div>
                     </td>
                     <td
-                      colSpan={12}
+                      colSpan={11}
                       className="px-3 py-1 border-b border-slate-300 dark:border-slate-700"
                       style={{ ...bBottom, ...bRight }}
                     />
@@ -3311,11 +3309,6 @@ const ProjectTaskBoard = ({
                               {!hiddenColumns.totalHours && (
                                 <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
                                   Total Hours
-                                </th>
-                              )}
-                              {!hiddenColumns.feedback && (
-                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[150px]">
-                                  Feedback
                                 </th>
                               )}
                               <th className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 text-center whitespace-nowrap min-w-[80px]">
@@ -3881,7 +3874,7 @@ const ProjectTaskBoard = ({
                                           </td>
                                           {/* Empty Column Cells merged into one to remove vertical gridlines */}
                                           <td
-                                            colSpan={12}
+                                            colSpan={11}
                                             className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b]"
                                             style={{
                                               borderRight: `2.5px solid ${sColor.hex}`,
@@ -4915,22 +4908,6 @@ const ProjectTaskBoard = ({
                                                             }
                                                             status={task.status}
                                                           />
-                                                        </td>
-                                                      )}
-
-                                                      {/* Feedback */}
-                                                      {!hiddenColumns.feedback && (
-                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center">
-                                                          <button
-                                                             type="button"
-                                                             onClick={(e) => {
-                                                               e.stopPropagation();
-                                                               setFeedbackModal({ isOpen: true, task: task, subtaskId: null, initialFeedback: task.feedback || "" });
-                                                             }}
-                                                             className="px-3 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-semibold rounded hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors border border-blue-200 dark:border-blue-800 whitespace-nowrap cursor-pointer"
-                                                          >
-                                                            View Feedback
-                                                          </button>
                                                         </td>
                                                       )}
 
@@ -6039,21 +6016,7 @@ const ProjectTaskBoard = ({
                                                                 </td>
                                                               )}
 
-                                                              {/* Feedback Column */}
-                                                              {!hiddenColumns.feedback && (
-                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-center">
-                                                                  <button
-                                                                     type="button"
-                                                                     onClick={(e) => {
-                                                                       e.stopPropagation();
-                                                                       setFeedbackModal({ isOpen: true, task: task, subtaskId: sub._id, initialFeedback: sub.feedback || "" });
-                                                                     }}
-                                                                     className="px-3 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-semibold rounded hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors border border-blue-200 dark:border-blue-800 whitespace-nowrap cursor-pointer"
-                                                                  >
-                                                                    View Feedback
-                                                                  </button>
-                                                                </td>
-                                                              )}
+
 
                                                               {/* 9. Actions Column */}
                                                               <td
@@ -6111,7 +6074,7 @@ const ProjectTaskBoard = ({
                                         <tr className=" pointer-events-none">
                                           <td
                                             colSpan={
-                                              showSelectionColumn ? 15 : 14
+                                              showSelectionColumn ? 14 : 13
                                             }
                                             className=" p-0 border-0 bg-transparent"
                                           />
@@ -7222,52 +7185,6 @@ const ProjectTaskBoard = ({
                     )}
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {feedbackModal.isOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-            <motion.div 
-               initial={{ opacity: 0, scale: 0.95 }}
-               animate={{ opacity: 1, scale: 1 }}
-               exit={{ opacity: 0, scale: 0.95 }}
-               transition={{ duration: 0.15 }}
-               className="bg-white dark:bg-[#18181f] w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col"
-            >
-              <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-white/[0.02]">
-                <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-sm">Feedback</h3>
-                <button onClick={() => setFeedbackModal({ isOpen: false, task: null, subtaskId: null, initialFeedback: "" })} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-                   <FiX size={16} />
-                </button>
-              </div>
-              <div className="p-5 flex-1">
-                <textarea
-                   value={feedbackModal.initialFeedback}
-                   onChange={(e) => setFeedbackModal({ ...feedbackModal, initialFeedback: e.target.value })}
-                   className="w-full min-h-[150px] bg-white dark:bg-[#111] border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 text-slate-700 dark:text-slate-200 resize-y"
-                   placeholder="Enter feedback..."
-                />
-              </div>
-              <div className="px-5 py-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-2 bg-slate-50 dark:bg-white/[0.02]">
-                <button onClick={() => setFeedbackModal({ isOpen: false, task: null, subtaskId: null, initialFeedback: "" })} className="px-4 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer">
-                  Cancel
-                </button>
-                <button 
-                  onClick={() => {
-                    if (feedbackModal.subtaskId) {
-                       handleSubtaskFieldChange(feedbackModal.task, feedbackModal.subtaskId, { feedback: feedbackModal.initialFeedback });
-                    } else if (feedbackModal.task) {
-                       handleTaskFieldChange(feedbackModal.task._id, { feedback: feedbackModal.initialFeedback });
-                    }
-                    setFeedbackModal({ isOpen: false, task: null, subtaskId: null, initialFeedback: "" });
-                  }}
-                  className="px-4 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
-                >
-                  Save
-                </button>
               </div>
             </motion.div>
           </div>
