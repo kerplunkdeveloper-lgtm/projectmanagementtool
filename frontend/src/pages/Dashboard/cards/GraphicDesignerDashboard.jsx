@@ -28,6 +28,8 @@ import {
   FiTrendingUp,
   FiXCircle,
   FiFileText,
+  FiPlay,
+  FiEye,
 } from "react-icons/fi";
 
 const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
@@ -156,20 +158,20 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   const metrics = useMemo(() => {
     let completed = 0;
     let pending = 0;
+    let inProgress = 0;
+    let inReview = 0;
     let overdue = 0;
-    let inRevision = 0;
-    let clientApproval = 0;
     let rejected = 0;
     let totalRevisions = 0;
 
     designerTasks.forEach((task) => {
       const status = task.status?.toLowerCase() || "";
-      if (status === "completed") completed++;
+      if (status === "completed" || status.includes("approve")) completed++;
       else if (status.includes("reject")) rejected++;
-      else if (status.includes("revision")) inRevision++;
-      else if (status.includes("client") || status.includes("approval"))
-        clientApproval++;
-      else pending++;
+      else if (status.includes("progress")) inProgress++;
+      else if (status.includes("review") || status.includes("revision")) inReview++;
+      else if (status === "pending") pending++;
+      else pending++; // default fallback
 
       totalRevisions += task.revisions || 0;
 
@@ -187,9 +189,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       tasksAssigned: designerTasks.length,
       completed,
       pending,
+      inProgress,
+      inReview,
       overdue,
-      inRevision,
-      clientApproval,
       rejected,
       totalRevisions,
     };
@@ -235,7 +237,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   const boardColumns = [
     "Pending",
     "In Progress",
-    "Revision Pending",
+    "IN REVIEW",
     "Rejected",
     "Completed",
   ];
@@ -243,8 +245,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     const status = task.status || "Pending";
     if (boardColumns.includes(status)) return status;
     if (status.toLowerCase().includes("progress")) return "In Progress";
-    if (status.toLowerCase().includes("review")) return "Revision Pending";
-    if (status.toLowerCase().includes("revision")) return "Revision";
+    if (status.toLowerCase().includes("review")) return "IN REVIEW";
+    if (status.toLowerCase().includes("revision")) return "IN REVIEW";
     if (status.toLowerCase().includes("reject")) return "Rejected";
     if (status.toLowerCase().includes("approve")) return "Completed";
     if (status.toLowerCase() === "completed") return "Completed";
@@ -570,7 +572,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       </div>
 
       {/* Premium Metrics Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-7 gap-3 lg:gap-2 relative z-10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3 lg:gap-2 relative z-10">
         {[
           {
             label:
@@ -600,18 +602,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             iconColor: "text-indigo-600 dark:text-indigo-400",
           },
           {
-            label: "Completed",
-            value: metrics.completed,
-            icon: FiCheckCircle,
-            glow: "hover:shadow-[0_4px_20px_rgba(16,185,129,0.15)]",
-            bg: "bg-gradient-to-br from-emerald-400 to-emerald-500 dark:from-emerald-700 dark:to-emerald-800 border border-emerald-200/50 dark:border-emerald-900/30",
-            labelColor: "text-white dark:text-white",
-            valueColor: "text-slate-100 dark:text-white",
-            iconBg:
-              "bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-500/20",
-            iconColor: "text-emerald-600 dark:text-emerald-400",
-          },
-          {
             label: "Pending",
             value: metrics.pending,
             icon: FiClock,
@@ -622,6 +612,42 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             iconBg:
               "bg-amber-100 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-500/20",
             iconColor: "text-amber-600 dark:text-amber-400",
+          },
+          {
+            label: "In Progress",
+            value: metrics.inProgress,
+            icon: FiPlay,
+            glow: "hover:shadow-[0_4px_20px_rgba(14,165,233,0.15)]",
+            bg: "bg-gradient-to-br from-sky-400 to-sky-600 dark:from-sky-850 dark:to-sky-950 border border-sky-200/50 dark:border-sky-900/30",
+            labelColor: "text-white dark:text-white",
+            valueColor: "text-slate-100 dark:text-white",
+            iconBg:
+              "bg-sky-100 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-500/20",
+            iconColor: "text-sky-600 dark:text-sky-400",
+          },
+          {
+            label: "In Review",
+            value: metrics.inReview,
+            icon: FiEye,
+            glow: "hover:shadow-[0_4px_20px_rgba(99,102,241,0.15)]",
+            bg: "bg-gradient-to-br from-indigo-400 to-indigo-500 dark:from-indigo-850 dark:to-indigo-950 border border-indigo-200/50 dark:border-indigo-900/30",
+            labelColor: "text-white dark:text-white",
+            valueColor: "text-slate-100 dark:text-white",
+            iconBg:
+              "bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-500/20",
+            iconColor: "text-indigo-600 dark:text-indigo-400",
+          },
+          {
+            label: "Completed",
+            value: metrics.completed,
+            icon: FiCheckCircle,
+            glow: "hover:shadow-[0_4px_20px_rgba(16,185,129,0.15)]",
+            bg: "bg-gradient-to-br from-emerald-400 to-emerald-500 dark:from-emerald-700 dark:to-emerald-800 border border-emerald-200/50 dark:border-emerald-900/30",
+            labelColor: "text-white dark:text-white",
+            valueColor: "text-slate-100 dark:text-white",
+            iconBg:
+              "bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-500/20",
+            iconColor: "text-emerald-600 dark:text-emerald-400",
           },
           {
             label: "Revision",
