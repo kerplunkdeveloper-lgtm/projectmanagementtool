@@ -491,7 +491,8 @@ const Project = () => {
                         {(() => {
                           const createdUser = project.createdBy;
                           const avatarUrl =
-                            (typeof createdUser?.profile?.profileImage === "object"
+                            (typeof createdUser?.profile?.profileImage ===
+                            "object"
                               ? createdUser?.profile?.profileImage?.url
                               : createdUser?.profile?.profileImage) ||
                             (typeof createdUser?.profileImage === "object"
@@ -518,7 +519,7 @@ const Project = () => {
                             .join("")
                             .substring(0, 2)
                             .toUpperCase();
-                          
+
                           const AVATAR_COLORS = [
                             "from-violet-500 to-indigo-600",
                             "from-cyan-500 to-blue-600",
@@ -533,7 +534,9 @@ const Project = () => {
                             ];
 
                           return (
-                            <div className={`w-6 h-6 rounded-full bg-gradient-to-tr ${colorClass} flex items-center justify-center text-white text-[9px] font-black shadow-inner`}>
+                            <div
+                              className={`w-6 h-6 rounded-full bg-gradient-to-tr ${colorClass} flex items-center justify-center text-white text-[9px] font-black shadow-inner`}
+                            >
                               {initials}
                             </div>
                           );

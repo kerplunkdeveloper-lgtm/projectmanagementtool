@@ -675,6 +675,7 @@ const Dashboardmain = () => {
   const [status, setStatus] = useState("Active");
   const [clientSearchQuery, setClientSearchQuery] = useState("");
   const [activeDeptTab, setActiveDeptTab] = useState("Graphic Designer");
+  const [access, setAccess] = useState("Private");
 
   const filterClients = React.useMemo(() => {
     const uniqueClientsMap = new Map();
@@ -777,12 +778,14 @@ const Dashboardmain = () => {
         name,
         client: clientId,
         status,
+        access,
       }),
     );
     setShowCreateModal(false);
     setName("");
     setClientId(clients[0]?._id || "");
     setStatus("Active");
+    setAccess("Private");
   };
 
   const projectColors = [
@@ -843,13 +846,12 @@ const Dashboardmain = () => {
       <WelcomeUser />
 
 
-
       {/* Admin - task shortcut  */}
       {user?.role === "admin" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2 relative z-10">
           
           {/* LEFT COLUMN: My Tasks */}
-          <div className="bg-white dark:bg-[#11131e] rounded-3xl border border-slate-200 dark:border-white/5 shadow-xs p-5 flex flex-col h-[320px] transition-all hover:shadow-md">
+          <div className="bg-white dark:bg-[#11131e] rounded-3xl border border-slate-200 dark:border-white/5 shadow-xs p-5 flex flex-col h-[400px] transition-all hover:shadow-md">
             
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
@@ -970,24 +972,22 @@ const Dashboardmain = () => {
           </div>
 
           {/* RIGHT COLUMN: Projects */}
-          <div className="bg-white dark:bg-[#11131e] rounded-3xl border border-slate-200 dark:border-white/5 shadow-xs p-5 flex flex-col h-[320px] transition-all hover:shadow-md">
+          <div className="bg-white dark:bg-[#11131e] rounded-3xl border border-slate-200 dark:border-white/5 shadow-xs p-5 flex flex-col h-[400px] transition-all hover:shadow-md">
             
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                  Projects
+                  MY Projects
                 </h3>
-                <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-450 uppercase tracking-widest">
-                  Recents
-                </span>
+               
               </div>
               <button
                 type="button"
                 onClick={() => navigate("/admin/projects")}
-                className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 flex items-center justify-center text-slate-400 hover:text-slate-655 transition-colors cursor-pointer"
+                className=" rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 flex items-center justify-center text-slate-400 hover:text-slate-655 transition-colors cursor-pointer"
               >
-                <FiSliders size={14} />
+               Go to project page
               </button>
             </div>
 
@@ -995,7 +995,7 @@ const Dashboardmain = () => {
             <div className="flex-1 flex flex-col min-h-0">
               {recentProjects.length > 0 ? (
                 <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pb-1">
                     
                     {/* Create Project Button */}
                     <button
@@ -1012,12 +1012,12 @@ const Dashboardmain = () => {
                     {/* Project List Items */}
                     {recentProjects.map((p, idx) => {
                       const projectColors = [
-                        "bg-fuchsia-500/10 text-fuchsia-500 border-fuchsia-500/20 dark:bg-fuchsia-500/20",
-                        "bg-emerald-500/10 text-emerald-500 border-emerald-500/20 dark:bg-emerald-500/20",
-                        "bg-indigo-500/10 text-indigo-500 border-indigo-500/20 dark:bg-indigo-500/20",
-                        "bg-rose-500/10 text-rose-500 border-rose-500/20 dark:bg-rose-500/20",
-                        "bg-cyan-500/10 text-cyan-500 border-cyan-500/20 dark:bg-cyan-500/20",
-                        "bg-amber-500/10 text-amber-500 border-amber-500/20 dark:bg-amber-500/20",
+                        "bg-fuchsia-500/10 text-fuchsia-500 dark:bg-fuchsia-500/20",
+                        "bg-emerald-500/10 text-emerald-500 dark:bg-emerald-500/20",
+                        "bg-indigo-500/10 text-indigo-500 dark:bg-indigo-500/20",
+                        "bg-rose-500/10 text-rose-500 dark:bg-rose-500/20",
+                        "bg-cyan-500/10 text-cyan-500 dark:bg-cyan-500/20",
+                        "bg-amber-500/10 text-amber-500 dark:bg-amber-500/20",
                       ];
                       const colorClass = projectColors[idx % projectColors.length];
 
@@ -1025,7 +1025,7 @@ const Dashboardmain = () => {
                         <div
                           key={p._id}
                           onClick={() => navigate(`/admin/projects?id=${p._id}`)}
-                          className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50/50 dark:bg-white/5 border border-slate-150/40 dark:border-white/5 hover:border-slate-350 dark:hover:border-white/20 hover:shadow-sm cursor-pointer transition-all h-[80px]"
+                          className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50/50 dark:bg-white/5 hover:shadow-sm cursor-pointer transition-all h-[80px]"
                         >
                           <div className={`w-9 h-9 rounded-xl flex items-center justify-center border shrink-0 font-bold ${colorClass}`}>
                             <FiList size={15} />
@@ -1529,6 +1529,177 @@ const Dashboardmain = () => {
           </div>
         </div>
       )}
+      {/* CREATE PROJECT OFFCANVAS DRAWER */}
+      <AnimatePresence>
+        {showCreateModal && (
+          <div className="fixed inset-0 z-50 flex justify-end">
+            {/* Backdrop overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowCreateModal(false)}
+              className="absolute inset-0 bg-slate-900/40 dark:bg-[#111111]/70 backdrop-blur-[2px]"
+            />
+            {/* Side Sheet */}
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "tween", ease: "easeOut", duration: 0.3 }}
+              className="relative w-full max-w-md bg-white dark:bg-[#111111] h-full shadow-2xl flex flex-col z-10 border-l border-slate-100 dark:border-white/5"
+            >
+              {/* Header */}
+              <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-[#1a1a1a]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-[#3b82f6]/10 border border-blue-100 dark:border-[#3b82f6]/20 flex items-center justify-center text-blue-600 dark:text-[#3b82f6]">
+                    <FiBriefcase size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-slate-800 dark:text-white">
+                      Add New Project
+                    </h2>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                      Project Details
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowCreateModal(false)}
+                  className="w-8 h-8 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 flex items-center justify-center text-slate-400 hover:text-slate-650 transition-colors"
+                >
+                  <FiX size={18} />
+                </button>
+              </div>
+
+              {/* Form Content */}
+              <form
+                onSubmit={handleCreateSubmit}
+                className="flex-1 flex flex-col overflow-hidden"
+              >
+                <div className="flex-1 p-6 space-y-6 overflow-y-auto">
+                  {/* Name field */}
+                  <div className="space-y-1.5 text-left">
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                      Project Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Enter project name..."
+                      className="w-full px-4 py-3 rounded-2xl bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-155 dark:border-white/10 focus:outline-none focus:border-blue-500 dark:focus:border-[#3b82f6] focus:bg-white dark:focus:bg-[#111111] text-sm text-slate-700 dark:text-white placeholder-slate-400 transition-all focus:shadow-sm"
+                    />
+                  </div>
+
+                  {/* Client Select field */}
+                  <div className="space-y-1.5 text-left">
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                      Client <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={clientId}
+                        onChange={(e) => setClientId(e.target.value)}
+                        required
+                        className="w-full px-4 py-3 pr-10 rounded-2xl bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-155 dark:border-white/10 focus:outline-none focus:border-blue-500 dark:focus:border-[#3b82f6] focus:bg-white dark:focus:bg-[#111111] text-sm text-slate-700 dark:text-white cursor-pointer appearance-none transition-all focus:shadow-sm"
+                      >
+                        <option value="" className="dark:bg-[#111111]">
+                          Select a client
+                        </option>
+                        {clients?.map((c) => (
+                          <option
+                            key={c._id}
+                            value={c._id}
+                            className="dark:bg-[#111111]"
+                          >
+                            {c.companyName || c.name}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <FiChevronDown size={16} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Access Select field */}
+                  <div className="space-y-1.5 text-left">
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                      Access
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={access}
+                        onChange={(e) => setAccess(e.target.value)}
+                        className="w-full px-4 py-3 pr-10 rounded-2xl bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-155 dark:border-white/10 focus:outline-none focus:border-blue-500 dark:focus:border-[#3b82f6] focus:bg-white dark:focus:bg-[#111111] text-sm text-slate-700 dark:text-white cursor-pointer appearance-none transition-all focus:shadow-sm"
+                      >
+                        <option value="Private" className="dark:bg-[#111111]">
+                          Private
+                        </option>
+                        <option value="Public" className="dark:bg-[#111111]">
+                          Public
+                        </option>
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <FiChevronDown size={16} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status Select field */}
+                  <div className="space-y-1.5 text-left">
+                    <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                      Status
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={status}
+                        onChange={(e) => setStatus(e.target.value)}
+                        className="w-full px-4 py-3 pr-10 rounded-2xl bg-slate-50/60 dark:bg-[#0a0a0a] border border-slate-155 dark:border-white/10 focus:outline-none focus:border-blue-500 dark:focus:border-[#3b82f6] focus:bg-white dark:focus:bg-[#111111] text-sm text-slate-700 dark:text-white cursor-pointer appearance-none transition-all focus:shadow-sm"
+                      >
+                        <option value="Active" className="dark:bg-[#111111]">
+                          Active
+                        </option>
+                        <option value="On Hold" className="dark:bg-[#111111]">
+                          On Hold
+                        </option>
+                        <option value="Completed" className="dark:bg-[#111111]">
+                          Completed
+                        </option>
+                        <option value="Inactive" className="dark:bg-[#111111]">
+                          Inactive
+                        </option>
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                        <FiChevronDown size={16} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sticky Footer */}
+                <div className="p-6 border-t border-slate-100 dark:border-white/5 bg-slate-50/30 dark:bg-[#1a1a1a] flex justify-end gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="px-5 py-3 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-white/5 active:scale-95 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-3 rounded-2xl bg-blue-600 dark:bg-[#3b82f6] hover:bg-blue-500 dark:hover:bg-[#ccff00] text-white dark:text-black text-sm font-bold shadow-md shadow-blue-500/10 dark:shadow-[#3b82f6]/20 active:scale-95 transition-all"
+                  >
+                    Create Project
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

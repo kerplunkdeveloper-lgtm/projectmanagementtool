@@ -693,6 +693,8 @@ const TaskOverviewTab = ({
     overviewAssigneeFilter,
   ]);
 
+  const totalPages = Math.ceil(filteredOverviewTasks.length / itemsPerPage);
+
   return (
     <>
       <div className="bg-white dark:bg-[#11131e] overflow-hidden flex flex-col h-[calc(100vh-160px)]">
@@ -1834,7 +1836,7 @@ const TaskOverviewTab = ({
           </table>
         </div>
 
-        {filteredOverviewTasks.length > itemsPerPage && (
+        {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-[#161826] shrink-0 mt-auto">
             <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
               Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
@@ -1844,7 +1846,7 @@ const TaskOverviewTab = ({
               )}{" "}
               of {filteredOverviewTasks.length} tasks
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
@@ -1853,18 +1855,68 @@ const TaskOverviewTab = ({
               >
                 Previous
               </button>
+              
+              {(() => {
+                const pageNumbers = [];
+                const maxVisiblePages = 5;
+
+                if (totalPages <= maxVisiblePages) {
+                  for (let i = 1; i <= totalPages; i++) {
+                    pageNumbers.push(i);
+                  }
+                } else {
+                  pageNumbers.push(1);
+
+                  if (currentPage > 3) {
+                    pageNumbers.push("...");
+                  }
+
+                  const start = Math.max(2, currentPage - 1);
+                  const end = Math.min(totalPages - 1, currentPage + 1);
+
+                  for (let i = start; i <= end; i++) {
+                    pageNumbers.push(i);
+                  }
+
+                  if (currentPage < totalPages - 2) {
+                    pageNumbers.push("...");
+                  }
+
+                  pageNumbers.push(totalPages);
+                }
+
+                return pageNumbers.map((page, index) => {
+                  if (page === "...") {
+                    return (
+                      <span
+                        key={`ellipsis-${index}`}
+                        className="px-2 py-1 text-xs text-slate-400 dark:text-slate-650 font-bold select-none"
+                      >
+                        ...
+                      </span>
+                    );
+                  }
+                  return (
+                    <button
+                      key={page}
+                      type="button"
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-1.5 text-xs rounded-lg border transition-all cursor-pointer font-bold ${
+                        currentPage === page
+                          ? "bg-blue-600 text-white border-blue-600 dark:bg-[#3b82f6] dark:border-[#3b82f6] dark:text-black shadow-sm"
+                          : "border-slate-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/5 text-slate-600 dark:text-slate-300"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                });
+              })()}
+
               <button
                 type="button"
-                onClick={() =>
-                  setCurrentPage((prev) =>
-                    currentPage * itemsPerPage < filteredOverviewTasks.length
-                      ? prev + 1
-                      : prev,
-                  )
-                }
-                disabled={
-                  currentPage * itemsPerPage >= filteredOverviewTasks.length
-                }
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
                 className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white dark:hover:bg-white/5 transition-colors shadow-2xs cursor-pointer"
               >
                 Next
