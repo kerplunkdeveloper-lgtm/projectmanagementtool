@@ -1658,7 +1658,7 @@ const TaskOverviewTab = ({
                                   priority: e.target.value,
                                 })
                               }
-                              className={`pl-2 pr-6 py-0.5 h-auto w-[100px] text-[9px] rounded-md font-bold uppercase border cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 bg-transparent text-left ${pStyle}`}
+                              className={`pl-2 pr-6 py-0.5 h-auto w-[100px] text-[9px] rounded-md font-bold  cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 bg-transparent text-left ${pStyle}`}
                             >
                               <option
                                 value="Top High"
@@ -1700,7 +1700,7 @@ const TaskOverviewTab = ({
                                   status: e.target.value,
                                 })
                               }
-                              className={`pl-2 pr-6 py-0.5 h-auto w-[115px] rounded-md text-[9px] font-black border uppercase tracking-wider cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm transition-colors text-left ${
+                              className={`pl-2 pr-6 py-0.5 h-auto w-[115px] rounded-md text-[9px] font-black border  tracking-wider cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm transition-colors text-left ${
                                 task.status === "Completed"
                                   ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-550/30"
                                   : task.status === "In Progress"
