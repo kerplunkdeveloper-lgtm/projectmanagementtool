@@ -538,13 +538,14 @@ const AssigneeDropdown = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
+  const [coords, setCoords] = useState({ top: 0, bottom: null, left: 0, width: 0, isUpward: false });
   const dropdownRef = useRef(null);
 
   const updateCoords = () => {
     if (dropdownRef.current) {
       const rect = dropdownRef.current.getBoundingClientRect();
       const dropdownWidth = 224; // w-56 is 14rem = 224px
+      const dropdownHeight = 244; // estimated max height of dropdown
 
       // Check if left alignment would go off-screen
       let left = rect.left;
@@ -553,10 +554,16 @@ const AssigneeDropdown = ({
         left = Math.max(10, rect.right - dropdownWidth);
       }
 
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const isUpward = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
+
       setCoords({
-        top: rect.bottom,
+        top: isUpward ? null : rect.bottom,
+        bottom: isUpward ? window.innerHeight - rect.top : null,
         left: left,
         width: rect.width,
+        isUpward: isUpward,
       });
     }
   };
@@ -821,11 +828,14 @@ const AssigneeDropdown = ({
           <div
             style={{
               position: "fixed",
-              top: `${coords.top}px`,
+              top: coords.isUpward ? "auto" : `${coords.top}px`,
+              bottom: coords.isUpward ? `${coords.bottom}px` : "auto",
               left: `${coords.left}px`,
               zIndex: 999999,
             }}
-            className="assignee-dropdown-portal mt-1 w-56 rounded-xl bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-2xl py-1.5 max-h-60 overflow-y-auto"
+            className={`assignee-dropdown-portal w-56 rounded-xl bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-2xl py-1.5 max-h-60 overflow-y-auto ${
+              coords.isUpward ? "mb-1" : "mt-1"
+            }`}
             onClick={(e) => e.stopPropagation()}
             onWheel={(e) => e.stopPropagation()}
           >
@@ -923,23 +933,30 @@ const ClientDropdown = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
+  const [coords, setCoords] = useState({ top: 0, bottom: null, left: 0, width: 0, isUpward: false });
   const dropdownRef = useRef(null);
 
   const updateCoords = () => {
     if (dropdownRef.current) {
       const rect = dropdownRef.current.getBoundingClientRect();
       const dropdownWidth = 224; // w-56 is 14rem = 224px
+      const dropdownHeight = 244; // estimated max height of dropdown
 
       let left = rect.left;
       if (rect.left + dropdownWidth > window.innerWidth) {
         left = Math.max(10, rect.right - dropdownWidth);
       }
 
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const isUpward = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
+
       setCoords({
-        top: rect.bottom,
+        top: isUpward ? null : rect.bottom,
+        bottom: isUpward ? window.innerHeight - rect.top : null,
         left: left,
         width: rect.width,
+        isUpward: isUpward,
       });
     }
   };
@@ -1019,14 +1036,16 @@ const ClientDropdown = ({
         <div
           onClick={() => isAdminOrManager && setIsOpen(!isOpen)}
           className={`group/assigned relative flex items-center gap-1.5 px-2 py-1 rounded-xl border transition-all ${
-            isAdminOrManager ? "cursor-pointer hover:shadow-sm" : "cursor-not-allowed"
+            isAdminOrManager
+              ? "cursor-pointer hover:shadow-sm"
+              : "cursor-not-allowed"
           } ${getClientBadgeStyle(selectedClientObj.companyName)} min-w-[100px] h-[30px] w-[140px]`}
         >
           {selectedClientObj.icon && (
-            <img 
-              src={selectedClientObj.icon} 
-              alt="" 
-              className="w-4 h-4 rounded-sm object-contain bg-white shrink-0" 
+            <img
+              src={selectedClientObj.icon}
+              alt=""
+              className="w-4 h-4 rounded-sm object-contain bg-white shrink-0"
             />
           )}
           <span className="text-[10px] font-bold truncate leading-tight flex-1">
@@ -1055,7 +1074,9 @@ const ClientDropdown = ({
         disabled={!isAdminOrManager}
         onClick={() => setIsOpen(!isOpen)}
         className={`group/assign relative flex items-center gap-1 px-2 py-1 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 transition-all ${
-          isAdminOrManager ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800" : "cursor-not-allowed"
+          isAdminOrManager
+            ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800"
+            : "cursor-not-allowed"
         } h-[30px] w-[140px] text-left`}
       >
         <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 truncate flex-1">
@@ -1075,11 +1096,14 @@ const ClientDropdown = ({
           <div
             style={{
               position: "fixed",
-              top: `${coords.top}px`,
+              top: coords.isUpward ? "auto" : `${coords.top}px`,
+              bottom: coords.isUpward ? `${coords.bottom}px` : "auto",
               left: `${coords.left}px`,
               zIndex: 999999,
             }}
-            className="client-dropdown-portal mt-1 w-56 rounded-xl bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-2xl py-1.5 max-h-60 overflow-y-auto"
+            className={`client-dropdown-portal w-56 rounded-xl bg-white dark:bg-[#151518] border border-slate-200 dark:border-white/10 shadow-2xl py-1.5 max-h-60 overflow-y-auto ${
+              coords.isUpward ? "mb-1" : "mt-1"
+            }`}
             onClick={(e) => e.stopPropagation()}
             onWheel={(e) => e.stopPropagation()}
           >
@@ -1109,7 +1133,9 @@ const ClientDropdown = ({
                 (c) =>
                   c &&
                   (!searchTerm ||
-                    c.companyName?.toLowerCase().includes(searchTerm.toLowerCase())),
+                    c.companyName
+                      ?.toLowerCase()
+                      .includes(searchTerm.toLowerCase())),
               )
               .map((c) => {
                 const isSelected = selectedClientObj?._id === c._id;
@@ -1358,7 +1384,8 @@ const ProjectTaskBoard = ({
 
   // Stable empty array to prevent infinite loops when data is undefined
   const EMPTY_TASKS = useRef([]).current;
-  const { data: tasks = EMPTY_TASKS, isLoading: tasksLoading } = useGetTasksQuery();
+  const { data: tasks = EMPTY_TASKS, isLoading: tasksLoading } =
+    useGetTasksQuery();
   const [createTaskMutation] = useCreateTaskMutation();
   const [updateTaskMutation] = useUpdateTaskMutation();
   const [deleteTaskMutation] = useDeleteTaskMutation();
@@ -1713,7 +1740,10 @@ const ProjectTaskBoard = ({
       last7Days.setDate(last7Days.getDate() - 7);
       return taskDate >= last7Days;
     } else if (dateFilter === "This Month") {
-      return taskDate.getMonth() === today.getMonth() && taskDate.getFullYear() === today.getFullYear();
+      return (
+        taskDate.getMonth() === today.getMonth() &&
+        taskDate.getFullYear() === today.getFullYear()
+      );
     }
     return true;
   });
@@ -2648,9 +2678,16 @@ const ProjectTaskBoard = ({
                   {activeProject.name}
                 </h1>
                 {(() => {
-                  const clientId = activeProject?.client?._id || activeProject?.client;
+                  const clientId =
+                    activeProject?.client?._id || activeProject?.client;
                   const clientObj = clients?.find((c) => c._id === clientId);
-                  return clientObj ? <ClientBadge client={clientObj} size="sm" className="ml-2" /> : null;
+                  return clientObj ? (
+                    <ClientBadge
+                      client={clientObj}
+                      size="sm"
+                      className="ml-2"
+                    />
+                  ) : null;
                 })()}
               </div>
             </div>
@@ -2747,7 +2784,10 @@ const ProjectTaskBoard = ({
                 >
                   <FiFilter className="shrink-0" size={13} />
                   <span>{dateFilter}</span>
-                  <FiChevronDown className="shrink-0 text-slate-400" size={13} />
+                  <FiChevronDown
+                    className="shrink-0 text-slate-400"
+                    size={13}
+                  />
                 </button>
 
                 <AnimatePresence>
@@ -2759,7 +2799,13 @@ const ProjectTaskBoard = ({
                       transition={{ duration: 0.15 }}
                       className="absolute right-0 mt-2 w-40 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-transparent rounded-2xl shadow-2xl p-2 z-50 space-y-1 backdrop-blur-md"
                     >
-                      {["Today", "Yesterday", "Last 7 Days", "This Month", "All Time"].map((option) => (
+                      {[
+                        "Today",
+                        "Yesterday",
+                        "Last 7 Days",
+                        "This Month",
+                        "All Time",
+                      ].map((option) => (
                         <button
                           key={option}
                           type="button"
@@ -4214,12 +4260,37 @@ const ProjectTaskBoard = ({
                                                       {/* Client Column */}
                                                       {!hiddenColumns.client && (
                                                         <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-medium">
-                                                          <div onClick={(e) => e.stopPropagation()}>
+                                                          <div
+                                                            onClick={(e) =>
+                                                              e.stopPropagation()
+                                                            }
+                                                          >
                                                             {(() => {
-                                                              const clientId = activeProject?.client?._id || activeProject?.client;
-                                                              const clientObj = clients?.find((c) => c._id === clientId);
-                                                              if (!clientObj) return <span className="text-slate-400 text-[10px] italic">No Client</span>;
-                                                              return <ClientBadge client={clientObj} size="sm" />;
+                                                              const clientId =
+                                                                activeProject
+                                                                  ?.client
+                                                                  ?._id ||
+                                                                activeProject?.client;
+                                                              const clientObj =
+                                                                clients?.find(
+                                                                  (c) =>
+                                                                    c._id ===
+                                                                    clientId,
+                                                                );
+                                                              if (!clientObj)
+                                                                return (
+                                                                  <span className="text-slate-400 text-[10px] italic">
+                                                                    No Client
+                                                                  </span>
+                                                                );
+                                                              return (
+                                                                <ClientBadge
+                                                                  client={
+                                                                    clientObj
+                                                                  }
+                                                                  size="sm"
+                                                                />
+                                                              );
                                                             })()}
                                                           </div>
                                                         </td>
@@ -5256,14 +5327,46 @@ const ProjectTaskBoard = ({
                                                               {/* 2. Client Column */}
                                                               {!hiddenColumns.client && (
                                                                 <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
-                                                                  <div onClick={(e) => e.stopPropagation()}>
+                                                                  <div
+                                                                    onClick={(
+                                                                      e,
+                                                                    ) =>
+                                                                      e.stopPropagation()
+                                                                    }
+                                                                  >
                                                                     <ClientDropdown
-                                                                      selectedClient={sub.client?._id || sub.client || task.client?._id || task.client || (activeProject?.client?._id || activeProject?.client)}
-                                                                      clients={clients}
-                                                                      onChange={(clientId) =>
-                                                                        handleSubtaskFieldChange(task, sub._id, { client: clientId })
+                                                                      selectedClient={
+                                                                        sub
+                                                                          .client
+                                                                          ?._id ||
+                                                                        sub.client ||
+                                                                        task
+                                                                          .client
+                                                                          ?._id ||
+                                                                        task.client ||
+                                                                        activeProject
+                                                                          ?.client
+                                                                          ?._id ||
+                                                                        activeProject?.client
                                                                       }
-                                                                      isAdminOrManager={isAdminOrManager}
+                                                                      clients={
+                                                                        clients
+                                                                      }
+                                                                      onChange={(
+                                                                        clientId,
+                                                                      ) =>
+                                                                        handleSubtaskFieldChange(
+                                                                          task,
+                                                                          sub._id,
+                                                                          {
+                                                                            client:
+                                                                              clientId,
+                                                                          },
+                                                                        )
+                                                                      }
+                                                                      isAdminOrManager={
+                                                                        isAdminOrManager
+                                                                      }
                                                                     />
                                                                   </div>
                                                                 </td>
@@ -5977,13 +6080,20 @@ const ProjectTaskBoard = ({
                                                               {!hiddenColumns.revision && (
                                                                 <td
                                                                   className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700"
-                                                                  onClick={(e) => e.stopPropagation()}
+                                                                  onClick={(
+                                                                    e,
+                                                                  ) =>
+                                                                    e.stopPropagation()
+                                                                  }
                                                                 >
                                                                   <div className="flex justify-center items-center gap-1.5">
                                                                     <span className="font-extrabold text-xs text-slate-800 dark:text-yellow-50 text-center">
-                                                                      {sub.revisions || 0}
+                                                                      {sub.revisions ||
+                                                                        0}
                                                                     </span>
-                                                                    {(sub.revisions || 0) > 3 && (
+                                                                    {(sub.revisions ||
+                                                                      0) >
+                                                                      3 && (
                                                                       <span
                                                                         className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)] animate-pulse"
                                                                         title="More than 3 revisions"
@@ -6015,8 +6125,6 @@ const ProjectTaskBoard = ({
                                                                   />
                                                                 </td>
                                                               )}
-
-
 
                                                               {/* 9. Actions Column */}
                                                               <td

@@ -161,9 +161,7 @@ const renderUserAvatarSmall = (u) => {
     "from-pink-500 to-rose-600",
   ];
   const colorClass =
-    AVATAR_COLORS[
-      ((u.name || "U").charCodeAt(0) || 0) % AVATAR_COLORS.length
-    ];
+    AVATAR_COLORS[((u.name || "U").charCodeAt(0) || 0) % AVATAR_COLORS.length];
 
   return (
     <div
@@ -230,7 +228,9 @@ const TaskOverviewTab = ({
         }
       }
     });
-    return Array.from(map.values()).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    return Array.from(map.values()).sort((a, b) =>
+      (a.name || "").localeCompare(b.name || ""),
+    );
   }, [tasks]);
 
   const uniqueAssignees = React.useMemo(() => {
@@ -244,7 +244,9 @@ const TaskOverviewTab = ({
         }
       }
     });
-    return Array.from(map.values()).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    return Array.from(map.values()).sort((a, b) =>
+      (a.name || "").localeCompare(b.name || ""),
+    );
   }, [tasks]);
 
   // Internal selected task state for workspace preview drawer
@@ -695,32 +697,33 @@ const TaskOverviewTab = ({
     <>
       <div className="bg-white dark:bg-[#11131e] overflow-hidden flex flex-col h-[calc(100vh-160px)]">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pb-3 pt-1 border-b border-slate-100 dark:border-white/5 relative z-30 shrink-0">
-        {/* client display */}
-        <div className="flex items-center gap-2 text-md font-bold text-slate-700 dark:text-slate-300">
-          <span>Client:</span>
-          {overviewClientFilter === "All" ? (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-extrabold border rounded-md bg-slate-50 dark:bg-slate-900/20 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800/30">
-              <FiBriefcase size={9} />
-              All
-            </span>
-          ) : (
-            <ClientBadge
-              client={clients?.find((c) => c._id === overviewClientFilter)}
-              size="md"
-            />
-          )}
-        </div>
-
+          {/* client display */}
+          <div className="flex items-center gap-2 text-md font-bold text-slate-700 dark:text-slate-300">
+            <span>Client:</span>
+            {overviewClientFilter === "All" ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-extrabold border rounded-md bg-slate-50 dark:bg-slate-900/20 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800/30">
+                <FiBriefcase size={9} />
+                All
+              </span>
+            ) : (
+              <ClientBadge
+                client={clients?.find((c) => c._id === overviewClientFilter)}
+                size="md"
+              />
+            )}
+          </div>
 
           <div className="flex items-center justify-end gap-2.5 w-full sm:w-auto">
             <div className="relative" ref={clientDropdownRef}>
               <div className="relative rounded-full p-[2px] overflow-hidden group inline-block shadow-sm">
                 <div className="absolute inset-[-100%] bg-[conic-gradient(transparent_0deg,#3b82f6_90deg,transparent_180deg)] animate-[spin_2s_linear_infinite] group-hover:bg-[conic-gradient(transparent_0deg,#6366f1_90deg,transparent_180deg)] transition-colors duration-300" />
-                <div className={`absolute inset-[1px] rounded-full z-0 ${
-                  overviewClientFilter !== "All"
-                    ? "bg-blue-50/80 dark:bg-blue-950/30"
-                    : "bg-white dark:bg-[#151725]"
-                }`} />
+                <div
+                  className={`absolute inset-[1px] rounded-full z-0 ${
+                    overviewClientFilter !== "All"
+                      ? "bg-blue-50/80 dark:bg-blue-950/30"
+                      : "bg-white dark:bg-[#151725]"
+                  }`}
+                />
                 <button
                   type="button"
                   onClick={() => setShowClientDropdown((prev) => !prev)}
@@ -819,11 +822,13 @@ const TaskOverviewTab = ({
             <div className="relative" ref={createdByDropdownRef}>
               <div className="relative rounded-full p-[2px] overflow-hidden group inline-block shadow-sm">
                 <div className="absolute inset-[-100%] bg-[conic-gradient(transparent_0deg,#a855f7_90deg,transparent_180deg)] animate-[spin_2s_linear_infinite] group-hover:bg-[conic-gradient(transparent_0deg,#ec4899_90deg,transparent_180deg)] transition-colors duration-300" />
-                <div className={`absolute inset-[1px] rounded-full z-0 ${
-                  overviewCreatedByFilter !== "All"
-                    ? "bg-blue-50/80 dark:bg-blue-950/30"
-                    : "bg-white dark:bg-[#151725]"
-                }`} />
+                <div
+                  className={`absolute inset-[1px] rounded-full z-0 ${
+                    overviewCreatedByFilter !== "All"
+                      ? "bg-blue-50/80 dark:bg-blue-950/30"
+                      : "bg-white dark:bg-[#151725]"
+                  }`}
+                />
                 <button
                   type="button"
                   onClick={() => setShowCreatedByDropdown((prev) => !prev)}
@@ -834,12 +839,17 @@ const TaskOverviewTab = ({
                   }`}
                 >
                   {overviewCreatedByFilter !== "All" &&
-                    renderUserAvatarSmall(uniqueCreators.find((u) => (u._id || u.id) === overviewCreatedByFilter))
-                  }
+                    renderUserAvatarSmall(
+                      uniqueCreators.find(
+                        (u) => (u._id || u.id) === overviewCreatedByFilter,
+                      ),
+                    )}
                   <span className="truncate max-w-[90px]">
                     {overviewCreatedByFilter === "All"
                       ? "Created By"
-                      : uniqueCreators.find((u) => (u._id || u.id) === overviewCreatedByFilter)?.name || "Creator"}
+                      : uniqueCreators.find(
+                          (u) => (u._id || u.id) === overviewCreatedByFilter,
+                        )?.name || "Creator"}
                   </span>
                   <FiChevronDown
                     size={13}
@@ -865,7 +875,9 @@ const TaskOverviewTab = ({
                           type="text"
                           placeholder="Search creator..."
                           value={createdBySearchQuery}
-                          onChange={(e) => setCreatedBySearchQuery(e.target.value)}
+                          onChange={(e) =>
+                            setCreatedBySearchQuery(e.target.value)
+                          }
                           className="w-full pl-7 pr-3 py-1.5 text-[11px] font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:border-blue-500 text-slate-800 dark:text-slate-200"
                           onClick={(e) => e.stopPropagation()}
                         />
@@ -924,11 +936,13 @@ const TaskOverviewTab = ({
             <div className="relative" ref={assigneeDropdownRef}>
               <div className="relative rounded-full p-[2px] overflow-hidden group inline-block shadow-sm">
                 <div className="absolute inset-[-100%] bg-[conic-gradient(transparent_0deg,#e11d48_90deg,transparent_180deg)] animate-[spin_2s_linear_infinite] group-hover:bg-[conic-gradient(transparent_0deg,#f43f5e_90deg,transparent_180deg)] transition-colors duration-300" />
-                <div className={`absolute inset-[1px] rounded-full z-0 ${
-                  overviewAssigneeFilter !== "All"
-                    ? "bg-blue-50/80 dark:bg-blue-950/30"
-                    : "bg-white dark:bg-[#151725]"
-                }`} />
+                <div
+                  className={`absolute inset-[1px] rounded-full z-0 ${
+                    overviewAssigneeFilter !== "All"
+                      ? "bg-blue-50/80 dark:bg-blue-950/30"
+                      : "bg-white dark:bg-[#151725]"
+                  }`}
+                />
                 <button
                   type="button"
                   onClick={() => setShowAssigneeDropdown((prev) => !prev)}
@@ -939,12 +953,17 @@ const TaskOverviewTab = ({
                   }`}
                 >
                   {overviewAssigneeFilter !== "All" &&
-                    renderUserAvatarSmall(uniqueAssignees.find((u) => (u._id || u.id) === overviewAssigneeFilter))
-                  }
+                    renderUserAvatarSmall(
+                      uniqueAssignees.find(
+                        (u) => (u._id || u.id) === overviewAssigneeFilter,
+                      ),
+                    )}
                   <span className="truncate max-w-[90px]">
                     {overviewAssigneeFilter === "All"
                       ? "Assignee"
-                      : uniqueAssignees.find((u) => (u._id || u.id) === overviewAssigneeFilter)?.name || "Assignee"}
+                      : uniqueAssignees.find(
+                          (u) => (u._id || u.id) === overviewAssigneeFilter,
+                        )?.name || "Assignee"}
                   </span>
                   <FiChevronDown
                     size={13}
@@ -970,7 +989,9 @@ const TaskOverviewTab = ({
                           type="text"
                           placeholder="Search assignee..."
                           value={assigneeSearchQuery}
-                          onChange={(e) => setAssigneeSearchQuery(e.target.value)}
+                          onChange={(e) =>
+                            setAssigneeSearchQuery(e.target.value)
+                          }
                           className="w-full pl-7 pr-3 py-1.5 text-[11px] font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:border-blue-500 text-slate-800 dark:text-slate-200"
                           onClick={(e) => e.stopPropagation()}
                         />
@@ -1029,11 +1050,13 @@ const TaskOverviewTab = ({
             <div className="relative" ref={statusDropdownRef}>
               <div className="relative rounded-full p-[2px] overflow-hidden group inline-block shadow-sm">
                 <div className="absolute inset-[-100%] bg-[conic-gradient(transparent_0deg,#0ea5e9_90deg,transparent_180deg)] animate-[spin_2s_linear_infinite] group-hover:bg-[conic-gradient(transparent_0deg,#2563eb_90deg,transparent_180deg)] transition-colors duration-300" />
-                <div className={`absolute inset-[1px] rounded-full z-0 ${
-                  overviewStatusFilter !== "All"
-                    ? "bg-blue-50/80 dark:bg-blue-950/30"
-                    : "bg-white dark:bg-[#151725]"
-                }`} />
+                <div
+                  className={`absolute inset-[1px] rounded-full z-0 ${
+                    overviewStatusFilter !== "All"
+                      ? "bg-blue-50/80 dark:bg-blue-950/30"
+                      : "bg-white dark:bg-[#151725]"
+                  }`}
+                />
                 <button
                   type="button"
                   onClick={() => setShowStatusDropdown((prev) => !prev)}
@@ -1044,7 +1067,9 @@ const TaskOverviewTab = ({
                   }`}
                 >
                   <span className="truncate max-w-[90px]">
-                    {overviewStatusFilter === "All" ? "Status" : overviewStatusFilter}
+                    {overviewStatusFilter === "All"
+                      ? "Status"
+                      : overviewStatusFilter}
                   </span>
                   <FiChevronDown
                     size={13}
@@ -1101,11 +1126,13 @@ const TaskOverviewTab = ({
             <div className="relative" ref={priorityDropdownRef}>
               <div className="relative rounded-full p-[2px] overflow-hidden group inline-block shadow-sm">
                 <div className="absolute inset-[-100%] bg-[conic-gradient(transparent_0deg,#f59e0b_90deg,transparent_180deg)] animate-[spin_2s_linear_infinite] group-hover:bg-[conic-gradient(transparent_0deg,#ea580c_90deg,transparent_180deg)] transition-colors duration-300" />
-                <div className={`absolute inset-[1px] rounded-full z-0 ${
-                  overviewPriorityFilter !== "All"
-                    ? "bg-blue-50/80 dark:bg-blue-950/30"
-                    : "bg-white dark:bg-[#151725]"
-                }`} />
+                <div
+                  className={`absolute inset-[1px] rounded-full z-0 ${
+                    overviewPriorityFilter !== "All"
+                      ? "bg-blue-50/80 dark:bg-blue-950/30"
+                      : "bg-white dark:bg-[#151725]"
+                  }`}
+                />
                 <button
                   type="button"
                   onClick={() => setShowPriorityDropdown((prev) => !prev)}
@@ -1116,7 +1143,9 @@ const TaskOverviewTab = ({
                   }`}
                 >
                   <span className="truncate max-w-[90px]">
-                    {overviewPriorityFilter === "All" ? "Priority" : overviewPriorityFilter}
+                    {overviewPriorityFilter === "All"
+                      ? "Priority"
+                      : overviewPriorityFilter}
                   </span>
                   <FiChevronDown
                     size={13}
@@ -1165,11 +1194,13 @@ const TaskOverviewTab = ({
             <div className="relative" ref={dateDropdownRef}>
               <div className="relative rounded-full p-[2px] overflow-hidden group inline-block shadow-sm">
                 <div className="absolute inset-[-100%] bg-[conic-gradient(transparent_0deg,#10b981_90deg,transparent_180deg)] animate-[spin_2s_linear_infinite] group-hover:bg-[conic-gradient(transparent_0deg,#0ea5e9_90deg,transparent_180deg)] transition-colors duration-300" />
-                <div className={`absolute inset-[1px] rounded-full z-0 ${
-                  dateFilter !== "All"
-                    ? "bg-blue-50/80 dark:bg-blue-950/30"
-                    : "bg-white dark:bg-[#151725]"
-                }`} />
+                <div
+                  className={`absolute inset-[1px] rounded-full z-0 ${
+                    dateFilter !== "All"
+                      ? "bg-blue-50/80 dark:bg-blue-950/30"
+                      : "bg-white dark:bg-[#151725]"
+                  }`}
+                />
                 <button
                   type="button"
                   onClick={() => setShowDateDropdown((prev) => !prev)}
@@ -1229,8 +1260,6 @@ const TaskOverviewTab = ({
                 )}
               </AnimatePresence>
             </div>
-
-
 
             <div className="relative" ref={colsDropdownRef}>
               <button
@@ -1461,7 +1490,6 @@ const TaskOverviewTab = ({
                             </div>
                           </td>
                         )}
-
                         {!hiddenColumns.clientName && (
                           <td className="py-2.5 px-3 text-left">
                             {clientObj && clientObj.companyName ? (
@@ -1473,7 +1501,6 @@ const TaskOverviewTab = ({
                             )}
                           </td>
                         )}
-
                         {!hiddenColumns.createdBy && (
                           <td className="py-2.5 px-3.5 text-left">
                             <div className="flex items-center gap-2.5">
@@ -1545,7 +1572,6 @@ const TaskOverviewTab = ({
                             </div>
                           </td>
                         )}
-
                         {!hiddenColumns.assignee && (
                           <td className="py-2.5 px-3.5 text-left">
                             <div className="flex items-center gap-2.5">
@@ -1616,7 +1642,8 @@ const TaskOverviewTab = ({
                               </div>
                             </div>
                           </td>
-                        )}                        {!hiddenColumns.startDate && (
+                        )}{" "}
+                        {!hiddenColumns.startDate && (
                           <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
                             {task.startDate ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200/50 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/20 shadow-2xs">
@@ -1630,7 +1657,6 @@ const TaskOverviewTab = ({
                             )}
                           </td>
                         )}
-
                         {!hiddenColumns.dueDate && (
                           <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
                             {task.dueDate ? (
@@ -1645,7 +1671,6 @@ const TaskOverviewTab = ({
                             )}
                           </td>
                         )}
-
                         {!hiddenColumns.priority && (
                           <td
                             className="py-2.5 px-1 text-center whitespace-nowrap"
@@ -1687,7 +1712,6 @@ const TaskOverviewTab = ({
                             </select>
                           </td>
                         )}
-
                         {!hiddenColumns.status && (
                           <td
                             className="py-2.5 px-3 text-center whitespace-nowrap"
@@ -1754,7 +1778,6 @@ const TaskOverviewTab = ({
                             </select>
                           </td>
                         )}
-
                         {!hiddenColumns.totalHours && (
                           <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
                             <SimpleTimeTracker
@@ -1769,7 +1792,6 @@ const TaskOverviewTab = ({
                             />
                           </td>
                         )}
-
                         {!hiddenColumns.action && (
                           <td
                             className="py-2.5 px-3.5 text-right"
