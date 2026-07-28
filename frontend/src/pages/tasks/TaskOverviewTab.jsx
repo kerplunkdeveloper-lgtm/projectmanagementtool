@@ -122,6 +122,58 @@ const SimpleTimeTracker = ({
   );
 };
 
+const renderUserAvatarSmall = (u) => {
+  if (!u) return null;
+  const avatarUrl =
+    (typeof u.profile?.profileImage === "object"
+      ? u.profile?.profileImage?.url
+      : u.profile?.profileImage) ||
+    (typeof u.profileImage === "object"
+      ? u.profileImage?.url
+      : u.profileImage) ||
+    u.profilePic ||
+    u.avatar ||
+    u.profile?.profilePic ||
+    u.profile?.avatar;
+
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={u.name || "User"}
+        className="w-5 h-5 rounded-full object-cover border border-slate-200/80 dark:border-white/10 shadow-xs shrink-0"
+      />
+    );
+  }
+
+  const initials = (u.name || "U")
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase();
+
+  const AVATAR_COLORS = [
+    "from-violet-500 to-indigo-600",
+    "from-cyan-500 to-blue-600",
+    "from-emerald-500 to-teal-600",
+    "from-orange-500 to-amber-600",
+    "from-pink-500 to-rose-600",
+  ];
+  const colorClass =
+    AVATAR_COLORS[
+      ((u.name || "U").charCodeAt(0) || 0) % AVATAR_COLORS.length
+    ];
+
+  return (
+    <div
+      className={`w-5 h-5 rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-white font-black text-[8px] border border-white/10 shadow-xs shrink-0`}
+    >
+      {initials}
+    </div>
+  );
+};
+
 const TaskOverviewTab = ({
   tasks,
   projects,
@@ -150,12 +202,50 @@ const TaskOverviewTab = ({
   const { clients } = useSelector((state) => state.clients);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 15;
+  const itemsPerPage = 30;
 
   const [overviewClientFilter, setOverviewClientFilter] = useState("All");
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [clientSearchQuery, setClientSearchQuery] = useState("");
   const clientDropdownRef = useRef(null);
+
+  const [overviewCreatedByFilter, setOverviewCreatedByFilter] = useState("All");
+  const [showCreatedByDropdown, setShowCreatedByDropdown] = useState(false);
+  const [createdBySearchQuery, setCreatedBySearchQuery] = useState("");
+  const createdByDropdownRef = useRef(null);
+
+  const [overviewAssigneeFilter, setOverviewAssigneeFilter] = useState("All");
+  const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
+  const [assigneeSearchQuery, setAssigneeSearchQuery] = useState("");
+  const assigneeDropdownRef = useRef(null);
+
+  const uniqueCreators = React.useMemo(() => {
+    const map = new Map();
+    (tasks || []).forEach((t) => {
+      const u = t.createdBy;
+      if (u && (u._id || u.id)) {
+        const id = u._id || u.id;
+        if (!map.has(id)) {
+          map.set(id, u);
+        }
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  }, [tasks]);
+
+  const uniqueAssignees = React.useMemo(() => {
+    const map = new Map();
+    (tasks || []).forEach((t) => {
+      const u = t.assignedTo;
+      if (u && (u._id || u.id)) {
+        const id = u._id || u.id;
+        if (!map.has(id)) {
+          map.set(id, u);
+        }
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  }, [tasks]);
 
   // Internal selected task state for workspace preview drawer
   const [selectedTaskId, setSelectedTaskId] = useState(null);
@@ -280,6 +370,18 @@ const TaskOverviewTab = ({
       ) {
         setShowClientDropdown(false);
       }
+      if (
+        createdByDropdownRef.current &&
+        !createdByDropdownRef.current.contains(event.target)
+      ) {
+        setShowCreatedByDropdown(false);
+      }
+      if (
+        assigneeDropdownRef.current &&
+        !assigneeDropdownRef.current.contains(event.target)
+      ) {
+        setShowAssigneeDropdown(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -295,6 +397,8 @@ const TaskOverviewTab = ({
     overviewEndDateFilter,
     dateFilter,
     overviewClientFilter,
+    overviewCreatedByFilter,
+    overviewAssigneeFilter,
   ]);
 
   const formatDate = (dateStr) => {
@@ -432,6 +536,20 @@ const TaskOverviewTab = ({
           return false;
         }
 
+        if (
+          overviewCreatedByFilter !== "All" &&
+          (task.createdBy?._id || task.createdBy) !== overviewCreatedByFilter
+        ) {
+          return false;
+        }
+
+        if (
+          overviewAssigneeFilter !== "All" &&
+          (task.assignedTo?._id || task.assignedTo) !== overviewAssigneeFilter
+        ) {
+          return false;
+        }
+
         if (overviewStartDateFilter) {
           if (!task.startDate) return false;
           const tStart = new Date(task.startDate).setHours(0, 0, 0, 0);
@@ -553,12 +671,29 @@ const TaskOverviewTab = ({
     overviewEndDateFilter,
     dateFilter,
     overviewClientFilter,
+    overviewCreatedByFilter,
+    overviewAssigneeFilter,
   ]);
 
   return (
     <>
       <div className="bg-white dark:bg-[#11131e] overflow-hidden flex flex-col h-[calc(100vh-160px)]">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pb-3 pt-1 border-b border-slate-100 dark:border-white/5 relative z-30 shrink-0">
+        {/* client display */}
+        <div className="flex items-center gap-2 text-md font-bold text-slate-700 dark:text-slate-300">
+          <span>Client:</span>
+          {overviewClientFilter === "All" ? (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-extrabold border rounded-md bg-slate-50 dark:bg-slate-900/20 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800/30">
+              <FiBriefcase size={9} />
+              All
+            </span>
+          ) : (
+            <ClientBadge
+              client={clients?.find((c) => c._id === overviewClientFilter)}
+              size="md"
+            />
+          )}
+        </div>
           <div className="relative w-full sm:w-64">
             <input
               type="text"
@@ -658,6 +793,200 @@ const TaskOverviewTab = ({
                             />
                           </button>
                         ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Created By Filter */}
+            <div className="relative" ref={createdByDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setShowCreatedByDropdown((prev) => !prev)}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-2xl border text-xs font-extrabold transition-all shadow-2xs cursor-pointer ${
+                  overviewCreatedByFilter !== "All"
+                    ? "bg-blue-50/80 border-blue-300 text-blue-800 dark:bg-blue-950/30 dark:border-blue-500/40 dark:text-blue-300"
+                    : "bg-white dark:bg-[#151725] border-slate-200/90 dark:border-white/10 text-slate-800 dark:text-slate-200 hover:border-blue-500/50"
+                }`}
+              >
+                {overviewCreatedByFilter !== "All" &&
+                  renderUserAvatarSmall(uniqueCreators.find((u) => (u._id || u.id) === overviewCreatedByFilter))
+                }
+                <span className="truncate max-w-[90px]">
+                  {overviewCreatedByFilter === "All"
+                    ? "Created By"
+                    : uniqueCreators.find((u) => (u._id || u.id) === overviewCreatedByFilter)?.name || "Creator"}
+                </span>
+                <FiChevronDown
+                  size={13}
+                  className={`text-slate-400 transition-transform duration-200 ${
+                    showCreatedByDropdown ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              <AnimatePresence>
+                {showCreatedByDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-full mt-2 w-64 max-h-[340px] flex flex-col bg-white dark:bg-[#151725] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden"
+                  >
+                    <div className="p-2 border-b border-slate-100 dark:border-white/10 shrink-0">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search creator..."
+                          value={createdBySearchQuery}
+                          onChange={(e) => setCreatedBySearchQuery(e.target.value)}
+                          className="w-full pl-7 pr-3 py-1.5 text-[11px] font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:border-blue-500 text-slate-800 dark:text-slate-200"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-1.5 flex flex-col gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOverviewCreatedByFilter("All");
+                          setShowCreatedByDropdown(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                          overviewCreatedByFilter === "All"
+                            ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
+                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                        }`}
+                      >
+                        All Creators
+                      </button>
+                      {uniqueCreators
+                        ?.filter((u) =>
+                          u.name
+                            ?.toLowerCase()
+                            .includes(createdBySearchQuery.toLowerCase()),
+                        )
+                        .map((u) => {
+                          const uid = u._id || u.id;
+                          return (
+                            <button
+                              key={uid}
+                              type="button"
+                              onClick={() => {
+                                setOverviewCreatedByFilter(uid);
+                                setShowCreatedByDropdown(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-xl transition-all shrink-0 flex items-center gap-2 ${
+                                overviewCreatedByFilter === uid
+                                  ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 font-extrabold"
+                                  : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                              }`}
+                            >
+                              {renderUserAvatarSmall(u)}
+                              <span className="truncate text-xs">{u.name}</span>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Assignee Filter */}
+            <div className="relative" ref={assigneeDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setShowAssigneeDropdown((prev) => !prev)}
+                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-2xl border text-xs font-extrabold transition-all shadow-2xs cursor-pointer ${
+                  overviewAssigneeFilter !== "All"
+                    ? "bg-blue-50/80 border-blue-300 text-blue-800 dark:bg-blue-950/30 dark:border-blue-500/40 dark:text-blue-300"
+                    : "bg-white dark:bg-[#151725] border-slate-200/90 dark:border-white/10 text-slate-800 dark:text-slate-200 hover:border-blue-500/50"
+                }`}
+              >
+                {overviewAssigneeFilter !== "All" &&
+                  renderUserAvatarSmall(uniqueAssignees.find((u) => (u._id || u.id) === overviewAssigneeFilter))
+                }
+                <span className="truncate max-w-[90px]">
+                  {overviewAssigneeFilter === "All"
+                    ? "Assignee"
+                    : uniqueAssignees.find((u) => (u._id || u.id) === overviewAssigneeFilter)?.name || "Assignee"}
+                </span>
+                <FiChevronDown
+                  size={13}
+                  className={`text-slate-400 transition-transform duration-200 ${
+                    showAssigneeDropdown ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+
+              <AnimatePresence>
+                {showAssigneeDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-full mt-2 w-64 max-h-[340px] flex flex-col bg-white dark:bg-[#151725] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden"
+                  >
+                    <div className="p-2 border-b border-slate-100 dark:border-white/10 shrink-0">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search assignee..."
+                          value={assigneeSearchQuery}
+                          onChange={(e) => setAssigneeSearchQuery(e.target.value)}
+                          className="w-full pl-7 pr-3 py-1.5 text-[11px] font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:border-blue-500 text-slate-800 dark:text-slate-200"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-1.5 flex flex-col gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOverviewAssigneeFilter("All");
+                          setShowAssigneeDropdown(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                          overviewAssigneeFilter === "All"
+                            ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
+                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                        }`}
+                      >
+                        All Assignees
+                      </button>
+                      {uniqueAssignees
+                        ?.filter((u) =>
+                          u.name
+                            ?.toLowerCase()
+                            .includes(assigneeSearchQuery.toLowerCase()),
+                        )
+                        .map((u) => {
+                          const uid = u._id || u.id;
+                          return (
+                            <button
+                              key={uid}
+                              type="button"
+                              onClick={() => {
+                                setOverviewAssigneeFilter(uid);
+                                setShowAssigneeDropdown(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-xl transition-all shrink-0 flex items-center gap-2 ${
+                                overviewAssigneeFilter === uid
+                                  ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 font-extrabold"
+                                  : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                              }`}
+                            >
+                              {renderUserAvatarSmall(u)}
+                              <span className="truncate text-xs">{u.name}</span>
+                            </button>
+                          );
+                        })}
                     </div>
                   </motion.div>
                 )}
