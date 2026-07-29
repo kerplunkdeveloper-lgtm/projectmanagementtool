@@ -309,11 +309,14 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       let comp = 0;
       let pend = 0;
       let prog = 0;
+      let hold = 0;
       let rev = 0;
       let over = 0;
       let totalRevisions = 0;
       let totalLoggedMs = 0;
       let totalBlockerMs = 0;
+      let totalApprovalMs = 0;
+      let approvalCount = 0;
       const blockerTypesSet = new Set();
 
       myTasks.forEach((t) => {
@@ -321,6 +324,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         const isCompleted = s === "completed" || s.includes("approve");
         
         if (isCompleted) comp++;
+        else if (s.includes("hold")) hold++;
         else if (s.includes("progress")) prog++;
         else if (s.includes("review") || s.includes("revision")) rev++;
         else if (s === "pending") pend++;
@@ -374,9 +378,23 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         }
       });
 
+      // Compute approval time: time from task completion/approval to now or approvedAt
+      myTasks.forEach((t) => {
+        const s = t.status?.toLowerCase() || "";
+        const isCompleted = s === "completed" || s.includes("approve");
+        if (isCompleted && t.actualEndTime) {
+          const endTime = new Date(t.actualEndTime).getTime();
+          const approvedAt = t.approvedAt ? new Date(t.approvedAt).getTime() : (t.updatedAt ? new Date(t.updatedAt).getTime() : endTime);
+          const diff = Math.max(0, approvedAt - endTime);
+          totalApprovalMs += diff;
+          approvalCount++;
+        }
+      });
+
       const avgRevisions =
         myTasks.length > 0 ? totalRevisions / myTasks.length : 0;
       const totalHours = totalLoggedMs / (1000 * 60 * 60);
+      const avgApprovalMs = approvalCount > 0 ? totalApprovalMs / approvalCount : 0;
 
       const getLocalDateString = (date = new Date()) => {
         const year = date.getFullYear();
@@ -454,10 +472,12 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         completed: comp,
         pending: pend,
         inProgress: prog,
+        onHold: hold,
         inReview: rev,
         overdue: over,
         avgRevisions,
         totalHours,
+        avgApprovalMs,
         blockers: blockerTypesSet.size > 0 ? Array.from(blockerTypesSet).join(", ") : "none",
         blockerTimeMs: totalBlockerMs,
         lastSubmitted: lastSubmittedStr,
@@ -987,6 +1007,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest uppercase bg-violet-500 text-white dark:bg-violet-600 dark:text-white">
                     In Progress
                   </th>
+                  <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest uppercase bg-fuchsia-500 text-white dark:bg-fuchsia-600 dark:text-white">
+                    On Hold
+                  </th>
                   <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest uppercase bg-yellow-400 text-slate-950 dark:bg-yellow-500 dark:text-slate-950">
                     In Review
                   </th>
@@ -1004,6 +1027,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   </th>
                   <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
                     Total Hours
+                  </th>
+                  <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                    Approval Time
                   </th>
                   <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
                     Delay
@@ -1043,6 +1069,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                     </td>
                     <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black bg-violet-300 text-violet-950 dark:bg-violet-700 dark:text-white">
                       {tp.inProgress}
+                    </td>
+                    <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black bg-fuchsia-200 text-fuchsia-950 dark:bg-fuchsia-700 dark:text-white">
+                      {tp.onHold}
                     </td>
                     <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black bg-yellow-300 text-yellow-950 dark:bg-yellow-500 dark:text-slate-950">
                       {tp.inReview}
@@ -1103,6 +1132,20 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                     </td>
                     <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black text-slate-600 dark:text-slate-200">
                       {tp.totalHours.toFixed(1)}h
+                    </td>
+                    <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black text-slate-600 dark:text-slate-200">
+                      {tp.avgApprovalMs > 0 ? (
+                        <span className="text-indigo-600 dark:text-indigo-400">
+                          {(() => {
+                            const totalMinutes = Math.floor(tp.avgApprovalMs / (1000 * 60));
+                            const h = Math.floor(totalMinutes / 60);
+                            const m = totalMinutes % 60;
+                            return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                          })()}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 dark:text-slate-500 font-medium">—</span>
+                      )}
                     </td>
                     <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black">
                       {tp.overdue > 0 ? (
