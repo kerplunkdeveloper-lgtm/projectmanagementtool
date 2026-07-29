@@ -696,17 +696,21 @@ const Navbar = ({ setSidebarOpen }) => {
               transition-all cursor-pointer
             "
           >
-            {profile?.profileImage?.url ? (
-              <img
-                src={profile.profileImage.url}
-                alt="profile"
-                className="w-7 h-7 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-7 h-7 rounded-full theme-bg-accent flex items-center justify-center text-white dark:text-black">
-                <FiUser size={13} />
-              </div>
-            )}
+            <div className="relative shrink-0">
+              {profile?.profileImage?.url ? (
+                <img
+                  src={profile.profileImage.url}
+                  alt="profile"
+                  className="w-7 h-7 rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-7 h-7 rounded-full theme-bg-accent flex items-center justify-center text-white dark:text-black">
+                  <FiUser size={13} />
+                </div>
+              )}
+              {/* Online status indicator dot */}
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 animate-pulse" />
+            </div>
 
             <div className="text-left hidden md:block">
               <h3 className="text-[12px] font-black theme-text-primary leading-tight">
@@ -737,13 +741,19 @@ const Navbar = ({ setSidebarOpen }) => {
                 "
               >
                 {/* User Info Header */}
-                <div className="px-3 py-2 border-b theme-border mb-1">
-                  <p className="text-[12px] font-black theme-text-primary truncate">
-                    {user?.name}
-                  </p>
-                  <p className="text-[10px] theme-text-secondary truncate capitalize font-medium">
-                    {user?.role}
-                  </p>
+                <div className="px-3 py-2 border-b theme-border mb-1 flex items-center justify-between gap-2">
+                  <div className="truncate">
+                    <p className="text-[12px] font-black theme-text-primary truncate">
+                      {user?.name}
+                    </p>
+                    <p className="text-[10px] theme-text-secondary truncate capitalize font-medium">
+                      {user?.role}
+                    </p>
+                  </div>
+                  <span className="flex items-center gap-1 text-[9px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-500/20 shrink-0">
+                    <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                    ACTIVE
+                  </span>
                 </div>
 
                 <button
