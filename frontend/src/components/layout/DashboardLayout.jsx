@@ -103,7 +103,7 @@ const DashboardLayout = ({ role }) => {
 
         {/* HORIZONTAL SIDEBAR */}
         {sidebarLayout === "horizontal" && (
-          <div className="hidden lg:block bg-white/40 dark:bg-slate-900/10 border-b border-slate-200/50 dark:border-white/5 pb-2 shrink-0">
+          <div className="hidden lg:block sticky top-0 z-40 bg-white pb-2 shrink-0">
             <HorizontalSidebar role={role} />
           </div>
         )}
@@ -117,7 +117,9 @@ const DashboardLayout = ({ role }) => {
             className={
               isChatPage
                 ? "h-full theme-bg-card"
-                : "min-h-full  theme-bg-card border theme-border dark:shadow-none shadow-sm p-2 sm:p-3 md:p-4"
+                : `min-h-full ${
+                    sidebarLayout === "horizontal" ? "max-w-8xl mt-15" : "max-w-8xl"
+                  } mx-auto w-full dark:shadow-none p-2 sm:p-3 md:p-2`
             }
           >
             <Outlet />

@@ -138,28 +138,11 @@ const ThemeSettingsPanel = () => {
                 </div>
               </div>
 
-              {/* Typography */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Typography</label>
-                <div className="grid grid-cols-1 gap-2">
-                  {fonts.map((f) => (
-                    <button
-                      key={f.id}
-                      onClick={() => setFontFamily(f.id)}
-                      className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
-                        fontFamily === f.id
-                          ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400" 
-                          : "border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-650 dark:text-slate-400 hover:border-slate-300 dark:hover:border-white/20 hover:bg-slate-100 dark:hover:bg-white/10"
-                      } ${f.class}`}
-                    >
-                      <span className="text-sm font-medium">{f.name}</span>
-                      <span className="text-[9px] font-black tracking-wider opacity-60">Abc</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
 
-              {/* Sidebar Layout */}
+
+
+
+ {/* Sidebar Layout */}
               <div className="space-y-3">
                 <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Sidebar Layout</label>
                 <div className="grid grid-cols-2 gap-2">
@@ -182,6 +165,32 @@ const ThemeSettingsPanel = () => {
                   ))}
                 </div>
               </div>
+
+
+
+
+              {/* Typography */}
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Typography</label>
+                <div className="grid grid-cols-1 gap-2">
+                  {fonts.map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => setFontFamily(f.id)}
+                      className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                        fontFamily === f.id
+                          ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400" 
+                          : "border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-650 dark:text-slate-400 hover:border-slate-300 dark:hover:border-white/20 hover:bg-slate-100 dark:hover:bg-white/10"
+                      } ${f.class}`}
+                    >
+                      <span className="text-sm font-medium">{f.name}</span>
+                      <span className="text-[9px] font-black tracking-wider opacity-60">Abc</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+             
 
             </div>
           </motion.div>

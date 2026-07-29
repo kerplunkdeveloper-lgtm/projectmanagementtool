@@ -169,7 +169,7 @@ const HorizontalSidebar = ({ role }) => {
   };
 
   return (
-    <div className="max-w-8xl w-full p-3 mx-auto mt-2 rounded-full  z-40 relative px-2">
+    <div className="max-w-8xl fixed left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] p-2.5   rounded-full z-40 px-4 backdrop-blur-md border border-slate-200/50 dark:border-white/10 shadow-sm">
       <div className="flex items-center w-full overflow-x-auto px-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
         <div className="flex items-center gap-1.5 mx-auto">
           {menuItems.map((item) => {

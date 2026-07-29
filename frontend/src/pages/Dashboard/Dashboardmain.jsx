@@ -933,7 +933,7 @@ const Dashboardmain = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2 relative z-10">
           
           {/* LEFT COLUMN: My Tasks */}
-          <div className="bg-white dark:bg-[#11131e] rounded-3xl border border-slate-200 dark:border-white/5 shadow-xs p-5 flex flex-col h-[400px] transition-all hover:shadow-md">
+          <div className=" sidebar-bg   rounded-3xl border border-slate-200 dark:border-white/5 shadow-xs p-5 flex flex-col h-[400px] transition-all hover:shadow-md">
             
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
@@ -1072,7 +1072,7 @@ const Dashboardmain = () => {
           </div>
 
           {/* RIGHT COLUMN: Projects */}
-          <div className="bg-white dark:bg-[#11131e] rounded-3xl border border-slate-200 dark:border-white/5 shadow-xs p-5 flex flex-col h-[400px] transition-all hover:shadow-md">
+          <div className="sidebar-bg rounded-3xl border border-slate-200 dark:border-white/5 shadow-xs p-5 flex flex-col h-[400px] transition-all hover:shadow-md">
             
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
@@ -1185,11 +1185,11 @@ const Dashboardmain = () => {
         const isAdminOrOpManager =
           user?.role === "admin" || user?.role === "operationmanager";
         return isAdminOrOpManager ? (
-          <div className="mb-4">
+          <div className="mb-4 p-4">
             <DashboardCards />
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4 mb-4 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-2 p-4 gap-3 md:gap-4 mb-4 items-start">
             <div className="col-span-1">
               <DashboardCards />
             </div>
