@@ -4645,16 +4645,17 @@ const ProjectTaskBoard = ({
                                                                   task.contentType ||
                                                                   ""
                                                                 }
-                                                                onChange={(e) =>
-                                                                  handleTaskFieldChange(
-                                                                    task._id,
-                                                                    {
-                                                                      contentType:
-                                                                        e.target
-                                                                          .value,
-                                                                    },
-                                                                  )
-                                                                }
+                                                                onChange={(e) => {
+                                                                  const val = e.target.value;
+                                                                  if (val === "__ADD_CUSTOM__") {
+                                                                    const customVal = prompt("Enter custom content type:");
+                                                                    if (customVal && customVal.trim() !== "") {
+                                                                      handleTaskFieldChange(task._id, { contentType: customVal.trim() });
+                                                                    }
+                                                                  } else {
+                                                                    handleTaskFieldChange(task._id, { contentType: val });
+                                                                  }
+                                                                }}
                                                                 className={`badge-select ${
                                                                   task.contentType ===
                                                                   "VIDEO"
@@ -4715,6 +4716,12 @@ const ProjectTaskBoard = ({
                                                                 </option>
                                                                 <option value="Video shoot">
                                                                   Video shoot
+                                                                </option>
+                                                                {task.contentType && !["VIDEO", "IMAGE", "CAROUSEL", "REEL", "POST", "STORY", "Website", "SEO", "Video shoot"].includes(task.contentType) && (
+                                                                  <option value={task.contentType}>{task.contentType}</option>
+                                                                )}
+                                                                <option value="__ADD_CUSTOM__">
+                                                                  ➕ Custom...
                                                                 </option>
                                                               </select>
                                                             ) : (
@@ -5763,20 +5770,29 @@ const ProjectTaskBoard = ({
                                                                           sub.contentType ||
                                                                           ""
                                                                         }
-                                                                        onChange={(
-                                                                          e,
-                                                                        ) =>
-                                                                          handleSubtaskFieldChange(
-                                                                            task,
-                                                                            sub._id,
-                                                                            {
-                                                                              contentType:
-                                                                                e
-                                                                                  .target
-                                                                                  .value,
-                                                                            },
-                                                                          )
-                                                                        }
+                                                                        onChange={(e) => {
+                                                                          const val = e.target.value;
+                                                                          if (val === "__ADD_CUSTOM__") {
+                                                                            const customVal = prompt("Enter custom content type:");
+                                                                            if (customVal && customVal.trim() !== "") {
+                                                                              handleSubtaskFieldChange(
+                                                                                task,
+                                                                                sub._id,
+                                                                                {
+                                                                                  contentType: customVal.trim(),
+                                                                                },
+                                                                              );
+                                                                            }
+                                                                          } else {
+                                                                            handleSubtaskFieldChange(
+                                                                              task,
+                                                                              sub._id,
+                                                                              {
+                                                                                contentType: val,
+                                                                              },
+                                                                            );
+                                                                          }
+                                                                        }}
                                                                         className={`badge-select ${
                                                                           sub.contentType ===
                                                                           "VIDEO"
@@ -5836,8 +5852,13 @@ const ProjectTaskBoard = ({
                                                                           SEO
                                                                         </option>
                                                                         <option value="Video shoot">
-                                                                          Video
-                                                                          shoot
+                                                                          Video shoot
+                                                                        </option>
+                                                                        {sub.contentType && !["VIDEO", "IMAGE", "CAROUSEL", "REEL", "POST", "STORY", "Website", "SEO", "Video shoot"].includes(sub.contentType) && (
+                                                                          <option value={sub.contentType}>{sub.contentType}</option>
+                                                                        )}
+                                                                        <option value="__ADD_CUSTOM__">
+                                                                          ➕ Custom...
                                                                         </option>
                                                                       </select>
                                                                     ) : (

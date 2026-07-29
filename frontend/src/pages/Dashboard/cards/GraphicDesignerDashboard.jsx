@@ -30,6 +30,7 @@ import {
   FiFileText,
   FiPlay,
   FiEye,
+  FiPauseCircle,
 } from "react-icons/fi";
 
 const getPriorityStyle = (priority) => {
@@ -194,6 +195,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     let completed = 0;
     let pending = 0;
     let inProgress = 0;
+    let onHold = 0;
     let inReview = 0;
     let overdue = 0;
     let rejected = 0;
@@ -203,6 +205,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       const status = task.status?.toLowerCase() || "";
       if (status === "completed" || status.includes("approve")) completed++;
       else if (status.includes("reject")) rejected++;
+      else if (status.includes("hold")) onHold++;
       else if (status.includes("progress")) inProgress++;
       else if (status.includes("review") || status.includes("revision")) inReview++;
       else if (status === "pending") pending++;
@@ -225,6 +228,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       completed,
       pending,
       inProgress,
+      onHold,
       inReview,
       overdue,
       rejected,
@@ -272,6 +276,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   const boardColumns = [
     "Pending",
     "In Progress",
+    "On Hold",
     "IN REVIEW",
     "Rejected",
     "Completed",
@@ -280,6 +285,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     const status = task.status || "Pending";
     if (boardColumns.includes(status)) return status;
     if (status.toLowerCase().includes("progress")) return "In Progress";
+    if (status.toLowerCase().includes("hold")) return "On Hold";
     if (status.toLowerCase().includes("review")) return "IN REVIEW";
     if (status.toLowerCase().includes("revision")) return "IN REVIEW";
     if (status.toLowerCase().includes("reject")) return "Rejected";
@@ -617,7 +623,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       </div>
 
       {/* Premium Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-3 lg:gap-2 relative z-10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-2 relative z-10">
         {[
           {
             label:
@@ -669,6 +675,18 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             iconBg:
               "bg-sky-100 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-500/20",
             iconColor: "text-sky-600 dark:text-sky-400",
+          },
+          {
+            label: "On Hold",
+            value: metrics.onHold,
+            icon: FiPauseCircle,
+            glow: "hover:shadow-[0_4px_20px_rgba(217,70,239,0.15)]",
+            bg: "bg-gradient-to-br from-fuchsia-500 to-fuchsia-600 dark:from-fuchsia-800 dark:to-fuchsia-900 border border-fuchsia-200/50 dark:border-fuchsia-900/30",
+            labelColor: "text-white dark:text-white",
+            valueColor: "text-slate-100 dark:text-white",
+            iconBg:
+              "bg-fuchsia-100 dark:bg-fuchsia-950/60 border border-fuchsia-200 dark:border-fuchsia-500/20",
+            iconColor: "text-fuchsia-600 dark:text-fuchsia-400",
           },
           {
             label: "In Review",
@@ -804,14 +822,14 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             LIVE SYNC
           </span>
         </div>
-        <div className="flex xl:grid xl:grid-cols-5 overflow-x-auto gap-3 pb-6 snap-x hide-scrollbar">
+        <div className="flex xl:grid xl:grid-cols-6 overflow-x-auto gap-3 pb-6 snap-x hide-scrollbar">
           {boardColumns.map((col, i) => (
             <div
               key={i}
               className="min-w-[210px] xl:min-w-0 w-full flex-shrink-0 snap-start bg-slate-50 dark:bg-[#0f172a] backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-300/80 flex flex-col max-h-[450px] shadow-sm"
             >
               <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-800/80 rounded-t-2xl backdrop-blur-md">
-                <span className="text-[10px] font-black text-slate-800 dark:text-black tracking-widest uppercase truncate max-w-[80%]">
+                <span className="text-[10px] font-black text-slate-800 dark:text-white tracking-widest uppercase truncate max-w-[80%]">
                   {col}
                 </span>
                 <span className="text-[10px] font-black bg-slate-200 dark:bg-indigo-500/20 text-slate-700 dark:text-white px-2 py-0.5 rounded-md border border-slate-300 dark:border-indigo-500/30 shrink-0">
@@ -898,6 +916,12 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                             .join("")
                             .toUpperCase()
                             .slice(0, 2);
+                          const creatorInitials = (assignedByName || "")
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()
+                            .slice(0, 2);
                           return (
                             <div className="mt-2 pl-1 pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2">
                               {/* Assigned To — left */}
@@ -923,10 +947,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                               )}
                               {/* Assigned By — right */}
                               {assignedByName && (
-                                <div className="flex items-center gap-1 shrink-0">
-                                  <span className="text-[9px] font-black bg-yellow-500 p-2 rounded-full text-black  uppercase tracking-wider">
-                                    SM
-                                  </span>
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <div className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 flex items-center justify-center text-[8px] font-black ring-1 ring-amber-400/30 shrink-0">
+                                    {creatorInitials || "SM"}
+                                  </div>
                                   <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
                                     {assignedByName}
                                   </span>

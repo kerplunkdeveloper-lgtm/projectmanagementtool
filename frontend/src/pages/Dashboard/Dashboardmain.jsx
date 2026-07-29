@@ -13,7 +13,8 @@ import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
-import { useGetTasksQuery } from "../../features/api/apiSlice";
+import { useGetTasksQuery, useUpdateTaskMutation, useDeleteTaskMutation } from "../../features/api/apiSlice";
+import toast from "react-hot-toast";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -39,6 +40,7 @@ import {
   FiSliders,
   FiLock,
   FiFolder,
+  FiTrash2,
 } from "react-icons/fi";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -581,6 +583,8 @@ const Dashboardmain = () => {
     (theme === "system" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
   const { data: tasks = [] } = useGetTasksQuery();
+  const [updateTask] = useUpdateTaskMutation();
+  const [deleteTask] = useDeleteTaskMutation();
   const { events, loading } = useSelector((state) => state.events);
   const { projects } = useSelector((state) => state.projects);
   const { clients } = useSelector((state) => state.clients);
@@ -896,6 +900,28 @@ const Dashboardmain = () => {
     return eventDate.toDateString() === today.toDateString();
   };
 
+  const handleToggleTaskComplete = async (task) => {
+    const isCompleted = task.status === "Completed";
+    const newStatus = isCompleted ? "Pending" : "Completed";
+    try {
+      await updateTask({ id: task._id, taskData: { status: newStatus } }).unwrap();
+      toast.success(`Task marked as ${newStatus}`);
+    } catch (err) {
+      toast.error("Failed to update task status");
+    }
+  };
+
+  const handleDeleteTaskClick = async (taskId) => {
+    if (window.confirm("Are you sure you want to delete this task?")) {
+      try {
+        await deleteTask(taskId).unwrap();
+        toast.success("Task deleted successfully");
+      } catch (err) {
+        toast.error("Failed to delete task");
+      }
+    }
+  };
+
   return (
     <div className="space-y-4 pb-6 ">
       {/* GREETING */}
@@ -932,12 +958,10 @@ const Dashboardmain = () => {
               </button>
             </div>
 
-            {/* Tabs */}
             <div className="flex items-center gap-4 border-b border-slate-150 dark:border-white/5 pb-2 mb-3">
               {[
                 { id: "Upcoming", label: "Upcoming" },
-                { id: "Overdue", label: `Overdue (${taskStats.overdue.length})` },
-                { id: "Completed", label: "Completed" }
+                { id: "Completed", label: `Completed (${taskStats.completed.length})` }
               ].map((tab) => {
                 const isActive = taskTab === tab.id;
                 return (
@@ -962,44 +986,42 @@ const Dashboardmain = () => {
               })}
             </div>
 
-            {/* Create Task Button */}
-            <button
-              type="button"
-              onClick={() => navigate("/admin/tasks")}
-              className="flex items-center gap-1.5 text-blue-500 dark:text-blue-400 hover:text-blue-600 text-[10px] font-black uppercase tracking-wide mb-3 text-left w-fit cursor-pointer transition-colors"
-            >
-              <FiPlus size={12} />
-              Create task
-            </button>
-
             {/* Tasks List */}
             <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
               {activeTabTasks.map((t) => {
                 const days = getDaysRemaining(t.dueDate);
+                const projId = typeof t.project === "object" ? t.project?._id || t.project?.id : t.project;
                 return (
                   <div
                     key={t._id}
                     className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-50/50 dark:bg-white/5 border border-slate-150/40 dark:border-white/5 hover:bg-slate-100/50 dark:hover:bg-white/10 transition-all group"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <div className="shrink-0 text-slate-400 dark:text-slate-550">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleTaskComplete(t);
+                        }}
+                        className="shrink-0 text-slate-400 dark:text-slate-550 focus:outline-none cursor-pointer"
+                      >
                         {t.status?.toLowerCase() === "completed" ? (
-                          <FiCheckCircle className="w-4 h-4 text-emerald-500" />
+                          <FiCheckCircle className="w-4 h-4 text-emerald-500 hover:scale-110 transition-transform" />
                         ) : (
-                          <div className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-700 group-hover:border-blue-500 transition-colors" />
+                          <div className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 hover:scale-110 transition-all" />
                         )}
-                      </div>
+                      </button>
                       <span className={`text-[10px] font-bold truncate leading-none ${
                         t.status?.toLowerCase() === "completed"
-                          ? "line-through text-slate-400 dark:text-slate-500"
+                          ? "line-through text-slate-400 dark:text-slate-500 font-medium"
                           : "text-slate-700 dark:text-slate-300"
                       }`}>
                         {t.title}
                       </span>
                     </div>
 
-                    <div className="shrink-0 pl-2">
-                      {t.dueDate ? (
+                    <div className="flex items-center gap-2 shrink-0 pl-2">
+                      {t.dueDate && (
                         <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
                           days !== null && days < 0
                             ? "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200/50 dark:border-rose-500/20"
@@ -1007,9 +1029,31 @@ const Dashboardmain = () => {
                         }`}>
                           {new Date(t.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                         </span>
-                      ) : (
-                        <FiCalendar size={11} className="text-slate-400 dark:text-slate-500" />
                       )}
+                      
+                      {projId && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/${user?.role || "admin"}/projects?id=${projId}`);
+                          }}
+                          className="text-[9px] font-black uppercase tracking-wider bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-500/30 px-2.5 py-0.5 rounded-full transition-all duration-200 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white cursor-pointer"
+                        >
+                          View Task
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTaskClick(t._id);
+                        }}
+                        className="w-6 h-6 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-colors cursor-pointer shrink-0"
+                      >
+                        <FiTrash2 size={12} />
+                      </button>
                     </div>
                   </div>
                 );
