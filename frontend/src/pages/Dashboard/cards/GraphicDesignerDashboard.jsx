@@ -302,41 +302,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
   // 5. Team Performance
   const teamPerformance = useMemo(() => {
-    // Define boundaries for the current dateFilter
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
-    let filterStart = 0;
-    let filterEnd = Date.now();
-
-    if (dateFilter === "Today") {
-      filterStart = todayStart.getTime();
-      filterEnd = todayEnd.getTime();
-    } else if (dateFilter === "Yesterday") {
-      const yestStart = new Date();
-      yestStart.setDate(yestStart.getDate() - 1);
-      yestStart.setHours(0, 0, 0, 0);
-      const yestEnd = new Date();
-      yestEnd.setDate(yestEnd.getDate() - 1);
-      yestEnd.setHours(23, 59, 59, 999);
-      filterStart = yestStart.getTime();
-      filterEnd = yestEnd.getTime();
-    } else if (dateFilter === "Last 7 Days") {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      sevenDaysAgo.setHours(0, 0, 0, 0);
-      filterStart = sevenDaysAgo.getTime();
-      filterEnd = todayEnd.getTime();
-    } else if (dateFilter === "This Month") {
-      const monthStart = new Date();
-      monthStart.setDate(1);
-      monthStart.setHours(0, 0, 0, 0);
-      filterStart = monthStart.getTime();
-      filterEnd = todayEnd.getTime();
-    }
-
     return designers.map((designer) => {
       const myTasks = designerTasks.filter((t) => {
         if (!t.assignedTo) return false;
@@ -376,31 +341,13 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
         if (t.actualStartTime) {
           const start = new Date(t.actualStartTime).getTime();
-          let end = t.actualEndTime
+          const end = t.actualEndTime
             ? new Date(t.actualEndTime).getTime()
             : t.pausedAt
               ? new Date(t.pausedAt).getTime()
               : Date.now();
-          
-          if (t.dueDate) {
-            const dueDateMs = new Date(t.dueDate).getTime();
-            if (end > dueDateMs) {
-              end = dueDateMs;
-            }
-          }
-          
-          // Intersect with filter range
-          const activeStart = Math.max(start, filterStart);
-          const activeEnd = Math.min(end, filterEnd);
-          
-          if (activeEnd > activeStart) {
-            const paused = t.totalPausedMs || 0;
-            const rawDuration = end - start;
-            const activeDuration = activeEnd - activeStart;
-            const proportionalPause = rawDuration > 0 ? (activeDuration / rawDuration) * paused : 0;
-            
-            totalLoggedMs += Math.max(0, activeDuration - proportionalPause);
-          }
+          const paused = t.totalPausedMs || 0;
+          totalLoggedMs += Math.max(0, end - start - paused);
         }
 
         // Collect blockers and compute blocker time
