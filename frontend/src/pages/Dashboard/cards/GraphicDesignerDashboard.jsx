@@ -1,7 +1,9 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useTheme } from "../../../context/ThemeContext";
-import { useGetTasksQuery } from "../../../features/api/apiSlice";
+import { useGetTasksQuery, useUpdateTaskMutation } from "../../../features/api/apiSlice";
+import { createPortal } from "react-dom";
+import toast from "react-hot-toast";
 import { getDesignerEodReports } from "../../../features/eodReports/designerEodReportSlice";
 import {
   format,
@@ -64,6 +66,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
   const [dateFilter, setDateFilter] = useState("Today");
   const [showDropdown, setShowDropdown] = useState(false);
+  const [approvalModal, setApprovalModal] = useState({ open: false, designerId: null, designerName: "" });
+  const [updateTask] = useUpdateTaskMutation();
 
   useEffect(() => {
     const params = {};
@@ -474,6 +478,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         inProgress: prog,
         onHold: hold,
         inReview: rev,
+        inReviewTasks: myTasks.filter((t) => {
+          const s = t.status?.toLowerCase() || "";
+          return s.includes("review") || s.includes("revision");
+        }),
         overdue: over,
         avgRevisions,
         totalHours,
@@ -1134,18 +1142,28 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       {tp.totalHours.toFixed(1)}h
                     </td>
                     <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black text-slate-600 dark:text-slate-200">
-                      {tp.avgApprovalMs > 0 ? (
-                        <span className="text-indigo-600 dark:text-indigo-400">
-                          {(() => {
-                            const totalMinutes = Math.floor(tp.avgApprovalMs / (1000 * 60));
-                            const h = Math.floor(totalMinutes / 60);
-                            const m = totalMinutes % 60;
-                            return h > 0 ? `${h}h ${m}m` : `${m}m`;
-                          })()}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 dark:text-slate-500 font-medium">—</span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {tp.avgApprovalMs > 0 ? (
+                          <span className="text-indigo-600 dark:text-indigo-400">
+                            {(() => {
+                              const totalMinutes = Math.floor(tp.avgApprovalMs / (1000 * 60));
+                              const h = Math.floor(totalMinutes / 60);
+                              const m = totalMinutes % 60;
+                              return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                            })()}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 dark:text-slate-500 font-medium">—</span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setApprovalModal({ open: true, designerId: tp.id, designerName: tp.name })}
+                          className="p-1 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-all cursor-pointer"
+                          title="View & Approve Tasks"
+                        >
+                          <FiClock size={14} />
+                        </button>
+                      </div>
                     </td>
                     <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black">
                       {tp.overdue > 0 ? (
@@ -1237,6 +1255,117 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           )}
         </div>
       </div>
+      {/* Approval Modal */}
+      {approvalModal.open && createPortal(
+        <div className="fixed inset-0 z-[999] flex items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setApprovalModal({ open: false, designerId: null, designerName: "" })}
+          />
+          {/* Modal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            className="relative z-10 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-2xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col"
+          >
+            {/* Modal Header */}
+            <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-black text-slate-800 dark:text-white tracking-wide">
+                  Approval — {approvalModal.designerName}
+                </h3>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-0.5 uppercase tracking-widest">
+                  In Review Tasks
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setApprovalModal({ open: false, designerId: null, designerName: "" })}
+                className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-all cursor-pointer"
+              >
+                <FiXCircle size={18} />
+              </button>
+            </div>
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {(() => {
+                const tp = teamPerformance.find((p) => p.id === approvalModal.designerId);
+                const reviewTasks = tp?.inReviewTasks || [];
+                if (reviewTasks.length === 0) {
+                  return (
+                    <div className="flex flex-col items-center justify-center py-10 text-slate-400 dark:text-slate-500">
+                      <FiCheckCircle size={32} className="mb-2 opacity-50" />
+                      <p className="text-xs font-black uppercase tracking-widest">No tasks in review</p>
+                    </div>
+                  );
+                }
+                return reviewTasks.map((task) => {
+                  let projName = "No Project";
+                  if (task.project) {
+                    const pId = typeof task.project === "object" ? task.project._id : task.project;
+                    const p = projects?.find((x) => x._id === pId);
+                    projName = p?.name || "Unknown";
+                  }
+                  return (
+                    <div
+                      key={task._id}
+                      className="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all group"
+                    >
+                      {/* Approve Checkbox */}
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const now = new Date().toISOString();
+                          try {
+                            await updateTask({
+                              id: task._id,
+                              taskData: {
+                                status: "Completed",
+                                approvedAt: now,
+                                actualEndTime: task.actualEndTime || now,
+                              },
+                            }).unwrap();
+                            toast.success(`"${task.title}" approved!`);
+                          } catch (err) {
+                            toast.error("Failed to approve task");
+                          }
+                        }}
+                        className="mt-0.5 w-5 h-5 shrink-0 rounded-md border-2 border-slate-300 dark:border-slate-600 hover:border-emerald-500 dark:hover:border-emerald-400 flex items-center justify-center transition-all cursor-pointer group-hover:border-emerald-400 dark:group-hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10"
+                        title="Approve this task"
+                      >
+                        <FiCheckCircle size={12} className="text-transparent group-hover:text-emerald-500 transition-colors" />
+                      </button>
+                      {/* Task Details */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-slate-700 dark:text-white leading-snug break-words">
+                          {task.title}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 truncate">
+                            {projName}
+                          </span>
+                          <span className="px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider rounded bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-500/20">
+                            {task.status}
+                          </span>
+                          {task.dueDate && (
+                            <span className="flex items-center gap-0.5 text-[9px] font-bold text-slate-400 dark:text-slate-500">
+                              <FiClock size={9} />
+                              {format(parseISO(task.dueDate), "MMM dd")}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </motion.div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
