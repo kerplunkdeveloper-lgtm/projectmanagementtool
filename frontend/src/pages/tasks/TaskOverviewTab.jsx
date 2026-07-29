@@ -1656,7 +1656,7 @@ const TaskOverviewTab = ({
                               </div>
                             </div>
                           </td>
-                        )}{" "}
+                        )}
                         {!hiddenColumns.startDate && (
                           <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
                             {task.startDate ? (

@@ -122,6 +122,7 @@ const projectRoutes = require("./routes/projectRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const portfolioRoutes = require("./routes/portfolioRoutes");
+const goalRoutes = require("./routes/goalRoutes");
 
 app.get("/", (req, res) => {
   res.send("demo testing api da ithu :) ");
@@ -148,7 +149,6 @@ app.get("/api/health", (req, res) => {
 });
 
 
-
 // Mount routers
 app.use('/api/auth', auth);
 app.use('/api/users', users);
@@ -166,6 +166,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/portfolios', portfolioRoutes);
+app.use('/api/goals', goalRoutes);
 
 const PORT = process.env.PORT || 5001;
 

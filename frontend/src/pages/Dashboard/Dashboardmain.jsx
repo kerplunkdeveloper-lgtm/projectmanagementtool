@@ -13,7 +13,15 @@ import { getClients } from "../../features/clients/clientslice";
 import { getUsers } from "../../features/users/userSlice";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { Doughnut } from "react-chartjs-2";
-import { useGetTasksQuery, useUpdateTaskMutation, useDeleteTaskMutation } from "../../features/api/apiSlice";
+import {
+  useGetTasksQuery,
+  useUpdateTaskMutation,
+  useDeleteTaskMutation,
+  useGetGoalsQuery,
+  useCreateGoalMutation,
+  useUpdateGoalMutation,
+  useDeleteGoalMutation,
+} from "../../features/api/apiSlice";
 import toast from "react-hot-toast";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -590,6 +598,414 @@ const Dashboardmain = () => {
   const { clients } = useSelector((state) => state.clients);
   const { users } = useSelector((state) => state.users);
 
+  // Goals logic
+  const { data: goals = [] } = useGetGoalsQuery(undefined, { skip: user?.role !== "admin" });
+  const [createGoal] = useCreateGoalMutation();
+  const [updateGoal] = useUpdateGoalMutation();
+  const [deleteGoal] = useDeleteGoalMutation();
+
+  const [isCreatingGoal, setIsCreatingGoal] = useState(false);
+  const [newGoalName, setNewGoalName] = useState("");
+  const [newGoalStartDate, setNewGoalStartDate] = useState("");
+  const [newGoalEndDate, setNewGoalEndDate] = useState("");
+  const [goalTab, setGoalTab] = useState("Upcoming");
+  const [editingGoalId, setEditingGoalId] = useState(null);
+  const [editingGoalName, setEditingGoalName] = useState("");
+  const [editingGoalStartDate, setEditingGoalStartDate] = useState("");
+  const [editingGoalEndDate, setEditingGoalEndDate] = useState("");
+  const [editingGoalDatesId, setEditingGoalDatesId] = useState(null);
+  const [activeCalendarGoalId, setActiveCalendarGoalId] = useState(null);
+  const [calendarTarget, setCalendarTarget] = useState("start");
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [newCreatedGoalId, setNewCreatedGoalId] = useState(null);
+  const [calendarPosition, setCalendarPosition] = useState({ top: 0, left: 0 });
+  const [goalPage, setGoalPage] = useState(1);
+  const [showCelebration, setShowCelebration] = useState(false);
+
+  const goalStats = React.useMemo(() => {
+    let upcoming = [];
+    let overdue = [];
+    let completed = [];
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const sortedGoals = [...goals].sort((a, b) => {
+      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+    });
+
+    sortedGoals.forEach((g) => {
+      if (g.completed) {
+        completed.push(g);
+        upcoming.push(g);
+      } else if (g.endDate) {
+        const goalEndDate = new Date(g.endDate);
+        const compareEndDate = new Date(goalEndDate.getFullYear(), goalEndDate.getMonth(), goalEndDate.getDate());
+        if (compareEndDate <= today) {
+          overdue.push(g);
+          if (compareEndDate.getTime() === today.getTime()) {
+            upcoming.push(g);
+          }
+        } else {
+          upcoming.push(g);
+        }
+      } else {
+        upcoming.push(g);
+      }
+    });
+
+    return { upcoming, overdue, completed };
+  }, [goals]);
+
+  const activeTabGoals = React.useMemo(() => {
+    if (goalTab === "Upcoming") return goalStats.upcoming;
+    if (goalTab === "Overdue") return goalStats.overdue;
+    return goalStats.completed;
+  }, [goalTab, goalStats]);
+
+  const GOALS_PER_PAGE = 5;
+  const totalGoalPages = Math.ceil(activeTabGoals.length / GOALS_PER_PAGE) || 1;
+
+  const paginatedGoals = React.useMemo(() => {
+    return activeTabGoals.slice((goalPage - 1) * GOALS_PER_PAGE, goalPage * GOALS_PER_PAGE);
+  }, [activeTabGoals, goalPage]);
+
+  useEffect(() => {
+    setGoalPage(1);
+  }, [goalTab]);
+
+  const userProjects = React.useMemo(() => {
+    if (!projects) return [];
+    const currentUserId = user?._id || user?.id;
+    return projects.filter((p) => {
+      const creatorId = p.createdBy?._id || p.createdBy;
+      return creatorId === currentUserId;
+    });
+  }, [projects, user]);
+
+  const formatGoalDates = (startStr, endStr) => {
+    if (!startStr && !endStr) return null;
+    const start = startStr ? new Date(startStr) : null;
+    const end = endStr ? new Date(endStr) : null;
+
+    const optMonth = { month: 'short' };
+
+    if (start && end) {
+      if (start.getMonth() === end.getMonth()) {
+        const month = start.toLocaleDateString('en-US', optMonth);
+        const startDay = start.getDate();
+        const endDay = end.getDate();
+        return `${month} ${startDay} – ${endDay}`;
+      } else {
+        const startFormatted = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const endFormatted = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        return `${startFormatted} – ${endFormatted}`;
+      }
+    } else if (start) {
+      return start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } else if (end) {
+      return end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    return null;
+  };
+
+  const handleCreateGoal = async (e, customName = null, customStartDate = null, customEndDate = null) => {
+    if (e) e.preventDefault();
+    const taskNameVal = customName !== null ? customName : newGoalName;
+    const startVal = customStartDate !== null ? customStartDate : newGoalStartDate;
+    const endVal = customEndDate !== null ? customEndDate : newGoalEndDate;
+
+    try {
+      const res = await createGoal({
+        taskName: taskNameVal,
+        startDate: startVal || undefined,
+        endDate: endVal || undefined,
+      }).unwrap();
+      
+      if (res?.data?._id) {
+        setNewCreatedGoalId(res.data._id);
+      }
+      
+      if (customName === null) {
+        setNewGoalName("");
+        setNewGoalStartDate("");
+        setNewGoalEndDate("");
+      }
+    } catch (err) {
+      toast.error("Failed to create goal");
+    }
+  };
+
+  const handleExistingGoalEnter = async (goal, newName) => {
+    const val = newName.trim();
+    if (val && val !== goal.taskName) {
+      try {
+        await updateGoal({
+          id: goal._id,
+          goalData: { taskName: val },
+        }).unwrap();
+      } catch (err) {
+        toast.error("Failed to update goal name");
+      }
+    }
+    // Automatically create a new blank goal and focus it
+    await handleCreateGoal(null, "");
+  };
+
+  // Custom calendar popover rendering function matching reference image
+  const renderCalendarPopover = (goalId, currentStart, currentEnd, onSaveDates) => {
+    const today = new Date();
+    const currentYear = calendarMonth.getFullYear();
+    const currentMonthNum = calendarMonth.getMonth();
+
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+
+    const firstDayIndex = new Date(currentYear, currentMonthNum, 1).getDay();
+    const totalDays = new Date(currentYear, currentMonthNum + 1, 0).getDate();
+    const prevTotalDays = new Date(currentYear, currentMonthNum, 0).getDate();
+
+    const daysArray = [];
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      daysArray.push({ day: prevTotalDays - i, isCurrentMonth: false });
+    }
+    for (let i = 1; i <= totalDays; i++) {
+      daysArray.push({ day: i, isCurrentMonth: true });
+    }
+    const remainingCells = 42 - daysArray.length;
+    for (let i = 1; i <= remainingCells; i++) {
+      daysArray.push({ day: i, isCurrentMonth: false });
+    }
+
+    const handlePrevMonth = (e) => {
+      e.stopPropagation();
+      setCalendarMonth(new Date(currentYear, currentMonthNum - 1, 1));
+    };
+
+    const handleNextMonth = (e) => {
+      e.stopPropagation();
+      setCalendarMonth(new Date(currentYear, currentMonthNum + 1, 1));
+    };
+
+    const handleSelectDay = (e, dayObj) => {
+      e.stopPropagation();
+      if (!dayObj.isCurrentMonth) return;
+      
+      const selectedDate = new Date(currentYear, currentMonthNum, dayObj.day, 12, 0, 0, 0);
+      
+      let newStart = currentStart ? new Date(currentStart) : null;
+      let newEnd = currentEnd ? new Date(currentEnd) : null;
+
+      if (calendarTarget === "start") {
+        newStart = selectedDate;
+        if (newEnd && selectedDate > newEnd) {
+          newEnd = null;
+        }
+        setCalendarTarget("due");
+      } else {
+        newEnd = selectedDate;
+        if (newStart && selectedDate < newStart) {
+          newStart = selectedDate;
+          newEnd = null;
+          setCalendarTarget("due");
+        } else {
+          setCalendarTarget("start");
+        }
+      }
+
+      onSaveDates(newStart, newEnd);
+    };
+
+    const handleClear = (e) => {
+      e.stopPropagation();
+      onSaveDates(null, null);
+    };
+
+    const formattedStart = currentStart ? new Date(currentStart).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
+    const formattedEnd = currentEnd ? new Date(currentEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "";
+
+    return (
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: "absolute",
+          top: "80px",
+          right: "16px",
+          zIndex: 50,
+          backgroundColor: isDark ? "#1a1a1a" : "#ffffff",
+        }}
+        className="border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-4 w-72 text-slate-800 dark:text-slate-200"
+      >
+        {/* Top date input buttons */}
+        <div className="flex items-center gap-2 mb-4">
+          <button
+            type="button"
+            onClick={() => setCalendarTarget("start")}
+            className={`flex-1 py-1.5 px-2 text-center rounded-lg text-xs font-semibold border transition-all ${
+              calendarTarget === "start"
+                ? "border-blue-500 bg-blue-500/5 text-blue-600 dark:text-blue-400"
+                : "border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400"
+            }`}
+          >
+            {formattedStart ? `+ ${formattedStart}` : "+ Start date"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setCalendarTarget("due")}
+            className={`flex-1 py-1.5 px-2 text-center rounded-lg text-xs font-semibold border transition-all ${
+              calendarTarget === "due"
+                ? "border-blue-500 bg-blue-500/5 text-blue-600 dark:text-blue-400 font-bold border-2"
+                : "border-slate-200 dark:border-white/5 text-slate-500 dark:text-slate-400"
+            }`}
+          >
+            {formattedEnd ? formattedEnd : "Due date"}
+          </button>
+        </div>
+
+        {/* Month selector header */}
+        <div className="flex items-center justify-between mb-4 px-1">
+          <button type="button" onClick={handlePrevMonth} className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 p-1 text-sm font-bold">&lt;</button>
+          <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
+            {monthNames[currentMonthNum]} {currentYear}
+          </span>
+          <button type="button" onClick={handleNextMonth} className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-100 p-1 text-sm font-bold">&gt;</button>
+        </div>
+
+        {/* Days of week header */}
+        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-black text-slate-400 dark:text-slate-500 mb-2">
+          <span>S</span>
+          <span>M</span>
+          <span>T</span>
+          <span>W</span>
+          <span>T</span>
+          <span>F</span>
+          <span>S</span>
+        </div>
+
+        {/* Days grid */}
+        <div className="grid grid-cols-7 gap-1 text-center text-xs">
+          {daysArray.map((dayObj, index) => {
+            const isTodayDay = dayObj.isCurrentMonth && 
+              today.getDate() === dayObj.day && 
+              today.getMonth() === currentMonthNum && 
+              today.getFullYear() === currentYear;
+
+            const isStartDaySelected = currentStart && dayObj.isCurrentMonth &&
+              new Date(currentStart).getDate() === dayObj.day &&
+              new Date(currentStart).getMonth() === currentMonthNum &&
+              new Date(currentStart).getFullYear() === currentYear;
+
+            const isEndDaySelected = currentEnd && dayObj.isCurrentMonth &&
+              new Date(currentEnd).getDate() === dayObj.day &&
+              new Date(currentEnd).getMonth() === currentMonthNum &&
+              new Date(currentEnd).getFullYear() === currentYear;
+
+            const inRange = currentStart && currentEnd && dayObj.isCurrentMonth &&
+              new Date(currentYear, currentMonthNum, dayObj.day) > new Date(currentStart) &&
+              new Date(currentYear, currentMonthNum, dayObj.day) < new Date(currentEnd);
+
+            return (
+              <button
+                key={index}
+                type="button"
+                onClick={(e) => handleSelectDay(e, dayObj)}
+                className={`py-1 w-full rounded-full transition-all focus:outline-none cursor-pointer flex items-center justify-center font-bold ${
+                  !dayObj.isCurrentMonth
+                    ? "text-slate-300 dark:text-slate-700"
+                    : isStartDaySelected || isEndDaySelected
+                      ? "bg-blue-600 text-white"
+                      : inRange
+                        ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400"
+                        : isTodayDay
+                          ? "border-2 border-blue-500 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center mx-auto"
+                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5"
+                }`}
+              >
+                {dayObj.day}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 dark:border-white/5">
+          <div className="flex items-center gap-3 text-slate-400">
+            <button type="button" className="hover:text-slate-600"><FiClock size={14} /></button>
+            <button type="button" className="hover:text-slate-600">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={handleClear}
+            className="text-xs font-bold text-slate-550 dark:text-slate-350 hover:text-red-500 cursor-pointer"
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const handleToggleGoalComplete = async (goal) => {
+    try {
+      const nextCompletedState = !goal.completed;
+      await updateGoal({
+        id: goal._id,
+        goalData: { completed: nextCompletedState },
+      }).unwrap();
+      
+      if (nextCompletedState) {
+        setShowCelebration(true);
+        setTimeout(() => {
+          setShowCelebration(false);
+        }, 3000);
+      }
+      
+      toast.success(goal.completed ? "Goal marked as pending" : "Goal completed!");
+    } catch (err) {
+      toast.error("Failed to update goal");
+    }
+  };
+
+  const handleDeleteGoalClick = async (goalId) => {
+    if (window.confirm("Are you sure you want to delete this goal?")) {
+      try {
+        await deleteGoal(goalId).unwrap();
+        toast.success("Goal deleted");
+      } catch (err) {
+        toast.error("Failed to delete goal");
+      }
+    }
+  };
+
+  const handleStartEditGoal = (goal) => {
+    setEditingGoalId(goal._id);
+    setEditingGoalName(goal.taskName);
+    setEditingGoalStartDate(goal.startDate ? new Date(goal.startDate).toISOString().split('T')[0] : "");
+    setEditingGoalEndDate(goal.endDate ? new Date(goal.endDate).toISOString().split('T')[0] : "");
+  };
+
+  const handleSaveEditGoal = async (goalId) => {
+    if (!editingGoalName.trim()) return;
+    try {
+      await updateGoal({
+        id: goalId,
+        goalData: {
+          taskName: editingGoalName,
+          startDate: editingGoalStartDate || null,
+          endDate: editingGoalEndDate || null,
+        },
+      }).unwrap();
+      toast.success("Goal updated");
+      setEditingGoalId(null);
+    } catch (err) {
+      toast.error("Failed to update goal");
+    }
+  };
+
   const [taskTab, setTaskTab] = useState("Upcoming");
 
   const myTasks = React.useMemo(() => {
@@ -911,74 +1327,143 @@ const Dashboardmain = () => {
     }
   };
 
-  const handleDeleteTaskClick = async (taskId) => {
-    if (window.confirm("Are you sure you want to delete this task?")) {
-      try {
-        await deleteTask(taskId).unwrap();
-        toast.success("Task deleted successfully");
-      } catch (err) {
-        toast.error("Failed to delete task");
-      }
-    }
+  const renderRocketCelebration = () => {
+    if (!showCelebration) return null;
+    return (
+      <div className="fixed inset-0 z-[99999] pointer-events-none overflow-hidden select-none">
+        <style dangerouslySetInnerHTML={{__html: `
+          @keyframes launchRocket {
+            0% { transform: translate(-150px, 100vh) rotate(45deg) scale(0.6); }
+            10% { transform: translate(10vw, 80vh) rotate(43deg) scale(0.8); }
+            45% { transform: translate(45vw, 45vh) rotate(47deg) scale(1.1); }
+            70% { transform: translate(75vw, 25vh) rotate(42deg) scale(0.9); }
+            100% { transform: translate(105vw, -150px) rotate(45deg) scale(0.6); }
+          }
+          @keyframes thrustWobble {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(1px, -1px) rotate(-1deg); }
+            50% { transform: translate(-1px, 1px) rotate(1deg); }
+            75% { transform: translate(-1px, -1px) rotate(-0.5deg); }
+          }
+          @keyframes flamePulse {
+            0%, 100% { transform: scaleY(1); }
+            50% { transform: scaleY(1.3) scaleX(1.1); }
+          }
+          @keyframes particleFade {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(-120px, 120px) scale(0.1); opacity: 0; }
+          }
+          .rocket-container {
+            position: absolute;
+            animation: launchRocket 3.0s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+          }
+          .rocket-shaker {
+            animation: thrustWobble 0.08s infinite ease-in-out;
+          }
+          .rocket-flame {
+            transform-origin: 25px 95px;
+            animation: flamePulse 0.15s infinite ease-in-out;
+          }
+          .rainbow-particle {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(2px);
+            animation: particleFade 0.6s infinite linear;
+          }
+        `}} />
+        <div className="rocket-container w-[160px] h-[160px]">
+          <div className="rocket-shaker w-full h-full relative">
+            
+            {/* Rainbow particles exhaust trail */}
+            <div className="absolute top-[75px] left-[10px] pointer-events-none">
+              <div className="rainbow-particle w-7 h-7 bg-red-500" style={{ animationDelay: '0s', left: '-5px', top: '10px' }} />
+              <div className="rainbow-particle w-6 h-6 bg-orange-500" style={{ animationDelay: '0.08s', left: '-12px', top: '18px' }} />
+              <div className="rainbow-particle w-5.5 h-5.5 bg-yellow-400" style={{ animationDelay: '0.16s', left: '-18px', top: '24px' }} />
+              <div className="rainbow-particle w-5 h-5 bg-green-400" style={{ animationDelay: '0.24s', left: '-24px', top: '30px' }} />
+              <div className="rainbow-particle w-4.5 h-4.5 bg-blue-400" style={{ animationDelay: '0.32s', left: '-30px', top: '36px' }} />
+              <div className="rainbow-particle w-4 h-4 bg-indigo-500" style={{ animationDelay: '0.4s', left: '-36px', top: '42px' }} />
+              <div className="rainbow-particle w-3 h-3 bg-purple-500" style={{ animationDelay: '0.48s', left: '-42px', top: '48px' }} />
+            </div>
+
+            <svg viewBox="0 0 120 120" className="w-full h-full">
+              <g className="rocket-flame">
+                <path d="M20 95 C 10 115, 25 125, 25 125 C 25 125, 40 115, 30 95 Z" fill="#ffa801" />
+                <path d="M22 98 C 15 110, 25 118, 25 118 C 25 118, 35 110, 28 98 Z" fill="#ffd32a" />
+              </g>
+              <path d="M15 85 C 5 85, 5 70, 20 60 Z" fill="#ef5777" />
+              <path d="M35 85 C 45 85, 45 70, 30 60 Z" fill="#ef5777" />
+              <path d="M15 55 C 15 25, 25 10, 25 10 C 25 10, 35 25, 35 55 C 35 75, 33 90, 25 95 C 17 90, 15 75, 15 55 Z" fill="#ffffff" stroke="#dcdde1" strokeWidth="1.5" />
+              <path d="M18 40 C 18 30, 25 10, 25 10 C 25 10, 32 30, 32 40 Z" fill="#ef5777" />
+              <circle cx="25" cy="45" r="5" fill="#34e7e4" stroke="#00d8d6" strokeWidth="1.5" />
+              <path d="M23 42.5 C 25 41.5, 27 42, 27 43" stroke="#ffffff" strokeWidth="0.8" fill="none" strokeLinecap="round" />
+              <rect x="16.5" y="60" width="17" height="4" fill="#0be881" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
     <div className="space-y-4 pb-6 ">
+      {renderRocketCelebration()}
       {/* GREETING */}
       <WelcomeUser />
-
 
       {/* Admin - task shortcut  */}
       {user?.role === "admin" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-2 relative z-10">
-          
-          {/* LEFT COLUMN: My Tasks */}
-          <div className=" sidebar-bg   rounded-3xl border border-slate-200 dark:border-white/5 shadow-xs p-5 flex flex-col h-[400px] transition-all hover:shadow-md">
+
+
+          <div className="sidebar-bg rounded-xl border border-slate-200 dark:border-white/5 shadow-xs p-6 flex flex-col min-h-[400px] relative">
             
-            {/* Header */}
+            {/* Header: Avatar, Title, Lock, and Dots menu */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                {/* Avatar with initials */}
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 text-white font-black text-[10px] flex items-center justify-center shadow-xs shrink-0">
-                  {getInitials(user?.name)}
+                {/* Yellow initials avatar */}
+                <div className="w-10 h-10 rounded-full bg-[#f5d05e] dark:bg-[#eab308]/90 text-[#543d02] font-semibold text-sm flex items-center justify-center shrink-0">
+                  {getInitials(user?.name) || "Aw"}
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                    My Tasks
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-medium">
+                    My Goals tasks
                   </h3>
-                  <FiLock size={12} className="text-slate-400 dark:text-slate-500" />
+                  <FiLock size={14} className="text-slate-400 dark:text-slate-500 fill-slate-400 dark:fill-slate-500" />
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => navigate("/admin/tasks")}
-                className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 flex items-center justify-center text-slate-400 hover:text-slate-655 transition-colors cursor-pointer"
-              >
-                <FiSliders size={14} />
+              
+              {/* Rounded rectangular ... button */}
+              <button className="w-9 h-7 rounded-lg border border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5 flex items-center justify-center text-slate-400 cursor-pointer">
+                <span className="text-base font-bold tracking-widest leading-none">•••</span>
               </button>
             </div>
 
-            <div className="flex items-center gap-4 border-b border-slate-150 dark:border-white/5 pb-2 mb-3">
+            {/* Tabs matching reference image */}
+            <div className="flex items-center gap-6 border-b border-slate-100 dark:border-white/5 pb-0.5 mb-2">
               {[
-                { id: "Upcoming", label: "Upcoming" },
-                { id: "Completed", label: `Completed (${taskStats.completed.length})` }
+                { id: "Upcoming", label: `Upcoming (${goalStats.upcoming.length})` },
+                { id: "Overdue", label: `Overdue (${goalStats.overdue.length})` },
+                { id: "Completed", label: `Completed (${goalStats.completed.length})` }
               ].map((tab) => {
-                const isActive = taskTab === tab.id;
+                const isActive = goalTab === tab.id;
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setTaskTab(tab.id)}
-                    className={`text-[10px] font-black uppercase tracking-wider relative pb-1.5 cursor-pointer transition-colors ${
+                    onClick={() => {
+                      setGoalTab(tab.id);
+                      setEditingGoalId(null);
+                    }}
+                    className={`text-[13px] font-medium pb-2 cursor-pointer relative transition-colors ${
                       isActive
-                        ? "text-blue-500 dark:text-blue-400"
-                        : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-400"
+                        ? "text-slate-900 dark:text-slate-500 font-semibold"
+                        : "text-slate-450 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-400"
                     }`}
                   >
                     {tab.label}
                     {isActive && (
                       <motion.div
-                        layoutId="activeAdminTaskTab"
-                        className="absolute bottom-0 left-0 right-0 h-[2px] bg-blue-500 dark:bg-blue-400"
+                        layoutId="activeAdminGoalTab"
+                        className="absolute bottom-0 left-0 right-0 h-[2px] bg-slate-800 dark:bg-slate-200"
                       />
                     )}
                   </button>
@@ -986,190 +1471,271 @@ const Dashboardmain = () => {
               })}
             </div>
 
-            {/* Tasks List */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1">
-              {activeTabTasks.map((t) => {
-                const days = getDaysRemaining(t.dueDate);
-                const projId = typeof t.project === "object" ? t.project?._id || t.project?.id : t.project;
-                return (
-                  <div
-                    key={t._id}
-                    className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-50/50 dark:bg-white/5 border border-slate-150/40 dark:border-white/5 hover:bg-slate-100/50 dark:hover:bg-white/10 transition-all group"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleTaskComplete(t);
-                        }}
-                        className="shrink-0 text-slate-400 dark:text-slate-550 focus:outline-none cursor-pointer"
-                      >
-                        {t.status?.toLowerCase() === "completed" ? (
-                          <FiCheckCircle className="w-4 h-4 text-emerald-500 hover:scale-110 transition-transform" />
-                        ) : (
-                          <div className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 hover:scale-110 transition-all" />
-                        )}
-                      </button>
-                      <span className={`text-[10px] font-bold truncate leading-none ${
-                        t.status?.toLowerCase() === "completed"
-                          ? "line-through text-slate-400 dark:text-slate-500 font-medium"
-                          : "text-slate-700 dark:text-slate-300"
-                      }`}>
-                        {t.title}
-                      </span>
-                    </div>
+            {/* + Create task link - only visible in Upcoming tab */}
+            {goalTab === "Upcoming" && (
+              <button
+                onClick={() => handleCreateGoal(null, "")}
+                className="flex items-center gap-1.5 text-slate-550 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors text-[13px] py-2 cursor-pointer pl-1"
+              >
+                <FiPlus size={14} className="text-slate-455" />
+                <span>Create task</span>
+              </button>
+            )}
+            <div className="flex-1 flex flex-col pt-1">
+              {/* Tasks List with bottom border lines */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 mt-0.5 divide-y divide-slate-100 dark:divide-white/5">
+                {paginatedGoals.map((g) => {
+                  const dateText = formatGoalDates(g.startDate, g.endDate);
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const isOverdueGoal = g.endDate && new Date(g.endDate) < today && !g.completed;
 
-                    <div className="flex items-center gap-2 shrink-0 pl-2">
-                      {t.dueDate && (
-                        <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
-                          days !== null && days < 0
-                            ? "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200/50 dark:border-rose-500/20"
-                            : "bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-400 border border-slate-200 dark:border-white/5"
-                        }`}>
-                          {new Date(t.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                        </span>
-                      )}
-                      
-                      {projId && (
+                  return (
+                    <div
+                      key={g._id}
+                      className="flex items-center justify-between py-2 bg-transparent group/row"
+                    >
+                      <div className="flex items-center gap-3 min-w-0 flex-1 pl-1">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            navigate(`/${user?.role || "admin"}/projects?id=${projId}`);
+                            handleToggleGoalComplete(g);
                           }}
-                          className="text-[9px] font-black uppercase tracking-wider bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200/50 dark:border-blue-500/30 px-2.5 py-0.5 rounded-full transition-all duration-200 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-500 dark:hover:text-white cursor-pointer"
+                          className="shrink-0 focus:outline-none cursor-pointer"
                         >
-                          View Task
+                          {g.completed ? (
+                            <div className="w-5 h-5 rounded-full border border-slate-350 dark:border-slate-650 flex items-center justify-center text-slate-450">
+                              <FiCheck size={11} className="stroke-[3]" />
+                            </div>
+                          ) : (
+                            <div className="w-5 h-5 rounded-full border border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-300 dark:text-slate-700 hover:border-slate-450 transition-all">
+                              <FiCheck size={11} className="text-slate-100 dark:text-[#1e1e1e]" />
+                            </div>
+                          )}
                         </button>
-                      )}
+                        
+                        {/* Title Editable Directly */}
+                        <div className="flex-1 min-w-0">
+                          <input
+                            type="text"
+                            placeholder="Write a task name"
+                            defaultValue={g.taskName}
+                            autoFocus={g._id === newCreatedGoalId}
+                            onFocus={() => {
+                              if (g._id === newCreatedGoalId) {
+                                setTimeout(() => {
+                                  setNewCreatedGoalId(null);
+                                }, 50);
+                              }
+                            }}
+                            onBlur={async (e) => {
+                              const val = e.target.value.trim();
+                              if (val !== g.taskName) {
+                                try {
+                                  await updateGoal({
+                                    id: g._id,
+                                    goalData: { taskName: val },
+                                  }).unwrap();
+                                  toast.success("Goal updated");
+                                } catch {
+                                  toast.error("Failed to update goal name");
+                                }
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleExistingGoalEnter(g, e.target.value);
+                              }
+                            }}
+                            className={`goal-inline-input text-[13px] w-full focus:outline-none ${
+                              g.completed
+                                ? "goal-completed-text"
+                                : "text-slate-755 dark:text-slate-200"
+                            }`}
+                          />
+                          {g.completed && g.completedAt && (
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 block -mt-0.5 font-medium pl-0.5">
+                              {(() => {
+                                const d = new Date(g.completedAt);
+                                const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                                return `Completed at ${timeStr}, ${dateStr}`;
+                              })()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
 
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteTaskClick(t._id);
-                        }}
-                        className="w-6 h-6 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-colors cursor-pointer shrink-0"
-                      >
-                        <FiTrash2 size={12} />
-                      </button>
+                      {/* Right Date and Actions */}
+                      <div className="flex items-center gap-2.5 shrink-0 pr-1">
+                        {/* Start Date Badge */}
+                        <div 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveCalendarGoalId(activeCalendarGoalId === g._id ? null : g._id);
+                            setCalendarTarget('start');
+                          }}
+                          className="text-[12px] text-slate-450 dark:text-slate-500 font-normal cursor-pointer hover:underline flex items-center gap-1"
+                        >
+                          {dateText ? (
+                            <span className={`px-2 py-0.5 rounded-full font-semibold text-[11px] border ${
+                              isOverdueGoal
+                                ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/25"
+                                : "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-950/20 dark:text-blue-400 dark:border-white/5"
+                            }`}>
+                              {dateText}
+                            </span>
+                          ) : (
+                            /* Dashed circle wrapper around calendar icon when date is missing */
+                            <div className="w-6 h-6 rounded-full border border-dashed border-slate-350 dark:border-slate-650 flex items-center justify-center text-slate-455 hover:text-blue-500 cursor-pointer">
+                              <FiCalendar size={11} />
+                            </div>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteGoalClick(g._id);
+                          }}
+                          className="w-6 h-6 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-colors cursor-pointer shrink-0 opacity-0 group-hover/row:opacity-100"
+                        >
+                          <FiTrash2 size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {activeTabGoals.length === 0 && (
+                  <div className="h-full flex flex-col items-center justify-center text-center py-10">
+                    <FiCheck className="w-7 h-7 text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 rounded-full p-1.5 mb-1.5 animate-bounce" />
+                    <span className="text-[11px] font-semibold text-slate-450 dark:text-slate-550 uppercase tracking-wider">
+                      No Tasks Found
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalGoalPages > 1 && (
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/5 mt-auto bg-transparent px-1">
+                  <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-550 select-none">
+                    Page {goalPage} of {totalGoalPages}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setGoalPage(prev => Math.max(prev - 1, 1))}
+                      disabled={goalPage === 1}
+                      className="w-7 h-7 rounded-lg border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-450 hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-white/5 transition-all cursor-pointer"
+                    >
+                      &lt;
+                    </button>
+                    <button
+                      onClick={() => setGoalPage(prev => Math.min(prev + 1, totalGoalPages))}
+                      disabled={goalPage === totalGoalPages}
+                      className="w-7 h-7 rounded-lg border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-455 hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-white/5 transition-all cursor-pointer"
+                    >
+                      &gt;
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {activeCalendarGoalId && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40 bg-transparent cursor-default" 
+                  onClick={() => setActiveCalendarGoalId(null)}
+                />
+                {renderCalendarPopover(
+                  activeCalendarGoalId,
+                  goals.find(g => g._id === activeCalendarGoalId)?.startDate,
+                  goals.find(g => g._id === activeCalendarGoalId)?.endDate,
+                  async (start, end) => {
+                    try {
+                      await updateGoal({
+                        id: activeCalendarGoalId,
+                        goalData: { 
+                          startDate: start ? start.toISOString() : null, 
+                          endDate: end ? end.toISOString() : null 
+                        },
+                      }).unwrap();
+                    } catch (err) {
+                      toast.error("Failed to update dates");
+                    }
+                  }
+                )}
+              </>
+            )}
+
+          </div>
+
+
+
+          {/* MY PROJECTS card matching reference image */}
+          <div className="sidebar-bg rounded-xl border border-slate-200 dark:border-white/5 shadow-xs p-6 flex flex-col min-h-[400px]">
+            
+            {/* Header: Title and Go to project page link */}
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-[13px] font-black text-[#2e1d6c] dark:text-[#a594fd] uppercase tracking-wider">
+                My Projects
+              </h3>
+              <Link 
+                to={`/${user?.role}/projects`}
+                className="text-[13px] font-bold text-[#8370ec] dark:text-[#9b89ff] hover:underline cursor-pointer"
+              >
+                Go to project page
+              </Link>
+            </div>
+
+            {/* Grid list of project blocks */}
+            <div className="flex flex-wrap gap-4 align-top content-start">
+              
+              {/* Dashed Create Project Button */}
+              <div 
+                onClick={() => setShowCreateModal(true)}
+                className="w-44 h-20 border-2 border-dashed border-[#8d7df5]/60 hover:border-[#8d7df5] dark:border-purple-600/40 rounded-2xl flex flex-col items-center justify-center gap-0.5 cursor-pointer bg-white/20 dark:bg-white/5 hover:bg-white/40 dark:hover:bg-white/10 transition-all text-[#2e1d6c] dark:text-purple-300"
+              >
+                <span className="text-xl font-bold font-sans">+</span>
+                <span className="text-[10px] font-black uppercase tracking-wider">Create Project</span>
+              </div>
+
+              {/* Loop through projects created by current user */}
+              {userProjects && userProjects.slice(0, 3).map((proj) => (
+                <Link 
+                  key={proj._id}
+                  to={`/${user?.role}/projects?id=${proj._id}`}
+                  className="w-52 h-20 bg-white/80 dark:bg-white/5 rounded-2xl p-4 flex items-center gap-3 border border-white/40 dark:border-white/5 shadow-xs hover:shadow-md transition-all cursor-pointer text-left block"
+                >
+                  <div className="flex items-center gap-3 w-full">
+                    <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950/30 flex items-center justify-center text-[#8d7df5] dark:text-purple-300 shrink-0 border border-purple-200/40 dark:border-white/5">
+                      <FiLayers size={16} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-[12px] font-bold text-[#2e1d6c] dark:text-purple-200 truncate leading-tight">
+                        {proj.name}
+                      </h4>
+                      <span className="text-[9px] font-black text-[#8d7df5] dark:text-purple-400 uppercase tracking-widest block mt-1">
+                        {proj.status || "Active"}
+                      </span>
                     </div>
                   </div>
-                );
-              })}
-
-              {activeTabTasks.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center text-center py-6">
-                  <FiCheck className="w-7 h-7 text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 rounded-full p-1.5 mb-1.5 animate-bounce" />
-                  <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-wider">
-                    All caught up!
-                  </span>
-                </div>
-              )}
+                </Link>
+              ))}
             </div>
 
           </div>
 
-          {/* RIGHT COLUMN: Projects */}
-          <div className="sidebar-bg rounded-3xl border border-slate-200 dark:border-white/5 shadow-xs p-5 flex flex-col h-[400px] transition-all hover:shadow-md">
-            
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <h3 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider">
-                  MY Projects
-                </h3>
-               
-              </div>
-              <button
-                type="button"
-                onClick={() => navigate("/admin/projects")}
-                className=" rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 flex items-center justify-center text-slate-400 hover:text-slate-655 transition-colors cursor-pointer"
-              >
-               Go to project page
-              </button>
-            </div>
 
-            {/* Projects Content */}
-            <div className="flex-1 flex flex-col min-h-0">
-              {recentProjects.length > 0 ? (
-                <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pb-1">
-                    
-                    {/* Create Project Button */}
-                    <button
-                      type="button"
-                      onClick={() => setShowCreateModal(true)}
-                      className="flex flex-col items-center justify-center p-3 rounded-2xl border-2 border-dashed border-slate-250 dark:border-white/5 hover:border-blue-500 dark:hover:border-blue-500/50 hover:bg-blue-50/20 dark:hover:bg-blue-500/5 transition-all text-center h-[80px] cursor-pointer group shrink-0"
-                    >
-                      <FiPlus className="w-5 h-5 text-slate-450 group-hover:text-blue-500 transition-colors mb-1" />
-                      <span className="text-[9px] font-black text-slate-550 dark:text-slate-400 uppercase tracking-widest group-hover:text-blue-500 transition-colors">
-                        Create Project
-                      </span>
-                    </button>
-
-                    {/* Project List Items */}
-                    {recentProjects.map((p, idx) => {
-                      const projectColors = [
-                        "bg-fuchsia-500/10 text-fuchsia-500 dark:bg-fuchsia-500/20",
-                        "bg-emerald-500/10 text-emerald-500 dark:bg-emerald-500/20",
-                        "bg-indigo-500/10 text-indigo-500 dark:bg-indigo-500/20",
-                        "bg-rose-500/10 text-rose-500 dark:bg-rose-500/20",
-                        "bg-cyan-500/10 text-cyan-500 dark:bg-cyan-500/20",
-                        "bg-amber-500/10 text-amber-500 dark:bg-amber-500/20",
-                      ];
-                      const colorClass = projectColors[idx % projectColors.length];
-
-                      return (
-                        <div
-                          key={p._id}
-                          onClick={() => navigate(`/admin/projects?id=${p._id}`)}
-                          className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50/50 dark:bg-white/5 hover:shadow-sm cursor-pointer transition-all h-[80px]"
-                        >
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center border shrink-0 font-bold ${colorClass}`}>
-                            <FiList size={15} />
-                          </div>
-                          <div className="min-w-0 flex-1 flex flex-col text-left">
-                            <span className="text-[10px] font-black text-slate-750 dark:text-slate-200 truncate leading-snug">
-                              {p.name}
-                            </span>
-                            <span className="text-[8px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-550 mt-1 leading-none">
-                              {p.status || "Active"}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                  </div>
-                </div>
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 dark:bg-[#151725]/20 border border-dashed border-slate-200 dark:border-white/5 rounded-3xl h-full justify-items-center">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center mb-3 shadow-inner">
-                    <FiFolder size={20} className="animate-pulse" />
-                  </div>
-                  <h4 className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest">
-                    No Projects Yet
-                  </h4>
-                  <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold max-w-[200px] mt-1 leading-normal uppercase">
-                    Get started by creating your very first project!
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/admin/projects")}
-                    className="mt-4 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white text-[9px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-blue-500/20 hover:scale-105 hover:shadow-indigo-500/25 active:scale-95 transition-all duration-300 cursor-pointer"
-                  >
-                    Add Project
-                  </button>
-                </div>
-              )}
-            </div>
-
-          </div>
-
+          
         </div>
       )}
+
 
 
 

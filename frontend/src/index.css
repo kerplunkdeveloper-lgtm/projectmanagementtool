@@ -2226,14 +2226,35 @@ td:first-child {
 
 /* Disabled input state: looks clean, read-only style */
 .eod-grid-input:disabled {
-  color: #64748b !important;
-  cursor: not-allowed !important;
   background-color: #f8fafc !important;
+  color: #94a3b8 !important;
+  cursor: not-allowed;
 }
 
 .dark .eod-grid-input:disabled {
-  color: #64748b !important;
-  background-color: rgba(0, 0, 0, 0.3) !important;
+  background-color: #0f172a !important;
+  color: #475569 !important;
+}
+
+.goal-inline-input {
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 4px 0 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.goal-inline-input:focus {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.dark .goal-inline-input {
+  background-color: transparent !important;
+  color: #f1f5f9 !important;
 }
 
 /* Select element inside grid */
@@ -2303,5 +2324,15 @@ td:first-child {
   background-color: rgba(245, 158, 11, 0.15) !important;
   color: #fbbf24 !important;
   border: 1px solid rgba(245, 158, 11, 0.3) !important;
+}
+
+.goal-completed-text {
+  text-decoration: line-through !important;
+  text-decoration-color: #22c55e !important; /* Green line-through */
+  color: #94a3b8 !important;
+}
+
+.dark .goal-completed-text {
+  color: #475569 !important;
 }
 
