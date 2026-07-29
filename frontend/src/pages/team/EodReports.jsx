@@ -246,10 +246,10 @@ const EodReports = () => {
       const isAssignedToMe = assigneeId === (user?._id || user?.id);
       if (!isAssignedToMe) return false;
 
-      // Filter strictly by selectedDate
-      if (!task.createdAt) return false;
+      // Filter strictly by selectedDate (using dueDate instead of createdAt)
+      if (!task.dueDate) return false;
 
-      const taskDate = new Date(task.createdAt);
+      const taskDate = new Date(task.dueDate);
       const year = taskDate.getFullYear();
       const month = String(taskDate.getMonth() + 1).padStart(2, "0");
       const day = String(taskDate.getDate()).padStart(2, "0");
@@ -737,8 +737,8 @@ const EodReports = () => {
             </h1>
             <p className="theme-text-secondary text-xs font-semibold mt-1 text-left">
               {selectedDate === getLocalDateString()
-                ? "Review and submit EOD reports for tasks assigned to you today."
-                : `Review and submit EOD reports for tasks assigned to you on ${safeFormatDate(selectedDate)}.`}
+                ? "Review and submit EOD reports for tasks due today."
+                : `Review and submit EOD reports for tasks due on ${safeFormatDate(selectedDate)}.`}
             </p>
           </div>
 
@@ -762,13 +762,13 @@ const EodReports = () => {
           </div>
           <h3 className="font-bold theme-text-primary mt-4 text-sm">
             {selectedDate === getLocalDateString()
-              ? "Today no task assigned"
-              : "No tasks assigned for this date"}
+              ? "Today no task due"
+              : "No tasks due for this date"}
           </h3>
           <p className="text-xs theme-text-secondary mt-1 max-w-xs">
             {selectedDate === getLocalDateString()
-              ? "You don't have any tasks assigned for today. Go to Tasks board to pick up new work."
-              : `You didn't have any tasks assigned on ${safeFormatDate(selectedDate)}.`}
+              ? "You don't have any tasks due today. Go to Tasks board to check your schedule."
+              : `You didn't have any tasks due on ${safeFormatDate(selectedDate)}.`}
           </p>
         </div>
       ) : (
