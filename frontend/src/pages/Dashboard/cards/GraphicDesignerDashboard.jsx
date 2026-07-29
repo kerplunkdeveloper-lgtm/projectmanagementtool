@@ -276,6 +276,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
       let comp = 0;
       let pend = 0;
+      let prog = 0;
+      let rev = 0;
       let over = 0;
       let totalRevisions = 0;
       let totalLoggedMs = 0;
@@ -284,9 +286,15 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
       myTasks.forEach((t) => {
         const s = t.status?.toLowerCase() || "";
-        if (s === "completed") comp++;
-        else pend++;
-        if (t.dueDate && isPast(parseISO(t.dueDate)) && s !== "completed")
+        const isCompleted = s === "completed" || s.includes("approve");
+        
+        if (isCompleted) comp++;
+        else if (s.includes("progress")) prog++;
+        else if (s.includes("review") || s.includes("revision")) rev++;
+        else if (s === "pending") pend++;
+        else pend++; // default fallback
+
+        if (t.dueDate && isPast(parseISO(t.dueDate)) && !isCompleted)
           over++;
 
         totalRevisions += t.revisions || 0;
@@ -413,6 +421,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         assigned: myTasks.length,
         completed: comp,
         pending: pend,
+        inProgress: prog,
+        inReview: rev,
         overdue: over,
         avgRevisions,
         totalHours,
@@ -907,14 +917,20 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
                     {targetDept}
                   </th>
-                  <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                  <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest uppercase bg-slate-500 text-white dark:bg-slate-700 dark:text-white">
                     Assigned
                   </th>
-                  <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
-                    Completed
-                  </th>
-                  <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                  <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest uppercase bg-red-500 text-white dark:bg-red-650 dark:text-white">
                     Pending
+                  </th>
+                  <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest uppercase bg-violet-500 text-white dark:bg-violet-600 dark:text-white">
+                    In Progress
+                  </th>
+                  <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest uppercase bg-yellow-400 text-slate-950 dark:bg-yellow-500 dark:text-slate-950">
+                    In Review
+                  </th>
+                  <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest uppercase bg-emerald-500 text-white dark:bg-emerald-600 dark:text-white">
+                    Completed
                   </th>
                   <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
                     Revisions
@@ -958,16 +974,22 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         {tp.name}
                       </div>
                     </td>
-                    <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black text-slate-650 dark:text-slate-200">
+                    <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black bg-slate-300 text-slate-900 dark:bg-slate-700/80 dark:text-white">
                       {tp.assigned}
                     </td>
-                    <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black text-slate-650 dark:text-slate-200">
+                    <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black bg-red-300 text-red-950 dark:bg-red-700 dark:text-white">
+                      {tp.pending}
+                    </td>
+                    <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black bg-violet-300 text-violet-950 dark:bg-violet-700 dark:text-white">
+                      {tp.inProgress}
+                    </td>
+                    <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black bg-yellow-300 text-yellow-950 dark:bg-yellow-500 dark:text-slate-950">
+                      {tp.inReview}
+                    </td>
+                    <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black bg-emerald-300 text-emerald-950 dark:bg-emerald-700 dark:text-white">
                       {tp.completed}
                     </td>
                     <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black text-slate-650 dark:text-slate-200">
-                      {tp.pending}
-                    </td>
-                    <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black text-slate-600 dark:text-slate-200">
                       <div className="flex items-center gap-2.5 min-w-[110px]">
                         <div className="w-14 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                           <div
