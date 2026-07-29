@@ -1036,9 +1036,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
                     Total Hours
                   </th>
-                  <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
-                    Approval Time
-                  </th>
+
                   <th className="p-4 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
                     Delay
                   </th>
@@ -1141,30 +1139,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                     <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black text-slate-600 dark:text-slate-200">
                       {tp.totalHours.toFixed(1)}h
                     </td>
-                    <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black text-slate-600 dark:text-slate-200">
-                      <div className="flex items-center gap-2">
-                        {tp.avgApprovalMs > 0 ? (
-                          <span className="text-indigo-600 dark:text-indigo-400">
-                            {(() => {
-                              const totalMinutes = Math.floor(tp.avgApprovalMs / (1000 * 60));
-                              const h = Math.floor(totalMinutes / 60);
-                              const m = totalMinutes % 60;
-                              return h > 0 ? `${h}h ${m}m` : `${m}m`;
-                            })()}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 dark:text-slate-500 font-medium">—</span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => setApprovalModal({ open: true, designerId: tp.id, designerName: tp.name })}
-                          className="p-1 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-all cursor-pointer"
-                          title="View & Approve Tasks"
-                        >
-                          <FiClock size={14} />
-                        </button>
-                      </div>
-                    </td>
+
                     <td className="p-4 border-r border-b border-slate-100 dark:border-slate-700/60 text-sm font-black">
                       {tp.overdue > 0 ? (
                         <div className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-extrabold">
