@@ -158,32 +158,23 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
       const taskCreatedDate = task.createdAt ? parseISO(task.createdAt) : null;
       const taskDueDate = task.dueDate ? parseISO(task.dueDate) : null;
+      const dateToCheck = taskDueDate || taskCreatedDate;
+
+      if (!dateToCheck) return false;
 
       if (dateFilter === "Today") {
-        return (
-          (taskCreatedDate && isToday(taskCreatedDate)) ||
-          (taskDueDate && isToday(taskDueDate))
-        );
+        return isToday(dateToCheck);
       }
       if (dateFilter === "Yesterday") {
-        return (
-          (taskCreatedDate && isYesterday(taskCreatedDate)) ||
-          (taskDueDate && isYesterday(taskDueDate))
-        );
+        return isYesterday(dateToCheck);
       }
       if (dateFilter === "Last 7 Days") {
         const sevenDaysAgo = subDays(new Date(), 7);
-        return (
-          (taskCreatedDate && isAfter(taskCreatedDate, sevenDaysAgo)) ||
-          (taskDueDate && isAfter(taskDueDate, sevenDaysAgo))
-        );
+        return isAfter(dateToCheck, sevenDaysAgo);
       }
       if (dateFilter === "This Month") {
         const now = new Date();
-        return (
-          (taskCreatedDate && isSameMonth(taskCreatedDate, now)) ||
-          (taskDueDate && isSameMonth(taskDueDate, now))
-        );
+        return isSameMonth(dateToCheck, now);
       }
 
       return true;
