@@ -406,7 +406,7 @@ const MyTasksTab = ({
 
       let matchesDate = true;
       if (dateFilter !== "All") {
-        const targetDate = task.createdAt ? new Date(task.createdAt) : null;
+        const targetDate = task.dueDate ? new Date(task.dueDate) : null;
 
         if (!targetDate || isNaN(targetDate.getTime())) {
           matchesDate = false;
@@ -440,12 +440,16 @@ const MyTasksTab = ({
             const dayOfWeek = now.getDay();
             const startOfWeek = new Date(todayStart);
             startOfWeek.setDate(
-              startOfWeek.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1),
+              startOfWeek.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1)
             );
-            matchesDate = targetDate >= startOfWeek && targetDate <= todayEnd;
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(endOfWeek.getDate() + 6);
+            endOfWeek.setHours(23, 59, 59, 999);
+            matchesDate = targetDate >= startOfWeek && targetDate <= endOfWeek;
           } else if (dateFilter === "This Month") {
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            matchesDate = targetDate >= startOfMonth && targetDate <= todayEnd;
+            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+            matchesDate = targetDate >= startOfMonth && targetDate <= endOfMonth;
           }
         }
       }
@@ -1572,7 +1576,7 @@ const MyTasksTab = ({
                     />
                     <ResizableHeader
                       id="endDate"
-                      label="End Date"
+                      label="DUE DATE"
                       colWidths={colWidths}
                       handleMouseDown={handleMouseDown}
                       defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32"
@@ -2000,7 +2004,7 @@ const MyTasksTab = ({
                               </span>
                             </td>
 
-                            {/* End Date */}
+                            {/* DUE DATE */}
                             <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 text-center">
                               <span
                                 className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-[10px] font-bold whitespace-nowrap ${task.dueDate ? "bg-rose-200 text-rose-700 dark:bg-rose-500/10 dark:text-rose-350 border border-rose-200/50 dark:border-rose-500/20" : "text-slate-450 dark:text-slate-550 border border-dashed border-slate-200 dark:border-[#1e293b]/40"}`}

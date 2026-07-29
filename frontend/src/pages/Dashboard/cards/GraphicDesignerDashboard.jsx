@@ -154,14 +154,36 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
       // Check Date
       if (dateFilter === "All Time") return true;
-      if (!task.createdAt) return true; // fallback
 
-      const taskDate = parseISO(task.createdAt);
-      if (dateFilter === "Today") return isToday(taskDate);
-      if (dateFilter === "Yesterday") return isYesterday(taskDate);
-      if (dateFilter === "Last 7 Days")
-        return isAfter(taskDate, subDays(new Date(), 7));
-      if (dateFilter === "This Month") return isSameMonth(taskDate, new Date());
+      const taskCreatedDate = task.createdAt ? parseISO(task.createdAt) : null;
+      const taskDueDate = task.dueDate ? parseISO(task.dueDate) : null;
+
+      if (dateFilter === "Today") {
+        return (
+          (taskCreatedDate && isToday(taskCreatedDate)) ||
+          (taskDueDate && isToday(taskDueDate))
+        );
+      }
+      if (dateFilter === "Yesterday") {
+        return (
+          (taskCreatedDate && isYesterday(taskCreatedDate)) ||
+          (taskDueDate && isYesterday(taskDueDate))
+        );
+      }
+      if (dateFilter === "Last 7 Days") {
+        const sevenDaysAgo = subDays(new Date(), 7);
+        return (
+          (taskCreatedDate && isAfter(taskCreatedDate, sevenDaysAgo)) ||
+          (taskDueDate && isAfter(taskDueDate, sevenDaysAgo))
+        );
+      }
+      if (dateFilter === "This Month") {
+        const now = new Date();
+        return (
+          (taskCreatedDate && isSameMonth(taskCreatedDate, now)) ||
+          (taskDueDate && isSameMonth(taskDueDate, now))
+        );
+      }
 
       return true;
     });

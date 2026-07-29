@@ -588,7 +588,7 @@ const TaskOverviewTab = ({
         }
 
         if (dateFilter !== "All") {
-          const targetDate = task.createdAt ? new Date(task.createdAt) : null;
+          const targetDate = task.dueDate ? new Date(task.dueDate) : null;
 
           if (!targetDate || isNaN(targetDate.getTime())) {
             return false;
@@ -625,7 +625,10 @@ const TaskOverviewTab = ({
               startOfWeek.setDate(
                 startOfWeek.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1),
               );
-              if (targetDate < startOfWeek || targetDate > todayEnd)
+              const endOfWeek = new Date(startOfWeek);
+              endOfWeek.setDate(endOfWeek.getDate() + 6);
+              endOfWeek.setHours(23, 59, 59, 999);
+              if (targetDate < startOfWeek || targetDate > endOfWeek)
                 return false;
             } else if (dateFilter === "This Month") {
               const startOfMonth = new Date(
@@ -633,7 +636,16 @@ const TaskOverviewTab = ({
                 now.getMonth(),
                 1,
               );
-              if (targetDate < startOfMonth || targetDate > todayEnd)
+              const endOfMonth = new Date(
+                now.getFullYear(),
+                now.getMonth() + 1,
+                0,
+                23,
+                59,
+                59,
+                999,
+              );
+              if (targetDate < startOfMonth || targetDate > endOfMonth)
                 return false;
             }
           }
