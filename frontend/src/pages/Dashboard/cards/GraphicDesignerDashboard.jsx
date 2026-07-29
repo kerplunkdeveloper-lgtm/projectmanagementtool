@@ -32,6 +32,19 @@ import {
   FiEye,
 } from "react-icons/fi";
 
+const getPriorityStyle = (priority) => {
+  const p = priority?.toLowerCase() || "";
+  if (p.includes("top high"))
+    return "bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/30";
+  if (p.includes("high"))
+    return "bg-amber-50 text-amber-600 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/30";
+  if (p.includes("medium"))
+    return "bg-blue-50 text-blue-600 border border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/30";
+  if (p.includes("low"))
+    return "bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/30";
+  return "bg-slate-50 text-slate-500 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800";
+};
+
 const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   const dispatch = useDispatch();
   const { theme } = useTheme();
@@ -819,6 +832,17 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                             >
                               <FiClock size={9} />
                               {format(parseISO(task.dueDate), "MMM dd")}
+                            </span>
+                          )}
+                        </div>
+                        {/* Project and Priority Info */}
+                        <div className="flex items-center justify-between gap-2 mt-1 pl-1.5 mb-2">
+                          <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 truncate max-w-[65%]">
+                            {projName}
+                          </span>
+                          {task.priority && (
+                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${getPriorityStyle(task.priority)}`}>
+                              {task.priority}
                             </span>
                           )}
                         </div>
