@@ -102,13 +102,22 @@ const getDaysRemaining = (dueDateStr) => {
 
 const GraphicDesignerDeadlines = ({ user }) => {
   const navigate = useNavigate();
+  const { users = [] } = useSelector((state) => state.users || {});
   const { data: tasks = [], isLoading } = useGetTasksQuery(undefined, {
     refetchOnMountOrArgChange: true,
   });
 
-  const [filterTab, setFilterTab] = useState("active"); // "active" | "overdue" | "today" | "completed" | "all"
+  const getTodayDateString = () => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const [filterTab, setFilterTab] = useState("all"); // "active" | "overdue" | "today" | "completed" | "all"
   const [selectedClient, setSelectedClient] = useState("all");
-  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedDate, setSelectedDate] = useState(getTodayDateString());
 
   // Filter tasks assigned to this user
   const currentUserId = user?._id || user?.id;
@@ -280,35 +289,6 @@ const GraphicDesignerDeadlines = ({ user }) => {
         <div className="flex flex-wrap gap-2">
           {[
             {
-              id: "active",
-              label: "Active Tasks",
-              count: taskStats.activeCount,
-              color:
-                "border-blue-500/20 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/20",
-            },
-            {
-              id: "overdue",
-              label: "Overdue",
-              count: taskStats.overdueCount,
-              color:
-                "border-rose-500/20 text-rose-600 dark:text-rose-400 bg-rose-50/50 dark:bg-rose-950/20",
-              highlight: taskStats.overdueCount > 0,
-            },
-            {
-              id: "today",
-              label: "Due Today",
-              count: taskStats.todayCount,
-              color:
-                "border-amber-500/20 text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-950/20",
-            },
-            {
-              id: "completed",
-              label: "Completed",
-              count: taskStats.completedCount,
-              color:
-                "border-emerald-500/20 text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20",
-            },
-            {
               id: "all",
               label: "All Tasks",
               count: myTasks.filter((t) => {
@@ -337,6 +317,35 @@ const GraphicDesignerDeadlines = ({ user }) => {
               color:
                 "border-slate-500/20 text-slate-600 dark:text-slate-400 bg-slate-50/50 dark:bg-slate-950/20",
             },
+            {
+              id: "active",
+              label: "Active Tasks",
+              count: taskStats.activeCount,
+              color:
+                "border-blue-500/20 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/20",
+            },
+            {
+              id: "overdue",
+              label: "Overdue",
+              count: taskStats.overdueCount,
+              color:
+                "border-rose-500/20 text-rose-600 dark:text-rose-400 bg-rose-50/50 dark:bg-rose-950/20",
+              highlight: taskStats.overdueCount > 0,
+            },
+            {
+              id: "today",
+              label: "Due Today",
+              count: taskStats.todayCount,
+              color:
+                "border-amber-500/20 text-amber-605 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-950/20",
+            },
+            {
+              id: "completed",
+              label: "Completed",
+              count: taskStats.completedCount,
+              color:
+                "border-emerald-500/20 text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20",
+            },
           ].map((tab) => {
             const isActive = filterTab === tab.id;
             return (
@@ -364,12 +373,34 @@ const GraphicDesignerDeadlines = ({ user }) => {
           })}
         </div>
 
-       <button
-          onClick={() => navigate(`/${user?.role}/tasks`)}
-          className="inline-flex items-center gap-1 text-[10px] font-black text-blue-600 dark:text-[#3b82f6] hover:underline uppercase tracking-wider"
-        >
-          View Task Board <FiChevronRight size={12} />
-        </button>
+        {/* Date Filter Input */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Date Picker */}
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 border theme-border px-3 py-1.5 rounded-xl text-slate-755 dark:text-slate-300 shadow-sm relative">
+            <FiCalendar className="shrink-0 text-indigo-500" size={13} />
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="bg-transparent text-[11px] font-bold outline-none cursor-pointer [&::-webkit-calendar-picker-indicator]:dark:invert"
+            />
+            {selectedDate && (
+              <button
+                onClick={() => setSelectedDate("")}
+                className="text-slate-400 hover:text-rose-500 transition-colors ml-1"
+              >
+                <FiX size={12} />
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={() => navigate(`/${user?.role}/tasks`)}
+            className="inline-flex items-center gap-1 text-[10px] font-black text-blue-600 dark:text-[#3b82f6] hover:underline uppercase tracking-wider ml-1"
+          >
+            View Task Board <FiChevronRight size={12} />
+          </button>
+        </div>
 
 
       </div>
@@ -386,6 +417,10 @@ const GraphicDesignerDeadlines = ({ user }) => {
               daysLeft !== null &&
               daysLeft === 0;
             const isCompleted = task.status === "Completed";
+
+            const createdByUserId = typeof task.createdBy === "object" ? task.createdBy?._id || task.createdBy?.id : task.createdBy;
+            const creatorUserObj = users?.find(u => u._id === createdByUserId);
+            const taskCreatorName = task.createdBy?.name || creatorUserObj?.name || "Admin";
 
             // Priority styling (left border & glow)
             const priorityBorder =
@@ -438,6 +473,27 @@ const GraphicDesignerDeadlines = ({ user }) => {
                       }`}
                     >
                       {task.status}
+                    </span>
+
+                    {/* Priority Badge */}
+                    <span
+                      className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                        task.priority === "Top High"
+                          ? "bg-rose-100 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-250 animate-pulse font-extrabold"
+                          : task.priority === "High"
+                            ? "bg-pink-50 dark:bg-pink-950/20 text-pink-600 dark:text-pink-400 border border-pink-200/50"
+                            : task.priority === "Medium"
+                              ? "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-200/50"
+                              : "bg-slate-50 dark:bg-slate-900/40 text-slate-500 dark:text-slate-400 border border-slate-200/50"
+                      }`}
+                    >
+                      {task.priority || "Medium"}
+                    </span>
+
+                    {/* Creator Badge */}
+                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/20 text-indigo-650 dark:text-indigo-400 font-bold flex items-center gap-1 border border-indigo-150/40">
+                      <FiUser size={10} className="text-indigo-550" />
+                      <span>Created By: {taskCreatorName}</span>
                     </span>
                   </div>
 
