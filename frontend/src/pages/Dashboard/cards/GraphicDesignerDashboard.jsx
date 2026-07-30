@@ -1797,7 +1797,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                     <h3 className="text-base font-black text-slate-800 dark:text-white tracking-wide">
                       {activeDesigner?.name}'s Performance Details
                     </h3>
-                    <p className="text-[15px] text-red-500 dark:text-red-500 font-bold uppercase tracking-widest mt-0.5">
+                    <p className="text-[12px] text-red-500 dark:text-red-500 font-bold uppercase tracking-widest mt-0.5">
                       Today No.of Task Assigned : {activeDesigner?.assigned}
                     </p>
                   </div>
@@ -1805,6 +1805,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
                 {/* status filter venum */}
                 <div className="flex items-center gap-4">
+                  <span>status filter:</span>
                   <select
                     value={taskTab}
                     onChange={(e) => setTaskTab(e.target.value)}
@@ -1823,7 +1824,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
                 {/* overdue details */}
                 <div className="flex items-center gap-4">
-                    <span className="px-1.5 py-0.5 text-[15px] font-black uppercase bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 rounded-md border border-rose-200 dark:border-rose-900/30">
+                    <span className="px-1.5 py-0.5 text-[17px] font-black uppercase bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 rounded-md border border-rose-200 dark:border-rose-900/30">
                        OverDue : {activeDesigner?.overdue || 0}
                     </span>
                 </div>
@@ -1945,7 +1946,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                 {/* Bottom Side: Task details table */}
                 <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-[#0f172a] p-6 overflow-hidden">
                   {/* Table Content */}
-                  <div className="flex-1 overflow-y-auto min-h-0">
+                  <div className="flex-1 overflow-y-auto min-h-0 scroll-smooth custom-scrollbar" style={{ scrollBehavior: "smooth", WebkitOverflowScrolling: "touch" }}>
                     {filteredModalTasks.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-16 text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-900/10 rounded-2xl border border-dashed border-slate-200 dark:border-slate-850">
                         <FiLayers
@@ -1964,16 +1965,19 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         <table className="w-full text-left border-collapse">
                           <thead>
                             <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-850">
-                              <th className="py-2.5 px-4 text-[9px] font-black tracking-widest text-slate-500 dark:text-slate-455 uppercase">
+                              <th className="py-2.5 px-4 text-[11px] font-black tracking-widest text-slate-500 dark:text-slate-455 uppercase">
                                 Task Title
                               </th>
-                              <th className="py-2.5 px-4 text-[9px] font-black tracking-widest text-slate-500 dark:text-slate-455 uppercase">
+                              <th className="py-2.5 px-4 text-[11px] font-black tracking-widest text-slate-500 dark:text-slate-455 uppercase">
                                 Client
                               </th>
-                              <th className="py-2.5 px-4 text-[9px] font-black tracking-widest text-slate-500 dark:text-slate-455 uppercase">
+                              <th className="py-2.5 px-4 text-[11px] font-black tracking-widest text-slate-500 dark:text-slate-455 uppercase">
+                                Created By
+                              </th>
+                              <th className="py-2.5 px-4 text-[11px] font-black tracking-widest text-slate-500 dark:text-slate-455 uppercase">
                                 Priority
                               </th>
-                              <th className="py-2.5 px-4 text-[9px] font-black tracking-widest text-slate-500 dark:text-slate-455 uppercase">
+                              <th className="py-2.5 px-4 text-[11px] font-black tracking-widest text-slate-500 dark:text-slate-455 uppercase">
                                 {taskTab === "assigned"
                                   ? "Assigned Date"
                                   : taskTab === "pending"
@@ -1988,7 +1992,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                             ? "Completed At"
                                             : "Due Date"}
                               </th>
-                              <th className="py-2.5 px-4 text-[9px] font-black tracking-widest text-slate-500 dark:text-slate-455 uppercase">
+                              <th className="py-2.5 px-4 text-[11px] font-black tracking-widest text-slate-500 dark:text-slate-455 uppercase">
                                 Status
                               </th>
                             </tr>
@@ -2035,13 +2039,13 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                   s === "completed" ||
                                   s.includes("approve")
                                 ) {
-                                  return "bg-emerald-50 text-emerald-650 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-450 dark:border-emerald-900/30";
+                                  return "bg-emerald-50 text-emerald-650 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-455 dark:border-emerald-900/30";
                                 }
                                 if (s.includes("hold")) {
-                                  return "bg-fuchsia-50 text-fuchsia-650 border border-fuchsia-200 dark:bg-fuchsia-950/30 dark:text-fuchsia-450 dark:border-fuchsia-900/30";
+                                  return "bg-fuchsia-50 text-fuchsia-655 border border-fuchsia-200 dark:bg-fuchsia-950/30 dark:text-fuchsia-450 dark:border-fuchsia-900/30";
                                 }
                                 if (s.includes("progress")) {
-                                  return "bg-sky-50 text-sky-655 border border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/30";
+                                  return "bg-sky-50 text-sky-655 border border-sky-205 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/30";
                                 }
                                 if (
                                   s.includes("review") ||
@@ -2052,7 +2056,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                 if (s === "assigned") {
                                   return "bg-blue-50 text-blue-655 border border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/30";
                                 }
-                                return "bg-rose-50 text-rose-655 border border-rose-200 dark:bg-rose-950/30 dark:text-rose-450 dark:border-rose-900/30";
+                                return "bg-rose-50 text-rose-655 border border-rose-200 dark:bg-rose-950/30 dark:text-rose-455 dark:border-rose-900/30";
                               };
 
                               return (
@@ -2060,20 +2064,20 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                   key={task._id}
                                   className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors"
                                 >
-                                  <td className="py-2.5 px-4 text-[10.5px] font-bold text-slate-800 dark:text-white max-w-xs break-words">
+                                  <td className="py-2.5 px-4 text-xs font-bold text-slate-800 dark:text-white max-w-xs break-words">
                                     {task.title}
                                   </td>
                                   <td className="py-2.5 px-4">
-                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[9.5px] font-bold ${(() => {
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[11px] font-bold ${(() => {
                                       const colors = [
-                                        "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/30",
-                                        "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/30",
-                                        "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/30",
-                                        "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-900/30",
-                                        "bg-amber-50 text-amber-700 border-amber-250 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/30",
-                                        "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-450 dark:border-rose-900/30",
-                                        "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/30",
-                                        "bg-teal-50 text-teal-700 border-teal-200 dark:bg-teal-950/30 dark:text-teal-400 dark:border-teal-900/30",
+                                        "bg-indigo-50 text-indigo-750 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/30",
+                                        "bg-emerald-50 text-emerald-750 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/30",
+                                        "bg-blue-50 text-blue-750 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/30",
+                                        "bg-purple-50 text-purple-755 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-900/30",
+                                        "bg-amber-50 text-amber-755 border-amber-250 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/30",
+                                        "bg-rose-50 text-rose-755 border-rose-200 dark:bg-rose-950/30 dark:text-rose-450 dark:border-rose-900/30",
+                                        "bg-sky-50 text-sky-755 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/30",
+                                        "bg-teal-50 text-teal-755 border-teal-200 dark:bg-teal-950/30 dark:text-teal-400 dark:border-teal-900/30",
                                       ];
                                       let hash = 0;
                                       for (let i = 0; i < clientName.length; i++) {
@@ -2087,15 +2091,54 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                     </span>
                                   </td>
                                   <td className="py-2.5 px-4">
+                                    {(() => {
+                                      const creatorObj = task.createdBy && typeof task.createdBy === "object"
+                                        ? task.createdBy
+                                        : users?.find((u) => u._id === task.createdBy);
+                                      const creatorName = creatorObj?.name || "Unknown";
+                                      const creatorImage =
+                                        (typeof creatorObj?.profile?.profileImage === "object"
+                                          ? creatorObj?.profile?.profileImage?.url
+                                          : creatorObj?.profile?.profileImage) ||
+                                        (typeof creatorObj?.profileImage === "object"
+                                          ? creatorObj?.profileImage?.url
+                                          : creatorObj?.profileImage) ||
+                                        creatorObj?.profilePic ||
+                                        creatorObj?.avatar ||
+                                        creatorObj?.profile?.profilePic ||
+                                        creatorObj?.profile?.avatar ||
+                                        null;
+
+                                      return (
+                                        <div className="flex items-center gap-1.5">
+                                          {creatorImage ? (
+                                            <img
+                                              src={creatorImage}
+                                              alt={creatorName}
+                                              className="w-5 h-5 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shrink-0"
+                                            />
+                                          ) : (
+                                            <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-750 dark:text-slate-300 flex items-center justify-center text-[8px] font-black ring-1 ring-slate-300 shrink-0">
+                                              {getInitials(creatorName)}
+                                            </div>
+                                          )}
+                                          <span className="text-xs font-bold text-slate-700 dark:text-slate-350">
+                                            {creatorName}
+                                          </span>
+                                        </div>
+                                      );
+                                    })()}
+                                  </td>
+                                  <td className="py-2.5 px-4">
                                     {task.priority && (
                                       <span
-                                        className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${getPriorityStyle(task.priority)}`}
+                                        className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${getPriorityStyle(task.priority)}`}
                                       >
                                         {task.priority}
                                       </span>
                                     )}
                                   </td>
-                                  <td className="py-2.5 px-4 text-[10.5px] text-slate-500 dark:text-slate-400">
+                                  <td className="py-2.5 px-4 text-xs text-slate-500 dark:text-slate-400">
                                     {(() => {
                                       let targetDate = null;
                                       if (taskTab === "assigned")
@@ -2125,7 +2168,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
                                       if (!targetDate)
                                         return (
-                                          <span className="text-slate-400 font-medium italic text-[10.5px]">
+                                          <span className="text-slate-400 font-medium italic text-[11.5px]">
                                             -
                                           </span>
                                         );
@@ -2159,7 +2202,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                                     animationDuration: "2s",
                                                   }}
                                                 />
-                                                <div className="relative bg-red-500 px-2 py-0.5 rounded-[11px] flex items-center gap-1.5 z-10 text-white font-extrabold text-[9.5px] tracking-wide border-transparent">
+                                                <div className="relative bg-red-500 px-2 py-0.5 rounded-[11px] flex items-center gap-1.5 z-10 text-white font-extrabold text-[10px] tracking-wide border-transparent">
                                                   <FiClock
                                                     size={11}
                                                     className="text-white animate-bounce"
@@ -2180,14 +2223,14 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                         const getRelativeBadge = () => {
                                           if (isYesterday(dateObj)) {
                                             return (
-                                              <span className="px-1.2 py-0.2 text-[8px] font-black uppercase bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 rounded-md border border-rose-200 dark:border-rose-900/30">
+                                              <span className="px-1.5 py-0.5 text-[9.5px] font-black uppercase bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 rounded-md border border-rose-200 dark:border-rose-900/30">
                                                 Yesterday
                                               </span>
                                             );
                                           }
                                           if (isTomorrow(dateObj)) {
                                             return (
-                                              <span className="px-1.2 py-0.2 text-[8px] font-black uppercase bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 rounded-md border border-sky-200 dark:border-sky-900/30">
+                                              <span className="px-1.5 py-0.5 text-[9.5px] font-black uppercase bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 rounded-md border border-sky-200 dark:border-sky-900/30">
                                                 Tomorrow
                                               </span>
                                             );
@@ -2196,7 +2239,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                         };
 
                                         return (
-                                          <span className="flex items-center gap-1 flex-wrap text-[10.5px]">
+                                          <span className="flex items-center gap-1 flex-wrap text-xs">
                                             <span className="flex items-center gap-1">
                                               <FiClock
                                                 size={11}
@@ -2212,7 +2255,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                         );
                                       } catch (err) {
                                         return (
-                                          <span className="text-slate-400 font-medium italic text-[10.5px]">
+                                          <span className="text-slate-400 font-medium italic text-xs">
                                             -
                                           </span>
                                         );
@@ -2221,7 +2264,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                   </td>
                                   <td className="py-2.5 px-4">
                                     <span
-                                      className={`px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest ${getStatusBadgeStyle(task.status)}`}
+                                      className={`px-2 py-0.5 rounded-md text-[12px] font-black uppercase tracking-widest ${getStatusBadgeStyle(task.status)}`}
                                     >
                                       {task.status || "Pending"}
                                     </span>
