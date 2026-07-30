@@ -83,6 +83,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   });
   const [taskTab, setTaskTab] = useState("all");
   const [taskSearch, setTaskSearch] = useState("");
+  const [bottleneckClient, setBottleneckClient] = useState("All Clients");
+  const [bottleneckCreator, setBottleneckCreator] = useState("All Creators");
+  const [bottleneckAssignee, setBottleneckAssignee] = useState("All Assignees");
+  const [bottleneckStatus, setBottleneckStatus] = useState("All Statuses");
   const [updateTask] = useUpdateTaskMutation();
 
   useEffect(() => {
@@ -562,24 +566,119 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     });
   }, [designerTasks, projects, clients]);
 
-  // 7. Delayed Projects/Tasks
-  const delayedTasks = useMemo(() => {
+  // 7. Delayed Projects/Tasks (Raw active bottlenecks)
+  const rawBottleneckTasks = useMemo(() => {
     return designerTasks
-      .filter(
-        (t) =>
-          t.dueDate &&
-          isPast(parseISO(t.dueDate)) &&
-          t.status?.toLowerCase() !== "completed",
-      )
+      .filter((t) => {
+        const s = t.status?.toLowerCase() || "";
+        const isActive = s !== "completed" && !s.includes("approve");
+        return isActive;
+      })
       .map((t) => {
-        let diff = differenceInDays(new Date(), parseISO(t.dueDate));
+        const s = t.status?.toLowerCase() || "";
+        let diff = t.dueDate ? differenceInDays(new Date(), parseISO(t.dueDate)) : 0;
+        let delayText = "";
+        if (s.includes("hold")) {
+          delayText = "On Hold";
+        } else if (diff === 0) {
+          delayText = "Due Today";
+        } else if (diff < 0) {
+          delayText = Math.abs(diff) + (Math.abs(diff) === 1 ? " day" : " days") + " left";
+        } else {
+          delayText = diff + (diff === 1 ? " day" : " days") + " delayed";
+        }
+
+        let projName = "No Project";
+        if (t.project) {
+          const pId = typeof t.project === "object" ? t.project._id : t.project;
+          const p = projects?.find((x) => x._id === pId);
+          projName = p?.name || "Unknown";
+        }
+
+        let clientId = t.client;
+        if (typeof clientId === "object" && clientId?._id) clientId = clientId._id;
+        if (!clientId && t.project) {
+          const pId = typeof t.project === "object" ? t.project._id : t.project;
+          const p = projects?.find((x) => x._id === pId);
+          clientId = p?.client?._id || p?.client;
+        }
+        const cl = clients?.find((c) => c._id === clientId);
+        const clientName = cl?.name || cl?.companyName || "No Client";
+
+        const creatorObj = t.createdBy && typeof t.createdBy === "object"
+          ? t.createdBy
+          : users?.find((u) => u._id === t.createdBy);
+        const creatorName = creatorObj?.name || "Unknown";
+        const creatorImage =
+          (typeof creatorObj?.profile?.profileImage === "object"
+            ? creatorObj?.profile?.profileImage?.url
+            : creatorObj?.profile?.profileImage) ||
+          (typeof creatorObj?.profileImage === "object"
+            ? creatorObj?.profileImage?.url
+            : creatorObj?.profileImage) ||
+          creatorObj?.profilePic ||
+          creatorObj?.avatar ||
+          creatorObj?.profile?.profilePic ||
+          creatorObj?.profile?.avatar ||
+          null;
+
+        const assigneeObj = t.assignedTo
+          ? typeof t.assignedTo === "object"
+            ? t.assignedTo
+            : designers.find((d) => d._id === t.assignedTo) || users?.find((u) => u._id === t.assignedTo)
+          : null;
+        const assigneeName = assigneeObj?.name || "Unassigned";
+        const assigneeImage =
+          (typeof assigneeObj?.profile?.profileImage === "object"
+            ? assigneeObj?.profile?.profileImage?.url
+            : assigneeObj?.profile?.profileImage) ||
+          (typeof assigneeObj?.profileImage === "object"
+            ? assigneeObj?.profileImage?.url
+            : assigneeObj?.profileImage) ||
+          assigneeObj?.profilePic ||
+          assigneeObj?.avatar ||
+          assigneeObj?.profile?.profilePic ||
+          assigneeObj?.profile?.avatar ||
+          null;
+
         return {
           ...t,
-          daysDelayed:
-            diff === 0 ? "Same day" : diff + (diff === 1 ? " day" : " days"),
+          projName,
+          clientName,
+          creatorName,
+          creatorImage,
+          assigneeName,
+          assigneeImage,
+          daysDelayed: delayText,
         };
       });
-  }, [designerTasks]);
+  }, [designerTasks, projects, clients, users, designers]);
+
+  const bottleneckClients = useMemo(() => {
+    return ["All Clients", ...new Set(rawBottleneckTasks.map((t) => t.clientName))];
+  }, [rawBottleneckTasks]);
+
+  const bottleneckCreators = useMemo(() => {
+    return ["All Creators", ...new Set(rawBottleneckTasks.map((t) => t.creatorName))];
+  }, [rawBottleneckTasks]);
+
+  const bottleneckAssignees = useMemo(() => {
+    return ["All Assignees", ...new Set(rawBottleneckTasks.map((t) => t.assigneeName))];
+  }, [rawBottleneckTasks]);
+
+  const bottleneckStatuses = useMemo(() => {
+    return ["All Statuses", ...new Set(rawBottleneckTasks.map((t) => t.status))].filter(Boolean);
+  }, [rawBottleneckTasks]);
+
+  const delayedTasks = useMemo(() => {
+    return rawBottleneckTasks.filter((t) => {
+      if (bottleneckClient !== "All Clients" && t.clientName !== bottleneckClient) return false;
+      if (bottleneckCreator !== "All Creators" && t.creatorName !== bottleneckCreator) return false;
+      if (bottleneckAssignee !== "All Assignees" && t.assigneeName !== bottleneckAssignee) return false;
+      if (bottleneckStatus !== "All Statuses" && t.status !== bottleneckStatus) return false;
+      return true;
+    });
+  }, [rawBottleneckTasks, bottleneckClient, bottleneckCreator, bottleneckAssignee, bottleneckStatus]);
 
   const activeDesigner = useMemo(() => {
     return viewTasksModal.open
@@ -1317,28 +1416,84 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             </table>
           </div>
         </div>
-      </div>
-
-      {/* Delayed Projects & Bottlenecks */}
+      </div>      {/* Delayed Projects & Bottlenecks */}
       <div className="bg-white dark:bg-[#0f172a]/90 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden shadow-sm dark:shadow-xl relative z-10">
-        <div className="p-5 border-b border-slate-200 dark:border-slate-700/80 flex items-center gap-3 bg-slate-50 dark:bg-transparent">
-          <div className="p-2 bg-rose-100 dark:bg-rose-500/20 rounded-lg text-rose-600 dark:text-rose-400">
-            <FiAlertCircle className="text-lg" />
+        <div className="p-5 border-b border-slate-200 dark:border-slate-700/80 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-50 dark:bg-transparent">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-rose-100 dark:bg-rose-500/20 rounded-lg text-rose-600 dark:text-rose-400">
+              <FiAlertCircle className="text-lg" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-800 dark:text-white tracking-widest">
+              Delayed Projects & Bottlenecks
+            </h3>
           </div>
-          <h3 className="text-sm font-bold text-slate-800 dark:text-white tracking-widest">
-            Delayed Projects & Bottlenecks
-          </h3>
+
+          {/* Filters Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 w-full lg:w-auto">
+            {/* Client Filter */}
+            <select
+              value={bottleneckClient}
+              onChange={(e) => setBottleneckClient(e.target.value)}
+              className="px-2.5 py-1.5 text-[10px] font-bold bg-white dark:bg-[#0b1120] border border-slate-200 dark:border-slate-700/80 rounded-lg text-slate-700 dark:text-slate-250 focus:outline-none focus:border-rose-500 transition-all shadow-sm"
+            >
+              {bottleneckClients.map((client) => (
+                <option key={client} value={client}>
+                  {client}
+                </option>
+              ))}
+            </select>
+
+            {/* Creator Filter */}
+            <select
+              value={bottleneckCreator}
+              onChange={(e) => setBottleneckCreator(e.target.value)}
+              className="px-2.5 py-1.5 text-[10px] font-bold bg-white dark:bg-[#0b1120] border border-slate-200 dark:border-slate-700/80 rounded-lg text-slate-700 dark:text-slate-250 focus:outline-none focus:border-rose-500 transition-all shadow-sm"
+            >
+              {bottleneckCreators.map((creator) => (
+                <option key={creator} value={creator}>
+                  {creator}
+                </option>
+              ))}
+            </select>
+
+            {/* Assignee Filter */}
+            <select
+              value={bottleneckAssignee}
+              onChange={(e) => setBottleneckAssignee(e.target.value)}
+              className="px-2.5 py-1.5 text-[10px] font-bold bg-white dark:bg-[#0b1120] border border-slate-200 dark:border-slate-700/80 rounded-lg text-slate-700 dark:text-slate-250 focus:outline-none focus:border-rose-500 transition-all shadow-sm"
+            >
+              {bottleneckAssignees.map((assignee) => (
+                <option key={assignee} value={assignee}>
+                  {assignee}
+                </option>
+              ))}
+            </select>
+
+            {/* Status Filter */}
+            <select
+              value={bottleneckStatus}
+              onChange={(e) => setBottleneckStatus(e.target.value)}
+              className="px-2.5 py-1.5 text-[10px] font-bold bg-white dark:bg-[#0b1120] border border-slate-200 dark:border-slate-700/80 rounded-lg text-slate-700 dark:text-slate-250 focus:outline-none focus:border-rose-500 transition-all shadow-sm"
+            >
+              {bottleneckStatuses.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div className="p-5 space-y-4">
+
+        <div className="p-5 space-y-4 max-h-[420px] overflow-y-auto custom-scrollbar">
           {delayedTasks.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-emerald-500 dark:text-emerald-400">
               <FiCheckCircle className="text-4xl mb-3 opacity-50" />
               <p className="text-sm font-black tracking-widest uppercase">
-                Zero Delays!
+                Zero Bottlenecks!
               </p>
             </div>
           ) : (
-            delayedTasks.slice(0, 5).map((task) => {
+            delayedTasks.map((task) => {
               let projName = "No Project";
               if (task.project) {
                 const pId =
@@ -1348,24 +1503,118 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                 const p = projects?.find((x) => x._id === pId);
                 projName = p?.name || "Unknown";
               }
+
+              const s = task.status?.toLowerCase() || "";
+              let cardStyle = "border-rose-500 bg-rose-50 dark:bg-rose-500/10";
+              let badgeStyle = "bg-rose-100 text-rose-700 border-rose-205 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/30";
+              let timeBadgeStyle = "text-rose-600 dark:text-rose-300 bg-white dark:bg-rose-500/20 border border-rose-200 dark:border-rose-500/30";
+              
+              if (s.includes("hold")) {
+                cardStyle = "border-fuchsia-500 bg-fuchsia-50/50 dark:bg-fuchsia-500/10";
+                badgeStyle = "bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200 dark:bg-fuchsia-950/40 dark:text-fuchsia-400 dark:border-fuchsia-900/30";
+                timeBadgeStyle = "text-fuchsia-600 dark:text-fuchsia-300 bg-white dark:bg-fuchsia-500/20 border border-fuchsia-200 dark:border-fuchsia-500/30";
+              } else if (s.includes("progress")) {
+                cardStyle = "border-blue-500 bg-blue-50/50 dark:bg-blue-500/10";
+                badgeStyle = "bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/30";
+                timeBadgeStyle = "text-blue-600 dark:text-blue-300 bg-white dark:bg-blue-500/20 border border-blue-200 dark:border-blue-500/30";
+              } else if (s.includes("review") || s.includes("revision")) {
+                cardStyle = "border-yellow-500 bg-yellow-50/50 dark:bg-yellow-500/10";
+                badgeStyle = "bg-yellow-100 text-yellow-800 border border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-450 dark:border-yellow-900/30";
+                timeBadgeStyle = "text-yellow-600 dark:text-yellow-450 bg-white dark:bg-yellow-500/20 border border-yellow-250 dark:border-yellow-500/30";
+              } else if (s.includes("pending") || s.includes("assigned")) {
+                cardStyle = "border-orange-500 bg-orange-50/50 dark:bg-orange-500/10";
+                badgeStyle = "bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-900/30";
+                timeBadgeStyle = "text-orange-655 dark:text-orange-400 bg-white dark:bg-orange-500/20 border border-orange-200 dark:border-orange-500/30";
+              }
+
+              // Hash function to get unique soft badge style per client
+              const getClientBadgeStyle = (name) => {
+                const hash = name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                const colors = [
+                  "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/30",
+                  "bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/30",
+                  "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/30",
+                  "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/30",
+                  "bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-950/30 dark:text-violet-400 dark:border-violet-900/30",
+                  "bg-pink-50 text-pink-600 border-pink-200 dark:bg-pink-950/30 dark:text-pink-400 dark:border-pink-900/30",
+                  "bg-cyan-50 text-cyan-600 border-cyan-200 dark:bg-cyan-950/30 dark:text-cyan-400 dark:border-cyan-900/30"
+                ];
+                return colors[hash % colors.length];
+              };
+
+              const clientBadgeColor = getClientBadgeStyle(task.clientName);
+
               return (
                 <div
                   key={task._id}
-                  className="flex items-center justify-between p-4 rounded-xl border-l-4 border-rose-500 bg-rose-50 dark:bg-rose-500/10 shadow-sm dark:shadow-none transition-transform hover:-translate-y-0.5"
+                  className={`flex flex-col md:flex-row md:items-center md:justify-between p-3.5 rounded-xl border-l-4 ${cardStyle} shadow-sm dark:shadow-none transition-all hover:scale-[1.01] hover:shadow-md gap-4`}
                 >
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                      {projName} —{" "}
-                      <span className="text-slate-500 dark:text-slate-400">
-                        {task.title}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                      <span className={`px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider rounded-md border ${clientBadgeColor}`}>
+                        {task.clientName}
                       </span>
+                      <span className="text-[10px] text-slate-300 dark:text-slate-700">•</span>
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                        {projName}
+                      </span>
+                    </div>
+                    <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1">
+                      {task.title}
                     </h4>
-                    <p className="text-[11px] text-slate-500 font-bold mt-1 uppercase tracking-widest">
-                      {task.status}
-                    </p>
+                    
+                    <div className="flex items-center gap-6 mt-3 flex-wrap">
+                      {/* Creator */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-extrabold">Creator:</span>
+                        <div className="flex items-center gap-1.5">
+                          {task.creatorImage ? (
+                            <img
+                              src={task.creatorImage}
+                              alt={task.creatorName}
+                              className="w-5 h-5 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shrink-0"
+                            />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center justify-center text-[8px] font-black ring-1 ring-slate-300 shrink-0">
+                              {getInitials(task.creatorName)}
+                            </div>
+                          )}
+                          <span className="text-[11px] font-bold text-slate-750 dark:text-slate-300">
+                            {task.creatorName}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Assignee */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-extrabold">Assignee:</span>
+                        <div className="flex items-center gap-1.5">
+                          {task.assigneeImage ? (
+                            <img
+                              src={task.assigneeImage}
+                              alt={task.assigneeName}
+                              className="w-5 h-5 rounded-full object-cover ring-1 ring-indigo-400/40 shrink-0"
+                            />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-[8px] font-black ring-1 ring-indigo-400/30 shrink-0">
+                              {getInitials(task.assigneeName)}
+                            </div>
+                          )}
+                          <span className="text-[11px] font-bold text-slate-755 dark:text-slate-300">
+                            {task.assigneeName}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-xs font-black text-rose-600 dark:text-rose-300 bg-white dark:bg-rose-500/20 px-4 py-1.5 rounded-lg border border-rose-200 dark:border-rose-500/30 shadow-sm">
-                    {task.daysDelayed}
+                  
+                  <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                    <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded border ${badgeStyle}`}>
+                      {task.status}
+                    </span>
+                    <div className={`text-[10px] font-black px-2.5 py-1 rounded-lg border shadow-sm ${timeBadgeStyle}`}>
+                      {task.daysDelayed}
+                    </div>
                   </div>
                 </div>
               );
