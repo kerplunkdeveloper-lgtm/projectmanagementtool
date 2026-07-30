@@ -14,13 +14,12 @@ const InReviewNotificationPopup = () => {
 
   const [isOpen, setIsOpen] = useState(false);
 
-  // Check if current user is authorized (Admin, Operation Manager, or Social Media Manager)
+  // Check if current user is authorized (Operation Manager, or Social Media Manager)
   const isAuthorized = useMemo(() => {
     if (!user) return false;
     const role = user.role?.toLowerCase() || "";
     const dept = user.department?.toLowerCase() || "";
     return (
-      role === "admin" ||
       role === "operationmanager" ||
       dept === "social media manager"
     );
@@ -28,7 +27,7 @@ const InReviewNotificationPopup = () => {
 
   const currentUserId = user?._id || user?.id;
 
-  // Filter tasks that are in review or revision (All for Admin/OpManager, createdBy only for others)
+  // Filter tasks that are in review or revision (All for OpManager, createdBy only for Social Media Manager)
   const inReviewTasks = useMemo(() => {
     if (!isAuthorized || !currentUserId) return [];
     return allTasks.filter((task) => {
@@ -37,7 +36,7 @@ const InReviewNotificationPopup = () => {
       if (!isReview) return false;
 
       const role = user?.role?.toLowerCase() || "";
-      if (role === "admin" || role === "operationmanager") {
+      if (role === "operationmanager") {
         return true;
       }
 
