@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useSelector } from "react-redux";
 import { useGetTasksQuery } from "../../features/api/apiSlice";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, isToday, isBefore, startOfDay } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiX, FiAlertCircle } from "react-icons/fi";
 
@@ -14,12 +14,54 @@ const InReviewNotificationPopup = () => {
 
   const [isOpen, setIsOpen] = useState(false);
 
-  // Check if current user is authorized (Operation Manager, or Social Media Manager)
+  // Synthesize a clean, premium double-tone chime sound programmatically
+  const playBeep = () => {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Tone 1: 830Hz (Sine wave, warm tone)
+      const osc1 = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      osc1.type = "sine";
+      osc1.frequency.setValueAtTime(830, audioCtx.currentTime);
+      
+      gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+      
+      osc1.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      osc1.start();
+      osc1.stop(audioCtx.currentTime + 0.6);
+      
+      // Tone 2: 1100Hz (Harmonic tone, slightly delayed by 80ms)
+      setTimeout(() => {
+        try {
+          const osc2 = audioCtx.createOscillator();
+          const gain2 = audioCtx.createGain();
+          osc2.type = "sine";
+          osc2.frequency.setValueAtTime(1100, audioCtx.currentTime);
+          gain2.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+          osc2.connect(gain2);
+          gain2.connect(audioCtx.destination);
+          osc2.start();
+          osc2.stop(audioCtx.currentTime + 0.5);
+        } catch (e) {}
+      }, 80);
+    } catch (e) {
+      console.log("Audio playback blocked or unsupported by browser:", e);
+    }
+  };
+
+  // Check if current user is authorized (Admin, Operation Manager, or Social Media Manager)
   const isAuthorized = useMemo(() => {
     if (!user) return false;
     const role = user.role?.toLowerCase() || "";
     const dept = user.department?.toLowerCase() || "";
     return (
+      role === "admin" ||
       role === "operationmanager" ||
       dept === "social media manager"
     );
@@ -27,16 +69,16 @@ const InReviewNotificationPopup = () => {
 
   const currentUserId = user?._id || user?.id;
 
-  // Filter tasks that are in review or revision (All for OpManager, createdBy only for Social Media Manager)
+  // Filter tasks that are in review or revision (All for Admin/OpManager, createdBy only for Social Media Manager)
   const inReviewTasks = useMemo(() => {
     if (!isAuthorized || !currentUserId) return [];
-    return allTasks.filter((task) => {
+    const filtered = allTasks.filter((task) => {
       const s = task.status?.toLowerCase() || "";
       const isReview = s.includes("review") || s.includes("revision");
       if (!isReview) return false;
 
       const role = user?.role?.toLowerCase() || "";
-      if (role === "operationmanager") {
+      if (role === "admin" || role === "operationmanager") {
         return true;
       }
 
@@ -44,6 +86,25 @@ const InReviewNotificationPopup = () => {
         ? task.createdBy._id || task.createdBy.id
         : task.createdBy;
       return creatorId === currentUserId;
+    });
+
+    // Sort so overdue or due today tasks come first, then sort by due date descending
+    return [...filtered].sort((a, b) => {
+      const isOverdueOrTodayA = a.dueDate
+        ? isToday(parseISO(a.dueDate)) || isBefore(parseISO(a.dueDate), startOfDay(new Date()))
+        : false;
+      const isOverdueOrTodayB = b.dueDate
+        ? isToday(parseISO(b.dueDate)) || isBefore(parseISO(b.dueDate), startOfDay(new Date()))
+        : false;
+
+      // Prioritize overdue or today's tasks first
+      if (isOverdueOrTodayA && !isOverdueOrTodayB) return -1;
+      if (!isOverdueOrTodayA && isOverdueOrTodayB) return 1;
+
+      // Otherwise, sort by due date descending (most recent first)
+      const dateA = a.dueDate ? new Date(a.dueDate) : new Date(0);
+      const dateB = b.dueDate ? new Date(b.dueDate) : new Date(0);
+      return dateB - dateA;
     });
   }, [allTasks, isAuthorized, currentUserId, user]);
 
@@ -53,29 +114,36 @@ const InReviewNotificationPopup = () => {
       return;
     }
 
-    // Show popup immediately on mount/login if there are review tasks
+    // Show popup immediately on mount/refresh
     setIsOpen(true);
+    playBeep();
 
-    // Set up 10-minute interval (10 * 60 * 1000 ms)
-    const interval = setInterval(() => {
-      if (inReviewTasks.length > 0) {
-        setIsOpen(true);
-      }
-    }, 10 * 60 * 1000);
+    const role = user?.role?.toLowerCase() || "";
+    const dept = user?.department?.toLowerCase() || "";
 
-    return () => clearInterval(interval);
-  }, [isAuthorized, inReviewTasks.length]);
+    // Set 5-minute periodic interval ONLY for Operation Manager and Social Media Manager
+    if (role === "operationmanager" || dept === "social media manager") {
+      const interval = setInterval(() => {
+        if (inReviewTasks.length > 0) {
+          setIsOpen(true);
+          playBeep();
+        }
+      }, 5 * 60 * 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [isAuthorized, inReviewTasks.length, user]);
 
   if (!isAuthorized || !isOpen || inReviewTasks.length === 0) return null;
 
   return (
     <AnimatePresence>
-      <div className="fixed bottom-6 right-6 z-[9999] max-w-md w-full p-1.5 pointer-events-none">
+      <div className="fixed bottom-0 sm:bottom-6 left-0 sm:left-auto right-0 sm:right-6 md:right-8 z-[9999] w-full sm:max-w-md p-4 sm:p-1.5 pointer-events-none">
         <motion.div
-          initial={{ opacity: 0, y: 50, scale: 0.9 }}
+          initial={{ opacity: 0, y: 50, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.95 }}
-          className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-5 pointer-events-auto relative overflow-hidden"
+          className="bg-white/98 dark:bg-slate-900/98 backdrop-blur-xl border border-slate-200 dark:border-slate-850 rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-5 pointer-events-auto relative overflow-hidden"
         >
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
@@ -84,10 +152,10 @@ const InReviewNotificationPopup = () => {
                 <FiAlertCircle size={18} />
               </div>
               <div>
-                <h4 className="text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">
+                <h4 className="text-xs sm:text-sm font-black text-slate-850 dark:text-white uppercase tracking-wider">
                   Tasks In Review
                 </h4>
-                <p className="text-[10px] text-slate-450 dark:text-slate-400 font-bold uppercase tracking-widest mt-0.5">
+                <p className="text-[9px] sm:text-[10px] text-slate-450 dark:text-slate-400 font-bold uppercase tracking-widest mt-0.5">
                   {inReviewTasks.length} {inReviewTasks.length === 1 ? "task" : "tasks"} pending approval
                 </p>
               </div>
@@ -101,7 +169,7 @@ const InReviewNotificationPopup = () => {
           </div>
 
           {/* Task List Container */}
-          <div className="space-y-2.5 max-h-[250px] overflow-y-auto pr-1.5 custom-scrollbar">
+          <div className="space-y-2.5 max-h-[200px] sm:max-h-[250px] overflow-y-auto pr-1.5 custom-scrollbar">
             {inReviewTasks.map((task) => {
               const assigneeName =
                 typeof task.assignedTo === "object"
@@ -122,6 +190,10 @@ const InReviewNotificationPopup = () => {
                 creatorObj?.profileImage?.url ||
                 creatorObj?.profilePic ||
                 null;
+
+              const isOverdueOrToday = task.dueDate
+                ? isToday(parseISO(task.dueDate)) || isBefore(parseISO(task.dueDate), startOfDay(new Date()))
+                : false;
 
               const formattedDueDate = task.dueDate
                 ? format(parseISO(task.dueDate), "MMM dd, yyyy")
@@ -146,13 +218,17 @@ const InReviewNotificationPopup = () => {
                         {task.status}
                       </span>
                       <span className="text-[10px] text-slate-350 dark:text-slate-700">•</span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">
+                      <span className={`text-[10px] font-bold ${
+                        isOverdueOrToday
+                          ? "text-red-500 dark:text-red-400 animate-pulse font-black"
+                          : "text-slate-500 dark:text-slate-400"
+                      }`}>
                         Due: {formattedDueDate}
                       </span>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2 gap-2 mt-0.5">
+                  <div className="flex flex-col xs:flex-row xs:items-center justify-between border-t border-slate-100 dark:border-slate-800/60 pt-2 gap-2 mt-0.5">
                     {/* Creator */}
                     <div className="flex items-center gap-1">
                       <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-extrabold">By:</span>

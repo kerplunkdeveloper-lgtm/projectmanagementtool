@@ -1824,7 +1824,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
                 {/* overdue details */}
                 <div className="flex items-center gap-4">
-                    <span className="px-1.5 py-0.5 text-[17px] font-black uppercase bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 rounded-md border border-rose-200 dark:border-rose-900/30">
+                    <span className={`px-1.5 py-0.5 text-[17px] font-black uppercase rounded-md border ${
+                      (activeDesigner?.overdue || 0) > 0
+                        ? "bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400 border-red-300 dark:border-red-900/30 animate-pulse shadow-sm shadow-red-500/20"
+                        : "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200 dark:border-rose-900/30"
+                    }`}>
                        OverDue : {activeDesigner?.overdue || 0}
                     </span>
                 </div>
