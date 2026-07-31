@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { BiFile } from "react-icons/bi";
 import {
   FiCalendar,
@@ -172,6 +172,65 @@ const renderUserAvatarSmall = (u) => {
   );
 };
 
+const getUserColorClass = (userName) => {
+  if (!userName || userName === "Unknown" || userName === "Unassigned") return "text-slate-500 dark:text-slate-400";
+  const colors = [
+    "text-indigo-650 dark:text-indigo-400 hover:text-indigo-850 dark:hover:text-indigo-300",
+    "text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300",
+    "text-sky-600 dark:text-sky-400 hover:text-sky-850 dark:hover:text-sky-300",
+    "text-violet-600 dark:text-violet-400 hover:text-violet-850 dark:hover:text-violet-300",
+    "text-rose-600 dark:text-rose-400 hover:text-rose-850 dark:hover:text-rose-300",
+    "text-amber-600 dark:text-amber-400 hover:text-amber-850 dark:hover:text-amber-300",
+    "text-fuchsia-600 dark:text-fuchsia-400 hover:text-fuchsia-850 dark:hover:text-fuchsia-300",
+    "text-cyan-600 dark:text-cyan-400 hover:text-cyan-850 dark:hover:text-cyan-300"
+  ];
+  let hash = 0;
+  for (let i = 0; i < userName.length; i++) {
+    hash = userName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % colors.length;
+  return colors[index];
+};
+
+const getDeptBadgeStyle = (dept) => {
+  const d = dept?.toLowerCase() || "";
+  if (d.includes("graphic") || d.includes("design")) {
+    return "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/20 dark:text-purple-300 dark:border-purple-900/30";
+  }
+  if (d.includes("video") || d.includes("editor")) {
+    return "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/20 dark:text-blue-300 dark:border-blue-900/30";
+  }
+  if (d.includes("social") || d.includes("media") || d.includes("manager") || d.includes("executive")) {
+    return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-300 dark:border-emerald-900/30";
+  }
+  if (d.includes("content") || d.includes("writer")) {
+    return "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/20 dark:text-amber-300 dark:border-amber-900/30";
+  }
+  if (d.includes("admin") || d.includes("operation")) {
+    return "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/20 dark:text-rose-300 dark:border-rose-900/30";
+  }
+  return "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800";
+};
+
+const shortenDept = (dept) => {
+  if (!dept) return "";
+  const d = dept.toLowerCase().trim();
+  if (d.includes("graphic") && d.includes("design")) return "GD";
+  if (d.includes("graphic")) return "GD";
+  if (d.includes("video") && d.includes("editor")) return "VE";
+  if (d.includes("video")) return "VE";
+  if (d.includes("social") && d.includes("media") && d.includes("manager")) return "SM";
+  if (d.includes("social") && d.includes("media") && d.includes("executive")) return "SME";
+  if (d.includes("social") && d.includes("media")) return "SM";
+  if (d.includes("content") && d.includes("writer")) return "CW";
+  if (d.includes("content")) return "Content";
+  if (d.includes("operation") && d.includes("manager")) return "OM";
+  if (d.includes("operation")) return "Ops";
+  if (d.includes("admin")) return "Admin";
+  if (dept.length <= 4) return dept.toUpperCase();
+  return dept.split(" ").map(w => w[0]).join("").substring(0, 3).toUpperCase();
+};
+
 const TaskOverviewTab = ({
   tasks,
   projects,
@@ -182,6 +241,7 @@ const TaskOverviewTab = ({
   showDateDropdown,
   setShowDateDropdown,
   dateDropdownRef,
+  onFilteredCountChange,
 }) => {
   const [updateTaskTrigger] = useUpdateTaskMutation();
   const [deleteTask] = useDeleteTaskMutation();
@@ -345,7 +405,19 @@ const TaskOverviewTab = ({
   const [isColsOpen, setIsColsOpen] = useState(false);
   const colsDropdownRef = useRef(null);
 
-  const [overviewStatusFilter, setOverviewStatusFilter] = useState("All");
+  const [searchParams] = useSearchParams();
+  const statusParam = searchParams.get("status");
+
+  const [overviewStatusFilter, setOverviewStatusFilter] = useState(() => {
+    return statusParam || "All";
+  });
+
+  useEffect(() => {
+    if (statusParam) {
+      setOverviewStatusFilter(statusParam);
+    }
+  }, [statusParam]);
+
   const [overviewPriorityFilter, setOverviewPriorityFilter] = useState("All");
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const statusDropdownRef = useRef(null);
@@ -547,7 +619,10 @@ const TaskOverviewTab = ({
           return false;
         }
 
-        if (
+        if (overviewStatusFilter === "Overdue") {
+          const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "Completed";
+          if (!isOverdue) return false;
+        } else if (
           overviewStatusFilter !== "All" &&
           task.status !== overviewStatusFilter
         ) {
@@ -663,19 +738,19 @@ const TaskOverviewTab = ({
         );
       })
       .sort((a, b) => {
-        const projIdA = a.project?._id || a.project;
-        const projectObjA = projects.find((p) => p._id === projIdA);
-        const clientObjA = a.project?.client?.companyName
-          ? a.project.client
-          : projectObjA?.client || a.project?.client;
-        const clientNameA = (clientObjA?.companyName || "N/A").toLowerCase();
+        const priorityRank = {
+          "Top High": 1,
+          "High": 2,
+          "Medium": 3,
+          "Low": 4,
+        };
 
-        const projIdB = b.project?._id || b.project;
-        const projectObjB = projects.find((p) => p._id === projIdB);
-        const clientObjB = b.project?.client?.companyName
-          ? b.project.client
-          : projectObjB?.client || b.project?.client;
-        const clientNameB = (clientObjB?.companyName || "N/A").toLowerCase();
+        const pRankA = priorityRank[a.priority] || 5;
+        const pRankB = priorityRank[b.priority] || 5;
+
+        if (pRankA !== pRankB) {
+          return pRankA - pRankB;
+        }
 
         const isCompletedA = a.status === "Completed" ? 1 : 0;
         const isCompletedB = b.status === "Completed" ? 1 : 0;
@@ -683,8 +758,11 @@ const TaskOverviewTab = ({
           return isCompletedA - isCompletedB;
         }
 
-        if (clientNameA < clientNameB) return -1;
-        if (clientNameA > clientNameB) return 1;
+        const creatorA = (a.createdBy?.name || "Unknown").toLowerCase();
+        const creatorB = (b.createdBy?.name || "Unknown").toLowerCase();
+
+        if (creatorA < creatorB) return -1;
+        if (creatorA > creatorB) return 1;
 
         const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -707,25 +785,56 @@ const TaskOverviewTab = ({
 
   const totalPages = Math.ceil(filteredOverviewTasks.length / itemsPerPage);
 
+  useEffect(() => {
+    if (onFilteredCountChange) {
+      onFilteredCountChange(filteredOverviewTasks.length);
+    }
+    return () => {
+      if (onFilteredCountChange) {
+        onFilteredCountChange(null);
+      }
+    };
+  }, [filteredOverviewTasks.length, onFilteredCountChange]);
+
   return (
     <>
       <div className="bg-white dark:bg-[#11131e] overflow-hidden flex flex-col h-[calc(100vh-160px)]">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pb-3 pt-1 border-b border-slate-100 dark:border-white/5 relative z-30 shrink-0">
+        <div className="px-10 flex flex-col sm:flex-row items-center justify-between gap-3 pb-3 pt-1 border-b border-slate-100 dark:border-white/5 relative z-30 shrink-0">
           {/* client display */}
-          <div className="flex items-center gap-2 text-md font-bold text-slate-700 dark:text-slate-300">
+          <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-700 dark:text-slate-300">
             <span>Client:</span>
             {overviewClientFilter === "All" ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] font-extrabold border rounded-md bg-slate-50 dark:bg-slate-900/20 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800/30">
-                <FiBriefcase size={9} />
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[8.5px] font-black border rounded bg-slate-50 dark:bg-slate-900/20 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800/30">
+                <FiBriefcase size={8} />
                 All
               </span>
             ) : (
               <ClientBadge
                 client={clients?.find((c) => c._id === overviewClientFilter)}
-                size="md"
+                size="sm"
+                className="!text-[8px] !px-1.5 !py-0.5"
               />
             )}
           </div>
+
+          {/* status display  */}
+          <div className="flex items-center gap-1.5 text-xs font-extrabold text-slate-700 dark:text-slate-300">
+            <span>Status:</span>
+            {overviewStatusFilter === "All" ? (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[8.5px] font-black border rounded bg-slate-50 dark:bg-slate-900/20 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800/30">
+                <FiBriefcase size={8} />
+                All
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[8.5px] font-black border rounded bg-slate-50 dark:bg-slate-900/20 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800/30">
+                <FiBriefcase size={8} />
+                {overviewStatusFilter}
+              </span>
+            )}
+          </div>
+
+
+
 
           <div className="flex items-center justify-end gap-2.5 w-full sm:w-auto">
             <div className="relative" ref={clientDropdownRef}>
@@ -1111,6 +1220,7 @@ const TaskOverviewTab = ({
                       "On Hold",
                       "Completed",
                       "Rejected",
+                      ...(overviewStatusFilter === "Overdue" ? ["Overdue"] : []),
                     ].map((st) => (
                       <button
                         key={st}
@@ -1372,53 +1482,53 @@ const TaskOverviewTab = ({
         <div className="overflow-x-auto overflow-y-auto custom-scrollbar flex-1 relative bg-white dark:bg-[#11131e]">
           <table className="w-full text-left border-collapse min-w-[1305px] table-fixed">
             <thead className="sticky top-0 z-20 bg-slate-50 dark:bg-[#161826] shadow-sm">
-              <tr className="border-b border-slate-200/80 dark:border-white/10 text-[9.5px] font-black text-slate-550 dark:text-slate-400 uppercase tracking-wider">
+              <tr className="border-b border-slate-300 dark:border-white/15 text-[9.5px] font-black text-slate-550 dark:text-slate-400 uppercase tracking-wider">
                 {!hiddenColumns.taskName && (
-                  <th className="py-2.5 px-3.5 w-[220px]">TASK NAME</th>
+                  <th className="py-2.5 px-3 border-r border-b border-slate-300 dark:border-white/15 w-[220px]">TASK NAME</th>
                 )}
 
                 {!hiddenColumns.clientName && (
-                  <th className="py-2.5 px-3.5 w-[150px]">CLIENT NAME</th>
+                  <th className="py-2.5 px-3 border-r border-b border-slate-300 dark:border-white/15 w-[130px]">CLIENT NAME</th>
                 )}
 
                 {!hiddenColumns.createdBy && (
-                  <th className="py-2.5 px-3.5 w-[180px]">CREATED BY</th>
+                  <th className="py-2.5 px-3 border-r border-b border-slate-300 dark:border-white/15 w-[100px]">CREATED BY</th>
                 )}
 
                 {!hiddenColumns.assignee && (
-                  <th className="py-2.5 px-3.5 w-[180px]">ASSIGNEE</th>
+                  <th className="py-2.5 px-3 border-r border-b border-slate-300 dark:border-white/15 w-[110px]">ASSIGNEE</th>
                 )}
                 {!hiddenColumns.startDate && (
-                  <th className="py-2.5 px-3.5 text-center w-[100px]">
+                  <th className="py-2.5 px-3 border-r border-b border-slate-300 dark:border-white/15 text-center w-[100px]">
                     START DATE
                   </th>
                 )}
                 {!hiddenColumns.dueDate && (
-                  <th className="py-2.5 px-3.5 text-center w-[100px]">
+                  <th className="py-2.5 px-3 border-r border-b border-slate-300 dark:border-white/15 text-center w-[100px]">
                     END DATE
                   </th>
                 )}
                 {!hiddenColumns.priority && (
-                  <th className="py-2.5 px-3.5 text-center w-[110px]">
+                  <th className="py-2.5 px-3 border-r border-b border-slate-300 dark:border-white/15 text-center w-[110px]">
                     PRIORITY
                   </th>
                 )}
                 {!hiddenColumns.status && (
-                  <th className="py-2.5 px-3.5 text-center w-[130px]">
+                  <th className="py-2.5 px-3 border-r border-b border-slate-300 dark:border-white/15 text-center w-[130px]">
                     STATUS
                   </th>
                 )}
                 {!hiddenColumns.totalHours && (
-                  <th className="py-2.5 px-3.5 text-center w-[110px]">
+                  <th className="py-2.5 px-3 border-r border-b border-slate-300 dark:border-white/15 text-center w-[110px]">
                     TOTAL HOURS
                   </th>
                 )}
                 {!hiddenColumns.action && (
-                  <th className="py-2.5 px-3.5 text-right w-[125px]">ACTION</th>
+                  <th className="py-2.5 px-3 border-b border-slate-300 dark:border-white/15 text-right w-[125px]">ACTION</th>
                 )}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-xs font-semibold">
+            <tbody className="divide-y divide-slate-200 dark:divide-white/10 text-xs font-semibold">
               {filteredOverviewTasks.length === 0 ? (
                 <tr>
                   <td
@@ -1456,7 +1566,7 @@ const TaskOverviewTab = ({
                     return (
                       <tr
                         key={task._id}
-                        className={`hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer border-b border-slate-50 dark:border-white/5 ${
+                        className={`hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer border-b border-slate-200 dark:border-white/10 ${
                           isCompleted
                             ? "bg-slate-50/20 text-slate-400 dark:text-slate-500"
                             : "text-slate-800 dark:text-slate-100"
@@ -1464,7 +1574,7 @@ const TaskOverviewTab = ({
                         onClick={() => setSelectedTaskId(task._id)}
                       >
                         {!hiddenColumns.taskName && (
-                          <td className="py-2.5 px-3.5 font-extrabold text-left">
+                          <td className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-white/10 font-extrabold text-left">
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
@@ -1479,7 +1589,7 @@ const TaskOverviewTab = ({
                                 className={`w-4 h-4 rounded-full flex items-center justify-center border transition-all shrink-0 cursor-pointer ${
                                   isCompleted
                                     ? "bg-[#10b981] border-[#10b981] text-white shadow-sm"
-                                    : "bg-white dark:bg-[#151725] border-slate-300 dark:border-slate-650 text-slate-400 dark:text-slate-500 hover:border-[#10b981] hover:text-[#10b981]"
+                                    : "bg-white dark:bg-[#151725] border-slate-350 dark:border-slate-650 text-slate-400 dark:text-slate-500 hover:border-[#10b981] hover:text-[#10b981]"
                                 }`}
                               >
                                 <FiCheck
@@ -1496,7 +1606,7 @@ const TaskOverviewTab = ({
                                 size={13}
                               />
                               <span
-                                className={`truncate max-w-[180px] text-xs ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : ""}`}
+                                className={`truncate max-w-[180px] text-[11px] ${isCompleted ? "line-through text-slate-400 dark:text-slate-500" : ""}`}
                                 title={task.title}
                               >
                                 {task.title}
@@ -1505,162 +1615,50 @@ const TaskOverviewTab = ({
                           </td>
                         )}
                         {!hiddenColumns.clientName && (
-                          <td className="py-2.5 px-3 text-left">
+                          <td className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-white/10 text-left">
                             {clientObj && clientObj.companyName ? (
-                              <ClientBadge client={clientObj} size="sm" />
+                              <ClientBadge client={clientObj} size="sm" className="!text-[10px] !px-1.5 !py-0.5" />
                             ) : (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[7.5px] font-bold bg-pink-50 text-pink-600 border border-pink-100 dark:bg-pink-950/30 dark:text-pink-400 dark:border-pink-900/30">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[14px] font-bold bg-pink-50 text-pink-600 border border-pink-100 dark:bg-pink-950/30 dark:text-pink-400 dark:border-pink-900/30">
                                 {clientName}
                               </span>
                             )}
                           </td>
                         )}
                         {!hiddenColumns.createdBy && (
-                          <td className="py-2.5 px-3.5 text-left">
-                            <div className="flex items-center gap-2.5">
-                              <div className="relative shrink-0">
-                                {(() => {
-                                  const createdUser = task.createdBy;
-                                  const avatarUrl =
-                                    (typeof createdUser?.profile
-                                      ?.profileImage === "object"
-                                      ? createdUser?.profile?.profileImage?.url
-                                      : createdUser?.profile?.profileImage) ||
-                                    (typeof createdUser?.profileImage ===
-                                    "object"
-                                      ? createdUser?.profileImage?.url
-                                      : createdUser?.profileImage) ||
-                                    createdUser?.profilePic ||
-                                    createdUser?.avatar ||
-                                    createdUser?.profile?.profilePic ||
-                                    createdUser?.profile?.avatar;
-
-                                  if (avatarUrl) {
-                                    return (
-                                      <img
-                                        src={avatarUrl}
-                                        alt={createdUser?.name || "Creator"}
-                                        className="w-8 h-8 rounded-full object-cover border border-slate-200/80 dark:border-white/10 shadow-sm"
-                                      />
-                                    );
-                                  }
-
-                                  const initials = (createdUser?.name || "U")
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .join("")
-                                    .substring(0, 2)
-                                    .toUpperCase();
-
-                                  const AVATAR_COLORS = [
-                                    "from-violet-500 to-indigo-650",
-                                    "from-cyan-500 to-blue-650",
-                                    "from-emerald-500 to-teal-650",
-                                    "from-orange-500 to-amber-650",
-                                    "from-pink-500 to-rose-650",
-                                  ];
-                                  const colorClass =
-                                    AVATAR_COLORS[
-                                      ((createdUser?.name || "U").charCodeAt(
-                                        0,
-                                      ) || 0) % AVATAR_COLORS.length
-                                    ];
-
-                                  return (
-                                    <div
-                                      className={`w-8 h-8 rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-white font-black text-[10px] border border-white/10 shadow-sm`}
-                                    >
-                                      {initials}
-                                    </div>
-                                  );
-                                })()}
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
+                          <td className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-white/10 text-left">
+                            <div className="flex items-center gap-2">
+                              {renderUserAvatarSmall(task.createdBy)}
+                              <div className="flex flex-col justify-center min-w-0">
+                                <span className={`font-extrabold text-[9.5px] truncate transition-colors ${getUserColorClass(task.createdBy?.name || "Unknown")}`}>
                                   {task.createdBy?.name || "Unknown"}
                                 </span>
-                                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">
-                                  {task.createdBy?.department || "Creator"}
+                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black border uppercase tracking-wider mt-1 w-max ${getDeptBadgeStyle(task.createdBy?.department || "Creator")}`}>
+                                  {shortenDept(task.createdBy?.department || "Creator")}
                                 </span>
                               </div>
                             </div>
                           </td>
                         )}
                         {!hiddenColumns.assignee && (
-                          <td className="py-2.5 px-3.5 text-left">
-                            <div className="flex items-center gap-2.5">
-                              <div className="relative shrink-0">
-                                {(() => {
-                                  const assignedUser = task.assignedTo;
-                                  const avatarUrl =
-                                    (typeof assignedUser?.profile
-                                      ?.profileImage === "object"
-                                      ? assignedUser?.profile?.profileImage?.url
-                                      : assignedUser?.profile?.profileImage) ||
-                                    (typeof assignedUser?.profileImage ===
-                                    "object"
-                                      ? assignedUser?.profileImage?.url
-                                      : assignedUser?.profileImage) ||
-                                    assignedUser?.profilePic ||
-                                    assignedUser?.avatar ||
-                                    assignedUser?.profile?.profilePic ||
-                                    assignedUser?.profile?.avatar;
-
-                                  if (avatarUrl) {
-                                    return (
-                                      <img
-                                        src={avatarUrl}
-                                        alt={assignedUser?.name || "Assignee"}
-                                        className="w-8 h-8 rounded-full object-cover border border-slate-200/80 dark:border-white/10 shadow-sm"
-                                      />
-                                    );
-                                  }
-
-                                  const initials = (assignedUser?.name || "U")
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .join("")
-                                    .substring(0, 2)
-                                    .toUpperCase();
-
-                                  const AVATAR_COLORS = [
-                                    "from-violet-500 to-indigo-650",
-                                    "from-cyan-500 to-blue-650",
-                                    "from-emerald-500 to-teal-650",
-                                    "from-orange-500 to-amber-650",
-                                    "from-pink-500 to-rose-655",
-                                  ];
-                                  const colorClass =
-                                    AVATAR_COLORS[
-                                      ((assignedUser?.name || "U").charCodeAt(
-                                        0,
-                                      ) || 0) % AVATAR_COLORS.length
-                                    ];
-
-                                  return (
-                                    <div
-                                      className={`w-8 h-8 rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-white font-black text-[10px] border border-white/10 shadow-sm`}
-                                    >
-                                      {initials}
-                                    </div>
-                                  );
-                                })()}
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="font-extrabold text-xs text-slate-800 dark:text-slate-200">
+                          <td className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-white/10 text-left">
+                            <div className="flex items-center gap-2">
+                              {renderUserAvatarSmall(task.assignedTo)}
+                              <div className="flex flex-col justify-center min-w-0">
+                                <span className={`font-extrabold text-[9.5px] truncate transition-colors ${getUserColorClass(task.assignedTo?.name || "Unassigned")}`}>
                                   {task.assignedTo?.name || "Unassigned"}
                                 </span>
-                                <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">
-                                  {task.assignedTo?.department || "Team Member"}
+                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black border uppercase tracking-wider mt-1 w-max ${getDeptBadgeStyle(task.assignedTo?.department || "Team Member")}`}>
+                                  {shortenDept(task.assignedTo?.department || "Team Member")}
                                 </span>
                               </div>
                             </div>
                           </td>
                         )}
                         {!hiddenColumns.startDate && (
-                          <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
+                          <td className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-white/10 text-center whitespace-nowrap">
                             {task.startDate ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200/50 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/20 shadow-2xs">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[14px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200/50 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-550/20 shadow-2xs">
                                 <FiCalendar size={10} className="shrink-0" />
                                 {formatDate(task.startDate)}
                               </span>
@@ -1672,9 +1670,9 @@ const TaskOverviewTab = ({
                           </td>
                         )}
                         {!hiddenColumns.dueDate && (
-                          <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
+                          <td className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-white/10 text-center whitespace-nowrap">
                             {task.dueDate ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200/50 dark:bg-rose-500/10 dark:text-rose-350 dark:border-rose-550/20 shadow-2xs">
+                              <span className="inline-flex items-center gap-1  px-2.5 py-0.5 rounded-full text-[14px] font-bold bg-rose-50 text-rose-700 border border-rose-200/50 dark:bg-rose-500/10 dark:text-rose-350 dark:border-rose-550/20 shadow-2xs">
                                 <FiCalendar size={10} className="shrink-0" />
                                 {formatDate(task.dueDate)}
                               </span>
@@ -1686,114 +1684,26 @@ const TaskOverviewTab = ({
                           </td>
                         )}
                         {!hiddenColumns.priority && (
-                          <td
-                            className="py-2.5 px-1 text-center whitespace-nowrap"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <select
-                              value={task.priority || "Medium"}
-                              onChange={(e) =>
-                                handleTaskFieldChange(task._id, {
-                                  priority: e.target.value,
-                                })
-                              }
-                              className={`pl-2 pr-6 py-0.5 h-auto w-[100px] text-[9px] rounded-md font-bold  cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 bg-transparent text-left ${pStyle}`}
+                          <td className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-white/10 text-center whitespace-nowrap">
+                            <span
+                              className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-[14px] font-medium  tracking-wider shadow-lg border ${pStyle}`}
                             >
-                              <option
-                                value="Top High"
-                                className="bg-white dark:bg-[#151725] text-red-650"
-                              >
-                                Top High
-                              </option>
-                              <option
-                                value="High"
-                                className="bg-white dark:bg-[#151725] text-orange-650"
-                              >
-                                High
-                              </option>
-                              <option
-                                value="Medium"
-                                className="bg-white dark:bg-[#151725] text-blue-600"
-                              >
-                                Medium
-                              </option>
-                              <option
-                                value="Low"
-                                className="bg-white dark:bg-[#151725] text-slate-600"
-                              >
-                                Low
-                              </option>
-                            </select>
+                              {task.priority || "Medium"}
+                            </span>
                           </td>
                         )}
                         {!hiddenColumns.status && (
-                          <td
-                            className="py-2.5 px-3 text-center whitespace-nowrap"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <select
-                              value={task.status || "Pending"}
-                              onChange={(e) =>
-                                handleTaskFieldChange(task._id, {
-                                  status: e.target.value,
-                                })
-                              }
-                              className={`pl-2 pr-6 py-0.5 h-auto w-[115px] rounded-md text-[9px] font-black border  tracking-wider cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-sm transition-colors text-left ${
-                                task.status === "Completed"
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-550/30"
-                                  : task.status === "In Progress"
-                                    ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-550/30"
-                                    : task.status === "On Hold"
-                                      ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-550/30"
-                                      : task.status === "IN-REVIEW" ||
-                                          task.status === "In Review"
-                                        ? "bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-500/20 dark:text-sky-355 dark:border-sky-550/30"
-                                        : task.status === "Rejected"
-                                          ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/20 dark:text-rose-355 dark:border-rose-550/30"
-                                          : "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-500/20 dark:text-slate-300 dark:border-slate-550/30"
-                              }`}
+                          <td className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-white/10 text-center whitespace-nowrap">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[14px] font-medium border  tracking-wider shadow-lg ${sStyle.bg} ${sStyle.text} ${sStyle.border}`}
                             >
-                              <option
-                                value="Pending"
-                                className="bg-white dark:bg-[#151725] text-slate-700 dark:text-slate-300"
-                              >
-                                Pending
-                              </option>
-                              <option
-                                value="In Progress"
-                                className="bg-white dark:bg-[#151725] text-blue-700 dark:text-blue-400"
-                              >
-                                In Progress
-                              </option>
-                              <option
-                                value="IN-REVIEW"
-                                className="bg-white dark:bg-[#151725] text-sky-700 dark:text-sky-400"
-                              >
-                                In Review
-                              </option>
-                              <option
-                                value="Completed"
-                                className="bg-white dark:bg-[#151725] text-emerald-700 dark:text-emerald-400"
-                              >
-                                Completed
-                              </option>
-                              <option
-                                value="On Hold"
-                                className="bg-white dark:bg-[#151725] text-amber-700 dark:text-amber-400"
-                              >
-                                On Hold
-                              </option>
-                              <option
-                                value="Rejected"
-                                className="bg-white dark:bg-[#151725] text-rose-700 dark:text-rose-450"
-                              >
-                                Rejected
-                              </option>
-                            </select>
+                              <span className={`w-1.5 h-1.5 rounded-full ${sStyle.dot}`} />
+                              {task.status || "Pending"}
+                            </span>
                           </td>
                         )}
                         {!hiddenColumns.totalHours && (
-                          <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
+                          <td className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-white/10 text-center whitespace-nowrap">
                             <SimpleTimeTracker
                               startTime={task.actualStartTime}
                               endTime={task.actualEndTime}
@@ -1808,7 +1718,7 @@ const TaskOverviewTab = ({
                         )}
                         {!hiddenColumns.action && (
                           <td
-                            className="py-2.5 px-3.5 text-right"
+                            className="py-2.5 px-3 border-b border-slate-200 dark:border-white/10 text-right"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <div className="flex items-center justify-end gap-2">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { BiFile } from "react-icons/bi";
@@ -252,9 +252,21 @@ const MyTasksTab = ({
   const [deleteTask] = useDeleteTaskMutation();
   const [selectedTasks, setSelectedTasks] = useState([]);
 
+  const [searchParams] = useSearchParams();
+  const statusParam = searchParams.get("status");
+
   const [priorityFilter, setPriorityFilter] = useState("All");
   const [projectFilter, setProjectFilter] = useState("All");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState(() => {
+    return statusParam || "All";
+  });
+
+  useEffect(() => {
+    if (statusParam) {
+      setStatusFilter(statusParam);
+    }
+  }, [statusParam]);
+
   const [clientFilter, setClientFilter] = useState("All");
   
   const [localDateFilter, setLocalDateFilter] = useState(() => {
@@ -492,6 +504,9 @@ const MyTasksTab = ({
   const filteredTasks = React.useMemo(() => {
     const list = filteredTasksWithoutStatus.filter((task) => {
       if (statusFilter === "All") return true;
+      if (statusFilter === "Overdue") {
+        return task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "Completed";
+      }
       if (
         statusFilter === "Pending,In Progress,In Review,On Hold" ||
         statusFilter === "Pending,In Progress,In Review"
@@ -1127,6 +1142,11 @@ const MyTasksTab = ({
                         label: "Rejected",
                         color: "bg-red-500",
                       },
+                      ...(statusFilter === "Overdue" ? [{
+                        name: "Overdue",
+                        label: "Overdue",
+                        color: "bg-rose-600 animate-pulse",
+                      }] : []),
                     ].map((st) => (
                       <button
                         key={st.name}

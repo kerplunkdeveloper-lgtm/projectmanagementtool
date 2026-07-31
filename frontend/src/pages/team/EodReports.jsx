@@ -635,7 +635,9 @@ const EodReports = () => {
       const hasInReview = tasksState.some((t) =>
         ["In Review", "IN-REVIEW", "IN-Review"].includes(t.statusAtEod),
       );
-      const allCompleted = tasksState.every((t) => t.statusAtEod === "Completed");
+      const allCompleted = tasksState.every(
+        (t) => t.statusAtEod === "Completed",
+      );
 
       if (hasPending) {
         setOverallStatus("Delayed");
@@ -831,19 +833,20 @@ const EodReports = () => {
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
           {tasksState.map((task) => {
             const assignerUser = users.find((u) => u._id === task.reviewedBy);
-            const assignerName = assignerUser?.name || task.assignedByName || "Admin";
+            const assignerName =
+              assignerUser?.name || task.assignedByName || "Admin";
             const assignerDept = assignerUser?.department || "Management";
-            const avatarUrl = assignerUser ? (
-              (typeof assignerUser.profile?.profileImage === "object"
-                ? assignerUser.profile?.profileImage?.url
-                : assignerUser.profile?.profileImage) ||
-              (typeof assignerUser.profileImage === "object"
-                ? assignerUser.profileImage?.url
-                : assignerUser.profileImage) ||
-              assignerUser.profilePic ||
-              assignerUser.profile?.profilePic ||
-              assignerUser.profile?.avatar
-            ) : "";
+            const avatarUrl = assignerUser
+              ? (typeof assignerUser.profile?.profileImage === "object"
+                  ? assignerUser.profile?.profileImage?.url
+                  : assignerUser.profile?.profileImage) ||
+                (typeof assignerUser.profileImage === "object"
+                  ? assignerUser.profileImage?.url
+                  : assignerUser.profileImage) ||
+                assignerUser.profilePic ||
+                assignerUser.profile?.profilePic ||
+                assignerUser.profile?.avatar
+              : "";
 
             return (
               <div
@@ -908,15 +911,21 @@ const EodReports = () => {
                 <div className="mt-5 pt-4 border-t theme-border space-y-3">
                   {/* Status Row */}
                   <div className="flex items-center justify-between text-xs px-1">
-                    <span className="font-bold theme-text-secondary uppercase tracking-wider text-[10px]">status :</span>
-                    <span className={`font-black tracking-wide ${getStatusTextColor(task.statusAtEod)}`}>
+                    <span className="font-bold theme-text-secondary uppercase tracking-wider text-[10px]">
+                      status :
+                    </span>
+                    <span
+                      className={`font-black tracking-wide ${getStatusTextColor(task.statusAtEod)}`}
+                    >
                       {task.statusAtEod || "Pending"}
                     </span>
                   </div>
 
                   {/* Assigned By Row */}
                   <div className="flex items-center justify-between text-xs px-1 mt-6">
-                    <span className="font-bold theme-text-secondary uppercase tracking-wider text-[10px]">Assigned By :</span>
+                    <span className="font-bold theme-text-secondary uppercase tracking-wider text-[10px]">
+                      Assigned By :
+                    </span>
                     <div className="flex items-center gap-2">
                       <div className="text-right">
                         <span className="block font-bold theme-text-primary text-[11px] leading-tight">
@@ -1055,9 +1064,6 @@ const EodReports = () => {
               </span>
             </div>
           </div>
-        
-
-        
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
             <div>
               <label className="text-[10px] font-bold theme-text-secondary uppercase tracking-wider block">
@@ -1167,7 +1173,9 @@ const EodReports = () => {
                     />
                     <span>{overallStatus}</span>
                   </div>
-                  <span className="text-[9px] uppercase tracking-widest text-slate-400 dark:text-slate-500 font-extrabold">Auto</span>
+                  <span className="text-[9px] uppercase tracking-widest text-slate-400 dark:text-slate-500 font-extrabold">
+                    Auto
+                  </span>
                 </div>
               </div>
             </div>

@@ -1,5 +1,6 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../../context/ThemeContext";
 import {
   useGetTasksQuery,
@@ -56,6 +57,20 @@ const getPriorityStyle = (priority) => {
 const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   const dispatch = useDispatch();
   const { theme } = useTheme();
+  const performanceTableRef = useRef(null);
+  const navigate = useNavigate();
+
+  const handleMetricClick = (status) => {
+    let mappedFilter = "All";
+    if (dateFilter === "Today") mappedFilter = "Today";
+    else if (dateFilter === "Yesterday") mappedFilter = "Yesterday";
+    else if (dateFilter === "Last 7 Days") mappedFilter = "This Week";
+    else if (dateFilter === "This Month") mappedFilter = "This Month";
+    else if (dateFilter === "All Time") mappedFilter = "All";
+    
+    localStorage.setItem("task_date_filter", mappedFilter);
+    navigate(`/${user?.role || "team"}/tasks?status=${status}`);
+  };
   const isDarkMode =
     theme === "dark" ||
     (theme === "system" &&
@@ -576,14 +591,19 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       })
       .map((t) => {
         const s = t.status?.toLowerCase() || "";
-        let diff = t.dueDate ? differenceInDays(new Date(), parseISO(t.dueDate)) : 0;
+        let diff = t.dueDate
+          ? differenceInDays(new Date(), parseISO(t.dueDate))
+          : 0;
         let delayText = "";
         if (s.includes("hold")) {
           delayText = "On Hold";
         } else if (diff === 0) {
           delayText = "Due Today";
         } else if (diff < 0) {
-          delayText = Math.abs(diff) + (Math.abs(diff) === 1 ? " day" : " days") + " left";
+          delayText =
+            Math.abs(diff) +
+            (Math.abs(diff) === 1 ? " day" : " days") +
+            " left";
         } else {
           delayText = diff + (diff === 1 ? " day" : " days") + " delayed";
         }
@@ -596,7 +616,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         }
 
         let clientId = t.client;
-        if (typeof clientId === "object" && clientId?._id) clientId = clientId._id;
+        if (typeof clientId === "object" && clientId?._id)
+          clientId = clientId._id;
         if (!clientId && t.project) {
           const pId = typeof t.project === "object" ? t.project._id : t.project;
           const p = projects?.find((x) => x._id === pId);
@@ -605,9 +626,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         const cl = clients?.find((c) => c._id === clientId);
         const clientName = cl?.name || cl?.companyName || "No Client";
 
-        const creatorObj = t.createdBy && typeof t.createdBy === "object"
-          ? t.createdBy
-          : users?.find((u) => u._id === t.createdBy);
+        const creatorObj =
+          t.createdBy && typeof t.createdBy === "object"
+            ? t.createdBy
+            : users?.find((u) => u._id === t.createdBy);
         const creatorName = creatorObj?.name || "Unknown";
         const creatorImage =
           (typeof creatorObj?.profile?.profileImage === "object"
@@ -625,7 +647,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         const assigneeObj = t.assignedTo
           ? typeof t.assignedTo === "object"
             ? t.assignedTo
-            : designers.find((d) => d._id === t.assignedTo) || users?.find((u) => u._id === t.assignedTo)
+            : designers.find((d) => d._id === t.assignedTo) ||
+              users?.find((u) => u._id === t.assignedTo)
           : null;
         const assigneeName = assigneeObj?.name || "Unassigned";
         const assigneeImage =
@@ -655,30 +678,61 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   }, [designerTasks, projects, clients, users, designers]);
 
   const bottleneckClients = useMemo(() => {
-    return ["All Clients", ...new Set(rawBottleneckTasks.map((t) => t.clientName))];
+    return [
+      "All Clients",
+      ...new Set(rawBottleneckTasks.map((t) => t.clientName)),
+    ];
   }, [rawBottleneckTasks]);
 
   const bottleneckCreators = useMemo(() => {
-    return ["All Creators", ...new Set(rawBottleneckTasks.map((t) => t.creatorName))];
+    return [
+      "All Creators",
+      ...new Set(rawBottleneckTasks.map((t) => t.creatorName)),
+    ];
   }, [rawBottleneckTasks]);
 
   const bottleneckAssignees = useMemo(() => {
-    return ["All Assignees", ...new Set(rawBottleneckTasks.map((t) => t.assigneeName))];
+    return [
+      "All Assignees",
+      ...new Set(rawBottleneckTasks.map((t) => t.assigneeName)),
+    ];
   }, [rawBottleneckTasks]);
 
   const bottleneckStatuses = useMemo(() => {
-    return ["All Statuses", ...new Set(rawBottleneckTasks.map((t) => t.status))].filter(Boolean);
+    return [
+      "All Statuses",
+      ...new Set(rawBottleneckTasks.map((t) => t.status)),
+    ].filter(Boolean);
   }, [rawBottleneckTasks]);
 
   const delayedTasks = useMemo(() => {
     return rawBottleneckTasks.filter((t) => {
-      if (bottleneckClient !== "All Clients" && t.clientName !== bottleneckClient) return false;
-      if (bottleneckCreator !== "All Creators" && t.creatorName !== bottleneckCreator) return false;
-      if (bottleneckAssignee !== "All Assignees" && t.assigneeName !== bottleneckAssignee) return false;
-      if (bottleneckStatus !== "All Statuses" && t.status !== bottleneckStatus) return false;
+      if (
+        bottleneckClient !== "All Clients" &&
+        t.clientName !== bottleneckClient
+      )
+        return false;
+      if (
+        bottleneckCreator !== "All Creators" &&
+        t.creatorName !== bottleneckCreator
+      )
+        return false;
+      if (
+        bottleneckAssignee !== "All Assignees" &&
+        t.assigneeName !== bottleneckAssignee
+      )
+        return false;
+      if (bottleneckStatus !== "All Statuses" && t.status !== bottleneckStatus)
+        return false;
       return true;
     });
-  }, [rawBottleneckTasks, bottleneckClient, bottleneckCreator, bottleneckAssignee, bottleneckStatus]);
+  }, [
+    rawBottleneckTasks,
+    bottleneckClient,
+    bottleneckCreator,
+    bottleneckAssignee,
+    bottleneckStatus,
+  ]);
 
   const activeDesigner = useMemo(() => {
     return viewTasksModal.open
@@ -830,9 +884,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           </AnimatePresence>
         </div>
       </div>
-
       {/* Premium Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 lg:gap-2 relative z-10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 lg:gap-2 relative z-10">
         {[
           {
             label:
@@ -850,6 +903,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             iconBg:
               "bg-blue-100 dark:bg-blue-950 border border-blue-200 dark:border-blue-500",
             iconColor: "text-blue-600 dark:text-blue-400",
+            onClick: () => {
+              performanceTableRef.current?.scrollIntoView({ behavior: "smooth" });
+            },
           },
           {
             label: "Tasks Assigned",
@@ -862,6 +918,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             iconBg:
               "bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-500/20",
             iconColor: "text-indigo-600 dark:text-indigo-400",
+            onClick: () => handleMetricClick("All"),
           },
           {
             label: "Pending",
@@ -874,6 +931,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             iconBg:
               "bg-amber-100 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-500/20",
             iconColor: "text-amber-600 dark:text-amber-400",
+            onClick: () => handleMetricClick("Pending"),
           },
           {
             label: "In Progress",
@@ -886,6 +944,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             iconBg:
               "bg-sky-100 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-500/20",
             iconColor: "text-sky-600 dark:text-sky-400",
+            onClick: () => handleMetricClick("In Progress"),
           },
           {
             label: "On Hold",
@@ -898,6 +957,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             iconBg:
               "bg-fuchsia-100 dark:bg-fuchsia-950/60 border border-fuchsia-200 dark:border-fuchsia-500/20",
             iconColor: "text-fuchsia-600 dark:text-fuchsia-400",
+            onClick: () => handleMetricClick("On Hold"),
           },
           {
             label: "In Review",
@@ -910,6 +970,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             iconBg:
               "bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-500/20",
             iconColor: "text-indigo-600 dark:text-indigo-400",
+            onClick: () => handleMetricClick("IN-REVIEW"),
           },
           {
             label: "Completed",
@@ -922,6 +983,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             iconBg:
               "bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-500/20",
             iconColor: "text-emerald-600 dark:text-emerald-400",
+            onClick: () => handleMetricClick("Completed"),
           },
           {
             label: "Overdue",
@@ -934,6 +996,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             iconBg:
               "bg-rose-100 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/20",
             iconColor: "text-rose-600 dark:text-rose-400",
+            onClick: () => handleMetricClick("Overdue"),
           },
           {
             label: "Rejected",
@@ -946,6 +1009,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             iconBg:
               "bg-red-100 dark:bg-red-950/60 border border-red-200 dark:border-red-500/20",
             iconColor: "text-red-600 dark:text-red-400",
+            onClick: () => handleMetricClick("Rejected"),
           },
         ].map((m, i) => {
           const IconComponent = m.icon;
@@ -955,7 +1019,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
               key={i}
-              className={`flex flex-col text-left p-3 rounded-2xl ${m.bg} ${m.glow} relative overflow-hidden group hover:scale-[1.03] transition-all duration-300 backdrop-blur-md shadow-sm`}
+              onClick={m.onClick}
+              className={`flex flex-col text-left p-3 rounded-2xl ${m.bg} ${m.glow} relative overflow-hidden group hover:scale-[1.03] transition-all duration-300 backdrop-blur-md shadow-sm ${m.onClick ? "cursor-pointer" : ""}`}
             >
               {/* Decorative light reflection overlay */}
               <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-white/10 to-transparent rounded-full -mr-6 -mt-6 blur-md pointer-events-none" />
@@ -982,7 +1047,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           );
         })}
       </div>
-
       {/* Today's Interruptions */}
       <div className="mb-8 relative z-10">
         <div className="bg-slate-50 dark:bg-slate-100 p-5 rounded-3xl backdrop-blur-md shadow-lg">
@@ -1037,7 +1101,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           </div>
         </div>
       </div>
-
       {/* Live Task Board */}
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4 px-1">
@@ -1049,11 +1112,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             LIVE SYNC
           </span>
         </div>
-        <div className="flex xl:grid xl:grid-cols-6 overflow-x-auto gap-3 pb-6 snap-x hide-scrollbar">
+        <div className="flex overflow-x-auto gap-4 pb-6 snap-x custom-scrollbar">
           {boardColumns.map((col, i) => (
             <div
               key={i}
-              className="min-w-[210px] xl:min-w-0 w-full flex-shrink-0 snap-start bg-slate-50 dark:bg-[#0f172a] backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-300/80 flex flex-col max-h-[450px] shadow-sm"
+              className="w-80 shrink-0 snap-start bg-slate-50 dark:bg-[#0f172a] backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-300/80 flex flex-col max-h-[450px] shadow-sm"
             >
               <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-800/80 rounded-t-2xl backdrop-blur-md">
                 <span className="text-[10px] font-black text-slate-800 dark:text-white tracking-widest uppercase truncate max-w-[80%]">
@@ -1200,8 +1263,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           ))}
         </div>
       </div>
-
-      <div className="relative z-10">
+      <div className="relative z-10 scroll-mt-6" ref={performanceTableRef}>
         {/* Team Performance */}
         <div className="bg-white dark:bg-slate-900/60 backdrop-blur-xl rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm dark:shadow-2xl">
           <div className="p-5 border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-transparent flex justify-between items-center">
@@ -1216,6 +1278,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50 dark:bg-slate-800/60">
+                  <th className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase text-center w-12">
+                    Sl.No.
+                  </th>
                   <th className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
                     {targetDept}
                   </th>
@@ -1262,11 +1327,14 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700/80 text-xs">
-                {teamPerformance.map((tp) => (
+                {teamPerformance.map((tp, idx) => (
                   <tr
                     key={tp.id}
                     className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
                   >
+                    <td className="py-2.5 px-3 border-r border-b border-slate-100 dark:border-slate-700/60 text-xs font-bold text-slate-500 dark:text-slate-400 text-center w-12">
+                      {idx + 1}
+                    </td>
                     <td className="py-2.5 px-3 border-r border-b border-slate-100 dark:border-slate-700/60 text-xs font-semibold text-slate-750 dark:text-slate-200">
                       <div className="flex items-center gap-2">
                         {tp.profileImage ? (
@@ -1366,7 +1434,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       {tp.overdue > 0 ? (
                         <div className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-extrabold">
                           <span className="w-1 h-1 rounded-full bg-rose-500 animate-pulse" />
-                          <span className="text-[10px]">{tp.overdue} overdue</span>
+                          <span className="text-[10px]">
+                            {tp.overdue} overdue
+                          </span>
                         </div>
                       ) : (
                         <span className="text-slate-400 dark:text-slate-500 font-medium text-[10px]">
@@ -1416,7 +1486,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             </table>
           </div>
         </div>
-      </div>      {/* Delayed Projects & Bottlenecks */}
+      </div>{" "}
+      {/* Delayed Projects & Bottlenecks */}
       <div className="bg-white dark:bg-[#0f172a]/90 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-700/80 overflow-hidden shadow-sm dark:shadow-xl relative z-10">
         <div className="p-5 border-b border-slate-200 dark:border-slate-700/80 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-50 dark:bg-transparent">
           <div className="flex items-center gap-3">
@@ -1506,30 +1577,45 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
               const s = task.status?.toLowerCase() || "";
               let cardStyle = "border-rose-500 bg-rose-50 dark:bg-rose-500/10";
-              let badgeStyle = "bg-rose-100 text-rose-700 border-rose-205 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/30";
-              let timeBadgeStyle = "text-rose-600 dark:text-rose-300 bg-white dark:bg-rose-500/20 border border-rose-200 dark:border-rose-500/30";
-              
+              let badgeStyle =
+                "bg-rose-100 text-rose-700 border-rose-205 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/30";
+              let timeBadgeStyle =
+                "text-rose-600 dark:text-rose-300 bg-white dark:bg-rose-500/20 border border-rose-200 dark:border-rose-500/30";
+
               if (s.includes("hold")) {
-                cardStyle = "border-fuchsia-500 bg-fuchsia-50/50 dark:bg-fuchsia-500/10";
-                badgeStyle = "bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200 dark:bg-fuchsia-950/40 dark:text-fuchsia-400 dark:border-fuchsia-900/30";
-                timeBadgeStyle = "text-fuchsia-600 dark:text-fuchsia-300 bg-white dark:bg-fuchsia-500/20 border border-fuchsia-200 dark:border-fuchsia-500/30";
+                cardStyle =
+                  "border-fuchsia-500 bg-fuchsia-50/50 dark:bg-fuchsia-500/10";
+                badgeStyle =
+                  "bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200 dark:bg-fuchsia-950/40 dark:text-fuchsia-400 dark:border-fuchsia-900/30";
+                timeBadgeStyle =
+                  "text-fuchsia-600 dark:text-fuchsia-300 bg-white dark:bg-fuchsia-500/20 border border-fuchsia-200 dark:border-fuchsia-500/30";
               } else if (s.includes("progress")) {
                 cardStyle = "border-blue-500 bg-blue-50/50 dark:bg-blue-500/10";
-                badgeStyle = "bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/30";
-                timeBadgeStyle = "text-blue-600 dark:text-blue-300 bg-white dark:bg-blue-500/20 border border-blue-200 dark:border-blue-500/30";
+                badgeStyle =
+                  "bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/30";
+                timeBadgeStyle =
+                  "text-blue-600 dark:text-blue-300 bg-white dark:bg-blue-500/20 border border-blue-200 dark:border-blue-500/30";
               } else if (s.includes("review") || s.includes("revision")) {
-                cardStyle = "border-yellow-500 bg-yellow-50/50 dark:bg-yellow-500/10";
-                badgeStyle = "bg-yellow-100 text-yellow-800 border border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-450 dark:border-yellow-900/30";
-                timeBadgeStyle = "text-yellow-600 dark:text-yellow-450 bg-white dark:bg-yellow-500/20 border border-yellow-250 dark:border-yellow-500/30";
+                cardStyle =
+                  "border-yellow-500 bg-yellow-50/50 dark:bg-yellow-500/10";
+                badgeStyle =
+                  "bg-yellow-100 text-yellow-800 border border-yellow-200 dark:bg-yellow-950/40 dark:text-yellow-450 dark:border-yellow-900/30";
+                timeBadgeStyle =
+                  "text-yellow-600 dark:text-yellow-450 bg-white dark:bg-yellow-500/20 border border-yellow-250 dark:border-yellow-500/30";
               } else if (s.includes("pending") || s.includes("assigned")) {
-                cardStyle = "border-orange-500 bg-orange-50/50 dark:bg-orange-500/10";
-                badgeStyle = "bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-900/30";
-                timeBadgeStyle = "text-orange-655 dark:text-orange-400 bg-white dark:bg-orange-500/20 border border-orange-200 dark:border-orange-500/30";
+                cardStyle =
+                  "border-orange-500 bg-orange-50/50 dark:bg-orange-500/10";
+                badgeStyle =
+                  "bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-900/30";
+                timeBadgeStyle =
+                  "text-orange-655 dark:text-orange-400 bg-white dark:bg-orange-500/20 border border-orange-200 dark:border-orange-500/30";
               }
 
               // Hash function to get unique soft badge style per client
               const getClientBadgeStyle = (name) => {
-                const hash = name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+                const hash = name
+                  .split("")
+                  .reduce((acc, char) => acc + char.charCodeAt(0), 0);
                 const colors = [
                   "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/30",
                   "bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/30",
@@ -1537,7 +1623,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/30",
                   "bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-950/30 dark:text-violet-400 dark:border-violet-900/30",
                   "bg-pink-50 text-pink-600 border-pink-200 dark:bg-pink-950/30 dark:text-pink-400 dark:border-pink-900/30",
-                  "bg-cyan-50 text-cyan-600 border-cyan-200 dark:bg-cyan-950/30 dark:text-cyan-400 dark:border-cyan-900/30"
+                  "bg-cyan-50 text-cyan-600 border-cyan-200 dark:bg-cyan-950/30 dark:text-cyan-400 dark:border-cyan-900/30",
                 ];
                 return colors[hash % colors.length];
               };
@@ -1551,10 +1637,14 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1.5">
-                      <span className={`px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider rounded-md border ${clientBadgeColor}`}>
+                      <span
+                        className={`px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider rounded-md border ${clientBadgeColor}`}
+                      >
                         {task.clientName}
                       </span>
-                      <span className="text-[10px] text-slate-300 dark:text-slate-700">•</span>
+                      <span className="text-[10px] text-slate-300 dark:text-slate-700">
+                        •
+                      </span>
                       <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                         {projName}
                       </span>
@@ -1562,11 +1652,13 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                     <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1">
                       {task.title}
                     </h4>
-                    
+
                     <div className="flex items-center gap-6 mt-3 flex-wrap">
                       {/* Creator */}
                       <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-extrabold">Creator:</span>
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-extrabold">
+                          Creator:
+                        </span>
                         <div className="flex items-center gap-1.5">
                           {task.creatorImage ? (
                             <img
@@ -1587,7 +1679,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
                       {/* Assignee */}
                       <div className="flex items-center gap-2">
-                        <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-extrabold">Assignee:</span>
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-extrabold">
+                          Assignee:
+                        </span>
                         <div className="flex items-center gap-1.5">
                           {task.assigneeImage ? (
                             <img
@@ -1607,12 +1701,16 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
-                    <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded border ${badgeStyle}`}>
+                    <span
+                      className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded border ${badgeStyle}`}
+                    >
                       {task.status}
                     </span>
-                    <div className={`text-[10px] font-black px-2.5 py-1 rounded-lg border shadow-sm ${timeBadgeStyle}`}>
+                    <div
+                      className={`text-[10px] font-black px-2.5 py-1 rounded-lg border shadow-sm ${timeBadgeStyle}`}
+                    >
                       {task.daysDelayed}
                     </div>
                   </div>
@@ -1756,7 +1854,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           </div>,
           document.body,
         )}
-
       {/* View Tasks Modal */}
       {viewTasksModal.open &&
         createPortal(
@@ -1820,17 +1917,17 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   </select>
                 </div>
 
-
-
                 {/* overdue details */}
                 <div className="flex items-center gap-4">
-                    <span className={`px-1.5 py-0.5 text-[17px] font-black uppercase rounded-md border ${
+                  <span
+                    className={`px-1.5 py-0.5 text-[17px] font-black uppercase rounded-md border ${
                       (activeDesigner?.overdue || 0) > 0
                         ? "bg-red-100 text-red-600 dark:bg-red-950/40 dark:text-red-400 border-red-300 dark:border-red-900/30 animate-pulse shadow-sm shadow-red-500/20"
                         : "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200 dark:border-rose-900/30"
-                    }`}>
-                       OverDue : {activeDesigner?.overdue || 0}
-                    </span>
+                    }`}
+                  >
+                    OverDue : {activeDesigner?.overdue || 0}
+                  </span>
                 </div>
 
                 <button
@@ -1950,7 +2047,13 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                 {/* Bottom Side: Task details table */}
                 <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-[#0f172a] p-6 overflow-hidden">
                   {/* Table Content */}
-                  <div className="flex-1 overflow-y-auto min-h-0 scroll-smooth custom-scrollbar" style={{ scrollBehavior: "smooth", WebkitOverflowScrolling: "touch" }}>
+                  <div
+                    className="flex-1 overflow-y-auto min-h-0 scroll-smooth custom-scrollbar"
+                    style={{
+                      scrollBehavior: "smooth",
+                      WebkitOverflowScrolling: "touch",
+                    }}
+                  >
                     {filteredModalTasks.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-16 text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-900/10 rounded-2xl border border-dashed border-slate-200 dark:border-slate-850">
                         <FiLayers
@@ -2014,7 +2117,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                   c?.companyName ||
                                   c?.name ||
                                   (typeof task.client === "object"
-                                    ? task.client.companyName || task.client.name
+                                    ? task.client.companyName ||
+                                      task.client.name
                                     : "Unknown Client");
                               } else if (task.project) {
                                 const pId =
@@ -2072,39 +2176,60 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                     {task.title}
                                   </td>
                                   <td className="py-2.5 px-4">
-                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[11px] font-bold ${(() => {
-                                      const colors = [
-                                        "bg-indigo-50 text-indigo-750 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/30",
-                                        "bg-emerald-50 text-emerald-750 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/30",
-                                        "bg-blue-50 text-blue-750 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/30",
-                                        "bg-purple-50 text-purple-755 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-900/30",
-                                        "bg-amber-50 text-amber-755 border-amber-250 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/30",
-                                        "bg-rose-50 text-rose-755 border-rose-200 dark:bg-rose-950/30 dark:text-rose-450 dark:border-rose-900/30",
-                                        "bg-sky-50 text-sky-755 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/30",
-                                        "bg-teal-50 text-teal-755 border-teal-200 dark:bg-teal-950/30 dark:text-teal-400 dark:border-teal-900/30",
-                                      ];
-                                      let hash = 0;
-                                      for (let i = 0; i < clientName.length; i++) {
-                                        hash = clientName.charCodeAt(i) + ((hash << 5) - hash);
-                                      }
-                                      const index = Math.abs(hash) % colors.length;
-                                      return colors[index];
-                                    })()}`}>
-                                      <FiBriefcase size={10} className="opacity-80" />
+                                    <span
+                                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[11px] font-bold ${(() => {
+                                        const colors = [
+                                          "bg-indigo-50 text-indigo-750 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/30",
+                                          "bg-emerald-50 text-emerald-750 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/30",
+                                          "bg-blue-50 text-blue-750 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/30",
+                                          "bg-purple-50 text-purple-755 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-900/30",
+                                          "bg-amber-50 text-amber-755 border-amber-250 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/30",
+                                          "bg-rose-50 text-rose-755 border-rose-200 dark:bg-rose-950/30 dark:text-rose-450 dark:border-rose-900/30",
+                                          "bg-sky-50 text-sky-755 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/30",
+                                          "bg-teal-50 text-teal-755 border-teal-200 dark:bg-teal-950/30 dark:text-teal-400 dark:border-teal-900/30",
+                                        ];
+                                        let hash = 0;
+                                        for (
+                                          let i = 0;
+                                          i < clientName.length;
+                                          i++
+                                        ) {
+                                          hash =
+                                            clientName.charCodeAt(i) +
+                                            ((hash << 5) - hash);
+                                        }
+                                        const index =
+                                          Math.abs(hash) % colors.length;
+                                        return colors[index];
+                                      })()}`}
+                                    >
+                                      <FiBriefcase
+                                        size={10}
+                                        className="opacity-80"
+                                      />
                                       {clientName}
                                     </span>
                                   </td>
                                   <td className="py-2.5 px-4">
                                     {(() => {
-                                      const creatorObj = task.createdBy && typeof task.createdBy === "object"
-                                        ? task.createdBy
-                                        : users?.find((u) => u._id === task.createdBy);
-                                      const creatorName = creatorObj?.name || "Unknown";
+                                      const creatorObj =
+                                        task.createdBy &&
+                                        typeof task.createdBy === "object"
+                                          ? task.createdBy
+                                          : users?.find(
+                                              (u) => u._id === task.createdBy,
+                                            );
+                                      const creatorName =
+                                        creatorObj?.name || "Unknown";
                                       const creatorImage =
-                                        (typeof creatorObj?.profile?.profileImage === "object"
-                                          ? creatorObj?.profile?.profileImage?.url
-                                          : creatorObj?.profile?.profileImage) ||
-                                        (typeof creatorObj?.profileImage === "object"
+                                        (typeof creatorObj?.profile
+                                          ?.profileImage === "object"
+                                          ? creatorObj?.profile?.profileImage
+                                              ?.url
+                                          : creatorObj?.profile
+                                              ?.profileImage) ||
+                                        (typeof creatorObj?.profileImage ===
+                                        "object"
                                           ? creatorObj?.profileImage?.url
                                           : creatorObj?.profileImage) ||
                                         creatorObj?.profilePic ||

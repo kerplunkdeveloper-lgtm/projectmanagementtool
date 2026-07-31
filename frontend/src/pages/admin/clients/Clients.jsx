@@ -35,6 +35,7 @@ import {
 
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
+import {Link} from "react-router-dom";
 
 import {
   getClients,
@@ -408,39 +409,46 @@ const Clients = () => {
   }, [clients]);
 
   const filteredClients = useMemo(() => {
-    return (clients || []).filter((client) => {
-      const matchesSearch =
-        (client.companyName || "")
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        (client.industry || "")
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
+    return (clients || [])
+      .filter((client) => {
+        const matchesSearch =
+          (client.companyName || "")
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          (client.industry || "")
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase());
 
-      const matchesService =
-        serviceFilter === "All"
-          ? true
-          : Array.isArray(client.service)
-            ? client.service.includes(serviceFilter)
-            : client.service === serviceFilter;
+        const matchesService =
+          serviceFilter === "All"
+            ? true
+            : Array.isArray(client.service)
+              ? client.service.includes(serviceFilter)
+              : client.service === serviceFilter;
 
-      const matchesClientName =
-        clientNameFilter === "All"
-          ? true
-          : client.companyName === clientNameFilter;
+        const matchesClientName =
+          clientNameFilter === "All"
+            ? true
+            : client.companyName === clientNameFilter;
 
-      const matchesMember =
-        memberFilter === "All"
-          ? true
-          : Array.isArray(client.assignedTo)
-            ? client.assignedTo.some((m) => (m._id || m) === memberFilter)
-            : client.assignedTo &&
-              (client.assignedTo._id || client.assignedTo) === memberFilter;
+        const matchesMember =
+          memberFilter === "All"
+            ? true
+            : Array.isArray(client.assignedTo)
+              ? client.assignedTo.some((m) => (m._id || m) === memberFilter)
+              : client.assignedTo &&
+                (client.assignedTo._id || client.assignedTo) === memberFilter;
 
-      return (
-        matchesSearch && matchesService && matchesClientName && matchesMember
+        return (
+          matchesSearch && matchesService && matchesClientName && matchesMember
+        );
+      })
+      // Sort A → Z by company name (ascending)
+      .sort((a, b) =>
+        (a.companyName || "").localeCompare(b.companyName || "", undefined, {
+          sensitivity: "base",
+        })
       );
-    });
   }, [clients, searchTerm, serviceFilter, clientNameFilter, memberFilter]);
 
   // Reset pagination to page 1 when search or filters change
@@ -2383,27 +2391,36 @@ const Clients = () => {
                             <h3 className="text-[15px] font-extrabold text-slate-800 dark:text-slate-100">
                               Projects ({clientProjects.length})
                             </h3>
-                            <button className="text-[13px] font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400">
+                            <Link to={`/${user.role}/projects`}>
+                             <button className="text-[13px] font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400">
                               View All
                             </button>
+                            </Link>
+                           
                           </div>
                           
                           <div className="space-y-3">
                             {clientProjects.slice(0, 5).map(project => (
-                              <div key={project._id} className="flex items-center justify-between p-3.5 rounded-xl border border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-800/30 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800/60">
-                                <div className="flex items-center gap-3.5">
-                                  <div 
-                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm"
-                                    style={{ background: project.color || "var(--accent-gradient)" }}
-                                  >
-                                    <FiBriefcase size={14} />
+                              <Link
+                                key={project._id}
+                                to={`/${user.role}/projects?id=${project._id}`}
+                                className="block"
+                              >
+                                <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-800/30 transition-colors hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:border-blue-200 dark:hover:border-blue-800/50 cursor-pointer group">
+                                  <div className="flex items-center gap-3.5">
+                                    <div 
+                                      className="w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm"
+                                      style={{ background: project.color || "var(--accent-gradient)" }}
+                                    >
+                                      <FiBriefcase size={14} />
+                                    </div>
+                                    <span className="font-bold text-slate-800 dark:text-slate-200 text-[13px] group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{project.name}</span>
                                   </div>
-                                  <span className="font-bold text-slate-800 dark:text-slate-200 text-[13px]">{project.name}</span>
+                                  <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
+                                    {project.status || "Active"}
+                                  </span>
                                 </div>
-                                <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
-                                  {project.status || "Active"}
-                                </span>
-                              </div>
+                              </Link>
                             ))}
                             {clientProjects.length === 0 && (
                               <div className="flex flex-col items-center justify-center py-6 text-slate-400">
