@@ -609,12 +609,48 @@ const Navbar = ({ setSidebarOpen }) => {
                             }
                           `}
                         >
-                          <div
-                            className={`w-8 h-8 rounded-xl border flex items-center justify-center shrink-0 shadow-sm ${details.bgColor}`}
-                          >
-                            <Icon size={13} />
+                          {/* Sender Profile Avatar or Notification Icon */}
+                          <div className="relative shrink-0">
+                            {n.sender?.profile?.profileImage?.url ? (
+                              <img
+                                src={n.sender.profile.profileImage.url}
+                                alt={n.sender.name || "User"}
+                                className="w-9 h-9 rounded-full object-cover border-2 border-indigo-500/20 shadow-sm"
+                              />
+                            ) : n.sender?.name ? (
+                              <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white text-xs font-black shadow-sm">
+                                {n.sender.name.charAt(0).toUpperCase()}
+                              </div>
+                            ) : (
+                              <div
+                                className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 shadow-sm ${details.bgColor}`}
+                              >
+                                <Icon size={14} />
+                              </div>
+                            )}
+
+                            {/* Floating type badge overlay if sender avatar exists */}
+                            {(n.sender?.profile?.profileImage?.url || n.sender?.name) && (
+                              <div
+                                className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border border-white dark:border-slate-900 flex items-center justify-center text-white shadow-xs ${details.bgColor}`}
+                              >
+                                <Icon size={9} />
+                              </div>
+                            )}
                           </div>
+
                           <div className="flex-1 min-w-0 pr-6">
+                            {n.sender?.name && (
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <span className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 truncate">
+                                  {n.sender.name}
+                                </span>
+                                <span className="text-[9px] text-slate-400 font-semibold">•</span>
+                                <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                                  {n.type === "task_assigned" ? "Assigner" : "Sender"}
+                                </span>
+                              </div>
+                            )}
                             <p
                               className={`text-[11px] leading-relaxed break-words ${!n.isRead ? "theme-text-primary font-black" : "theme-text-secondary font-medium"}`}
                             >

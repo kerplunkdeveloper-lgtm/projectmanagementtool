@@ -22,6 +22,7 @@ import {
   useDeleteTaskMutation,
 } from "../../features/api/apiSlice";
 import ClientBadge from "../../components/common/ClientBadge";
+import toast from "react-hot-toast";
 
 const SimpleTimeTracker = ({
   startTime,
@@ -341,22 +342,83 @@ const TaskOverviewTab = ({
     return `${projChar}${clientChars}T${num}`;
   };
 
-  const handleTaskFieldChange = (taskId, fields) => {
-    const sanitizedFields = { ...fields };
-    if (sanitizedFields.startDate === "") sanitizedFields.startDate = null;
-    if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
-    if (sanitizedFields.status === "In Progress") {
-      (tasks || []).forEach((t) => {
-        if (
-          t._id !== taskId &&
-          (t.status === "In Progress" || t.status === "In-Progress")
-        ) {
-          updateTaskTrigger({ id: t._id, taskData: { status: "On Hold" } });
-        }
-      });
+  const handleTaskFieldChange = async (taskId, fields) => {
+  const sanitizedFields = { ...fields };
+
+  if (sanitizedFields.startDate === "")
+    sanitizedFields.startDate = null;
+
+  if (sanitizedFields.dueDate === "")
+    sanitizedFields.dueDate = null;
+
+  try {
+    await updateTaskTrigger({
+      id: taskId,
+      taskData: sanitizedFields,
+    }).unwrap();
+
+  } catch (err) {
+    if (err?.status === 409) {
+      toast.custom(
+        (t) => (
+          <div
+            className={`${
+              t.visible ? "animate-enter" : "animate-leave"
+            } max-w-sm w-full pointer-events-auto flex flex-col gap-3 p-4 rounded-2xl shadow-2xl border
+            bg-white dark:bg-[#0f172a]
+            border-[var(--accent-color)]/30 dark:border-[var(--accent-color-dark)]/30
+            backdrop-blur-xl z-[99999]`}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center shadow-sm"
+                style={{ background: "var(--accent-light-bg-subtle)" }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p
+                  className="text-[12px] font-black tracking-wide"
+                  style={{ color: "var(--accent-color)" }}
+                >
+                  Active Task Already Running
+                </p>
+                <p className="mt-0.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-snug">
+                  {err.data?.message || "You already have one active task or subtask."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => toast.dismiss(t.id)}
+                className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+              >
+                <FiX size={13} />
+              </button>
+            </div>
+            <div className="h-px bg-slate-100 dark:bg-slate-800" />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => toast.dismiss(t.id)}
+                className="flex-1 py-1.5 px-3 rounded-lg text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ),
+        { duration: 6000, position: "bottom-right" },
+      );
+      return;
     }
-    updateTaskTrigger({ id: taskId, taskData: sanitizedFields });
-  };
+
+    toast.error("Failed to update task");
+  }
+};
 
   const getDrawerStatusStyle = (status) => {
     switch (status) {

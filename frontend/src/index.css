@@ -2358,3 +2358,19 @@ td:first-child {
   color: #475569 !important;
 }
 
+/* ── Custom Toast Enter / Leave animations ─────────────────────────────── */
+@keyframes toast-enter {
+  0%   { transform: translateY(10px) scale(0.97); opacity: 0; }
+  100% { transform: translateY(0) scale(1);       opacity: 1; }
+}
+@keyframes toast-leave {
+  0%   { transform: translateY(0) scale(1);       opacity: 1; }
+  100% { transform: translateY(10px) scale(0.97); opacity: 0; }
+}
+
+.animate-enter {
+  animation: toast-enter 0.28s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
+}
+.animate-leave {
+  animation: toast-leave 0.22s ease-in forwards;
+}

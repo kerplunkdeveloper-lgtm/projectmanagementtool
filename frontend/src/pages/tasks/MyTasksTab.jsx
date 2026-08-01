@@ -122,7 +122,9 @@ const TimeTracker = ({
 
   if (!startTime && status !== "In Progress") {
     return (
-      <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs">—</span>
+      <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs">
+        —
+      </span>
     );
   }
   if (!startTime && status === "In Progress")
@@ -163,6 +165,129 @@ const TimeTracker = ({
         <span>{totalStr}</span>
       </div>
     </div>
+  );
+};
+
+const SingleTimeDisplay = ({
+  mode = "active", // "active" or "blocker"
+  startTime,
+  endTime,
+  status,
+  pausedAt,
+  savedPausedMs = 0,
+  isBlocked,
+  blockerPausedAt,
+  blockerHistory,
+}) => {
+  const [elapsed, setElapsed] = useState(0);
+  const [blockedMs, setBlockedMs] = useState(0);
+
+  useEffect(() => {
+    if (!startTime) return;
+
+    const calculateTime = () => {
+      const start = new Date(startTime).getTime();
+      let end;
+
+      if (endTime) {
+        end = new Date(endTime).getTime();
+      } else if (
+        pausedAt &&
+        ["On Hold", "Rejected", "IN-REVIEW", "In Review", "IN-Review"].includes(
+          status,
+        )
+      ) {
+        end = new Date(pausedAt).getTime();
+      } else {
+        end = Date.now();
+      }
+
+      let totalPauseMs = 0;
+      if (blockerHistory && blockerHistory.length > 0) {
+        blockerHistory.forEach((item) => {
+          if (item.pausedAt) {
+            const p = new Date(item.pausedAt).getTime();
+            const r = item.resumedAt
+              ? new Date(item.resumedAt).getTime()
+              : Date.now();
+            if (r >= p) {
+              totalPauseMs += r - p;
+            }
+          }
+        });
+      }
+
+      if (isBlocked && blockerPausedAt) {
+        const pauseStart = new Date(blockerPausedAt).getTime();
+        const currentPause = Date.now() - pauseStart;
+        if (currentPause > 0) {
+          totalPauseMs += currentPause;
+        }
+      }
+
+      const totalElapsedMs = end - start - (savedPausedMs || 0) - totalPauseMs;
+      return {
+        active: Math.max(0, Math.floor(totalElapsedMs / 1000)),
+        blocked: Math.max(0, Math.floor(totalPauseMs / 1000)),
+      };
+    };
+
+    const update = () => {
+      const { active, blocked } = calculateTime();
+      setElapsed(active);
+      setBlockedMs(blocked);
+    };
+
+    update();
+
+    if (status === "In Progress" && !endTime) {
+      const interval = setInterval(update, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [
+    startTime,
+    endTime,
+    pausedAt,
+    status,
+    isBlocked,
+    blockerPausedAt,
+    blockerHistory,
+  ]);
+
+  if (!startTime && status !== "In Progress") {
+    return (
+      <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs">
+        —
+      </span>
+    );
+  }
+  if (!startTime && status === "In Progress") {
+    return (
+      <span className="text-[10px] font-bold text-blue-500 animate-pulse">
+        Starting...
+      </span>
+    );
+  }
+
+  const formatTime = (secs) => {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    return `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
+  };
+
+  if (mode === "active") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200/50 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold text-[10px]">
+        {formatTime(elapsed)}
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-orange-50 dark:bg-orange-500/10 border border-orange-200/50 dark:border-orange-500/20 text-orange-700 dark:text-orange-400 font-bold text-[10px]">
+      {formatTime(blockedMs)}
+    </span>
   );
 };
 
@@ -268,7 +393,7 @@ const MyTasksTab = ({
   }, [statusParam]);
 
   const [clientFilter, setClientFilter] = useState("All");
-  
+
   const [localDateFilter, setLocalDateFilter] = useState(() => {
     try {
       const saved = localStorage.getItem("task_date_filter");
@@ -278,7 +403,8 @@ const MyTasksTab = ({
     }
   });
 
-  const dateFilter = dateFilterProp !== undefined ? dateFilterProp : localDateFilter;
+  const dateFilter =
+    dateFilterProp !== undefined ? dateFilterProp : localDateFilter;
 
   const setDateFilter = (val) => {
     const nextVal = typeof val === "function" ? val(dateFilter) : val;
@@ -452,7 +578,7 @@ const MyTasksTab = ({
             const dayOfWeek = now.getDay();
             const startOfWeek = new Date(todayStart);
             startOfWeek.setDate(
-              startOfWeek.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1)
+              startOfWeek.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1),
             );
             const endOfWeek = new Date(startOfWeek);
             endOfWeek.setDate(endOfWeek.getDate() + 6);
@@ -460,8 +586,17 @@ const MyTasksTab = ({
             matchesDate = targetDate >= startOfWeek && targetDate <= endOfWeek;
           } else if (dateFilter === "This Month") {
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-            matchesDate = targetDate >= startOfMonth && targetDate <= endOfMonth;
+            const endOfMonth = new Date(
+              now.getFullYear(),
+              now.getMonth() + 1,
+              0,
+              23,
+              59,
+              59,
+              999,
+            );
+            matchesDate =
+              targetDate >= startOfMonth && targetDate <= endOfMonth;
           }
         }
       }
@@ -505,7 +640,11 @@ const MyTasksTab = ({
     const list = filteredTasksWithoutStatus.filter((task) => {
       if (statusFilter === "All") return true;
       if (statusFilter === "Overdue") {
-        return task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "Completed";
+        return (
+          task.dueDate &&
+          new Date(task.dueDate) < new Date() &&
+          task.status !== "Completed"
+        );
       }
       if (
         statusFilter === "Pending,In Progress,In Review,On Hold" ||
@@ -545,21 +684,110 @@ const MyTasksTab = ({
   const sortedTasks = paginatedTasks;
   const selectedTask = tasks.find((t) => t._id === selectedTaskId);
 
-  const handleTaskFieldChange = (taskId, fields) => {
+  const handleTaskFieldChange = async (taskId, fields) => {
     const sanitizedFields = { ...fields };
+
     if (sanitizedFields.startDate === "") sanitizedFields.startDate = null;
+
     if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
-    if (sanitizedFields.status === "In Progress") {
-      (tasks || []).forEach((t) => {
-        if (
-          t._id !== taskId &&
-          (t.status === "In Progress" || t.status === "In-Progress")
-        ) {
-          updateTaskTrigger({ id: t._id, taskData: { status: "On Hold" } });
-        }
-      });
+
+    try {
+      await updateTaskTrigger({
+        id: taskId,
+        taskData: sanitizedFields,
+      }).unwrap();
+    } catch (err) {
+      if (err?.status === 409 || err?.originalStatus === 409) {
+        toast.custom(
+          (t) => (
+            <div
+              className={`${
+                t.visible ? "animate-enter" : "animate-leave"
+              } max-w-sm w-full pointer-events-auto flex flex-col gap-3 p-4 rounded-2xl shadow-2xl border
+          bg-white dark:bg-[#0f172a]
+          border-[var(--accent-color)]/30 dark:border-[var(--accent-color-dark)]/30
+          backdrop-blur-xl z-[99999]`}
+            >
+              {/* Header */}
+              <div className="flex items-start gap-3">
+                <div
+                  className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center shadow-sm"
+                  style={{ background: "var(--accent-light-bg-subtle)" }}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="var(--accent-color)"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="text-[12px] font-black tracking-wide"
+                    style={{ color: "var(--accent-color)" }}
+                  >
+                    Active Task Already Running
+                  </p>
+                  <p className="mt-0.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-snug">
+                    {err.data?.message ||
+                      "You already have one active task or subtask."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toast.dismiss(t.id)}
+                  className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                >
+                  <FiX size={13} />
+                </button>
+              </div>
+              {/* Divider */}
+              <div className="h-px bg-slate-100 dark:bg-slate-800" />
+              {/* Actions */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => toast.dismiss(t.id)}
+                  className="flex-1 py-1.5 px-3 rounded-lg text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    updateTaskTrigger({
+                      id: taskId,
+                      taskData: { ...sanitizedFields, forceSwitch: true },
+                    });
+                  }}
+                  className="flex-1 py-1.5 px-3 rounded-lg text-[11px] font-black text-white transition-all cursor-pointer shadow-sm"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, var(--accent-color), var(--accent-color-dark))",
+                  }}
+                >
+                  Switch Task
+                </button>
+              </div>
+            </div>
+          ),
+          { duration: 6000, position: "bottom-right" },
+        );
+      } else {
+        toast.error("Failed to update task");
+      }
+
+      throw err;
     }
-    updateTaskTrigger({ id: taskId, taskData: sanitizedFields });
   };
 
   const handleOpenBlockerModal = (task) => {
@@ -570,9 +798,8 @@ const MyTasksTab = ({
     setBlockerPriority("Normal");
   };
 
-
-
-  const handleSubmitBlocker = () => {
+  // .....................................................handlesubmitBlocker function ...........................................
+  const handleSubmitBlocker = async () => {
     if (!blockerModalTask) return;
     if (!blockerDescription.trim()) {
       toast.error("Please enter a blocker description");
@@ -588,13 +815,17 @@ const MyTasksTab = ({
       blockerPausedAt: new Date().toISOString(),
     };
 
-    handleTaskFieldChange(blockerModalTask._id, fields);
-    setSelectedTaskId(blockerModalTask._id);
-    setBlockerModalTask(null);
-    toast.success("Task paused - Blocker added");
+    try {
+      await handleTaskFieldChange(blockerModalTask._id, fields);
+      setSelectedTaskId(null);
+      setBlockerModalTask(null);
+      toast.success("Task paused - Blocker added");
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleResumeTask = (task) => {
+  const handleResumeTask = async (task) => {
     const pausedAt = task.blockerPausedAt || new Date().toISOString();
     const resumedAt = new Date().toISOString();
     const totalPauseMinutes = Math.max(
@@ -624,22 +855,91 @@ const MyTasksTab = ({
       status: "In Progress",
     };
 
-    handleTaskFieldChange(task._id, fields);
-    toast.success("Task resumed successfully!");
+    try {
+      await handleTaskFieldChange(task._id, fields);
+      toast.success("Task resumed successfully!");
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  const handleStatusChange = (taskId, newStatus) => {
-    if (newStatus === "In Progress") {
-      (tasks || []).forEach((t) => {
-        if (
-          t._id !== taskId &&
-          (t.status === "In Progress" || t.status === "In-Progress")
-        ) {
-          updateTaskTrigger({ id: t._id, taskData: { status: "On Hold" } });
-        }
-      });
+  const handleStatusChange = async (taskId, newStatus) => {
+    try {
+      await updateTaskTrigger({
+        id: taskId,
+        taskData: { status: newStatus },
+      }).unwrap();
+    } catch (err) {
+      if (err?.status === 409 || err?.originalStatus === 409) {
+        toast.custom(
+          (t) => (
+            <div
+              className={`${
+                t.visible ? "animate-enter" : "animate-leave"
+              } max-w-sm w-full pointer-events-auto flex flex-col gap-3 p-4 rounded-2xl shadow-2xl border
+            bg-white dark:bg-[#0f172a]
+            border-[var(--accent-color)]/30 dark:border-[var(--accent-color-dark)]/30
+            backdrop-blur-xl z-[99999]`}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center shadow-sm"
+                  style={{ background: "var(--accent-light-bg-subtle)" }}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="var(--accent-color)"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="text-[12px] font-black tracking-wide"
+                    style={{ color: "var(--accent-color)" }}
+                  >
+                    Active Task Already Running
+                  </p>
+                  <p className="mt-0.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-snug">
+                    {err.data?.message ||
+                      "You already have one active task or subtask."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toast.dismiss(t.id)}
+                  className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                >
+                  <FiX size={13} />
+                </button>
+              </div>
+              <div className="h-px bg-slate-100 dark:bg-slate-800" />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => toast.dismiss(t.id)}
+                  className="flex-1 py-1.5 px-3 rounded-lg text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ),
+          { duration: 6000, position: "bottom-right" },
+        );
+        return;
+      }
+
+      toast.error("Failed to update task");
     }
-    updateTaskTrigger({ id: taskId, taskData: { status: newStatus } });
   };
 
   const handleDragStart = (e, taskId) => {
@@ -723,7 +1023,7 @@ const MyTasksTab = ({
         };
       case "In Progress":
         return {
-          bg: "!bg-blue-50 !text-blue-700 !border-blue-200 dark:!bg-blue-500/20 dark:!text-blue-300 dark:!border-blue-500/40",
+          bg: "!bg-blue-600 !text-white !border-blue-200 dark:!bg-blue-500 dark:!text-black dark:!border-blue-500/40",
           dot: "bg-blue-500",
           icon: FiClock,
         };
@@ -737,19 +1037,19 @@ const MyTasksTab = ({
       case "In Review":
       case "IN-Review":
         return {
-          bg: "!bg-sky-50 !text-sky-700 !border-sky-200 dark:!bg-sky-500/20 dark:!text-sky-355 dark:!border-sky-500/40",
+          bg: "!bg-yellow-300 !text-sky-700 !border-sky-200 dark:!bg-yellow-400  dark:!text-black dark:!border-sky-500/40",
           dot: "bg-sky-500",
           icon: FiClock,
         };
       case "Rejected":
         return {
-          bg: "!bg-rose-50 !text-rose-700 !border-rose-200 dark:!bg-rose-500/20 dark:!text-rose-355 dark:!border-rose-500/40",
+          bg: "!bg-red-400 !text-black !border-rose-200 dark:!bg-rose-500/20 dark:!text-rose-355 dark:!border-rose-500/40",
           dot: "bg-rose-500",
           icon: FiAlertCircle,
         };
       default:
         return {
-          bg: "!bg-slate-50 !text-slate-600 !border-slate-200 dark:!bg-slate-500/20 dark:!text-slate-300 dark:!border-slate-500/40",
+          bg: "!bg-gray-50 !text-slate-600 dark:!bg-slate-300 dark:!text-slate-50 ",
           dot: "bg-slate-400",
           icon: FiClock,
         };
@@ -1142,11 +1442,15 @@ const MyTasksTab = ({
                         label: "Rejected",
                         color: "bg-red-500",
                       },
-                      ...(statusFilter === "Overdue" ? [{
-                        name: "Overdue",
-                        label: "Overdue",
-                        color: "bg-rose-600 animate-pulse",
-                      }] : []),
+                      ...(statusFilter === "Overdue"
+                        ? [
+                            {
+                              name: "Overdue",
+                              label: "Overdue",
+                              color: "bg-rose-600 animate-pulse",
+                            },
+                          ]
+                        : []),
                     ].map((st) => (
                       <button
                         key={st.name}
@@ -1574,6 +1878,20 @@ const MyTasksTab = ({
                       defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 min-w-[125px]"
                     />
                     <ResizableHeader
+                      id="activeTime"
+                      label="Inprogress time taken"
+                      colWidths={colWidths}
+                      handleMouseDown={handleMouseDown}
+                      defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-36 whitespace-nowrap"
+                    />
+                    <ResizableHeader
+                      id="blockerTime"
+                      label="Blocker time"
+                      colWidths={colWidths}
+                      handleMouseDown={handleMouseDown}
+                      defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap"
+                    />
+                    <ResizableHeader
                       id="timeTracker"
                       label="Time tracker"
                       colWidths={colWidths}
@@ -1977,6 +2295,42 @@ const MyTasksTab = ({
                                   </>
                                 )}
                               </div>
+                            </td>
+
+                             {/* Inprogress Time Taken Column */}
+                            <td
+                              className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-36 whitespace-nowrap text-center"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <SingleTimeDisplay
+                                mode="active"
+                                startTime={task.actualStartTime}
+                                endTime={task.actualEndTime}
+                                pausedAt={task.pausedAt}
+                                savedPausedMs={task.totalPausedMs}
+                                status={task.status}
+                                isBlocked={task.isBlocked}
+                                blockerPausedAt={task.blockerPausedAt}
+                                blockerHistory={task.blockerHistory}
+                              />
+                            </td>
+
+                            {/* Blocker Time Column */}
+                            <td
+                              className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap text-center"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <SingleTimeDisplay
+                                mode="blocker"
+                                startTime={task.actualStartTime}
+                                endTime={task.actualEndTime}
+                                pausedAt={task.pausedAt}
+                                savedPausedMs={task.totalPausedMs}
+                                status={task.status}
+                                isBlocked={task.isBlocked}
+                                blockerPausedAt={task.blockerPausedAt}
+                                blockerHistory={task.blockerHistory}
+                              />
                             </td>
 
                             {/* Timer Column */}
@@ -2554,69 +2908,16 @@ const MyTasksTab = ({
                   </div>
                 </div>
 
-                {/* Status Selection */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 tracking-wider flex items-center gap-1.5 uppercase">
-                    <FiTag size={12} /> Status
-                  </label>
-                  <select
-                    value={selectedTask.status}
-                    onChange={(e) =>
-                      handleTaskFieldChange(selectedTask._id, {
-                        status: e.target.value,
-                      })
-                    }
-                    className={`w-full border rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors ${getStatusStyle(selectedTask.status).bg}`}
-                  >
-                    <option value="Pending">Pending</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="IN-REVIEW">In Review</option>
-                    {selectedTask.status === "Completed" && (
-                      <option value="Completed">Completed</option>
-                    )}
-                    <option value="On Hold">On Hold</option>
-                    {selectedTask.status === "Rejected" && (
-                      <option value="Rejected">Rejected</option>
-                    )}
-                  </select>
-                </div>
-
-                {/* Time Tracker Display */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-slate-400 tracking-wider flex items-center gap-1.5 uppercase">
-                    <FiClock size={12} /> Time Tracker
-                  </label>
-                  <div className="bg-white dark:bg-[#0c121e] border border-slate-200/60 dark:border-slate-700/50 rounded-xl p-3 shadow-sm flex items-center justify-center">
-                    <TimeTracker
-                      startTime={selectedTask.actualStartTime}
-                      endTime={selectedTask.actualEndTime}
-                      status={selectedTask.status}
-                      pausedAt={selectedTask.pausedAt}
-                      isBlocked={selectedTask.isBlocked}
-                      blockerPausedAt={selectedTask.blockerPausedAt}
-                      blockerHistory={selectedTask.blockerHistory}
-                      fullWidth={true}
-                    />
-                  </div>
-                </div>
-
                 {/* Blocker & Pause Control */}
                 <div className="p-4 bg-rose-500/5 dark:bg-[#111827] border border-rose-200/50 dark:border-rose-900/30 rounded-3xl space-y-4">
                   <div className="flex items-center justify-between">
                     <label className="text-[10px] font-black text-rose-600 dark:text-rose-400 tracking-wider flex items-center gap-1.5 uppercase">
                       <FiAlertCircle size={14} /> Blocker & Pause Control
                     </label>
-                    {selectedTask.isBlocked ? (
+                    {selectedTask.isBlocked && (
                       <span className="px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 text-[9px] font-black uppercase tracking-wider animate-pulse">
                         Paused - Blocked
                       </span>
-                    ) : (
-                      <button
-                        onClick={() => handleOpenBlockerModal(selectedTask)}
-                        className="px-3 py-1.5 bg-rose-100 hover:bg-rose-600 dark:bg-rose-500/10 dark:hover:bg-rose-600 hover:text-white text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all cursor-pointer shadow-sm"
-                      >
-                        + Add Blocker
-                      </button>
                     )}
                   </div>
 
@@ -2721,164 +3022,6 @@ const MyTasksTab = ({
                         </div>
                       </div>
                     )}
-
-                  {/* Feedbacks Section */}
-                  <div className="p-4 bg-blue-500/5 dark:bg-[#111827] border border-blue-200/50 dark:border-rose-900/30 rounded-3xl space-y-4">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[10px] font-black text-blue-600 dark:text-blue-400 tracking-wider flex items-center gap-1.5 uppercase">
-                        <FiMessageSquare size={14} /> Feedbacks ({(selectedTask.feedbacks || []).length})
-                      </label>
-                    </div>
-
-                    {/* Add Feedback inline form */}
-                    <div className="space-y-2">
-                      <textarea
-                        value={feedbackText}
-                        onChange={(e) => setFeedbackText(e.target.value)}
-                        placeholder="Type a new feedback..."
-                        rows={2}
-                        className="w-full bg-white dark:bg-[#1a1d2d] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all resize-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                      />
-                      <div className="flex justify-end">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!feedbackText.trim()) {
-                              toast.error("Feedback text cannot be empty");
-                              return;
-                            }
-                            const newFeedback = {
-                              _id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-                              text: feedbackText.trim(),
-                              addedAt: new Date().toISOString(),
-                              addedBy: currentUserId,
-                            };
-                            const updated = [...(selectedTask.feedbacks || []), newFeedback];
-                            handleTaskFieldChange(selectedTask._id, { feedbacks: updated });
-                            setFeedbackText("");
-                            toast.success("Feedback added successfully");
-                          }}
-                          className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-xl text-[10px] font-black tracking-wider uppercase transition-all cursor-pointer shadow-sm"
-                        >
-                          Submit
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* List of Feedbacks */}
-                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
-                      {!(selectedTask.feedbacks) || selectedTask.feedbacks.length === 0 ? (
-                        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 italic text-center py-2">
-                          No feedbacks added yet.
-                        </p>
-                      ) : (
-                        selectedTask.feedbacks
-                          .slice()
-                          .reverse()
-                          .map((fb, idx) => {
-                            const fbId = fb._id || fb.addedAt;
-                            const isEditing = editingFeedbackId === fbId;
-                            return (
-                              <div
-                                key={fbId || idx}
-                                className="group p-2.5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl space-y-1.5"
-                              >
-                                {isEditing ? (
-                                  <div className="space-y-1.5">
-                                    <textarea
-                                      value={editingFeedbackText}
-                                      onChange={(e) => setEditingFeedbackText(e.target.value)}
-                                      rows={2}
-                                      className="w-full bg-slate-50 dark:bg-[#1a1d2d] border border-slate-200 dark:border-white/10 rounded-xl px-2 py-1.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:border-blue-500 transition-all resize-none"
-                                    />
-                                    <div className="flex justify-end gap-2 text-[8.5px] font-extrabold uppercase">
-                                      <button
-                                        type="button"
-                                        onClick={() => setEditingFeedbackId(null)}
-                                        className="px-2 py-0.5 text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors cursor-pointer"
-                                      >
-                                        Cancel
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          if (!editingFeedbackText.trim()) {
-                                            toast.error("Feedback text cannot be empty");
-                                            return;
-                                          }
-                                          const updated = (selectedTask.feedbacks || []).map((item) => {
-                                            const isTarget = item._id ? item._id === fb._id : item.addedAt === fb.addedAt;
-                                            if (isTarget) {
-                                              return {
-                                                ...item,
-                                                text: editingFeedbackText.trim(),
-                                                updatedAt: new Date().toISOString(),
-                                              };
-                                            }
-                                            return item;
-                                          });
-                                          handleTaskFieldChange(selectedTask._id, { feedbacks: updated });
-                                          setEditingFeedbackId(null);
-                                          setEditingFeedbackText("");
-                                          toast.success("Feedback updated successfully");
-                                        }}
-                                        className="px-2 py-0.5 bg-blue-600 dark:bg-blue-500 text-white rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors cursor-pointer"
-                                      >
-                                        Save
-                                      </button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <>
-                                    <div className="flex justify-between items-center text-[8.5px] text-slate-500 dark:text-slate-400">
-                                      <span>
-                                        {new Date(fb.addedAt).toLocaleString()}
-                                      </span>
-                                      <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setEditingFeedbackId(fbId);
-                                            setEditingFeedbackText(fb.text);
-                                          }}
-                                          className="p-0.5 hover:text-blue-500 transition-colors cursor-pointer"
-                                          title="Edit Feedback"
-                                        >
-                                          <FiEdit size={10} />
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            if (!window.confirm("Are you sure you want to delete this feedback?")) return;
-                                            const updated = (selectedTask.feedbacks || []).filter((item) => {
-                                              return item._id ? item._id !== fb._id : item.addedAt !== fb.addedAt;
-                                            });
-                                            handleTaskFieldChange(selectedTask._id, { feedbacks: updated });
-                                            toast.success("Feedback deleted successfully");
-                                          }}
-                                          className="p-0.5 hover:text-rose-500 transition-colors cursor-pointer"
-                                          title="Delete Feedback"
-                                        >
-                                          <FiTrash2 size={10} />
-                                        </button>
-                                      </div>
-                                    </div>
-                                    <p className="text-xs text-slate-700 dark:text-slate-200 font-medium break-words leading-relaxed">
-                                      {fb.text}
-                                    </p>
-                                    {fb.updatedAt && (
-                                      <div className="text-[8px] text-slate-400 dark:text-slate-500 text-right italic">
-                                        Edited: {new Date(fb.updatedAt).toLocaleString()}
-                                      </div>
-                                    )}
-                                  </>
-                                )}
-                              </div>
-                            );
-                          })
-                      )}
-                    </div>
-                  </div>
                 </div>
               </div>
             </motion.div>
