@@ -354,6 +354,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       let over = 0;
       let totalRevisions = 0;
       let totalLoggedMs = 0;
+      let inProgressLoggedMs = 0;
       let totalBlockerMs = 0;
       let totalApprovalMs = 0;
       let approvalCount = 0;
@@ -382,7 +383,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
               ? new Date(t.pausedAt).getTime()
               : Date.now();
           const paused = t.totalPausedMs || 0;
-          totalLoggedMs += Math.max(0, end - start - paused);
+          const taskLoggedMs = Math.max(0, end - start - paused);
+          totalLoggedMs += taskLoggedMs;
+          if (s.includes("progress")) {
+            inProgressLoggedMs += taskLoggedMs;
+          }
         }
 
         // Collect blockers and compute blocker time
@@ -437,6 +442,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       const avgRevisions =
         myTasks.length > 0 ? totalRevisions / myTasks.length : 0;
       const totalHours = totalLoggedMs / (1000 * 60 * 60);
+      const inProgressHours = inProgressLoggedMs / (1000 * 60 * 60);
       const avgApprovalMs =
         approvalCount > 0 ? totalApprovalMs / approvalCount : 0;
 
@@ -525,6 +531,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         overdue: over,
         avgRevisions,
         totalHours,
+        inProgressHours,
+        inProgressLoggedMs,
         avgApprovalMs,
         blockers:
           blockerTypesSet.size > 0
@@ -1358,7 +1366,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                     Blocker Time
                   </th>
                   <th className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
-                    Total Hours
+                    Productivity
                   </th>
 
                   <th className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
@@ -1472,8 +1480,21 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         </span>
                       )}
                     </td>
-                    <td className="py-2.5 px-3 border-r border-b border-slate-100 dark:border-slate-700/60 text-xs font-semibold text-slate-600 dark:text-slate-350">
-                      {tp.totalHours.toFixed(1)}h
+                    <td className="py-2.5 px-3 border-r border-b border-slate-100 dark:border-slate-700/60 text-xs text-center">
+                      {tp.inProgressLoggedMs > 0 ? (
+                        <div className="inline-flex items-center justify-center px-3 py-1.5 rounded-full bg-blue-50/80 border border-blue-200 text-blue-700 font-black text-[11px] tracking-wide dark:bg-blue-900/30 dark:border-blue-700/50 dark:text-blue-400 shadow-sm">
+                          {(() => {
+                            const totalSecs = Math.floor(tp.inProgressLoggedMs / 1000);
+                            const h = Math.floor(totalSecs / 3600);
+                            const m = Math.floor((totalSecs % 3600) / 60);
+                            const s = totalSecs % 60;
+                            if (h > 0) return `${h}h ${m}m ${s}s`;
+                            return `${m}m ${s}s`;
+                          })()}
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 dark:text-slate-500 font-bold">—</span>
+                      )}
                     </td>
 
                     <td className="py-2.5 px-3 border-r border-b border-slate-100 dark:border-slate-700/60 text-xs font-semibold">

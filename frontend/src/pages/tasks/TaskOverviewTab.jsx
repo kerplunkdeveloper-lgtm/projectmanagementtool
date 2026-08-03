@@ -174,7 +174,8 @@ const renderUserAvatarSmall = (u) => {
 };
 
 const getUserColorClass = (userName) => {
-  if (!userName || userName === "Unknown" || userName === "Unassigned") return "text-slate-500 dark:text-slate-400";
+  if (!userName || userName === "Unknown" || userName === "Unassigned")
+    return "text-slate-500 dark:text-slate-400";
   const colors = [
     "text-indigo-650 dark:text-indigo-400 hover:text-indigo-850 dark:hover:text-indigo-300",
     "text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-300",
@@ -183,7 +184,7 @@ const getUserColorClass = (userName) => {
     "text-rose-600 dark:text-rose-400 hover:text-rose-850 dark:hover:text-rose-300",
     "text-amber-600 dark:text-amber-400 hover:text-amber-850 dark:hover:text-amber-300",
     "text-fuchsia-600 dark:text-fuchsia-400 hover:text-fuchsia-850 dark:hover:text-fuchsia-300",
-    "text-cyan-600 dark:text-cyan-400 hover:text-cyan-850 dark:hover:text-cyan-300"
+    "text-cyan-600 dark:text-cyan-400 hover:text-cyan-850 dark:hover:text-cyan-300",
   ];
   let hash = 0;
   for (let i = 0; i < userName.length; i++) {
@@ -201,7 +202,12 @@ const getDeptBadgeStyle = (dept) => {
   if (d.includes("video") || d.includes("editor")) {
     return "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/20 dark:text-blue-300 dark:border-blue-900/30";
   }
-  if (d.includes("social") || d.includes("media") || d.includes("manager") || d.includes("executive")) {
+  if (
+    d.includes("social") ||
+    d.includes("media") ||
+    d.includes("manager") ||
+    d.includes("executive")
+  ) {
     return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-300 dark:border-emerald-900/30";
   }
   if (d.includes("content") || d.includes("writer")) {
@@ -220,8 +226,10 @@ const shortenDept = (dept) => {
   if (d.includes("graphic")) return "GD";
   if (d.includes("video") && d.includes("editor")) return "VE";
   if (d.includes("video")) return "VE";
-  if (d.includes("social") && d.includes("media") && d.includes("manager")) return "SM";
-  if (d.includes("social") && d.includes("media") && d.includes("executive")) return "SME";
+  if (d.includes("social") && d.includes("media") && d.includes("manager"))
+    return "SM";
+  if (d.includes("social") && d.includes("media") && d.includes("executive"))
+    return "SME";
   if (d.includes("social") && d.includes("media")) return "SM";
   if (d.includes("content") && d.includes("writer")) return "CW";
   if (d.includes("content")) return "Content";
@@ -229,7 +237,12 @@ const shortenDept = (dept) => {
   if (d.includes("operation")) return "Ops";
   if (d.includes("admin")) return "Admin";
   if (dept.length <= 4) return dept.toUpperCase();
-  return dept.split(" ").map(w => w[0]).join("").substring(0, 3).toUpperCase();
+  return dept
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .substring(0, 3)
+    .toUpperCase();
 };
 
 const TaskOverviewTab = ({
@@ -343,82 +356,89 @@ const TaskOverviewTab = ({
   };
 
   const handleTaskFieldChange = async (taskId, fields) => {
-  const sanitizedFields = { ...fields };
+    const sanitizedFields = { ...fields };
 
-  if (sanitizedFields.startDate === "")
-    sanitizedFields.startDate = null;
+    if (sanitizedFields.startDate === "") sanitizedFields.startDate = null;
 
-  if (sanitizedFields.dueDate === "")
-    sanitizedFields.dueDate = null;
+    if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
 
-  try {
-    await updateTaskTrigger({
-      id: taskId,
-      taskData: sanitizedFields,
-    }).unwrap();
-
-  } catch (err) {
-    if (err?.status === 409) {
-      toast.custom(
-        (t) => (
-          <div
-            className={`${
-              t.visible ? "animate-enter" : "animate-leave"
-            } max-w-sm w-full pointer-events-auto flex flex-col gap-3 p-4 rounded-2xl shadow-2xl border
+    try {
+      await updateTaskTrigger({
+        id: taskId,
+        taskData: sanitizedFields,
+      }).unwrap();
+    } catch (err) {
+      if (err?.status === 409) {
+        toast.custom(
+          (t) => (
+            <div
+              className={`${
+                t.visible ? "animate-enter" : "animate-leave"
+              } max-w-sm w-full pointer-events-auto flex flex-col gap-3 p-4 rounded-2xl shadow-2xl border
             bg-white dark:bg-[#0f172a]
             border-[var(--accent-color)]/30 dark:border-[var(--accent-color-dark)]/30
             backdrop-blur-xl z-[99999]`}
-          >
-            <div className="flex items-start gap-3">
-              <div
-                className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center shadow-sm"
-                style={{ background: "var(--accent-light-bg-subtle)" }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"/>
-                  <line x1="12" y1="8" x2="12" y2="12"/>
-                  <line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p
-                  className="text-[12px] font-black tracking-wide"
-                  style={{ color: "var(--accent-color)" }}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center shadow-sm"
+                  style={{ background: "var(--accent-light-bg-subtle)" }}
                 >
-                  Active Task Already Running
-                </p>
-                <p className="mt-0.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-snug">
-                  {err.data?.message || "You already have one active task or subtask."}
-                </p>
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="var(--accent-color)"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="text-[12px] font-black tracking-wide"
+                    style={{ color: "var(--accent-color)" }}
+                  >
+                    Active Task Already Running
+                  </p>
+                  <p className="mt-0.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-snug">
+                    {err.data?.message ||
+                      "You already have one active task or subtask."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toast.dismiss(t.id)}
+                  className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                >
+                  <FiX size={13} />
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => toast.dismiss(t.id)}
-                className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
-              >
-                <FiX size={13} />
-              </button>
+              <div className="h-px bg-slate-100 dark:bg-slate-800" />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => toast.dismiss(t.id)}
+                  className="flex-1 py-1.5 px-3 rounded-lg text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
-            <div className="h-px bg-slate-100 dark:bg-slate-800" />
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => toast.dismiss(t.id)}
-                className="flex-1 py-1.5 px-3 rounded-lg text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ),
-        { duration: 6000, position: "bottom-right" },
-      );
-      return;
-    }
+          ),
+          { duration: 6000, position: "bottom-right" },
+        );
+        return;
+      }
 
-    toast.error("Failed to update task");
-  }
-};
+      toast.error("Failed to update task");
+    }
+  };
 
   const getDrawerStatusStyle = (status) => {
     switch (status) {
@@ -682,7 +702,10 @@ const TaskOverviewTab = ({
         }
 
         if (overviewStatusFilter === "Overdue") {
-          const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && task.status !== "Completed";
+          const isOverdue =
+            task.dueDate &&
+            new Date(task.dueDate) < new Date() &&
+            task.status !== "Completed";
           if (!isOverdue) return false;
         } else if (
           overviewStatusFilter !== "All" &&
@@ -802,9 +825,9 @@ const TaskOverviewTab = ({
       .sort((a, b) => {
         const priorityRank = {
           "Top High": 1,
-          "High": 2,
-          "Medium": 3,
-          "Low": 4,
+          High: 2,
+          Medium: 3,
+          Low: 4,
         };
 
         const pRankA = priorityRank[a.priority] || 5;
@@ -894,9 +917,6 @@ const TaskOverviewTab = ({
               </span>
             )}
           </div>
-
-
-
 
           <div className="flex items-center justify-end gap-2.5 w-full sm:w-auto">
             <div className="relative" ref={clientDropdownRef}>
@@ -1282,7 +1302,9 @@ const TaskOverviewTab = ({
                       "On Hold",
                       "Completed",
                       "Rejected",
-                      ...(overviewStatusFilter === "Overdue" ? ["Overdue"] : []),
+                      ...(overviewStatusFilter === "Overdue"
+                        ? ["Overdue"]
+                        : []),
                     ].map((st) => (
                       <button
                         key={st}
@@ -1546,19 +1568,27 @@ const TaskOverviewTab = ({
             <thead className="sticky top-0 z-20 bg-slate-50 dark:bg-[#161826] shadow-sm">
               <tr className="border-b border-slate-300 dark:border-white/15 text-[9.5px] font-black text-slate-550 dark:text-slate-400 uppercase tracking-wider">
                 {!hiddenColumns.taskName && (
-                  <th className="py-2.5 px-3 border-r border-b border-slate-300 dark:border-white/15 w-[220px]">TASK NAME</th>
+                  <th className="py-2.5 px-3 border-r border-b border-slate-300 dark:border-white/15 w-[220px]">
+                    TASK NAME
+                  </th>
                 )}
 
                 {!hiddenColumns.clientName && (
-                  <th className="py-2.5 px-3 border-r border-b border-slate-300 dark:border-white/15 w-[130px]">CLIENT NAME</th>
+                  <th className="py-2.5 px-3 border-r border-b border-slate-300 dark:border-white/15 w-[130px]">
+                    CLIENT NAME
+                  </th>
                 )}
 
                 {!hiddenColumns.createdBy && (
-                  <th className="py-2.5 px-3 border-r border-b border-slate-300 dark:border-white/15 w-[100px]">CREATED BY</th>
+                  <th className="py-2.5 px-3 border-r border-b border-slate-300 dark:border-white/15 w-[100px]">
+                    CREATED BY
+                  </th>
                 )}
 
                 {!hiddenColumns.assignee && (
-                  <th className="py-2.5 px-3 border-r border-b border-slate-300 dark:border-white/15 w-[110px]">ASSIGNEE</th>
+                  <th className="py-2.5 px-3 border-r border-b border-slate-300 dark:border-white/15 w-[110px]">
+                    ASSIGNEE
+                  </th>
                 )}
                 {!hiddenColumns.startDate && (
                   <th className="py-2.5 px-3 border-r border-b border-slate-300 dark:border-white/15 text-center w-[100px]">
@@ -1586,7 +1616,9 @@ const TaskOverviewTab = ({
                   </th>
                 )}
                 {!hiddenColumns.action && (
-                  <th className="py-2.5 px-3 border-b border-slate-300 dark:border-white/15 text-right w-[125px]">ACTION</th>
+                  <th className="py-2.5 px-3 border-b border-slate-300 dark:border-white/15 text-right w-[125px]">
+                    ACTION
+                  </th>
                 )}
               </tr>
             </thead>
@@ -1679,7 +1711,11 @@ const TaskOverviewTab = ({
                         {!hiddenColumns.clientName && (
                           <td className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-white/10 text-left">
                             {clientObj && clientObj.companyName ? (
-                              <ClientBadge client={clientObj} size="sm" className="!text-[10px] !px-1.5 !py-0.5" />
+                              <ClientBadge
+                                client={clientObj}
+                                size="sm"
+                                className="!text-[10px] !px-1.5 !py-0.5"
+                              />
                             ) : (
                               <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[14px] font-bold bg-pink-50 text-pink-600 border border-pink-100 dark:bg-pink-950/30 dark:text-pink-400 dark:border-pink-900/30">
                                 {clientName}
@@ -1692,11 +1728,17 @@ const TaskOverviewTab = ({
                             <div className="flex items-center gap-2">
                               {renderUserAvatarSmall(task.createdBy)}
                               <div className="flex flex-col justify-center min-w-0">
-                                <span className={`font-extrabold text-[9.5px] truncate transition-colors ${getUserColorClass(task.createdBy?.name || "Unknown")}`}>
+                                <span
+                                  className={`font-extrabold text-[9.5px] truncate transition-colors ${getUserColorClass(task.createdBy?.name || "Unknown")}`}
+                                >
                                   {task.createdBy?.name || "Unknown"}
                                 </span>
-                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black border uppercase tracking-wider mt-1 w-max ${getDeptBadgeStyle(task.createdBy?.department || "Creator")}`}>
-                                  {shortenDept(task.createdBy?.department || "Creator")}
+                                <span
+                                  className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black border uppercase tracking-wider mt-1 w-max ${getDeptBadgeStyle(task.createdBy?.department || "Creator")}`}
+                                >
+                                  {shortenDept(
+                                    task.createdBy?.department || "Creator",
+                                  )}
                                 </span>
                               </div>
                             </div>
@@ -1707,11 +1749,18 @@ const TaskOverviewTab = ({
                             <div className="flex items-center gap-2">
                               {renderUserAvatarSmall(task.assignedTo)}
                               <div className="flex flex-col justify-center min-w-0">
-                                <span className={`font-extrabold text-[9.5px] truncate transition-colors ${getUserColorClass(task.assignedTo?.name || "Unassigned")}`}>
+                                <span
+                                  className={`font-extrabold text-[9.5px] truncate transition-colors ${getUserColorClass(task.assignedTo?.name || "Unassigned")}`}
+                                >
                                   {task.assignedTo?.name || "Unassigned"}
                                 </span>
-                                <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black border uppercase tracking-wider mt-1 w-max ${getDeptBadgeStyle(task.assignedTo?.department || "Team Member")}`}>
-                                  {shortenDept(task.assignedTo?.department || "Team Member")}
+                                <span
+                                  className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black border uppercase tracking-wider mt-1 w-max ${getDeptBadgeStyle(task.assignedTo?.department || "Team Member")}`}
+                                >
+                                  {shortenDept(
+                                    task.assignedTo?.department ||
+                                      "Team Member",
+                                  )}
                                 </span>
                               </div>
                             </div>
@@ -1759,7 +1808,9 @@ const TaskOverviewTab = ({
                             <span
                               className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[14px] font-medium border  tracking-wider shadow-lg ${sStyle.bg} ${sStyle.text} ${sStyle.border}`}
                             >
-                              <span className={`w-1.5 h-1.5 rounded-full ${sStyle.dot}`} />
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${sStyle.dot}`}
+                              />
                               {task.status || "Pending"}
                             </span>
                           </td>
@@ -1839,7 +1890,7 @@ const TaskOverviewTab = ({
               >
                 Previous
               </button>
-              
+
               {(() => {
                 const pageNumbers = [];
                 const maxVisiblePages = 5;
@@ -1899,7 +1950,9 @@ const TaskOverviewTab = ({
 
               <button
                 type="button"
-                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                }
                 disabled={currentPage === totalPages}
                 className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-bold text-slate-700 dark:text-slate-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-white dark:hover:bg-white/5 transition-colors shadow-2xs cursor-pointer"
               >

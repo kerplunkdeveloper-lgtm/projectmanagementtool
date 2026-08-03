@@ -4960,8 +4960,17 @@ const ProjectTaskBoard = ({
                                                                 <option value="Pending">
                                                                   Pending
                                                                 </option>
+                                                                <option value="In Progress">
+                                                                  In Progress
+                                                                </option>
+                                                                <option value="IN-REVIEW">
+                                                                  In Review
+                                                                </option>
                                                                 <option value="Completed">
                                                                   Completed
+                                                                </option>
+                                                                <option value="On Hold">
+                                                                  On Hold
                                                                 </option>
                                                                 <option value="Rejected">
                                                                   Rejected
@@ -6099,7 +6108,10 @@ const ProjectTaskBoard = ({
                                                                         }`}
                                                                       >
                                                                  <option value="Pending">Pending</option>
+                                                                 <option value="In Progress">In Progress</option>
+                                                                 <option value="IN-REVIEW">In Review</option>
                                                                  <option value="Completed">Completed</option>
+                                                                 <option value="On Hold">On Hold</option>
                                                                  <option value="Rejected">Rejected</option>             
                                                                       </select>
                                                                     ) : (
