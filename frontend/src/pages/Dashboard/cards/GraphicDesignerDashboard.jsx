@@ -67,7 +67,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     else if (dateFilter === "Last 7 Days") mappedFilter = "This Week";
     else if (dateFilter === "This Month") mappedFilter = "This Month";
     else if (dateFilter === "All Time") mappedFilter = "All";
-    
+
     localStorage.setItem("task_date_filter", mappedFilter);
     navigate(`/${user?.role || "team"}/tasks?status=${status}`);
   };
@@ -153,11 +153,41 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             ? task.createdBy._id
             : task.createdBy;
         if (creatorId === currentUserId && task.assignedTo) {
-          const assigneeId =
-            typeof task.assignedTo === "object"
-              ? task.assignedTo._id
-              : task.assignedTo;
-          assignedDesignerIds.add(assigneeId);
+          // Filter by dateFilter so we only show designers who have tasks in the current view
+          let includeTask = true;
+          if (dateFilter !== "All Time") {
+            const taskCreatedDate = task.createdAt ? parseISO(task.createdAt) : null;
+            const taskDueDate = task.dueDate ? parseISO(task.dueDate) : null;
+            const dateToCheck = taskDueDate || taskCreatedDate;
+            
+            if (!dateToCheck) {
+              includeTask = false;
+            } else {
+              if (dateFilter === "Today") {
+                includeTask = isToday(dateToCheck);
+              } else if (dateFilter === "Yesterday") {
+                includeTask = isYesterday(dateToCheck);
+              } else if (dateFilter === "Last 7 Days") {
+                const sevenDaysAgo = subDays(new Date(), 7);
+                includeTask = isAfter(dateToCheck, sevenDaysAgo);
+              } else if (dateFilter === "This Month") {
+                const now = new Date();
+                includeTask = isSameMonth(dateToCheck, now);
+              }
+            }
+          }
+
+          // Also include tasks that are active (not completed) so they don't disappear if they were due yesterday
+          const status = task.status?.toLowerCase() || "";
+          const isActive = status !== "completed" && !status.includes("approve");
+
+          if (includeTask || isActive) {
+            const assigneeId =
+              typeof task.assignedTo === "object"
+                ? task.assignedTo._id
+                : task.assignedTo;
+            assignedDesignerIds.add(assigneeId);
+          }
         }
       });
 
@@ -165,7 +195,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     }
 
     return baseDesigners;
-  }, [users, allTasks, user, targetDept]);
+  }, [users, allTasks, user, targetDept, dateFilter]);
 
   const designerIds = useMemo(() => designers.map((d) => d._id), [designers]);
 
@@ -912,7 +942,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
               "bg-blue-100 dark:bg-blue-950 border border-blue-200 dark:border-blue-500",
             iconColor: "text-blue-600 dark:text-blue-400",
             onClick: () => {
-              performanceTableRef.current?.scrollIntoView({ behavior: "smooth" });
+              performanceTableRef.current?.scrollIntoView({
+                behavior: "smooth",
+              });
             },
           },
           {
@@ -1128,191 +1160,229 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             let textCol = "text-slate-800 dark:text-white";
             let countBg = "bg-slate-200 dark:bg-slate-700";
             let countText = "text-slate-700 dark:text-slate-300";
-            
+
             const lowerCol = col.toLowerCase();
             if (lowerCol === "pending") {
-              colBg = "bg-slate-300 dark:bg-slate-300"; boardBg = "bg-slate-50/50 dark:bg-[#0f172a]"; textCol = "text-white dark:text-slate-900"; colBorder = "border-slate-300 dark:border-slate-600"; countBg = "bg-slate-200 dark:bg-slate-700"; countText = "text-slate-800 dark:text-slate-100";
+              colBg = "bg-slate-300 dark:bg-slate-300";
+              boardBg = "bg-slate-50/50 dark:bg-[#0f172a]";
+              textCol = "text-white dark:text-slate-900";
+              colBorder = "border-slate-300 dark:border-slate-600";
+              countBg = "bg-slate-200 dark:bg-slate-700";
+              countText = "text-slate-800 dark:text-slate-100";
             } else if (lowerCol === "in progress") {
-              colBg = "bg-blue-500 dark:bg-blue-500"; boardBg = "bg-blue-50/30 dark:bg-[#0f172a]"; textCol = "text-white dark:text-white"; colBorder = "border-blue-200 dark:border-blue-800/50"; countBg = "bg-blue-100 dark:bg-blue-800/50"; countText = "text-blue-800 dark:text-blue-300";
+              colBg = "bg-blue-500 dark:bg-blue-500";
+              boardBg = "bg-blue-50/30 dark:bg-[#0f172a]";
+              textCol = "text-white dark:text-white";
+              colBorder = "border-blue-200 dark:border-blue-800/50";
+              countBg = "bg-blue-100 dark:bg-blue-800/50";
+              countText = "text-blue-800 dark:text-blue-300";
             } else if (lowerCol === "on hold") {
-              colBg = "bg-[#da1cf1] dark:bg-[#da1cf1]"; boardBg = "bg-amber-50/30 dark:bg-[#0f172a]"; textCol = "text-white dark:text-white"; colBorder = "border-amber-200 dark:border-amber-800/50"; countBg = "bg-amber-100 dark:bg-amber-800/50"; countText = "text-amber-800 dark:text-amber-300";
+              colBg = "bg-[#da1cf1] dark:bg-[#da1cf1]";
+              boardBg = "bg-amber-50/30 dark:bg-[#0f172a]";
+              textCol = "text-white dark:text-white";
+              colBorder = "border-amber-200 dark:border-amber-800/50";
+              countBg = "bg-amber-100 dark:bg-amber-800/50";
+              countText = "text-amber-800 dark:text-amber-300";
             } else if (lowerCol === "in review") {
-              colBg = "bg-yellow-300 dark:bg-yellow-300"; boardBg = "bg-indigo-50/30 dark:bg-[#0f172a]"; textCol = "text-white dark:text-white"; colBorder = "border-indigo-200 dark:border-indigo-800/50"; countBg = "bg-indigo-100 dark:bg-indigo-800/50"; countText = "text-indigo-800 dark:text-indigo-300";
+              colBg = "bg-yellow-300 dark:bg-yellow-300";
+              boardBg = "bg-indigo-50/30 dark:bg-[#0f172a]";
+              textCol = "text-white dark:text-white";
+              colBorder = "border-indigo-200 dark:border-indigo-800/50";
+              countBg = "bg-indigo-100 dark:bg-indigo-800/50";
+              countText = "text-indigo-800 dark:text-indigo-300";
             } else if (lowerCol === "completed") {
-              colBg = "bg-green-500 dark:bg-green-500"; boardBg = "bg-emerald-50/30 dark:bg-[#0f172a]"; textCol = "text-white dark:text-white"; colBorder = "border-emerald-200 dark:border-emerald-800/50"; countBg = "bg-emerald-100 dark:bg-emerald-800/50"; countText = "text-emerald-800 dark:text-emerald-300";
+              colBg = "bg-green-500 dark:bg-green-500";
+              boardBg = "bg-emerald-50/30 dark:bg-[#0f172a]";
+              textCol = "text-white dark:text-white";
+              colBorder = "border-emerald-200 dark:border-emerald-800/50";
+              countBg = "bg-emerald-100 dark:bg-emerald-800/50";
+              countText = "text-emerald-800 dark:text-emerald-300";
             } else if (lowerCol === "rejected") {
-              colBg = "bg-rose-500 dark:bg-rose-500"; boardBg = "bg-rose-50/30 dark:bg-[#0f172a]"; textCol = "text-white dark:text-white"; colBorder = "border-rose-200 dark:border-rose-800/50"; countBg = "bg-rose-100 dark:bg-rose-800/50"; countText = "text-rose-800 dark:text-rose-300";
+              colBg = "bg-rose-500 dark:bg-rose-500";
+              boardBg = "bg-rose-50/30 dark:bg-[#0f172a]";
+              textCol = "text-white dark:text-white";
+              colBorder = "border-rose-200 dark:border-rose-800/50";
+              countBg = "bg-rose-100 dark:bg-rose-800/50";
+              countText = "text-rose-800 dark:text-rose-300";
             }
 
             return (
-            <div
-              key={i}
-              className={`flex-1 min-w-0 ${boardBg} backdrop-blur-md rounded-2xl border ${colBorder} flex flex-col max-h-[550px] shadow-sm`}
-            >
-              <div className={`p-3 border-b flex items-center justify-between rounded-t-2xl backdrop-blur-md ${colBg} ${colBorder}`}>
-                <span className={`text-[10px] font-black tracking-widest uppercase truncate max-w-[80%] ${textCol}`}>
-                  {col}
-                </span>
-                <span className={`text-[10px] font-black px-2 py-0.5 rounded-md shrink-0 ${countBg} ${countText}`}>
-                  {tasksByColumn[col].length}
-                </span>
-              </div>
-              <div className="p-2.5 overflow-y-auto space-y-2.5 flex-1 custom-scrollbar">
-                <AnimatePresence>
-                  {tasksByColumn[col].map((task) => {
-                    let clientName = "No Client";
-                    if (task.client) {
-                      const cId =
-                        typeof task.client === "object"
-                          ? task.client._id
-                          : task.client;
-                      const c = clients?.find((x) => x._id === cId);
-                      clientName =
-                        c?.companyName ||
-                        c?.name ||
-                        (typeof task.client === "object"
-                          ? task.client.companyName || task.client.name
-                          : "Unknown Client");
-                    } else if (task.project) {
-                      const pId =
-                        typeof task.project === "object"
-                          ? task.project._id
-                          : task.project;
-                      const p = projects?.find((x) => x._id === pId);
-                      if (p) {
+              <div
+                key={i}
+                className={`flex-1 min-w-0 ${boardBg} backdrop-blur-md rounded-2xl border ${colBorder} flex flex-col max-h-[550px] shadow-sm`}
+              >
+                <div
+                  className={`p-3 border-b flex items-center justify-between rounded-t-2xl backdrop-blur-md ${colBg} ${colBorder}`}
+                >
+                  <span
+                    className={`text-[10px] font-black tracking-widest uppercase truncate max-w-[80%] ${textCol}`}
+                  >
+                    {col}
+                  </span>
+                  <span
+                    className={`text-[10px] font-black px-2 py-0.5 rounded-md shrink-0 ${countBg} ${countText}`}
+                  >
+                    {tasksByColumn[col].length}
+                  </span>
+                </div>
+                <div className="p-2.5 overflow-y-auto space-y-2.5 flex-1 custom-scrollbar">
+                  <AnimatePresence>
+                    {tasksByColumn[col].map((task) => {
+                      let clientName = "No Client";
+                      if (task.client) {
                         const cId =
-                          typeof p.client === "object" ? p.client?._id : p.client;
+                          typeof task.client === "object"
+                            ? task.client._id
+                            : task.client;
                         const c = clients?.find((x) => x._id === cId);
                         clientName =
                           c?.companyName ||
                           c?.name ||
-                          (typeof p.client === "object"
-                            ? p.client.companyName || p.client.name
+                          (typeof task.client === "object"
+                            ? task.client.companyName || task.client.name
                             : "Unknown Client");
+                      } else if (task.project) {
+                        const pId =
+                          typeof task.project === "object"
+                            ? task.project._id
+                            : task.project;
+                        const p = projects?.find((x) => x._id === pId);
+                        if (p) {
+                          const cId =
+                            typeof p.client === "object"
+                              ? p.client?._id
+                              : p.client;
+                          const c = clients?.find((x) => x._id === cId);
+                          clientName =
+                            c?.companyName ||
+                            c?.name ||
+                            (typeof p.client === "object"
+                              ? p.client.companyName || p.client.name
+                              : "Unknown Client");
+                        }
                       }
-                    }
 
-                    return (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        key={task._id}
-                        className="bg-white dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-400 transition-all shadow-sm hover:shadow-md relative group backdrop-blur-sm"
-                      >
-                        <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-indigo-500 to-purple-500 rounded-l-xl opacity-100" />
-                        {/* Title row: icon + name on left, date on right */}
-                        <div className="flex items-start justify-between gap-2 pl-1.5 mb-2">
-                          <div className="flex items-start gap-1.5 min-w-0">
-                            <FiFileText
-                              size={12}
-                              className="text-indigo-400 dark:text-indigo-400 shrink-0 mt-0.5"
-                            />
-                            <p className="text-[9px] font-bold text-slate-700 dark:text-white leading-snug break-words">
-                              {task.title}
-                            </p>
-                          </div>
-                          {task.dueDate && (
-                            <span
-                              className={`shrink-0 flex items-center gap-1 text-[9px] font-bold whitespace-nowrap ${isPast(parseISO(task.dueDate)) && task.status !== "Completed" ? "text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-1.5 py-0.5 rounded" : "text-slate-400 dark:text-slate-500"}`}
-                            >
-                              <FiClock size={9} />
-                              {format(parseISO(task.dueDate), "MMM dd")}
-                            </span>
-                          )}
-                        </div>
-                        {/* Project and Priority Info */}
-                        <div className="flex items-center justify-between gap-2 mt-1 pl-1.5 mb-2">
-                          <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 truncate max-w-[65%]">
-                            {clientName}
-                          </span>
-                          {task.priority && (
-                            <span
-                              className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${getPriorityStyle(task.priority)}`}
-                            >
-                              {task.priority}
-                            </span>
-                          )}
-                        </div>
-                        {/* Assigned User */}
-                        {(() => {
-                          const aId = task.assignedTo
-                            ? typeof task.assignedTo === "object"
-                              ? task.assignedTo._id
-                              : task.assignedTo
-                            : null;
-                          const assignedUser = aId
-                            ? designers.find((d) => d._id === aId) ||
-                              (task.assignedTo &&
-                              typeof task.assignedTo === "object"
-                                ? task.assignedTo
-                                : null)
-                            : null;
-                          const assignedByName = task.createdBy
-                            ? typeof task.createdBy === "object"
-                              ? task.createdBy.name
-                              : null
-                            : null;
-                          if (!assignedUser && !assignedByName) return null;
-                          const profileImg =
-                            assignedUser?.profile?.profileImage?.url ||
-                            assignedUser?.profileImage?.url ||
-                            null;
-                          const initials = (assignedUser?.name || "")
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()
-                            .slice(0, 2);
-                          const creatorInitials = (assignedByName || "")
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")
-                            .toUpperCase()
-                            .slice(0, 2);
-                          return (
-                            <div className="mt-2 pl-1 pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2">
-                              {/* Assigned To — left */}
-                              {assignedUser ? (
-                                <div className="flex items-center gap-1.5 min-w-0">
-                                  {profileImg ? (
-                                    <img
-                                      src={profileImg}
-                                      alt={assignedUser.name}
-                                      className="w-5 h-5 rounded-full object-cover ring-1 ring-indigo-400/40 shrink-0"
-                                    />
-                                  ) : (
-                                    <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-[8px] font-black ring-1 ring-indigo-400/30 shrink-0">
-                                      {initials}
-                                    </div>
-                                  )}
-                                  <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 truncate">
-                                    {assignedUser.name}
-                                  </span>
-                                </div>
-                              ) : (
-                                <div />
-                              )}
-                              {/* Assigned By — right */}
-                              {assignedByName && (
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                  <div className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 flex items-center justify-center text-[8px] font-black ring-1 ring-amber-400/30 shrink-0">
-                                    {creatorInitials || "SM"}
-                                  </div>
-                                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
-                                    {assignedByName}
-                                  </span>
-                                </div>
-                              )}
+                      return (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          key={task._id}
+                          className="bg-white dark:bg-slate-800/80 p-3 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-400 transition-all shadow-sm hover:shadow-md relative group backdrop-blur-sm"
+                        >
+                          <div className="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-indigo-500 to-purple-500 rounded-l-xl opacity-100" />
+                          {/* Title row: icon + name on left, date on right */}
+                          <div className="flex items-start justify-between gap-2 pl-1.5 mb-2">
+                            <div className="flex items-start gap-1.5 min-w-0">
+                              <FiFileText
+                                size={12}
+                                className="text-indigo-400 dark:text-indigo-400 shrink-0 mt-0.5"
+                              />
+                              <p className="text-[9px] font-bold text-slate-700 dark:text-white leading-snug break-words">
+                                {task.title}
+                              </p>
                             </div>
-                          );
-                        })()}
-                      </motion.div>
-                    );
-                  })}
-                </AnimatePresence>
+                            {task.dueDate && (
+                              <span
+                                className={`shrink-0 flex items-center gap-1 text-[9px] font-bold whitespace-nowrap ${isPast(parseISO(task.dueDate)) && task.status !== "Completed" ? "text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-1.5 py-0.5 rounded" : "text-slate-400 dark:text-slate-500"}`}
+                              >
+                                <FiClock size={9} />
+                                {format(parseISO(task.dueDate), "MMM dd")}
+                              </span>
+                            )}
+                          </div>
+                          {/* Project and Priority Info */}
+                          <div className="flex items-center justify-between gap-2 mt-1 pl-1.5 mb-2">
+                            <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 truncate max-w-[65%]">
+                              {clientName}
+                            </span>
+                            {task.priority && (
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${getPriorityStyle(task.priority)}`}
+                              >
+                                {task.priority}
+                              </span>
+                            )}
+                          </div>
+                          {/* Assigned User */}
+                          {(() => {
+                            const aId = task.assignedTo
+                              ? typeof task.assignedTo === "object"
+                                ? task.assignedTo._id
+                                : task.assignedTo
+                              : null;
+                            const assignedUser = aId
+                              ? designers.find((d) => d._id === aId) ||
+                                (task.assignedTo &&
+                                typeof task.assignedTo === "object"
+                                  ? task.assignedTo
+                                  : null)
+                              : null;
+                            const assignedByName = task.createdBy
+                              ? typeof task.createdBy === "object"
+                                ? task.createdBy.name
+                                : null
+                              : null;
+                            if (!assignedUser && !assignedByName) return null;
+                            const profileImg =
+                              assignedUser?.profile?.profileImage?.url ||
+                              assignedUser?.profileImage?.url ||
+                              null;
+                            const initials = (assignedUser?.name || "")
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()
+                              .slice(0, 2);
+                            const creatorInitials = (assignedByName || "")
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")
+                              .toUpperCase()
+                              .slice(0, 2);
+                            return (
+                              <div className="mt-2 pl-1 pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2">
+                                {/* Assigned To — left */}
+                                {assignedUser ? (
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    {profileImg ? (
+                                      <img
+                                        src={profileImg}
+                                        alt={assignedUser.name}
+                                        className="w-5 h-5 rounded-full object-cover ring-1 ring-indigo-400/40 shrink-0"
+                                      />
+                                    ) : (
+                                      <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-[8px] font-black ring-1 ring-indigo-400/30 shrink-0">
+                                        {initials}
+                                      </div>
+                                    )}
+                                    <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 truncate">
+                                      {assignedUser.name}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div />
+                                )}
+                                {/* Assigned By — right */}
+                                {assignedByName && (
+                                  <div className="flex items-center gap-1.5 shrink-0">
+                                    <div className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 flex items-center justify-center text-[8px] font-black ring-1 ring-amber-400/30 shrink-0">
+                                      {creatorInitials || "SM"}
+                                    </div>
+                                    <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                                      {assignedByName}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
               </div>
-            </div>
             );
           })}
         </div>
@@ -1332,9 +1402,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50 dark:bg-slate-800/60">
-                  <th className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase text-center w-12">
-                    Sl.No.
-                  </th>
                   <th className="py-2.5 px-3 border-r border-b border-slate-200 dark:border-slate-700 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
                     {targetDept}
                   </th>
@@ -1386,9 +1453,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                     key={tp.id}
                     className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
                   >
-                    <td className="py-2.5 px-3 border-r border-b border-slate-100 dark:border-slate-700/60 text-xs font-bold text-slate-500 dark:text-slate-400 text-center w-12">
-                      {idx + 1}
-                    </td>
                     <td className="py-2.5 px-3 border-r border-b border-slate-100 dark:border-slate-700/60 text-xs font-semibold text-slate-750 dark:text-slate-200">
                       <div className="flex items-center gap-2">
                         {tp.profileImage ? (
@@ -1484,7 +1548,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       {tp.inProgressLoggedMs > 0 ? (
                         <div className="inline-flex items-center justify-center px-3 py-1.5 rounded-full bg-blue-50/80 border border-blue-200 text-blue-700 font-black text-[11px] tracking-wide dark:bg-blue-900/30 dark:border-blue-700/50 dark:text-blue-400 shadow-sm">
                           {(() => {
-                            const totalSecs = Math.floor(tp.inProgressLoggedMs / 1000);
+                            const totalSecs = Math.floor(
+                              tp.inProgressLoggedMs / 1000,
+                            );
                             const h = Math.floor(totalSecs / 3600);
                             const m = Math.floor((totalSecs % 3600) / 60);
                             const s = totalSecs % 60;
@@ -1493,7 +1559,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                           })()}
                         </div>
                       ) : (
-                        <span className="text-slate-400 dark:text-slate-500 font-bold">—</span>
+                        <span className="text-slate-400 dark:text-slate-500 font-bold">
+                          —
+                        </span>
                       )}
                     </td>
 
