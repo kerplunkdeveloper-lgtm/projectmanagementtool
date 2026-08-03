@@ -885,7 +885,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         </div>
       </div>
       {/* Premium Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 lg:gap-2 relative z-10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-3 lg:gap-2 relative z-10">
         {[
           {
             label:
@@ -925,12 +925,12 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             value: metrics.pending,
             icon: FiClock,
             glow: "hover:shadow-[0_4px_20px_rgba(245,158,11,0.15)]",
-            bg: "bg-gradient-to-br from-amber-500 to-amber-600 dark:from-amber-800 dark:to-amber-900 border border-amber-200/50 dark:border-amber-900/30",
+            bg: "bg-slate-300 dark:bg-slate-300 border border-amber-200/50 dark:border-amber-900/30",
             labelColor: "text-white dark:text-white",
             valueColor: "text-slate-100 dark:text-white",
             iconBg:
-              "bg-amber-100 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-500/20",
-            iconColor: "text-amber-600 dark:text-amber-400",
+              "bg-white dark:bg-amber-950/60 border border-amber-200 dark:border-amber-500/20",
+            iconColor: "text-black dark:text-amber-400",
             onClick: () => handleMetricClick("Pending"),
           },
           {
@@ -964,7 +964,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             value: metrics.inReview,
             icon: FiEye,
             glow: "hover:shadow-[0_4px_20px_rgba(99,102,241,0.15)]",
-            bg: "bg-gradient-to-br from-indigo-400 to-indigo-500 dark:from-indigo-850 dark:to-indigo-950 border border-indigo-200/50 dark:border-indigo-900/30",
+            bg: "bg-yellow-400 dark:from-indigo-850 dark:to-indigo-950 border border-indigo-200/50 dark:border-indigo-900/30",
             labelColor: "text-white dark:text-white",
             valueColor: "text-slate-100 dark:text-white",
             iconBg:
@@ -990,7 +990,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             value: metrics.overdue,
             icon: FiAlertCircle,
             glow: "hover:shadow-[0_4px_20px_rgba(244,63,94,0.15)]",
-            bg: "bg-gradient-to-br from-rose-500 to-rose-600 dark:from-rose-600 dark:to-rose-800 border border-rose-200/50 dark:border-rose-900/30",
+            bg: "bg-gradient-to-br from-rose-400 to-rose-400 dark:from-rose-600 dark:to-rose-800 border border-rose-200/50 dark:border-rose-900/30",
             labelColor: "text-white dark:text-white",
             valueColor: "text-slate-100 dark:text-white",
             iconBg:
@@ -1112,31 +1112,76 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             LIVE SYNC
           </span>
         </div>
-        <div className="flex overflow-x-auto gap-4 pb-6 snap-x custom-scrollbar">
-          {boardColumns.map((col, i) => (
+        <div className="flex flex-col lg:flex-row gap-3 pb-6">
+          {boardColumns.map((col, i) => {
+            let colBg = "bg-slate-50 dark:bg-slate-800/80";
+            let boardBg = "bg-slate-50/50 dark:bg-[#0f172a]";
+            let colBorder = "border-slate-200 dark:border-slate-700";
+            let textCol = "text-slate-800 dark:text-white";
+            let countBg = "bg-slate-200 dark:bg-slate-700";
+            let countText = "text-slate-700 dark:text-slate-300";
+            
+            const lowerCol = col.toLowerCase();
+            if (lowerCol === "pending") {
+              colBg = "bg-slate-300 dark:bg-slate-300"; boardBg = "bg-slate-50/50 dark:bg-[#0f172a]"; textCol = "text-white dark:text-slate-900"; colBorder = "border-slate-300 dark:border-slate-600"; countBg = "bg-slate-200 dark:bg-slate-700"; countText = "text-slate-800 dark:text-slate-100";
+            } else if (lowerCol === "in progress") {
+              colBg = "bg-blue-500 dark:bg-blue-500"; boardBg = "bg-blue-50/30 dark:bg-[#0f172a]"; textCol = "text-white dark:text-white"; colBorder = "border-blue-200 dark:border-blue-800/50"; countBg = "bg-blue-100 dark:bg-blue-800/50"; countText = "text-blue-800 dark:text-blue-300";
+            } else if (lowerCol === "on hold") {
+              colBg = "bg-[#da1cf1] dark:bg-[#da1cf1]"; boardBg = "bg-amber-50/30 dark:bg-[#0f172a]"; textCol = "text-white dark:text-white"; colBorder = "border-amber-200 dark:border-amber-800/50"; countBg = "bg-amber-100 dark:bg-amber-800/50"; countText = "text-amber-800 dark:text-amber-300";
+            } else if (lowerCol === "in review") {
+              colBg = "bg-yellow-300 dark:bg-yellow-300"; boardBg = "bg-indigo-50/30 dark:bg-[#0f172a]"; textCol = "text-white dark:text-white"; colBorder = "border-indigo-200 dark:border-indigo-800/50"; countBg = "bg-indigo-100 dark:bg-indigo-800/50"; countText = "text-indigo-800 dark:text-indigo-300";
+            } else if (lowerCol === "completed") {
+              colBg = "bg-green-500 dark:bg-green-500"; boardBg = "bg-emerald-50/30 dark:bg-[#0f172a]"; textCol = "text-white dark:text-white"; colBorder = "border-emerald-200 dark:border-emerald-800/50"; countBg = "bg-emerald-100 dark:bg-emerald-800/50"; countText = "text-emerald-800 dark:text-emerald-300";
+            } else if (lowerCol === "rejected") {
+              colBg = "bg-rose-500 dark:bg-rose-500"; boardBg = "bg-rose-50/30 dark:bg-[#0f172a]"; textCol = "text-white dark:text-white"; colBorder = "border-rose-200 dark:border-rose-800/50"; countBg = "bg-rose-100 dark:bg-rose-800/50"; countText = "text-rose-800 dark:text-rose-300";
+            }
+
+            return (
             <div
               key={i}
-              className="w-80 shrink-0 snap-start bg-slate-50 dark:bg-[#0f172a] backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-300/80 flex flex-col max-h-[450px] shadow-sm"
+              className={`flex-1 min-w-0 ${boardBg} backdrop-blur-md rounded-2xl border ${colBorder} flex flex-col max-h-[550px] shadow-sm`}
             >
-              <div className="p-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-800/80 rounded-t-2xl backdrop-blur-md">
-                <span className="text-[10px] font-black text-slate-800 dark:text-white tracking-widest uppercase truncate max-w-[80%]">
+              <div className={`p-3 border-b flex items-center justify-between rounded-t-2xl backdrop-blur-md ${colBg} ${colBorder}`}>
+                <span className={`text-[10px] font-black tracking-widest uppercase truncate max-w-[80%] ${textCol}`}>
                   {col}
                 </span>
-                <span className="text-[10px] font-black bg-slate-200 dark:bg-indigo-500/20 text-slate-700 dark:text-white px-2 py-0.5 rounded-md border border-slate-300 dark:border-indigo-500/30 shrink-0">
+                <span className={`text-[10px] font-black px-2 py-0.5 rounded-md shrink-0 ${countBg} ${countText}`}>
                   {tasksByColumn[col].length}
                 </span>
               </div>
               <div className="p-2.5 overflow-y-auto space-y-2.5 flex-1 custom-scrollbar">
                 <AnimatePresence>
                   {tasksByColumn[col].map((task) => {
-                    let projName = "No Project";
-                    if (task.project) {
+                    let clientName = "No Client";
+                    if (task.client) {
+                      const cId =
+                        typeof task.client === "object"
+                          ? task.client._id
+                          : task.client;
+                      const c = clients?.find((x) => x._id === cId);
+                      clientName =
+                        c?.companyName ||
+                        c?.name ||
+                        (typeof task.client === "object"
+                          ? task.client.companyName || task.client.name
+                          : "Unknown Client");
+                    } else if (task.project) {
                       const pId =
                         typeof task.project === "object"
                           ? task.project._id
                           : task.project;
                       const p = projects?.find((x) => x._id === pId);
-                      projName = p?.name || "Unknown";
+                      if (p) {
+                        const cId =
+                          typeof p.client === "object" ? p.client?._id : p.client;
+                        const c = clients?.find((x) => x._id === cId);
+                        clientName =
+                          c?.companyName ||
+                          c?.name ||
+                          (typeof p.client === "object"
+                            ? p.client.companyName || p.client.name
+                            : "Unknown Client");
+                      }
                     }
 
                     return (
@@ -1155,7 +1200,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                               size={12}
                               className="text-indigo-400 dark:text-indigo-400 shrink-0 mt-0.5"
                             />
-                            <p className="text-xs font-bold text-slate-700 dark:text-white leading-snug break-words">
+                            <p className="text-[9px] font-bold text-slate-700 dark:text-white leading-snug break-words">
                               {task.title}
                             </p>
                           </div>
@@ -1171,7 +1216,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         {/* Project and Priority Info */}
                         <div className="flex items-center justify-between gap-2 mt-1 pl-1.5 mb-2">
                           <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 truncate max-w-[65%]">
-                            {projName}
+                            {clientName}
                           </span>
                           {task.priority && (
                             <span
@@ -1260,7 +1305,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                 </AnimatePresence>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
       <div className="relative z-10 scroll-mt-6" ref={performanceTableRef}>

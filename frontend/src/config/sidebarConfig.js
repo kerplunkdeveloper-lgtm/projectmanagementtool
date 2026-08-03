@@ -11,12 +11,13 @@ import {
   LuActivity,
   LuStickyNote,
 } from "react-icons/lu";
+import { TbPencilHeart } from "react-icons/tb";
 import { FiBarChart2, FiUser, FiHome, FiBell, FiSettings } from "react-icons/fi";
 
 export const sidebarConfig = {
   admin: [
     { name: "Home", path: "/admin", icon: FiHome },
-    { name: "Sticky Notes", path: "/admin/stickynotes", icon: LuStickyNote },
+    { name: "Sticky Notes", path: "/admin/stickynotes", icon: TbPencilHeart },
     { name: "Chat", path: "/admin/chat", icon: LuMessagesSquare },
     { name: "Users", path: "/admin/users", icon: LuUsers, permissionKey: "manage_users" },
     { name: "Clients", path: "/admin/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
@@ -38,7 +39,7 @@ export const sidebarConfig = {
 
   operationmanager: [
     { name: "Home", path: "/operationmanager", icon: FiHome },
-    { name: "Sticky Notes", path: "/operationmanager/stickynotes", icon: LuStickyNote },
+    { name: "Sticky Notes", path: "/operationmanager/stickynotes", icon: TbPencilHeart },
     { name: "Chat", path: "/operationmanager/chat", icon: LuMessagesSquare },
     { name: "Users", path: "/operationmanager/users", icon: LuUsers, permissionKey: "manage_users" },
     { name: "Clients", path: "/operationmanager/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
@@ -57,7 +58,7 @@ export const sidebarConfig = {
 
   team: [
     { name: "Home", path: "/team", icon: FiHome },
-    { name: "Sticky Notes", path: "/team/stickynotes", icon: LuStickyNote },
+    { name: "Sticky Notes", path: "/team/stickynotes", icon: TbPencilHeart},
     { name: "Chat", path: "/team/chat", icon: LuMessagesSquare },
     { name: "Clients", path: "/team/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
     { name: "Projects", path: "/team/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
