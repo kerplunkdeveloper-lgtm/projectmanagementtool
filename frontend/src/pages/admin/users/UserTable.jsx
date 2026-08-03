@@ -55,6 +55,34 @@ const DEPT_KEYWORDS = [
     cls: "bg-pink-100 text-pink-700 border border-pink-200 dark:bg-pink-500/15 dark:text-pink-300 dark:border-transparent",
   },
   {
+    key: "graphic",
+    cls: "bg-pink-100 text-pink-700 border border-pink-200 dark:bg-pink-500/15 dark:text-pink-300 dark:border-transparent",
+  },
+  {
+    key: "video",
+    cls: "bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-transparent",
+  },
+  {
+    key: "editor",
+    cls: "bg-rose-100 text-rose-700 border border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-transparent",
+  },
+  {
+    key: "web",
+    cls: "bg-cyan-100 text-cyan-700 border border-cyan-200 dark:bg-cyan-500/15 dark:text-cyan-300 dark:border-transparent",
+  },
+  {
+    key: "social",
+    cls: "bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200 dark:bg-fuchsia-500/15 dark:text-fuchsia-300 dark:border-transparent",
+  },
+  {
+    key: "seo",
+    cls: "bg-lime-100 text-lime-700 border border-lime-200 dark:bg-lime-500/15 dark:text-lime-300 dark:border-transparent",
+  },
+  {
+    key: "performance",
+    cls: "bg-teal-100 text-teal-700 border border-teal-200 dark:bg-teal-500/15 dark:text-teal-300 dark:border-transparent",
+  },
+  {
     key: "hr",
     cls: "bg-indigo-100 text-indigo-700 border border-indigo-200 dark:bg-indigo-500/15 dark:text-indigo-300 dark:border-transparent",
   },
@@ -169,7 +197,7 @@ const UserTable = ({
                 .map((h) => (
                   <th
                     key={h}
-                    className="px-5 py-4 text-left text-[10px] font-black uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500"
+                    className="px-5 py-4 text-left text-[12px] font-bold text-slate-400 dark:text-slate-500"
                   >
                     {h}
                   </th>
@@ -209,12 +237,12 @@ const UserTable = ({
                   >
 
                     {/* ── USER ─────────────────────────────────── */}
-                    <td className="px-5 py-3.5 align-middle">
+                    <td className="px-2 py-0 align-middle">
                       <div className="flex items-center gap-3">
                         {/* Avatar */}
                         <div className="relative shrink-0">
                           <div
-                            className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${avatarGrad(user.name)} flex items-center justify-center text-white font-bold text-sm overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-200`}
+                            className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatarGrad(user.name)} flex items-center justify-center text-white font-bold text-sm overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-200`}
                           >
                             {user?.profile?.profileImage?.url ? (
                               <img

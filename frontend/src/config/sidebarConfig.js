@@ -9,20 +9,21 @@ import {
   LuClipboardCheck,
   LuFolderOpen,
   LuActivity,
+  LuStickyNote,
 } from "react-icons/lu";
 import { FiBarChart2, FiUser, FiHome, FiBell, FiSettings } from "react-icons/fi";
 
 export const sidebarConfig = {
   admin: [
     { name: "Home", path: "/admin", icon: FiHome },
-      { name: "Chat", path: "/admin/chat", icon: LuMessagesSquare },
+    { name: "Sticky Notes", path: "/admin/stickynotes", icon: LuStickyNote },
+    { name: "Chat", path: "/admin/chat", icon: LuMessagesSquare },
     { name: "Users", path: "/admin/users", icon: LuUsers, permissionKey: "manage_users" },
     { name: "Clients", path: "/admin/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
     { name: "Projects", path: "/admin/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
-   { name: "Tasks", path: "/admin/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
+    { name: "Tasks", path: "/admin/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
     { name: "Portfolio", path: "/admin/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
   
- 
     { name: "Template", path: "/admin/template-library", icon: LuLayoutTemplate, permissionKey: "manage_settings" },
 
   
@@ -37,6 +38,7 @@ export const sidebarConfig = {
 
   operationmanager: [
     { name: "Home", path: "/operationmanager", icon: FiHome },
+    { name: "Sticky Notes", path: "/operationmanager/stickynotes", icon: LuStickyNote },
     { name: "Chat", path: "/operationmanager/chat", icon: LuMessagesSquare },
     { name: "Users", path: "/operationmanager/users", icon: LuUsers, permissionKey: "manage_users" },
     { name: "Clients", path: "/operationmanager/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
@@ -55,6 +57,7 @@ export const sidebarConfig = {
 
   team: [
     { name: "Home", path: "/team", icon: FiHome },
+    { name: "Sticky Notes", path: "/team/stickynotes", icon: LuStickyNote },
     { name: "Chat", path: "/team/chat", icon: LuMessagesSquare },
     { name: "Clients", path: "/team/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
     { name: "Projects", path: "/team/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },

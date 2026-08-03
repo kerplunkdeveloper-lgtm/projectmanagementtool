@@ -123,6 +123,7 @@ const taskRoutes = require("./routes/taskRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const portfolioRoutes = require("./routes/portfolioRoutes");
 const goalRoutes = require("./routes/goalRoutes");
+const stickyNoteRoutes = require("./routes/stickyNoteRoutes");
 
 app.get("/", (req, res) => {
   res.send("demo testing api da ithu :) ");
@@ -167,6 +168,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/portfolios', portfolioRoutes);
 app.use('/api/goals', goalRoutes);
+app.use('/api/stickynotes', stickyNoteRoutes);
 
 const PORT = process.env.PORT || 5001;
 

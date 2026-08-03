@@ -1008,7 +1008,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       </div>
                       <div className="border border-slate-200/60 dark:border-white/5 bg-slate-50/30 dark:bg-white/[0.01] rounded-2xl p-1.5 space-y-0.5 shadow-sm">
                         {menuItems
-                          .filter((item) => ["Home", "Chat", "Users"].includes(item.name))
+                          .filter((item) => ["Home", "Sticky Notes", "Chat", "Users"].includes(item.name))
                           .map((item) => renderMenuItem(item))}
                       </div>
                     </div>
@@ -1020,7 +1020,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       </div>
                       <div className="space-y-0.5">
                         {menuItems
-                          .filter((item) => !["Home", "Chat", "Users"].includes(item.name))
+                          .filter((item) => !["Home", "Sticky Notes", "Chat", "Users"].includes(item.name))
                           .map((item) => renderMenuItem(item))}
                       </div>
                     </div>
