@@ -4,6 +4,10 @@ import { useNavigate } from "react-router-dom";
 import WelcomeUser from "../admin/partnerhub/components/WelcomeUser";
 import DashboardCards from "./cards/DashboardCards";
 import GraphicDesignerDashboard from "./cards/GraphicDesignerDashboard";
+import WebDeveloperDashboard from "./cards/WebDeveloperDashboard";
+import SocialMediaManagerDashboard from "./cards/SocialMediaManagerDashboard";
+import SEOSpecialistDashboard from "./cards/SEOSpecialistDashboard";
+import PerformanceMarketerDashboard from "./cards/PerformanceMarketerDashboard";
 import { getEvents } from "../../features/events/eventSlice";
 import {
   getProjects,
@@ -1838,11 +1842,19 @@ const Dashboardmain = () => {
           </div>
 
           {/* Tab Content */}
-          {["Graphic Designer", "VideoGrapher", "Editor"].includes(
-            activeDeptTab,
-          ) ? (
+          {["Graphic Designer", "VideoGrapher", "Editor"].includes(activeDeptTab) && (
             <GraphicDesignerDashboard targetDept={activeDeptTab} />
-          ) : (
+          )}
+          {activeDeptTab?.toLowerCase().includes("web") && <WebDeveloperDashboard targetDept={activeDeptTab} />}
+          {activeDeptTab?.toLowerCase().includes("social") && <SocialMediaManagerDashboard targetDept={activeDeptTab} />}
+          {activeDeptTab?.toLowerCase().includes("seo") && <SEOSpecialistDashboard targetDept={activeDeptTab} />}
+          {activeDeptTab?.toLowerCase().includes("performance") && <PerformanceMarketerDashboard targetDept={activeDeptTab} />}
+          
+          {!["Graphic Designer", "VideoGrapher", "Editor"].includes(activeDeptTab) &&
+           !activeDeptTab?.toLowerCase().includes("web") &&
+           !activeDeptTab?.toLowerCase().includes("social") &&
+           !activeDeptTab?.toLowerCase().includes("seo") &&
+           !activeDeptTab?.toLowerCase().includes("performance") && (
             <div className="theme-bg-card border theme-border border-dashed rounded-2xl p-12 text-center flex flex-col items-center justify-center min-h-[200px]">
               <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400 border theme-border">
                 <FiLayers size={22} />
