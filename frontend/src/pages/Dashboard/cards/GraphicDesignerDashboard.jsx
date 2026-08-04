@@ -410,9 +410,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           const paused = t.totalPausedMs || 0;
           const taskLoggedMs = Math.max(0, end - start - paused);
           totalLoggedMs += taskLoggedMs;
-          if (s.includes("progress")) {
-            inProgressLoggedMs += taskLoggedMs;
-          }
+          // Count all logged productive time toward inProgressLoggedMs for the UI display
+          inProgressLoggedMs += taskLoggedMs;
         }
 
         // Collect blockers and compute blocker time
