@@ -749,66 +749,83 @@ const TaskOverviewTab = ({
 
         if (dateFilter !== "All") {
           const targetDate = task.dueDate ? new Date(task.dueDate) : null;
+          const targetStartDate = task.startDate ? new Date(task.startDate) : null;
 
-          if (!targetDate || isNaN(targetDate.getTime())) {
+          if (
+            (!targetDate || isNaN(targetDate.getTime())) &&
+            (!targetStartDate || isNaN(targetStartDate.getTime()))
+          ) {
             return false;
-          } else {
-            const now = new Date();
-            const todayStart = new Date(
-              now.getFullYear(),
-              now.getMonth(),
-              now.getDate(),
+          }
+
+          const now = new Date();
+          const todayStart = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+          );
+          const todayEnd = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+            23,
+            59,
+            59,
+            999,
+          );
+
+          const isWithin = (d, startRange, endRange) => {
+            if (!d || isNaN(d.getTime())) return false;
+            return d >= startRange && d <= endRange;
+          };
+
+          let match = false;
+
+          if (dateFilter === "Today") {
+            match =
+              isWithin(targetDate, todayStart, todayEnd) ||
+              isWithin(targetStartDate, todayStart, todayEnd);
+          } else if (dateFilter === "Yesterday") {
+            const yesterdayStart = new Date(todayStart);
+            yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+            const yesterdayEnd = new Date(todayEnd);
+            yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
+            match =
+              isWithin(targetDate, yesterdayStart, yesterdayEnd) ||
+              isWithin(targetStartDate, yesterdayStart, yesterdayEnd);
+          } else if (dateFilter === "This Week") {
+            const dayOfWeek = now.getDay();
+            const startOfWeek = new Date(todayStart);
+            startOfWeek.setDate(
+              startOfWeek.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1),
             );
-            const todayEnd = new Date(
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(endOfWeek.getDate() + 6);
+            endOfWeek.setHours(23, 59, 59, 999);
+            match =
+              isWithin(targetDate, startOfWeek, endOfWeek) ||
+              isWithin(targetStartDate, startOfWeek, endOfWeek);
+          } else if (dateFilter === "This Month") {
+            const startOfMonth = new Date(
               now.getFullYear(),
               now.getMonth(),
-              now.getDate(),
+              1,
+            );
+            const endOfMonth = new Date(
+              now.getFullYear(),
+              now.getMonth() + 1,
+              0,
               23,
               59,
               59,
               999,
             );
-
-            if (dateFilter === "Today") {
-              if (targetDate < todayStart || targetDate > todayEnd)
-                return false;
-            } else if (dateFilter === "Yesterday") {
-              const yesterdayStart = new Date(todayStart);
-              yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-              const yesterdayEnd = new Date(todayEnd);
-              yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
-              if (targetDate < yesterdayStart || targetDate > yesterdayEnd)
-                return false;
-            } else if (dateFilter === "This Week") {
-              const dayOfWeek = now.getDay();
-              const startOfWeek = new Date(todayStart);
-              startOfWeek.setDate(
-                startOfWeek.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1),
-              );
-              const endOfWeek = new Date(startOfWeek);
-              endOfWeek.setDate(endOfWeek.getDate() + 6);
-              endOfWeek.setHours(23, 59, 59, 999);
-              if (targetDate < startOfWeek || targetDate > endOfWeek)
-                return false;
-            } else if (dateFilter === "This Month") {
-              const startOfMonth = new Date(
-                now.getFullYear(),
-                now.getMonth(),
-                1,
-              );
-              const endOfMonth = new Date(
-                now.getFullYear(),
-                now.getMonth() + 1,
-                0,
-                23,
-                59,
-                59,
-                999,
-              );
-              if (targetDate < startOfMonth || targetDate > endOfMonth)
-                return false;
-            }
+            match =
+              isWithin(targetDate, startOfMonth, endOfMonth) ||
+              isWithin(targetStartDate, startOfMonth, endOfMonth);
           }
+
+          if (!match) return false;
         }
 
         if (!projectSearch.trim()) return true;
@@ -823,6 +840,13 @@ const TaskOverviewTab = ({
         );
       })
       .sort((a, b) => {
+        const startA = a.startDate ? new Date(a.startDate).getTime() : 0;
+        const startB = b.startDate ? new Date(b.startDate).getTime() : 0;
+
+        if (startA !== startB) {
+          return startB - startA;
+        }
+
         const priorityRank = {
           "Top High": 1,
           High: 2,

@@ -158,22 +158,21 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           if (dateFilter !== "All Time") {
             const taskCreatedDate = task.createdAt ? parseISO(task.createdAt) : null;
             const taskDueDate = task.dueDate ? parseISO(task.dueDate) : null;
-            const dateToCheck = taskDueDate || taskCreatedDate;
+            const taskStartDate = task.startDate ? parseISO(task.startDate) : null;
             
-            if (!dateToCheck) {
-              includeTask = false;
+            const checkCondition = (d) => {
+              if (!d) return false;
+              if (dateFilter === "Today") return isToday(d);
+              if (dateFilter === "Yesterday") return isYesterday(d);
+              if (dateFilter === "Last 7 Days") return isAfter(d, subDays(new Date(), 7));
+              if (dateFilter === "This Month") return isSameMonth(d, new Date());
+              return false;
+            };
+
+            if (taskDueDate || taskStartDate) {
+              includeTask = checkCondition(taskDueDate) || checkCondition(taskStartDate);
             } else {
-              if (dateFilter === "Today") {
-                includeTask = isToday(dateToCheck);
-              } else if (dateFilter === "Yesterday") {
-                includeTask = isYesterday(dateToCheck);
-              } else if (dateFilter === "Last 7 Days") {
-                const sevenDaysAgo = subDays(new Date(), 7);
-                includeTask = isAfter(dateToCheck, sevenDaysAgo);
-              } else if (dateFilter === "This Month") {
-                const now = new Date();
-                includeTask = isSameMonth(dateToCheck, now);
-              }
+              includeTask = checkCondition(taskCreatedDate);
             }
           }
 
@@ -227,26 +226,22 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
       const taskCreatedDate = task.createdAt ? parseISO(task.createdAt) : null;
       const taskDueDate = task.dueDate ? parseISO(task.dueDate) : null;
-      const dateToCheck = taskDueDate || taskCreatedDate;
+      const taskStartDate = task.startDate ? parseISO(task.startDate) : null;
 
-      if (!dateToCheck) return false;
+      const checkCondition = (d) => {
+        if (!d) return false;
+        if (dateFilter === "Today") return isToday(d);
+        if (dateFilter === "Yesterday") return isYesterday(d);
+        if (dateFilter === "Last 7 Days") return isAfter(d, subDays(new Date(), 7));
+        if (dateFilter === "This Month") return isSameMonth(d, new Date());
+        return false;
+      };
 
-      if (dateFilter === "Today") {
-        return isToday(dateToCheck);
+      if (taskDueDate || taskStartDate) {
+        return checkCondition(taskDueDate) || checkCondition(taskStartDate);
       }
-      if (dateFilter === "Yesterday") {
-        return isYesterday(dateToCheck);
-      }
-      if (dateFilter === "Last 7 Days") {
-        const sevenDaysAgo = subDays(new Date(), 7);
-        return isAfter(dateToCheck, sevenDaysAgo);
-      }
-      if (dateFilter === "This Month") {
-        const now = new Date();
-        return isSameMonth(dateToCheck, now);
-      }
-
-      return true;
+      
+      return checkCondition(taskCreatedDate);
     });
   }, [allTasks, designerIds, dateFilter, user]);
 

@@ -182,14 +182,18 @@ const GraphicDesignerDeadlines = ({ user }) => {
 
       // Date Filter
       if (selectedDate) {
-        if (!t.dueDate) return;
-        const taskDate = new Date(t.dueDate);
         const filterDate = new Date(selectedDate);
-        if (
-          taskDate.getFullYear() !== filterDate.getFullYear() ||
-          taskDate.getMonth() !== filterDate.getMonth() ||
-          taskDate.getDate() !== filterDate.getDate()
-        ) {
+        const isSameDay = (d) => {
+          if (!d) return false;
+          const dateObj = new Date(d);
+          if (isNaN(dateObj.getTime())) return false;
+          return (
+            dateObj.getFullYear() === filterDate.getFullYear() &&
+            dateObj.getMonth() === filterDate.getMonth() &&
+            dateObj.getDate() === filterDate.getDate()
+          );
+        };
+        if (!isSameDay(t.dueDate) && !isSameDay(t.startDate)) {
           return;
         }
       }
@@ -237,14 +241,18 @@ const GraphicDesignerDeadlines = ({ user }) => {
 
         // Date Filter
         if (selectedDate) {
-          if (!t.dueDate) return false;
-          const taskDate = new Date(t.dueDate);
           const filterDate = new Date(selectedDate);
-          if (
-            taskDate.getFullYear() !== filterDate.getFullYear() ||
-            taskDate.getMonth() !== filterDate.getMonth() ||
-            taskDate.getDate() !== filterDate.getDate()
-          ) {
+          const isSameDay = (d) => {
+            if (!d) return false;
+            const dateObj = new Date(d);
+            if (isNaN(dateObj.getTime())) return false;
+            return (
+              dateObj.getFullYear() === filterDate.getFullYear() &&
+              dateObj.getMonth() === filterDate.getMonth() &&
+              dateObj.getDate() === filterDate.getDate()
+            );
+          };
+          if (!isSameDay(t.dueDate) && !isSameDay(t.startDate)) {
             return false;
           }
         }
@@ -315,14 +323,18 @@ const GraphicDesignerDeadlines = ({ user }) => {
                   if (clientId !== selectedClient) return false;
                 }
                 if (selectedDate) {
-                  if (!t.dueDate) return false;
-                  const taskDate = new Date(t.dueDate);
                   const filterDate = new Date(selectedDate);
-                  if (
-                    taskDate.getFullYear() !== filterDate.getFullYear() ||
-                    taskDate.getMonth() !== filterDate.getMonth() ||
-                    taskDate.getDate() !== filterDate.getDate()
-                  ) {
+                  const isSameDay = (d) => {
+                    if (!d) return false;
+                    const dateObj = new Date(d);
+                    if (isNaN(dateObj.getTime())) return false;
+                    return (
+                      dateObj.getFullYear() === filterDate.getFullYear() &&
+                      dateObj.getMonth() === filterDate.getMonth() &&
+                      dateObj.getDate() === filterDate.getDate()
+                    );
+                  };
+                  if (!isSameDay(t.dueDate) && !isSameDay(t.startDate)) {
                     return false;
                   }
                 }
