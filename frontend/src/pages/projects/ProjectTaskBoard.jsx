@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiArrowLeft,
@@ -38,11 +38,13 @@ import {
   FiEyeOff,
   FiColumns,
   FiFilter,
+  FiLoader,
 } from "react-icons/fi";
 import axiosInstance from "../../services/axiosInstance";
 import toast from "react-hot-toast";
 
 import {
+  apiSlice,
   useGetTasksQuery,
   useCreateTaskMutation,
   useUpdateTaskMutation,
@@ -51,7 +53,253 @@ import {
 import { updateProject } from "../../features/projects/projectSlice";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import ProjectIcon from "../../components/common/ProjectIcon";
-import ClientBadge from "../../components/common/ClientBadge";
+import CorrectionModal from "../../components/CorrectionModal";
+import ClientBadge, {
+  getClientBranding,
+} from "../../components/common/ClientBadge";
+import { getClientIconComponent } from "../../utils/clientHelpers";
+import { calculateBusinessMs } from "../../utils/businessHours";
+
+const formatBusinessDuration = (ms) => {
+  if (!ms) return "0m 0s";
+  const totalSeconds = Math.floor(ms / 1000);
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  if (h > 0) return `${h}h ${m}m ${s}s`;
+  return `${m}m ${s}s`;
+};
+
+const getStatusWithEmoji = (status) => {
+  const s = (status || "").toLowerCase();
+  if (s === "pending" || s === "to do") return "⏳ Pending";
+  if (s.includes("progress")) return "⚡ In Progress";
+  if (s.includes("review")) return "🔍 In Review";
+  if (s.includes("correction")) return "🛠️ Correction";
+  if (s === "completed" || s.includes("approve") || s === "done") return "✅ Completed";
+  if (s.includes("hold")) return "⏸️ On Hold";
+  if (s.includes("reject")) return "❌ Rejected";
+  return `⏳ ${status || "Pending"}`;
+};
+
+export const isSameDate = (d1, d2) => {
+  if (!d1 || !d2) return false;
+  try {
+    const s1 =
+      typeof d1 === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d1.trim())
+        ? d1.trim()
+        : new Date(d1).toISOString().split("T")[0];
+    const s2 =
+      typeof d2 === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d2.trim())
+        ? d2.trim()
+        : new Date(d2).toISOString().split("T")[0];
+    return s1 === s2 && s1 !== "1970-01-01";
+  } catch (e) {
+    return false;
+  }
+};
+
+const ApprovalTimeDisplay = React.memo(({
+  reviewStartedAt,
+  completedAt,
+  approvalWaitingMs,
+  status,
+  lastReviewStartedAt,
+  reviewCycles,
+}) => {
+  const [liveElapsed, setLiveElapsed] = useState(0);
+  const [showPopup, setShowPopup] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef(null);
+  const popupRef = useRef(null);
+
+  useEffect(() => {
+    if (
+      !reviewStartedAt ||
+      status !== "In Review"
+    ) {
+      setLiveElapsed(0);
+      return;
+    }
+    const updateTime = () => {
+      const elapsed = calculateBusinessMs(reviewStartedAt, Date.now());
+      setLiveElapsed(elapsed);
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, [reviewStartedAt, status]);
+
+  // Click outside close
+  useEffect(() => {
+    if (!showPopup) return;
+    const handleClickOutside = (e) => {
+      if (
+        popupRef.current &&
+        !popupRef.current.contains(e.target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(e.target)
+      ) {
+        setShowPopup(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showPopup]);
+
+  const effectiveReviewStart =
+    reviewStartedAt ||
+    lastReviewStartedAt ||
+    (reviewCycles && reviewCycles.length > 0
+      ? reviewCycles[reviewCycles.length - 1]?.startedAt
+      : null);
+
+  if (!effectiveReviewStart && !approvalWaitingMs) {
+    return (
+      <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
+    );
+  }
+
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return { date: "—", time: "", relative: "" };
+    const d = new Date(dateStr);
+    const date = d.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+    });
+    const time = d.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+    const diffMs = Date.now() - d;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    let relative = "just now";
+    if (diffDays > 0) relative = `${diffDays}d ago`;
+    else if (diffHours > 0) relative = `${diffHours}h ago`;
+    else if (diffMins > 0) relative = `${diffMins}m ago`;
+    return { date, time, relative };
+  };
+
+  const totalWaitMs = (approvalWaitingMs || 0) + liveElapsed;
+  const isInReview = status === "In Review";
+  const revInfo = effectiveReviewStart ? formatDateTime(effectiveReviewStart) : null;
+  const doneInfo = completedAt ? formatDateTime(completedAt) : null;
+
+  const handleToggle = (e) => {
+    e.stopPropagation();
+    if (!showPopup && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      // Position above the button, aligned to its right edge
+      setCoords({
+        top: rect.top + window.scrollY - 175,
+        left: rect.right + window.scrollX - 224,
+      });
+    }
+    setShowPopup(!showPopup);
+  };
+
+  return (
+    <div className="relative inline-flex items-center gap-1.5 justify-center">
+      {/* Duration badge */}
+      {totalWaitMs > 0 && (
+        <div
+          className={`px-2.5 py-1 rounded-full font-black text-[10px] tracking-wide border shadow-sm ${
+            isInReview
+              ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/25"
+              : "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20"
+          }`}
+        >
+          {isInReview && (
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0 mr-1 inline-block" />
+          )}
+          {isInReview ? "Waiting " : "Took "}
+          <span className="font-black">
+            {formatBusinessDuration(totalWaitMs)}
+          </span>
+        </div>
+      )}
+
+      {/* View Details Eye Icon */}
+      {(revInfo || doneInfo) && (
+        <button
+          ref={buttonRef}
+          type="button"
+          onClick={handleToggle}
+          className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-blue-500 dark:text-slate-500 dark:hover:text-[#3b82f6] transition-colors cursor-pointer"
+          title="View approval details"
+        >
+          <FiEye size={13} />
+        </button>
+      )}
+
+      {/* Details Popup rendered via Portal */}
+      {showPopup &&
+        createPortal(
+          <AnimatePresence>
+            <motion.div
+              ref={popupRef}
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.15 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: "absolute",
+                top: coords.top,
+                left: coords.left,
+              }}
+              className="z-[9999] w-56 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl flex flex-col gap-2 text-left"
+            >
+              <div className="flex justify-between items-center pb-1.5 border-b border-slate-100 dark:border-slate-800">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                  Timeline Details
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowPopup(false)}
+                  className="text-slate-400 hover:text-slate-600 dark:text-[#555] dark:hover:text-slate-350 cursor-pointer"
+                >
+                  <FiX size={10} />
+                </button>
+              </div>
+
+              {revInfo && (
+                <div className="flex flex-col gap-0.5 bg-blue-50/40 dark:bg-blue-950/20 p-2 rounded-lg border border-blue-100/50 dark:border-blue-900/30">
+                  <span className="text-[8px] font-black text-blue-500 dark:text-blue-450 uppercase tracking-widest">
+                    Review Start
+                  </span>
+                  <span className="font-bold text-slate-700 dark:text-slate-200 text-[10px]">
+                    {revInfo.date} · {revInfo.time}
+                  </span>
+                  <span className="text-[9px] text-blue-450 dark:text-blue-500 font-medium">
+                    {revInfo.relative}
+                  </span>
+                </div>
+              )}
+
+              {doneInfo && (
+                <div className="flex flex-col gap-0.5 bg-emerald-50/40 dark:bg-emerald-950/20 p-2 rounded-lg border border-emerald-100/50 dark:border-emerald-900/30">
+                  <span className="text-[8px] font-black text-emerald-500 dark:text-emerald-450 uppercase tracking-widest">
+                    Completed
+                  </span>
+                  <span className="font-bold text-slate-700 dark:text-slate-200 text-[10px]">
+                    {doneInfo.date} · {doneInfo.time}
+                  </span>
+                  <span className="text-[9px] text-emerald-400 dark:text-emerald-500 font-medium">
+                    {doneInfo.relative}
+                  </span>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>,
+          document.body,
+        )}
+    </div>
+  );
+});
 
 const StrictModeDroppable = ({ children, ...props }) => {
   const [enabled, setEnabled] = useState(false);
@@ -66,7 +314,7 @@ const StrictModeDroppable = ({ children, ...props }) => {
   return <Droppable {...props}>{children}</Droppable>;
 };
 
-const TimeTracker = ({
+const TimeTracker = React.memo(({
   startTime,
   endTime,
   pausedAt,
@@ -84,15 +332,22 @@ const TimeTracker = ({
       let end;
 
       if (endTime) {
+        // Task is completed — use the locked end time
         end = new Date(endTime).getTime();
       } else if (
         pausedAt &&
-        ["On Hold", "Rejected", "In Review", "IN-REVIEW"].includes(status)
+        ["On Hold", "Rejected", "In Review"].includes(
+          status,
+        )
       ) {
+        // Task is paused (In Review / On Hold) — freeze at pausedAt
         end = new Date(pausedAt).getTime();
       } else {
+        // Task is actively running
         end = Date.now();
       }
+
+      // Subtract all accumulated paused/review time
       const elapsedMs = end - start - (savedPausedMs || 0);
 
       return Math.max(0, Math.floor(elapsedMs / 1000));
@@ -100,15 +355,25 @@ const TimeTracker = ({
 
     setElapsed(calculateElapsed());
 
+    // Only tick when actively running
     if (status === "In Progress" && !endTime) {
       const interval = setInterval(() => {
         setElapsed(calculateElapsed());
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [startTime, endTime, pausedAt, status]);
+  }, [startTime, endTime, pausedAt, status, savedPausedMs]);
 
-  if (!startTime && status !== "In Progress") return null;
+  if (!startTime && status !== "In Progress") {
+    if (!status || status.toLowerCase() === "pending") {
+      return (
+        <span className="text-slate-405 dark:text-slate-500 font-semibold text-xs block text-center w-full">
+          Not started
+        </span>
+      );
+    }
+    return null;
+  }
   if (!startTime && status === "In Progress")
     return (
       <div className="inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold tracking-wider bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30 shadow-sm w-full">
@@ -157,7 +422,13 @@ const TimeTracker = ({
       className={`inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold tracking-wider w-full ${
         status === "In Progress" && !endTime
           ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30 shadow-sm"
-          : "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
+          : status === "In Review"
+            ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 shadow-sm"
+            : status === "On Hold"
+              ? "bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/30 shadow-sm"
+              : status === "Completed"
+                ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 shadow-sm"
+                : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-500/5 dark:text-slate-400 dark:border-slate-500/20 shadow-xs"
       }`}
     >
       {status === "In Progress" && !endTime ? (
@@ -168,7 +439,7 @@ const TimeTracker = ({
       {timeString}
     </div>
   );
-};
+});
 
 // Task Title Input Component for autosaving inline without cursor jump
 const TaskTitleInput = ({
@@ -538,7 +809,13 @@ const AssigneeDropdown = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [coords, setCoords] = useState({ top: 0, bottom: null, left: 0, width: 0, isUpward: false });
+  const [coords, setCoords] = useState({
+    top: 0,
+    bottom: null,
+    left: 0,
+    width: 0,
+    isUpward: false,
+  });
   const dropdownRef = useRef(null);
 
   const updateCoords = () => {
@@ -745,19 +1022,19 @@ const AssigneeDropdown = ({
       return (
         <div
           onClick={() => isAdminOrManager && setIsOpen(!isOpen)}
-          className={`group/assigned relative flex items-center gap-2 bg-slate-50/40 dark:bg-white/5 hover:bg-slate-100/50 dark:hover:bg-white/10 px-2 py-1 rounded-xl border border-slate-200/60 dark:border-white/10 transition-all ${
+          className={`group/assigned relative flex items-center gap-1.5 bg-slate-50/40 dark:bg-white/5 hover:bg-slate-100/50 dark:hover:bg-white/10 px-1.5 py-0.5 rounded-lg border border-slate-200/60 dark:border-white/10 transition-all ${
             isAdminOrManager ? "cursor-pointer" : "cursor-not-allowed"
-          } w-[170px] h-[36px] shadow-sm`}
+          } w-[135px] h-[28px] shadow-sm`}
         >
           {avatarUrl ? (
             <img
               src={avatarUrl}
               alt={selectedUserObj?.name || "User"}
-              className="w-7 h-7 rounded-full object-cover border border-slate-250 dark:border-white/10 shrink-0"
+              className="w-5.5 h-5.5 rounded-full object-cover border border-slate-250 dark:border-white/10 shrink-0"
             />
           ) : (
             <div
-              className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-black text-[10px] bg-gradient-to-br shrink-0 ${safeGetAvatarColor(
+              className={`w-5.5 h-5.5 rounded-full flex items-center justify-center text-white font-black text-[9px] bg-gradient-to-br shrink-0 ${safeGetAvatarColor(
                 selectedUserObj?.name || "Unknown",
               )}`}
             >
@@ -765,11 +1042,11 @@ const AssigneeDropdown = ({
             </div>
           )}
           <div className="flex-1 min-w-0 flex flex-col text-left">
-            <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate leading-tight">
-              {selectedUserObj?.name || "Assigned User"}
+            <span className="text-[9.5px] font-bold text-slate-800 dark:text-slate-200 truncate leading-tight">
+              {selectedUserObj?.name || "Assigned"}
             </span>
             {dept && (
-              <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400 truncate leading-none mt-0.5">
+              <span className="text-[8px] font-medium text-slate-500 dark:text-slate-400 truncate leading-none mt-0">
                 {dept}
               </span>
             )}
@@ -781,10 +1058,10 @@ const AssigneeDropdown = ({
                 e.stopPropagation();
                 handleSelect(null);
               }}
-              className="relative z-20 p-0.5 text-slate-400 hover:text-rose-500 rounded transition-colors hover:bg-slate-200/60 dark:hover:bg-white/10 shrink-0"
+              className="relative z-20 p-0.5 text-slate-400 hover:text-rose-500 rounded transition-colors hover:bg-slate-200/60 dark:hover:bg-white/10 shrink-0 cursor-pointer"
               title="Clear Assignee"
             >
-              <FiX size={11} />
+              <FiX size={9.5} />
             </button>
           )}
         </div>
@@ -796,22 +1073,22 @@ const AssigneeDropdown = ({
         type="button"
         disabled={!isAdminOrManager}
         onClick={() => setIsOpen(!isOpen)}
-        className={`group/assign relative flex items-center gap-2 bg-slate-50/20 dark:bg-white/5 hover:bg-slate-100/40 dark:hover:bg-white/10 px-2 py-1 rounded-xl border border-dashed border-slate-300 dark:border-white/10 transition-all ${
+        className={`group/assign relative flex items-center gap-1.5 bg-slate-50/20 dark:bg-white/5 hover:bg-slate-100/40 dark:hover:bg-white/10 px-1.5 py-0.5 rounded-lg border border-dashed border-slate-300 dark:border-white/10 transition-all ${
           isAdminOrManager ? "cursor-pointer" : "cursor-not-allowed"
-        } w-[170px] h-[36px] text-left`}
+        } w-[135px] h-[28px] text-left`}
       >
-        <div className="w-7 h-7 rounded-full border border-dashed border-slate-300 dark:border-white/20 flex items-center justify-center text-slate-400 dark:text-slate-500 shrink-0 bg-white dark:bg-[#111111]">
-          <FiUser size={12} className="group-hover/assign:hidden" />
+        <div className="w-5.5 h-5.5 rounded-full border border-dashed border-slate-300 dark:border-white/20 flex items-center justify-center text-slate-400 dark:text-slate-500 shrink-0 bg-white dark:bg-[#111111]">
+          <FiUser size={10} className="group-hover/assign:hidden" />
           <FiPlus
-            size={12}
+            size={10}
             className="hidden group-hover/assign:block text-blue-500 dark:text-[#3b82f6]"
           />
         </div>
         <div className="flex-1 min-w-0 flex flex-col text-left">
-          <span className="text-[11px] font-bold text-slate-400 dark:text-slate-550 truncate leading-tight">
+          <span className="text-[9.5px] font-bold text-slate-400 dark:text-slate-550 truncate leading-tight">
             Unassigned
           </span>
-          <span className="text-[9px] font-medium text-slate-400/80 dark:text-slate-550/80 truncate leading-none mt-0.5">
+          <span className="text-[8px] font-medium text-slate-400/80 dark:text-slate-550/80 truncate leading-none mt-0">
             Assign Task
           </span>
         </div>
@@ -933,7 +1210,13 @@ const ClientDropdown = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [coords, setCoords] = useState({ top: 0, bottom: null, left: 0, width: 0, isUpward: false });
+  const [coords, setCoords] = useState({
+    top: 0,
+    bottom: null,
+    left: 0,
+    width: 0,
+    isUpward: false,
+  });
   const dropdownRef = useRef(null);
 
   const updateCoords = () => {
@@ -1032,38 +1315,32 @@ const ClientDropdown = ({
 
   const renderTrigger = () => {
     if (selectedClientObj) {
+      const branding = getClientBranding(selectedClientObj);
+      const IconComponent = getClientIconComponent(branding.iconName);
       return (
         <div
           onClick={() => isAdminOrManager && setIsOpen(!isOpen)}
-          className={`group/assigned relative flex items-center gap-1.5 px-2 py-1 rounded-xl border transition-all ${
+          className={`group/assigned relative flex items-center font-extrabold border shrink-0 px-2 py-0.5 text-[9px] gap-1 rounded-md transition-all ${
             isAdminOrManager
               ? "cursor-pointer hover:shadow-sm"
               : "cursor-not-allowed"
-          } ${getClientBadgeStyle(selectedClientObj.companyName)} min-w-[100px] h-[30px] w-[140px]`}
+          } h-[24px] w-[110px]`}
+          style={
+            branding.hasCustomColor
+              ? {
+                  backgroundColor: `${branding.color}15`,
+                  borderColor: `${branding.color}30`,
+                  color: branding.color,
+                }
+              : {}
+          }
         >
-          {selectedClientObj.icon && (
-            <img
-              src={selectedClientObj.icon}
-              alt=""
-              className="w-4 h-4 rounded-sm object-contain bg-white shrink-0"
-            />
-          )}
-          <span className="text-[10px] font-bold truncate leading-tight flex-1">
+          <div className="flex items-center justify-center shrink-0">
+            <IconComponent size={8.5} />
+          </div>
+          <span className="truncate flex-1 leading-tight">
             {selectedClientObj.companyName}
           </span>
-          {isAdminOrManager && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleSelect(null);
-              }}
-              className="relative z-20 p-0.5 text-slate-400 hover:text-rose-500 rounded transition-colors hover:bg-slate-200/60 dark:hover:bg-white/10 shrink-0"
-              title="Clear Client"
-            >
-              <FiX size={10} />
-            </button>
-          )}
         </div>
       );
     }
@@ -1073,16 +1350,16 @@ const ClientDropdown = ({
         type="button"
         disabled={!isAdminOrManager}
         onClick={() => setIsOpen(!isOpen)}
-        className={`group/assign relative flex items-center gap-1 px-2 py-1 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 transition-all ${
+        className={`group/assign relative flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-slate-300 dark:border-slate-700 transition-all ${
           isAdminOrManager
             ? "cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800"
             : "cursor-not-allowed"
-        } h-[30px] w-[140px] text-left`}
+        } h-[24px] w-[110px] text-left`}
       >
-        <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 truncate flex-1">
+        <span className="text-[9px] font-medium text-slate-400 dark:text-slate-500 truncate flex-1">
           Select Client
         </span>
-        <FiChevronDown size={12} className="text-slate-400" />
+        <FiChevronDown size={10} className="text-slate-400" />
       </button>
     );
   };
@@ -1214,7 +1491,12 @@ const ContentCopyInput = ({
         }
       }}
       placeholder={placeholder}
-      className="w-full bg-transparent border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300 outline-none focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all placeholder:font-normal hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-[#0f172a] shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] focus:shadow-[0_0_0_2px_rgba(59,130,246,0.15)]"
+      className="bg-transparent border border-slate-200 dark:border-slate-700 rounded px-2 py-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300 outline-none focus:border-blue-500 dark:focus:border-[#3b82f6] transition-all placeholder:font-normal hover:border-slate-300 dark:hover:border-slate-600 focus:bg-white dark:focus:bg-[#0f172a] shadow-[inset_0_1px_2px_rgba(0,0,0,0.05)] focus:shadow-[0_0_0_2px_rgba(59,130,246,0.15)] text-center"
+      style={{
+        width: `${Math.max(val.length, placeholder.length) + 4}ch`,
+        minWidth: "120px",
+        maxWidth: "400px",
+      }}
     />
   );
 };
@@ -1245,60 +1527,77 @@ const RejectionModal = ({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-[#151518] rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-[#11131f] rounded-3xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/[0.02]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800/80 bg-rose-50/20 dark:bg-rose-950/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400">
+            <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 flex items-center justify-center text-rose-600 dark:text-rose-400">
               <FiAlertTriangle size={20} />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-800 dark:text-white">
-                Reason for Rejection
+              <h3 className="text-base font-extrabold text-slate-800 dark:text-white">
+                Reject Task?
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate max-w-[200px]">
-                {target?.title || "Task"}
+              <p className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest mt-0.5">
+                Confirm Action
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors"
+            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
           >
             <FiX size={20} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-6">
+        <div className="p-6 overflow-y-auto custom-scrollbar flex flex-col gap-5">
+          <div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+              Are you sure you want to reject the following task? This action
+              will set the task status to Rejected.
+            </p>
+            <div className="mt-3.5 px-3.5 py-2.5 rounded-xl bg-rose-50/60 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-800/40">
+              <p className="text-[10px] font-black text-rose-500 dark:text-rose-500 uppercase tracking-widest mb-1">
+                Task Name
+              </p>
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug break-words">
+                {target?.title || "Untitled Task"}
+              </p>
+            </div>
+          </div>
+
           {/* Input Form */}
-          <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-            <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-              Why is this task being rejected?{" "}
-              <span className="text-rose-500">*</span>
-            </label>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Provide a detailed explanation..."
-              className="w-full bg-slate-50 dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-rose-500 dark:focus:border-rose-500/50 focus:ring-4 focus:ring-rose-500/10 dark:focus:ring-rose-500/10 transition-all resize-none h-28"
-              autoFocus
-            />
-            <div className="flex justify-end gap-3 mt-2">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4.5">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Reason for Rejection <span className="text-rose-500">*</span>
+              </label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Please enter a professional reason explaining why this task is being rejected..."
+                className="w-full bg-slate-50 dark:bg-[#181822] border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-800 dark:text-slate-200 focus:outline-none focus:border-rose-500 dark:focus:border-rose-500/50 focus:ring-4 focus:ring-rose-500/10 dark:focus:ring-rose-500/10 transition-all resize-none h-28"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800/80">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
+                className="px-4.5 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/30 transition-all flex items-center gap-2"
+                className="px-5 py-2.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600 text-white shadow-md shadow-rose-500/20 transition-all flex items-center gap-2 cursor-pointer active:scale-95"
               >
-                <FiCheck size={16} />
-                Confirm Rejection
+                <FiCheck size={14} />
+                Reject Task
               </button>
             </div>
           </form>
@@ -1371,6 +1670,28 @@ const ProjectTaskBoard = ({
 }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const targetHighlightTaskId = searchParams.get("taskId");
+  const [highlightedTaskId, setHighlightedTaskId] = useState(null);
+
+  useEffect(() => {
+    if (targetHighlightTaskId) {
+      setHighlightedTaskId(targetHighlightTaskId);
+      const timer1 = setTimeout(() => {
+        const el = document.getElementById(`task-row-${targetHighlightTaskId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 500);
+      const timer2 = setTimeout(() => {
+        setHighlightedTaskId(null);
+      }, 2500);
+      return () => {
+        clearTimeout(timer1);
+        clearTimeout(timer2);
+      };
+    }
+  }, [targetHighlightTaskId]);
 
   const getInitials = (name) => {
     return (
@@ -1408,6 +1729,10 @@ const ProjectTaskBoard = ({
   // Rejection Modal State
   const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
   const [taskToReject, setTaskToReject] = useState(null); // { taskId, subtaskId, previousStatus, taskObj }
+
+  // Correction Modal State
+  const [correctionModalOpen, setCorrectionModalOpen] = useState(false);
+  const [taskToCorrect, setTaskToCorrect] = useState(null); // { taskId, subtaskId, previousStatus, taskObj }
 
   // Helper to format date range beautifully (e.g. Jun 2 - 4)
   const formatDateRange = (startStr, endStr) => {
@@ -1537,6 +1862,26 @@ const ProjectTaskBoard = ({
   const inlineTaskInputRef = useRef(null);
   const inlineSectionInputRef = useRef(null);
 
+  // Status Filter State
+  const [statusFilter, setStatusFilter] = useState(() => {
+    try {
+      const saved = localStorage.getItem("ptb_status_filter");
+      return saved ? saved : "All";
+    } catch (e) {
+      return "All";
+    }
+  });
+  const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false);
+  const statusFilterDropdownRef = useRef(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("ptb_status_filter", statusFilter);
+    } catch (e) {
+      // ignore
+    }
+  }, [statusFilter]);
+
   // Date Filter State
   const [dateFilter, setDateFilter] = useState(() => {
     try {
@@ -1587,6 +1932,12 @@ const ProjectTaskBoard = ({
         !dateFilterDropdownRef.current.contains(event.target)
       ) {
         setIsDateFilterOpen(false);
+      }
+      if (
+        statusFilterDropdownRef.current &&
+        !statusFilterDropdownRef.current.contains(event.target)
+      ) {
+        setIsStatusFilterOpen(false);
       }
       if (!event.target.closest(".col-header-menu")) {
         setOpenColMenu(null);
@@ -1724,6 +2075,39 @@ const ProjectTaskBoard = ({
   });
 
   const filteredTasks = activeProjectTasks.filter((t) => {
+    if (statusFilter !== "All") {
+      const currentStatus = t.status || "Pending";
+      const statusUpper = currentStatus.toUpperCase();
+
+      if (statusFilter === "Active Tasks") {
+        const isCompleted = statusUpper === "COMPLETED";
+        const isRejected = statusUpper === "REJECTED";
+        if (isCompleted || isRejected) {
+          return false;
+        }
+      } else if (statusFilter === "In Review") {
+        if (t.status !== "In Review") {
+          return false;
+        }
+      } else if (statusFilter === "In Progress") {
+        if (statusUpper !== "IN PROGRESS") {
+          return false;
+        }
+      } else if (statusFilter === "On Hold") {
+        if (statusUpper !== "ON HOLD") {
+          return false;
+        }
+      } else if (statusFilter === "Pending") {
+        if (statusUpper !== "PENDING") {
+          return false;
+        }
+      } else {
+        if (t.status !== statusFilter) {
+          return false;
+        }
+      }
+    }
+
     if (dateFilter === "All Time") return true;
     const taskDate = new Date(t.createdAt || new Date());
     const today = new Date();
@@ -1747,7 +2131,11 @@ const ProjectTaskBoard = ({
     }
     return true;
   });
-  const sortedTasks = filteredTasks;
+  const sortedTasks = [...filteredTasks].sort((a, b) => {
+    if (a.status === "Completed" && b.status !== "Completed") return 1;
+    if (b.status === "Completed" && a.status !== "Completed") return -1;
+    return 0;
+  });
 
   const handleDragEnd = async (result) => {
     const { destination, source, draggableId, type } = result;
@@ -1830,6 +2218,18 @@ const ProjectTaskBoard = ({
         }).unwrap();
       } catch (err) {
         console.error("Failed to drag and drop task:", err);
+        if (err?.data?.isOfficeHoursEnded || err?.error?.data?.isOfficeHoursEnded) {
+          const errorData = err?.data || err?.error?.data;
+          window.dispatchEvent(
+            new CustomEvent("show-office-hours-ended-popup", {
+              detail: {
+                workingTimeMs: errorData.workingTimeMs,
+                pausedAtHour: errorData.pausedAt,
+              },
+            })
+          );
+          dispatch(apiSlice.util.invalidateTags(["Task"]));
+        }
       }
     } else {
       // Optimistically update local UI for section
@@ -1939,7 +2339,15 @@ const ProjectTaskBoard = ({
       setInlineAddingTaskSection(targetSection);
     } catch (err) {
       console.error("Failed to add task inline:", err);
-      toast.error("Failed to create task");
+      const serverMsg =
+        err?.data?.message ||
+        err?.message ||
+        (err?.data ? JSON.stringify(err.data) : "");
+      toast.error(
+        serverMsg
+          ? `Failed to create task: ${serverMsg}`
+          : "Failed to create task",
+      );
     }
   };
 
@@ -2042,8 +2450,162 @@ const ProjectTaskBoard = ({
     }
   };
 
+  const showStartInProgressWarning = (action = "review") => {
+    const actionMsg =
+      action === "hold"
+        ? "before placing it on hold."
+        : "before submitting it for review.";
+
+    toast.custom(
+      (t) => (
+        <div
+          className={`${
+            t.visible ? "animate-enter" : "animate-leave"
+          } max-w-md w-full pointer-events-auto flex flex-col gap-4 p-5 rounded-2xl shadow-2xl border
+          bg-white dark:bg-[#0f172a]
+          border-amber-500/40 dark:border-amber-500/40
+          backdrop-blur-xl z-[99999]`}
+        >
+          <div className="flex items-start gap-3.5">
+            <div className="shrink-0 w-11 h-11 rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-500 shadow-inner">
+              <FiClock size={22} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 leading-snug">
+                Action Required: Start Task First
+              </h4>
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1.5 leading-relaxed font-medium">
+                Please start the task by setting its status to{" "}
+                <strong className="text-amber-600 dark:text-amber-400 font-bold">
+                  "In Progress"
+                </strong>{" "}
+                {actionMsg}
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <button
+              onClick={() => toast.dismiss(t.id)}
+              className="px-4 py-2 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-600 text-white transition-all shadow-md active:scale-95 cursor-pointer"
+            >
+              Understood
+            </button>
+          </div>
+        </div>
+      ),
+      { duration: 6000 },
+    );
+  };
+
+  const [reviewModalData, setReviewModalData] = useState(null);
+  const [completeModalData, setCompleteModalData] = useState(null);
+
+  const handleConfirmReviewSubmit = async () => {
+    if (!reviewModalData) return;
+    const { taskId, fields, isSubtask, taskObj, subtaskId } = reviewModalData;
+    setReviewModalData(null);
+    try {
+      if (isSubtask) {
+        const updatedSubtasks = (taskObj.subtasks || []).map((s) => {
+          if (s._id === subtaskId) {
+            return { ...s, ...fields };
+          }
+          return s;
+        });
+        await updateTaskMutation({
+          id: taskId,
+          taskData: { subtasks: updatedSubtasks },
+        }).unwrap();
+      } else {
+        await updateTaskMutation({
+          id: taskId,
+          taskData: fields,
+        }).unwrap();
+      }
+      toast.success("Submitted for review successfully!");
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.data?.message || "Failed to submit for review.");
+    }
+  };
+
+  const handleConfirmComplete = async () => {
+    if (!completeModalData) return;
+    const { taskId, fields, isSubtask, taskObj, subtaskId } = completeModalData;
+    setCompleteModalData(null);
+    try {
+      if (isSubtask) {
+        const updatedSubtasks = (taskObj.subtasks || []).map((s) => {
+          if (s._id === subtaskId) {
+            return { ...s, ...fields };
+          }
+          return s;
+        });
+        await updateTaskMutation({
+          id: taskId,
+          taskData: { subtasks: updatedSubtasks },
+        }).unwrap();
+      } else {
+        await updateTaskMutation({
+          id: taskId,
+          taskData: fields,
+        }).unwrap();
+      }
+      toast.success("Task marked as completed successfully!");
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.data?.message || "Failed to mark task as completed.");
+    }
+  };
+
   // Update Task fields inline / autosave
   const handleTaskFieldChange = async (taskId, fields) => {
+    if (fields.status === "In Review") {
+      const taskObj = localTasks.find((t) => t._id === taskId);
+      if (taskObj && !taskObj.actualStartTime) {
+        showStartInProgressWarning("review");
+        return;
+      }
+      if (taskObj && taskObj.status !== fields.status) {
+        setReviewModalData({ taskId, fields, isSubtask: false });
+        return;
+      }
+    }
+
+    if (fields.status === "On Hold") {
+      const taskObj = localTasks.find((t) => t._id === taskId);
+      if (taskObj && !taskObj.actualStartTime) {
+        showStartInProgressWarning("hold");
+        return;
+      }
+    }
+
+    if (fields.status === "Completed") {
+      const taskObj = localTasks.find((t) => t._id === taskId);
+      if (taskObj && taskObj.status !== "Completed") {
+        setCompleteModalData({
+          taskId,
+          fields,
+          isSubtask: false,
+          taskName: taskObj.title,
+        });
+        return;
+      }
+    }
+
+    // Intercept correction status
+    if (fields.status === "Correction") {
+      const taskObj = localTasks.find((t) => t._id === taskId);
+      setTaskToCorrect({
+        taskId,
+        subtaskId: null,
+        previousStatus: taskObj?.status,
+        taskObj,
+      });
+      setCorrectionModalOpen(true);
+      return;
+    }
+
     // Intercept rejection status
     if (fields.status === "Rejected") {
       const taskObj = localTasks.find((t) => t._id === taskId);
@@ -2137,6 +2699,24 @@ const ProjectTaskBoard = ({
       }
     }
 
+    const currentTaskForPriority = localTasks.find((t) => t._id === taskId);
+    const effectiveStart =
+      sanitizedFields.startDate !== undefined
+        ? sanitizedFields.startDate
+        : currentTaskForPriority?.startDate;
+    const effectiveEnd =
+      sanitizedFields.dueDate !== undefined
+        ? sanitizedFields.dueDate
+        : currentTaskForPriority?.dueDate;
+
+    if (
+      effectiveStart &&
+      effectiveEnd &&
+      isSameDate(effectiveStart, effectiveEnd)
+    ) {
+      sanitizedFields.priority = "Top High";
+    }
+
     const isNewStatusInProgress = sanitizedFields.status === "In Progress";
     setLocalTasks((prev) =>
       prev.map((t) => {
@@ -2168,86 +2748,116 @@ const ProjectTaskBoard = ({
       return;
     }
 
-   try {
-  await updateTaskMutation({
-    id: taskId,
-    taskData: sanitizedFields,
-  }).unwrap();
-} catch (err) {
-  console.error("Failed to update task:", err);
+    try {
+      await updateTaskMutation({
+        id: taskId,
+        taskData: sanitizedFields,
+      }).unwrap();
+    } catch (err) {
+      console.error("Failed to update task:", err);
 
-  if (err?.status === 409) {
-    toast.custom(
-      (t) => (
-        <div
-          className={`${
-            t.visible ? "animate-enter" : "animate-leave"
-          } max-w-sm w-full pointer-events-auto flex flex-col gap-3 p-4 rounded-2xl shadow-2xl border
+      if (err?.data?.isOfficeHoursEnded || err?.error?.data?.isOfficeHoursEnded) {
+        const errorData = err?.data || err?.error?.data;
+        window.dispatchEvent(
+          new CustomEvent("show-office-hours-ended-popup", {
+            detail: {
+              workingTimeMs: errorData.workingTimeMs,
+              pausedAtHour: errorData.pausedAt,
+            },
+          })
+        );
+        dispatch(apiSlice.util.invalidateTags(["Task"]));
+        return;
+      }
+
+      if (err?.status === 409) {
+        toast.custom(
+          (t) => (
+            <div
+              className={`${
+                t.visible ? "animate-enter" : "animate-leave"
+              } max-w-sm w-full pointer-events-auto flex flex-col gap-3 p-4 rounded-2xl shadow-2xl border
           bg-white dark:bg-[#0f172a]
           border-[var(--accent-color)]/30 dark:border-[var(--accent-color-dark)]/30
           backdrop-blur-xl z-[99999]`}
-        >
-          <div className="flex items-start gap-3">
-            <div
-              className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center shadow-sm"
-              style={{ background: "var(--accent-light-bg-subtle)" }}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
+              <div className="flex items-start gap-3">
+                <div
+                  className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center shadow-sm"
+                  style={{ background: "var(--accent-light-bg-subtle)" }}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="var(--accent-color)"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="text-[12px] font-black tracking-wide"
+                    style={{ color: "var(--accent-color)" }}
+                  >
+                    Active Task Already Running
+                  </p>
+                  <p className="mt-0.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-snug">
+                    {err?.data?.message ||
+                      "You already have one active task or subtask."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toast.dismiss(t.id)}
+                  className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                >
+                  <FiX size={13} />
+                </button>
+              </div>
+              <div className="h-px bg-slate-100 dark:bg-slate-800" />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => toast.dismiss(t.id)}
+                  className="flex-1 py-1.5 px-3 rounded-lg text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    updateTaskMutation({
+                      id: taskId,
+                      taskData: { ...sanitizedFields, forceSwitch: true },
+                    });
+                  }}
+                  className="flex-1 py-1.5 px-3 rounded-lg text-[11px] font-black text-white transition-all cursor-pointer shadow-sm"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, var(--accent-color), var(--accent-color-dark))",
+                  }}
+                >
+                  Switch Task
+                </button>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p
-                className="text-[12px] font-black tracking-wide"
-                style={{ color: "var(--accent-color)" }}
-              >
-                Active Task Already Running
-              </p>
-              <p className="mt-0.5 text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-snug">
-                {err?.data?.message || "You already have one active task or subtask."}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => toast.dismiss(t.id)}
-              className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
-            >
-              <FiX size={13} />
-            </button>
-          </div>
-          <div className="h-px bg-slate-100 dark:bg-slate-800" />
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => toast.dismiss(t.id)}
-              className="flex-1 py-1.5 px-3 rounded-lg text-[11px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                toast.dismiss(t.id);
-                updateTaskMutation({ id: taskId, taskData: { ...sanitizedFields, forceSwitch: true } });
-              }}
-              className="flex-1 py-1.5 px-3 rounded-lg text-[11px] font-black text-white transition-all cursor-pointer shadow-sm"
-              style={{ background: "linear-gradient(135deg, var(--accent-color), var(--accent-color-dark))" }}
-            >
-              Switch Task
-            </button>
-          </div>
-        </div>
-      ),
-      { duration: 6000, position: "bottom-right" },
-    );
-  } else {
-    toast.error("Failed to update task");
-  }
+          ),
+          { duration: 6000, position: "bottom-right" },
+        );
+      } else {
+        toast.error("Failed to update task");
+      }
 
-  throw err;
-}
+      throw err;
+    }
   };
 
   // Add Comment Handler
@@ -2375,6 +2985,60 @@ const ProjectTaskBoard = ({
 
   // Update specific subtask fields
   const handleSubtaskFieldChange = async (task, subtaskId, updatedFields) => {
+    if (updatedFields.status === "In Review") {
+      const subtaskObj = task.subtasks?.find((s) => s._id === subtaskId);
+      if (subtaskObj && !subtaskObj.actualStartTime) {
+        showStartInProgressWarning("review");
+        return;
+      }
+      if (subtaskObj && subtaskObj.status !== updatedFields.status) {
+        setReviewModalData({
+          taskId: task._id,
+          fields: updatedFields,
+          isSubtask: true,
+          taskObj: task,
+          subtaskId,
+        });
+        return;
+      }
+    }
+
+    if (updatedFields.status === "On Hold") {
+      const subtaskObj = task.subtasks?.find((s) => s._id === subtaskId);
+      if (subtaskObj && !subtaskObj.actualStartTime) {
+        showStartInProgressWarning("hold");
+        return;
+      }
+    }
+
+    if (updatedFields.status === "Completed") {
+      const subtaskObj = task.subtasks?.find((s) => s._id === subtaskId);
+      if (subtaskObj && subtaskObj.status !== "Completed") {
+        setCompleteModalData({
+          taskId: task._id,
+          fields: updatedFields,
+          isSubtask: true,
+          taskObj: task,
+          subtaskId,
+          taskName: subtaskObj.title || task.title,
+        });
+        return;
+      }
+    }
+
+    // Intercept correction status
+    if (updatedFields.status === "Correction") {
+      const subtaskObj = task.subtasks?.find((s) => s._id === subtaskId);
+      setTaskToCorrect({
+        taskId: task._id,
+        subtaskId,
+        previousStatus: subtaskObj?.status,
+        taskObj: task,
+      });
+      setCorrectionModalOpen(true);
+      return;
+    }
+
     // Intercept rejection status
     if (updatedFields.status === "Rejected") {
       const subtaskObj = task.subtasks?.find((s) => s._id === subtaskId);
@@ -2465,6 +3129,23 @@ const ProjectTaskBoard = ({
       }
     }
 
+    const effectiveSubStart =
+      sanitizedFields.startDate !== undefined
+        ? sanitizedFields.startDate
+        : currentSub?.startDate || task?.startDate;
+    const effectiveSubEnd =
+      sanitizedFields.dueDate !== undefined
+        ? sanitizedFields.dueDate
+        : currentSub?.dueDate || task?.dueDate;
+
+    if (
+      effectiveSubStart &&
+      effectiveSubEnd &&
+      isSameDate(effectiveSubStart, effectiveSubEnd)
+    ) {
+      sanitizedFields.priority = "Top High";
+    }
+
     const updatedSubtasks = task.subtasks.map((sub) =>
       sub._id === subtaskId ? { ...sub, ...sanitizedFields } : sub,
     );
@@ -2482,20 +3163,20 @@ const ProjectTaskBoard = ({
   const handleRejectSubmit = async (reason) => {
     if (!taskToReject) return;
 
-    const rejectionData = {
+    const rejItem = {
       reason,
-      rejectedBy: currentUser?._id,
+      rejectedBy: currentUser?._id || currentUser?.id || currentUser,
       rejectedAt: new Date().toISOString(),
     };
 
     if (taskToReject.subtaskId) {
       // Subtask Rejection
       const task = taskToReject.taskObj;
-      const subtaskObj = task.subtasks?.find(
+      const subtask = task.subtasks?.find(
         (s) => s._id === taskToReject.subtaskId,
       );
-      const currentHistory = subtaskObj?.rejectionHistory || [];
-      const updatedHistory = [...currentHistory, rejectionData];
+      const currentHistory = subtask?.rejectionHistory || [];
+      const updatedHistory = [...currentHistory, rejItem];
 
       const updatedSubtasks = task.subtasks.map((sub) =>
         sub._id === taskToReject.subtaskId
@@ -2516,7 +3197,7 @@ const ProjectTaskBoard = ({
       // Task Rejection
       const task = taskToReject.taskObj;
       const currentHistory = task?.rejectionHistory || [];
-      const updatedHistory = [...currentHistory, rejectionData];
+      const updatedHistory = [...currentHistory, rejItem];
 
       // Optimistic update
       setLocalTasks((prev) =>
@@ -2552,6 +3233,44 @@ const ProjectTaskBoard = ({
 
     setRejectionModalOpen(false);
     setTaskToReject(null);
+  };
+
+  // Handle Submission of Correction Modal
+  const handleCorrectionSubmit = async (reason) => {
+    if (!taskToCorrect) return;
+
+    if (taskToCorrect.subtaskId) {
+      const task = taskToCorrect.taskObj;
+      const updatedSubtasks = (task.subtasks || []).map((sub) =>
+        sub._id === taskToCorrect.subtaskId
+          ? { ...sub, status: "Correction", correctionReason: reason }
+          : sub,
+      );
+
+      try {
+        await updateTaskMutation({
+          id: task._id,
+          taskData: { subtasks: updatedSubtasks },
+        }).unwrap();
+        toast.success("Subtask sent for Correction");
+      } catch (err) {
+        console.error("Failed to send subtask for correction:", err);
+      }
+    } else {
+      const task = taskToCorrect.taskObj;
+      try {
+        await updateTaskMutation({
+          id: task._id,
+          taskData: { status: "Correction", correctionReason: reason },
+        }).unwrap();
+        toast.success("Task sent for Correction");
+      } catch (err) {
+        console.error("Failed to send task for correction:", err);
+      }
+    }
+
+    setCorrectionModalOpen(false);
+    setTaskToCorrect(null);
   };
 
   // Insert new subtask on Enter key press
@@ -2728,7 +3447,7 @@ const ProjectTaskBoard = ({
     <div className="space-y-6 w-full max-w-8xl mx-auto px-2 md:px-0 relative">
       {/* WORKSPACE HEADER & PROGRESS */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mt-4 mb-4 pb-4 border-b border-slate-100 dark:border-white/5">
-        <div className="flex items-center gap-3 min-w-0 w-full lg:w-1/4 order-1 lg:order-none">
+        <div className="flex items-center gap-3 min-w-0 w-full lg:flex-1 order-1 lg:order-none">
           <div className="space-y-2 w-full">
             <div className="flex items-center gap-3">
               <div>
@@ -2840,15 +3559,64 @@ const ProjectTaskBoard = ({
         </div>
 
         {/* Right Side: Filter & Sort Popover Dropdowns */}
-        <div className="flex items-center justify-between lg:justify-end gap-2 w-full lg:w-1/4 order-3 lg:order-none relative">
+        <div className="flex items-center justify-between lg:justify-end gap-2 w-full lg:flex-1 order-3 lg:order-none relative">
           {activeTab === "List" ? (
             <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
+              {/* Status Filter Dropdown */}
+              <div className="relative" ref={statusFilterDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsStatusFilterOpen(!isStatusFilterOpen)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 whitespace-nowrap ${
+                    isStatusFilterOpen || statusFilter !== "All"
+                      ? "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-transparent text-blue-600 dark:text-blue-400"
+                      : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                  }`}
+                >
+                  <FiFilter className="shrink-0" size={13} />
+                  <span>{statusFilter === "All" ? "All Status" : statusFilter}</span>
+                  <FiChevronDown className="shrink-0 text-slate-400" size={13} />
+                </button>
+
+                <AnimatePresence>
+                  {isStatusFilterOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-40 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-transparent rounded-2xl shadow-2xl p-2 z-50 space-y-1 backdrop-blur-md"
+                    >
+                      {["All", "Active Tasks", "Pending", "In Progress", "On Hold", "In Review", "Completed"].map(
+                        (option) => (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => {
+                              setStatusFilter(option);
+                              setIsStatusFilterOpen(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                              statusFilter === option
+                                ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                                : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                            }`}
+                          >
+                            {option}
+                          </button>
+                        ),
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               {/* Date Filter Dropdown */}
               <div className="relative" ref={dateFilterDropdownRef}>
                 <button
                   type="button"
                   onClick={() => setIsDateFilterOpen(!isDateFilterOpen)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 whitespace-nowrap ${
                     isDateFilterOpen || dateFilter !== "All Time"
                       ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-transparent text-emerald-600 dark:text-emerald-400"
                       : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
@@ -2906,7 +3674,7 @@ const ProjectTaskBoard = ({
                   onClick={() => {
                     setIsColsOpen(!isColsOpen);
                   }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all duration-200 whitespace-nowrap ${
                     isColsOpen || Object.values(hiddenColumns).some(Boolean)
                       ? "bg-blue-50 dark:bg-[#3b82f6]/10 border-blue-200 dark:border-transparent text-blue-600 dark:text-[#3b82f6]"
                       : "bg-white dark:bg-[#111] border-slate-200/80 dark:border-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
@@ -2952,7 +3720,7 @@ const ProjectTaskBoard = ({
                         {[
                           { id: "contentCopy", label: "Content Copy" },
                           { id: "client", label: "Client" },
-                          { id: "createdBy", label: "Task Created By" },
+                          { id: "createdBy", label: "Owner" },
                           { id: "assignee", label: "Assignee" },
                           { id: "contentType", label: "Content Type" },
                           { id: "startDate", label: "Start Date" },
@@ -2960,7 +3728,11 @@ const ProjectTaskBoard = ({
                           { id: "priority", label: "Priority" },
                           { id: "status", label: "Status" },
                           { id: "revision", label: "Revision" },
-                          { id: "totalHours", label: "Total Hours" },
+                          {
+                            id: "totalHours",
+                            label: "Total productivity - (total inprogress) ",
+                          },
+                          { id: "approvalInfo", label: "Approval Info" },
                         ].map((col) => {
                           const isHidden = !!hiddenColumns[col.id];
                           return (
@@ -3004,6 +3776,25 @@ const ProjectTaskBoard = ({
               const showSelectionColumn = Object.values(
                 selectionModeSections,
               ).some(Boolean);
+
+              const visibleColsAfterTaskName = [
+                !hiddenColumns.contentCopy,
+                !hiddenColumns.client,
+                !hiddenColumns.createdBy,
+                !hiddenColumns.startDate,
+                !hiddenColumns.endDate,
+                !hiddenColumns.assignee,
+                !hiddenColumns.contentType,
+                !hiddenColumns.priority,
+                !hiddenColumns.status,
+                !hiddenColumns.revision,
+                !hiddenColumns.totalHours,
+                !hiddenColumns.approvalInfo,
+                true, // Actions column is always visible
+              ].filter(Boolean).length;
+
+              const totalVisibleColumns =
+                (showSelectionColumn ? 1 : 0) + 3 + visibleColsAfterTaskName;
 
               const renderInlineCreateRow = (sectionName, sColor = null) => {
                 const isTaskInputActive =
@@ -3128,9 +3919,11 @@ const ProjectTaskBoard = ({
                                 setTimeout(() => {
                                   if (inlineSectionName.trim()) {
                                     handleInlineAddSection(inlineSectionName);
+                                    setInlineSectionName("");
+                                    setInlineAddingSectionUnder(null);
+                                  } else {
+                                    setInlineAddingSectionUnder(null);
                                   }
-                                  setInlineSectionName("");
-                                  setInlineAddingSectionUnder(null);
                                 }, 150);
                               }}
                               onKeyDown={(e) => {
@@ -3139,11 +3932,11 @@ const ProjectTaskBoard = ({
                                   setInlineAddingSectionUnder(null);
                                 }
                               }}
-                              className="w-full bg-transparent text-[11px] font-semibold text-slate-800 dark:text-white outline-none border-b-2 border-indigo-500 dark:border-indigo-400 pb-1 placeholder-slate-450 dark:placeholder-slate-555 transition-all focus:border-indigo-650"
+                              className="w-full bg-transparent text-[10px] font-semibold text-slate-800 dark:text-white outline-none border-b-2 border-indigo-500 dark:border-indigo-400 pb-0.5 placeholder-slate-450 dark:placeholder-slate-555 transition-all focus:border-indigo-650"
                             />
                           </form>
                         ) : (
-                          <div className="flex items-center gap-1 text-[11px] font-bold text-slate-400 dark:text-slate-500 select-none">
+                          <div className="flex items-center gap-2 text-[12px] font-bold text-slate-450 dark:text-slate-400 select-none">
                             <button
                               type="button"
                               onClick={() => {
@@ -3151,12 +3944,12 @@ const ProjectTaskBoard = ({
                                 setInlineAddingSectionUnder(null);
                                 setInlineTaskTitle("");
                               }}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-[#3b82f6] transition-all cursor-pointer font-bold"
+                              className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-blue-50 dark:hover:bg-blue-955/30 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-[#3b82f6] transition-all cursor-pointer font-bold"
                             >
-                              <FiPlus size={13} className="stroke-[3]" />
+                              <FiPlus size={12} className="stroke-[3]" />
                               <span>Add Task</span>
                             </button>
-                            <span className="mx-2 text-slate-350 dark:text-slate-700">
+                            <span className="mx-1.5 text-slate-350 dark:text-slate-705">
                               |
                             </span>
                             <button
@@ -3166,9 +3959,9 @@ const ProjectTaskBoard = ({
                                 setInlineAddingTaskSection(null);
                                 setInlineSectionName("");
                               }}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-950/30 text-slate-500 dark:text-slate-400 hover:text-indigo-650 dark:hover:text-indigo-400 transition-all cursor-pointer font-bold"
+                              className="flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-955/30 text-slate-500 hover:text-indigo-650 dark:text-slate-400 dark:hover:text-indigo-400 transition-all cursor-pointer font-bold"
                             >
-                              <FiPlus size={13} className="stroke-[3]" />
+                              <FiPlus size={12} className="stroke-[3]" />
                               <span>Add Task List</span>
                             </button>
                           </div>
@@ -3176,9 +3969,13 @@ const ProjectTaskBoard = ({
                       </div>
                     </td>
                     <td
-                      colSpan={11}
-                      className="px-3 py-1 border-b border-slate-300 dark:border-slate-700"
-                      style={{ ...bBottom, ...bRight }}
+                      colSpan={visibleColsAfterTaskName}
+                      className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 bg-transparent"
+                      style={{
+                        backgroundColor: "inherit",
+                        ...bBottom,
+                        ...bRight,
+                      }}
                     />
                   </tr>
                 );
@@ -3281,7 +4078,7 @@ const ProjectTaskBoard = ({
                                 ID
                               </th>
                               <th
-                                className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[250px] md:min-w-[400px] md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
+                                className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[250px] md:min-w-[80px] md:sticky z-40 bg-slate-50 dark:bg-[#16161b]"
                                 style={{
                                   left: showSelectionColumn ? "160px" : "120px",
                                 }}
@@ -3290,7 +4087,7 @@ const ProjectTaskBoard = ({
                               </th>
                               {/* Content Copy Column */}
                               {!hiddenColumns.contentCopy && (
-                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[250px] md:min-w-[400px] w-auto group relative">
+                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[140px] md:min-w-[180px] w-auto group relative">
                                   <div className="flex items-center justify-between gap-2">
                                     <span>Content Copy</span>
                                     <div className="relative col-header-menu">
@@ -3334,40 +4131,41 @@ const ProjectTaskBoard = ({
                               )}
                               {/* Client Column */}
                               {!hiddenColumns.client && (
-                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[140px]">
+                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
                                   Client
                                 </th>
                               )}
                               {/* Created By Column */}
                               {!hiddenColumns.createdBy && (
-                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[140px]">
-                                  Task Created By
+                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[100px]">
+                                  Owner
                                 </th>
                               )}
                               {/* Start Date Column */}
                               {!hiddenColumns.startDate && (
-                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
+                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[90px]">
                                   Start Date
                                 </th>
                               )}
                               {/* End Date Column */}
                               {!hiddenColumns.endDate && (
-                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
+                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[90px]">
                                   End Date
                                 </th>
                               )}
                               {/* Assignee Column */}
                               {!hiddenColumns.assignee && (
-                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[190px]">
+                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[150px]">
                                   Assignee
                                 </th>
                               )}
                               {/* Content Type Column */}
                               {!hiddenColumns.contentType && (
-                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[130px]">
+                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[160px] w-[180px]">
                                   Content Type
                                 </th>
                               )}
+
                               {/* Priority Column */}
                               {!hiddenColumns.priority && (
                                 <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
@@ -3426,7 +4224,12 @@ const ProjectTaskBoard = ({
                               )}
                               {!hiddenColumns.totalHours && (
                                 <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[120px]">
-                                  Total Hours
+                                  Inprogress taken
+                                </th>
+                              )}
+                              {!hiddenColumns.approvalInfo && (
+                                <th className="px-3 py-1 border-b border-r border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[200px]">
+                                  Approval Info
                                 </th>
                               )}
                               <th className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 text-center whitespace-nowrap min-w-[80px]">
@@ -3463,11 +4266,29 @@ const ProjectTaskBoard = ({
                             }
                             return sectionsToRender.map(
                               (sectionName, sectionIndex) => {
-                                const sectionTasks = sortedTasks.filter(
-                                  (t) =>
-                                    t.section === sectionName ||
-                                    (!t.section && sectionName === "General"),
-                                );
+                                const STATUS_ORDER = {
+                                  "Pending": 1,
+                                  "To Do": 1,
+                                  "In Progress": 2,
+                                  "On Hold": 3,
+                                  "In Review": 4,
+                                  "IN-REVIEW": 4,
+                                  "Correction": 5,
+                                  "Completed": 6,
+                                  "Done": 6,
+                                  "Rejected": 7,
+                                };
+                                const sectionTasks = sortedTasks
+                                  .filter(
+                                    (t) =>
+                                      t.section === sectionName ||
+                                      (!t.section && sectionName === "General"),
+                                  )
+                                  .sort((a, b) => {
+                                    const orderA = STATUS_ORDER[a.status] || 99;
+                                    const orderB = STATUS_ORDER[b.status] || 99;
+                                    return orderA - orderB;
+                                  });
                                 const isSectionCollapsed =
                                   !!collapsedSections[sectionName];
 
@@ -3520,9 +4341,22 @@ const ProjectTaskBoard = ({
                                         {...provided.draggableProps}
                                         className="text-[11px]"
                                       >
+                                        {sectionIndex > 0 && (
+                                          <tr className="pointer-events-none select-none">
+                                            <td
+                                              colSpan={totalVisibleColumns}
+                                              style={{
+                                                height: "20px",
+                                                padding: 0,
+                                                border: "none",
+                                                backgroundColor: "transparent",
+                                              }}
+                                            />
+                                          </tr>
+                                        )}
                                         {/* SECTION HEADER ROW */}
                                         <tr
-                                          className={`theme-bg-accent-ultrasubtle border-b border-slate-300 dark:border-slate-700 select-none group/secrow transition-colors ${
+                                          className={`theme-bg-accent-ultrasubtle  border-b border-slate-300 dark:border-slate-700 select-none group/secrow transition-colors ${
                                             openSectionMenu === sectionName
                                               ? "relative z-50"
                                               : ""
@@ -3530,7 +4364,7 @@ const ProjectTaskBoard = ({
                                         >
                                           {showSelectionColumn && (
                                             <td
-                                              className={`px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 bg-slate-50 dark:bg-[#16161b] relative ${
+                                              className={`px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 text-center w-10 md:sticky md:left-0 sidebar-bg  relative ${
                                                 openSectionMenu === sectionName
                                                   ? "z-50"
                                                   : "z-30"
@@ -3574,7 +4408,7 @@ const ProjectTaskBoard = ({
                                           )}
                                           {/* Chevron + 3-dots Column */}
                                           <td
-                                            className={`px-2 py-1 border-r border-b border-slate-300 dark:border-slate-700 md:sticky bg-slate-50 dark:bg-[#16161b] relative ${
+                                            className={`px-2 py-1 border-r border-b border-slate-300 dark:border-slate-700 md:sticky sidebar-bg relative ${
                                               openSectionMenu === sectionName
                                                 ? "z-50"
                                                 : "z-30"
@@ -3718,7 +4552,7 @@ const ProjectTaskBoard = ({
                                           </td>
                                           {/* ID Column */}
                                           <td
-                                            className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[60px] max-w-[60px] w-[60px] md:sticky z-30 bg-slate-50 dark:bg-[#16161b]"
+                                            className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 whitespace-nowrap min-w-[60px] max-w-[60px] w-[60px] md:sticky z-30 sidebar-bg"
                                             style={{
                                               left: showSelectionColumn
                                                 ? "80px"
@@ -3727,7 +4561,7 @@ const ProjectTaskBoard = ({
                                           />
                                           {/* Task Name Column */}
                                           <td
-                                            className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-30 bg-slate-50 dark:bg-[#16161b]"
+                                            className="px-3 py-1 border-r border-b border-slate-300 dark:border-slate-700 md:sticky z-30 sidebar-bg"
                                             style={{
                                               left: showSelectionColumn
                                                 ? "140px"
@@ -3877,7 +4711,7 @@ const ProjectTaskBoard = ({
                                                 onClick={(e) =>
                                                   e.stopPropagation()
                                                 }
-                                                className="font-bold text-[10px] uppercase tracking-wider text-slate-705 dark:text-slate-355 hover:bg-slate-100 dark:hover:bg-slate-800 rounded px-1.5 py-0.5 outline-none bg-transparent focus:bg-white dark:focus:bg-slate-800 focus:ring-1 focus:ring-blue-500 max-w-[200px] sm:max-w-[400px] border-none cursor-text truncate transition-all"
+                                                className="font-bold text-[10px] uppercase tracking-wider text-slate-705 dark:text-slate-355 hover:bg-slate-100 dark:hover:bg-slate-800 rounded px-1.5 py-0.5 outline-none bg-transparent focus:bg-white dark:focus:bg-slate-800 focus:ring-1 focus:ring-blue-500 flex-1 border-none cursor-text truncate transition-all"
                                               />
 
                                               <span className="bg-blue-100/60 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 border border-blue-200/40 dark:border-blue-800/30 font-bold px-2 py-0.5 rounded-full text-[10px] select-none">
@@ -3992,8 +4826,8 @@ const ProjectTaskBoard = ({
                                           </td>
                                           {/* Empty Column Cells merged into one to remove vertical gridlines */}
                                           <td
-                                            colSpan={11}
-                                            className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-[#16161b]"
+                                            colSpan={visibleColsAfterTaskName}
+                                            className="px-3 py-1 border-b border-slate-300 dark:border-slate-700 sidebar-bg"
                                             style={{
                                               borderRight: `2.5px solid ${sColor.hex}`,
                                             }}
@@ -4012,19 +4846,31 @@ const ProjectTaskBoard = ({
                                                 const canToggle =
                                                   isAdminOrManager ||
                                                   task.assignedTo?._id ===
-                                                    currentUser?._id ||
+                                                  currentUser?._id ||
                                                   task.assignedTo ===
                                                     currentUser?._id;
 
                                                 const isSelected =
                                                   selectedTaskId === task._id;
+                                                const isRejected =
+                                                  task.status === "Rejected";
+                                                const isInReview =
+                                                  task.status === "In Review";
+                                                const isInProgress =
+                                                  task.status === "In Progress";
                                                 const rowBg = isSelected
                                                   ? "bg-blue-50 dark:bg-[#1e293b]"
-                                                  : isCompleted
-                                                    ? "bg-slate-50 text-slate-400 dark:bg-[#18181f] dark:text-slate-550"
-                                                    : taskIndex % 2 === 0
-                                                      ? "bg-white dark:bg-[#111115] text-slate-800 dark:text-slate-100"
-                                                      : "bg-slate-50 dark:bg-[#16161b] text-slate-800 dark:text-slate-100";
+                                                  : isRejected
+                                                    ? "!bg-[#fde8e8] text-rose-950 dark:!bg-[#2c1214] dark:text-rose-200 opacity-80 pointer-events-none !border-rose-300 dark:!border-rose-800/60"
+                                                    : isCompleted
+                                                      ? "!bg-[#e6f4ea] text-emerald-950 dark:!bg-[#0c2919] dark:text-emerald-200"
+                                                      : isInReview
+                                                        ? "!bg-[#fef3c7] text-yellow-950 dark:!bg-[#2e2305] dark:text-yellow-200"
+                                                        : isInProgress
+                                                          ? "!bg-[#f3e8ff] text-purple-950 dark:!bg-[#261342] dark:text-purple-200"
+                                                          : taskIndex % 2 === 0
+                                                            ? "bg-white dark:bg-[#111115] text-slate-800 dark:text-slate-100"
+                                                            : "bg-slate-50 dark:bg-[#16161b] text-slate-800 dark:text-slate-100";
 
                                                 return (
                                                   <React.Fragment
@@ -4032,12 +4878,17 @@ const ProjectTaskBoard = ({
                                                   >
                                                     {/* Parent Task Row */}
                                                     <tr
+                                                      id={`task-row-${task._id}`}
                                                       onClick={() =>
                                                         setSelectedTaskId(
                                                           task._id,
                                                         )
                                                       }
-                                                      className={`group cursor-pointer transition-colors ${rowBg} ${
+                                                      className={`group cursor-pointer transition-colors ${
+                                                        highlightedTaskId === task._id
+                                                          ? "bg-indigo-100/80 dark:bg-indigo-900/40"
+                                                          : rowBg
+                                                      } ${
                                                         task.priority ===
                                                           "Top High" &&
                                                         task.status !==
@@ -4185,14 +5036,17 @@ const ProjectTaskBoard = ({
                                                             } ${
                                                               isCompleted
                                                                 ? "bg-emerald-500 border-emerald-500 text-white"
-                                                                : "border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-[#3b82f6] text-transparent hover:text-slate-400 dark:hover:text-[#3b82f6]"
+                                                                : "border-slate-300 dark:border-slate-600 hover:border-blue-500 dark:hover:border-[#3b82f6] text-transparent hover:text-slate-400 dark:hover:text-slate-400 dark:hover:text-[#3b82f6]"
                                                             }`}
                                                           >
                                                             <FiCheck size={9} />
                                                           </button>
 
                                                           {/* Task Title contentEditable Span */}
-                                                          <div className="flex-grow min-w-0">
+                                                          <div className="flex-grow min-w-0 flex items-center gap-1.5">
+                                                            {highlightedTaskId === task._id && (
+                                                              <FiLoader size={12} className="animate-spin text-indigo-500 dark:text-indigo-400 shrink-0" />
+                                                            )}
                                                             <span
                                                               ref={(el) => {
                                                                 if (
@@ -4328,7 +5182,6 @@ const ProjectTaskBoard = ({
                                                           />
                                                         </div>
                                                       </td>
-
                                                       {/* Client Column */}
                                                       {!hiddenColumns.client && (
                                                         <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 font-medium">
@@ -4409,11 +5262,11 @@ const ProjectTaskBoard = ({
                                                                       .createdBy
                                                                       .name
                                                                   }
-                                                                  className="w-5 h-5 rounded-full object-cover border border-slate-250 dark:border-white/10 shrink-0"
+                                                                  className="w-4 h-4 rounded-full object-cover border border-slate-250 dark:border-white/10 shrink-0"
                                                                 />
                                                               ) : (
                                                                 <div
-                                                                  className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
+                                                                  className={`w-4 h-4 rounded-full flex items-center justify-center text-white text-[7.5px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
                                                                     task
                                                                       .createdBy
                                                                       .name ||
@@ -4429,7 +5282,7 @@ const ProjectTaskBoard = ({
                                                                 </div>
                                                               )}
                                                               <span
-                                                                className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[100px]"
+                                                                className="text-[9.5px] font-semibold text-slate-605 dark:text-slate-400 truncate max-w-[85px]"
                                                                 title={
                                                                   task.createdBy
                                                                     .name
@@ -4442,7 +5295,7 @@ const ProjectTaskBoard = ({
                                                               </span>
                                                             </div>
                                                           ) : (
-                                                            <span className="text-slate-400 dark:text-slate-550 text-[10px] font-normal">
+                                                            <span className="text-slate-400 dark:text-slate-550 text-[9px] font-normal">
                                                               N/A
                                                             </span>
                                                           )}
@@ -4470,9 +5323,9 @@ const ProjectTaskBoard = ({
                                                             }}
                                                           >
                                                             {task.startDate ? (
-                                                              <div className="flex items-center flex-nowrap gap-1.5 px-2.5 py-1 rounded-md border border-blue-300 dark:border-blue-800/85 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-855 dark:text-blue-300 text-[14px] font-bold bg-blue-100 dark:bg-blue-900 transition-all shadow-sm">
+                                                              <div className="flex items-center flex-nowrap gap-1 px-1.5 py-0.5 rounded-md border border-blue-300 dark:border-blue-800/85 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-855 dark:text-blue-300 text-[9.5px] font-bold bg-blue-100 dark:bg-blue-900 transition-all shadow-sm">
                                                                 <FiCalendar
-                                                                  size={10.5}
+                                                                  size={9.5}
                                                                   className="text-blue-900 dark:text-blue-900 shrink-0"
                                                                 />
                                                                 <span className="whitespace-nowrap">
@@ -4505,15 +5358,15 @@ const ProjectTaskBoard = ({
                                                                     className="ml-1 text-blue-505 hover:text-rose-600 dark:text-blue-450 dark:hover:text-rose-455 relative z-10 transition-colors cursor-pointer"
                                                                   >
                                                                     <FiX
-                                                                      size={10}
+                                                                      size={9}
                                                                     />
                                                                   </button>
                                                                 )}
                                                               </div>
                                                             ) : (
-                                                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-blue-600 dark:border-blue-800/80 text-white  dark:text-blue-400/90   bg-blue-400 dark:bg-blue-400 transition-all text-[9px] font-bold">
+                                                              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-blue-600 dark:border-blue-800/80 text-white dark:text-blue-400/90 bg-blue-400 dark:bg-blue-400 transition-all text-[8px] font-bold">
                                                                 <FiCalendar
-                                                                  size={10.5}
+                                                                  size={9.5}
                                                                 />
                                                                 <span>
                                                                   + Start Date
@@ -4573,9 +5426,9 @@ const ProjectTaskBoard = ({
                                                             }}
                                                           >
                                                             {task.dueDate ? (
-                                                              <div className="flex items-center flex-nowrap gap-1.5 px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-700/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-855 dark:text-rose-100 text-[14px] font-bold bg-rose-100 dark:bg-rose-800 transition-all shadow-sm">
+                                                              <div className="flex items-center flex-nowrap gap-1 px-1.5 py-0.5 rounded-md border border-rose-300 dark:border-rose-700/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-855 dark:text-rose-100 text-[9.5px] font-bold bg-rose-100 dark:bg-rose-800 transition-all shadow-sm">
                                                                 <FiCalendar
-                                                                  size={10.5}
+                                                                  size={9.5}
                                                                   className="text-rose-600 dark:text-rose-400 shrink-0"
                                                                 />
                                                                 <span className="whitespace-nowrap">
@@ -4608,15 +5461,15 @@ const ProjectTaskBoard = ({
                                                                     className="ml-1 text-rose-505 hover:text-rose-755 dark:text-rose-400 dark:hover:text-rose-300 relative z-10 transition-colors cursor-pointer"
                                                                   >
                                                                     <FiX
-                                                                      size={10}
+                                                                      size={9}
                                                                     />
                                                                   </button>
                                                                 )}
                                                               </div>
                                                             ) : (
-                                                              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-rose-300 dark:border-rose-800/80 text-rose-605 dark:text-rose-400/90 hover:border-rose-400 hover:text-rose-750 dark:hover:text-rose-300 dark:hover:border-rose-600/85 bg-rose-50/50 dark:bg-rose-955/20 hover:bg-rose-100 dark:hover:bg-rose-955/50 transition-all text-[9.5px] font-bold">
+                                                              <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-rose-300 dark:border-rose-800/80 text-rose-605 dark:text-rose-400/90 hover:border-rose-400 hover:text-rose-750 dark:hover:text-rose-300 dark:hover:border-rose-600/85 bg-rose-50/50 dark:bg-rose-955/20 hover:bg-rose-100 dark:hover:bg-rose-955/50 transition-all text-[8px] font-bold">
                                                                 <FiCalendar
-                                                                  size={10.5}
+                                                                  size={9.5}
                                                                 />
                                                                 <span>
                                                                   + End Date
@@ -4705,7 +5558,7 @@ const ProjectTaskBoard = ({
 
                                                       {/* Content Type Column */}
                                                       {!hiddenColumns.contentType && (
-                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 min-w-[160px] w-[180px]">
                                                           <div
                                                             onClick={(e) =>
                                                               e.stopPropagation()
@@ -4717,15 +5570,41 @@ const ProjectTaskBoard = ({
                                                                   task.contentType ||
                                                                   ""
                                                                 }
-                                                                onChange={(e) => {
-                                                                  const val = e.target.value;
-                                                                  if (val === "__ADD_CUSTOM__") {
-                                                                    const customVal = prompt("Enter custom content type:");
-                                                                    if (customVal && customVal.trim() !== "") {
-                                                                      handleTaskFieldChange(task._id, { contentType: customVal.trim() });
+                                                                onChange={(
+                                                                  e,
+                                                                ) => {
+                                                                  const val =
+                                                                    e.target
+                                                                      .value;
+                                                                  if (
+                                                                    val ===
+                                                                    "__ADD_CUSTOM__"
+                                                                  ) {
+                                                                    const customVal =
+                                                                      prompt(
+                                                                        "Enter custom content type:",
+                                                                      );
+                                                                    if (
+                                                                      customVal &&
+                                                                      customVal.trim() !==
+                                                                        ""
+                                                                    ) {
+                                                                      handleTaskFieldChange(
+                                                                        task._id,
+                                                                        {
+                                                                          contentType:
+                                                                            customVal.trim(),
+                                                                        },
+                                                                      );
                                                                     }
                                                                   } else {
-                                                                    handleTaskFieldChange(task._id, { contentType: val });
+                                                                    handleTaskFieldChange(
+                                                                      task._id,
+                                                                      {
+                                                                        contentType:
+                                                                          val,
+                                                                      },
+                                                                    );
                                                                   }
                                                                 }}
                                                                 className={`badge-select ${
@@ -4789,9 +5668,30 @@ const ProjectTaskBoard = ({
                                                                 <option value="Video shoot">
                                                                   Video shoot
                                                                 </option>
-                                                                {task.contentType && !["VIDEO", "IMAGE", "CAROUSEL", "REEL", "POST", "STORY", "Website", "SEO", "Video shoot"].includes(task.contentType) && (
-                                                                  <option value={task.contentType}>{task.contentType}</option>
-                                                                )}
+                                                                {task.contentType &&
+                                                                  ![
+                                                                    "VIDEO",
+                                                                    "IMAGE",
+                                                                    "CAROUSEL",
+                                                                    "REEL",
+                                                                    "POST",
+                                                                    "STORY",
+                                                                    "Website",
+                                                                    "SEO",
+                                                                    "Video shoot",
+                                                                  ].includes(
+                                                                    task.contentType,
+                                                                  ) && (
+                                                                    <option
+                                                                      value={
+                                                                        task.contentType
+                                                                      }
+                                                                    >
+                                                                      {
+                                                                        task.contentType
+                                                                      }
+                                                                    </option>
+                                                                  )}
                                                                 <option value="__ADD_CUSTOM__">
                                                                   ➕ Custom...
                                                                 </option>
@@ -4837,6 +5737,7 @@ const ProjectTaskBoard = ({
                                                         </td>
                                                       )}
 
+
                                                       {/* Priority */}
                                                       {!hiddenColumns.priority && (
                                                         <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
@@ -4845,7 +5746,14 @@ const ProjectTaskBoard = ({
                                                               e.stopPropagation()
                                                             }
                                                           >
-                                                            {isAdminOrManager ? (
+                                                            {isSameDate(
+                                                              task.startDate,
+                                                              task.dueDate,
+                                                            ) ? (
+                                                              <span className="badge-span badge-priority-top-high">
+                                                                🔴 Top High
+                                                              </span>
+                                                            ) : isAdminOrManager ? (
                                                               <select
                                                                 value={
                                                                   task.priority ||
@@ -4910,7 +5818,7 @@ const ProjectTaskBoard = ({
                                                         </td>
                                                       )}
 
-                                                      {/* Status */}
+                                                      {/* Status Column */}
                                                       {!hiddenColumns.status && (
                                                         <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                                           <div
@@ -4918,7 +5826,11 @@ const ProjectTaskBoard = ({
                                                               e.stopPropagation()
                                                             }
                                                           >
-                                                            {isAdminOrManager ? (
+                                                            {isAdminOrManager &&
+                                                            task.status !==
+                                                              "Completed" &&
+                                                            task.status !==
+                                                              "Rejected" ? (
                                                               <select
                                                                 value={
                                                                   task.status ||
@@ -4949,32 +5861,60 @@ const ProjectTaskBoard = ({
                                                                             "IN-Review"
                                                                         ? "badge-status-in-review"
                                                                         : task.status ===
-                                                                            "On Hold"
-                                                                          ? "badge-status-on-hold"
+                                                                            "Correction"
+                                                                          ? "badge-status-correction"
                                                                           : task.status ===
-                                                                              "Rejected"
-                                                                            ? "badge-status-rejected"
-                                                                            : "badge-status-pending"
+                                                                              "On Hold"
+                                                                            ? "badge-status-on-hold"
+                                                                            : task.status ===
+                                                                                "Rejected"
+                                                                              ? "badge-status-rejected"
+                                                                              : "badge-status-pending"
                                                                 }`}
                                                               >
-                                                                <option value="Pending">
-                                                                  Pending
-                                                                </option>
-                                                                <option value="In Progress">
-                                                                  In Progress
-                                                                </option>
-                                                                <option value="IN-REVIEW">
-                                                                  In Review
-                                                                </option>
-                                                                <option value="Completed">
-                                                                  Completed
-                                                                </option>
-                                                                <option value="On Hold">
-                                                                  On Hold
-                                                                </option>
-                                                                <option value="Rejected">
-                                                                  Rejected
-                                                                </option>
+                                                                {task.status ===
+                                                                "In Review" ||
+                                                                task.status ===
+                                                                  "IN-REVIEW" ? (
+                                                                  <>
+                                                                    <option value="In Review">
+                                                                      🔍 In Review
+                                                                    </option>
+                                                                    <option value="Correction">
+                                                                      🛠️ Correction
+                                                                    </option>
+                                                                    <option value="Completed">
+                                                                      ✅ Completed
+                                                                    </option>
+                                                                    <option value="Rejected">
+                                                                      ❌ Rejected
+                                                                    </option>
+                                                                  </>
+                                                                ) : (
+                                                                  <>
+                                                                    <option value="Pending">
+                                                                      ⏳ Pending
+                                                                    </option>
+                                                                    <option value="In Progress">
+                                                                      ⚡ In Progress
+                                                                    </option>
+                                                                    <option value="In Review">
+                                                                      🔍 In Review
+                                                                    </option>
+                                                                    <option value="Correction">
+                                                                      🛠️ Correction
+                                                                    </option>
+                                                                    <option value="Completed">
+                                                                      ✅ Completed
+                                                                    </option>
+                                                                    <option value="On Hold">
+                                                                      ⏸️ On Hold
+                                                                    </option>
+                                                                    <option value="Rejected">
+                                                                      ❌ Rejected
+                                                                    </option>
+                                                                  </>
+                                                                )}
                                                               </select>
                                                             ) : (
                                                               <span
@@ -4986,11 +5926,7 @@ const ProjectTaskBoard = ({
                                                                         "In Progress"
                                                                       ? "badge-status-in-progress"
                                                                       : task.status ===
-                                                                            "IN-REVIEW" ||
-                                                                          task.status ===
-                                                                            "In Review" ||
-                                                                          task.status ===
-                                                                            "IN-Review"
+                                                                            "In Review"
                                                                         ? "badge-status-in-review"
                                                                         : task.status ===
                                                                             "On Hold"
@@ -5001,15 +5937,7 @@ const ProjectTaskBoard = ({
                                                                             : "badge-status-pending"
                                                                 }`}
                                                               >
-                                                                {task.status ===
-                                                                  "IN-REVIEW" ||
-                                                                task.status ===
-                                                                  "In Review" ||
-                                                                task.status ===
-                                                                  "IN-Review"
-                                                                  ? "In Review"
-                                                                  : task.status ||
-                                                                    "Pending"}
+                                                                {getStatusWithEmoji(task.status)}
                                                               </span>
                                                             )}
                                                           </div>
@@ -5040,7 +5968,7 @@ const ProjectTaskBoard = ({
                                                         </td>
                                                       )}
 
-                                                      {/* Total Hours */}
+                                                      {/* Total productivity */}
                                                       {!hiddenColumns.totalHours && (
                                                         <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                                           <TimeTracker
@@ -5057,6 +5985,30 @@ const ProjectTaskBoard = ({
                                                               task.totalPausedMs
                                                             }
                                                             status={task.status}
+                                                          />
+                                                        </td>
+                                                      )}
+
+                                                      {/* Approval Info */}
+                                                      {!hiddenColumns.approvalInfo && (
+                                                        <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 text-center whitespace-nowrap">
+                                                          <ApprovalTimeDisplay
+                                                            reviewStartedAt={
+                                                              task.reviewStartedAt
+                                                            }
+                                                            completedAt={
+                                                              task.completedAt
+                                                            }
+                                                            approvalWaitingMs={
+                                                              task.approvalWaitingMs
+                                                            }
+                                                            status={task.status}
+                                                            lastReviewStartedAt={
+                                                              task.lastReviewStartedAt
+                                                            }
+                                                            reviewCycles={
+                                                              task.reviewCycles
+                                                            }
                                                           />
                                                         </td>
                                                       )}
@@ -5129,10 +6081,25 @@ const ProjectTaskBoard = ({
                                                               currentUser?._id ||
                                                             sub.assignedTo ===
                                                               currentUser?._id;
+                                                          const isSubRejected =
+                                                            sub.status ===
+                                                            "Rejected";
+                                                          const isSubInReview =
+                                                            sub.status ===
+                                                            "In Review";
+                                                          const isSubInProgress =
+                                                            sub.status ===
+                                                            "In Progress";
                                                           const rowBgSub =
-                                                            isSubCompleted
-                                                              ? "bg-slate-50 text-slate-405 dark:bg-[#18181f] dark:text-slate-550 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
-                                                              : "bg-slate-100 dark:bg-[#16161b] text-slate-855 dark:text-slate-100 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]";
+                                                            isSubRejected
+                                                              ? "!bg-[#fde8e8] text-rose-950 dark:!bg-[#2c1214] dark:text-rose-200 opacity-80 pointer-events-none !border-rose-300 dark:!border-rose-800/60 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                                                              : isSubCompleted
+                                                                ? "!bg-[#e6f4ea] text-emerald-950 dark:!bg-[#0c2919] dark:text-emerald-200 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                                                                : isSubInReview
+                                                                  ? "!bg-[#fef3c7] text-yellow-950 dark:!bg-[#2e2305] dark:text-yellow-200 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                                                                  : isSubInProgress
+                                                                    ? "!bg-[#f3e8ff] text-purple-950 dark:!bg-[#261342] dark:text-purple-200 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                                                                    : "bg-amber-50 dark:bg-[#16161b] text-slate-855 dark:text-slate-100 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]";
 
                                                           return (
                                                             <tr
@@ -5402,7 +6369,6 @@ const ProjectTaskBoard = ({
                                                                   />
                                                                 </div>
                                                               </td>
-
                                                               {/* 2. Client Column */}
                                                               {!hiddenColumns.client && (
                                                                 <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
@@ -5496,11 +6462,11 @@ const ProjectTaskBoard = ({
                                                                               .createdBy
                                                                               .name
                                                                           }
-                                                                          className="w-5 h-5 rounded-full object-cover border border-slate-200 dark:border-white/10 shrink-0"
+                                                                          className="w-4 h-4 rounded-full object-cover border border-slate-200 dark:border-white/10 shrink-0"
                                                                         />
                                                                       ) : (
                                                                         <div
-                                                                          className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
+                                                                          className={`w-4 h-4 rounded-full flex items-center justify-center text-white text-[7.5px] font-bold bg-gradient-to-br shrink-0 ${getAvatarColor(
                                                                             task
                                                                               .createdBy
                                                                               .name ||
@@ -5516,7 +6482,7 @@ const ProjectTaskBoard = ({
                                                                         </div>
                                                                       )}
                                                                       <span
-                                                                        className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 truncate max-w-[100px]"
+                                                                        className="text-[9.5px] font-semibold text-slate-705 dark:text-slate-400 truncate max-w-[85px]"
                                                                         title={
                                                                           task
                                                                             .createdBy
@@ -5561,10 +6527,10 @@ const ProjectTaskBoard = ({
                                                                     }}
                                                                   >
                                                                     {sub.startDate ? (
-                                                                      <div className="flex items-center flex-nowrap gap-1.5 px-2.5 py-1 rounded-md border border-blue-300 dark:border-blue-800/80 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-855 dark:text-blue-200 text-[10px] font-bold bg-blue-100/90 dark:bg-blue-955/75 transition-all shadow-sm">
+                                                                      <div className="flex items-center flex-nowrap gap-1 px-1.5 py-0.5 rounded-md border border-blue-300 dark:border-blue-800/80 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-855 dark:text-blue-200 text-[9.5px] font-bold bg-blue-100/90 dark:bg-blue-955/75 transition-all shadow-sm">
                                                                         <FiCalendar
                                                                           size={
-                                                                            10.5
+                                                                            9.5
                                                                           }
                                                                           className="text-blue-600 dark:text-blue-450 shrink-0"
                                                                         />
@@ -5600,17 +6566,17 @@ const ProjectTaskBoard = ({
                                                                           >
                                                                             <FiX
                                                                               size={
-                                                                                10
+                                                                                9
                                                                               }
                                                                             />
                                                                           </button>
                                                                         )}
                                                                       </div>
                                                                     ) : (
-                                                                      <div className="flex items-center justify-center gap-1.5 px-3 py-1 rounded-md border border-dashed border-blue-300 dark:border-blue-800/80 text-blue-605 dark:text-blue-400/90 hover:border-blue-400 hover:text-blue-755 dark:hover:text-blue-305 dark:hover:border-blue-600/80 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-955/50 transition-all text-[8px] font-bold">
+                                                                      <div className="flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-blue-300 dark:border-blue-800/80 text-blue-605 dark:text-blue-400/90 hover:border-blue-400 hover:text-blue-755 dark:hover:text-blue-305 dark:hover:border-blue-600/80 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-955/50 transition-all text-[8px] font-bold">
                                                                         <FiCalendar
                                                                           size={
-                                                                            10.5
+                                                                            9.5
                                                                           }
                                                                         />
                                                                         <span>
@@ -5679,10 +6645,10 @@ const ProjectTaskBoard = ({
                                                                     }}
                                                                   >
                                                                     {sub.dueDate ? (
-                                                                      <div className="flex items-center flex-nowrap gap-1.5 px-2.5 py-1 rounded-md border border-rose-300 dark:border-rose-750/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-850 dark:text-rose-200 text-[10px] font-bold bg-rose-100/90 dark:bg-rose-955/75 transition-all shadow-sm">
+                                                                      <div className="flex items-center flex-nowrap gap-1 px-1.5 py-0.5 rounded-md border border-rose-300 dark:border-rose-750/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-850 dark:text-rose-200 text-[9.5px] font-bold bg-rose-100/90 dark:bg-rose-955/75 transition-all shadow-sm">
                                                                         <FiCalendar
                                                                           size={
-                                                                            10.5
+                                                                            9.5
                                                                           }
                                                                           className="text-rose-600 dark:text-rose-400 shrink-0"
                                                                         />
@@ -5718,17 +6684,17 @@ const ProjectTaskBoard = ({
                                                                           >
                                                                             <FiX
                                                                               size={
-                                                                                10
+                                                                                9
                                                                               }
                                                                             />
                                                                           </button>
                                                                         )}
                                                                       </div>
                                                                     ) : (
-                                                                      <div className="flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-md border border-dashed border-rose-300 dark:border-rose-800/80 text-rose-605 dark:text-rose-400/90 hover:border-rose-400 hover:text-rose-750 dark:hover:text-rose-300 dark:hover:border-rose-600/80 bg-rose-50/50 dark:bg-rose-955/20 hover:bg-rose-100 dark:hover:bg-rose-955/50 transition-all text-[8px] font-bold">
+                                                                      <div className="flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-rose-300 dark:border-rose-800/80 text-rose-605 dark:text-rose-400/90 hover:border-rose-400 hover:text-rose-750 dark:hover:text-rose-300 dark:hover:border-rose-600/80 bg-rose-50/50 dark:bg-rose-955/20 hover:bg-rose-100 dark:hover:bg-rose-955/50 transition-all text-[8px] font-bold">
                                                                         <FiCalendar
                                                                           size={
-                                                                            10.5
+                                                                            9.5
                                                                           }
                                                                         />
                                                                         <span>
@@ -5828,7 +6794,7 @@ const ProjectTaskBoard = ({
 
                                                               {/* 6. Content Type Column */}
                                                               {!hiddenColumns.contentType && (
-                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
+                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 min-w-[160px] w-[180px]">
                                                                   <div
                                                                     onClick={(
                                                                       e,
@@ -5842,16 +6808,32 @@ const ProjectTaskBoard = ({
                                                                           sub.contentType ||
                                                                           ""
                                                                         }
-                                                                        onChange={(e) => {
-                                                                          const val = e.target.value;
-                                                                          if (val === "__ADD_CUSTOM__") {
-                                                                            const customVal = prompt("Enter custom content type:");
-                                                                            if (customVal && customVal.trim() !== "") {
+                                                                        onChange={(
+                                                                          e,
+                                                                        ) => {
+                                                                          const val =
+                                                                            e
+                                                                              .target
+                                                                              .value;
+                                                                          if (
+                                                                            val ===
+                                                                            "__ADD_CUSTOM__"
+                                                                          ) {
+                                                                            const customVal =
+                                                                              prompt(
+                                                                                "Enter custom content type:",
+                                                                              );
+                                                                            if (
+                                                                              customVal &&
+                                                                              customVal.trim() !==
+                                                                                ""
+                                                                            ) {
                                                                               handleSubtaskFieldChange(
                                                                                 task,
                                                                                 sub._id,
                                                                                 {
-                                                                                  contentType: customVal.trim(),
+                                                                                  contentType:
+                                                                                    customVal.trim(),
                                                                                 },
                                                                               );
                                                                             }
@@ -5860,12 +6842,13 @@ const ProjectTaskBoard = ({
                                                                               task,
                                                                               sub._id,
                                                                               {
-                                                                                contentType: val,
+                                                                                contentType:
+                                                                                  val,
                                                                               },
                                                                             );
                                                                           }
                                                                         }}
-                                                                        className={`badge-select ${
+                                                                        className={`badge-select w-full min-w-[140px] ${
                                                                           sub.contentType ===
                                                                           "VIDEO"
                                                                             ? "badge-type-video"
@@ -5924,13 +6907,36 @@ const ProjectTaskBoard = ({
                                                                           SEO
                                                                         </option>
                                                                         <option value="Video shoot">
-                                                                          Video shoot
+                                                                          Video
+                                                                          shoot
                                                                         </option>
-                                                                        {sub.contentType && !["VIDEO", "IMAGE", "CAROUSEL", "REEL", "POST", "STORY", "Website", "SEO", "Video shoot"].includes(sub.contentType) && (
-                                                                          <option value={sub.contentType}>{sub.contentType}</option>
-                                                                        )}
+                                                                        {sub.contentType &&
+                                                                          ![
+                                                                            "VIDEO",
+                                                                            "IMAGE",
+                                                                            "CAROUSEL",
+                                                                            "REEL",
+                                                                            "POST",
+                                                                            "STORY",
+                                                                            "Website",
+                                                                            "SEO",
+                                                                            "Video shoot",
+                                                                          ].includes(
+                                                                            sub.contentType,
+                                                                          ) && (
+                                                                            <option
+                                                                              value={
+                                                                                sub.contentType
+                                                                              }
+                                                                            >
+                                                                              {
+                                                                                sub.contentType
+                                                                              }
+                                                                            </option>
+                                                                          )}
                                                                         <option value="__ADD_CUSTOM__">
-                                                                          ➕ Custom...
+                                                                          ➕
+                                                                          Custom...
                                                                         </option>
                                                                       </select>
                                                                     ) : (
@@ -5974,6 +6980,7 @@ const ProjectTaskBoard = ({
                                                                 </td>
                                                               )}
 
+
                                                               {/* 7. Priority Column */}
                                                               {!hiddenColumns.priority && (
                                                                 <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
@@ -5984,7 +6991,17 @@ const ProjectTaskBoard = ({
                                                                       e.stopPropagation()
                                                                     }
                                                                   >
-                                                                    {isAdminOrManager ? (
+                                                                    {isSameDate(
+                                                                      sub.startDate ||
+                                                                        task.startDate,
+                                                                      sub.dueDate ||
+                                                                        task.dueDate,
+                                                                    ) ? (
+                                                                      <span className="badge-span badge-priority-top-high">
+                                                                        🔴 Top
+                                                                        High
+                                                                      </span>
+                                                                    ) : isAdminOrManager ? (
                                                                       <select
                                                                         value={
                                                                           sub.priority ||
@@ -6064,7 +7081,11 @@ const ProjectTaskBoard = ({
                                                                       e.stopPropagation()
                                                                     }
                                                                   >
-                                                                    {isAdminOrManager ? (
+                                                                    {isAdminOrManager &&
+                                                                    sub.status !==
+                                                                      "Completed" &&
+                                                                    sub.status !==
+                                                                      "Rejected" ? (
                                                                       <select
                                                                         value={
                                                                           sub.status ||
@@ -6092,27 +7113,63 @@ const ProjectTaskBoard = ({
                                                                                 "In Progress"
                                                                               ? "badge-status-in-progress"
                                                                               : sub.status ===
-                                                                                    "IN-REVIEW" ||
-                                                                                  sub.status ===
-                                                                                    "In Review" ||
-                                                                                  sub.status ===
-                                                                                    "IN-Review"
+                                                                                  "In Review"
                                                                                 ? "badge-status-in-review"
                                                                                 : sub.status ===
-                                                                                    "On Hold"
-                                                                                  ? "badge-status-on-hold"
+                                                                                    "Correction"
+                                                                                  ? "badge-status-correction"
                                                                                   : sub.status ===
-                                                                                      "Rejected"
-                                                                                    ? "badge-status-rejected"
-                                                                                    : "badge-status-pending"
+                                                                                      "On Hold"
+                                                                                    ? "badge-status-on-hold"
+                                                                                    : sub.status ===
+                                                                                        "Rejected"
+                                                                                      ? "badge-status-rejected"
+                                                                                      : "badge-status-pending"
                                                                         }`}
                                                                       >
-                                                                 <option value="Pending">Pending</option>
-                                                                 <option value="In Progress">In Progress</option>
-                                                                 <option value="IN-REVIEW">In Review</option>
-                                                                 <option value="Completed">Completed</option>
-                                                                 <option value="On Hold">On Hold</option>
-                                                                 <option value="Rejected">Rejected</option>             
+                                                                        {sub.status ===
+                                                                        "In Review" ||
+                                                                        sub.status ===
+                                                                          "IN-REVIEW" ? (
+                                                                          <>
+                                                                            <option value="In Review">
+                                                                              🔍 In Review
+                                                                            </option>
+                                                                            <option value="Correction">
+                                                                              🛠️ Correction
+                                                                            </option>
+                                                                            <option value="Completed">
+                                                                              ✅ Completed
+                                                                            </option>
+                                                                            <option value="Rejected">
+                                                                              ❌ Rejected
+                                                                            </option>
+                                                                          </>
+                                                                        ) : (
+                                                                          <>
+                                                                            <option value="Pending">
+                                                                              ⏳ Pending
+                                                                            </option>
+                                                                            <option value="In Progress">
+                                                                              ⚡ In Progress
+                                                                            </option>
+                                                                            <option value="In Review">
+                                                                              🔍 In Review
+                                                                            </option>
+                                                                            <option value="Correction">
+                                                                              🛠️ Correction
+                                                                            </option>
+                                                                            <option value="Completed">
+                                                                              ✅ Completed
+                                                                            </option>
+                                                                            <option value="On Hold">
+                                                                              ⏸️ On Hold
+                                                                            </option>
+                                                                            <option value="Rejected">
+                                                                              ❌ Rejected
+                                                                            </option>
+                                                                          </>
+                                                                        )}
                                                                       </select>
                                                                     ) : (
                                                                       <span
@@ -6139,15 +7196,7 @@ const ProjectTaskBoard = ({
                                                                                     : "badge-status-pending"
                                                                         }`}
                                                                       >
-                                                                        {sub.status ===
-                                                                          "IN-REVIEW" ||
-                                                                        sub.status ===
-                                                                          "In Review" ||
-                                                                        sub.status ===
-                                                                          "IN-Review"
-                                                                          ? "In Review"
-                                                                          : sub.status ||
-                                                                            "Pending"}
+                                                                        {getStatusWithEmoji(sub.status)}
                                                                       </span>
                                                                     )}
                                                                   </div>
@@ -6181,7 +7230,7 @@ const ProjectTaskBoard = ({
                                                                 </td>
                                                               )}
 
-                                                              {/* Total Hours Column */}
+                                                              {/* Total productivity Column */}
                                                               {!hiddenColumns.totalHours && (
                                                                 <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                                                   <TimeTracker
@@ -6199,6 +7248,32 @@ const ProjectTaskBoard = ({
                                                                     }
                                                                     status={
                                                                       sub.status
+                                                                    }
+                                                                  />
+                                                                </td>
+                                                              )}
+
+                                                              {/* Approval Info Column */}
+                                                              {!hiddenColumns.approvalInfo && (
+                                                                <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 text-center whitespace-nowrap">
+                                                                  <ApprovalTimeDisplay
+                                                                    reviewStartedAt={
+                                                                      sub.reviewStartedAt
+                                                                    }
+                                                                    completedAt={
+                                                                      sub.completedAt
+                                                                    }
+                                                                    approvalWaitingMs={
+                                                                      sub.approvalWaitingMs
+                                                                    }
+                                                                    status={
+                                                                      sub.status
+                                                                    }
+                                                                    lastReviewStartedAt={
+                                                                      sub.lastReviewStartedAt
+                                                                    }
+                                                                    reviewCycles={
+                                                                      sub.reviewCycles
                                                                     }
                                                                   />
                                                                 </td>
@@ -6291,8 +7366,8 @@ const ProjectTaskBoard = ({
                 {[
                   "Pending",
                   "In Progress",
-                  "IN-REVIEW",
                   "On Hold",
+                  "IN-REVIEW",
                   "Completed",
                   "Rejected",
                 ].map((statusName) => {
@@ -6338,6 +7413,12 @@ const ProjectTaskBoard = ({
                           >
                             {columnTasks.map((task, index) => {
                               const isCompleted = task.status === "Completed";
+                              const isTaskRejected =
+                                task.status === "Rejected";
+                              const isInReview =
+                                task.status === "In Review" ||
+                                task.status === "IN-REVIEW" ||
+                                task.status === "IN-Review";
                               return (
                                 <Draggable
                                   key={task._id}
@@ -6353,10 +7434,16 @@ const ProjectTaskBoard = ({
                                       onClick={() =>
                                         setSelectedTaskId(task._id)
                                       }
-                                      className={`bg-white dark:bg-[#111111] p-2.5 rounded-xl border cursor-pointer space-y-2 relative group select-none ${
-                                        snapshot.isDragging
-                                          ? "shadow-2xl ring-2 ring-blue-500 dark:ring-[#3b82f6] scale-[1.03] z-50 border-blue-300 dark:border-[#3b82f6]"
-                                          : "border-slate-150 dark:border-white/5 hover:shadow-md hover:border-slate-200 dark:hover:border-[#3b82f6]/50 transition-shadow transition-colors"
+                                      className={`p-2.5 rounded-xl border space-y-2 relative group select-none ${
+                                        isTaskRejected
+                                          ? "!bg-[#fde8e8] dark:!bg-[#2c1214] !border-rose-300 dark:!border-rose-800/60 opacity-80 pointer-events-none"
+                                          : isCompleted
+                                            ? "!bg-[#e6f4ea] dark:!bg-[#0c2919] !border-emerald-200 dark:!border-emerald-800/50 cursor-pointer"
+                                            : isInReview
+                                              ? "!bg-[#fef3c7] dark:!bg-[#2e2305] !border-yellow-300 dark:!border-yellow-800/60 cursor-pointer"
+                                              : snapshot.isDragging
+                                                ? "bg-white dark:bg-[#111111] shadow-2xl ring-2 ring-blue-500 dark:ring-[#3b82f6] scale-[1.03] z-50 border-blue-300 dark:border-[#3b82f6] cursor-pointer"
+                                                : "bg-white dark:bg-[#111111] border-slate-150 dark:border-white/5 hover:shadow-md hover:border-slate-200 dark:hover:border-[#3b82f6]/50 transition-shadow transition-colors cursor-pointer"
                                       }`}
                                     >
                                       <div className="flex items-start gap-2">
@@ -6411,7 +7498,10 @@ const ProjectTaskBoard = ({
                                         {/* Priority Badge */}
                                         <span
                                           className={`text-[8px] font-bold tracking-wider px-1 py-2 rounded-md border whitespace-nowrap ${
-                                            task.priority === "Top High"
+                                            isSameDate(
+                                              task.startDate,
+                                              task.dueDate,
+                                            ) || task.priority === "Top High"
                                               ? "bg-red-50 text-red-600 border-red-100 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/40"
                                               : task.priority === "High"
                                                 ? "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-955/20 dark:border-rose-900/40"
@@ -6420,7 +7510,12 @@ const ProjectTaskBoard = ({
                                                   : "bg-slate-50 text-slate-500 border-slate-200 dark:bg-[#1a1a1a] dark:text-slate-400 dark:border-white/5"
                                           }`}
                                         >
-                                          {task.priority || "Medium"}
+                                          {isSameDate(
+                                            task.startDate,
+                                            task.dueDate,
+                                          )
+                                            ? "🔴 Top High"
+                                            : task.priority || "Medium"}
                                         </span>
 
                                         {/* Due Date */}
@@ -6501,7 +7596,7 @@ const ProjectTaskBoard = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {/* Card 1: Total Completed */}
               <div className="relative overflow-hidden p-5 rounded-2xl border transition-all duration-300 hover:-translate-y-1 bg-white dark:bg-[#070b13] border-slate-200/60 dark:border-white/5 shadow-lg shadow-slate-100/40 dark:shadow-none hover:shadow-xl group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400 rounded-full blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-20 pointer-events-none" />
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-400 rounded-md blur-3xl -mr-10 -mt-10 transition-transform group-hover:scale-110 opacity-10 dark:opacity-20 pointer-events-none" />
                 <FiCheckCircle
                   size={24}
                   className="text-emerald-500/40 dark:text-emerald-400/25 absolute top-5 right-5 pointer-events-none"
@@ -6889,7 +7984,12 @@ const ProjectTaskBoard = ({
                     <label className="text-[10px] font-bold text-slate-450 dark:text-slate-400  tracking-wider flex items-center gap-1.5">
                       <FiTag size={12} /> Status
                     </label>
-                    {isAdminOrManager ? (
+                    {selectedTask.status === "Completed" ? (
+                      <div className="w-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-500/30 rounded-xl px-3 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                        Completed
+                      </div>
+                    ) : isAdminOrManager ? (
                       <select
                         value={selectedTask.status || "Pending"}
                         onChange={(e) =>
@@ -6899,24 +7999,51 @@ const ProjectTaskBoard = ({
                         }
                         className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3b82f6]"
                       >
-                        <option
-                          value="Pending"
-                          className="dark:bg-slate-950 dark:text-slate-200"
-                        >
-                          Pending
-                        </option>
-                        <option
-                          value="Completed"
-                          className="dark:bg-slate-950 dark:text-slate-200"
-                        >
-                          Completed
-                        </option>
-                        <option
-                          value="Rejected"
-                          className="dark:bg-slate-950 dark:text-slate-200"
-                        >
-                          Rejected
-                        </option>
+                        {selectedTask.status === "IN-REVIEW" ||
+                        selectedTask.status === "In Review" ||
+                        selectedTask.status === "IN-Review" ? (
+                          <>
+                            <option
+                              value="IN-REVIEW"
+                              className="dark:bg-slate-950 dark:text-slate-200"
+                            >
+                              In Review
+                            </option>
+                            <option
+                              value="Completed"
+                              className="dark:bg-slate-950 dark:text-slate-200"
+                            >
+                              Completed
+                            </option>
+                            <option
+                              value="Rejected"
+                              className="dark:bg-slate-950 dark:text-slate-200"
+                            >
+                              Rejected
+                            </option>
+                          </>
+                        ) : (
+                          <>
+                            <option
+                              value="Pending"
+                              className="dark:bg-slate-950 dark:text-slate-200"
+                            >
+                              Pending
+                            </option>
+                            <option
+                              value="Completed"
+                              className="dark:bg-slate-950 dark:text-slate-200"
+                            >
+                              Completed
+                            </option>
+                            <option
+                              value="Rejected"
+                              className="dark:bg-slate-950 dark:text-slate-200"
+                            >
+                              Rejected
+                            </option>
+                          </>
+                        )}
                       </select>
                     ) : (
                       <div
@@ -7065,7 +8192,16 @@ const ProjectTaskBoard = ({
                     <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400  tracking-wider flex items-center gap-1.5">
                       <FiClock size={12} /> Priority
                     </label>
-                    {isAdminOrManager ? (
+                    {isSameDate(
+                      selectedTask.startDate,
+                      selectedTask.dueDate,
+                    ) ? (
+                      <div className="w-full pt-1">
+                        <span className="badge-span badge-priority-top-high">
+                          🔴 Top High
+                        </span>
+                      </div>
+                    ) : isAdminOrManager ? (
                       <select
                         value={selectedTask.priority || "Medium"}
                         onChange={(e) =>
@@ -7136,8 +8272,8 @@ const ProjectTaskBoard = ({
                                 (item.rejectedBy?._id || item.rejectedBy),
                             );
                             const userName =
-                              userObj?.name ||
                               item.rejectedBy?.name ||
+                              userObj?.name ||
                               "Unknown User";
                             return (
                               <div
@@ -7173,28 +8309,100 @@ const ProjectTaskBoard = ({
 
                 {/* Metrics Showcase (Revisions & Time Tracker) */}
                 <div className="grid grid-cols-2 gap-4">
-                  {/* Revisions Card */}
-                  <div className="relative overflow-hidden bg-gradient-to-br from-violet-50 to-fuchsia-50 dark:from-violet-950/20 dark:to-fuchsia-900/20 border border-violet-100/50 dark:border-violet-500/10 rounded-2xl p-5 group transition-all hover:shadow-lg hover:shadow-violet-500/5">
-                    <div className="absolute -right-4 -top-4 w-16 h-16 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-full opacity-10 group-hover:scale-150 transition-transform duration-500 blur-xl" />
+                  {/* Approval Info Card */}
+                  <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-900/20 border border-blue-100/50 dark:border-blue-500/10 rounded-2xl p-4 group transition-all hover:shadow-lg hover:shadow-blue-500/5">
+                    <div className="absolute -right-4 -top-4 w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full opacity-10 group-hover:scale-150 transition-transform duration-500 blur-xl" />
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 rounded-xl bg-white dark:bg-[#111] shadow-sm flex items-center justify-center text-violet-600 dark:text-violet-400">
-                        <FiLayers size={16} />
+                      <div className="w-8 h-8 rounded-xl bg-white dark:bg-[#111] shadow-sm flex items-center justify-center text-blue-600 dark:text-blue-400">
+                        <FiClock size={16} />
                       </div>
                       <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                        Revisions
+                        Approval Info
                       </h3>
                     </div>
-                    <div className="flex items-baseline gap-2 relative z-10">
-                      <span className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">
-                        {selectedTask.revisions || 0}
-                      </span>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        Times
-                      </span>
+                    <div className="relative z-10 flex flex-col gap-2.5 text-[10px] mt-2.5">
+                      {(() => {
+                        const drawerEffectiveReviewStart =
+                          selectedTask.reviewStartedAt ||
+                          selectedTask.lastReviewStartedAt ||
+                          (selectedTask.reviewCycles && selectedTask.reviewCycles.length > 0
+                            ? selectedTask.reviewCycles[selectedTask.reviewCycles.length - 1]?.startedAt
+                            : null);
+
+                        if (drawerEffectiveReviewStart) {
+                          return (
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-[8px] font-black text-blue-500 dark:text-blue-400 uppercase tracking-widest">
+                                Review Start
+                              </span>
+                              <span className="font-bold text-slate-700 dark:text-slate-200">
+                                {new Date(
+                                  drawerEffectiveReviewStart,
+                                ).toLocaleDateString("en-GB", {
+                                  day: "2-digit",
+                                  month: "short",
+                                })}{" "}
+                                ·{" "}
+                                {new Date(
+                                  drawerEffectiveReviewStart,
+                                ).toLocaleTimeString("en-US", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: true,
+                                })}
+                              </span>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                              Review Start
+                            </span>
+                            <span className="font-semibold text-slate-400 dark:text-slate-550">
+                              Not started
+                            </span>
+                          </div>
+                        );
+                      })()}
+
+                      {selectedTask.completedAt ? (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[8px] font-black text-emerald-500 dark:text-emerald-450 uppercase tracking-widest">
+                            Completed At
+                          </span>
+                          <span className="font-bold text-slate-700 dark:text-slate-200">
+                            {new Date(
+                              selectedTask.completedAt,
+                            ).toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "short",
+                            })}{" "}
+                            ·{" "}
+                            {new Date(
+                              selectedTask.completedAt,
+                            ).toLocaleTimeString("en-US", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            })}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                            Completed At
+                          </span>
+                          <span className="font-semibold text-slate-400 dark:text-slate-550">
+                            Pending
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Total Hours Card */}
+                  {/* Total Productivity Card */}
                   <div className="relative overflow-hidden bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-900/20 border border-emerald-100/50 dark:border-emerald-500/10 rounded-2xl p-5 group transition-all hover:shadow-lg hover:shadow-emerald-500/5">
                     <div className="absolute -right-4 -top-4 w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full opacity-10 group-hover:scale-150 transition-transform duration-500 blur-xl" />
                     <div className="flex items-center gap-3 mb-2">
@@ -7202,17 +8410,66 @@ const ProjectTaskBoard = ({
                         <FiActivity size={16} />
                       </div>
                       <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400">
-                        Time Tracked
+                        Total Productivity
                       </h3>
                     </div>
                     <div className="relative z-10">
-                      <TimeTracker
-                        startTime={selectedTask.actualStartTime}
-                        endTime={selectedTask.actualEndTime}
-                        pausedAt={selectedTask.pausedAt}
-                        status={selectedTask.status}
-                        variant="premium"
-                      />
+                      {(() => {
+                        if (!selectedTask.actualStartTime) {
+                          return (
+                            <span className="text-slate-400 dark:text-slate-500 text-sm font-bold">
+                              —
+                            </span>
+                          );
+                        }
+                        const start = new Date(
+                          selectedTask.actualStartTime,
+                        ).getTime();
+                        const end = selectedTask.actualEndTime
+                          ? new Date(selectedTask.actualEndTime).getTime()
+                          : selectedTask.pausedAt
+                            ? new Date(selectedTask.pausedAt).getTime()
+                            : Date.now();
+                        const pausedMs = selectedTask.totalPausedMs || 0;
+                        const workedMs = Math.max(0, end - start - pausedMs);
+                        const totalSecs = Math.floor(workedMs / 1000);
+                        const h = Math.floor(totalSecs / 3600);
+                        const m = Math.floor((totalSecs % 3600) / 60);
+                        const s = totalSecs % 60;
+                        const isActive =
+                          selectedTask.status === "In Progress" &&
+                          !selectedTask.actualEndTime &&
+                          !selectedTask.pausedAt;
+                        return (
+                          <div className="flex items-baseline gap-1 text-slate-800 dark:text-white">
+                            {h > 0 && (
+                              <>
+                                <span className="text-3xl font-black tracking-tight">
+                                  {h}
+                                </span>
+                                <span className="text-xs font-bold text-slate-400 mr-1">
+                                  h
+                                </span>
+                              </>
+                            )}
+                            <span className="text-3xl font-black tracking-tight">
+                              {m}
+                            </span>
+                            <span className="text-xs font-bold text-slate-400 mr-1">
+                              m
+                            </span>
+                            <span className="text-xl font-black tracking-tight text-emerald-500 dark:text-emerald-400">
+                              {s}
+                            </span>
+                            <span className="text-xs font-bold text-emerald-400">
+                              s
+                            </span>
+                            {isActive && (
+                              <span className="ml-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0 self-center" />
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -7358,6 +8615,120 @@ const ProjectTaskBoard = ({
           </div>
         )}
       </AnimatePresence>
+      {/* SUBMIT FOR REVIEW CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {reviewModalData && (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="w-full max-w-md bg-white dark:bg-[#11131f] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 text-left"
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                  <FiCheckSquare size={24} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100">
+                    Submit Task for Review?
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed font-medium">
+                    Are you sure you want to submit this item for review? Once
+                    submitted, the status will update to{" "}
+                    <strong className="text-indigo-600 dark:text-indigo-400 font-bold">
+                      "In Review"
+                    </strong>{" "}
+                    and your manager will be notified.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                <button
+                  type="button"
+                  onClick={() => setReviewModalData(null)}
+                  className="px-4.5 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmReviewSubmit}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 transition-all shadow-md shadow-indigo-500/20 cursor-pointer active:scale-95 flex items-center gap-2"
+                >
+                  <FiCheckSquare size={14} />
+                  Submit for Review
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MARK AS COMPLETED CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {completeModalData && (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="w-full max-w-md bg-white dark:bg-[#11131f] border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 text-left"
+            >
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                  <FiCheckCircle size={24} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-extrabold text-slate-800 dark:text-slate-100">
+                    Mark Task as Completed?
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed font-medium">
+                    Are you sure you want to mark the following task as
+                    completed?
+                  </p>
+                  <div className="mt-3 px-3.5 py-2.5 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-800/40">
+                    <p className="text-[10px] font-black text-emerald-500 dark:text-emerald-500 uppercase tracking-widest mb-1">
+                      Task Name
+                    </p>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-snug break-words">
+                      {completeModalData.taskName || "Untitled Task"}
+                    </p>
+                  </div>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-2.5 leading-relaxed">
+                    Once completed, the task status will be updated to{" "}
+                    <strong className="text-emerald-600 dark:text-emerald-400 font-bold">
+                      "Completed"
+                    </strong>{" "}
+                    and tracked in your project timeline.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                <button
+                  type="button"
+                  onClick={() => setCompleteModalData(null)}
+                  className="px-4.5 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmComplete}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 transition-all shadow-md shadow-emerald-500/20 cursor-pointer active:scale-95 flex items-center gap-2"
+                >
+                  <FiCheckCircle size={14} />
+                  Mark as Completed
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <RejectionModal
         isOpen={rejectionModalOpen}
         onClose={() => {
@@ -7367,6 +8738,19 @@ const ProjectTaskBoard = ({
         onSubmit={handleRejectSubmit}
         task={taskToReject?.taskObj}
         subtaskId={taskToReject?.subtaskId}
+        users={users}
+      />
+
+      <CorrectionModal
+        isOpen={correctionModalOpen}
+        onClose={() => {
+          setCorrectionModalOpen(false);
+          setTaskToCorrect(null);
+        }}
+        onSubmit={handleCorrectionSubmit}
+        task={taskToCorrect?.taskObj}
+        subtaskId={taskToCorrect?.subtaskId}
+        users={users}
       />
     </div>
   );

@@ -2,7 +2,7 @@ const Task = require("../models/Task");
 const Notification = require("../models/Notification");
 const User = require("../models/User");
 const Project = require("../models/Project");
-
+const { calculateBusinessMs, checkWithinBusinessHours } = require("../utils/businessHours");
 
 
 
@@ -34,6 +34,40 @@ const hasActiveWork = async (userId, currentTaskId = null, currentSubtaskId = nu
   return !!activeSubtask;
 };
 
+const calculateItemWorkingTime = (item) => {
+  if (!item.actualStartTime) return 0;
+  const start = new Date(item.actualStartTime).getTime();
+  let end = Date.now();
+  if (item.actualEndTime) {
+    end = new Date(item.actualEndTime).getTime();
+  } else if (item.pausedAt) {
+    end = new Date(item.pausedAt).getTime();
+  }
+
+  let totalPauseMs = 0;
+  if (item.blockerHistory && item.blockerHistory.length > 0) {
+    item.blockerHistory.forEach((h) => {
+      if (h.pausedAt) {
+        const p = new Date(h.pausedAt).getTime();
+        let r = h.resumedAt ? new Date(h.resumedAt).getTime() : Date.now();
+        if (r > end) r = end;
+        if (r >= p) {
+          totalPauseMs += r - p;
+        }
+      }
+    });
+  }
+  if (item.isBlocked && item.blockerPausedAt) {
+    const p = new Date(item.blockerPausedAt).getTime();
+    if (p < end) {
+      totalPauseMs += end - p;
+    }
+  }
+
+  const elapsed = end - start - (item.totalPausedMs || 0) - totalPauseMs;
+  return Math.max(0, elapsed);
+};
+
 
 
 
@@ -54,18 +88,18 @@ exports.getTasks = async (req, res) => {
     let query = {};
     if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
       const Client = require("../models/Client");
-      const assignedClients = await Client.find({ assignedTo: req.user._id }).select("_id");
+      const assignedClients = await Client.find({ assignedTo: req.user._id }).select("_id").lean();
       const clientIds = assignedClients.map(c => c._id);
 
       // Projects of assigned clients
-      const assignedProjects = await Project.find({ client: { $in: clientIds } }).select("_id");
+      const assignedProjects = await Project.find({ client: { $in: clientIds } }).select("_id").lean();
       let projectIds = assignedProjects.map(p => p._id);
 
       // Add projects in department
       if (req.user.department) {
-        const usersInSameDept = await User.find({ department: req.user.department }).select("_id");
+        const usersInSameDept = await User.find({ department: req.user.department }).select("_id").lean();
         const userIds = usersInSameDept.map(u => u._id);
-        const projectsInDept = await Project.find({ createdBy: { $in: userIds } }).select("_id");
+        const projectsInDept = await Project.find({ createdBy: { $in: userIds } }).select("_id").lean();
         const deptProjIds = projectsInDept.map(p => p._id.toString());
         
         // Merge projectIds avoiding duplicates
@@ -113,7 +147,33 @@ exports.getTasks = async (req, res) => {
         path: "attachments.uploadedBy",
         select: "name email profile",
         populate: { path: "profile", select: "profileImage" }
-      });
+      })
+      .populate({
+        path: "feedbacks.addedBy",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "correctionHistory.requestedBy",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "rejectionHistory.rejectedBy",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "subtasks.correctionHistory.requestedBy",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "subtasks.rejectionHistory.rejectedBy",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .lean();
 
     res.status(200).json({
       success: true,
@@ -125,12 +185,53 @@ exports.getTasks = async (req, res) => {
   }
 };
 
+// Helper for comparing date only
+const isSameDay = (d1, d2) => {
+  if (!d1 || !d2) return false;
+  try {
+    const s1 = d1 instanceof Date ? d1.toISOString().split("T")[0] : new Date(d1).toISOString().split("T")[0];
+    const s2 = d2 instanceof Date ? d2.toISOString().split("T")[0] : new Date(d2).toISOString().split("T")[0];
+    return s1 === s2 && s1 !== "1970-01-01";
+  } catch (e) {
+    return false;
+  }
+};
+
 // @desc    Create a new task
 // @route   POST /api/tasks
 // @access  Private/Admin/OperationManager
 exports.createTask = async (req, res) => {
   try {
     req.body.createdBy = req.user._id;
+
+    // Check business hours when creating task/subtask set to In Progress
+    const isTaskInProgress = req.body.status === "In Progress";
+    const hasSubtaskInProgress = req.body.subtasks && Array.isArray(req.body.subtasks) && req.body.subtasks.some(s => s.status === "In Progress");
+
+    if (isTaskInProgress || hasSubtaskInProgress) {
+      const isBizHours = await checkWithinBusinessHours();
+      if (!isBizHours) {
+        return res.status(400).json({
+          success: false,
+          isOfficeHoursEnded: true,
+          workingTimeMs: 0,
+          pausedAt: null,
+          message: "Office working hours have ended. Work can only be set to In Progress during business hours."
+        });
+      }
+    }
+
+    if (isSameDay(req.body.startDate, req.body.dueDate)) {
+      req.body.priority = "Top High";
+    }
+    if (req.body.subtasks && Array.isArray(req.body.subtasks)) {
+      req.body.subtasks.forEach((sub) => {
+        if (isSameDay(sub.startDate, sub.dueDate)) {
+          sub.priority = "Top High";
+        }
+      });
+    }
+
     const task = await Task.create(req.body);
 
     const populatedTask = await Task.findById(task._id)
@@ -165,6 +266,31 @@ exports.createTask = async (req, res) => {
       .populate({
         path: "attachments.uploadedBy",
         select: "name email profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "feedbacks.addedBy",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "correctionHistory.requestedBy",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "rejectionHistory.rejectedBy",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "subtasks.correctionHistory.requestedBy",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "subtasks.rejectionHistory.rejectedBy",
+        select: "name email department profile",
         populate: { path: "profile", select: "profileImage" }
       });
 
@@ -216,29 +342,90 @@ exports.updateTask = async (req, res) => {
     const previousAssignee = task.assignedTo;
     const previousSubtasks = task.subtasks ? JSON.parse(JSON.stringify(task.subtasks)) : [];
 
+    // Check business hours when setting task/subtask to In Progress
+    let tryingToStartTask = false;
+    let targetItem = null;
+
+    if (req.body.status === "In Progress" && previousStatus !== "In Progress") {
+      tryingToStartTask = true;
+      targetItem = task;
+    }
+
+    if (req.body.subtasks && Array.isArray(req.body.subtasks)) {
+      for (const sub of req.body.subtasks) {
+        const prevSub = previousSubtasks.find(p => p._id?.toString() === sub._id?.toString());
+        if (sub.status === "In Progress" && (!prevSub || prevSub.status !== "In Progress")) {
+          tryingToStartTask = true;
+          targetItem = prevSub || sub;
+          break;
+        }
+      }
+    }
+
+    if (tryingToStartTask) {
+      const isBizHours = await checkWithinBusinessHours();
+      if (!isBizHours) {
+        const workingTimeMs = targetItem ? calculateItemWorkingTime(targetItem) : 0;
+        const OfficeSettings = require("../models/OfficeSettings");
+        const settings = await OfficeSettings.findOne({ key: "global" }) || { endHour: 19 };
+        
+        let pausedAtTime = new Date();
+        pausedAtTime.setHours(settings.endHour, 0, 0, 0);
+
+        return res.status(400).json({
+          success: false,
+          isOfficeHoursEnded: true,
+          workingTimeMs,
+          pausedAt: pausedAtTime,
+          message: "Office working hours have ended. Work can only be set to In Progress during business hours."
+        });
+      }
+    }
+
+    // Reset autoPaused when task is set to In Progress
+    if (req.body.status === "In Progress") {
+      req.body.autoPaused = false;
+    }
+
    
-   // .........................................Time tracking logic for parent task...........................................
+// .........................................Time tracking logic for parent task...........................................
 if (req.body.status && req.body.status !== previousStatus) {
 
    if (req.body.status === "In Progress") {
+      if (task.assignedTo) {
+        const hasActive = await hasActiveWork(
+          task.assignedTo,
+          task._id,
+          null
+        );
 
-  if (task.assignedTo) {
-  const hasActive = await hasActiveWork(
-    task.assignedTo,
-    task._id,
-    null
-  );
+        if (hasActive) {
+          return res.status(409).json({
+            success: false,
+            message: "You already have one active task or subtask.",
+          });
+        }
+      }
+   }
 
-  if (hasActive) {
-    return res.status(409).json({
-      success: false,
-      message: "You already have one active task or subtask.",
-    });
+  // Handle leaving 'In Review' state
+  const wasInReview = previousStatus === "In Review";
+  const isNowInReview = req.body.status === "In Review";
+  
+  if (wasInReview && !isNowInReview) {
+     const reviewStart = task.reviewStartedAt || Date.now();
+     const durationMs = calculateBusinessMs(reviewStart, Date.now());
+     req.body.approvalWaitingMs = (task.approvalWaitingMs || 0) + durationMs;
+     
+     const newCycle = {
+       startedAt: reviewStart,
+       completedAt: Date.now(),
+       durationMs
+     };
+     req.body.reviewCycles = [...(task.reviewCycles || []), newCycle];
+     req.body.lastReviewStartedAt = reviewStart;
+     req.body.reviewStartedAt = null;
   }
-}
-
-}
-
 
   switch (req.body.status) {
 
@@ -248,40 +435,129 @@ if (req.body.status && req.body.status !== previousStatus) {
       req.body.pausedAt = null;
       break;
 
- case "In Progress":
-  if (!task.actualStartTime) {
-    req.body.actualStartTime = Date.now();
-  }
+    case "In Progress":
+      if (!task.actualStartTime) {
+        req.body.actualStartTime = Date.now();
+      }
+      req.body.actualEndTime = null;
+      req.body.completedAt = null;
 
-  if (task.pausedAt) {
-    req.body.totalPausedMs =
-      (task.totalPausedMs || 0) +
-      (Date.now() - new Date(task.pausedAt).getTime());
-  }
+      if (task.pausedAt) {
+        req.body.totalPausedMs =
+          (task.totalPausedMs || 0) +
+          (Date.now() - new Date(task.pausedAt).getTime());
+        req.body.businessTotalPausedMs =
+          (task.businessTotalPausedMs || 0) +
+          calculateBusinessMs(task.pausedAt, Date.now());
+      }
 
-  req.body.pausedAt = null;
-  break;
+      if (previousStatus === "Correction") {
+        const currentHist = task.correctionHistory ? JSON.parse(JSON.stringify(task.correctionHistory)) : [];
+        if (currentHist.length > 0) {
+          currentHist[currentHist.length - 1].resumedAt = new Date();
+          req.body.correctionHistory = currentHist;
+        }
+      }
+
+      req.body.pausedAt = null;
+      break;
 
     case "Completed":
+      if (task.pausedAt) {
+        req.body.totalPausedMs =
+          (task.totalPausedMs || 0) +
+          (Date.now() - new Date(task.pausedAt).getTime());
+        req.body.businessTotalPausedMs =
+          (task.businessTotalPausedMs || 0) +
+          calculateBusinessMs(task.pausedAt, Date.now());
+      }
       if (!task.actualEndTime) {
         req.body.actualEndTime = Date.now();
       }
+      req.body.completedAt = Date.now();
       req.body.pausedAt = null;
       break;
 
     case "On Hold":
-    case "In Review":
-    case "IN-REVIEW":
-    case "IN-Review":
-    case "Rejected":
+      if (!task.actualStartTime) {
+        return res.status(400).json({
+          message: "Please start the task by setting its status to 'In Progress' first before placing it on hold.",
+        });
+      }
       if (!task.pausedAt) {
         req.body.pausedAt = Date.now();
       }
       break;
-  }
 
-  if (req.body.status === "Rejected" && previousStatus !== "Rejected") {
-    req.body.revisions = (task.revisions || 0) + 1;
+    case "Correction":
+      const nextRev = (task.revisions || 0) + 1;
+      req.body.revisions = nextRev;
+      if (!task.pausedAt) {
+        req.body.pausedAt = Date.now();
+      }
+      const corrReason = req.body.correctionReason || req.body.reason || "Corrections requested";
+      const corrEntry = {
+        revision: nextRev,
+        reason: corrReason,
+        requestedBy: req.user._id,
+        requestedAt: new Date(),
+      };
+      req.body.correctionHistory = [...(task.correctionHistory || []), corrEntry];
+      const corrFeedback = {
+        type: "Correction",
+        text: corrReason,
+        addedBy: req.user._id,
+        addedAt: new Date(),
+      };
+      req.body.feedbacks = [...(task.feedbacks || []), corrFeedback];
+      break;
+
+    case "Rejected":
+      if (!task.actualEndTime) {
+        req.body.actualEndTime = Date.now();
+      }
+      req.body.completedAt = Date.now();
+      req.body.pausedAt = null;
+
+      const rejReason = req.body.rejectionReason || req.body.reason || "Task rejected";
+      const rejEntry = {
+        reason: rejReason,
+        rejectedBy: req.user._id,
+        rejectedAt: new Date(),
+      };
+      if (req.body.rejectionHistory && Array.isArray(req.body.rejectionHistory)) {
+        req.body.rejectionHistory = req.body.rejectionHistory.map((item) => ({
+          ...item,
+          rejectedBy: item.rejectedBy || req.user._id,
+          rejectedAt: item.rejectedAt || new Date(),
+        }));
+      } else {
+        req.body.rejectionHistory = [...(task.rejectionHistory || []), rejEntry];
+      }
+      const rejFeedback = {
+        type: "Rejected",
+        text: rejReason,
+        addedBy: req.user._id,
+        addedAt: new Date(),
+      };
+      req.body.feedbacks = [...(task.feedbacks || []), rejFeedback];
+      break;
+
+    case "In Review":
+      if (!task.actualStartTime) {
+        return res.status(400).json({
+          message: "Please start the task by setting its status to 'In Progress' first before submitting it for review.",
+        });
+      }
+      if (!task.pausedAt) {
+        req.body.pausedAt = Date.now();
+      }
+      if (!task.reviewStartedAt || !wasInReview) {
+        const nowMs = Date.now();
+        req.body.reviewStartedAt = nowMs;
+        req.body.lastReviewStartedAt = nowMs;
+      }
+      break;
   }
 }
     // .........................................Time tracking logic for subtasks...........................................    
@@ -320,10 +596,6 @@ for (const sub of req.body.subtasks || []) {
 
 
 
-
-
-
-
 if (req.body.subtasks) {
   req.body.subtasks = req.body.subtasks.map((sub) => {
 
@@ -333,6 +605,25 @@ if (req.body.subtasks) {
 
     if (prevSub && sub.status && sub.status !== prevSub.status) {
 
+      // Handle leaving 'In Review' state for subtask
+      const wasSubInReview = prevSub.status === "In Review";
+      const isSubNowInReview = sub.status === "In Review";
+      
+      if (wasSubInReview && !isSubNowInReview) {
+         const reviewStart = prevSub.reviewStartedAt || Date.now();
+         const durationMs = calculateBusinessMs(reviewStart, Date.now());
+         sub.approvalWaitingMs = (prevSub.approvalWaitingMs || 0) + durationMs;
+         
+         const newCycle = {
+           startedAt: reviewStart,
+           completedAt: Date.now(),
+           durationMs
+         };
+         sub.reviewCycles = [...(prevSub.reviewCycles || []), newCycle];
+         sub.lastReviewStartedAt = reviewStart;
+         sub.reviewStartedAt = null;
+      }
+
       switch (sub.status) {
 
         case "Pending":
@@ -341,35 +632,112 @@ if (req.body.subtasks) {
           sub.pausedAt = null;
           break;
 
-       case "In Progress":
-  if (!prevSub.actualStartTime && !sub.actualStartTime) {
-    sub.actualStartTime = Date.now();
-  }
+        case "In Progress":
+          if (!prevSub.actualStartTime && !sub.actualStartTime) {
+            sub.actualStartTime = Date.now();
+          }
+          sub.actualEndTime = null;
+          sub.completedAt = null;
 
-  if (prevSub.pausedAt) {
-    sub.totalPausedMs =
-      (prevSub.totalPausedMs || 0) +
-      (Date.now() - new Date(prevSub.pausedAt).getTime());
-  }
+          if (prevSub.pausedAt) {
+            sub.totalPausedMs =
+              (prevSub.totalPausedMs || 0) +
+              (Date.now() - new Date(prevSub.pausedAt).getTime());
+            sub.businessTotalPausedMs =
+              (prevSub.businessTotalPausedMs || 0) +
+              calculateBusinessMs(prevSub.pausedAt, Date.now());
+          }
 
-  sub.pausedAt = null;
-  break;
+          if (prevSub.status === "Correction") {
+            const currentSubHist = prevSub.correctionHistory ? JSON.parse(JSON.stringify(prevSub.correctionHistory)) : [];
+            if (currentSubHist.length > 0) {
+              currentSubHist[currentSubHist.length - 1].resumedAt = new Date();
+              sub.correctionHistory = currentSubHist;
+            }
+          }
+
+          sub.pausedAt = null;
+          sub.autoPaused = false;
+          break;
 
         case "Completed":
+          if (prevSub.pausedAt) {
+            sub.totalPausedMs =
+              (prevSub.totalPausedMs || 0) +
+              (Date.now() - new Date(prevSub.pausedAt).getTime());
+            sub.businessTotalPausedMs =
+              (prevSub.businessTotalPausedMs || 0) +
+              calculateBusinessMs(prevSub.pausedAt, Date.now());
+          }
           if (!prevSub.actualEndTime && !sub.actualEndTime) {
             sub.actualEndTime = Date.now();
           }
+          sub.completedAt = Date.now();
           sub.pausedAt = null;
           break;
 
         case "On Hold":
-        case "In Review":
-        case "IN-REVIEW":
-        case "IN-Review":
-        case "In Review":
-        case "Rejected":
+          if (!prevSub.actualStartTime && !sub.actualStartTime) {
+            return res.status(400).json({
+              message: "Please start the subtask by setting its status to 'In Progress' first before placing it on hold.",
+            });
+          }
           if (!prevSub.pausedAt) {
             sub.pausedAt = Date.now();
+          }
+          break;
+
+        case "Correction":
+          const nextSubRev = (prevSub.revisions || 0) + 1;
+          sub.revisions = nextSubRev;
+          if (!prevSub.pausedAt) {
+            sub.pausedAt = Date.now();
+          }
+          const subCorrReason = sub.correctionReason || sub.reason || "Corrections requested";
+          sub.correctionHistory = [
+            ...(prevSub.correctionHistory || []),
+            {
+              revision: nextSubRev,
+              reason: subCorrReason,
+              requestedBy: req.user._id,
+              requestedAt: new Date(),
+            }
+          ];
+          break;
+
+        case "Rejected":
+          if (!prevSub.actualEndTime && !sub.actualEndTime) {
+            sub.actualEndTime = Date.now();
+          }
+          sub.completedAt = Date.now();
+          sub.pausedAt = null;
+
+          const subRejReason = sub.rejectionReason || sub.reason || "Subtask rejected";
+          if (!sub.rejectionHistory) {
+            sub.rejectionHistory = [
+              ...(prevSub.rejectionHistory || []),
+              {
+                reason: subRejReason,
+                rejectedBy: req.user._id,
+                rejectedAt: new Date(),
+              }
+            ];
+          }
+          break;
+
+        case "In Review":
+          if (!prevSub.actualStartTime && !sub.actualStartTime) {
+            return res.status(400).json({
+              message: "Please start the subtask by setting its status to 'In Progress' first before submitting it for review.",
+            });
+          }
+          if (!prevSub.pausedAt) {
+            sub.pausedAt = Date.now();
+          }
+          if (!prevSub.reviewStartedAt || !wasSubInReview) {
+            const nowMs = Date.now();
+            sub.reviewStartedAt = nowMs;
+            sub.lastReviewStartedAt = nowMs;
           }
           break;
       }
@@ -379,10 +747,29 @@ if (req.body.subtasks) {
   });
 }
 
-    task = await Task.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    })
+    const effectiveStart = req.body.startDate !== undefined ? req.body.startDate : task.startDate;
+    const effectiveEnd = req.body.dueDate !== undefined ? req.body.dueDate : task.dueDate;
+    if (effectiveStart && effectiveEnd && isSameDay(effectiveStart, effectiveEnd)) {
+      req.body.priority = "Top High";
+    }
+
+    if (req.body.subtasks && Array.isArray(req.body.subtasks)) {
+      req.body.subtasks = req.body.subtasks.map((sub) => {
+        const prevSub = task.subtasks ? task.subtasks.find((s) => s._id && sub._id && s._id.toString() === sub._id.toString()) : null;
+        const effSubStart = sub.startDate !== undefined ? sub.startDate : prevSub?.startDate;
+        const effSubEnd = sub.dueDate !== undefined ? sub.dueDate : prevSub?.dueDate;
+        if (effSubStart && effSubEnd && isSameDay(effSubStart, effSubEnd)) {
+          return { ...sub, priority: "Top High" };
+        }
+        return sub;
+      });
+    }
+
+    // Apply updates and run save() to trigger pre-save validation/hooks
+    Object.assign(task, req.body);
+    await task.save();
+
+    task = await Task.findById(task._id)
       .populate({
         path: "project",
         select: "name client",
@@ -414,6 +801,31 @@ if (req.body.subtasks) {
       .populate({
         path: "attachments.uploadedBy",
         select: "name email profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "feedbacks.addedBy",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "correctionHistory.requestedBy",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "rejectionHistory.rejectedBy",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "subtasks.correctionHistory.requestedBy",
+        select: "name email department profile",
+        populate: { path: "profile", select: "profileImage" }
+      })
+      .populate({
+        path: "subtasks.rejectionHistory.rejectedBy",
+        select: "name email department profile",
         populate: { path: "profile", select: "profileImage" }
       });
 

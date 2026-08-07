@@ -8,7 +8,7 @@ const SubtaskSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["Pending", "In Progress", "Completed", "On Hold", "IN-REVIEW", "In Review", "IN-Review", "Rejected"],
+    enum: ["Pending", "In Progress", "Completed", "On Hold", "In Review", "Rejected", "Correction"],
     default: "Pending",
   },
   assignedTo: {
@@ -21,7 +21,7 @@ const SubtaskSchema = new mongoose.Schema({
   dueDate: {
     type: Date,
   },
-  priority: {
+ priority: {
     type: String,
     enum: ["Low", "Medium", "High", "Top High"],
     default: "Medium",
@@ -45,6 +45,51 @@ const SubtaskSchema = new mongoose.Schema({
     type: Date,
     default: null,
   },
+  autoPaused: {
+    type: Boolean,
+    default: false,
+  },
+  isBlocked: {
+    type: Boolean,
+    default: false,
+  },
+  blockerReason: {
+    type: String,
+    default: "",
+  },
+  blockerType: {
+    type: String,
+    default: "",
+  },
+  blockerDescription: {
+    type: String,
+    default: "",
+  },
+  blockerExpectedTime: {
+    type: String,
+    default: "",
+  },
+  blockerPriority: {
+    type: String,
+    default: "",
+  },
+  blockerPausedAt: {
+    type: Date,
+  },
+  blockerResumedAt: {
+    type: Date,
+  },
+  blockerHistory: [
+    {
+      blockerType: String,
+      blockerDescription: String,
+      blockerExpectedTime: String,
+      blockerPriority: String,
+      pausedAt: Date,
+      resumedAt: Date,
+      totalPauseMinutes: Number,
+    }
+  ],
   revisions: {
     type: Number,
     default: 0,
@@ -54,11 +99,66 @@ const SubtaskSchema = new mongoose.Schema({
     ref: "Client",
   },
   totalPausedMs: {
-  type: Number,
-  default: 0,
-},
+    type: Number,
+    default: 0,
+  },
+  businessTotalPausedMs: {
+    type: Number,
+    default: 0,
+  },
+  reviewStartedAt: {
+    type: Date,
+    default: null,
+  },
+  lastReviewStartedAt: {
+    type: Date,
+    default: null,
+  },
+  completedAt: {
+    type: Date,
+    default: null,
+  },
+  approvalWaitingMs: {
+    type: Number,
+    default: 0,
+  },
+  reviewCycles: [
+    {
+      startedAt: Date,
+      completedAt: Date,
+      durationMs: Number,
+    }
+  ],
 
 
+  correctionHistory: [
+    {
+      revision: {
+        type: Number,
+        default: 1,
+      },
+      reason: {
+        type: String,
+        default: "",
+      },
+      requestedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+      requestedAt: {
+        type: Date,
+        default: Date.now,
+      },
+      resumedAt: {
+        type: Date,
+        default: null,
+      },
+      completedAt: {
+        type: Date,
+        default: null,
+      },
+    }
+  ],
   rejectionHistory: [
     {
       reason: String,
@@ -83,6 +183,11 @@ const TaskSchema = new mongoose.Schema(
     },
     feedbacks: [
       {
+        type: {
+          type: String,
+          enum: ["Review", "Correction", "Rejected"],
+          default: "Review",
+        },
         text: String,
         addedAt: {
           type: Date,
@@ -115,7 +220,7 @@ const TaskSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Pending", "In Progress", "Completed", "On Hold", "IN-REVIEW", "In Review", "IN-Review", "Rejected"],
+      enum: ["Pending", "In Progress", "Completed", "On Hold", "In Review", "Rejected", "Correction"],
       default: "Pending",
     },
     priority: {
@@ -146,10 +251,41 @@ const TaskSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    autoPaused: {
+      type: Boolean,
+      default: false,
+    },
     totalPausedMs: {
-  type: Number,
-  default: 0,
-},
+      type: Number,
+      default: 0,
+    },
+    businessTotalPausedMs: {
+      type: Number,
+      default: 0,
+    },
+    reviewStartedAt: {
+      type: Date,
+      default: null,
+    },
+    lastReviewStartedAt: {
+      type: Date,
+      default: null,
+    },
+    completedAt: {
+      type: Date,
+      default: null,
+    },
+    approvalWaitingMs: {
+      type: Number,
+      default: 0,
+    },
+    reviewCycles: [
+      {
+        startedAt: Date,
+        completedAt: Date,
+        durationMs: Number,
+      }
+    ],
 
     isBlocked: {
       type: Boolean,
@@ -200,6 +336,34 @@ const TaskSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Client",
     },
+    correctionHistory: [
+      {
+        revision: {
+          type: Number,
+          default: 1,
+        },
+        reason: {
+          type: String,
+          default: "",
+        },
+        requestedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        requestedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        resumedAt: {
+          type: Date,
+          default: null,
+        },
+        completedAt: {
+          type: Date,
+          default: null,
+        },
+      }
+    ],
     rejectionHistory: [
       {
         reason: String,
@@ -258,8 +422,36 @@ const TaskSchema = new mongoose.Schema(
   }
 );
 
-// Indexes to optimize task queries by project and by assigned team member
+// Indexes to optimize task queries by project, assigned team member, status, and creator
 TaskSchema.index({ project: 1 });
 TaskSchema.index({ assignedTo: 1 });
+TaskSchema.index({ status: 1 });
+TaskSchema.index({ createdBy: 1 });
+TaskSchema.index({ assignedTo: 1, status: 1 });
+TaskSchema.index({ project: 1, status: 1 });
+
+const isSameDay = (d1, d2) => {
+  if (!d1 || !d2) return false;
+  try {
+    const s1 = d1 instanceof Date ? d1.toISOString().split("T")[0] : new Date(d1).toISOString().split("T")[0];
+    const s2 = d2 instanceof Date ? d2.toISOString().split("T")[0] : new Date(d2).toISOString().split("T")[0];
+    return s1 === s2 && s1 !== "1970-01-01";
+  } catch (e) {
+    return false;
+  }
+};
+
+TaskSchema.pre("save", function () {
+  if (isSameDay(this.startDate, this.dueDate)) {
+    this.priority = "Top High";
+  }
+  if (this.subtasks && Array.isArray(this.subtasks)) {
+    this.subtasks.forEach((sub) => {
+      if (isSameDay(sub.startDate, sub.dueDate)) {
+        sub.priority = "Top High";
+      }
+    });
+  }
+});
 
 module.exports = mongoose.model("Task", TaskSchema);

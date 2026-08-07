@@ -62,6 +62,32 @@ connectDB().then(() => {
     }
   };
   repairTasksCreatedBy();
+
+  // Normalize task statuses on startup
+  const normalizeTaskStatuses = async () => {
+    try {
+      const Task = require('./models/Task');
+      const resTasks = await Task.updateMany(
+        { status: { $in: ["IN-REVIEW", "IN-Review", "in-review"] } },
+        { $set: { status: "In Review" } }
+      );
+      if (resTasks.modifiedCount > 0) {
+        console.log(`[Database Repair] Normalized status for ${resTasks.modifiedCount} tasks.`);
+      }
+
+      const resSubtasks = await Task.updateMany(
+        { "subtasks.status": { $in: ["IN-REVIEW", "IN-Review", "in-review"] } },
+        { $set: { "subtasks.$[elem].status": "In Review" } },
+        { arrayFilters: [{ "elem.status": { $in: ["IN-REVIEW", "IN-Review", "in-review"] } }] }
+      );
+      if (resSubtasks.modifiedCount > 0) {
+        console.log(`[Database Repair] Normalized status for ${resSubtasks.modifiedCount} subtasks.`);
+      }
+    } catch (err) {
+      console.error('[Database Repair] Error normalizing task statuses:', err);
+    }
+  };
+  normalizeTaskStatuses();
 });
 
 const app = express();
@@ -124,6 +150,8 @@ const messageRoutes = require("./routes/messageRoutes");
 const portfolioRoutes = require("./routes/portfolioRoutes");
 const goalRoutes = require("./routes/goalRoutes");
 const stickyNoteRoutes = require("./routes/stickyNoteRoutes");
+const settingsRoutes = require("./routes/settingsRoutes");
+
 
 app.get("/", (req, res) => {
   res.send("demo testing api da ithu :) ");
@@ -169,6 +197,7 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/portfolios', portfolioRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/stickynotes', stickyNoteRoutes);
+app.use('/api/settings', settingsRoutes);
 
 const PORT = process.env.PORT || 5001;
 
@@ -291,6 +320,10 @@ io.on('connection', (socket) => {
 
 // Make io accessible to our routers
 app.set('io', io);
+
+// Start office hours auto-pause scheduler
+const { startOfficeHoursScheduler } = require("./utils/officeHoursScheduler");
+startOfficeHoursScheduler(app);
 
 // Global error handler
 app.use((err, req, res, next) => {

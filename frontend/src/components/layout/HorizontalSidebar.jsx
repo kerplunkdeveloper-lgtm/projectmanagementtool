@@ -114,6 +114,23 @@ const HorizontalSidebar = ({ role }) => {
   const totalUnreadChatCount = Math.max(localUnreadChatCount, dbUnreadChatCount);
 
   const menuItems = (sidebarConfig[role] || []).filter((item) => {
+    // Hide Projects Overview for Social Media Manager department
+    if (
+      item.name === "Projects Overview" &&
+      (currentUser?.department === "Social Media Manager" ||
+        currentUser?.department === "Social Media Executive")
+    ) {
+      return false;
+    }
+
+    // Hide My Reports for Social Media Manager department
+    if (
+      item.name === "My Reports" &&
+      currentUser?.department === "Social Media Manager"
+    ) {
+      return false;
+    }
+
     if (role === "admin") return true;
     if (item.permissionKey === "manage_clients") return true;
     if (!item.permissionKey) return true;
@@ -169,7 +186,7 @@ const HorizontalSidebar = ({ role }) => {
   };
 
   return (
-    <div className="max-w-8xl fixed left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] p-2.5   rounded-full z-40 px-4 backdrop-blur-md border border-slate-200/50 dark:border-white/10 shadow-sm">
+    <div className="max-w-7xl mt-3 fixed left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] p-2.5   rounded-full z-40 px-4 backdrop-blur-md border border-slate-200/50 dark:border-white/10 shadow-sm">
       <div className="flex items-center w-full overflow-x-auto px-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
         <div className="flex items-center gap-1.5 mx-auto">
           {menuItems.map((item) => {

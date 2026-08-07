@@ -146,12 +146,12 @@ body, aside, header, nav, main, section, article, footer,
 
 
 .sidebar-bg {
-  background-color: color-mix(in srgb, var(--accent-color) 40%, rgba(255, 255, 255, 0.8));
+  background-color: color-mix(in srgb, var(--accent-color) 10%, rgba(255, 255, 255, 0.8));
   transition: background-color 250ms ease-in-out, border-color 250ms ease-in-out, color 250ms ease-in-out;
 }
 
 .dark .sidebar-bg {
-  background-color: color-mix(in srgb, var(--accent-color) 20%, rgba(11, 12, 16, 0.7));
+  background-color: color-mix(in srgb, var(--accent-color) 10%, rgba(11, 12, 16, 0.7));
 }
 
 .dark {
@@ -757,7 +757,7 @@ select.badge-priority-top-high {
   right: 2px !important;
   bottom: 2px !important;
   background: #e11d48 !important; /* bg-rose-600 */
-  border-radius: 13px !important; /* 15px - 2px */
+  border-radius: 5px !important; /* 15px - 2px */
   z-index: -1 !important;
 }
 
@@ -880,15 +880,16 @@ select.badge-priority-top-high {
 
 /* Status: Pending */
 .badge-status-pending {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
-  color: #d97706 !important;
-  border-color: #fcd34d !important;
+  background: #d8d8d8 !important;
+  color: #080808 !important;
+  border-color: #e2e8f0 !important;
+  
 }
 .dark .badge-status-pending {
-  background: linear-gradient(135deg, rgba(217, 119, 6, 0.18) 0%, rgba(217, 119, 6, 0.28) 100%) !important;
-  color: #fbbf24 !important;
-  border-color: rgba(217, 119, 6, 0.4) !important;
-  box-shadow: 0 0 8px rgba(217, 119, 6, 0.12) !important;
+  background:white !important;
+  color: #070707 !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.05) !important;
 }
 
 /* Status: On Hold */
@@ -906,15 +907,15 @@ select.badge-priority-top-high {
 
 /* Status: In Review */
 .badge-status-in-review {
-  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%) !important;
-  color: #0369a1 !important;
-  border-color: #7dd3fc !important;
+  background: linear-gradient(135deg, #fef9c3 0%, #fef08a 100%) !important;
+  color: #a16207 !important;
+  border-color: #fde047 !important;
 }
 .dark .badge-status-in-review {
-  background: linear-gradient(135deg, rgba(3, 105, 161, 0.18) 0%, rgba(3, 105, 161, 0.28) 100%) !important;
-  color: #38bdf8 !important;
-  border-color: rgba(3, 105, 161, 0.4) !important;
-  box-shadow: 0 0 8px rgba(3, 105, 161, 0.15) !important;
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.18) 0%, rgba(234, 179, 8, 0.28) 100%) !important;
+  color: #fde047 !important;
+  border-color: rgba(234, 179, 8, 0.4) !important;
+  box-shadow: 0 0 8px rgba(234, 179, 8, 0.15) !important;
 }
 
 /* Status: Rejected */
@@ -928,6 +929,19 @@ select.badge-priority-top-high {
   color: #f87171 !important;
   border-color: rgba(185, 28, 28, 0.4) !important;
   box-shadow: 0 0 8px rgba(185, 28, 28, 0.15) !important;
+}
+
+/* Status: Correction */
+.badge-status-correction {
+  background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%) !important;
+  color: #ea580c !important;
+  border-color: #fdba74 !important;
+}
+.dark .badge-status-correction {
+  background: linear-gradient(135deg, rgba(234, 88, 12, 0.18) 0%, rgba(234, 88, 12, 0.28) 100%) !important;
+  color: #fb923c !important;
+  border-color: rgba(234, 88, 12, 0.4) !important;
+  box-shadow: 0 0 8px rgba(234, 88, 12, 0.15) !important;
 }
 
 /* Content Type Badges */

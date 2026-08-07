@@ -126,12 +126,44 @@ const formatElapsed = (
   const seconds = elapsed % 60;
 
   if (hours > 0) {
-    return `${hours}h ${minutes}m`;
+    return `${hours}h ${minutes}m ${seconds}s`;
   }
   if (minutes > 0) {
-    return `${minutes}m`;
+    return `${minutes}m ${seconds}s`;
   }
   return `${seconds}s`;
+};
+
+const LiveTimeTracker = ({ task, allTasks, isSubmitted }) => {
+  const [elapsedStr, setElapsedStr] = React.useState(task.time || "");
+
+  React.useEffect(() => {
+    if (isSubmitted) {
+      setElapsedStr(task.time || "");
+      return;
+    }
+
+    const originalTask = allTasks.find((t) => t._id === (task.taskId || task.id));
+    if (!originalTask || !originalTask.actualStartTime || originalTask.actualEndTime || originalTask.pausedAt) {
+      setElapsedStr(task.time || "");
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setElapsedStr(
+        formatElapsed(
+          originalTask.actualStartTime,
+          originalTask.actualEndTime,
+          originalTask.pausedAt,
+          originalTask.totalPausedMs
+        )
+      );
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [task, allTasks, isSubmitted]);
+
+  return <span>Time spent: {elapsedStr}</span>;
 };
 
 // Helper: map task board status to EOD status enum
@@ -268,16 +300,48 @@ const EodReports = () => {
       const isAssignedToMe = assigneeId === (user?._id || user?.id);
       if (!isAssignedToMe) return false;
 
-      // Filter strictly by selectedDate (using dueDate instead of createdAt)
-      if (!task.dueDate) return false;
+      const taskCreatedDate = task.createdAt ? new Date(task.createdAt) : null;
+      const taskDueDate = task.dueDate ? new Date(task.dueDate) : null;
+      const taskStartDate = task.startDate ? new Date(task.startDate) : null;
 
-      const taskDate = new Date(task.dueDate);
-      const year = taskDate.getFullYear();
-      const month = String(taskDate.getMonth() + 1).padStart(2, "0");
-      const day = String(taskDate.getDate()).padStart(2, "0");
-      const taskDateStr = `${year}-${month}-${day}`;
+      const getLocalDateStr = (date) => {
+        if (!date) return null;
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      };
 
-      return taskDateStr === selectedDate;
+      const createdDateStr = getLocalDateStr(taskCreatedDate);
+      const dueDateStr = getLocalDateStr(taskDueDate);
+      const startDateStr = getLocalDateStr(taskStartDate);
+
+      const statusLower = task.status?.toLowerCase() || "";
+      const isCompleted = statusLower === "completed" || statusLower.includes("approve");
+
+      // Helper to check if a date string is on or before selectedDate (YYYY-MM-DD comparison)
+      const isOnOrBeforeSelectedDate = (dateStr) => {
+        if (!dateStr) return false;
+        return dateStr <= selectedDate;
+      };
+
+      // 1. If it's not completed: show it if the selectedDate is on or after its start/creation date
+      if (!isCompleted) {
+        const startCheckDateStr = startDateStr || createdDateStr;
+        if (startCheckDateStr && isOnOrBeforeSelectedDate(startCheckDateStr)) {
+          return true;
+        }
+      }
+
+      // 2. If it is completed: ONLY show it strictly on the day it was completed
+      if (isCompleted) {
+        const completedDate = task.completedAt ? new Date(task.completedAt) : (task.updatedAt ? new Date(task.updatedAt) : null);
+        const completedDateStr = getLocalDateStr(completedDate);
+        return completedDateStr ? completedDateStr === selectedDate : false;
+      }
+
+      // Fallback for active tasks: show if its due date matches selectedDate
+      return dueDateStr === selectedDate;
     });
   }, [allTasks, user, selectedDate]);
 
@@ -628,12 +692,12 @@ const EodReports = () => {
     if (tasksState.length > 0) {
       const hasPending = tasksState.some(
         (t) =>
-          !["Completed", "In Review", "IN-REVIEW", "IN-Review"].includes(
+          !["Completed", "In Review"].includes(
             t.statusAtEod,
           ),
       );
       const hasInReview = tasksState.some((t) =>
-        ["In Review", "IN-REVIEW", "IN-Review"].includes(t.statusAtEod),
+        t.statusAtEod === "In Review",
       );
       const allCompleted = tasksState.every(
         (t) => t.statusAtEod === "Completed",
@@ -746,7 +810,7 @@ const EodReports = () => {
     (t) => t.statusAtEod === "On Hold",
   ).length;
   const inReviewCount = tasksState.filter((t) =>
-    ["IN-REVIEW", "In Review", "IN-Review"].includes(t.statusAtEod),
+    t.statusAtEod === "In Review",
   ).length;
   const revisionCount = tasksState.filter((t) =>
     ["Revision", "Revision Pending"].includes(t.statusAtEod),
@@ -887,7 +951,7 @@ const EodReports = () => {
                       {task.time && (
                         <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50/50 text-blue-600 border border-blue-150/40 rounded-md text-[10px] font-bold dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/30">
                           <FiClock size={10} className="shrink-0" />
-                          <span>Time spent: {task.time}</span>
+                          <LiveTimeTracker task={task} allTasks={allTasks} isSubmitted={isSubmitted} />
                         </div>
                       )}
                     </div>
@@ -908,21 +972,16 @@ const EodReports = () => {
                 </div>
 
                 {/* Status & Assigned By Row Stack */}
-                <div className="mt-5 pt-4 border-t theme-border space-y-3">
+                <div className="flex justify-between items-center  mt-6 border-t theme-border space-y-3">
                   {/* Status Row */}
                   <div className="flex items-center justify-between text-xs px-1">
                     <span className="font-bold theme-text-secondary uppercase tracking-wider text-[10px]">
-                      status :
-                    </span>
-                    <span
-                      className={`font-black tracking-wide ${getStatusTextColor(task.statusAtEod)}`}
-                    >
-                      {task.statusAtEod || "Pending"}
+                      status : <span className={`font-black tracking-wide ${getStatusTextColor(task.statusAtEod)}`}>{task.statusAtEod || "Pending"}</span>
                     </span>
                   </div>
 
                   {/* Assigned By Row */}
-                  <div className="flex items-center justify-between text-xs px-1 mt-6">
+                  <div className=" text-xs px-1 ">
                     <span className="font-bold theme-text-secondary uppercase tracking-wider text-[10px]">
                       Assigned By :
                     </span>
@@ -931,21 +990,8 @@ const EodReports = () => {
                         <span className="block font-bold theme-text-primary text-[11px] leading-tight">
                           {assignerName}
                         </span>
-                        <span className="block text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">
-                          {assignerDept}
-                        </span>
                       </div>
-                      {avatarUrl ? (
-                        <img
-                          src={avatarUrl}
-                          alt={assignerName}
-                          className="w-6.5 h-6.5 rounded-full object-cover border border-slate-100 dark:border-slate-800 shadow-sm"
-                        />
-                      ) : (
-                        <div className="w-6.5 h-6.5 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-[9px] border border-indigo-100 dark:border-indigo-900/30">
-                          {assignerName.charAt(0).toUpperCase()}
-                        </div>
-                      )}
+                    
                     </div>
                   </div>
                 </div>
