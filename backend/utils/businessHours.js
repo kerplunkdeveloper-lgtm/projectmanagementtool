@@ -66,7 +66,33 @@ function calculateBusinessMs(startDate, endDate, startHour = 9, endHour = 19, ho
   return totalMs;
 }
 
-const OfficeSettings = require("../models/OfficeSettings");
+function getISTDateParts(date = new Date()) {
+  try {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Kolkata",
+      hour: "numeric",
+      hour12: false,
+      weekday: "short",
+    });
+
+    const parts = formatter.formatToParts(date);
+    let hour = 0;
+    let weekdayStr = "";
+
+    for (const part of parts) {
+      if (part.type === "hour") hour = parseInt(part.value, 10);
+      if (part.type === "weekday") weekdayStr = part.value;
+    }
+
+    const dayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+    const day = dayMap[weekdayStr] !== undefined ? dayMap[weekdayStr] : date.getDay();
+    if (hour === 24) hour = 0;
+
+    return { day, hour };
+  } catch (e) {
+    return { day: date.getDay(), hour: date.getHours() };
+  }
+}
 
 async function checkWithinBusinessHours() {
   try {
@@ -80,15 +106,15 @@ async function checkWithinBusinessHours() {
         : [1, 2, 3, 4, 5, 6];
 
     const now = new Date();
-    const day = now.getDay();
+    const { day, hour: currentHour } = getISTDateParts(now);
+
     if (!workingDays.includes(day)) {
       return false;
     }
-    const currentHour = now.getHours();
     return currentHour >= settings.startHour && currentHour < settings.endHour;
   } catch (err) {
     return true;
   }
 }
 
-module.exports = { calculateBusinessMs, checkWithinBusinessHours };
+module.exports = { calculateBusinessMs, checkWithinBusinessHours, getISTDateParts };

@@ -369,8 +369,9 @@ exports.updateTask = async (req, res) => {
         const OfficeSettings = require("../models/OfficeSettings");
         const settings = await OfficeSettings.findOne({ key: "global" }) || { endHour: 19 };
         
-        let pausedAtTime = new Date();
-        pausedAtTime.setHours(settings.endHour, 0, 0, 0);
+        const dateStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+        const hourStr = String(settings.endHour || 19).padStart(2, "0");
+        const pausedAtTime = new Date(`${dateStr}T${hourStr}:00:00+05:30`);
 
         return res.status(400).json({
           success: false,

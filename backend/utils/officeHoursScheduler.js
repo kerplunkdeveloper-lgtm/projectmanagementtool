@@ -1,5 +1,6 @@
 const Task = require("../models/Task");
 const OfficeSettings = require("../models/OfficeSettings");
+const { getISTDateParts } = require("./businessHours");
 
 async function checkAndAutoPauseTasks(io) {
   try {
@@ -17,8 +18,7 @@ async function checkAndAutoPauseTasks(io) {
     }
 
     const now = new Date();
-    const day = now.getDay();
-    const currentHour = now.getHours();
+    const { day, hour: currentHour } = getISTDateParts(now);
 
     const workingDays = settings.workingDays;
     const isNonWorkingDay = !workingDays.includes(day);

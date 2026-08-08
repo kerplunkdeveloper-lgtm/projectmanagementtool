@@ -71,17 +71,25 @@ const OfficeHoursPausedPopup = () => {
 
     // Find any task assigned to current user that was auto-paused
     const autoPausedTask = tasks.find((t) => {
-      const isAssignee = (t.assignedTo?._id || t.assignedTo) === currentUserId;
-      const hasAutoPausedSubtask = t.subtasks?.some(
-        (sub) => (sub.assignedTo?._id || sub.assignedTo) === currentUserId && sub.autoPaused
-      );
+      const isAssignee = Array.isArray(t.assignedTo)
+        ? t.assignedTo.some((u) => (u?._id || u) === currentUserId)
+        : (t.assignedTo?._id || t.assignedTo) === currentUserId;
+      const hasAutoPausedSubtask = t.subtasks?.some((sub) => {
+        const subAssignee = Array.isArray(sub.assignedTo)
+          ? sub.assignedTo.some((u) => (u?._id || u) === currentUserId)
+          : (sub.assignedTo?._id || sub.assignedTo) === currentUserId;
+        return subAssignee && sub.autoPaused;
+      });
       return isAssignee && (t.autoPaused || hasAutoPausedSubtask);
     });
 
     if (autoPausedTask) {
-      const subtask = autoPausedTask.subtasks?.find(
-        (sub) => (sub.assignedTo?._id || sub.assignedTo) === currentUserId && sub.autoPaused
-      );
+      const subtask = autoPausedTask.subtasks?.find((sub) => {
+        const subAssignee = Array.isArray(sub.assignedTo)
+          ? sub.assignedTo.some((u) => (u?._id || u) === currentUserId)
+          : (sub.assignedTo?._id || sub.assignedTo) === currentUserId;
+        return subAssignee && sub.autoPaused;
+      });
       const target = subtask || autoPausedTask;
 
       const workingTimeMs = calculateWorkingTime(target);
