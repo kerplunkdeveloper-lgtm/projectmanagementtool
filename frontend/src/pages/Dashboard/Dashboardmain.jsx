@@ -2203,18 +2203,7 @@ const Dashboardmain = () => {
             !activeDeptTab?.toLowerCase().includes("social") &&
             !activeDeptTab?.toLowerCase().includes("seo") &&
             !activeDeptTab?.toLowerCase().includes("performance") && (
-              <div className="theme-bg-card border theme-border border-dashed rounded-2xl p-12 text-center flex flex-col items-center justify-center min-h-[200px]">
-                <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400 border theme-border">
-                  <FiLayers size={22} />
-                </div>
-                <h3 className="font-bold theme-text-primary mt-4 text-sm">
-                  No stats card for {activeDeptTab}
-                </h3>
-                <p className="text-xs theme-text-secondary mt-1 max-w-xs">
-                  Stats dashboard configuration is currently pending for this
-                  department.
-                </p>
-              </div>
+              <GraphicDesignerDashboard targetDept={activeDeptTab} />
             )}
         </div>
       )}

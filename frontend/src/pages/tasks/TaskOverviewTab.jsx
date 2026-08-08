@@ -677,6 +677,7 @@ const TaskOverviewTab = ({
     }
   };
   const { clients } = useSelector((state) => state.clients);
+  const { users } = useSelector((state) => state.users || {});
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 30;
@@ -727,6 +728,20 @@ const TaskOverviewTab = ({
       (a.name || "").localeCompare(b.name || ""),
     );
   }, [tasks]);
+
+  const uniqueDepartments = React.useMemo(() => {
+    const set = new Set();
+    (users || []).forEach((u) => {
+      if (u.department && u.department.trim()) {
+        set.add(u.department.trim());
+      }
+    });
+    (tasks || []).forEach((t) => {
+      if (t.assignedTo?.department) set.add(t.assignedTo.department.trim());
+      if (t.createdBy?.department) set.add(t.createdBy.department.trim());
+    });
+    return Array.from(set).sort();
+  }, [users, tasks]);
 
   // Internal selected task state for workspace preview drawer
   const [selectedTaskId, setSelectedTaskId] = useState(null);
@@ -1033,16 +1048,36 @@ const TaskOverviewTab = ({
 
   const [searchParams] = useSearchParams();
   const statusParam = searchParams.get("status");
+  const departmentParam = searchParams.get("department") || searchParams.get("dept");
 
   const [overviewStatusFilter, setOverviewStatusFilter] = useState(() => {
     return statusParam || "All";
   });
+
+  const [overviewDepartmentFilter, setOverviewDepartmentFilter] = useState(() => {
+    return departmentParam || localStorage.getItem("task_department_filter") || "All";
+  });
+  const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false);
+  const [departmentSearchQuery, setDepartmentSearchQuery] = useState("");
+  const departmentDropdownRef = useRef(null);
 
   useEffect(() => {
     if (statusParam) {
       setOverviewStatusFilter(statusParam);
     }
   }, [statusParam]);
+
+  useEffect(() => {
+    if (departmentParam) {
+      setOverviewDepartmentFilter(departmentParam);
+    }
+  }, [departmentParam]);
+
+  useEffect(() => {
+    if (overviewDepartmentFilter && overviewDepartmentFilter !== "All") {
+      localStorage.setItem("task_department_filter", overviewDepartmentFilter);
+    }
+  }, [overviewDepartmentFilter]);
 
   const [overviewPriorityFilter, setOverviewPriorityFilter] = useState("All");
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
@@ -1087,6 +1122,12 @@ const TaskOverviewTab = ({
         setShowAssigneeDropdown(false);
       }
       if (
+        departmentDropdownRef.current &&
+        !departmentDropdownRef.current.contains(event.target)
+      ) {
+        setShowDepartmentDropdown(false);
+      }
+      if (
         statusDropdownRef.current &&
         !statusDropdownRef.current.contains(event.target)
       ) {
@@ -1109,6 +1150,7 @@ const TaskOverviewTab = ({
     projectSearch,
     overviewPriorityFilter,
     overviewStatusFilter,
+    overviewDepartmentFilter,
     overviewStartDateFilter,
     overviewEndDateFilter,
     dateFilter,
@@ -1308,6 +1350,63 @@ const TaskOverviewTab = ({
           return false;
         }
 
+        if (overviewDepartmentFilter && overviewDepartmentFilter !== "All") {
+          const targetDeptLower = overviewDepartmentFilter.toLowerCase();
+
+          const assigneeId =
+            typeof task.assignedTo === "object"
+              ? task.assignedTo?._id
+              : task.assignedTo;
+          const assignedUserObj =
+            typeof task.assignedTo === "object"
+              ? task.assignedTo
+              : users?.find((u) => (u._id || u.id) === assigneeId);
+
+          const creatorId =
+            typeof task.createdBy === "object"
+              ? task.createdBy?._id
+              : task.createdBy;
+          const creatorUserObj =
+            typeof task.createdBy === "object"
+              ? task.createdBy
+              : users?.find((u) => (u._id || u.id) === creatorId);
+
+          const taskDept =
+            assignedUserObj?.department || creatorUserObj?.department || "";
+          const taskDeptLower = taskDept.toLowerCase();
+
+          let matchesDept = false;
+          if (targetDeptLower.includes("graphic")) {
+            matchesDept =
+              taskDeptLower.includes("graphic") ||
+              taskDeptLower.includes("design");
+          } else if (
+            targetDeptLower.includes("video") ||
+            targetDeptLower.includes("videographer")
+          ) {
+            matchesDept =
+              taskDeptLower.includes("video") || taskDeptLower.includes("edit");
+          } else if (targetDeptLower.includes("web")) {
+            matchesDept =
+              taskDeptLower.includes("web") || taskDeptLower.includes("dev");
+          } else if (targetDeptLower.includes("seo")) {
+            matchesDept = taskDeptLower.includes("seo");
+          } else if (targetDeptLower.includes("social")) {
+            matchesDept =
+              taskDeptLower.includes("social") || taskDeptLower.includes("smm");
+          } else if (targetDeptLower.includes("performance")) {
+            matchesDept =
+              taskDeptLower.includes("performance") ||
+              taskDeptLower.includes("marketer");
+          } else {
+            matchesDept =
+              taskDeptLower.includes(targetDeptLower) ||
+              targetDeptLower.includes(taskDeptLower);
+          }
+
+          if (!matchesDept) return false;
+        }
+
         if (overviewStartDateFilter) {
           if (!task.startDate) return false;
           const tStart = new Date(task.startDate).setHours(0, 0, 0, 0);
@@ -1445,28 +1544,31 @@ const TaskOverviewTab = ({
           return isCompletedA - isCompletedB;
         }
 
-        // Secondary sort: Most recent date first (Newest created/start date first)
+        // Secondary sort: Priority (Top High -> High -> Medium -> Low)
+        const priorityRank = {
+          "Top High": 1,
+          "top high": 1,
+          High: 2,
+          high: 2,
+          Medium: 3,
+          medium: 3,
+          Low: 4,
+          low: 4,
+        };
+        const pRankA = priorityRank[a.priority] || 5;
+        const pRankB = priorityRank[b.priority] || 5;
+        if (pRankA !== pRankB) {
+          return pRankA - pRankB;
+        }
+
+        // Tertiary sort: Most recent date first
         const dateA = new Date(
           a.createdAt || a.startDate || a.dueDate || 0
         ).getTime();
         const dateB = new Date(
           b.createdAt || b.startDate || b.dueDate || 0
         ).getTime();
-
-        if (dateB !== dateA) {
-          return dateB - dateA;
-        }
-
-        // Tertiary sort: Priority
-        const priorityRank = {
-          "Top High": 1,
-          High: 2,
-          Medium: 3,
-          Low: 4,
-        };
-        const pRankA = priorityRank[a.priority] || 5;
-        const pRankB = priorityRank[b.priority] || 5;
-        return pRankA - pRankB;
+        return dateB - dateA;
       });
   }, [
     tasks,
@@ -1475,6 +1577,7 @@ const TaskOverviewTab = ({
     projects,
     overviewPriorityFilter,
     overviewStatusFilter,
+    overviewDepartmentFilter,
     overviewStartDateFilter,
     overviewEndDateFilter,
     dateFilter,
@@ -1654,16 +1757,6 @@ const TaskOverviewTab = ({
       <div className="bg-white dark:bg-[#11131e] overflow-hidden flex flex-col h-[calc(100vh-160px)]">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pb-2 pt-1 border-b border-slate-100 dark:border-white/5 relative z-30 shrink-0">
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            {/* Back Button */}
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center gap-1.5 px-2.5 py-1 text-[12px] font-bold text-slate-500 hover:text-slate-705 dark:text-slate-400 dark:hover:text-slate-205 transition-colors cursor-pointer rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 border border-slate-200 dark:border-white/5 shadow-2xs shrink-0"
-            >
-              <FiChevronLeft size={14} className="stroke-[3]" />
-              <span>Back</span>
-            </button>
-
-            <span className="text-slate-200 dark:text-slate-800">|</span>
 
             {/* client display */}
             <div className="flex items-center gap-1.5 text-[12px] font-extrabold text-slate-700 dark:text-slate-300">
@@ -1681,7 +1774,6 @@ const TaskOverviewTab = ({
                 />
               )}
             </div>
-
             {/* status display  */}
             <div className="flex items-center gap-1.5 text-[12px] font-extrabold text-slate-700 dark:text-slate-300">
               <span>Status:</span>
@@ -1696,6 +1788,15 @@ const TaskOverviewTab = ({
                   {overviewStatusFilter}
                 </span>
               )}
+            </div>
+
+            {/* department display */}
+            <div className="flex items-center gap-1.5 text-[12px] font-extrabold text-slate-700 dark:text-slate-300">
+              <span>Dept:</span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-black border rounded bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/30">
+                <FiBriefcase size={9} />
+                {overviewDepartmentFilter}
+              </span>
             </div>
           </div>
 
@@ -2026,6 +2127,108 @@ const TaskOverviewTab = ({
                             </button>
                           );
                         })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Department Filter */}
+            <div className="relative" ref={departmentDropdownRef}>
+              <div className="relative rounded-full p-[1px] overflow-hidden group inline-block shadow-2xs">
+                <div className="absolute inset-[-100%] bg-[conic-gradient(transparent_0deg,#10b981_90deg,transparent_180deg)] animate-[spin_2s_linear_infinite] group-hover:bg-[conic-gradient(transparent_0deg,#059669_90deg,transparent_180deg)] transition-colors duration-300" />
+                <div
+                  className={`absolute inset-[1px] rounded-full z-0 ${
+                    overviewDepartmentFilter !== "All"
+                      ? "bg-blue-50/80 dark:bg-blue-950/30"
+                      : "bg-white dark:bg-[#151725]"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowDepartmentDropdown((prev) => !prev)}
+                  className={`relative flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all cursor-pointer z-10 bg-transparent outline-none border-none tracking-tight ${
+                    overviewDepartmentFilter !== "All"
+                      ? "text-blue-800 dark:text-blue-300"
+                      : "text-slate-800 dark:text-slate-200"
+                  }`}
+                >
+                  <span className="truncate max-w-[90px]">
+                    {overviewDepartmentFilter === "All"
+                      ? "Department"
+                      : overviewDepartmentFilter}
+                  </span>
+                  <FiChevronDown
+                    size={11}
+                    className={`text-slate-400 transition-transform duration-200 ${
+                      showDepartmentDropdown ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {showDepartmentDropdown && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-full mt-2 w-64 max-h-[320px] flex flex-col bg-white dark:bg-[#151725] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl z-[70] overflow-hidden"
+                  >
+                    <div className="p-2 border-b border-slate-100 dark:border-white/10 shrink-0">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search department..."
+                          value={departmentSearchQuery}
+                          onChange={(e) =>
+                            setDepartmentSearchQuery(e.target.value)
+                          }
+                          className="w-full pl-7 pr-2.5 py-1 text-[12px] font-semibold rounded-lg bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 outline-none focus:border-blue-500 text-slate-800 dark:text-slate-200"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto custom-scrollbar p-1 flex flex-col gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOverviewDepartmentFilter("All");
+                          setShowDepartmentDropdown(false);
+                        }}
+                        className={`w-full text-left px-2.5 py-1.5 rounded-xl text-[12px] font-bold transition-all shrink-0 ${
+                          overviewDepartmentFilter === "All"
+                            ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
+                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                        }`}
+                      >
+                        All Departments
+                      </button>
+                      {uniqueDepartments
+                        ?.filter((dept) =>
+                          dept
+                            .toLowerCase()
+                            .includes(departmentSearchQuery.toLowerCase()),
+                        )
+                        .map((dept) => (
+                          <button
+                            key={dept}
+                            type="button"
+                            onClick={() => {
+                              setOverviewDepartmentFilter(dept);
+                              setShowDepartmentDropdown(false);
+                            }}
+                            className={`w-full text-left px-2.5 py-1.5 rounded-xl transition-all shrink-0 flex items-center gap-1.5 text-[12px] ${
+                              overviewDepartmentFilter === dept
+                                ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 font-extrabold"
+                                : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                            }`}
+                          >
+                            <span className="truncate">{dept}</span>
+                          </button>
+                        ))}
                     </div>
                   </motion.div>
                 )}

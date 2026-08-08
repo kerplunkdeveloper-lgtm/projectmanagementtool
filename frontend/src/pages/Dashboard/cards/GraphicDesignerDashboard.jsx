@@ -207,7 +207,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     else mappedFilter = format(selectedDate, "yyyy-MM-dd");
 
     localStorage.setItem("task_date_filter", mappedFilter);
-    navigate(`/${user?.role || "team"}/tasks?status=${status}`);
+    if (targetDept) {
+      localStorage.setItem("task_department_filter", targetDept);
+    }
+    const deptQuery = targetDept ? `&department=${encodeURIComponent(targetDept)}` : "";
+    navigate(`/${user?.role || "team"}/tasks?status=${encodeURIComponent(status)}${deptQuery}`);
   };
   const isDarkMode =
     theme === "dark" ||
@@ -526,13 +530,13 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       const col = getColumnForTask(task);
       if (cols[col]) cols[col].push(task);
 
-      // Mirror incomplete tasks that are due today, tomorrow, or in the past in the Overall Overdue column
+      // Mirror incomplete tasks that have a due date in the Overall Overdue column
       const isCompleted =
         task.status?.toLowerCase() === "completed" ||
         task.status?.toLowerCase().includes("approve");
       if (!isCompleted && task.dueDate) {
         const daysRemaining = getDaysRemaining(task.dueDate, selectedDate);
-        if (daysRemaining !== null && daysRemaining <= 1) {
+        if (daysRemaining !== null) {
           cols["Overall Overdue"].push(task);
         }
       }
@@ -1667,24 +1671,26 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
             const columnTasks = tasksByColumn[col] || [];
 
-            // Split overdue tasks into previous, today, and tomorrow
+            // Split overdue/due tasks into previous overdue, due today, and upcoming due
             const previousOverdue = isOverdueCol
               ? columnTasks.filter((t) => {
-                  const days = getDaysRemaining(t.dueDate);
+                  const days = getDaysRemaining(t.dueDate, selectedDate);
                   return days !== null && days < 0;
                 })
               : [];
             const todayOverdue = isOverdueCol
               ? columnTasks.filter((t) => {
-                  const days = getDaysRemaining(t.dueDate);
+                  const days = getDaysRemaining(t.dueDate, selectedDate);
                   return days !== null && days === 0;
                 })
               : [];
-            const tomorrowOverdue = isOverdueCol
-              ? columnTasks.filter((t) => {
-                  const days = getDaysRemaining(t.dueDate);
-                  return days !== null && days === 1;
-                })
+            const upcomingDue = isOverdueCol
+              ? columnTasks
+                  .filter((t) => {
+                    const days = getDaysRemaining(t.dueDate, selectedDate);
+                    return days !== null && days >= 1;
+                  })
+                  .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
               : [];
 
             return (
@@ -1758,25 +1764,25 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         </div>
                       </div>
 
-                      {/* Tomorrow Overdue */}
+                      {/* Upcoming Due */}
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between px-2 py-1 bg-orange-100/60 dark:bg-orange-950/30 border border-orange-200/40 dark:border-orange-900/40 rounded-lg">
                           <span className="text-[9px] font-black uppercase text-orange-600 dark:text-orange-400 tracking-wider truncate">
-                            Due Tomorrow
+                            Upcoming Due
                           </span>
                           <span className="text-[9px] font-black text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/60 px-1.5 py-0.5 rounded-md shrink-0">
-                            {tomorrowOverdue.length}
+                            {upcomingDue.length}
                           </span>
                         </div>
                         <div className="space-y-2">
                           <AnimatePresence>
-                            {tomorrowOverdue.length > 0 ? (
-                              tomorrowOverdue.map((task) =>
+                            {upcomingDue.length > 0 ? (
+                              upcomingDue.map((task) =>
                                 renderTaskCard(task),
                               )
                             ) : (
                               <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-1.5">
-                                No tasks due tomorrow
+                                No upcoming due tasks
                               </p>
                             )}
                           </AnimatePresence>

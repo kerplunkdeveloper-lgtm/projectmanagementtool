@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useSelector } from "react-redux";
+import { useSearchParams } from "react-router-dom";
 import { FiCheckSquare, FiBriefcase } from "react-icons/fi";
 import {
   useGetTasksQuery,
@@ -11,24 +12,29 @@ import MyTasksTab from "./MyTasksTab";
 const Task = () => {
   const { user } = useSelector((state) => state.auth);
   const currentUserId = user?._id || user?.id;
+  const [searchParams] = useSearchParams();
+  const departmentParam = searchParams.get("department") || searchParams.get("dept");
 
   const canSeeTaskOverview =
     user?.department?.toLowerCase() === "social media manager" ||
     user?.department?.toLowerCase() === "social media executive" ||
     user?.role === "admin" ||
     user?.role === "operationmanager" ||
-    user?.role === "managingpartner";
+    user?.role === "managingpartner" ||
+    Boolean(departmentParam);
 
   const [activeTab, setActiveTab] = useState(
     canSeeTaskOverview ? "Task Overview" : "myTasks",
   );
 
-  // Sync activeTab if user role loads after initial mount
+  // Sync activeTab if user role loads after initial mount or departmentParam present
   useEffect(() => {
-    if (!canSeeTaskOverview && activeTab === "Task Overview") {
+    if (departmentParam) {
+      setActiveTab("Task Overview");
+    } else if (!canSeeTaskOverview && activeTab === "Task Overview") {
       setActiveTab("myTasks");
     }
-  }, [canSeeTaskOverview, activeTab]);
+  }, [canSeeTaskOverview, activeTab, departmentParam]);
 
   // Common quick date filter state passed to TaskOverviewTab
   const [dateFilter, setDateFilter] = useState(() => {
