@@ -613,8 +613,8 @@ const MyTasksTab = ({
   dateFilter: dateFilterProp,
   setDateFilter: setDateFilterProp,
 }) => {
-  const navigate = useNavigate();
-  const users = useSelector((state) => state.auth?.users || []);
+  const authUsers = useSelector((state) => state.auth?.users);
+  const users = authUsers || [];
 
   const [updateTaskTrigger] = useUpdateTaskMutation();
   const [deleteTask] = useDeleteTaskMutation();
@@ -1362,7 +1362,20 @@ const MyTasksTab = ({
         taskData: { status: newStatus },
       }).unwrap();
     } catch (err) {
-      if (err?.status === 409 || err?.originalStatus === 409) {
+      if (err?.data?.isOfficeHoursEnded || err?.error?.data?.isOfficeHoursEnded) {
+        const errorData = err?.data || err?.error?.data;
+        window.dispatchEvent(
+          new CustomEvent("show-office-hours-ended-popup", {
+            detail: {
+              workingTimeMs: errorData?.workingTimeMs || 0,
+              pausedAtHour: errorData?.pausedAt,
+            },
+          })
+        );
+        return;
+      }
+
+      if (err?.status === 409 || err?.originalStatus === 409 || err?.data?.status === 409) {
         toast.custom(
           (t) => (
             <div
@@ -1430,7 +1443,7 @@ const MyTasksTab = ({
         return;
       }
 
-      toast.error("Failed to update task");
+      toast.error(err?.data?.message || err?.error?.data?.message || "Failed to update task");
     }
   };
 
@@ -1668,13 +1681,15 @@ const MyTasksTab = ({
         ? t.project.client
         : projectObj?.client || t.project?.client;
       if (client) {
-        const cId = client._id || client.id;
-        clientsMap[cId] = {
-          id: cId,
-          name: client.companyName || "No Company Name",
-          color: client.color || "#3b82f6",
-          icon: client.icon || "FaRegBuilding",
-        };
+        const cId = (typeof client === "object" ? (client._id || client.id) : client) || client.companyName;
+        if (cId) {
+          clientsMap[cId] = {
+            id: cId,
+            name: (typeof client === "object" && client.companyName) ? client.companyName : (client.name || String(client)),
+            color: (typeof client === "object" && client.color) ? client.color : "#3b82f6",
+            icon: (typeof client === "object" && client.icon) ? client.icon : "FaRegBuilding",
+          };
+        }
       }
     });
     return Object.values(clientsMap);
@@ -2218,12 +2233,12 @@ const MyTasksTab = ({
                     >
                       All Clients
                     </button>
-                    {uniqueClients.map((c) => {
+                    {uniqueClients.map((c, index) => {
                       const ClientIcon = getClientIconComponent(c.icon);
                       const isSelected = clientFilter === c.id;
                       return (
                         <button
-                          key={c.id}
+                          key={c.id || c.name || `client-${index}`}
                           onClick={() => setClientFilter(c.id)}
                           className={`w-full flex items-center gap-2 text-left px-3 py-2 text-[11px] font-bold rounded-xl transition-all border cursor-pointer ${
                             isSelected
@@ -2276,9 +2291,9 @@ const MyTasksTab = ({
                     >
                       All Projects
                     </button>
-                    {uniqueProjects.map((p) => (
+                    {uniqueProjects.map((p, index) => (
                       <button
-                        key={p.id}
+                        key={p.id || p.name || `project-${index}`}
                         onClick={() => setProjectFilter(p.id)}
                         className={`w-full flex items-center gap-2 text-left px-3 py-2 text-[11px] font-bold rounded-xl transition-all border cursor-pointer ${
                           projectFilter === p.id
@@ -2369,13 +2384,13 @@ const MyTasksTab = ({
                       </span>
                     </div>
                   ) : (
-                    colTasks.map((task) => {
+                    colTasks.map((task, idx) => {
                       const isCompleted = task.status === "Completed";
                       const isRejected = task.status === "Rejected";
                       const isInReview = task.status === "In Review";
                       return (
                         <div
-                          key={task._id}
+                          key={task._id || `task-board-${idx}`}
                           draggable={!isRejected}
                           onDragStart={(e) => !isRejected && handleDragStart(e, task._id)}
                           onDragEnd={() => setDraggedTaskId(null)}
@@ -2633,7 +2648,7 @@ const MyTasksTab = ({
                       </td>
                     </tr>
                   ) : (
-                    sortedTasks.map((task) => {
+                    sortedTasks.map((task, idx) => {
                       const isCompleted = task.status === "Completed";
                       const isRejected = task.status === "Rejected";
                       const isInReview = task.status === "In Review";
@@ -2645,7 +2660,7 @@ const MyTasksTab = ({
                       const isExpanded = !!expandedTasks[task._id];
 
                       return (
-                        <React.Fragment key={task._id}>
+                        <React.Fragment key={task._id || `task-row-${idx}`}>
                           <tr
                             className={`transition-colors group ${
                               isRejected
@@ -3231,12 +3246,12 @@ const MyTasksTab = ({
                                       Subtasks Checklist
                                     </h5>
                                     <div className="flex flex-col gap-2">
-                                      {task.subtasks.map((sub) => {
+                                      {task.subtasks.map((sub, idx) => {
                                         const subCompleted =
                                           sub.status === "Completed";
                                         return (
                                           <div
-                                            key={sub._id}
+                                            key={sub._id || sub.title || `sub-${idx}`}
                                             className="flex items-center justify-between bg-white dark:bg-[#141624] border border-slate-205/60 dark:border-white/5 p-3 rounded-2xl shadow-2xs group/sub"
                                           >
                                             <div className="flex items-center gap-3">

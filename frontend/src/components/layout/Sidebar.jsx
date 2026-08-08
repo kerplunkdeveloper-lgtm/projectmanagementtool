@@ -121,9 +121,11 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     : 0;
 
   const { projects } = useSelector((state) => state.projects);
-  const { portfolios = [] } = useSelector((state) => state.portfolios || {});
+  const portfoliosState = useSelector((state) => state.portfolios);
+  const portfolios = portfoliosState?.portfolios || [];
   const { users } = useSelector((state) => state.users);
-  const { clients = [] } = useSelector((state) => state.clients || {});
+  const clientsState = useSelector((state) => state.clients);
+  const clients = clientsState?.clients || [];
   const { user: currentUser, originalAdminUser } = useSelector(
     (state) => state.auth,
   );

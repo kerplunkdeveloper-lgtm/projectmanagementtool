@@ -17,7 +17,8 @@ const HorizontalSidebar = ({ role }) => {
   const { user: currentUser, originalAdminUser } = useSelector((state) => state.auth);
   const { unreadCounts = {} } = useSelector((state) => state.chat);
   const { notifications } = useSelector((state) => state.notifications);
-  const { users = [] } = useSelector((state) => state.users || {});
+  const usersState = useSelector((state) => state.users);
+  const users = usersState?.users || [];
   
   const [showSwitchDropdown, setShowSwitchDropdown] = useState(false);
   const [switchSearch, setSwitchSearch] = useState("");

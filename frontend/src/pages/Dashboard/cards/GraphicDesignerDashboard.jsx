@@ -199,9 +199,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   const { users } = useSelector((state) => state.users);
   const { projects } = useSelector((state) => state.projects);
   const { clients } = useSelector((state) => state.clients);
-  const { designerEodReports = [] } = useSelector(
-    (state) => state.designerEodReports || {},
-  );
+  const designerEodState = useSelector((state) => state.designerEodReports);
+  const designerEodReports = designerEodState?.designerEodReports || [];
   const { data: allTasks = [], isLoading } = useGetTasksQuery();
 
   const [selectedDate, setSelectedDate] = useState(new Date());

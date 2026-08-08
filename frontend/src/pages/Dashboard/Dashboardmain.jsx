@@ -155,7 +155,8 @@ const isSameDateHelper = (d1, d2) => {
 
 const GraphicDesignerDeadlines = ({ user }) => {
   const navigate = useNavigate();
-  const { users = [] } = useSelector((state) => state.users || {});
+  const usersState = useSelector((state) => state.users);
+  const users = usersState?.users || [];
   const { data: tasks = [], isLoading } = useGetTasksQuery(undefined, {
     refetchOnMountOrArgChange: true,
   });

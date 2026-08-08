@@ -7,7 +7,8 @@ import { FiX, FiAlertCircle } from "react-icons/fi";
 
 const InReviewNotificationPopup = () => {
   const { user } = useSelector((state) => state.auth);
-  const { users = [] } = useSelector((state) => state.users || {});
+  const usersState = useSelector((state) => state.users);
+  const users = usersState?.users || [];
 
   // Check if current user is authorized (Admin, Operation Manager, or Social Media Manager)
   const isAuthorized = useMemo(() => {

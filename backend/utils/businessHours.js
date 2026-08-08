@@ -72,12 +72,16 @@ async function checkWithinBusinessHours() {
   try {
     let settings = await OfficeSettings.findOne({ key: "global" });
     if (!settings) {
-      settings = { startHour: 9, endHour: 19 };
+      settings = { startHour: 9, endHour: 19, workingDays: [1, 2, 3, 4, 5, 6] };
     }
+    const workingDays =
+      settings.workingDays && settings.workingDays.length > 0
+        ? settings.workingDays
+        : [1, 2, 3, 4, 5, 6];
+
     const now = new Date();
     const day = now.getDay();
-    // Sunday = 0, Saturday = 6
-    if (day === 0 || day === 6) {
+    if (!workingDays.includes(day)) {
       return false;
     }
     const currentHour = now.getHours();

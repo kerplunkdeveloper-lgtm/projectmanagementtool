@@ -890,11 +890,9 @@ const Clients = () => {
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95 }}
                           transition={{ duration: 0.2, delay: index * 0.02 }}
-                          key={client._id}
+                          key={client._id || client.id || `client-row-${index}`}
                           className="group transition-colors hover:bg-slate-50/40 dark:hover:bg-[#16223f]/40 border-b border-slate-200 dark:border-slate-700/60"
-                        >
-                          {/* Client Info */}
-                          <td className={`${cellClass} relative`}>
+                        ><td className={`${cellClass} relative`}>
                             <div className="flex items-center gap-2.5">
                               {(() => {
                                 const ClientIcon = getClientIconComponent(
@@ -942,19 +940,13 @@ const Clients = () => {
                                 </div>
                               </div>
                             </div>
-                          </td>                            {/* No. of Projects */}
-                          {(user?.role === "admin" || user?.role === "operationmanager") && (
+                          </td>{(user?.role === "admin" || user?.role === "operationmanager") && (
                             <td className={`${cellClass} text-center w-28`}>
                               <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold text-[10px] border border-blue-200/50 dark:border-blue-800/30">
                                 {projects?.filter(p => p.client?._id === client._id || p.client === client._id).length || 0}
                               </span>
                             </td>
-                          )}
-
-
-
-                          {/* Service Info */}
-                          <td className={cellClass}>
+                          )}<td className={cellClass}>
                             <div className="flex flex-col gap-1.5">
                               <div className="flex flex-wrap gap-1.5 mb-1">
                                 {client.service &&
@@ -1053,10 +1045,7 @@ const Clients = () => {
                                 )}
                               </div>
                             </div>
-                          </td>
-
-                          {/* Deliverables Info (NEW) */}
-                          <td className={cellClass}>
+                          </td><td className={cellClass}>
                             <div className="flex flex-col gap-1.5 max-w-[280px] py-0.5">
                               {/* Digital Marketing */}
                               {(client.posts > 0 || client.reels > 0) && (
@@ -1155,12 +1144,7 @@ const Clients = () => {
                                   </span>
                                 )}
                             </div>
-                          </td>
-
-
-
-                          {/* Assigned By */}
-                          {user?.role === "team" && (
+                          </td>{user?.role === "team" && (
                             <td className={cellClass}>
                               <div className="flex items-center gap-1">
                                 {client.createdBy ? (
@@ -1188,10 +1172,7 @@ const Clients = () => {
                                 )}
                               </div>
                             </td>
-                          )}
-
-                          {/* Actions */}
-                          {(user?.role === "admin" ||
+                          )}{(user?.role === "admin" ||
                             user?.role === "operationmanager") && (
                             <td className={`${cellClass} text-center`}>
                               <div className="flex items-center justify-center gap-1.5">
@@ -1227,8 +1208,7 @@ const Clients = () => {
                                 </button>
                               </div>
                             </td>
-                          )}
-                        </motion.tr>
+                          )}</motion.tr>
                       );
                     })
                   ) : (

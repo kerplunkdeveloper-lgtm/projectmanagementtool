@@ -12,10 +12,15 @@ async function checkAndAutoPauseTasks(io) {
     const day = now.getDay();
     const currentHour = now.getHours();
 
-    const isWeekend = day === 0 || day === 6;
+    const workingDays =
+      settings.workingDays && settings.workingDays.length > 0
+        ? settings.workingDays
+        : [1, 2, 3, 4, 5, 6];
+
+    const isNonWorkingDay = !workingDays.includes(day);
     const isOutsideHours = currentHour >= settings.endHour || currentHour < settings.startHour;
 
-    if (isWeekend || isOutsideHours) {
+    if (isNonWorkingDay || isOutsideHours) {
       // Find tasks in progress
       const activeTasks = await Task.find({ status: "In Progress" });
       
