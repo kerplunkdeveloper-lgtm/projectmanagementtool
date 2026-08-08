@@ -110,25 +110,49 @@ const getUserColor = (userId) => {
 const getDeptColor = (dept) => {
   if (!dept) return "text-slate-500 dark:text-slate-400";
   const d = dept.toLowerCase().trim();
-  if (d.includes("marketing") || d.includes("digital")) {
+  if (d.includes("marketing") || d.includes("digital") || d === "dm") {
     return "text-blue-600 dark:text-blue-400";
   }
-  if (d.includes("design") || d.includes("creative") || d.includes("branding")) {
-    return "text-purple-650 dark:text-purple-400";
+  if (d.includes("design") || d.includes("creative") || d.includes("branding") || d === "gd") {
+    return "text-purple-600 dark:text-purple-400";
   }
-  if (d.includes("development") || d.includes("tech") || d.includes("website") || d.includes("web")) {
+  if (d.includes("development") || d.includes("tech") || d.includes("website") || d.includes("web") || d === "dev") {
     return "text-emerald-600 dark:text-emerald-400";
   }
   if (d.includes("seo")) {
     return "text-amber-600 dark:text-amber-400";
   }
-  if (d.includes("video") || d.includes("production") || d.includes("shoot")) {
+  if (d.includes("video") || d.includes("production") || d.includes("shoot") || d === "vp") {
     return "text-rose-600 dark:text-rose-400";
   }
-  if (d.includes("accounts") || d.includes("finance") || d.includes("sales")) {
-    return "text-teal-650 dark:text-teal-400";
+  if (d.includes("accounts") || d.includes("finance") || d.includes("sales") || d === "acc") {
+    return "text-teal-600 dark:text-teal-400";
   }
-  return "text-[#c2410c] dark:text-[#ea580c]";
+  return "text-indigo-600 dark:text-indigo-400";
+};
+
+const getDeptShortName = (d) => {
+  if (!d) return "";
+  const str = d.trim();
+  const lower = str.toLowerCase();
+  
+  if (lower.includes("digital marketing") || lower === "dm" || lower.includes("marketing")) return "DM";
+  if (lower.includes("graphic design") || lower.includes("designer") || lower.includes("design") || lower === "gd") return "GD";
+  if (lower.includes("video production") || lower.includes("video") || lower.includes("production") || lower === "vp") return "VP";
+  if (lower.includes("web development") || lower.includes("web developer") || lower.includes("tech") || lower.includes("website") || lower === "dev") return "DEV";
+  if (lower.includes("seo")) return "SEO";
+  if (lower.includes("content") || lower.includes("copywriter") || lower === "cw") return "CW";
+  if (lower.includes("accounts") || lower.includes("finance") || lower === "acc") return "ACC";
+  if (lower.includes("sales") || lower.includes("bd") || lower.includes("business dev")) return "BD";
+  if (lower.includes("operation manager") || lower.includes("operations") || lower === "om") return "OM";
+  if (lower.includes("admin")) return "ADM";
+
+  if (str.length <= 4) return str.toUpperCase();
+  const words = str.split(/[\s_-]+/);
+  if (words.length > 1) {
+    return words.map(w => w[0]).join('').toUpperCase().substring(0, 4);
+  }
+  return str.substring(0, 3).toUpperCase();
 };
 
 const MultiSelect = ({
@@ -398,7 +422,7 @@ const Clients = () => {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(4);
+  const [itemsPerPage, setItemsPerPage] = useState(7);
 
   const initialForm = {
     companyName: "",
@@ -913,7 +937,7 @@ const Clients = () => {
                               })()}
                               <div className="min-w-[120px]">
                                 <h2
-                                  className="font-bold transition-colors text-[12.5px] text-slate-800 dark:text-slate-100 truncate max-w-[200px] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                                  className="font-bold transition-colors text-[12.5px] text-slate-800 dark:text-slate-900 truncate max-w-[200px] cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                                   onClick={() => {
                                     setViewClient(client);
                                     setShowViewOffcanvas(true);
@@ -940,15 +964,18 @@ const Clients = () => {
                                 </div>
                               </div>
                             </div>
-                          </td>{(user?.role === "admin" || user?.role === "operationmanager") && (
+                          </td>
+                          {(user?.role === "admin" || user?.role === "operationmanager") && (
                             <td className={`${cellClass} text-center w-28`}>
                               <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold text-[10px] border border-blue-200/50 dark:border-blue-800/30">
                                 {projects?.filter(p => p.client?._id === client._id || p.client === client._id).length || 0}
                               </span>
                             </td>
-                          )}<td className={cellClass}>
-                            <div className="flex flex-col gap-1.5">
-                              <div className="flex flex-wrap gap-1.5 mb-1">
+                          )}
+                          <td className={cellClass}>
+                            <div className="flex flex-col gap-1.5 py-0.5">
+                              {/* Service Pills */}
+                              <div className="flex flex-wrap items-center gap-1.5">
                                 {client.service &&
                                   (Array.isArray(client.service)
                                     ? client.service
@@ -960,16 +987,17 @@ const Clients = () => {
                                     return (
                                       <span
                                         key={idx}
-                                        className={`inline-flex px-2 py-0.5 rounded-full text-[8.5px] font-extrabold tracking-wider uppercase border ${sConf.pill} items-center gap-1 shadow-sm`}
+                                        className={`inline-flex px-2 py-0.5 rounded-full text-[8.5px] font-extrabold tracking-wider uppercase border ${sConf.pill} items-center gap-1 shadow-2xs`}
                                       >
-                                        <SIcon size={10} />
+                                        <SIcon size={9.5} />
                                         {svc}
                                       </span>
                                     );
                                   })}
                               </div>
 
-                              <div className="flex flex-wrap gap-2 max-w-[350px]">
+                              {/* Members - All on Same Line with Full Dept Name */}
+                              <div className="flex flex-wrap items-center gap-1.5 max-w-[380px]">
                                 {client.assignedTo &&
                                 (Array.isArray(client.assignedTo)
                                   ? client.assignedTo.length > 0
@@ -980,26 +1008,26 @@ const Clients = () => {
                                         (u) => u._id === (member._id || member),
                                       );
                                       const dept = fullUser?.department || "";
+                                      const memberName = member.name || member.email || "Member";
+                                      const formattedDept = dept ? dept.charAt(0).toUpperCase() + dept.slice(1) : "";
                                       return (
-                                        <div
+                                        <span
                                           key={member._id || member}
-                                          className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-200/50 dark:border-slate-700/50 transition-transform hover:scale-105 w-max max-w-full overflow-hidden"
-                                          title={member.name || member.email}
+                                          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-800 shadow-2xs border border-slate-200/80 dark:border-slate-700/60 transition-all hover:border-blue-400 dark:hover:border-blue-500 cursor-default"
+                                          title={`${memberName}${formattedDept ? ` · ${formattedDept}` : ""}`}
                                         >
-                                          <div className="flex items-center gap-1.5">
-                                            <span className="text-[9.5px] font-bold text-slate-800 dark:text-slate-400 truncate max-w-[85px]">
-                                              {member.name || member.email}
-                                            </span>
-                                            {dept && (
-                                              <>
-                                                <span className="w-[1px] h-2.5 bg-slate-200 dark:bg-slate-700 block"></span>
-                                                <span className={`text-[7.5px] font-bold ${getDeptColor(dept)} truncate max-w-[80px]`} title={dept}>
-                                                  {dept.charAt(0).toUpperCase() + dept.slice(1)}
-                                                </span>
-                                              </>
-                                            )}
-                                          </div>
-                                        </div>
+                                          <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200">
+                                            {memberName}
+                                          </span>
+                                          {formattedDept && (
+                                            <>
+                                              <span className="w-[1px] h-2.5 bg-slate-200 dark:bg-slate-700"></span>
+                                              <span className={`text-[8.5px] font-bold ${getDeptColor(dept)}`}>
+                                                {formattedDept}
+                                              </span>
+                                            </>
+                                          )}
+                                        </span>
                                       );
                                     })
                                   ) : (
@@ -1011,128 +1039,81 @@ const Clients = () => {
                                           (singleMember._id || singleMember),
                                       );
                                       const dept = fullUser?.department || "";
+                                      const memberName = singleMember.name || singleMember.email || "Member";
+                                      const formattedDept = dept ? dept.charAt(0).toUpperCase() + dept.slice(1) : "";
                                       return (
-                                        <div
-                                          className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white dark:bg-[#0B1120] border border-slate-200/50 dark:border-slate-750/50 shadow-sm transition-transform hover:scale-105 w-max max-w-full overflow-hidden"
-                                          title={
-                                            singleMember.name ||
-                                            singleMember.email
-                                          }
+                                        <span
+                                          className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white dark:bg-slate-800 shadow-2xs border border-slate-200/80 dark:border-slate-700/60 transition-all hover:border-blue-400 dark:hover:border-blue-500 cursor-default"
+                                          title={`${memberName}${formattedDept ? ` · ${formattedDept}` : ""}`}
                                         >
-                                          <div className="flex items-center gap-1.5">
-                                            <span className="text-[9.5px] font-bold text-slate-800 dark:text-slate-400 truncate max-w-[85px]">
-                                              {singleMember.name ||
-                                                singleMember.email}
-                                            </span>
-                                            {dept && (
-                                              <>
-                                                <span className="w-[1px] h-2.5 bg-slate-200 dark:bg-slate-700 block"></span>
-                                                <span className={`text-[7.5px] font-bold ${getDeptColor(dept)} truncate max-w-[80px]`} title={dept}>
-                                                  {dept.charAt(0).toUpperCase() + dept.slice(1)}
-                                                </span>
-                                              </>
-                                            )}
-                                          </div>
-                                        </div>
+                                          <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200">
+                                            {memberName}
+                                          </span>
+                                          {formattedDept && (
+                                            <>
+                                              <span className="w-[1px] h-2.5 bg-slate-200 dark:bg-slate-700"></span>
+                                              <span className={`text-[8.5px] font-bold ${getDeptColor(dept)}`}>
+                                                {formattedDept}
+                                              </span>
+                                            </>
+                                          )}
+                                        </span>
                                       );
                                     })()
                                   )
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5  bg-slate-50/50 dark:bg-white/5 text-slate-400 dark:text-slate-500 italic text-[9.5px]">
+                                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-50/50 dark:bg-white/5 text-slate-400 dark:text-slate-500 italic text-[9.5px]">
                                     <FiUser size={9} />
                                     <span>Unassigned</span>
                                   </span>
                                 )}
                               </div>
                             </div>
-                          </td><td className={cellClass}>
-                            <div className="flex flex-col gap-1.5 max-w-[280px] py-0.5">
-                              {/* Digital Marketing */}
-                              {(client.posts > 0 || client.reels > 0) && (
-                                <div className="space-y-0.5">
-                                  <div className="text-[8px] font-extrabold tracking-wider uppercase text-blue-500/80 dark:text-blue-400/80">
-                                    Digital Marketing
-                                  </div>
-                                  <div className="flex flex-wrap gap-1">
-                                    {client.posts > 0 && (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 font-bold text-[9.5px]">
-                                        <FiLayers size={9} /> {client.posts}{" "}
-                                        Posts
-                                      </span>
-                                    )}
-                                    {client.reels > 0 && (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 font-bold text-[9.5px]">
-                                        <FiVideo size={9} /> {client.reels}{" "}
-                                        Reels
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
+                          </td>
+                          <td className={cellClass}>
+                            <div className="flex flex-wrap items-center gap-1.5 max-w-[320px] py-0.5">
+                              {client.posts > 0 && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/50 font-bold text-[9.5px]" title="Posts">
+                                  <FiLayers size={9.5} className="text-blue-500" />
+                                  {client.posts} Posts
+                                </span>
                               )}
-
-                              {/* Video Production */}
-                              {(client.story > 0 ||
-                                (client.needDslr &&
-                                  client.needDslr !== "No DSLR")) && (
-                                <div className="space-y-0.5">
-                                  <div className="text-[8px] font-extrabold tracking-wider uppercase text-rose-500/80 dark:text-rose-400/80">
-                                    Video Production
-                                  </div>
-                                  <div className="flex flex-wrap gap-1">
-                                    {client.story > 0 && (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 font-bold text-[9.5px]">
-                                        <FiVideo size={9} /> {client.story}{" "}
-                                        Stories
-                                      </span>
-                                    )}
-                                    {client.needDslr &&
-                                      client.needDslr !== "No DSLR" && (
-                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60 font-bold text-[9.5px]">
-                                          <FiVideo size={9} /> DSLR:{" "}
-                                          {client.needDslr}
-                                        </span>
-                                      )}
-                                  </div>
-                                </div>
+                              {client.reels > 0 && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/50 font-bold text-[9.5px]" title="Reels">
+                                  <FiVideo size={9.5} className="text-purple-500" />
+                                  {client.reels} Reels
+                                </span>
                               )}
-
-                              {/* Website */}
+                              {client.story > 0 && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/50 font-bold text-[9.5px]" title="Stories">
+                                  <FiVideo size={9.5} className="text-rose-500" />
+                                  {client.story} Stories
+                                </span>
+                              )}
+                              {client.needDslr && client.needDslr !== "No DSLR" && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/50 font-bold text-[9.5px]" title="DSLR Requirement">
+                                  <FiVideo size={9.5} className="text-amber-500" />
+                                  DSLR: {client.needDslr}
+                                </span>
+                              )}
                               {client.pages > 0 && (
-                                <div className="space-y-0.5">
-                                  <div className="text-[8px] font-extrabold tracking-wider uppercase text-emerald-500/80 dark:text-emerald-400/80">
-                                    Website
-                                  </div>
-                                  <div className="flex flex-wrap gap-1">
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 font-bold text-[9.5px]">
-                                      <FiGlobe size={9} /> {client.pages}{" "}
-                                      Pages
-                                    </span>
-                                  </div>
-                                </div>
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/50 font-bold text-[9.5px]" title="Website Pages">
+                                  <FiGlobe size={9.5} className="text-emerald-500" />
+                                  {client.pages} Pages
+                                </span>
                               )}
-
-                              {/* SEO */}
-                              {(client.onpage || client.offpage) && (
-                                <div className="space-y-0.5">
-                                  <div className="text-[8px] font-extrabold tracking-wider uppercase text-amber-500/80 dark:text-amber-400/80">
-                                    SEO
-                                  </div>
-                                  <div className="flex flex-wrap gap-1">
-                                    {client.onpage && (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800/60 font-bold text-[9.5px]">
-                                        <FiSearch size={9} /> On-Page
-                                      </span>
-                                    )}
-                                    {client.offpage && (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800/60 font-bold text-[9.5px]">
-                                        <FiSearch size={9} /> Off-Page
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
+                              {client.onpage && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300 border border-orange-200/60 dark:border-orange-800/50 font-bold text-[9.5px]" title="SEO On-Page">
+                                  <FiSearch size={9.5} className="text-orange-500" />
+                                  On-Page
+                                </span>
                               )}
-
-                              {/* Empty State Fallback */}
+                              {client.offpage && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300 border border-orange-200/60 dark:border-orange-800/50 font-bold text-[9.5px]" title="SEO Off-Page">
+                                  <FiSearch size={9.5} className="text-orange-500" />
+                                  Off-Page
+                                </span>
+                              )}
                               {!client.posts &&
                                 !client.reels &&
                                 !client.story &&
@@ -1144,7 +1125,8 @@ const Clients = () => {
                                   </span>
                                 )}
                             </div>
-                          </td>{user?.role === "team" && (
+                          </td>
+                          {user?.role === "team" && (
                             <td className={cellClass}>
                               <div className="flex items-center gap-1">
                                 {client.createdBy ? (

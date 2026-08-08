@@ -155,7 +155,7 @@ const InReviewNotificationPopup = () => {
               initial={{ opacity: 0, y: 50, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              className="bg-white/98 dark:bg-slate-900/98 backdrop-blur-xl border border-slate-200 dark:border-slate-850 rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-5 pointer-events-auto relative overflow-hidden"
+              className="bg-white dark:bg-slate-50 rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-5 pointer-events-auto relative overflow-hidden"
             >
               {/* Header */}
               <div className="flex items-center justify-between mb-4">
@@ -303,7 +303,7 @@ const InReviewNotificationPopup = () => {
               <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2">
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="px-4 py-2 rounded-xl text-[10px] font-black bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 transition-colors uppercase tracking-wider cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-[10px] font-black bg-slate-100 hover:bg-slate-200 dark:bg-slate-200 dark:hover:bg-slate-250 text-slate-700 dark:text-slate-900 transition-colors uppercase tracking-wider cursor-pointer"
                 >
                   Dismiss
                 </button>

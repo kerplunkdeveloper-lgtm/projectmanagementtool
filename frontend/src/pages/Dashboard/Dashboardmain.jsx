@@ -1676,7 +1676,7 @@ const Dashboardmain = () => {
                   {getInitials(user?.name) || "Aw"}
                 </div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-medium">My Goals tasks</h3>
+                  <h3 className="text-xl font-medium text-gray-800 dark:text-gray-200">My Goals tasks</h3>
                   <FiLock
                     size={14}
                     className="text-slate-400 dark:text-slate-500 fill-slate-400 dark:fill-slate-500"

@@ -73,14 +73,14 @@ const formatBusinessDuration = (ms) => {
 
 const getStatusWithEmoji = (status) => {
   const s = (status || "").toLowerCase();
-  if (s === "pending" || s === "to do") return "⏳ Pending";
-  if (s.includes("progress")) return "⚡ In Progress";
-  if (s.includes("review")) return "🔍 In Review";
-  if (s.includes("correction")) return "🛠️ Correction";
-  if (s === "completed" || s.includes("approve") || s === "done") return "✅ Completed";
-  if (s.includes("hold")) return "⏸️ On Hold";
-  if (s.includes("reject")) return "❌ Rejected";
-  return `⏳ ${status || "Pending"}`;
+  if (s === "pending" || s === "to do") return "Pending";
+  if (s.includes("progress")) return "In Progress";
+  if (s.includes("review")) return "In Review";
+  if (s.includes("correction")) return "Correction";
+  if (s === "completed" || s.includes("approve") || s === "done") return "Completed";
+  if (s.includes("hold")) return "On Hold";
+  if (s.includes("reject")) return "Rejected";
+  return status || "Pending";
 };
 
 export const isSameDate = (d1, d2) => {
@@ -4899,15 +4899,9 @@ const ProjectTaskBoard = ({
                                                   ? "bg-blue-50 dark:bg-[#1e293b]"
                                                   : isRejected
                                                     ? "!bg-[#fde8e8] text-rose-950 dark:!bg-[#2c1214] dark:text-rose-200 opacity-80 pointer-events-none !border-rose-300 dark:!border-rose-800/60"
-                                                    : isCompleted
-                                                      ? "!bg-[#e6f4ea] text-emerald-950 dark:!bg-[#0c2919] dark:text-emerald-200"
-                                                      : isInReview
-                                                        ? "!bg-[#fef3c7] text-yellow-950 dark:!bg-[#2e2305] dark:text-yellow-200"
-                                                        : isInProgress
-                                                          ? "!bg-[#f3e8ff] text-purple-950 dark:!bg-[#261342] dark:text-purple-200"
-                                                          : taskIndex % 2 === 0
-                                                            ? "bg-white dark:bg-[#111115] text-slate-800 dark:text-slate-100"
-                                                            : "bg-slate-50 dark:bg-[#16161b] text-slate-800 dark:text-slate-100";
+                                                    : taskIndex % 2 === 0
+                                                      ? "bg-white dark:bg-[#111115] text-slate-800 dark:text-slate-100"
+                                                      : "bg-slate-50 dark:bg-[#16161b] text-slate-800 dark:text-slate-100";
 
                                                 return (
                                                   <React.Fragment
@@ -5877,40 +5871,40 @@ const ProjectTaskBoard = ({
                                                                   "IN-REVIEW" ? (
                                                                   <>
                                                                     <option value="In Review">
-                                                                      🔍 In Review
+                                                                      In Review
                                                                     </option>
                                                                     <option value="Correction">
-                                                                      🛠️ Correction
+                                                                      Correction
                                                                     </option>
                                                                     <option value="Completed">
-                                                                      ✅ Completed
+                                                                      Completed
                                                                     </option>
                                                                     <option value="Rejected">
-                                                                      ❌ Rejected
+                                                                      Rejected
                                                                     </option>
                                                                   </>
                                                                 ) : (
                                                                   <>
                                                                     <option value="Pending">
-                                                                      ⏳ Pending
+                                                                      Pending
                                                                     </option>
                                                                     <option value="In Progress">
-                                                                      ⚡ In Progress
+                                                                      In Progress
                                                                     </option>
                                                                     <option value="In Review">
-                                                                      🔍 In Review
+                                                                      In Review
                                                                     </option>
                                                                     <option value="Correction">
-                                                                      🛠️ Correction
+                                                                      Correction
                                                                     </option>
                                                                     <option value="Completed">
-                                                                      ✅ Completed
+                                                                      Completed
                                                                     </option>
                                                                     <option value="On Hold">
-                                                                      ⏸️ On Hold
+                                                                      On Hold
                                                                     </option>
                                                                     <option value="Rejected">
-                                                                      ❌ Rejected
+                                                                      Rejected
                                                                     </option>
                                                                   </>
                                                                 )}
@@ -6092,13 +6086,7 @@ const ProjectTaskBoard = ({
                                                           const rowBgSub =
                                                             isSubRejected
                                                               ? "!bg-[#fde8e8] text-rose-950 dark:!bg-[#2c1214] dark:text-rose-200 opacity-80 pointer-events-none !border-rose-300 dark:!border-rose-800/60 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
-                                                              : isSubCompleted
-                                                                ? "!bg-[#e6f4ea] text-emerald-950 dark:!bg-[#0c2919] dark:text-emerald-200 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
-                                                                : isSubInReview
-                                                                  ? "!bg-[#fef3c7] text-yellow-950 dark:!bg-[#2e2305] dark:text-yellow-200 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
-                                                                  : isSubInProgress
-                                                                    ? "!bg-[#f3e8ff] text-purple-950 dark:!bg-[#261342] dark:text-purple-200 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
-                                                                    : "bg-amber-50 dark:bg-[#16161b] text-slate-855 dark:text-slate-100 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]";
+                                                              : "bg-amber-50 dark:bg-[#16161b] text-slate-855 dark:text-slate-100 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]";
 
                                                           return (
                                                             <tr
@@ -7084,40 +7072,40 @@ const ProjectTaskBoard = ({
                                                                           "IN-REVIEW" ? (
                                                                           <>
                                                                             <option value="In Review">
-                                                                              🔍 In Review
+                                                                              In Review
                                                                             </option>
                                                                             <option value="Correction">
-                                                                              🛠️ Correction
+                                                                              Correction
                                                                             </option>
                                                                             <option value="Completed">
-                                                                              ✅ Completed
+                                                                              Completed
                                                                             </option>
                                                                             <option value="Rejected">
-                                                                              ❌ Rejected
+                                                                              Rejected
                                                                             </option>
                                                                           </>
                                                                         ) : (
                                                                           <>
                                                                             <option value="Pending">
-                                                                              ⏳ Pending
+                                                                              Pending
                                                                             </option>
                                                                             <option value="In Progress">
-                                                                              ⚡ In Progress
+                                                                              In Progress
                                                                             </option>
                                                                             <option value="In Review">
-                                                                              🔍 In Review
+                                                                              In Review
                                                                             </option>
                                                                             <option value="Correction">
-                                                                              🛠️ Correction
+                                                                              Correction
                                                                             </option>
                                                                             <option value="Completed">
-                                                                              ✅ Completed
+                                                                              Completed
                                                                             </option>
                                                                             <option value="On Hold">
-                                                                              ⏸️ On Hold
+                                                                              On Hold
                                                                             </option>
                                                                             <option value="Rejected">
-                                                                              ❌ Rejected
+                                                                              Rejected
                                                                             </option>
                                                                           </>
                                                                         )}
@@ -7388,13 +7376,9 @@ const ProjectTaskBoard = ({
                                       className={`p-2.5 rounded-xl border space-y-2 relative group select-none ${
                                         isTaskRejected
                                           ? "!bg-[#fde8e8] dark:!bg-[#2c1214] !border-rose-300 dark:!border-rose-800/60 opacity-80 pointer-events-none"
-                                          : isCompleted
-                                            ? "!bg-[#e6f4ea] dark:!bg-[#0c2919] !border-emerald-200 dark:!border-emerald-800/50 cursor-pointer"
-                                            : isInReview
-                                              ? "!bg-[#fef3c7] dark:!bg-[#2e2305] !border-yellow-300 dark:!border-yellow-800/60 cursor-pointer"
-                                              : snapshot.isDragging
-                                                ? "bg-white dark:bg-[#111111] shadow-2xl ring-2 ring-blue-500 dark:ring-[#3b82f6] scale-[1.03] z-50 border-blue-300 dark:border-[#3b82f6] cursor-pointer"
-                                                : "bg-white dark:bg-[#111111] border-slate-150 dark:border-white/5 hover:shadow-md hover:border-slate-200 dark:hover:border-[#3b82f6]/50 transition-shadow transition-colors cursor-pointer"
+                                          : snapshot.isDragging
+                                            ? "bg-white dark:bg-[#111111] shadow-2xl ring-2 ring-blue-500 dark:ring-[#3b82f6] scale-[1.03] z-50 border-blue-300 dark:border-[#3b82f6] cursor-pointer"
+                                            : "bg-white dark:bg-[#111111] border-slate-150 dark:border-white/5 hover:shadow-md hover:border-slate-200 dark:hover:border-[#3b82f6]/50 transition-shadow transition-colors cursor-pointer"
                                       }`}
                                     >
                                       <div className="flex items-start gap-2">

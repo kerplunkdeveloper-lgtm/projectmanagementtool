@@ -51,14 +51,14 @@ const isSameDate = (d1, d2) => {
 
 const getStatusWithEmoji = (status) => {
   const s = (status || "").toLowerCase();
-  if (s === "pending" || s === "to do") return "⏳ Pending";
-  if (s.includes("progress")) return "⚡ In Progress";
-  if (s.includes("review")) return "🔍 In Review";
-  if (s.includes("correction")) return "🛠️ Correction";
-  if (s === "completed" || s.includes("approve") || s === "done") return "✅ Completed";
-  if (s.includes("hold")) return "⏸️ On Hold";
-  if (s.includes("reject")) return "❌ Rejected";
-  return `⏳ ${status || "Pending"}`;
+  if (s === "pending" || s === "to do") return "Pending";
+  if (s.includes("progress")) return "In Progress";
+  if (s.includes("review")) return "In Review";
+  if (s.includes("correction")) return "Correction";
+  if (s === "completed" || s.includes("approve") || s === "done") return "Completed";
+  if (s.includes("hold")) return "On Hold";
+  if (s.includes("reject")) return "Rejected";
+  return status || "Pending";
 };
 
 const SimpleTimeTracker = ({
@@ -2369,9 +2369,9 @@ const TaskOverviewTab = ({
                           setOverviewPriorityFilter(pr);
                           setShowPriorityDropdown(false);
                         }}
-                        className={`w-full flex items-center justify-between px-2.5 py-1 rounded-xl text-[12px] font-bold transition-all text-left cursor-pointer ${
+                        className={`w-full flex items-center justify-between px-2.5 py-1 rounded-xl text-[12px] font-medium transition-all text-left cursor-pointer ${
                           overviewPriorityFilter === pr
-                            ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 font-extrabold"
+                            ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 font-medium"
                             : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5"
                         }`}
                       >
@@ -2686,13 +2686,7 @@ const TaskOverviewTab = ({
                         className={`transition-colors border-b border-slate-200 dark:border-white/10 ${
                           isRejected
                             ? "!bg-[#fde8e8] text-rose-950 dark:!bg-[#2c1214] dark:text-rose-200 opacity-80 pointer-events-none"
-                            : isCompleted
-                              ? "!bg-[#e6f4ea] text-emerald-950 dark:!bg-[#0c2919] dark:text-emerald-200 hover:bg-emerald-200/60 dark:hover:bg-[#133a25] cursor-pointer"
-                              : isInReview
-                                ? "!bg-[#fef3c7] text-yellow-950 dark:!bg-[#2e2305] dark:text-yellow-200 hover:bg-amber-200/60 dark:hover:bg-[#3d2f07] cursor-pointer"
-                                : isInProgress
-                                  ? "!bg-[#f3e8ff] text-purple-950 dark:!bg-[#261342] dark:text-purple-200 hover:bg-purple-200/60 dark:hover:bg-[#381c60] cursor-pointer"
-                                  : "text-slate-800 dark:text-slate-100 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] cursor-pointer"
+                            : "text-slate-800 dark:text-slate-100 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] cursor-pointer"
                         }`}
                         onClick={() => setSelectedTaskId(task._id)}
                       >
@@ -2821,7 +2815,7 @@ const TaskOverviewTab = ({
                         {!hiddenColumns.priority && (
                           <td className="py-2 px-2 border-r border-b border-slate-200 dark:border-white/10 text-center whitespace-nowrap">
                             <span
-                              className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-[18px] font-medium tracking-wider shadow-sm  ${
+                              className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-[14px] font-medium  shadow-sm  ${
                                 isSameDate(task.startDate, task.dueDate)
                                   ? "badge-priority-top-high"
                                   : pStyle
@@ -3106,12 +3100,12 @@ const TaskOverviewTab = ({
                       {selectedTask.status === "Completed" ? (
                         <div className="px-2.5 py-1 text-[12px] font-black rounded-full border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 flex items-center gap-1.5 shadow-sm uppercase tracking-wider w-fit">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                          ✅ Completed
+                          Completed
                         </div>
                       ) : selectedTask.status === "Rejected" ? (
                         <div className="px-2.5 py-1 text-[12px] font-black rounded-full border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 flex items-center gap-1.5 shadow-sm uppercase tracking-wider w-fit">
                           <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                          ❌ Rejected
+                          Rejected
                         </div>
                       ) : (
                         <select
@@ -3137,13 +3131,13 @@ const TaskOverviewTab = ({
                                         : "badge-status-pending"
                           }`}
                         >
-                          <option value="Pending">⏳ Pending</option>
-                          <option value="In Progress">⚡ In Progress</option>
-                          <option value="In Review">🔍 In Review</option>
-                          <option value="Correction">🛠️ Correction</option>
-                          <option value="Completed">✅ Completed</option>
-                          <option value="On Hold">⏸️ On Hold</option>
-                          <option value="Rejected">❌ Rejected</option>
+                          <option value="Pending">Pending</option>
+                          <option value="In Progress">In Progress</option>
+                          <option value="In Review">In Review</option>
+                          <option value="Correction">Correction</option>
+                          <option value="Completed">Completed</option>
+                          <option value="On Hold">On Hold</option>
+                          <option value="Rejected">Rejected</option>
                         </select>
                       )}
                     </div>

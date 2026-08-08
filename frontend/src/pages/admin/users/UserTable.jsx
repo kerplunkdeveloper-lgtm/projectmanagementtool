@@ -323,8 +323,8 @@ const UserTable = ({
                           Online
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10.5px] font-black border bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700">
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10.5px] font-black border bg-red-500 text-white border-slate-200 dark:bg-red-500 dark:text-white dark:border-slate-700">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-700" />
                           Offline
                         </span>
                       )}

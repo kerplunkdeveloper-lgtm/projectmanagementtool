@@ -2422,13 +2422,9 @@ const MyTasksTab = ({
                           className={`shadow-sm rounded-2xl p-5 border transition-all flex flex-col gap-3 ${
                             isRejected
                               ? "!bg-[#fde8e8] text-rose-950 dark:!bg-[#2c1214] dark:text-rose-200 opacity-80 pointer-events-none !border-rose-300 dark:!border-rose-800/60"
-                              : isCompleted
-                                ? "!bg-[#e6f4ea] text-emerald-950 dark:!bg-[#0c2919] dark:text-emerald-200 !border-emerald-200 dark:!border-emerald-800/50 hover:shadow-lg cursor-pointer"
-                                : isInReview
-                                  ? "!bg-[#fef3c7] text-yellow-950 dark:!bg-[#2e2305] dark:text-yellow-200 !border-yellow-300 dark:!border-yellow-800/60 hover:shadow-lg cursor-pointer"
-                                  : draggedTaskId === task._id
-                                    ? "opacity-50 scale-95 border-blue-500 bg-white dark:bg-[#11131e]"
-                                    : "bg-white dark:bg-[#11131e] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] border-slate-200 dark:border-slate-800 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-500/60 cursor-grab active:cursor-grabbing group"
+                              : draggedTaskId === task._id
+                                ? "opacity-50 scale-95 border-blue-500 bg-white dark:bg-[#11131e]"
+                                : "bg-white dark:bg-[#11131e] dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] border-slate-200 dark:border-slate-800 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-500/60 cursor-grab active:cursor-grabbing group"
                           }`}
                         >
                           <div className="flex justify-between items-start flex-wrap gap-1.5">
@@ -2689,15 +2685,9 @@ const MyTasksTab = ({
                             className={`transition-colors group ${
                               isRejected
                                 ? "!bg-[#fde8e8] text-rose-950 dark:!bg-[#2c1214] dark:text-rose-200 opacity-80 pointer-events-none"
-                                : isCompleted
-                                  ? "!bg-[#e6f4ea] text-emerald-950 dark:!bg-[#0c2919] dark:text-emerald-200 hover:bg-emerald-200/60 dark:hover:bg-[#133a25] cursor-pointer"
-                                  : isInReview
-                                    ? "!bg-[#fef3c7] text-yellow-950 dark:!bg-[#2e2305] dark:text-yellow-200 hover:bg-amber-200/60 dark:hover:bg-[#3d2f07] cursor-pointer"
-                                    : isInProgress
-                                      ? "!bg-[#f3e8ff] text-purple-950 dark:!bg-[#261342] dark:text-purple-200 hover:bg-purple-200/60 dark:hover:bg-[#381c60] cursor-pointer"
-                                      : task.priority === "Top High"
-                                        ? "row-priority-top-high text-slate-700 dark:text-slate-200 hover:bg-slate-50/40 dark:hover:bg-[#1a1d2d] cursor-pointer"
-                                        : "text-slate-700 dark:text-slate-200 hover:bg-slate-50/40 dark:hover:bg-[#1a1d2d] cursor-pointer"
+                                : task.priority === "Top High"
+                                  ? "row-priority-top-high text-slate-700 dark:text-slate-200 hover:bg-slate-50/40 dark:hover:bg-[#1a1d2d] cursor-pointer"
+                                  : "text-slate-700 dark:text-slate-200 hover:bg-slate-50/40 dark:hover:bg-[#1a1d2d] cursor-pointer"
                             }`}
                             onClick={() => handleSelectTaskForDrawer(task._id)}
                           >
@@ -2864,18 +2854,18 @@ const MyTasksTab = ({
                               ) : task.status === "Completed" ? (
                                 <div className="px-2.5 py-2 text-[11px] sm:text-[13px] font-extrabold rounded-md border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 bg-emerald-200 dark:bg-emerald-500/10 flex items-center justify-center gap-1.5 shadow-sm ">
                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                  ✅ Completed
+                                  Completed
                                 </div>
                               ) : task.status === "In Review" ? (
                                 <div className="px-2.5 py-2 text-[11px] sm:text-[13px] font-extrabold rounded-md border border-yellow-800 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300 bg-yellow-200 dark:bg-yellow-500/10 flex items-center justify-center gap-1.5 shadow-sm ">
                                   <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
-                                  🔍 In Review
+                                  In Review
                                 </div>
                               ) : task.status === "Correction" ? (
                                 <div className="flex flex-col gap-1 items-center">
                                   <div className="px-2.5 py-1 text-[11px] sm:text-[9.5px] font-extrabold rounded-md border border-orange-300 dark:border-orange-500/30 text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-500/10 flex items-center justify-center gap-1.5 shadow-sm">
                                     <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-                                    🛠️ Corrections Required
+                                    Corrections Required
                                   </div>
                                   <button
                                     type="button"
@@ -2888,7 +2878,7 @@ const MyTasksTab = ({
                               ) : task.status === "Rejected" ? (
                                 <div className="px-2.5 py-2 text-[11px] sm:text-[13px] font-extrabold rounded-md border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-400 bg-rose-200 dark:bg-rose-500/10 flex items-center justify-center gap-1.5 shadow-sm ">
                                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                                  ❌ Rejected
+                                  Rejected
                                 </div>
                               ) : (
                                 <div className="relative w-full group">
@@ -2906,40 +2896,40 @@ const MyTasksTab = ({
                                       value="Pending"
                                       className="bg-white dark:bg-gray-500 text-slate-700 dark:text-white"
                                     >
-                                      ⏳ Pending
+                                      Pending
                                     </option>
                                     <option
                                       value="In Progress"
                                       className="bg-white dark:bg-blue-500 text-slate-700 dark:text-white"
                                     >
-                                      ⚡ In Progress
+                                      In Progress
                                     </option>
                                     <option
                                       value="In Review"
                                       className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
                                     >
-                                      🔍 In Review
+                                      In Review
                                     </option>
                                     {task.status === "Completed" && (
                                       <option
                                         value="Completed"
                                         className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
                                       >
-                                        ✅ Completed
+                                        Completed
                                       </option>
                                     )}
                                     <option
                                       value="On Hold"
                                       className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
                                     >
-                                      ⏸️ On Hold
+                                      On Hold
                                     </option>
                                     {task.status === "Rejected" && (
                                       <option
                                         value="Rejected"
                                         className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
                                       >
-                                        ❌ Rejected
+                                        Rejected
                                       </option>
                                     )}
                                   </select>
