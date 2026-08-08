@@ -528,7 +528,7 @@ const ApprovalTimeDisplay = React.memo(
   },
 );
 
-const renderUserAvatarSmall = (u) => {
+const renderUserAvatarSmall = (u, sizeClass = "w-10 h-10 text-[8px]") => {
   if (!u) return null;
   const avatarUrl =
     (typeof u.profile?.profileImage === "object"
@@ -547,7 +547,7 @@ const renderUserAvatarSmall = (u) => {
       <img
         src={avatarUrl}
         alt={u.name || "User"}
-        className="w-6 h-6 rounded-full object-cover border border-slate-200/80 dark:border-white/10 shadow-xs shrink-0"
+        className={`${sizeClass} rounded-full object-cover border border-slate-200/80 dark:border-white/10 shadow-2xs shrink-0`}
       />
     );
   }
@@ -571,7 +571,7 @@ const renderUserAvatarSmall = (u) => {
 
   return (
     <div
-      className={`w-6 h-6 rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-white font-black text-[9.5px] border border-white/10 shadow-xs shrink-0`}
+      className={`${sizeClass} rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-white font-black border border-white/10 shadow-2xs shrink-0`}
     >
       {initials}
     </div>
@@ -1693,9 +1693,9 @@ const TaskOverviewTab = ({
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-2 w-full sm:w-auto">
+          <div className="flex items-center justify-end gap-1.5 w-full sm:w-auto">
             <div className="relative" ref={clientDropdownRef}>
-              <div className="relative rounded-full p-[1.5px] overflow-hidden group inline-block shadow-sm">
+              <div className="relative rounded-full p-[1px] overflow-hidden group inline-block shadow-2xs">
                 <div className="absolute inset-[-100%] bg-[conic-gradient(transparent_0deg,#3b82f6_90deg,transparent_180deg)] animate-[spin_2s_linear_infinite] group-hover:bg-[conic-gradient(transparent_0deg,#6366f1_90deg,transparent_180deg)] transition-colors duration-300" />
                 <div
                   className={`absolute inset-[1px] rounded-full z-0 ${
@@ -1707,20 +1707,20 @@ const TaskOverviewTab = ({
                 <button
                   type="button"
                   onClick={() => setShowClientDropdown((prev) => !prev)}
-                  className={`relative flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-extrabold transition-all cursor-pointer z-10 bg-transparent outline-none border-none tracking-wide ${
+                  className={`relative flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all cursor-pointer z-10 bg-transparent outline-none border-none tracking-tight ${
                     overviewClientFilter !== "All"
                       ? "text-blue-800 dark:text-blue-300"
                       : "text-slate-800 dark:text-slate-200"
                   }`}
                 >
-                  <span className="truncate max-w-[90px]">
+                  <span className="truncate max-w-[80px]">
                     {overviewClientFilter === "All"
                       ? "All Clients"
                       : clients?.find((c) => c._id === overviewClientFilter)
                           ?.companyName || "Client"}
                   </span>
                   <FiChevronDown
-                    size={13}
+                    size={11}
                     className={`text-slate-400 transition-transform duration-200 ${
                       showClientDropdown ? "rotate-180" : ""
                     }`}
@@ -1800,7 +1800,7 @@ const TaskOverviewTab = ({
 
             {/* Created By Filter */}
             <div className="relative" ref={createdByDropdownRef}>
-              <div className="relative rounded-full p-[1.5px] overflow-hidden group inline-block shadow-sm">
+              <div className="relative rounded-full p-[1px] overflow-hidden group inline-block shadow-2xs">
                 <div className="absolute inset-[-100%] bg-[conic-gradient(transparent_0deg,#a855f7_90deg,transparent_180deg)] animate-[spin_2s_linear_infinite] group-hover:bg-[conic-gradient(transparent_0deg,#ec4899_90deg,transparent_180deg)] transition-colors duration-300" />
                 <div
                   className={`absolute inset-[1px] rounded-full z-0 ${
@@ -1812,7 +1812,7 @@ const TaskOverviewTab = ({
                 <button
                   type="button"
                   onClick={() => setShowCreatedByDropdown((prev) => !prev)}
-                  className={`relative flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-extrabold transition-all cursor-pointer z-10 bg-transparent outline-none border-none tracking-wide ${
+                  className={`relative flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all cursor-pointer z-10 bg-transparent outline-none border-none tracking-tight ${
                     overviewCreatedByFilter !== "All"
                       ? "text-blue-800 dark:text-blue-300"
                       : "text-slate-800 dark:text-slate-200"
@@ -1824,7 +1824,7 @@ const TaskOverviewTab = ({
                         (u) => (u._id || u.id) === overviewCreatedByFilter,
                       ),
                     )}
-                  <span className="truncate max-w-[90px]">
+                  <span className="truncate max-w-[80px]">
                     {overviewCreatedByFilter === "All"
                       ? "Created By"
                       : uniqueCreators.find(
@@ -1832,7 +1832,7 @@ const TaskOverviewTab = ({
                         )?.name || "Creator"}
                   </span>
                   <FiChevronDown
-                    size={13}
+                    size={11}
                     className={`text-slate-400 transition-transform duration-200 ${
                       showCreatedByDropdown ? "rotate-180" : ""
                     }`}
@@ -1914,7 +1914,7 @@ const TaskOverviewTab = ({
 
             {/* Assignee Filter */}
             <div className="relative" ref={assigneeDropdownRef}>
-              <div className="relative rounded-full p-[1.5px] overflow-hidden group inline-block shadow-sm">
+              <div className="relative rounded-full p-[1px] overflow-hidden group inline-block shadow-2xs">
                 <div className="absolute inset-[-100%] bg-[conic-gradient(transparent_0deg,#e11d48_90deg,transparent_180deg)] animate-[spin_2s_linear_infinite] group-hover:bg-[conic-gradient(transparent_0deg,#f43f5e_90deg,transparent_180deg)] transition-colors duration-300" />
                 <div
                   className={`absolute inset-[1px] rounded-full z-0 ${
@@ -1926,7 +1926,7 @@ const TaskOverviewTab = ({
                 <button
                   type="button"
                   onClick={() => setShowAssigneeDropdown((prev) => !prev)}
-                  className={`relative flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-extrabold transition-all cursor-pointer z-10 bg-transparent outline-none border-none tracking-wide ${
+                  className={`relative flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all cursor-pointer z-10 bg-transparent outline-none border-none tracking-tight ${
                     overviewAssigneeFilter !== "All"
                       ? "text-blue-800 dark:text-blue-300"
                       : "text-slate-800 dark:text-slate-200"
@@ -1938,7 +1938,7 @@ const TaskOverviewTab = ({
                         (u) => (u._id || u.id) === overviewAssigneeFilter,
                       ),
                     )}
-                  <span className="truncate max-w-[90px]">
+                  <span className="truncate max-w-[80px]">
                     {overviewAssigneeFilter === "All"
                       ? "Assignee"
                       : uniqueAssignees.find(
@@ -1946,7 +1946,7 @@ const TaskOverviewTab = ({
                         )?.name || "Assignee"}
                   </span>
                   <FiChevronDown
-                    size={13}
+                    size={11}
                     className={`text-slate-400 transition-transform duration-200 ${
                       showAssigneeDropdown ? "rotate-180" : ""
                     }`}
@@ -2028,7 +2028,7 @@ const TaskOverviewTab = ({
 
             {/* Status Filter */}
             <div className="relative" ref={statusDropdownRef}>
-              <div className="relative rounded-full p-[1.5px] overflow-hidden group inline-block shadow-sm">
+              <div className="relative rounded-full p-[1px] overflow-hidden group inline-block shadow-2xs">
                 <div className="absolute inset-[-100%] bg-[conic-gradient(transparent_0deg,#0ea5e9_90deg,transparent_180deg)] animate-[spin_2s_linear_infinite] group-hover:bg-[conic-gradient(transparent_0deg,#2563eb_90deg,transparent_180deg)] transition-colors duration-300" />
                 <div
                   className={`absolute inset-[1px] rounded-full z-0 ${
@@ -2040,19 +2040,19 @@ const TaskOverviewTab = ({
                 <button
                   type="button"
                   onClick={() => setShowStatusDropdown((prev) => !prev)}
-                  className={`relative flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-extrabold transition-all cursor-pointer z-10 bg-transparent outline-none border-none tracking-wide ${
+                  className={`relative flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all cursor-pointer z-10 bg-transparent outline-none border-none tracking-tight ${
                     overviewStatusFilter !== "All"
                       ? "text-blue-800 dark:text-blue-300"
                       : "text-slate-800 dark:text-slate-200"
                   }`}
                 >
-                  <span className="truncate max-w-[90px]">
+                  <span className="truncate max-w-[80px]">
                     {overviewStatusFilter === "All"
                       ? "Status"
                       : overviewStatusFilter}
                   </span>
                   <FiChevronDown
-                    size={13}
+                    size={11}
                     className={`text-slate-400 transition-transform duration-200 ${
                       showStatusDropdown ? "rotate-180" : ""
                     }`}
@@ -2109,7 +2109,7 @@ const TaskOverviewTab = ({
 
             {/* Priority Filter */}
             <div className="relative" ref={priorityDropdownRef}>
-              <div className="relative rounded-full p-[1.5px] overflow-hidden group inline-block shadow-sm">
+              <div className="relative rounded-full p-[1px] overflow-hidden group inline-block shadow-2xs">
                 <div className="absolute inset-[-100%] bg-[conic-gradient(transparent_0deg,#f59e0b_90deg,transparent_180deg)] animate-[spin_2s_linear_infinite] group-hover:bg-[conic-gradient(transparent_0deg,#ea580c_90deg,transparent_180deg)] transition-colors duration-300" />
                 <div
                   className={`absolute inset-[1px] rounded-full z-0 ${
@@ -2121,19 +2121,19 @@ const TaskOverviewTab = ({
                 <button
                   type="button"
                   onClick={() => setShowPriorityDropdown((prev) => !prev)}
-                  className={`relative flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-extrabold transition-all cursor-pointer z-10 bg-transparent outline-none border-none tracking-wide ${
+                  className={`relative flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all cursor-pointer z-10 bg-transparent outline-none border-none tracking-tight ${
                     overviewPriorityFilter !== "All"
                       ? "text-blue-800 dark:text-blue-300"
                       : "text-slate-800 dark:text-slate-200"
                   }`}
                 >
-                  <span className="truncate max-w-[90px]">
+                  <span className="truncate max-w-[80px]">
                     {overviewPriorityFilter === "All"
                       ? "Priority"
                       : overviewPriorityFilter}
                   </span>
                   <FiChevronDown
-                    size={13}
+                    size={11}
                     className={`text-slate-400 transition-transform duration-200 ${
                       showPriorityDropdown ? "rotate-180" : ""
                     }`}
@@ -2177,7 +2177,7 @@ const TaskOverviewTab = ({
 
             {/* Date Filter */}
             <div className="relative" ref={dateDropdownRef}>
-              <div className="relative rounded-full p-[1.5px] overflow-hidden group inline-block shadow-sm">
+              <div className="relative rounded-full p-[1px] overflow-hidden group inline-block shadow-2xs">
                 <div className="absolute inset-[-100%] bg-[conic-gradient(transparent_0deg,#10b981_90deg,transparent_180deg)] animate-[spin_2s_linear_infinite] group-hover:bg-[conic-gradient(transparent_0deg,#0ea5e9_90deg,transparent_180deg)] transition-colors duration-300" />
                 <div
                   className={`absolute inset-[1px] rounded-full z-0 ${
@@ -2189,16 +2189,16 @@ const TaskOverviewTab = ({
                 <button
                   type="button"
                   onClick={() => setShowDateDropdown((prev) => !prev)}
-                  className={`relative flex items-center gap-1.5 px-3 py-1 rounded-full text-[12px] font-extrabold transition-all cursor-pointer z-10 bg-transparent outline-none border-none tracking-wide ${
+                  className={`relative flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold transition-all cursor-pointer z-10 bg-transparent outline-none border-none tracking-tight ${
                     dateFilter !== "All"
                       ? "text-blue-800 dark:text-blue-300"
                       : "text-slate-800 dark:text-slate-200"
                   }`}
                 >
-                  <FiFilter size={13} className="text-[#10b981] stroke-[3]" />
+                  <FiFilter size={11} className="text-[#10b981] stroke-[2.5]" />
                   <span>{dateFilter === "All" ? "Date" : dateFilter}</span>
                   <FiChevronDown
-                    size={13}
+                    size={11}
                     className={`text-slate-400 transition-transform duration-200 ${
                       showDateDropdown ? "rotate-180" : ""
                     }`}
@@ -2249,10 +2249,10 @@ const TaskOverviewTab = ({
             <button
               type="button"
               onClick={handleExportExcel}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-2xl border border-emerald-300 dark:border-emerald-500/40 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300 text-[12px] font-extrabold cursor-pointer transition-all shadow-2xs hover:bg-emerald-100 dark:hover:bg-emerald-900/40 shrink-0"
+              className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-500/40 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300 text-[11px] font-bold cursor-pointer transition-all shadow-2xs hover:bg-emerald-100 dark:hover:bg-emerald-900/40 shrink-0"
               title="Export table data to Excel"
             >
-              <FiDownload size={13} className="text-emerald-600 dark:text-emerald-400" />
+              <FiDownload size={11} className="text-emerald-600 dark:text-emerald-400" />
               <span>Export Excel</span>
             </button>
 
@@ -2260,16 +2260,16 @@ const TaskOverviewTab = ({
               <button
                 type="button"
                 onClick={() => setIsColsOpen(!isColsOpen)}
-                className={`flex items-center gap-1 px-3 py-1 rounded-2xl border text-[12px] font-extrabold cursor-pointer transition-all shadow-2xs ${
+                className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-bold cursor-pointer transition-all shadow-2xs ${
                   isColsOpen || Object.values(hiddenColumns).some(Boolean)
                     ? "bg-blue-50 border-blue-300 text-blue-600 dark:bg-blue-950/30 dark:border-blue-500/40 dark:text-blue-300"
                     : "bg-white dark:bg-[#151725] border-slate-200/90 dark:border-white/10 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-900"
                 }`}
               >
-                <FiColumns className="text-blue-500" size={13} />
+                <FiColumns className="text-blue-500" size={11} />
                 <span>Hide Column</span>
                 {Object.values(hiddenColumns).filter(Boolean).length > 0 && (
-                  <span className="text-[10px] font-black bg-blue-505 text-white rounded-full w-4 h-4 flex items-center justify-center ml-0.5">
+                  <span className="text-[9px] font-black bg-blue-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center ml-0.5">
                     {Object.values(hiddenColumns).filter(Boolean).length}
                   </span>
                 )}
@@ -2361,25 +2361,25 @@ const TaskOverviewTab = ({
             <thead className="sticky top-0 z-20 bg-slate-50 dark:bg-[#161826] shadow-sm">
               <tr className="border-b border-slate-300 dark:border-white/15 text-[11px] font-black text-slate-600 dark:text-slate-350 uppercase tracking-wider">
                 {!hiddenColumns.taskName && (
-                  <th className="py-2 px-2.5 border-r border-b border-slate-300 dark:border-white/15 w-[220px]">
+                  <th className="py-2 px-2.5 border-r border-b border-slate-300 dark:border-white/15 w-[240px]">
                     TASK NAME
                   </th>
                 )}
 
                 {!hiddenColumns.clientName && (
-                  <th className="py-2 px-2.5 border-r border-b border-slate-300 dark:border-white/15 w-[145px]">
+                  <th className="py-2 px-2.5 border-r border-b border-slate-300 dark:border-white/15 w-[185px]">
                     CLIENT NAME
                   </th>
                 )}
 
                 {!hiddenColumns.createdBy && (
-                  <th className="py-2 px-2.5 border-r border-b border-slate-300 dark:border-white/15 w-[190px]">
+                  <th className="py-2 px-2.5 border-r border-b border-slate-300 dark:border-white/15 w-[210px]">
                     CREATED BY
                   </th>
                 )}
 
                 {!hiddenColumns.assignee && (
-                  <th className="py-2 px-2.5 border-r border-b border-slate-300 dark:border-white/15 w-[190px]">
+                  <th className="py-2 px-2.5 border-r border-b border-slate-300 dark:border-white/15 w-[210px]">
                     ASSIGNEE
                   </th>
                 )}
@@ -2404,17 +2404,17 @@ const TaskOverviewTab = ({
                   </th>
                 )}
                 {!hiddenColumns.totalHours && (
-                  <th className="py-2 px-2 border-r border-b border-slate-300 dark:border-white/15 text-center w-[115px]">
+                  <th className="py-2 px-2 border-r border-b border-slate-300 dark:border-white/15 text-center w-[165px]">
                     TOTAL Inprogress
                   </th>
                 )}
                 {!hiddenColumns.blockerTime && (
-                  <th className="py-2 px-2 border-r border-b border-slate-300 dark:border-white/15 text-center w-[115px]">
+                  <th className="py-2 px-2 border-r border-b border-slate-300 dark:border-white/15 text-center w-[135px]">
                     BLOCKER TIME
                   </th>
                 )}
                 {!hiddenColumns.timeTracker && (
-                  <th className="py-2 px-2 border-r border-b border-slate-300 dark:border-white/15 text-center w-[135px]">
+                  <th className="py-2 px-2 border-r border-b border-slate-300 dark:border-white/15 text-center w-[175px]">
                     TIMETRACKER
                   </th>
                 )}
@@ -2582,7 +2582,7 @@ const TaskOverviewTab = ({
                         {!hiddenColumns.startDate && (
                           <td className="py-2 px-2 border-r border-b border-slate-200 dark:border-white/10 text-center whitespace-nowrap">
                             {task.startDate ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11.5px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200/50 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-550/20 shadow-2xs">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[14px] font-medium bg-blue-50 text-blue-700 border border-blue-200/50 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-550/20 shadow-2xs">
                                 <FiCalendar size={11} className="shrink-0" />
                                 {formatDate(task.startDate)}
                               </span>
@@ -2596,7 +2596,7 @@ const TaskOverviewTab = ({
                         {!hiddenColumns.dueDate && (
                           <td className="py-2 px-2 border-r border-b border-slate-200 dark:border-white/10 text-center whitespace-nowrap">
                             {task.dueDate ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11.5px] font-bold bg-rose-50 text-rose-700 border border-rose-200/50 dark:bg-rose-500/10 dark:text-rose-350 dark:border-rose-550/20 shadow-2xs">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[14px] font-medium bg-rose-50 text-rose-700 border border-rose-200/50 dark:bg-rose-500/10 dark:text-rose-350 dark:border-rose-550/20 shadow-2xs">
                                 <FiCalendar size={11} className="shrink-0" />
                                 {formatDate(task.dueDate)}
                               </span>
@@ -2610,7 +2610,7 @@ const TaskOverviewTab = ({
                         {!hiddenColumns.priority && (
                           <td className="py-2 px-2 border-r border-b border-slate-200 dark:border-white/10 text-center whitespace-nowrap">
                             <span
-                              className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold tracking-wider shadow-sm border ${
+                              className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-[18px] font-medium tracking-wider shadow-sm  ${
                                 isSameDate(task.startDate, task.dueDate)
                                   ? "badge-priority-top-high"
                                   : pStyle
@@ -2625,7 +2625,7 @@ const TaskOverviewTab = ({
                         {!hiddenColumns.status && (
                           <td className="py-2 px-2 border-r border-b border-slate-200 dark:border-white/10 text-center whitespace-nowrap">
                             <span
-                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold border tracking-wider shadow-sm ${sStyle.bg} ${sStyle.text} ${sStyle.border}`}
+                              className={`inline-flex items-center gap-1 px-2.5 py-3 rounded-full text-[13px] font-medium tracking-wider shadow-sm  ${sStyle.bg} ${sStyle.text} ${sStyle.border}`}
                             >
                               <span
                                 className={`w-1.5 h-1.5 rounded-full ${sStyle.dot}`}
