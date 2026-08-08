@@ -172,7 +172,15 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   const dispatch = useDispatch();
   const { theme } = useTheme();
   const performanceTableRef = useRef(null);
+  const boardScrollRef = useRef(null);
   const navigate = useNavigate();
+
+  const scrollBoard = (direction) => {
+    if (boardScrollRef.current) {
+      const scrollAmount = direction === "left" ? -320 : 320;
+      boardScrollRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    }
+  };
 
   const handleMetricClick = (status) => {
     let mappedFilter = "Today";
@@ -1083,60 +1091,59 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
     return (
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95 }}
+        whileHover={{ y: -2 }}
         key={task._id}
-        className="bg-white dark:bg-slate-800/80 p-2 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-indigo-400 dark:hover:border-indigo-400 transition-all shadow-2xs hover:shadow-sm relative group backdrop-blur-sm"
+        className="bg-white dark:bg-slate-800/90 p-3 rounded-xl border border-slate-200/80 dark:border-slate-700/80 hover:border-indigo-500 dark:hover:border-indigo-400 transition-all duration-200 shadow-xs hover:shadow-md relative group backdrop-blur-sm flex flex-col gap-2"
       >
-        <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 to-purple-500 rounded-l-xl opacity-100" />
+        <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 via-purple-500 to-pink-500 rounded-l-xl opacity-90 group-hover:opacity-100 transition-opacity" />
         {/* Title row: icon + name */}
-        <div className="flex items-start justify-between gap-1 pl-1 mb-1.5">
-          <div className="flex items-start gap-1 min-w-0">
-            <FiFileText
-              size={11}
-              className="text-indigo-400 dark:text-indigo-400 shrink-0 mt-0.5"
-            />
-            <p className="text-[8.5px] font-extrabold text-slate-700 dark:text-white leading-tight break-words" title={task.title}>
-              {task.title}
-            </p>
-          </div>
+        <div className="flex items-start gap-1.5 pl-1.5 min-w-0">
+          <FiFileText
+            size={13}
+            className="text-indigo-500 dark:text-indigo-400 shrink-0 mt-0.5"
+          />
+          <p className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-snug break-words" title={task.title}>
+            {task.title}
+          </p>
         </div>
         {/* Due Date & Deadline Badge */}
         {task.dueDate && (
-          <div className="pl-1 mb-1.5 flex items-center justify-between gap-1">
+          <div className="pl-1.5 flex items-center justify-between gap-1">
             <span
-              className={`shrink-0 flex items-center gap-1 text-[7.5px] font-black uppercase tracking-wider whitespace-nowrap px-1 py-0.5 rounded ${(() => {
+              className={`shrink-0 flex items-center gap-1.5 text-[9.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${(() => {
                 const days = getDaysRemaining(task.dueDate);
                 const isCompleted =
                   task.status?.toLowerCase() === "completed" ||
                   task.status?.toLowerCase().includes("approve");
                 if (isCompleted)
-                  return "text-emerald-600 dark:text-emerald-450 bg-emerald-50 dark:bg-emerald-500/10";
+                  return "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200/60 dark:border-emerald-500/20";
                 if (days < 0)
-                  return "text-rose-605 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 border border-rose-200/50 dark:border-rose-900/30";
+                  return "text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/15 border border-rose-200/60 dark:border-rose-500/20";
                 if (days === 0)
-                  return "text-amber-605 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 border border-amber-200/50 dark:border-amber-900/30";
+                  return "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/15 border border-amber-200/60 dark:border-amber-500/20";
                 if (days === 1)
-                  return "text-blue-605 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 border border-blue-200/50 dark:border-blue-900/30";
-                return "text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700/50";
+                  return "text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/15 border border-blue-200/60 dark:border-blue-500/20";
+                return "text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700";
               })()}`}
             >
-              <FiClock size={8} />
+              <FiClock size={10} />
               <span>{format(parseISO(task.dueDate), "MMM dd")}</span>
               <span className="opacity-40 font-normal">|</span>
-              <span className="truncate max-w-[55px]">{getDeadlineBadgeText(task.dueDate, task.status)}</span>
+              <span className="truncate max-w-[90px]">{getDeadlineBadgeText(task.dueDate, task.status)}</span>
             </span>
           </div>
         )}
         {/* Project and Priority Info */}
-        <div className="flex items-center justify-between gap-1 pl-1 mb-1">
-          <span className="text-[8px] font-semibold text-slate-400 dark:text-slate-500 truncate max-w-[65%]" title={clientName}>
+        <div className="flex items-center justify-between gap-1.5 pl-1.5">
+          <span className="text-[9.5px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/40 px-2 py-0.5 rounded-md truncate max-w-[140px]" title={clientName}>
             {clientName}
           </span>
           {task.priority && (
             <span
-              className={`px-1 py-0.2 rounded text-[7.5px] font-black uppercase tracking-wider shrink-0 ${getPriorityStyle(task.priority)}`}
+              className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider shrink-0 ${getPriorityStyle(task.priority)}`}
             >
               {task.priority}
             </span>
@@ -1144,22 +1151,22 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         </div>
         {/* Assigned User */}
         {(assignedUser || assignedByName) && (
-          <div className="mt-1 pl-1 pt-1 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-1">
+          <div className="pl-1.5 pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2">
             {/* Assigned To — left */}
             {assignedUser ? (
-              <div className="flex items-center gap-1 min-w-0" title={`Assigned to: ${assignedUser.name}`}>
+              <div className="flex items-center gap-1.5 min-w-0" title={`Assigned to: ${assignedUser.name}`}>
                 {profileImg ? (
                   <img
                     src={profileImg}
                     alt={assignedUser.name}
-                    className="w-4 h-4 rounded-full object-cover ring-1 ring-indigo-400/40 shrink-0"
+                    className="w-5 h-5 rounded-full object-cover ring-1 ring-indigo-400/40 shrink-0"
                   />
                 ) : (
-                  <div className="w-4 h-4 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-[7.5px] font-black ring-1 ring-indigo-400/30 shrink-0">
+                  <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-[9px] font-bold ring-1 ring-indigo-400/30 shrink-0">
                     {initials}
                   </div>
                 )}
-                <span className="text-[8.5px] font-semibold text-slate-600 dark:text-slate-400 truncate">
+                <span className="text-[10px] font-medium text-slate-700 dark:text-slate-300 truncate">
                   {assignedUser.name}
                 </span>
               </div>
@@ -1168,11 +1175,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             )}
             {/* Assigned By — right */}
             {assignedByName && (
-              <div className="flex items-center gap-1 shrink-0" title={`Assigned by: ${assignedByName}`}>
-                <div className="w-4 h-4 rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 flex items-center justify-center text-[7.5px] font-black ring-1 ring-amber-400/30 shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0" title={`Assigned by: ${assignedByName}`}>
+                <div className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center text-[8.5px] font-bold ring-1 ring-amber-400/30 shrink-0">
                   {creatorInitials || "SM"}
                 </div>
-                <span className="text-[8.5px] font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[45px]">
+                <span className="text-[9.5px] font-medium text-slate-500 dark:text-slate-400 truncate max-w-[70px]">
                   {assignedByName}
                 </span>
               </div>
@@ -1485,21 +1492,54 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         </div>
       </div>
       {/* Live Task Board */}
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-4 px-1">
-          <h3 className="text-md font-bold text-slate-800 dark:text-white tracking-wide ">
-            Live Task Board
-          </h3>
-          <span className="flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            LIVE SYNC
-          </span>
+      <div className="relative z-10 space-y-3">
+        {/* Header & Controls */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+          <div className="flex items-center gap-3">
+            <h3 className="text-base font-bold text-slate-800 dark:text-white tracking-wide flex items-center gap-2">
+              <FiLayers className="text-indigo-500 dark:text-indigo-400" size={18} />
+              Live Task Board
+            </h3>
+            <span className="flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-500/20 shadow-2xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              LIVE SYNC
+            </span>
+          </div>
+
+          {/* Column Scroll Controls & Info */}
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700/60">
+              {boardColumns.length} Columns
+            </span>
+            <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
+              <button
+                onClick={() => scrollBoard("left")}
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                title="Scroll Left"
+              >
+                <FiChevronLeft size={16} />
+              </button>
+              <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-700" />
+              <button
+                onClick={() => scrollBoard("right")}
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                title="Scroll Right"
+              >
+                <FiChevronRight size={16} />
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 pb-4 w-full">
+
+        {/* Horizontally Scrollable Kanban Columns */}
+        <div
+          ref={boardScrollRef}
+          className="flex gap-4 overflow-x-auto pb-4 pt-1 px-0.5 custom-scrollbar scroll-smooth snap-x snap-mandatory w-full min-h-[400px]"
+        >
           {boardColumns.map((col, i) => {
             let colBg = "bg-slate-50 dark:bg-slate-800/80";
-            let boardBg = "bg-slate-50/50 dark:bg-[#0f172a]";
-            let colBorder = "border-slate-200 dark:border-slate-700";
+            let boardBg = "bg-slate-50/60 dark:bg-[#0f172a]";
+            let colBorder = "border-slate-200 dark:border-slate-700/80";
             let textCol = "text-slate-800 dark:text-white";
             let countBg = "bg-slate-200 dark:bg-slate-700";
             let countText = "text-slate-700 dark:text-slate-300";
@@ -1509,48 +1549,48 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
             if (isOverdueCol) {
               colBg = "bg-red-500 dark:bg-red-650";
-              boardBg = "bg-red-50/10 dark:bg-[#0f172a]";
+              boardBg = "bg-red-50/15 dark:bg-[#0f172a]";
               textCol = "text-white dark:text-white";
               colBorder = "border-red-200 dark:border-red-800/50";
               countBg = "bg-red-100 dark:bg-red-900/40";
               countText = "text-red-800 dark:text-red-300";
             } else if (lowerCol === "pending") {
-              colBg = "bg-slate-300 dark:bg-slate-300";
+              colBg = "bg-slate-300 dark:bg-slate-600";
               boardBg = "bg-slate-50/50 dark:bg-[#0f172a]";
-              textCol = "text-white dark:text-slate-900";
+              textCol = "text-slate-900 dark:text-white";
               colBorder = "border-slate-300 dark:border-slate-600";
               countBg = "bg-slate-200 dark:bg-slate-700";
               countText = "text-slate-800 dark:text-slate-100";
             } else if (lowerCol === "in progress") {
-              colBg = "bg-blue-500 dark:bg-blue-500";
+              colBg = "bg-blue-500 dark:bg-blue-600";
               boardBg = "bg-blue-50/30 dark:bg-[#0f172a]";
               textCol = "text-white dark:text-white";
               colBorder = "border-blue-200 dark:border-blue-800/50";
               countBg = "bg-blue-100 dark:bg-blue-800/50";
               countText = "text-blue-800 dark:text-blue-300";
             } else if (lowerCol === "on hold") {
-              colBg = "bg-[#da1cf1] dark:bg-[#da1cf1]";
-              boardBg = "bg-amber-50/30 dark:bg-[#0f172a]";
+              colBg = "bg-fuchsia-600 dark:bg-fuchsia-600";
+              boardBg = "bg-fuchsia-50/20 dark:bg-[#0f172a]";
               textCol = "text-white dark:text-white";
-              colBorder = "border-amber-200 dark:border-amber-800/50";
-              countBg = "bg-amber-100 dark:bg-amber-800/50";
-              countText = "text-amber-800 dark:text-amber-300";
+              colBorder = "border-fuchsia-200 dark:border-fuchsia-800/50";
+              countBg = "bg-fuchsia-100 dark:bg-fuchsia-800/50";
+              countText = "text-fuchsia-800 dark:text-fuchsia-300";
             } else if (lowerCol === "in review") {
-              colBg = "bg-yellow-300 dark:bg-yellow-300";
+              colBg = "bg-amber-400 dark:bg-indigo-600";
               boardBg = "bg-indigo-50/30 dark:bg-[#0f172a]";
-              textCol = "text-white dark:text-white";
+              textCol = "text-slate-900 dark:text-white";
               colBorder = "border-indigo-200 dark:border-indigo-800/50";
-              countBg = "bg-indigo-100 dark:bg-indigo-800/50";
-              countText = "text-indigo-800 dark:text-indigo-300";
+              countBg = "bg-amber-100 dark:bg-indigo-800/50";
+              countText = "text-amber-900 dark:text-indigo-300";
             } else if (lowerCol === "completed") {
-              colBg = "bg-green-500 dark:bg-green-500";
+              colBg = "bg-emerald-500 dark:bg-emerald-600";
               boardBg = "bg-emerald-50/30 dark:bg-[#0f172a]";
               textCol = "text-white dark:text-white";
               colBorder = "border-emerald-200 dark:border-emerald-800/50";
               countBg = "bg-emerald-100 dark:bg-emerald-800/50";
               countText = "text-emerald-800 dark:text-emerald-300";
             } else if (lowerCol === "rejected") {
-              colBg = "bg-rose-500 dark:bg-rose-500";
+              colBg = "bg-rose-500 dark:bg-rose-600";
               boardBg = "bg-rose-50/30 dark:bg-[#0f172a]";
               textCol = "text-white dark:text-white";
               colBorder = "border-rose-200 dark:border-rose-800/50";
@@ -1583,44 +1623,44 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             return (
               <div
                 key={i}
-                className={`w-full min-w-0 ${boardBg} backdrop-blur-md rounded-xl border ${colBorder} flex flex-col max-h-[580px] shadow-sm overflow-hidden`}
+                className={`w-[290px] md:w-[310px] min-w-[290px] md:min-w-[310px] shrink-0 snap-start ${boardBg} backdrop-blur-md rounded-2xl border ${colBorder} flex flex-col max-h-[600px] shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden`}
               >
                 <div
-                  className={`p-2 px-2.5 border-b flex items-center justify-between rounded-t-xl backdrop-blur-md ${colBg} ${colBorder}`}
+                  className={`p-3 px-3.5 border-b flex items-center justify-between rounded-t-2xl backdrop-blur-md ${colBg} ${colBorder}`}
                 >
                   <span
-                    className={`text-[9px] xl:text-[9.5px] font-black tracking-wider uppercase truncate max-w-[75%] ${textCol}`}
+                    className={`text-xs font-black tracking-wider uppercase truncate max-w-[75%] ${textCol}`}
                     title={col}
                   >
                     {col}
                   </span>
                   <span
-                    className={`text-[9px] font-black px-1.5 py-0.5 rounded shrink-0 ${countBg} ${countText}`}
+                    className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${countBg} ${countText}`}
                   >
                     {columnTasks.length}
                   </span>
                 </div>
-                <div className="p-1.5 overflow-y-auto space-y-2 flex-1 custom-scrollbar">
+                <div className="p-2.5 overflow-y-auto space-y-2.5 flex-1 custom-scrollbar">
                   {isOverdueCol ? (
                     <div className="space-y-3">
                       {/* Previous Overdue */}
                       <div className="space-y-1.5">
-                        <div className="flex items-center justify-between px-1.5 py-0.5 bg-red-100/40 dark:bg-red-950/20 border border-red-200/30 dark:border-red-900/30 rounded-md">
-                          <span className="text-[8px] font-extrabold uppercase text-red-600 dark:text-red-400 tracking-wider truncate">
+                        <div className="flex items-center justify-between px-2 py-1 bg-red-100/60 dark:bg-red-950/30 border border-red-200/40 dark:border-red-900/40 rounded-lg">
+                          <span className="text-[9px] font-black uppercase text-red-600 dark:text-red-400 tracking-wider truncate">
                             Prev Overdue
                           </span>
-                          <span className="text-[8px] font-black text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/50 px-1 py-0.2 rounded shrink-0">
+                          <span className="text-[9px] font-black text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/60 px-1.5 py-0.5 rounded-md shrink-0">
                             {previousOverdue.length}
                           </span>
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                           <AnimatePresence>
                             {previousOverdue.length > 0 ? (
                               previousOverdue.map((task) =>
                                 renderTaskCard(task),
                               )
                             ) : (
-                              <p className="text-[9px] text-slate-400 dark:text-slate-500 italic text-center py-1">
+                              <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-1.5">
                                 No previous overdue
                               </p>
                             )}
@@ -1630,20 +1670,20 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
                       {/* Today Overdue */}
                       <div className="space-y-1.5">
-                        <div className="flex items-center justify-between px-1.5 py-0.5 bg-amber-100/40 dark:bg-amber-950/20 border border-amber-200/30 dark:border-amber-900/30 rounded-md">
-                          <span className="text-[8px] font-extrabold uppercase text-amber-600 dark:text-amber-400 tracking-wider truncate">
+                        <div className="flex items-center justify-between px-2 py-1 bg-amber-100/60 dark:bg-amber-950/30 border border-amber-200/40 dark:border-amber-900/40 rounded-lg">
+                          <span className="text-[9px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider truncate">
                             Due Today
                           </span>
-                          <span className="text-[8px] font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/50 px-1 py-0.2 rounded shrink-0">
+                          <span className="text-[9px] font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 rounded-md shrink-0">
                             {todayOverdue.length}
                           </span>
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                           <AnimatePresence>
                             {todayOverdue.length > 0 ? (
                               todayOverdue.map((task) => renderTaskCard(task))
                             ) : (
-                              <p className="text-[9px] text-slate-400 dark:text-slate-500 italic text-center py-1">
+                              <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-1.5">
                                 No tasks due today
                               </p>
                             )}
@@ -1653,22 +1693,22 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
                       {/* Tomorrow Overdue */}
                       <div className="space-y-1.5">
-                        <div className="flex items-center justify-between px-1.5 py-0.5 bg-orange-100/40 dark:bg-orange-950/20 border border-orange-200/30 dark:border-orange-900/30 rounded-md">
-                          <span className="text-[8px] font-extrabold uppercase text-orange-600 dark:text-orange-400 tracking-wider truncate">
+                        <div className="flex items-center justify-between px-2 py-1 bg-orange-100/60 dark:bg-orange-950/30 border border-orange-200/40 dark:border-orange-900/40 rounded-lg">
+                          <span className="text-[9px] font-black uppercase text-orange-600 dark:text-orange-400 tracking-wider truncate">
                             Due Tomorrow
                           </span>
-                          <span className="text-[8px] font-black text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/50 px-1 py-0.2 rounded shrink-0">
+                          <span className="text-[9px] font-black text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/60 px-1.5 py-0.5 rounded-md shrink-0">
                             {tomorrowOverdue.length}
                           </span>
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                           <AnimatePresence>
                             {tomorrowOverdue.length > 0 ? (
                               tomorrowOverdue.map((task) =>
                                 renderTaskCard(task),
                               )
                             ) : (
-                              <p className="text-[9px] text-slate-400 dark:text-slate-500 italic text-center py-1">
+                              <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-1.5">
                                 No tasks due tomorrow
                               </p>
                             )}
@@ -1678,7 +1718,13 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                     </div>
                   ) : (
                     <AnimatePresence>
-                      {columnTasks.map((task) => renderTaskCard(task))}
+                      {columnTasks.length > 0 ? (
+                        columnTasks.map((task) => renderTaskCard(task))
+                      ) : (
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-3">
+                          No tasks in this column
+                        </p>
+                      )}
                     </AnimatePresence>
                   )}
                 </div>
