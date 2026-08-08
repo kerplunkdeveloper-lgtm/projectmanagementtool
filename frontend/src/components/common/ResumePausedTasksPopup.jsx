@@ -42,7 +42,11 @@ const ResumePausedTasksPopup = () => {
   const isCurrentlyInBusinessHours = () => {
     const now = new Date();
     const day = now.getDay();
-    if (day === 0 || day === 6) return false; // weekends
+    const workingDays =
+      officeHours.workingDays && officeHours.workingDays.length > 0
+        ? officeHours.workingDays
+        : [1, 2, 3, 4, 5, 6];
+    if (!workingDays.includes(day)) return false;
     const hour = now.getHours();
     return hour >= officeHours.startHour && hour < officeHours.endHour;
   };

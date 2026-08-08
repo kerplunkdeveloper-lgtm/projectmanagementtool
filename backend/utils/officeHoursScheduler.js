@@ -5,18 +5,22 @@ async function checkAndAutoPauseTasks(io) {
   try {
     let settings = await OfficeSettings.findOne({ key: "global" });
     if (!settings) {
-      settings = { startHour: 9, endHour: 19 };
+      settings = await OfficeSettings.create({
+        key: "global",
+        startHour: 9,
+        endHour: 19,
+        workingDays: [1, 2, 3, 4, 5, 6],
+      });
+    } else if (!settings.workingDays || settings.workingDays.length === 0 || !settings.workingDays.includes(6)) {
+      settings.workingDays = [1, 2, 3, 4, 5, 6];
+      await settings.save();
     }
 
     const now = new Date();
     const day = now.getDay();
     const currentHour = now.getHours();
 
-    const workingDays =
-      settings.workingDays && settings.workingDays.length > 0
-        ? settings.workingDays
-        : [1, 2, 3, 4, 5, 6];
-
+    const workingDays = settings.workingDays;
     const isNonWorkingDay = !workingDays.includes(day);
     const isOutsideHours = currentHour >= settings.endHour || currentHour < settings.startHour;
 
@@ -63,6 +67,14 @@ async function checkAndAutoPauseTasks(io) {
           }
         }
       }
+    } else {
+      // During active office hours, clear any stale autoPaused flags from DB so popups stop appearing
+      await Task.updateMany({ autoPaused: true }, { $set: { autoPaused: false } });
+      await Task.updateMany(
+        { "subtasks.autoPaused": true },
+        { $set: { "subtasks.$[elem].autoPaused": false } },
+        { arrayFilters: [{ "elem.autoPaused": true }] }
+      );
     }
   } catch (err) {
     console.error("Error in checkAndAutoPauseTasks background worker:", err);
