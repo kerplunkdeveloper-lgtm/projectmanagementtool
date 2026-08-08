@@ -39,6 +39,7 @@ import {
   FiColumns,
   FiFilter,
   FiLoader,
+  FiLock,
 } from "react-icons/fi";
 import axiosInstance from "../../services/axiosInstance";
 import toast from "react-hot-toast";
@@ -2624,6 +2625,34 @@ const ProjectTaskBoard = ({
     if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
     if (sanitizedFields.startDate === "") sanitizedFields.startDate = null;
 
+    const currentTask = localTasks.find((t) => t._id === taskId);
+
+    // Block modifying or clearing Start Date if already set
+    if (currentTask?.startDate) {
+      if (
+        sanitizedFields.startDate === null ||
+        (sanitizedFields.startDate !== undefined &&
+          new Date(sanitizedFields.startDate).toISOString().split("T")[0] !==
+            new Date(currentTask.startDate).toISOString().split("T")[0])
+      ) {
+        toast.error("🔒 Start Date is locked once set and cannot be changed.");
+        return;
+      }
+    }
+
+    // Block modifying or clearing End Date (dueDate) if already set
+    if (currentTask?.dueDate) {
+      if (
+        sanitizedFields.dueDate === null ||
+        (sanitizedFields.dueDate !== undefined &&
+          new Date(sanitizedFields.dueDate).toISOString().split("T")[0] !==
+            new Date(currentTask.dueDate).toISOString().split("T")[0])
+      ) {
+        toast.error("🔒 End Date is locked once set and cannot be changed.");
+        return;
+      }
+    }
+
     // Check date requirement before assigning member
     if (sanitizedFields.assignedTo) {
       const currentTask = localTasks.find((t) => t._id === taskId);
@@ -3058,6 +3087,32 @@ const ProjectTaskBoard = ({
     if (sanitizedFields.dueDate === "") sanitizedFields.dueDate = null;
 
     const currentSub = task.subtasks?.find((s) => s._id === subtaskId);
+
+    // Block modifying or clearing Subtask Start Date if already set
+    if (currentSub?.startDate) {
+      if (
+        sanitizedFields.startDate === null ||
+        (sanitizedFields.startDate !== undefined &&
+          new Date(sanitizedFields.startDate).toISOString().split("T")[0] !==
+            new Date(currentSub.startDate).toISOString().split("T")[0])
+      ) {
+        toast.error("🔒 Subtask Start Date is locked once set and cannot be changed.");
+        return;
+      }
+    }
+
+    // Block modifying or clearing Subtask End Date (dueDate) if already set
+    if (currentSub?.dueDate) {
+      if (
+        sanitizedFields.dueDate === null ||
+        (sanitizedFields.dueDate !== undefined &&
+          new Date(sanitizedFields.dueDate).toISOString().split("T")[0] !==
+            new Date(currentSub.dueDate).toISOString().split("T")[0])
+      ) {
+        toast.error("🔒 Subtask End Date is locked once set and cannot be changed.");
+        return;
+      }
+    }
 
     // Check date requirement before assigning member on subtask
     if (sanitizedFields.assignedTo) {
@@ -5306,27 +5361,36 @@ const ProjectTaskBoard = ({
                                                       {!hiddenColumns.startDate && (
                                                         <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                                           <div
-                                                            className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
+                                                            className={`relative h-6 flex items-center justify-start transition-all ${
+                                                              task.startDate
+                                                                ? "cursor-not-allowed"
+                                                                : "cursor-pointer"
+                                                            }`}
                                                             onClick={(e) => {
                                                               e.stopPropagation();
-                                                              const input =
-                                                                e.currentTarget.querySelector(
-                                                                  'input[type="date"]',
-                                                                );
-                                                              if (
-                                                                input &&
-                                                                typeof input.showPicker ===
-                                                                  "function"
-                                                              ) {
-                                                                input.showPicker();
+                                                              if (!task.startDate) {
+                                                                const input =
+                                                                  e.currentTarget.querySelector(
+                                                                    'input[type="date"]',
+                                                                  );
+                                                                if (
+                                                                  input &&
+                                                                  typeof input.showPicker ===
+                                                                    "function"
+                                                                ) {
+                                                                  input.showPicker();
+                                                                }
                                                               }
                                                             }}
                                                           >
                                                             {task.startDate ? (
-                                                              <div className="flex items-center flex-nowrap gap-1 px-1.5 py-0.5 rounded-md border border-blue-300 dark:border-blue-800/85 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-855 dark:text-blue-300 text-[9.5px] font-bold bg-blue-100 dark:bg-blue-900 transition-all shadow-sm">
-                                                                <FiCalendar
+                                                              <div
+                                                                className="flex items-center flex-nowrap gap-1 px-1.5 py-0.5 rounded-md border border-blue-300 dark:border-blue-800/85 text-blue-855 dark:text-blue-300 text-[9.5px] font-bold bg-blue-100 dark:bg-blue-900 transition-all shadow-2xs opacity-90 cursor-not-allowed select-none"
+                                                                title="🔒 Start Date — Locked"
+                                                              >
+                                                                <FiLock
                                                                   size={9.5}
-                                                                  className="text-blue-900 dark:text-blue-900 shrink-0"
+                                                                  className="text-amber-600 dark:text-amber-400 shrink-0"
                                                                 />
                                                                 <span className="whitespace-nowrap">
                                                                   {new Date(
@@ -5340,28 +5404,9 @@ const ProjectTaskBoard = ({
                                                                     },
                                                                   )}
                                                                 </span>
-                                                                {isAdminOrManager && (
-                                                                  <button
-                                                                    type="button"
-                                                                    onClick={(
-                                                                      e,
-                                                                    ) => {
-                                                                      e.stopPropagation();
-                                                                      handleTaskFieldChange(
-                                                                        task._id,
-                                                                        {
-                                                                          startDate:
-                                                                            null,
-                                                                        },
-                                                                      );
-                                                                    }}
-                                                                    className="ml-1 text-blue-505 hover:text-rose-600 dark:text-blue-450 dark:hover:text-rose-455 relative z-10 transition-colors cursor-pointer"
-                                                                  >
-                                                                    <FiX
-                                                                      size={9}
-                                                                    />
-                                                                  </button>
-                                                                )}
+                                                                <span className="ml-0.5 text-[8px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest shrink-0">
+                                                                  🔒
+                                                                </span>
                                                               </div>
                                                             ) : (
                                                               <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-blue-600 dark:border-blue-800/80 text-white dark:text-blue-400/90 bg-blue-400 dark:bg-blue-400 transition-all text-[8px] font-bold">
@@ -5373,34 +5418,25 @@ const ProjectTaskBoard = ({
                                                                 </span>
                                                               </div>
                                                             )}
-                                                            {isAdminOrManager && (
-                                                              <input
-                                                                type="date"
-                                                                value={
-                                                                  task.startDate
-                                                                    ? new Date(
-                                                                        task.startDate,
-                                                                      )
-                                                                        .toISOString()
-                                                                        .split(
-                                                                          "T",
-                                                                        )[0]
-                                                                    : ""
-                                                                }
-                                                                onChange={(e) =>
-                                                                  handleTaskFieldChange(
-                                                                    task._id,
-                                                                    {
-                                                                      startDate:
-                                                                        e.target
-                                                                          .value ||
-                                                                        null,
-                                                                    },
-                                                                  )
-                                                                }
-                                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                              />
-                                                            )}
+                                                            {isAdminOrManager &&
+                                                              !task.startDate && (
+                                                                <input
+                                                                  type="date"
+                                                                  value=""
+                                                                  onChange={(e) =>
+                                                                    handleTaskFieldChange(
+                                                                      task._id,
+                                                                      {
+                                                                        startDate:
+                                                                          e.target
+                                                                            .value ||
+                                                                          null,
+                                                                      },
+                                                                    )
+                                                                  }
+                                                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                                />
+                                                              )}
                                                           </div>
                                                         </td>
                                                       )}
@@ -5409,27 +5445,36 @@ const ProjectTaskBoard = ({
                                                       {!hiddenColumns.endDate && (
                                                         <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                                           <div
-                                                            className="relative h-6 flex items-center justify-start transition-all cursor-pointer"
+                                                            className={`relative h-6 flex items-center justify-start transition-all ${
+                                                              task.dueDate
+                                                                ? "cursor-not-allowed"
+                                                                : "cursor-pointer"
+                                                            }`}
                                                             onClick={(e) => {
                                                               e.stopPropagation();
-                                                              const input =
-                                                                e.currentTarget.querySelector(
-                                                                  'input[type="date"]',
-                                                                );
-                                                              if (
-                                                                input &&
-                                                                typeof input.showPicker ===
-                                                                  "function"
-                                                              ) {
-                                                                input.showPicker();
+                                                              if (!task.dueDate) {
+                                                                const input =
+                                                                  e.currentTarget.querySelector(
+                                                                    'input[type="date"]',
+                                                                  );
+                                                                if (
+                                                                  input &&
+                                                                  typeof input.showPicker ===
+                                                                    "function"
+                                                                ) {
+                                                                  input.showPicker();
+                                                                }
                                                               }
                                                             }}
                                                           >
                                                             {task.dueDate ? (
-                                                              <div className="flex items-center flex-nowrap gap-1 px-1.5 py-0.5 rounded-md border border-rose-300 dark:border-rose-700/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-855 dark:text-rose-100 text-[9.5px] font-bold bg-rose-100 dark:bg-rose-800 transition-all shadow-sm">
-                                                                <FiCalendar
+                                                              <div
+                                                                className="flex items-center flex-nowrap gap-1 px-1.5 py-0.5 rounded-md border border-rose-300 dark:border-rose-700/80 text-rose-855 dark:text-rose-100 text-[9.5px] font-bold bg-rose-100 dark:bg-rose-800 transition-all shadow-2xs opacity-90 cursor-not-allowed select-none"
+                                                                title="🔒 End Date — Locked"
+                                                              >
+                                                                <FiLock
                                                                   size={9.5}
-                                                                  className="text-rose-600 dark:text-rose-400 shrink-0"
+                                                                  className="text-amber-600 dark:text-amber-400 shrink-0"
                                                                 />
                                                                 <span className="whitespace-nowrap">
                                                                   {new Date(
@@ -5443,28 +5488,9 @@ const ProjectTaskBoard = ({
                                                                     },
                                                                   )}
                                                                 </span>
-                                                                {isAdminOrManager && (
-                                                                  <button
-                                                                    type="button"
-                                                                    onClick={(
-                                                                      e,
-                                                                    ) => {
-                                                                      e.stopPropagation();
-                                                                      handleTaskFieldChange(
-                                                                        task._id,
-                                                                        {
-                                                                          dueDate:
-                                                                            null,
-                                                                        },
-                                                                      );
-                                                                    }}
-                                                                    className="ml-1 text-rose-505 hover:text-rose-755 dark:text-rose-400 dark:hover:text-rose-300 relative z-10 transition-colors cursor-pointer"
-                                                                  >
-                                                                    <FiX
-                                                                      size={9}
-                                                                    />
-                                                                  </button>
-                                                                )}
+                                                                <span className="ml-0.5 text-[8px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest shrink-0">
+                                                                  🔒
+                                                                </span>
                                                               </div>
                                                             ) : (
                                                               <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-rose-300 dark:border-rose-800/80 text-rose-605 dark:text-rose-400/90 hover:border-rose-400 hover:text-rose-750 dark:hover:text-rose-300 dark:hover:border-rose-600/85 bg-rose-50/50 dark:bg-rose-955/20 hover:bg-rose-100 dark:hover:bg-rose-955/50 transition-all text-[8px] font-bold">
@@ -5476,45 +5502,36 @@ const ProjectTaskBoard = ({
                                                                 </span>
                                                               </div>
                                                             )}
-                                                            {isAdminOrManager && (
-                                                              <input
-                                                                type="date"
-                                                                value={
-                                                                  task.dueDate
-                                                                    ? new Date(
-                                                                        task.dueDate,
-                                                                      )
-                                                                        .toISOString()
-                                                                        .split(
-                                                                          "T",
-                                                                        )[0]
-                                                                    : ""
-                                                                }
-                                                                min={
-                                                                  task.startDate
-                                                                    ? new Date(
-                                                                        task.startDate,
-                                                                      )
-                                                                        .toISOString()
-                                                                        .split(
-                                                                          "T",
-                                                                        )[0]
-                                                                    : ""
-                                                                }
-                                                                onChange={(e) =>
-                                                                  handleTaskFieldChange(
-                                                                    task._id,
-                                                                    {
-                                                                      dueDate:
-                                                                        e.target
-                                                                          .value ||
-                                                                        null,
-                                                                    },
-                                                                  )
-                                                                }
-                                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                              />
-                                                            )}
+                                                            {isAdminOrManager &&
+                                                              !task.dueDate && (
+                                                                <input
+                                                                  type="date"
+                                                                  value=""
+                                                                  min={
+                                                                    task.startDate
+                                                                      ? new Date(
+                                                                          task.startDate,
+                                                                        )
+                                                                          .toISOString()
+                                                                          .split(
+                                                                            "T",
+                                                                          )[0]
+                                                                      : ""
+                                                                  }
+                                                                  onChange={(e) =>
+                                                                    handleTaskFieldChange(
+                                                                      task._id,
+                                                                      {
+                                                                        dueDate:
+                                                                          e.target
+                                                                            .value ||
+                                                                          null,
+                                                                      },
+                                                                    )
+                                                                  }
+                                                                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                                />
+                                                              )}
                                                           </div>
                                                         </td>
                                                       )}
@@ -6508,31 +6525,38 @@ const ProjectTaskBoard = ({
                                                               {!hiddenColumns.startDate && (
                                                                 <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                                                   <div
-                                                                    className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
+                                                                    className={`relative h-7 flex items-center justify-start transition-all ${
+                                                                      sub.startDate
+                                                                        ? "cursor-not-allowed"
+                                                                        : "cursor-pointer"
+                                                                    }`}
                                                                     onClick={(
                                                                       e,
                                                                     ) => {
                                                                       e.stopPropagation();
-                                                                      const input =
-                                                                        e.currentTarget.querySelector(
-                                                                          'input[type="date"]',
-                                                                        );
-                                                                      if (
-                                                                        input &&
-                                                                        typeof input.showPicker ===
-                                                                          "function"
-                                                                      ) {
-                                                                        input.showPicker();
+                                                                      if (!sub.startDate) {
+                                                                        const input =
+                                                                          e.currentTarget.querySelector(
+                                                                            'input[type="date"]',
+                                                                          );
+                                                                        if (
+                                                                          input &&
+                                                                          typeof input.showPicker ===
+                                                                            "function"
+                                                                        ) {
+                                                                          input.showPicker();
+                                                                        }
                                                                       }
                                                                     }}
                                                                   >
                                                                     {sub.startDate ? (
-                                                                      <div className="flex items-center flex-nowrap gap-1 px-1.5 py-0.5 rounded-md border border-blue-300 dark:border-blue-800/80 hover:border-blue-400 dark:hover:border-blue-500/70 text-blue-855 dark:text-blue-200 text-[9.5px] font-bold bg-blue-100/90 dark:bg-blue-955/75 transition-all shadow-sm">
-                                                                        <FiCalendar
-                                                                          size={
-                                                                            9.5
-                                                                          }
-                                                                          className="text-blue-600 dark:text-blue-450 shrink-0"
+                                                                      <div
+                                                                        className="flex items-center flex-nowrap gap-1 px-1.5 py-0.5 rounded-md border border-blue-300 dark:border-blue-800/80 text-blue-855 dark:text-blue-200 text-[9.5px] font-bold bg-blue-100/90 dark:bg-blue-955/75 transition-all shadow-2xs opacity-90 cursor-not-allowed select-none"
+                                                                        title="🔒 Start Date — Locked"
+                                                                      >
+                                                                        <FiLock
+                                                                          size={9.5}
+                                                                          className="text-amber-600 dark:text-amber-400 shrink-0"
                                                                         />
                                                                         <span className="whitespace-nowrap">
                                                                           {new Date(
@@ -6546,31 +6570,9 @@ const ProjectTaskBoard = ({
                                                                             },
                                                                           )}
                                                                         </span>
-                                                                        {isAdminOrManager && (
-                                                                          <button
-                                                                            type="button"
-                                                                            onClick={(
-                                                                              e,
-                                                                            ) => {
-                                                                              e.stopPropagation();
-                                                                              handleSubtaskFieldChange(
-                                                                                task,
-                                                                                sub._id,
-                                                                                {
-                                                                                  startDate:
-                                                                                    null,
-                                                                                },
-                                                                              );
-                                                                            }}
-                                                                            className="ml-1 text-blue-505 hover:text-rose-600 dark:text-blue-450 dark:hover:text-rose-455 relative z-10 transition-colors cursor-pointer"
-                                                                          >
-                                                                            <FiX
-                                                                              size={
-                                                                                9
-                                                                              }
-                                                                            />
-                                                                          </button>
-                                                                        )}
+                                                                        <span className="ml-0.5 text-[8px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest shrink-0">
+                                                                          🔒
+                                                                        </span>
                                                                       </div>
                                                                     ) : (
                                                                       <div className="flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-blue-300 dark:border-blue-800/80 text-blue-605 dark:text-blue-400/90 hover:border-blue-400 hover:text-blue-755 dark:hover:text-blue-305 dark:hover:border-blue-600/80 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-955/50 transition-all text-[8px] font-bold">
@@ -6586,38 +6588,29 @@ const ProjectTaskBoard = ({
                                                                         </span>
                                                                       </div>
                                                                     )}
-                                                                    {isAdminOrManager && (
-                                                                      <input
-                                                                        type="date"
-                                                                        value={
-                                                                          sub.startDate
-                                                                            ? new Date(
-                                                                                sub.startDate,
-                                                                              )
-                                                                                .toISOString()
-                                                                                .split(
-                                                                                  "T",
-                                                                                )[0]
-                                                                            : ""
-                                                                        }
-                                                                        onChange={(
-                                                                          e,
-                                                                        ) =>
-                                                                          handleSubtaskFieldChange(
-                                                                            task,
-                                                                            sub._id,
-                                                                            {
-                                                                              startDate:
-                                                                                e
-                                                                                  .target
-                                                                                  .value ||
-                                                                                null,
-                                                                            },
-                                                                          )
-                                                                        }
-                                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                                      />
-                                                                    )}
+                                                                    {isAdminOrManager &&
+                                                                      !sub.startDate && (
+                                                                        <input
+                                                                          type="date"
+                                                                          value=""
+                                                                          onChange={(
+                                                                            e,
+                                                                          ) =>
+                                                                            handleSubtaskFieldChange(
+                                                                              task,
+                                                                              sub._id,
+                                                                              {
+                                                                                startDate:
+                                                                                  e
+                                                                                    .target
+                                                                                    .value ||
+                                                                                  null,
+                                                                              },
+                                                                            )
+                                                                          }
+                                                                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                                        />
+                                                                      )}
                                                                   </div>
                                                                 </td>
                                                               )}
@@ -6626,31 +6619,38 @@ const ProjectTaskBoard = ({
                                                               {!hiddenColumns.endDate && (
                                                                 <td className="px-3 py-1 border-r border-b border-t border-slate-300 dark:border-slate-700">
                                                                   <div
-                                                                    className="relative h-7 flex items-center justify-start transition-all cursor-pointer"
+                                                                    className={`relative h-7 flex items-center justify-start transition-all ${
+                                                                      sub.dueDate
+                                                                        ? "cursor-not-allowed"
+                                                                        : "cursor-pointer"
+                                                                    }`}
                                                                     onClick={(
                                                                       e,
                                                                     ) => {
                                                                       e.stopPropagation();
-                                                                      const input =
-                                                                        e.currentTarget.querySelector(
-                                                                          'input[type="date"]',
-                                                                        );
-                                                                      if (
-                                                                        input &&
-                                                                        typeof input.showPicker ===
-                                                                          "function"
-                                                                      ) {
-                                                                        input.showPicker();
+                                                                      if (!sub.dueDate) {
+                                                                        const input =
+                                                                          e.currentTarget.querySelector(
+                                                                            'input[type="date"]',
+                                                                          );
+                                                                        if (
+                                                                          input &&
+                                                                          typeof input.showPicker ===
+                                                                            "function"
+                                                                        ) {
+                                                                          input.showPicker();
+                                                                        }
                                                                       }
                                                                     }}
                                                                   >
                                                                     {sub.dueDate ? (
-                                                                      <div className="flex items-center flex-nowrap gap-1 px-1.5 py-0.5 rounded-md border border-rose-300 dark:border-rose-750/80 hover:border-rose-400 dark:hover:border-rose-500/70 text-rose-850 dark:text-rose-200 text-[9.5px] font-bold bg-rose-100/90 dark:bg-rose-955/75 transition-all shadow-sm">
-                                                                        <FiCalendar
-                                                                          size={
-                                                                            9.5
-                                                                          }
-                                                                          className="text-rose-600 dark:text-rose-400 shrink-0"
+                                                                      <div
+                                                                        className="flex items-center flex-nowrap gap-1 px-1.5 py-0.5 rounded-md border border-rose-300 dark:border-rose-750/80 text-rose-850 dark:text-rose-200 text-[9.5px] font-bold bg-rose-100/90 dark:bg-rose-955/75 transition-all shadow-2xs opacity-90 cursor-not-allowed select-none"
+                                                                        title="🔒 End Date — Locked"
+                                                                      >
+                                                                        <FiLock
+                                                                          size={9.5}
+                                                                          className="text-amber-600 dark:text-amber-400 shrink-0"
                                                                         />
                                                                         <span className="whitespace-nowrap">
                                                                           {new Date(
@@ -6664,31 +6664,9 @@ const ProjectTaskBoard = ({
                                                                             },
                                                                           )}
                                                                         </span>
-                                                                        {isAdminOrManager && (
-                                                                          <button
-                                                                            type="button"
-                                                                            onClick={(
-                                                                              e,
-                                                                            ) => {
-                                                                              e.stopPropagation();
-                                                                              handleSubtaskFieldChange(
-                                                                                task,
-                                                                                sub._id,
-                                                                                {
-                                                                                  dueDate:
-                                                                                    null,
-                                                                                },
-                                                                              );
-                                                                            }}
-                                                                            className="ml-1 text-rose-505 hover:text-rose-650 dark:text-rose-455 dark:hover:text-rose-455 relative z-10 transition-colors cursor-pointer"
-                                                                          >
-                                                                            <FiX
-                                                                              size={
-                                                                                9
-                                                                              }
-                                                                            />
-                                                                          </button>
-                                                                        )}
+                                                                        <span className="ml-0.5 text-[8px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest shrink-0">
+                                                                          🔒
+                                                                        </span>
                                                                       </div>
                                                                     ) : (
                                                                       <div className="flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-md border border-dashed border-rose-300 dark:border-rose-800/80 text-rose-605 dark:text-rose-400/90 hover:border-rose-400 hover:text-rose-750 dark:hover:text-rose-300 dark:hover:border-rose-600/80 bg-rose-50/50 dark:bg-rose-955/20 hover:bg-rose-100 dark:hover:bg-rose-955/50 transition-all text-[8px] font-bold">
@@ -6703,49 +6681,40 @@ const ProjectTaskBoard = ({
                                                                         </span>
                                                                       </div>
                                                                     )}
-                                                                    {isAdminOrManager && (
-                                                                      <input
-                                                                        type="date"
-                                                                        value={
-                                                                          sub.dueDate
-                                                                            ? new Date(
-                                                                                sub.dueDate,
-                                                                              )
-                                                                                .toISOString()
-                                                                                .split(
-                                                                                  "T",
-                                                                                )[0]
-                                                                            : ""
-                                                                        }
-                                                                        min={
-                                                                          sub.startDate
-                                                                            ? new Date(
-                                                                                sub.startDate,
-                                                                              )
-                                                                                .toISOString()
-                                                                                .split(
-                                                                                  "T",
-                                                                                )[0]
-                                                                            : ""
-                                                                        }
-                                                                        onChange={(
-                                                                          e,
-                                                                        ) =>
-                                                                          handleSubtaskFieldChange(
-                                                                            task,
-                                                                            sub._id,
-                                                                            {
-                                                                              dueDate:
-                                                                                e
-                                                                                  .target
-                                                                                  .value ||
-                                                                                null,
-                                                                            },
-                                                                          )
-                                                                        }
-                                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                                                      />
-                                                                    )}
+                                                                    {isAdminOrManager &&
+                                                                      !sub.dueDate && (
+                                                                        <input
+                                                                          type="date"
+                                                                          value=""
+                                                                          min={
+                                                                            sub.startDate
+                                                                              ? new Date(
+                                                                                  sub.startDate,
+                                                                                )
+                                                                                  .toISOString()
+                                                                                  .split(
+                                                                                    "T",
+                                                                                  )[0]
+                                                                              : ""
+                                                                          }
+                                                                          onChange={(
+                                                                            e,
+                                                                          ) =>
+                                                                            handleSubtaskFieldChange(
+                                                                              task,
+                                                                              sub._id,
+                                                                              {
+                                                                                dueDate:
+                                                                                  e
+                                                                                    .target
+                                                                                    .value ||
+                                                                                  null,
+                                                                              },
+                                                                            )
+                                                                          }
+                                                                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                                                        />
+                                                                      )}
                                                                   </div>
                                                                 </td>
                                                               )}
@@ -8093,19 +8062,18 @@ const ProjectTaskBoard = ({
 
                   {/* Start Date Picker */}
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400  tracking-wider flex items-center gap-1.5">
-                      <FiCalendar size={12} /> Start Date
+                    <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400 tracking-wider flex items-center justify-between">
+                      <span className="flex items-center gap-1.5"><FiCalendar size={12} /> Start Date</span>
+                      {selectedTask.startDate && (
+                        <span className="text-[9px] text-amber-600 dark:text-amber-400 font-extrabold flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/40">
+                          🔒 Locked
+                        </span>
+                      )}
                     </label>
-                    {isAdminOrManager ? (
+                    {isAdminOrManager && !selectedTask.startDate ? (
                       <input
                         type="date"
-                        value={
-                          selectedTask.startDate
-                            ? new Date(selectedTask.startDate)
-                                .toISOString()
-                                .split("T")[0]
-                            : ""
-                        }
+                        value=""
                         onChange={(e) =>
                           handleTaskFieldChange(selectedTask._id, {
                             startDate: e.target.value,
@@ -8114,35 +8082,38 @@ const ProjectTaskBoard = ({
                         className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3b82f6]"
                       />
                     ) : (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-955/30 border border-blue-200 dark:border-blue-900/60 rounded-xl text-xs font-semibold text-blue-700 dark:text-blue-300">
-                        <FiCalendar
-                          className="text-blue-500 dark:text-blue-400"
-                          size={13}
-                        />
-                        {selectedTask.startDate
-                          ? new Date(
-                              selectedTask.startDate,
-                            ).toLocaleDateString()
-                          : "N/A"}
+                      <div className="flex items-center gap-2 px-3 py-2 bg-blue-50/80 dark:bg-blue-955/30 border border-blue-200/80 dark:border-blue-900/60 rounded-xl text-xs font-semibold text-blue-700 dark:text-blue-300">
+                        <FiLock className="text-amber-500 dark:text-amber-400 shrink-0" size={13} />
+                        <span>
+                          {selectedTask.startDate
+                            ? new Date(
+                                selectedTask.startDate,
+                              ).toLocaleDateString()
+                            : "N/A"}
+                        </span>
+                        {selectedTask.startDate && (
+                          <span className="ml-auto text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase tracking-wider">
+                            🔒 Locked
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
 
                   {/* End Date (Due Date) Picker */}
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400  tracking-wider flex items-center gap-1.5">
-                      <FiCalendar size={12} /> End Date
+                    <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400 tracking-wider flex items-center justify-between">
+                      <span className="flex items-center gap-1.5"><FiCalendar size={12} /> End Date</span>
+                      {selectedTask.dueDate && (
+                        <span className="text-[9px] text-amber-600 dark:text-amber-400 font-extrabold flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/40">
+                          🔒 Locked
+                        </span>
+                      )}
                     </label>
-                    {isAdminOrManager ? (
+                    {isAdminOrManager && !selectedTask.dueDate ? (
                       <input
                         type="date"
-                        value={
-                          selectedTask.dueDate
-                            ? new Date(selectedTask.dueDate)
-                                .toISOString()
-                                .split("T")[0]
-                            : ""
-                        }
+                        value=""
                         min={
                           selectedTask.startDate
                             ? new Date(selectedTask.startDate)
@@ -8158,14 +8129,18 @@ const ProjectTaskBoard = ({
                         className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3b82f6]"
                       />
                     ) : (
-                      <div className="flex items-center gap-2 px-3 py-2 bg-rose-50 dark:bg-rose-955/30 border border-rose-200 dark:border-rose-900/60 rounded-xl text-xs font-semibold text-rose-700 dark:text-rose-305">
-                        <FiClock
-                          className="text-rose-555 dark:text-rose-400"
-                          size={13}
-                        />
-                        {selectedTask.dueDate
-                          ? new Date(selectedTask.dueDate).toLocaleDateString()
-                          : "N/A"}
+                      <div className="flex items-center gap-2 px-3 py-2 bg-rose-50/80 dark:bg-rose-955/30 border border-rose-200/80 dark:border-rose-900/60 rounded-xl text-xs font-semibold text-rose-700 dark:text-rose-300">
+                        <FiLock className="text-amber-500 dark:text-amber-400 shrink-0" size={13} />
+                        <span>
+                          {selectedTask.dueDate
+                            ? new Date(selectedTask.dueDate).toLocaleDateString()
+                            : "N/A"}
+                        </span>
+                        {selectedTask.dueDate && (
+                          <span className="ml-auto text-[10px] text-amber-600 dark:text-amber-400 font-black uppercase tracking-wider">
+                            🔒 Locked
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
