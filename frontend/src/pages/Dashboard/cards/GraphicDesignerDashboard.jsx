@@ -186,6 +186,129 @@ const getDaysRemaining = (dueDateStr, referenceDate = new Date()) => {
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 };
 
+const splitTasksByDateCategory = (columnTasks, colName, selectedDate) => {
+  const isCompletedCol = colName.toLowerCase() === "completed";
+
+  const selStart = startOfDay(selectedDate || new Date());
+  const selEnd = endOfDay(selectedDate || new Date());
+
+  const previousTasks = [];
+  const todayTasks = [];
+  const upcomingTasks = [];
+
+  columnTasks.forEach((t) => {
+    let taskDate = null;
+    if (isCompletedCol) {
+      taskDate = t.completedAt
+        ? parseISO(t.completedAt)
+        : t.updatedAt
+        ? parseISO(t.updatedAt)
+        : t.dueDate
+        ? parseISO(t.dueDate)
+        : t.createdAt
+        ? parseISO(t.createdAt)
+        : null;
+    } else {
+      taskDate = t.dueDate
+        ? parseISO(t.dueDate)
+        : t.startDate
+        ? parseISO(t.startDate)
+        : t.createdAt
+        ? parseISO(t.createdAt)
+        : null;
+    }
+
+    if (!taskDate || isNaN(taskDate.getTime())) {
+      todayTasks.push(t);
+      return;
+    }
+
+    if (isSameDay(taskDate, selectedDate || new Date())) {
+      todayTasks.push(t);
+    } else if (isBefore(taskDate, selStart)) {
+      previousTasks.push(t);
+    } else if (isAfter(taskDate, selEnd)) {
+      upcomingTasks.push(t);
+    } else {
+      todayTasks.push(t);
+    }
+  });
+
+  upcomingTasks.sort((a, b) => {
+    const dA = a.dueDate ? new Date(a.dueDate) : new Date(0);
+    const dB = b.dueDate ? new Date(b.dueDate) : new Date(0);
+    return dA - dB;
+  });
+
+  return { previousTasks, todayTasks, upcomingTasks };
+};
+
+const getSectionConfig = (colName, type) => {
+  const colLower = colName.toLowerCase();
+
+  let prevTitle = `Prev ${colName}`;
+  let todayTitle = `Today ${colName}`;
+  let upcomingTitle = `Upcoming ${colName}`;
+
+  if (colLower === "overall overdue") {
+    prevTitle = "Prev Overdue";
+    todayTitle = "Due Today";
+    upcomingTitle = "Upcoming Due";
+  } else if (colLower === "in progress") {
+    prevTitle = "Prev In Progress";
+    todayTitle = "Today In Progress";
+    upcomingTitle = "Upcoming In Progress";
+  } else if (colLower === "on hold") {
+    prevTitle = "Prev On Hold";
+    todayTitle = "Today On Hold";
+    upcomingTitle = "Upcoming On Hold";
+  } else if (colLower === "in review") {
+    prevTitle = "Prev In Review";
+    todayTitle = "Today In Review";
+    upcomingTitle = "Upcoming In Review";
+  } else if (colLower === "completed") {
+    prevTitle = "Prev Completed";
+    todayTitle = "Today Completed";
+    upcomingTitle = "Upcoming Completed";
+  } else if (colLower === "pending") {
+    prevTitle = "Prev Pending";
+    todayTitle = "Today Pending";
+    upcomingTitle = "Upcoming Pending";
+  }
+
+  if (type === "prev") {
+    return {
+      title: prevTitle,
+      badgeContainer:
+        "bg-rose-100/60 dark:bg-rose-950/30 border-rose-200/40 dark:border-rose-900/40",
+      titleColor: "text-rose-600 dark:text-rose-400",
+      countBadge:
+        "text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-900/60",
+      emptyText: `No previous ${colName.toLowerCase()} tasks`,
+    };
+  }
+  if (type === "today") {
+    return {
+      title: todayTitle,
+      badgeContainer:
+        "bg-amber-100/60 dark:bg-amber-950/30 border-amber-200/40 dark:border-amber-900/40",
+      titleColor: "text-amber-600 dark:text-amber-400",
+      countBadge:
+        "text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60",
+      emptyText: `No ${colName.toLowerCase()} tasks today`,
+    };
+  }
+  return {
+    title: upcomingTitle,
+    badgeContainer:
+      "bg-blue-100/60 dark:bg-blue-950/30 border-blue-200/40 dark:border-blue-900/40",
+    titleColor: "text-blue-600 dark:text-blue-400",
+    countBadge:
+      "text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/60",
+    emptyText: `No upcoming ${colName.toLowerCase()} tasks`,
+  };
+};
+
 const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   const dispatch = useDispatch();
   const { theme } = useTheme();
@@ -1670,28 +1793,12 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             }
 
             const columnTasks = tasksByColumn[col] || [];
+            const { previousTasks, todayTasks, upcomingTasks } =
+              splitTasksByDateCategory(columnTasks, col, selectedDate);
 
-            // Split overdue/due tasks into previous overdue, due today, and upcoming due
-            const previousOverdue = isOverdueCol
-              ? columnTasks.filter((t) => {
-                  const days = getDaysRemaining(t.dueDate, selectedDate);
-                  return days !== null && days < 0;
-                })
-              : [];
-            const todayOverdue = isOverdueCol
-              ? columnTasks.filter((t) => {
-                  const days = getDaysRemaining(t.dueDate, selectedDate);
-                  return days !== null && days === 0;
-                })
-              : [];
-            const upcomingDue = isOverdueCol
-              ? columnTasks
-                  .filter((t) => {
-                    const days = getDaysRemaining(t.dueDate, selectedDate);
-                    return days !== null && days >= 1;
-                  })
-                  .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))
-              : [];
+            const prevConfig = getSectionConfig(col, "prev");
+            const todayConfig = getSectionConfig(col, "today");
+            const upcomingConfig = getSectionConfig(col, "upcoming");
 
             return (
               <div
@@ -1699,107 +1806,134 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                 className={`w-[290px] md:w-[310px] min-w-[290px] md:min-w-[310px] shrink-0 snap-start ${boardBg} backdrop-blur-md rounded-2xl border ${colBorder} flex flex-col max-h-[600px] shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden`}
               >
                 <div
-                  className={`p-3 px-3.5 border-b flex items-center justify-between rounded-t-2xl backdrop-blur-md ${colBg} ${colBorder}`}
+                  className={`p-3 px-3.5 border-b flex flex-col gap-1.5 rounded-t-2xl backdrop-blur-md ${colBg} ${colBorder}`}
                 >
-                  <span
-                    className={`text-xs font-black tracking-wider uppercase truncate max-w-[75%] ${textCol}`}
-                    title={col}
-                  >
-                    {col}
-                  </span>
-                  <span
-                    className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${countBg} ${countText}`}
-                  >
-                    {columnTasks.length}
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <span
+                      className={`text-xs font-black tracking-wider uppercase truncate max-w-[70%] ${textCol}`}
+                      title={col}
+                    >
+                      {col}
+                    </span>
+                    <span
+                      className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${countBg} ${countText}`}
+                    >
+                      {columnTasks.length}
+                    </span>
+                  </div>
+
+                  {/* Header breakdown pills */}
+                  <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+                    <span
+                      className="text-[8.5px] font-black px-1.5 py-0.5 rounded bg-black/15 dark:bg-white/15 text-white dark:text-slate-100 border border-white/20 whitespace-nowrap"
+                      title={prevConfig.title}
+                    >
+                      Prev: {previousTasks.length}
+                    </span>
+                    <span
+                      className="text-[8.5px] font-black px-1.5 py-0.5 rounded bg-black/15 dark:bg-white/15 text-white dark:text-slate-100 border border-white/20 whitespace-nowrap"
+                      title={todayConfig.title}
+                    >
+                      Today: {todayTasks.length}
+                    </span>
+                    <span
+                      className="text-[8.5px] font-black px-1.5 py-0.5 rounded bg-black/15 dark:bg-white/15 text-white dark:text-slate-100 border border-white/20 whitespace-nowrap"
+                      title={upcomingConfig.title}
+                    >
+                      Upcoming: {upcomingTasks.length}
+                    </span>
+                  </div>
                 </div>
-                <div className="p-2.5 overflow-y-auto space-y-2.5 flex-1 custom-scrollbar">
-                  {isOverdueCol ? (
-                    <div className="space-y-3">
-                      {/* Previous Overdue */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between px-2 py-1 bg-red-100/60 dark:bg-red-950/30 border border-red-200/40 dark:border-red-900/40 rounded-lg">
-                          <span className="text-[9px] font-black uppercase text-red-600 dark:text-red-400 tracking-wider truncate">
-                            Prev Overdue
-                          </span>
-                          <span className="text-[9px] font-black text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-900/60 px-1.5 py-0.5 rounded-md shrink-0">
-                            {previousOverdue.length}
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          <AnimatePresence>
-                            {previousOverdue.length > 0 ? (
-                              previousOverdue.map((task) =>
-                                renderTaskCard(task),
-                              )
-                            ) : (
-                              <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-1.5">
-                                No previous overdue
-                              </p>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      </div>
 
-                      {/* Today Overdue */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between px-2 py-1 bg-amber-100/60 dark:bg-amber-950/30 border border-amber-200/40 dark:border-amber-900/40 rounded-lg">
-                          <span className="text-[9px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider truncate">
-                            Due Today
-                          </span>
-                          <span className="text-[9px] font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 rounded-md shrink-0">
-                            {todayOverdue.length}
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          <AnimatePresence>
-                            {todayOverdue.length > 0 ? (
-                              todayOverdue.map((task) => renderTaskCard(task))
-                            ) : (
-                              <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-1.5">
-                                No tasks due today
-                              </p>
-                            )}
-                          </AnimatePresence>
-                        </div>
+                <div className="p-2.5 overflow-y-auto space-y-3 flex-1 custom-scrollbar">
+                  <div className="space-y-3">
+                    {/* Previous Section */}
+                    <div className="space-y-1.5">
+                      <div
+                        className={`flex items-center justify-between px-2 py-1 rounded-lg border ${prevConfig.badgeContainer}`}
+                      >
+                        <span
+                          className={`text-[9px] font-black uppercase tracking-wider truncate ${prevConfig.titleColor}`}
+                        >
+                          {prevConfig.title}
+                        </span>
+                        <span
+                          className={`text-[9px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${prevConfig.countBadge}`}
+                        >
+                          {previousTasks.length}
+                        </span>
                       </div>
-
-                      {/* Upcoming Due */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between px-2 py-1 bg-orange-100/60 dark:bg-orange-950/30 border border-orange-200/40 dark:border-orange-900/40 rounded-lg">
-                          <span className="text-[9px] font-black uppercase text-orange-600 dark:text-orange-400 tracking-wider truncate">
-                            Upcoming Due
-                          </span>
-                          <span className="text-[9px] font-black text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/60 px-1.5 py-0.5 rounded-md shrink-0">
-                            {upcomingDue.length}
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          <AnimatePresence>
-                            {upcomingDue.length > 0 ? (
-                              upcomingDue.map((task) =>
-                                renderTaskCard(task),
-                              )
-                            ) : (
-                              <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-1.5">
-                                No upcoming due tasks
-                              </p>
-                            )}
-                          </AnimatePresence>
-                        </div>
+                      <div className="space-y-2">
+                        <AnimatePresence>
+                          {previousTasks.length > 0 ? (
+                            previousTasks.map((task) => renderTaskCard(task))
+                          ) : (
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-1.5">
+                              {prevConfig.emptyText}
+                            </p>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
-                  ) : (
-                    <AnimatePresence>
-                      {columnTasks.length > 0 ? (
-                        columnTasks.map((task) => renderTaskCard(task))
-                      ) : (
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-3">
-                          No tasks in this column
-                        </p>
-                      )}
-                    </AnimatePresence>
-                  )}
+
+                    {/* Today Section */}
+                    <div className="space-y-1.5">
+                      <div
+                        className={`flex items-center justify-between px-2 py-1 rounded-lg border ${todayConfig.badgeContainer}`}
+                      >
+                        <span
+                          className={`text-[9px] font-black uppercase tracking-wider truncate ${todayConfig.titleColor}`}
+                        >
+                          {todayConfig.title}
+                        </span>
+                        <span
+                          className={`text-[9px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${todayConfig.countBadge}`}
+                        >
+                          {todayTasks.length}
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        <AnimatePresence>
+                          {todayTasks.length > 0 ? (
+                            todayTasks.map((task) => renderTaskCard(task))
+                          ) : (
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-1.5">
+                              {todayConfig.emptyText}
+                            </p>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+
+                    {/* Upcoming Section */}
+                    <div className="space-y-1.5">
+                      <div
+                        className={`flex items-center justify-between px-2 py-1 rounded-lg border ${upcomingConfig.badgeContainer}`}
+                      >
+                        <span
+                          className={`text-[9px] font-black uppercase tracking-wider truncate ${upcomingConfig.titleColor}`}
+                        >
+                          {upcomingConfig.title}
+                        </span>
+                        <span
+                          className={`text-[9px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${upcomingConfig.countBadge}`}
+                        >
+                          {upcomingTasks.length}
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        <AnimatePresence>
+                          {upcomingTasks.length > 0 ? (
+                            upcomingTasks.map((task) => renderTaskCard(task))
+                          ) : (
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-1.5">
+                              {upcomingConfig.emptyText}
+                            </p>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             );
