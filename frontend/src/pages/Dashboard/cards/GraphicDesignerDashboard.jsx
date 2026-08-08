@@ -7,7 +7,7 @@ import React, {
 } from "react";
 
 const LiveProductivityCell = React.memo(
-  ({ tasks = [], initialLoggedMs = 0 }) => {
+  ({ tasks = [], initialLoggedMs = 0, selectedDate = new Date() }) => {
     const [liveMs, setLiveMs] = useState(initialLoggedMs);
 
     const hasInProgress = useMemo(() => {
@@ -23,6 +23,10 @@ const LiveProductivityCell = React.memo(
 
     const calculateTotalLogged = useCallback(() => {
       let total = 0;
+      const refDate = selectedDate || new Date();
+      const now = isSameDay(refDate, new Date())
+        ? Date.now()
+        : endOfDay(refDate).getTime();
       tasks.forEach((t) => {
         if (t.actualStartTime) {
           const start = new Date(t.actualStartTime).getTime();
@@ -30,13 +34,13 @@ const LiveProductivityCell = React.memo(
             ? new Date(t.actualEndTime).getTime()
             : t.pausedAt
               ? new Date(t.pausedAt).getTime()
-              : Date.now();
+              : now;
           const paused = t.totalPausedMs || 0;
           total += Math.max(0, end - start - paused);
         }
       });
       return total;
-    }, [tasks]);
+    }, [tasks, selectedDate]);
 
     useEffect(() => {
       setLiveMs(calculateTotalLogged());
@@ -111,6 +115,9 @@ import {
   isYesterday,
   isTomorrow,
   isAfter,
+  isBefore,
+  startOfDay,
+  endOfDay,
   subDays,
   isSameMonth,
   formatDistanceToNow,
@@ -158,13 +165,13 @@ const getPriorityStyle = (priority) => {
   return "bg-slate-50 text-slate-500 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800";
 };
 
-const getDaysRemaining = (dueDateStr) => {
+const getDaysRemaining = (dueDateStr, referenceDate = new Date()) => {
   if (!dueDateStr) return null;
   const dueDate = new Date(dueDateStr);
   dueDate.setHours(0, 0, 0, 0);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const diffTime = dueDate.getTime() - today.getTime();
+  const refDate = new Date(referenceDate);
+  refDate.setHours(0, 0, 0, 0);
+  const diffTime = dueDate.getTime() - refDate.getTime();
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 };
 
@@ -278,25 +285,36 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             : task.createdBy;
         if (creatorId === currentUserId && task.assignedTo) {
           // Filter by selectedDate so we only show designers who have tasks in the current view
-          let includeTask = true;
+          let includeTask = false;
           const taskCreatedDate = task.createdAt
             ? parseISO(task.createdAt)
             : null;
           const taskDueDate = task.dueDate ? parseISO(task.dueDate) : null;
-          const dateToCheck = taskDueDate || taskCreatedDate;
+          const taskStartDate = task.startDate ? parseISO(task.startDate) : null;
+          const startCheckDate = taskStartDate || taskDueDate || taskCreatedDate;
 
-          if (!dateToCheck) {
-            includeTask = false;
+          const status = task.status?.toLowerCase() || "";
+          const isCompleted =
+            status === "completed" || status.includes("approve");
+
+          if (!isCompleted) {
+            if (startCheckDate) {
+              includeTask =
+                isSameDay(startCheckDate, selectedDate) ||
+                isBefore(startCheckDate, selectedDate);
+            }
           } else {
-            includeTask = isSameDay(dateToCheck, selectedDate);
+            const completedDate = task.completedAt
+              ? parseISO(task.completedAt)
+              : task.updatedAt
+                ? parseISO(task.updatedAt)
+                : null;
+            includeTask = completedDate
+              ? isSameDay(completedDate, selectedDate)
+              : false;
           }
 
-          // Also include tasks that are active (not completed) so they don't disappear if they were due yesterday
-          const status = task.status?.toLowerCase() || "";
-          const isActive =
-            status !== "completed" && !status.includes("approve");
-
-          if (includeTask || isActive) {
+          if (includeTask) {
             const assigneeId =
               typeof task.assignedTo === "object"
                 ? task.assignedTo._id
@@ -351,7 +369,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         const startCheckDate = taskStartDate || taskCreatedDate;
         if (startCheckDate) {
           const isStarted =
-            isSameDay(startCheckDate, selectedDate) || isPast(startCheckDate);
+            isSameDay(startCheckDate, selectedDate) ||
+            isBefore(startCheckDate, selectedDate);
           if (isStarted) {
             return true;
           }
@@ -400,7 +419,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
       if (
         task.dueDate &&
-        isPast(parseISO(task.dueDate)) &&
+        isBefore(startOfDay(parseISO(task.dueDate)), startOfDay(selectedDate)) &&
         status !== "completed"
       ) {
         overdue++;
@@ -494,7 +513,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         task.status?.toLowerCase() === "completed" ||
         task.status?.toLowerCase().includes("approve");
       if (!isCompleted && task.dueDate) {
-        const daysRemaining = getDaysRemaining(task.dueDate);
+        const daysRemaining = getDaysRemaining(task.dueDate, selectedDate);
         if (daysRemaining !== null && daysRemaining <= 1) {
           cols["Overall Overdue"].push(task);
         }
@@ -540,20 +559,33 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         else if (s === "pending") pend++;
         else pend++; // default fallback
 
-        if (t.dueDate && isPast(parseISO(t.dueDate)) && !isCompleted) over++;
+        if (
+          t.dueDate &&
+          isBefore(startOfDay(parseISO(t.dueDate)), startOfDay(selectedDate)) &&
+          !isCompleted
+        )
+          over++;
 
         totalRevisions += t.revisions || 0;
 
         if (t.actualStartTime) {
           const start = new Date(t.actualStartTime).getTime();
+          const now = isSameDay(selectedDate, new Date())
+            ? Date.now()
+            : endOfDay(selectedDate).getTime();
           // For completed tasks: use actualEndTime
           // For paused tasks (In Review / On Hold): use pausedAt (timer was frozen there)
           // For active tasks: use now
           const end = t.actualEndTime
             ? new Date(t.actualEndTime).getTime()
-            : (t.status === "In Progress" && t.autoPaused) || ["On Hold", "Rejected", "In Review", "Correction"].includes(t.status)
-              ? (t.pausedAt ? new Date(t.pausedAt).getTime() : Date.now())
-              : Date.now();
+            : (t.status === "In Progress" && t.autoPaused) ||
+                ["On Hold", "Rejected", "In Review", "Correction"].includes(
+                  t.status,
+                )
+              ? t.pausedAt
+                ? new Date(t.pausedAt).getTime()
+                : now
+              : now;
           const paused = t.totalPausedMs || 0;
           const taskLoggedMs = Math.max(0, end - start - paused);
           totalLoggedMs += taskLoggedMs;
@@ -658,7 +690,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           lastSubmittedStr = "Draft";
         } else {
           const reportUpdatedAt = new Date(designerReport.updatedAt);
-          if (isToday(reportUpdatedAt)) {
+          if (isSameDay(reportUpdatedAt, selectedDate)) {
             lastSubmittedStr = format(reportUpdatedAt, "h:mm a");
           } else {
             lastSubmittedStr = format(reportUpdatedAt, "MMM dd, h:mm a");
@@ -742,8 +774,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         cp[clientId].pending++;
         if (s.includes("revision")) cp[clientId].revision++;
         if (task.dueDate) {
-          if (isToday(parseISO(task.dueDate))) cp[clientId].dueToday++;
-          if (isPast(parseISO(task.dueDate))) cp[clientId].delayed++;
+          const dueISO = parseISO(task.dueDate);
+          if (isSameDay(dueISO, selectedDate)) cp[clientId].dueToday++;
+          if (isBefore(startOfDay(dueISO), startOfDay(selectedDate)))
+            cp[clientId].delayed++;
         }
       }
     });
@@ -765,7 +799,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       .map((t) => {
         const s = t.status?.toLowerCase() || "";
         let diff = t.dueDate
-          ? differenceInDays(new Date(), parseISO(t.dueDate))
+          ? differenceInDays(
+              startOfDay(selectedDate),
+              startOfDay(parseISO(t.dueDate)),
+            )
           : 0;
         let delayText = "";
         if (s.includes("hold")) {
@@ -1008,7 +1045,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   };
   const getDeadlineBadgeText = (dueDateStr, status) => {
     if (!dueDateStr) return "";
-    const days = getDaysRemaining(dueDateStr);
+    const days = getDaysRemaining(dueDateStr, selectedDate);
     const isCompleted =
       status?.toLowerCase() === "completed" ||
       status?.toLowerCase().includes("approve");
@@ -1113,7 +1150,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           <div className="pl-1.5 flex items-center justify-between gap-1">
             <span
               className={`shrink-0 flex items-center gap-1.5 text-[9.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${(() => {
-                const days = getDaysRemaining(task.dueDate);
+                const days = getDaysRemaining(task.dueDate, selectedDate);
                 const isCompleted =
                   task.status?.toLowerCase() === "completed" ||
                   task.status?.toLowerCase().includes("approve");
@@ -1921,6 +1958,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       <LiveProductivityCell
                         tasks={tp.tasks}
                         initialLoggedMs={tp.inProgressLoggedMs}
+                        selectedDate={selectedDate}
                       />
                     </td>
 
