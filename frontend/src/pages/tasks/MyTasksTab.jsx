@@ -975,6 +975,13 @@ const MyTasksTab = ({
           task.status !== "Completed"
         );
       }
+      if (statusFilter === "Due Today") {
+        return (
+          task.dueDate &&
+          isSameDate(task.dueDate, new Date()) &&
+          task.status !== "Completed"
+        );
+      }
       if (
         statusFilter === "Active Tasks" ||
         statusFilter === "Pending,In Progress,In Review,Correction,On Hold" ||
@@ -2151,6 +2158,14 @@ const MyTasksTab = ({
                               name: "Overdue",
                               label: "Overdue",
                               color: "bg-rose-600 animate-pulse",
+                            },
+                          ]
+                        : statusFilter === "Due Today"
+                        ? [
+                            {
+                              name: "Due Today",
+                              label: "Due Today",
+                              color: "bg-amber-600 animate-pulse",
                             },
                           ]
                         : []),

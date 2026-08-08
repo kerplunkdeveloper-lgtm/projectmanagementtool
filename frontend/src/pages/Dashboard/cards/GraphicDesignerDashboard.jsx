@@ -410,6 +410,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     let onHold = 0;
     let inReview = 0;
     let overdue = 0;
+    let dueToday = 0;
     let rejected = 0;
     let corrections = 0;
     let totalRevisions = 0;
@@ -430,10 +431,15 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
       if (
         task.dueDate &&
-        isBefore(startOfDay(parseISO(task.dueDate)), startOfDay(selectedDate)) &&
-        status !== "completed"
+        status !== "completed" &&
+        !status.includes("approve")
       ) {
-        overdue++;
+        const days = getDaysRemaining(task.dueDate, selectedDate);
+        if (days !== null && days < 0) {
+          overdue++;
+        } else if (days !== null && days === 0) {
+          dueToday++;
+        }
       }
     });
 
@@ -447,10 +453,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       inReview,
       corrections,
       overdue,
+      dueToday,
       rejected,
       totalRevisions,
     };
-  }, [designerTasks, designers.length]);
+  }, [designerTasks, designers.length, selectedDate]);
 
   const interruptions = useMemo(() => {
     let totalBlockers = 0;
@@ -1305,7 +1312,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         </div>
       </div>
       {/* Premium Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 lg:gap-2 relative z-10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 lg:gap-2 relative z-10">
         {[
           {
             label:
@@ -1425,13 +1432,28 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             value: metrics.overdue,
             icon: FiAlertCircle,
             glow: "hover:shadow-[0_4px_20px_rgba(244,63,94,0.15)]",
-            bg: "bg-gradient-to-br from-rose-400 to-rose-400 dark:from-rose-600 dark:to-rose-800 border border-rose-200/50 dark:border-rose-900/30",
+            bg: "bg-gradient-to-br from-rose-400 to-rose-500 dark:from-rose-600 dark:to-rose-800 border border-rose-200/50 dark:border-rose-900/30",
             labelColor: "text-white dark:text-white",
             valueColor: "text-slate-100 dark:text-white",
             iconBg:
               "bg-rose-100 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-500/20",
             iconColor: "text-rose-600 dark:text-rose-400",
             onClick: () => handleMetricClick("Overdue"),
+          },
+          {
+            label: isToday(selectedDate)
+              ? "Due Today"
+              : `Due ${getRelativeDateLabel(selectedDate)}`,
+            value: metrics.dueToday,
+            icon: FiCalendar,
+            glow: "hover:shadow-[0_4px_20px_rgba(245,158,11,0.15)]",
+            bg: "bg-gradient-to-br from-amber-500 to-orange-500 dark:from-amber-700 dark:to-orange-800 border border-amber-200/50 dark:border-amber-900/30",
+            labelColor: "text-white dark:text-white",
+            valueColor: "text-slate-100 dark:text-white",
+            iconBg:
+              "bg-amber-100 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-500/20",
+            iconColor: "text-amber-600 dark:text-amber-400",
+            onClick: () => handleMetricClick("Due Today"),
           },
           {
             label: `${getRelativeDateLabel(selectedDate)} Rejected`,

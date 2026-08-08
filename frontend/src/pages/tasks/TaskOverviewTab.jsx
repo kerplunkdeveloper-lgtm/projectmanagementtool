@@ -1272,6 +1272,12 @@ const TaskOverviewTab = ({
             new Date(task.dueDate) < new Date() &&
             task.status !== "Completed";
           if (!isOverdue) return false;
+        } else if (overviewStatusFilter === "Due Today") {
+          const isDueToday =
+            task.dueDate &&
+            isSameDate(task.dueDate, new Date()) &&
+            task.status !== "Completed";
+          if (!isDueToday) return false;
         } else if (overviewStatusFilter === "Active Tasks") {
           const statusUpper = (task.status || "Pending").toUpperCase();
           const isCompleted = statusUpper === "COMPLETED";
@@ -2081,6 +2087,8 @@ const TaskOverviewTab = ({
                       "Rejected",
                       ...(overviewStatusFilter === "Overdue"
                         ? ["Overdue"]
+                        : overviewStatusFilter === "Due Today"
+                        ? ["Due Today"]
                         : []),
                     ].map((st) => (
                       <button
