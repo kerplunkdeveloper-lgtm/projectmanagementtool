@@ -1758,9 +1758,16 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   })()}
                 </span>
               </div>
-              <span className="text-[10px] font-extrabold text-slate-400 dark:text-slate-300 uppercase tracking-wider">
-                {format(selectedDate, "MMM dd, yyyy")}
-              </span>
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-250 dark:border-slate-700/80 shadow-2xs">
+                <FiCalendar className="text-indigo-500 dark:text-indigo-400 shrink-0" size={12} />
+                <span className="text-[11px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                  {getRelativeDateLabel(selectedDate)}
+                </span>
+                <span className="text-slate-300 dark:text-slate-600 font-extrabold text-xs">•</span>
+                <span className="text-[11px] font-extrabold text-slate-700 dark:text-slate-200 tracking-wide uppercase">
+                  {format(selectedDate, "MMM dd, yyyy")}
+                </span>
+              </div>
             </div>
           </div>
           <div className="overflow-x-auto">
