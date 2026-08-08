@@ -1346,7 +1346,7 @@ const Dashboardmain = () => {
 
   const uniqueDepartments = React.useMemo(() => {
     if (!users || users.length === 0)
-      return ["Graphic Designer", "VideoGrapher", "Editor"];
+      return ["Graphic Designer", "VideoGrapher"];
     const depts = users
       .map((u) => u.department)
       .filter((d) => d && d.trim() !== "");
@@ -1367,8 +1367,8 @@ const Dashboardmain = () => {
       }
     });
 
-    // Priority Order: 1. Graphic Designer, 2. VideoGrapher, 3. Editor, followed by others
-    const ordered = ["Graphic Designer", "VideoGrapher", "Editor"];
+    // Priority Order: 1. Graphic Designer, 2. VideoGrapher, followed by others
+    const ordered = ["Graphic Designer", "VideoGrapher"];
     middleDepts.forEach((d) => {
       if (!ordered.includes(d)) {
         ordered.push(d);
@@ -2080,7 +2080,7 @@ const Dashboardmain = () => {
           </div>
 
           {/* Tab Content */}
-          {["Graphic Designer", "VideoGrapher", "Editor"].includes(
+          {["Graphic Designer", "VideoGrapher"].includes(
             activeDeptTab,
           ) && <GraphicDesignerDashboard targetDept={activeDeptTab} />}
           {activeDeptTab?.toLowerCase().includes("web") && (
@@ -2096,7 +2096,7 @@ const Dashboardmain = () => {
             <PerformanceMarketerDashboard targetDept={activeDeptTab} />
           )}
 
-          {!["Graphic Designer", "VideoGrapher", "Editor"].includes(
+          {!["Graphic Designer", "VideoGrapher"].includes(
             activeDeptTab,
           ) &&
             !activeDeptTab?.toLowerCase().includes("web") &&
