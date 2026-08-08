@@ -319,6 +319,7 @@ const TimeTracker = React.memo(({
   startTime,
   endTime,
   pausedAt,
+  autoPaused,
   status,
   savedPausedMs = 0,
   variant = "default",
@@ -335,13 +336,16 @@ const TimeTracker = React.memo(({
       if (endTime) {
         // Task is completed — use the locked end time
         end = new Date(endTime).getTime();
+      } else if (status === "In Progress" && autoPaused) {
+        // Task is auto-paused by office hours — freeze at pausedAt
+        end = pausedAt ? new Date(pausedAt).getTime() : Date.now();
       } else if (
         pausedAt &&
-        ["On Hold", "Rejected", "In Review"].includes(
+        ["On Hold", "Rejected", "In Review", "Correction"].includes(
           status,
         )
       ) {
-        // Task is paused (In Review / On Hold) — freeze at pausedAt
+        // Task is paused — freeze at pausedAt
         end = new Date(pausedAt).getTime();
       } else {
         // Task is actively running
@@ -356,14 +360,14 @@ const TimeTracker = React.memo(({
 
     setElapsed(calculateElapsed());
 
-    // Only tick when actively running
-    if (status === "In Progress" && !endTime) {
+    // Only tick when actively running (In Progress and NOT autoPaused)
+    if (status === "In Progress" && !autoPaused && !endTime) {
       const interval = setInterval(() => {
         setElapsed(calculateElapsed());
       }, 1000);
       return () => clearInterval(interval);
     }
-  }, [startTime, endTime, pausedAt, status, savedPausedMs]);
+  }, [startTime, endTime, pausedAt, autoPaused, status, savedPausedMs]);
 
   if (!startTime && status !== "In Progress") {
     if (!status || status.toLowerCase() === "pending") {
@@ -401,43 +405,57 @@ const TimeTracker = React.memo(({
               <span className="text-xs font-bold text-slate-400 mr-1">h</span>
             </>
           )}
-          <span className="text-3xl font-black tracking-tight">{minutes}</span>
-          <span className="text-xs font-bold text-slate-400 mr-1">m</span>
-          <span className="text-xl font-bold tracking-tight text-emerald-500">
-            {seconds}
+          <span className="text-3xl font-black tracking-tight">
+            {minutes}
           </span>
-          <span className="text-[10px] font-bold text-emerald-500/70">s</span>
+          <span className="text-xs font-bold text-slate-400 mr-1">m</span>
+          <span className="text-xl font-bold text-slate-400">
+            {seconds}s
+          </span>
         </div>
-        {status === "In Progress" && !endTime && (
-          <div className="flex items-center gap-1.5 mt-1 text-[9px] font-bold text-[#3b82f6] uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] animate-pulse"></span>
-            Timer Running
+        {status === "In Progress" && autoPaused && (
+          <div className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400">
+            Office Closed (Auto Paused)
           </div>
         )}
       </div>
     );
   }
 
+  const isAutoPaused = status === "In Progress" && autoPaused;
+
   return (
     <div
       className={`inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold tracking-wider w-full ${
-        status === "In Progress" && !endTime
-          ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30 shadow-sm"
-          : status === "In Review"
-            ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 shadow-sm"
-            : status === "On Hold"
-              ? "bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/30 shadow-sm"
-              : status === "Completed"
-                ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 shadow-sm"
-                : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-500/5 dark:text-slate-400 dark:border-slate-500/20 shadow-xs"
+        isAutoPaused
+          ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 shadow-sm"
+          : status === "In Progress" && !endTime
+            ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30 shadow-sm"
+            : status === "In Review"
+              ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 shadow-sm"
+              : status === "On Hold"
+                ? "bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/30 shadow-sm"
+                : status === "Completed"
+                  ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 shadow-sm"
+                  : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-500/5 dark:text-slate-400 dark:border-slate-500/20 shadow-xs"
       }`}
     >
-      {status === "In Progress" && !endTime ? (
-        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#3b82f6] animate-pulse"></span>
+      {isAutoPaused ? (
+        <>
+          <FiClock size={10} className="text-amber-500" />
+          <span>Auto Paused ({timeString})</span>
+        </>
+      ) : status === "In Progress" && !endTime ? (
+        <>
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#3b82f6] animate-pulse"></span>
+          {timeString}
+        </>
       ) : (
-        <FiClock size={10} />
+        <>
+          <FiClock size={10} />
+          {timeString}
+        </>
       )}
-      {timeString}
     </div>
   );
 });
@@ -2186,31 +2204,13 @@ const ProjectTaskBoard = ({
       }
 
       // Optimistically update local UI for status
-      const isNewStatusInProgress = destination.droppableId === "In Progress";
       const updatedTasks = localTasks.map((t) => {
         if (t._id === draggableId) {
           return { ...t, status: destination.droppableId };
         }
-        if (
-          isNewStatusInProgress &&
-          (t.status === "In Progress" || t.status === "In-Progress")
-        ) {
-          return { ...t, status: "On Hold" };
-        }
         return t;
       });
       setLocalTasks(updatedTasks);
-
-      if (isNewStatusInProgress) {
-        (localTasks || []).forEach((t) => {
-          if (
-            t._id !== draggableId &&
-            (t.status === "In Progress" || t.status === "In-Progress")
-          ) {
-            updateTaskMutation({ id: t._id, taskData: { status: "On Hold" } });
-          }
-        });
-      }
 
       try {
         await updateTaskMutation({
@@ -2746,32 +2746,14 @@ const ProjectTaskBoard = ({
       sanitizedFields.priority = "Top High";
     }
 
-    const isNewStatusInProgress = sanitizedFields.status === "In Progress";
     setLocalTasks((prev) =>
       prev.map((t) => {
         if (t._id === taskId) {
           return { ...t, ...sanitizedFields };
         }
-        if (
-          isNewStatusInProgress &&
-          (t.status === "In Progress" || t.status === "In-Progress")
-        ) {
-          return { ...t, status: "On Hold" };
-        }
         return t;
       }),
     );
-
-    if (isNewStatusInProgress) {
-      (localTasks || []).forEach((t) => {
-        if (
-          t._id !== taskId &&
-          (t.status === "In Progress" || t.status === "In-Progress")
-        ) {
-          updateTaskMutation({ id: t._id, taskData: { status: "On Hold" } });
-        }
-      });
-    }
 
     if (String(taskId).startsWith("temp-")) {
       return;

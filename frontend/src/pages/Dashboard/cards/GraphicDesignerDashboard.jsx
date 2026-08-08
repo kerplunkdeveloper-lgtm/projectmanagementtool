@@ -551,8 +551,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           // For active tasks: use now
           const end = t.actualEndTime
             ? new Date(t.actualEndTime).getTime()
-            : t.pausedAt
-              ? new Date(t.pausedAt).getTime()
+            : (t.status === "In Progress" && t.autoPaused) || ["On Hold", "Rejected", "In Review", "Correction"].includes(t.status)
+              ? (t.pausedAt ? new Date(t.pausedAt).getTime() : Date.now())
               : Date.now();
           const paused = t.totalPausedMs || 0;
           const taskLoggedMs = Math.max(0, end - start - paused);

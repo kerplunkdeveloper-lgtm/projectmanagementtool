@@ -40,7 +40,9 @@ const calculateItemWorkingTime = (item) => {
   let end = Date.now();
   if (item.actualEndTime) {
     end = new Date(item.actualEndTime).getTime();
-  } else if (item.pausedAt) {
+  } else if (item.status === "In Progress" && item.autoPaused) {
+    end = item.pausedAt ? new Date(item.pausedAt).getTime() : Date.now();
+  } else if (item.pausedAt && item.status !== "In Progress") {
     end = new Date(item.pausedAt).getTime();
   }
 
@@ -85,6 +87,10 @@ const calculateItemWorkingTime = (item) => {
 // @access  Private
 exports.getTasks = async (req, res) => {
   try {
+    const { checkAndAutoPauseTasks } = require("../utils/officeHoursScheduler");
+    const io = req.app ? req.app.get("io") : null;
+    await checkAndAutoPauseTasks(io);
+
     let query = {};
     if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
       const Client = require("../models/Client");
@@ -485,6 +491,7 @@ if (req.body.status && req.body.status !== previousStatus) {
           message: "Please start the task by setting its status to 'In Progress' first before placing it on hold.",
         });
       }
+      req.body.autoPaused = false;
       if (!task.pausedAt) {
         req.body.pausedAt = Date.now();
       }
@@ -683,6 +690,7 @@ if (req.body.subtasks) {
               message: "Please start the subtask by setting its status to 'In Progress' first before placing it on hold.",
             });
           }
+          sub.autoPaused = false;
           if (!prevSub.pausedAt) {
             sub.pausedAt = Date.now();
           }

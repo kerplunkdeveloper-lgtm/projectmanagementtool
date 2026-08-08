@@ -107,16 +107,20 @@ const safeFormatDateTime = (timeStr, formatPattern = "MMM dd, yyyy h:mm a") => {
 const formatElapsed = (
   startTime,
   endTime,
-  pausedAt = null,
+  pausedAt,
   totalPausedMs = 0,
+  status = "",
+  autoPaused = false,
 ) => {
   if (!startTime) return "";
   const start = new Date(startTime).getTime();
   const end = endTime
     ? new Date(endTime).getTime()
-    : pausedAt
-      ? new Date(pausedAt).getTime()
-      : Date.now();
+    : status === "In Progress" && autoPaused
+      ? (pausedAt ? new Date(pausedAt).getTime() : Date.now())
+      : pausedAt && status !== "In Progress"
+        ? new Date(pausedAt).getTime()
+        : Date.now();
 
   const paused = totalPausedMs || 0;
 
@@ -144,7 +148,13 @@ const LiveTimeTracker = ({ task, allTasks, isSubmitted }) => {
     }
 
     const originalTask = allTasks.find((t) => t._id === (task.taskId || task.id));
-    if (!originalTask || !originalTask.actualStartTime || originalTask.actualEndTime || originalTask.pausedAt) {
+    if (
+      !originalTask ||
+      !originalTask.actualStartTime ||
+      originalTask.actualEndTime ||
+      (originalTask.status !== "In Progress" && originalTask.pausedAt) ||
+      originalTask.autoPaused
+    ) {
       setElapsedStr(task.time || "");
       return;
     }
@@ -155,13 +165,15 @@ const LiveTimeTracker = ({ task, allTasks, isSubmitted }) => {
           originalTask.actualStartTime,
           originalTask.actualEndTime,
           originalTask.pausedAt,
-          originalTask.totalPausedMs
+          originalTask.totalPausedMs,
+          originalTask.status,
+          originalTask.autoPaused
         )
       );
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [task, allTasks, isSubmitted]);
+  }, [allTasks, task, isSubmitted]);
 
   return <span>Time spent: {elapsedStr}</span>;
 };

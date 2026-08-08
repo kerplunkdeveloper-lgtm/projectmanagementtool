@@ -66,6 +66,7 @@ const SimpleTimeTracker = ({
   endTime,
   status,
   pausedAt,
+  autoPaused,
   savedPausedMs = 0,
   isBlocked,
   blockerPausedAt,
@@ -84,6 +85,8 @@ const SimpleTimeTracker = ({
 
       if (endTime) {
         end = new Date(endTime).getTime();
+      } else if (status === "In Progress" && autoPaused) {
+        end = pausedAt ? new Date(pausedAt).getTime() : Date.now();
       } else if (
         pausedAt &&
         ["On Hold", "Rejected", "In Review", "Correction"].includes(status)
@@ -131,7 +134,7 @@ const SimpleTimeTracker = ({
 
     update();
 
-    if (status === "In Progress" && !endTime) {
+    if (status === "In Progress" && !autoPaused && !endTime) {
       const interval = setInterval(update, 1000);
       return () => clearInterval(interval);
     }
@@ -139,6 +142,7 @@ const SimpleTimeTracker = ({
     startTime,
     endTime,
     pausedAt,
+    autoPaused,
     status,
     isBlocked,
     blockerPausedAt,
@@ -199,6 +203,7 @@ const TimeTrackerBox = ({
   endTime,
   status,
   pausedAt,
+  autoPaused,
   savedPausedMs = 0,
   isBlocked,
   blockerPausedAt,
@@ -216,6 +221,8 @@ const TimeTrackerBox = ({
 
       if (endTime) {
         end = new Date(endTime).getTime();
+      } else if (status === "In Progress" && autoPaused) {
+        end = pausedAt ? new Date(pausedAt).getTime() : Date.now();
       } else if (
         pausedAt &&
         ["On Hold", "Rejected", "In Review", "Correction"].includes(status)
@@ -263,7 +270,7 @@ const TimeTrackerBox = ({
 
     update();
 
-    if (status === "In Progress" && !endTime) {
+    if (status === "In Progress" && !autoPaused && !endTime) {
       const interval = setInterval(update, 1000);
       return () => clearInterval(interval);
     }
@@ -271,6 +278,7 @@ const TimeTrackerBox = ({
     startTime,
     endTime,
     pausedAt,
+    autoPaused,
     status,
     isBlocked,
     blockerPausedAt,

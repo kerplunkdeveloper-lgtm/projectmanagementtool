@@ -64,6 +64,7 @@ const TimeTracker = ({
   endTime,
   status,
   pausedAt,
+  autoPaused,
   savedPausedMs = 0,
   isBlocked,
   blockerPausedAt,
@@ -82,6 +83,8 @@ const TimeTracker = ({
 
       if (endTime) {
         end = new Date(endTime).getTime();
+      } else if (status === "In Progress" && autoPaused) {
+        end = pausedAt ? new Date(pausedAt).getTime() : Date.now();
       } else if (
         pausedAt &&
         ["On Hold", "Rejected", "In Review", "Correction"].includes(
@@ -131,7 +134,7 @@ const TimeTracker = ({
 
     update();
 
-    if (status === "In Progress" && !endTime) {
+    if (status === "In Progress" && !autoPaused && !endTime) {
       const interval = setInterval(update, 1000);
       return () => clearInterval(interval);
     }
@@ -139,6 +142,7 @@ const TimeTracker = ({
     startTime,
     endTime,
     pausedAt,
+    autoPaused,
     status,
     savedPausedMs,
     isBlocked,
@@ -207,6 +211,7 @@ const SingleTimeDisplay = React.memo(({
   endTime,
   status,
   pausedAt,
+  autoPaused,
   savedPausedMs = 0,
   isBlocked,
   blockerPausedAt,
@@ -224,6 +229,8 @@ const SingleTimeDisplay = React.memo(({
 
       if (endTime) {
         end = new Date(endTime).getTime();
+      } else if (status === "In Progress" && autoPaused) {
+        end = pausedAt ? new Date(pausedAt).getTime() : Date.now();
       } else if (
         pausedAt &&
         ["On Hold", "Rejected", "In Review", "Correction"].includes(
@@ -273,7 +280,7 @@ const SingleTimeDisplay = React.memo(({
 
     update();
 
-    if (status === "In Progress" && !endTime) {
+    if (status === "In Progress" && !autoPaused && !endTime) {
       const interval = setInterval(update, 1000);
       return () => clearInterval(interval);
     }
@@ -281,10 +288,12 @@ const SingleTimeDisplay = React.memo(({
     startTime,
     endTime,
     pausedAt,
+    autoPaused,
     status,
     isBlocked,
     blockerPausedAt,
     blockerHistory,
+    savedPausedMs,
   ]);
 
   if (!startTime && status !== "In Progress") {
