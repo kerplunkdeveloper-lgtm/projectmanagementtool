@@ -741,6 +741,8 @@ const Dashboardmain = () => {
     setGoalPage(1);
   }, [goalTab]);
 
+  const [projectPage, setProjectPage] = useState(1);
+
   const userProjects = React.useMemo(() => {
     if (!projects) return [];
     const currentUserId = user?._id || user?.id;
@@ -749,6 +751,29 @@ const Dashboardmain = () => {
       return creatorId === currentUserId;
     });
   }, [projects, user]);
+
+  const PROJECTS_PER_PAGE = 5;
+  const totalProjectPages = Math.ceil((userProjects?.length || 0) / PROJECTS_PER_PAGE) || 1;
+
+  const paginatedUserProjects = React.useMemo(() => {
+    return (userProjects || []).slice(
+      (projectPage - 1) * PROJECTS_PER_PAGE,
+      projectPage * PROJECTS_PER_PAGE,
+    );
+  }, [userProjects, projectPage]);
+
+  const getClientObjectForProject = (proj) => {
+    if (!proj || !proj.client) return null;
+    if (typeof proj.client === "object" && proj.client.companyName) {
+      return proj.client;
+    }
+    const clientId = typeof proj.client === "object" ? proj.client._id : proj.client;
+    const matched = clients?.find((c) => c._id === clientId);
+    if (matched) return matched;
+    if (typeof proj.client === "string") return { companyName: proj.client };
+    if (proj.client?.companyName || proj.client?.name) return { companyName: proj.client.companyName || proj.client.name };
+    return null;
+  };
 
   const formatGoalDates = (startStr, endStr) => {
     if (!startStr && !endStr) return null;
@@ -1933,57 +1958,132 @@ const Dashboardmain = () => {
           </div>
 
           {/* MY PROJECTS card */}
-          <div className="sidebar-bg rounded-xl border border-slate-200 dark:border-white/5 shadow-xs p-6 flex flex-col min-h-[400px]">
-            {/* Header: Title and Go to project page link */}
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-[13px] font-black text-[#2e1d6c] dark:text-[#a594fd] uppercase tracking-wider">
-                My Projects
-              </h3>
-              <Link
-                to={`/${user?.role}/projects`}
-                className="text-[13px] font-bold text-[#8370ec] dark:text-[#9b89ff] hover:underline cursor-pointer"
-              >
-                Go to project page
-              </Link>
-            </div>
+          <div className="sidebar-bg rounded-xl border border-slate-200 dark:border-white/5 shadow-xs p-5 flex flex-col justify-between min-h-[220px]">
+            <div>
+              {/* Header: Title, Count, Go to project page, Pagination */}
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-[13px] font-black text-[#2e1d6c] dark:text-[#a594fd] uppercase tracking-wider">
+                    My Projects
+                  </h3>
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/50 text-[#8370ec] dark:text-[#9b89ff]">
+                    {userProjects?.length || 0}
+                  </span>
+                </div>
 
-            {/* Grid list of project blocks */}
-            <div className="flex flex-wrap gap-4 align-top content-start">
-              {/* Dashed Create Project Button */}
-              <div
-                onClick={() => setShowCreateModal(true)}
-                className="w-44 h-20 border-2 border-dashed border-[#8d7df5]/60 hover:border-[#8d7df5] dark:border-purple-600/40 rounded-2xl flex flex-col items-center justify-center gap-0.5 cursor-pointer bg-white/20 dark:bg-white/5 hover:bg-white/40 dark:hover:bg-white/10 transition-all text-[#2e1d6c] dark:text-purple-300"
-              >
-                <span className="text-xl font-bold font-sans">+</span>
-                <span className="text-[10px] font-black uppercase tracking-wider">
-                  Create Project
-                </span>
+                <div className="flex items-center gap-3">
+                  <Link
+                    to={`/${user?.role}/projects`}
+                    className="text-[12px] font-bold text-[#8370ec] dark:text-[#9b89ff] hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    <span>Go to project page</span>
+                    <FiChevronRight size={13} />
+                  </Link>
+
+                  {/* Header Quick Pagination Controls */}
+                  {totalProjectPages > 1 && (
+                    <div className="flex items-center gap-1 bg-white/40 dark:bg-white/5 border border-purple-200/50 dark:border-white/10 rounded-lg p-0.5">
+                      <button
+                        type="button"
+                        disabled={projectPage === 1}
+                        onClick={() => setProjectPage((prev) => Math.max(1, prev - 1))}
+                        className="w-5 h-5 rounded flex items-center justify-center text-xs font-bold text-[#2e1d6c] dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all"
+                        title="Previous page"
+                      >
+                        ‹
+                      </button>
+                      <span className="text-[10px] font-bold text-[#2e1d6c] dark:text-purple-200 px-1">
+                        {projectPage}/{totalProjectPages}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={projectPage >= totalProjectPages}
+                        onClick={() => setProjectPage((prev) => Math.min(totalProjectPages, prev + 1))}
+                        className="w-5 h-5 rounded flex items-center justify-center text-xs font-bold text-[#2e1d6c] dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all"
+                        title="Next page"
+                      >
+                        ›
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* Loop through projects created by current user */}
-              {userProjects &&
-                userProjects.slice(0, 3).map((proj) => (
-                  <Link
-                    key={proj._id}
-                    to={`/${user?.role}/projects?id=${proj._id}`}
-                    className="w-52 h-20 bg-white/80 dark:bg-white/5 rounded-2xl p-4 flex items-center gap-3 border border-white/40 dark:border-white/5 shadow-xs hover:shadow-md transition-all cursor-pointer text-left block"
-                  >
-                    <div className="flex items-center gap-3 w-full">
-                      <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-950/30 flex items-center justify-center text-[#8d7df5] dark:text-purple-300 shrink-0 border border-purple-200/40 dark:border-white/5">
-                        <FiLayers size={16} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h4 className="text-[12px] font-bold text-[#2e1d6c] dark:text-purple-200 truncate leading-tight">
-                          {proj.name}
-                        </h4>
-                        <span className="text-[9px] font-black text-[#8d7df5] dark:text-purple-400 uppercase tracking-widest block mt-1">
-                          {proj.status || "Active"}
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
+              {/* Grid list of project blocks */}
+              <div className="flex flex-wrap gap-2.5 items-center align-top content-start">
+                {/* Compact Dashed Create Project Button */}
+                <div
+                  onClick={() => setShowCreateModal(true)}
+                  className="w-36 h-13 border-2 border-dashed border-[#8d7df5]/60 hover:border-[#8d7df5] dark:border-purple-600/40 rounded-xl flex items-center justify-center gap-1.5 cursor-pointer bg-white/20 dark:bg-white/5 hover:bg-white/40 dark:hover:bg-white/10 transition-all text-[#2e1d6c] dark:text-purple-300 px-3 py-2 shrink-0 group shadow-2xs"
+                >
+                  <div className="w-6 h-6 rounded-lg bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center text-[#8d7df5] dark:text-purple-300 group-hover:scale-110 transition-transform">
+                    <FiPlus size={14} className="stroke-[3]" />
+                  </div>
+                  <span className="text-[11px] font-bold tracking-tight truncate">
+                    Create Project
+                  </span>
+                </div>
+
+                {/* Paginated projects list */}
+                {paginatedUserProjects &&
+                  paginatedUserProjects.map((proj) => {
+                    const clientObj = getClientObjectForProject(proj);
+                    return (
+                      <Link
+                        key={proj._id}
+                        to={`/${user?.role}/projects?id=${proj._id}`}
+                        className="w-52 h-16 bg-white/80 dark:bg-white/5 rounded-xl px-3 py-2 flex items-center gap-2.5 border border-white/60 dark:border-white/5 shadow-2xs hover:shadow-sm hover:border-purple-300/50 dark:hover:border-purple-500/30 transition-all cursor-pointer text-left block shrink-0 group"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-purple-100/80 dark:bg-purple-950/40 flex items-center justify-center text-[#8d7df5] dark:text-purple-300 shrink-0 border border-purple-200/40 dark:border-white/5 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                          <FiLayers size={14} />
+                        </div>
+                        <div className="min-w-0 flex-1 flex flex-col justify-center">
+                          <h4 className="text-[11px] font-bold text-[#2e1d6c] dark:text-purple-200 truncate leading-tight group-hover:text-purple-600 dark:group-hover:text-purple-300 transition-colors">
+                            {proj.name}
+                          </h4>
+                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                            {clientObj && (
+                              <ClientBadge
+                                client={clientObj}
+                                size="sm"
+                                className="!text-[8px] !py-[1px] !px-1.5 font-bold"
+                              />
+                            )}
+                            <span className="text-[8px] font-extrabold text-[#8d7df5] dark:text-purple-400 uppercase tracking-wider">
+                              {proj.status || "Active"}
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+              </div>
             </div>
+
+            {/* Footer Pagination Bar */}
+            {totalProjectPages > 1 && (
+              <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-200/50 dark:border-white/5 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                <span>Showing {((projectPage - 1) * PROJECTS_PER_PAGE) + 1}–{Math.min(projectPage * PROJECTS_PER_PAGE, userProjects?.length || 0)} of {userProjects?.length || 0} projects</span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    disabled={projectPage === 1}
+                    onClick={() => setProjectPage((prev) => Math.max(1, prev - 1))}
+                    className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all flex items-center gap-1"
+                  >
+                    <span>Prev</span>
+                  </button>
+                  <button
+                    type="button"
+                    disabled={projectPage >= totalProjectPages}
+                    onClick={() => setProjectPage((prev) => Math.min(totalProjectPages, prev + 1))}
+                    className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-white/10 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all flex items-center gap-1"
+                  >
+                    <span>Next</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
