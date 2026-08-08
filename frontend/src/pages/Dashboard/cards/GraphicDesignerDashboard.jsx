@@ -10,6 +10,10 @@ const LiveProductivityCell = React.memo(
   ({ tasks = [], initialLoggedMs = 0, selectedDate = new Date() }) => {
     const [liveMs, setLiveMs] = useState(initialLoggedMs);
 
+    const isSelectedDateToday = useMemo(() => {
+      return isSameDay(selectedDate || new Date(), new Date());
+    }, [selectedDate]);
+
     const hasInProgress = useMemo(() => {
       return tasks.some((t) => t.status === "In Progress" && !t.actualEndTime);
     }, [tasks]);
@@ -24,17 +28,24 @@ const LiveProductivityCell = React.memo(
     const calculateTotalLogged = useCallback(() => {
       let total = 0;
       const refDate = selectedDate || new Date();
-      const now = isSameDay(refDate, new Date())
-        ? Date.now()
-        : endOfDay(refDate).getTime();
+      const todayStart = startOfDay(new Date());
+      const selStart = startOfDay(refDate);
+
       tasks.forEach((t) => {
         if (t.actualStartTime) {
           const start = new Date(t.actualStartTime).getTime();
+          const isPaused =
+            (t.status === "In Progress" && t.autoPaused) ||
+            ["On Hold", "Rejected", "In Review", "Correction"].includes(
+              t.status,
+            );
           const end = t.actualEndTime
             ? new Date(t.actualEndTime).getTime()
-            : t.pausedAt
+            : isPaused && t.pausedAt
               ? new Date(t.pausedAt).getTime()
-              : now;
+              : isBefore(selStart, todayStart)
+                ? Math.min(Date.now(), endOfDay(refDate).getTime())
+                : Date.now();
           const paused = t.totalPausedMs || 0;
           total += Math.max(0, end - start - paused);
         }
@@ -44,13 +55,13 @@ const LiveProductivityCell = React.memo(
 
     useEffect(() => {
       setLiveMs(calculateTotalLogged());
-      if (hasInProgress || hasInReview) {
+      if (isSelectedDateToday && (hasInProgress || hasInReview)) {
         const interval = setInterval(() => {
           setLiveMs(calculateTotalLogged());
         }, 1000);
         return () => clearInterval(interval);
       }
-    }, [tasks, hasInProgress, hasInReview, calculateTotalLogged]);
+    }, [tasks, isSelectedDateToday, hasInProgress, hasInReview, calculateTotalLogged]);
 
     if (!liveMs || liveMs <= 0) {
       return (
@@ -72,13 +83,13 @@ const LiveProductivityCell = React.memo(
       "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300";
     let pulseDot = null;
 
-    if (hasInProgress) {
+    if (isSelectedDateToday && hasInProgress) {
       badgeStyle =
         "bg-blue-50/90 text-blue-700 border-blue-300 dark:bg-blue-900/40 dark:border-blue-700/60 dark:text-blue-400 shadow-sm";
       pulseDot = (
         <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shrink-0 mr-1.5 inline-block" />
       );
-    } else if (hasInReview) {
+    } else if (isSelectedDateToday && hasInReview) {
       badgeStyle =
         "bg-yellow-400/90 text-yellow-950 border-yellow-500 dark:bg-yellow-500/30 dark:border-yellow-600/60 dark:text-yellow-300 shadow-sm font-black";
       pulseDot = (
@@ -520,7 +531,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       }
     });
     return cols;
-  }, [designerTasks]);
+  }, [designerTasks, selectedDate]);
 
   // 5. Team Performance
   const teamPerformance = useMemo(() => {
@@ -570,22 +581,20 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
         if (t.actualStartTime) {
           const start = new Date(t.actualStartTime).getTime();
-          const now = isSameDay(selectedDate, new Date())
-            ? Date.now()
-            : endOfDay(selectedDate).getTime();
-          // For completed tasks: use actualEndTime
-          // For paused tasks (In Review / On Hold): use pausedAt (timer was frozen there)
-          // For active tasks: use now
+          const todayStart = startOfDay(new Date());
+          const selStart = startOfDay(selectedDate);
+          const isPaused =
+            (t.status === "In Progress" && t.autoPaused) ||
+            ["On Hold", "Rejected", "In Review", "Correction"].includes(
+              t.status,
+            );
           const end = t.actualEndTime
             ? new Date(t.actualEndTime).getTime()
-            : (t.status === "In Progress" && t.autoPaused) ||
-                ["On Hold", "Rejected", "In Review", "Correction"].includes(
-                  t.status,
-                )
-              ? t.pausedAt
-                ? new Date(t.pausedAt).getTime()
-                : now
-              : now;
+            : isPaused && t.pausedAt
+              ? new Date(t.pausedAt).getTime()
+              : isBefore(selStart, todayStart)
+                ? Math.min(Date.now(), endOfDay(selectedDate).getTime())
+                : Date.now();
           const paused = t.totalPausedMs || 0;
           const taskLoggedMs = Math.max(0, end - start - paused);
           totalLoggedMs += taskLoggedMs;
@@ -740,7 +749,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         tasks: myTasks,
       };
     });
-  }, [designers, designerTasks, designerEodReports, selectedDate]);
+  }, [designers, designerTasks, designerEodReports, selectedDate, officeHours]);
 
   // 6. Client Progress
   const clientProgress = useMemo(() => {
@@ -786,7 +795,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       const cl = clients?.find((cl) => cl._id === c.id);
       return { ...c, name: cl?.name || cl?.companyName || "Unknown Client" };
     });
-  }, [designerTasks, projects, clients]);
+  }, [designerTasks, projects, clients, selectedDate]);
 
   // 7. Delayed Projects/Tasks (Raw active bottlenecks)
   const rawBottleneckTasks = useMemo(() => {
