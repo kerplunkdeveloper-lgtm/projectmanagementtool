@@ -152,6 +152,33 @@ const formatElapsed = (
   return `${seconds}s`;
 };
 
+const getTaskInprogressTime = (task, selDateObj) => {
+  if (!task) return "0s";
+  if (task.actualStartTime) {
+    const end =
+      task.actualEndTime ||
+      task.completedAt ||
+      task.reviewStartedAt ||
+      task.lastReviewStartedAt ||
+      task.pausedAt ||
+      null;
+    const timeStr = formatElapsed(
+      task.actualStartTime,
+      end,
+      task.pausedAt,
+      task.totalPausedMs,
+      task.status,
+      task.autoPaused,
+    );
+    if (timeStr && timeStr !== "0s") return timeStr;
+  }
+  const loggedMs = calculateTaskProductivityForDate(task, selDateObj);
+  if (loggedMs > 0) {
+    return formatMsToDuration(loggedMs);
+  }
+  return task.time || "0s";
+};
+
 const LiveTimeTracker = ({ task, allTasks, isSubmitted, selectedDate }) => {
   const selDateObj = React.useMemo(() => {
     if (!selectedDate) return new Date();
@@ -183,7 +210,7 @@ const LiveTimeTracker = ({ task, allTasks, isSubmitted, selectedDate }) => {
 
     const updateDisplay = () => {
       const ms = calculateCurrentMs();
-      setElapsedStr(ms > 0 ? formatMsToDuration(ms) : "0s");
+      setElapsedStr(ms > 0 ? formatMsToDuration(ms) : task.time || "0s");
     };
 
     updateDisplay();
@@ -260,27 +287,39 @@ const getStatusTextColor = (status) => {
   }
 };
 
-const calculateTotalLoggedTime = (tasks) => {
-  let totalMinutes = 0;
-  (tasks || []).forEach((t) => {
-    if ((t.statusAtEod || t.status || "").toUpperCase() === "COMPLETED") return;
-    const timeStr = t.time || "";
-    const hoursMatch = timeStr.match(/(\d+)\s*h/i);
-    const minsMatch = timeStr.match(/(\d+)\s*m/i);
-    const secsMatch = timeStr.match(/(\d+)\s*s/i);
+const calculateTotalLoggedTime = (tasks, allTasks = [], selectedDate) => {
+  const selDateObj = selectedDate ? parseISO(selectedDate) : new Date();
+  let totalMs = 0;
 
-    if (hoursMatch) {
-      totalMinutes += parseInt(hoursMatch[1], 10) * 60;
-    }
-    if (minsMatch) {
-      totalMinutes += parseInt(minsMatch[1], 10);
-    }
-    if (secsMatch && !hoursMatch && !minsMatch) {
-      const secs = parseInt(secsMatch[1], 10);
-      if (secs > 0) totalMinutes += Math.ceil(secs / 60);
+  (tasks || []).forEach((t) => {
+    const originalTask = (allTasks || []).find(
+      (at) => at._id === (t.taskId?._id || t.taskId || t.id || t._id),
+    );
+    const target = originalTask || t;
+
+    const msToday = calculateTaskProductivityForDate(target, selDateObj);
+    if (msToday > 0) {
+      totalMs += msToday;
+    } else {
+      const timeStr = t.time || "";
+      const hoursMatch = timeStr.match(/(\d+)\s*h/i);
+      const minsMatch = timeStr.match(/(\d+)\s*m/i);
+      const secsMatch = timeStr.match(/(\d+)\s*s/i);
+
+      let mins = 0;
+      if (hoursMatch) mins += parseInt(hoursMatch[1], 10) * 60;
+      if (minsMatch) mins += parseInt(minsMatch[1], 10);
+      if (secsMatch && !hoursMatch && !minsMatch) {
+        const secs = parseInt(secsMatch[1], 10);
+        if (secs > 0) mins += Math.ceil(secs / 60);
+      }
+      totalMs += mins * 60 * 1000;
     }
   });
 
+  if (totalMs <= 0) return "0m";
+
+  const totalMinutes = Math.floor(totalMs / (1000 * 60));
   const h = Math.floor(totalMinutes / 60);
   const m = totalMinutes % 60;
 
@@ -362,35 +401,16 @@ const EodReports = () => {
       const isAssignedToMe = assigneeId === (user?._id || user?.id);
       if (!isAssignedToMe) return false;
 
-      // 1. Task start date on selectedDate
-      const startDateStr = getLocalDateStr(task.startDate);
-      if (startDateStr === selectedDate) {
-        return true;
-      }
+      if (getLocalDateStr(task.startDate) === selectedDate) return true;
+      if (getLocalDateStr(task.dueDate) === selectedDate) return true;
+      if (getLocalDateStr(task.completedAt) === selectedDate) return true;
+      if (getLocalDateStr(task.createdAt) === selectedDate) return true;
+      if (getLocalDateStr(task.actualStartTime) === selectedDate) return true;
+      if (getLocalDateStr(task.updatedAt) === selectedDate) return true;
 
-      // 2. Task due on selectedDate
-      const dueDateStr = getLocalDateStr(task.dueDate);
-      if (dueDateStr === selectedDate) {
-        return true;
-      }
-
-      // 3. Task completed on selectedDate
-      const completedDateStr = getLocalDateStr(
-        task.completedAt || task.updatedAt,
-      );
-      const isCompleted =
-        (task.status || "").trim().toLowerCase() === "completed";
-      if (isCompleted && completedDateStr === selectedDate) {
-        return true;
-      }
-
-      // 4. Task with actual work/productivity logged on selectedDate
       const loggedMsToday = calculateTaskProductivityForDate(task, selDateObj);
-      if (loggedMsToday > 0) {
-        return true;
-      }
+      if (loggedMsToday > 0) return true;
 
-      // 5. Actively running task (today only)
       const todayStr = getLocalDateStr(new Date());
       const isSelectedToday = selectedDate === todayStr;
       const isActivelyRunningNow =
@@ -399,9 +419,7 @@ const EodReports = () => {
         !task.actualEndTime &&
         !task.autoPaused;
 
-      if (isActivelyRunningNow) {
-        return true;
-      }
+      if (isActivelyRunningNow) return true;
 
       return false;
     });
@@ -470,8 +488,6 @@ const EodReports = () => {
 
         const savedTasks = todayReport.tasks
           .filter((t) => {
-            const statusUpper = (t.statusAtEod || "").trim().toUpperCase();
-            if (statusUpper === "COMPLETED") return false;
             if (!todayReport.isDraft) return true; // Keep exact history for submitted reports
             const tId = (t.taskId?._id || t.taskId || t._id)?.toString();
             return myTaskIdsSet.has(tId);
@@ -507,10 +523,9 @@ const EodReports = () => {
                   ? creator._id
                   : creator || "";
 
-            const loggedMs = correspondingTask
-              ? calculateTaskProductivityForDate(correspondingTask, selDateObj)
-              : 0;
-            const calculatedTimeStr = formatMsToDuration(loggedMs);
+            const calculatedTimeStr = correspondingTask
+              ? getTaskInprogressTime(correspondingTask, selDateObj)
+              : "0s";
 
             return {
               id: t.taskId || t._id,
@@ -525,7 +540,7 @@ const EodReports = () => {
                 : t.revisions || 0,
               time: !todayReport.isDraft
                 ? t.loggedTime || t.time || calculatedTimeStr
-                : loggedMs > 0
+                : calculatedTimeStr !== "0s"
                   ? calculatedTimeStr
                   : t.loggedTime || calculatedTimeStr,
               statusAtEod: actualStatus,
@@ -539,71 +554,64 @@ const EodReports = () => {
             };
           });
 
-        if (!todayReport.isDraft) {
-          // For submitted reports, preserve exact historical tasks
-          setTasksState(savedTasks);
-        } else {
-          // Merge any new tasks from myTasks that are not in the saved report tasks
-          const savedTaskIds = new Set(
-            savedTasks.map((t) =>
-              (t.taskId?._id || t.taskId || t.id || t._id).toString(),
-            ),
-          );
-          const newUnsavedTasks = myTasks.filter(
-            (mt) => !savedTaskIds.has(mt._id.toString()),
-          );
+        // Merge any tasks from myTasks that were not in the saved report tasks
+        const savedTaskIds = new Set(
+          savedTasks.map((t) =>
+            (t.taskId?._id || t.taskId || t.id || t._id).toString(),
+          ),
+        );
+        const newUnsavedTasks = myTasks.filter(
+          (mt) => !savedTaskIds.has(mt._id.toString()),
+        );
 
-          const unsavedMapped = newUnsavedTasks.map((t) => {
-            const clientName = t.project?.client?.companyName || "Internal";
-            const projectName = t.project?.name || "Internal";
-            const loggedMs = calculateTaskProductivityForDate(t, selDateObj);
-            const elapsedStr = formatMsToDuration(loggedMs);
-            const taskCode = getTaskDisplayId(t);
+        const unsavedMapped = newUnsavedTasks.map((t) => {
+          const clientName = t.project?.client?.companyName || "Internal";
+          const projectName = t.project?.name || "Internal";
+          const elapsedStr = getTaskInprogressTime(t, selDateObj);
+          const taskCode = getTaskDisplayId(t);
 
-            const creator = t.createdBy;
-            const creatorName =
-              creator && typeof creator === "object"
-                ? creator.name
-                : users.find(
-                    (u) =>
-                      u._id ===
-                      (typeof creator === "string" ? creator : creator?._id),
-                  )?.name || "Admin";
-            const creatorId =
-              creator && typeof creator === "object"
-                ? creator._id
-                : creator || "";
+          const creator = t.createdBy;
+          const creatorName =
+            creator && typeof creator === "object"
+              ? creator.name
+              : users.find(
+                  (u) =>
+                    u._id ===
+                    (typeof creator === "string" ? creator : creator?._id),
+                )?.name || "Admin";
+          const creatorId =
+            creator && typeof creator === "object"
+              ? creator._id
+              : creator || "";
 
-            return {
-              id: t._id,
-              taskId: t._id,
-              title: t.title,
-              project: projectName,
-              priority: t.priority,
-              contentType: t.contentType || "",
-              client: clientName,
-              revision: t.revisions || 0,
-              time: elapsedStr,
-              statusAtEod: mapTaskStatusToEodStatus(t.status),
-              outputLink: "",
-              reason: "",
-              nextAction: "",
-              reviewedBy: creatorId,
-              assignedByName: creatorName,
-              code: taskCode,
-              createdAt: t.createdAt,
-            };
-          });
+          return {
+            id: t._id,
+            taskId: t._id,
+            title: t.title,
+            project: projectName,
+            priority: t.priority,
+            contentType: t.contentType || "",
+            client: clientName,
+            revision: t.revisions || 0,
+            time: elapsedStr,
+            statusAtEod: mapTaskStatusToEodStatus(t.status),
+            outputLink: "",
+            reason: "",
+            nextAction: "",
+            reviewedBy: creatorId,
+            assignedByName: creatorName,
+            code: taskCode,
+            createdAt: t.createdAt,
+          };
+        });
 
-          setTasksState([...savedTasks, ...unsavedMapped]);
-        }
+        setTasksState([...savedTasks, ...unsavedMapped]);
       } else if (myTasks.length > 0) {
         setTasksState(
           myTasks.map((t) => {
             const clientName = t.project?.client?.companyName || "Internal";
             const projectName = t.project?.name || "Internal";
-            const loggedMs = calculateTaskProductivityForDate(t, selDateObj);
-            const elapsedStr = formatMsToDuration(loggedMs);
+            const elapsedStr = getTaskInprogressTime(t, selDateObj);
             const taskCode = getTaskDisplayId(t);
 
             const creator = t.createdBy;
@@ -649,8 +657,7 @@ const EodReports = () => {
         myTasks.map((t) => {
           const clientName = t.project?.client?.companyName || "Internal";
           const projectName = t.project?.name || "Internal";
-          const loggedMs = calculateTaskProductivityForDate(t, selDateObj);
-          const elapsedStr = formatMsToDuration(loggedMs);
+          const elapsedStr = getTaskInprogressTime(t, selDateObj);
           const taskCode = getTaskDisplayId(t);
 
           const creator = t.createdBy;
@@ -724,13 +731,10 @@ const EodReports = () => {
             const mappedStatus = mapTaskStatusToEodStatus(
               correspondingTask.status,
             );
-            const loggedMs = calculateTaskProductivityForDate(
+            const calculatedTimeStr = getTaskInprogressTime(
               correspondingTask,
               selDateObj,
             );
-            const calculatedTimeStr = formatMsToDuration(loggedMs);
-            const elapsedStr =
-              isSubmitted && t.time ? t.time : calculatedTimeStr;
             const taskCode = getTaskDisplayId(correspondingTask);
 
             const creator = correspondingTask.createdBy;
@@ -753,7 +757,7 @@ const EodReports = () => {
             const targetTime =
               isSubmitted && t.time
                 ? t.time
-                : loggedMs > 0
+                : calculatedTimeStr !== "0s"
                   ? calculatedTimeStr
                   : t.time || calculatedTimeStr;
             const targetReviewedBy =
@@ -790,16 +794,13 @@ const EodReports = () => {
       const hasPending = tasksState.some(
         (t) => !["Completed", "In Review"].includes(t.statusAtEod),
       );
-      const hasInReview = tasksState.some((t) => t.statusAtEod === "In Review");
-      const allCompleted = tasksState.every(
-        (t) => t.statusAtEod === "Completed",
+      const allCompletedOrInReview = tasksState.every((t) =>
+        ["Completed", "In Review"].includes(t.statusAtEod),
       );
 
       if (hasPending) {
         setOverallStatus("Delayed");
-      } else if (hasInReview) {
-        setOverallStatus("On Track");
-      } else if (allCompleted) {
+      } else if (allCompletedOrInReview) {
         setOverallStatus("Completed");
       } else {
         setOverallStatus("On Track");
@@ -1203,7 +1204,7 @@ const EodReports = () => {
             <div className="bg-gradient-to-br from-slate-500/10 via-slate-500/5 to-transparent dark:from-slate-500/15 dark:via-slate-500/5 dark:to-transparent border border-slate-500/20 dark:border-slate-700/30 rounded-2xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-16 h-16 bg-slate-500/5 rounded-full -mr-6 -mt-6 blur-md group-hover:bg-slate-500/10 transition-all duration-300" />
               <span className="text-2xl font-black tracking-tight theme-text-primary block relative z-10">
-                {calculateTotalLoggedTime(tasksState)}
+                {calculateTotalLoggedTime(tasksState, allTasks, selectedDate)}
               </span>
               <span className="text-[10px] font-black theme-text-secondary uppercase tracking-widest mt-1.5 block relative z-10">
                 Today total timetaken

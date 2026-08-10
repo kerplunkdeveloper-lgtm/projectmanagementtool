@@ -478,9 +478,6 @@ if (req.body.status && req.body.status !== previousStatus) {
           (task.businessTotalPausedMs || 0) +
           calculateBusinessMs(task.pausedAt, Date.now());
       }
-      if (!task.actualEndTime) {
-        req.body.actualEndTime = Date.now();
-      }
       req.body.completedAt = Date.now();
       req.body.pausedAt = null;
       break;
@@ -560,11 +557,17 @@ if (req.body.status && req.body.status !== previousStatus) {
       if (!task.pausedAt) {
         req.body.pausedAt = Date.now();
       }
-      if (!task.reviewStartedAt || !wasInReview) {
-        const nowMs = Date.now();
-        req.body.reviewStartedAt = nowMs;
-        req.body.lastReviewStartedAt = nowMs;
-      }
+     if (!task.reviewStartedAt || !wasInReview) {
+  const nowMs = Date.now();
+
+  req.body.reviewStartedAt = nowMs;
+  req.body.lastReviewStartedAt = nowMs;
+
+  // Designer work ends when task enters In Review
+  if (!task.actualEndTime) {
+    req.body.actualEndTime = nowMs;
+  }
+}
       break;
   }
 }
@@ -677,9 +680,6 @@ if (req.body.subtasks) {
               (prevSub.businessTotalPausedMs || 0) +
               calculateBusinessMs(prevSub.pausedAt, Date.now());
           }
-          if (!prevSub.actualEndTime && !sub.actualEndTime) {
-            sub.actualEndTime = Date.now();
-          }
           sub.completedAt = Date.now();
           sub.pausedAt = null;
           break;
@@ -747,6 +747,10 @@ if (req.body.subtasks) {
             const nowMs = Date.now();
             sub.reviewStartedAt = nowMs;
             sub.lastReviewStartedAt = nowMs;
+
+            if (!prevSub.actualEndTime) {
+              sub.actualEndTime = nowMs;
+            }
           }
           break;
       }
