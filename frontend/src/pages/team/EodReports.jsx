@@ -129,7 +129,9 @@ const formatElapsed = (
   const end = endTime
     ? new Date(endTime).getTime()
     : status === "In Progress" && autoPaused
-      ? (pausedAt ? new Date(pausedAt).getTime() : Date.now())
+      ? pausedAt
+        ? new Date(pausedAt).getTime()
+        : Date.now()
       : pausedAt && status !== "In Progress"
         ? new Date(pausedAt).getTime()
         : Date.now();
@@ -153,7 +155,9 @@ const formatElapsed = (
 const LiveTimeTracker = ({ task, allTasks, isSubmitted, selectedDate }) => {
   const selDateObj = React.useMemo(() => {
     if (!selectedDate) return new Date();
-    return typeof selectedDate === "string" ? parseISO(selectedDate) : selectedDate;
+    return typeof selectedDate === "string"
+      ? parseISO(selectedDate)
+      : selectedDate;
   }, [selectedDate]);
 
   const originalTask = React.useMemo(() => {
@@ -195,7 +199,14 @@ const LiveTimeTracker = ({ task, allTasks, isSubmitted, selectedDate }) => {
       const interval = setInterval(updateDisplay, 1000);
       return () => clearInterval(interval);
     }
-  }, [allTasks, task, isSubmitted, selectedDate, originalTask, calculateCurrentMs]);
+  }, [
+    allTasks,
+    task,
+    isSubmitted,
+    selectedDate,
+    originalTask,
+    calculateCurrentMs,
+  ]);
 
   return <span>Time spent: {elapsedStr}</span>;
 };
@@ -252,6 +263,7 @@ const getStatusTextColor = (status) => {
 const calculateTotalLoggedTime = (tasks) => {
   let totalMinutes = 0;
   (tasks || []).forEach((t) => {
+    if ((t.statusAtEod || t.status || "").toUpperCase() === "COMPLETED") return;
     const timeStr = t.time || "";
     const hoursMatch = timeStr.match(/(\d+)\s*h/i);
     const minsMatch = timeStr.match(/(\d+)\s*m/i);
@@ -327,49 +339,58 @@ const EodReports = () => {
     }
   }, [dispatch, selectedDate]);
 
-  // Filter tasks assigned to me that were actually worked on for the selected date
+  // Filter tasks assigned to me that belong to the selected date.
+  // Rule: a task appears in EOD ONLY if actual work/productivity happened on that date,
+  // OR if it is actively In Progress right now (today only).
+  // completedAt / actualEndTime alone is NOT sufficient — a task completed on a date
+  // with zero productivity on that date must NOT appear in EOD for that date.
   const myTasks = React.useMemo(() => {
     const selDateObj = selectedDate ? parseISO(selectedDate) : new Date();
+
+    const getLocalDateStr = (date) => {
+      if (!date) return null;
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return null;
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    };
 
     return allTasks.filter((task) => {
       const assigneeId = task.assignedTo?._id || task.assignedTo;
       const isAssignedToMe = assigneeId === (user?._id || user?.id);
       if (!isAssignedToMe) return false;
 
-      const getLocalDateStr = (date) => {
-        if (!date) return null;
-        const d = new Date(date);
-        if (isNaN(d.getTime())) return null;
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        const day = String(d.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-      };
-
-      const statusLower = task.status?.toLowerCase() || "";
-      const isCompleted =
-        statusLower === "completed" || statusLower.includes("approve");
-
-      // 1. Completed tasks: MUST ONLY show on the exact date completed. Completed tasks MUST NOT carry forward to future dates!
-      if (isCompleted) {
-        const completedDate = task.completedAt
-          ? new Date(task.completedAt)
-          : task.actualEndTime
-            ? new Date(task.actualEndTime)
-            : task.updatedAt
-              ? new Date(task.updatedAt)
-              : null;
-        const completedDateStr = getLocalDateStr(completedDate);
-        return completedDateStr === selectedDate;
+      // 1. Task start date on selectedDate
+      const startDateStr = getLocalDateStr(task.startDate);
+      if (startDateStr === selectedDate) {
+        return true;
       }
 
-      // 2. Check if work productivity was logged on selectedDate
+      // 2. Task due on selectedDate
+      const dueDateStr = getLocalDateStr(task.dueDate);
+      if (dueDateStr === selectedDate) {
+        return true;
+      }
+
+      // 3. Task completed on selectedDate
+      const completedDateStr = getLocalDateStr(
+        task.completedAt || task.updatedAt,
+      );
+      const isCompleted =
+        (task.status || "").trim().toLowerCase() === "completed";
+      if (isCompleted && completedDateStr === selectedDate) {
+        return true;
+      }
+
+      // 4. Task with actual work/productivity logged on selectedDate
       const loggedMsToday = calculateTaskProductivityForDate(task, selDateObj);
       if (loggedMsToday > 0) {
         return true;
       }
 
-      // 3. Check if task is actively running now (In Progress, not autoPaused) on selectedDate
+      // 5. Actively running task (today only)
       const todayStr = getLocalDateStr(new Date());
       const isSelectedToday = selectedDate === todayStr;
       const isActivelyRunningNow =
@@ -382,7 +403,6 @@ const EodReports = () => {
         return true;
       }
 
-      // 4. Otherwise, not worked on on selectedDate -> Exclude
       return false;
     });
   }, [allTasks, user, selectedDate]);
@@ -444,112 +464,139 @@ const EodReports = () => {
       setOverallStatus(todayReport.overallStatus || "On Track");
 
       if (todayReport.tasks && todayReport.tasks.length > 0) {
-        const savedTasks = todayReport.tasks.map((t) => {
-          const correspondingTask = myTasks.find(
-            (mt) => mt._id === (t.taskId?._id || t.taskId),
+        const myTaskIdsSet = new Set(
+          myTasks.map((mt) => (mt._id || mt.id).toString()),
+        );
+
+        const savedTasks = todayReport.tasks
+          .filter((t) => {
+            const statusUpper = (t.statusAtEod || "").trim().toUpperCase();
+            if (statusUpper === "COMPLETED") return false;
+            if (!todayReport.isDraft) return true; // Keep exact history for submitted reports
+            const tId = (t.taskId?._id || t.taskId || t._id)?.toString();
+            return myTaskIdsSet.has(tId);
+          })
+          .map((t) => {
+            const correspondingTask = myTasks.find(
+              (mt) => mt._id === (t.taskId?._id || t.taskId),
+            );
+            const actualStatus = t.statusAtEod
+              ? t.statusAtEod
+              : correspondingTask
+                ? mapTaskStatusToEodStatus(correspondingTask.status)
+                : "Pending";
+            const taskCode = correspondingTask
+              ? getTaskDisplayId(correspondingTask)
+              : "";
+
+            const creator = correspondingTask?.createdBy || t.reviewedBy;
+            const creatorName =
+              creator && typeof creator === "object"
+                ? creator.name
+                : users.find(
+                    (u) =>
+                      u._id ===
+                      (typeof creator === "string" ? creator : creator?._id),
+                  )?.name || "Admin";
+            const creatorId =
+              !todayReport.isDraft && t.reviewedBy
+                ? typeof t.reviewedBy === "object"
+                  ? t.reviewedBy._id
+                  : t.reviewedBy
+                : creator && typeof creator === "object"
+                  ? creator._id
+                  : creator || "";
+
+            const loggedMs = correspondingTask
+              ? calculateTaskProductivityForDate(correspondingTask, selDateObj)
+              : 0;
+            const calculatedTimeStr = formatMsToDuration(loggedMs);
+
+            return {
+              id: t.taskId || t._id,
+              taskId: t.taskId?._id || t.taskId || t._id,
+              title: t.title,
+              project: t.project,
+              priority: t.priority,
+              contentType: t.contentType || "",
+              client: t.client,
+              revision: correspondingTask
+                ? correspondingTask.revisions || 0
+                : t.revisions || 0,
+              time: !todayReport.isDraft
+                ? t.loggedTime || t.time || calculatedTimeStr
+                : loggedMs > 0
+                  ? calculatedTimeStr
+                  : t.loggedTime || calculatedTimeStr,
+              statusAtEod: actualStatus,
+              outputLink: t.outputLink || "",
+              reason: t.reason || "",
+              nextAction: t.nextAction || "",
+              reviewedBy: creatorId,
+              assignedByName: creatorName,
+              code: taskCode,
+              createdAt: correspondingTask?.createdAt || t.createdAt,
+            };
+          });
+
+        if (!todayReport.isDraft) {
+          // For submitted reports, preserve exact historical tasks
+          setTasksState(savedTasks);
+        } else {
+          // Merge any new tasks from myTasks that are not in the saved report tasks
+          const savedTaskIds = new Set(
+            savedTasks.map((t) =>
+              (t.taskId?._id || t.taskId || t.id || t._id).toString(),
+            ),
           );
-          const actualStatus = correspondingTask
-            ? mapTaskStatusToEodStatus(correspondingTask.status)
-            : t.statusAtEod || "Pending";
-          const taskCode = correspondingTask
-            ? getTaskDisplayId(correspondingTask)
-            : "";
+          const newUnsavedTasks = myTasks.filter(
+            (mt) => !savedTaskIds.has(mt._id.toString()),
+          );
 
-          const creator = correspondingTask?.createdBy || t.reviewedBy;
-          const creatorName =
-            creator && typeof creator === "object"
-              ? creator.name
-              : users.find(
-                  (u) =>
-                    u._id ===
-                    (typeof creator === "string" ? creator : creator?._id),
-                )?.name || "Admin";
-          const creatorId =
-            creator && typeof creator === "object"
-              ? creator._id
-              : creator || "";
+          const unsavedMapped = newUnsavedTasks.map((t) => {
+            const clientName = t.project?.client?.companyName || "Internal";
+            const projectName = t.project?.name || "Internal";
+            const loggedMs = calculateTaskProductivityForDate(t, selDateObj);
+            const elapsedStr = formatMsToDuration(loggedMs);
+            const taskCode = getTaskDisplayId(t);
 
-          const loggedMs = correspondingTask
-            ? calculateTaskProductivityForDate(correspondingTask, selDateObj)
-            : 0;
-          const calculatedTimeStr = formatMsToDuration(loggedMs);
+            const creator = t.createdBy;
+            const creatorName =
+              creator && typeof creator === "object"
+                ? creator.name
+                : users.find(
+                    (u) =>
+                      u._id ===
+                      (typeof creator === "string" ? creator : creator?._id),
+                  )?.name || "Admin";
+            const creatorId =
+              creator && typeof creator === "object"
+                ? creator._id
+                : creator || "";
 
-          return {
-            id: t.taskId || t._id,
-            taskId: t.taskId?._id || t.taskId || t._id,
-            title: t.title,
-            project: t.project,
-            priority: t.priority,
-            contentType: t.contentType || "",
-            client: t.client,
-            revision: correspondingTask
-              ? correspondingTask.revisions || 0
-              : t.revisions || 0,
-            time: (todayReport.isDraft && loggedMs > 0) ? calculatedTimeStr : (t.loggedTime || calculatedTimeStr),
-            statusAtEod: actualStatus,
-            outputLink: t.outputLink || "",
-            reason: t.reason || "",
-            nextAction: t.nextAction || "",
-            reviewedBy: creatorId,
-            assignedByName: creatorName,
-            code: taskCode,
-            createdAt: correspondingTask?.createdAt || t.createdAt,
-          };
-        });
+            return {
+              id: t._id,
+              taskId: t._id,
+              title: t.title,
+              project: projectName,
+              priority: t.priority,
+              contentType: t.contentType || "",
+              client: clientName,
+              revision: t.revisions || 0,
+              time: elapsedStr,
+              statusAtEod: mapTaskStatusToEodStatus(t.status),
+              outputLink: "",
+              reason: "",
+              nextAction: "",
+              reviewedBy: creatorId,
+              assignedByName: creatorName,
+              code: taskCode,
+              createdAt: t.createdAt,
+            };
+          });
 
-        // Merge any new tasks from myTasks that are not in the saved report tasks
-        const savedTaskIds = new Set(
-          todayReport.tasks.map((t) =>
-            (t.taskId?._id || t.taskId || t._id).toString(),
-          ),
-        );
-        const newUnsavedTasks = myTasks.filter(
-          (mt) => !savedTaskIds.has(mt._id.toString()),
-        );
-
-        const unsavedMapped = newUnsavedTasks.map((t) => {
-          const clientName = t.project?.client?.companyName || "Internal";
-          const projectName = t.project?.name || "Internal";
-          const loggedMs = calculateTaskProductivityForDate(t, selDateObj);
-          const elapsedStr = formatMsToDuration(loggedMs);
-          const taskCode = getTaskDisplayId(t);
-
-          const creator = t.createdBy;
-          const creatorName =
-            creator && typeof creator === "object"
-              ? creator.name
-              : users.find(
-                  (u) =>
-                    u._id ===
-                    (typeof creator === "string" ? creator : creator?._id),
-                )?.name || "Admin";
-          const creatorId =
-            creator && typeof creator === "object"
-              ? creator._id
-              : creator || "";
-
-          return {
-            id: t._id,
-            taskId: t._id,
-            title: t.title,
-            project: projectName,
-            priority: t.priority,
-            contentType: t.contentType || "",
-            client: clientName,
-            revision: t.revisions || 0,
-            time: elapsedStr,
-            statusAtEod: mapTaskStatusToEodStatus(t.status),
-            outputLink: "",
-            reason: "",
-            nextAction: "",
-            reviewedBy: creatorId,
-            assignedByName: creatorName,
-            code: taskCode,
-            createdAt: t.createdAt,
-          };
-        });
-
-        setTasksState([...savedTasks, ...unsavedMapped]);
+          setTasksState([...savedTasks, ...unsavedMapped]);
+        }
       } else if (myTasks.length > 0) {
         setTasksState(
           myTasks.map((t) => {
@@ -668,6 +715,8 @@ const EodReports = () => {
   // Sync task status, code, and elapsed time dynamically from allTasks/myTasks
   useEffect(() => {
     if (myTasks.length > 0 && tasksState.length > 0 && projects.length > 0) {
+      const selDateObj = selectedDate ? parseISO(selectedDate) : new Date();
+
       setTasksState((prev) =>
         prev.map((t) => {
           const correspondingTask = myTasks.find((mt) => mt._id === t.taskId);
@@ -675,12 +724,13 @@ const EodReports = () => {
             const mappedStatus = mapTaskStatusToEodStatus(
               correspondingTask.status,
             );
-            const elapsedStr = formatElapsed(
-              correspondingTask.actualStartTime,
-              correspondingTask.actualEndTime,
-              correspondingTask.pausedAt,
-              correspondingTask.totalPausedMs,
+            const loggedMs = calculateTaskProductivityForDate(
+              correspondingTask,
+              selDateObj,
             );
+            const calculatedTimeStr = formatMsToDuration(loggedMs);
+            const elapsedStr =
+              isSubmitted && t.time ? t.time : calculatedTimeStr;
             const taskCode = getTaskDisplayId(correspondingTask);
 
             const creator = correspondingTask.createdBy;
@@ -699,20 +749,30 @@ const EodReports = () => {
 
             const taskRevision = correspondingTask.revisions || 0;
 
+            const targetStatus = t.statusAtEod || mappedStatus;
+            const targetTime =
+              isSubmitted && t.time
+                ? t.time
+                : loggedMs > 0
+                  ? calculatedTimeStr
+                  : t.time || calculatedTimeStr;
+            const targetReviewedBy =
+              isSubmitted && t.reviewedBy ? t.reviewedBy : creatorId;
+
             if (
-              t.statusAtEod !== mappedStatus ||
-              t.time !== elapsedStr ||
+              t.statusAtEod !== targetStatus ||
+              t.time !== targetTime ||
               t.code !== taskCode ||
-              t.reviewedBy !== creatorId ||
+              t.reviewedBy !== targetReviewedBy ||
               t.assignedByName !== creatorName ||
               t.revision !== taskRevision
             ) {
               return {
                 ...t,
-                statusAtEod: mappedStatus,
-                time: elapsedStr,
+                statusAtEod: targetStatus,
+                time: targetTime,
                 code: taskCode,
-                reviewedBy: creatorId,
+                reviewedBy: targetReviewedBy,
                 assignedByName: creatorName,
                 revision: taskRevision,
               };
@@ -722,20 +782,15 @@ const EodReports = () => {
         }),
       );
     }
-  }, [myTasks, projects, users]);
+  }, [myTasks, projects, users, selectedDate, isSubmitted]);
 
   // Automatically calculate overallStatus from tasksState
   useEffect(() => {
     if (tasksState.length > 0) {
       const hasPending = tasksState.some(
-        (t) =>
-          !["Completed", "In Review"].includes(
-            t.statusAtEod,
-          ),
+        (t) => !["Completed", "In Review"].includes(t.statusAtEod),
       );
-      const hasInReview = tasksState.some((t) =>
-        t.statusAtEod === "In Review",
-      );
+      const hasInReview = tasksState.some((t) => t.statusAtEod === "In Review");
       const allCompleted = tasksState.every(
         (t) => t.statusAtEod === "Completed",
       );
@@ -846,8 +901,8 @@ const EodReports = () => {
   const onHoldCount = tasksState.filter(
     (t) => t.statusAtEod === "On Hold",
   ).length;
-  const inReviewCount = tasksState.filter((t) =>
-    t.statusAtEod === "In Review",
+  const inReviewCount = tasksState.filter(
+    (t) => t.statusAtEod === "In Review",
   ).length;
   const revisionCount = tasksState.filter((t) =>
     ["Revision", "Revision Pending"].includes(t.statusAtEod),
@@ -988,7 +1043,12 @@ const EodReports = () => {
                       {task.time && (
                         <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50/50 text-blue-600 border border-blue-150/40 rounded-md text-[10px] font-bold dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/30">
                           <FiClock size={10} className="shrink-0" />
-                          <LiveTimeTracker task={task} allTasks={allTasks} isSubmitted={isSubmitted} selectedDate={selectedDate} />
+                          <LiveTimeTracker
+                            task={task}
+                            allTasks={allTasks}
+                            isSubmitted={isSubmitted}
+                            selectedDate={selectedDate}
+                          />
                         </div>
                       )}
                     </div>
@@ -1013,7 +1073,12 @@ const EodReports = () => {
                   {/* Status Row */}
                   <div className="flex items-center justify-between text-xs px-1">
                     <span className="font-bold theme-text-secondary uppercase tracking-wider text-[10px]">
-                      status : <span className={`font-black tracking-wide ${getStatusTextColor(task.statusAtEod)}`}>{task.statusAtEod || "Pending"}</span>
+                      status :{" "}
+                      <span
+                        className={`font-black tracking-wide ${getStatusTextColor(task.statusAtEod)}`}
+                      >
+                        {task.statusAtEod || "Pending"}
+                      </span>
                     </span>
                   </div>
 
@@ -1028,7 +1093,6 @@ const EodReports = () => {
                           {assignerName}
                         </span>
                       </div>
-                    
                     </div>
                   </div>
                 </div>
@@ -1102,7 +1166,6 @@ const EodReports = () => {
                 Completed
               </span>
             </div>
-
             {/* In Progress Card */}
             <div className="bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent dark:from-blue-500/15 dark:via-blue-500/5 dark:to-transparent border border-blue-500/20 dark:border-blue-500/30 rounded-2xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-full -mr-6 -mt-6 blur-md group-hover:bg-blue-500/10 transition-all duration-300" />

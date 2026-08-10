@@ -75,7 +75,11 @@ export const calculateTaskProductivityForDate = (
   const taskStart = new Date(task.actualStartTime).getTime();
   if (isNaN(taskStart)) return 0;
 
-  const selDateObj = selectedDate || new Date();
+  const selDateObj = selectedDate
+    ? typeof selectedDate === "string"
+      ? parseISO(selectedDate)
+      : new Date(selectedDate)
+    : new Date();
   const startHour = officeHours?.startHour ?? 9;
   const endHour = officeHours?.endHour ?? 19;
 
@@ -100,23 +104,86 @@ export const calculateTaskProductivityForDate = (
     0,
   ).getTime();
 
-  // 2. Determine when task's working period stopped or paused
-  const isPaused =
-    (task.status === "In Progress" && task.autoPaused) ||
-    ["On Hold", "Rejected", "In Review", "Correction"].includes(task.status);
+  // Guard 1: Never generate artificial productivity for a future date (or future office hours)
+  if (dayWorkStart > Date.now()) return 0;
+
+  // Guard 2: Task started after this day's office hours ended
+  if (taskStart >= dayWorkEnd) return 0;
+
+  // 2. Determine when task's working period stopped or paused for the Designer
+  const statusUpper = (task.status || "").trim().toUpperCase();
 
   let taskEnd;
-  if (task.actualEndTime) {
-    taskEnd = new Date(task.actualEndTime).getTime();
-  } else if (isPaused && task.pausedAt) {
-    taskEnd = new Date(task.pausedAt).getTime();
+
+  if (
+    statusUpper === "IN REVIEW" ||
+    statusUpper === "IN_REVIEW" ||
+    statusUpper === "IN-REVIEW"
+  ) {
+    // DESIGNER SIDE: "In Review" means Designer FINISHED work and submitted it.
+    // Designer productivity MUST STOP when task moves from "In Progress" to "In Review".
+    taskEnd = new Date(
+      task.reviewStartedAt ||
+        task.lastReviewStartedAt ||
+        task.pausedAt ||
+        task.actualEndTime ||
+        task.updatedAt,
+    ).getTime();
+  } else if (statusUpper === "COMPLETED") {
+    // SOCIAL MEDIA MANAGER SIDE: "Completed" means Manager approved work.
+    // Moving "In Review" -> "Completed" is NOT additional Designer working time.
+    // If the task was submitted to "In Review", Designer work stopped at review submission time.
+    const reviewTime =
+      task.reviewStartedAt ||
+      task.lastReviewStartedAt ||
+      (task.reviewCycles && task.reviewCycles.length > 0
+        ? task.reviewCycles[0].startedAt
+        : null);
+
+    if (reviewTime) {
+      taskEnd = new Date(reviewTime).getTime();
+    } else {
+      taskEnd = new Date(
+        task.actualEndTime || task.completedAt || task.updatedAt,
+      ).getTime();
+    }
+  } else if (
+    statusUpper === "ON HOLD" ||
+    statusUpper === "ON_HOLD" ||
+    statusUpper === "CORRECTION"
+  ) {
+    taskEnd = new Date(
+      task.pausedAt || task.actualEndTime || task.updatedAt,
+    ).getTime();
+  } else if (statusUpper === "REJECTED") {
+    taskEnd = new Date(
+      task.actualEndTime || task.completedAt || task.pausedAt || task.updatedAt,
+    ).getTime();
+  } else if (statusUpper === "IN PROGRESS" || statusUpper === "IN_PROGRESS") {
+    if (task.autoPaused) {
+      taskEnd = new Date(task.pausedAt || Date.now()).getTime();
+    } else {
+      taskEnd = isSameDay(selDateObj, new Date())
+        ? Math.min(Date.now(), dayWorkEnd)
+        : dayWorkEnd;
+    }
   } else {
-    taskEnd = isSameDay(selDateObj, new Date())
-      ? Math.min(Date.now(), dayWorkEnd)
-      : dayWorkEnd;
+    // Default fallback (e.g. Pending)
+    if (task.actualEndTime) {
+      taskEnd = new Date(task.actualEndTime).getTime();
+    } else if (task.pausedAt) {
+      taskEnd = new Date(task.pausedAt).getTime();
+    } else {
+      taskEnd = isSameDay(selDateObj, new Date())
+        ? Math.min(Date.now(), dayWorkEnd)
+        : dayWorkEnd;
+    }
   }
 
   if (isNaN(taskEnd) || taskEnd <= taskStart) return 0;
+
+  // Guard 3: If taskEnd is before selectedDate's office hours started
+  if (taskEnd <= dayWorkStart) return 0;
 
   // 3. Intersect task working period [taskStart, taskEnd] with office hours window [dayWorkStart, dayWorkEnd]
   const effectiveStart = Math.max(taskStart, dayWorkStart);
@@ -126,7 +193,20 @@ export const calculateTaskProductivityForDate = (
   if (daySpan <= 0) return 0;
 
   // 4. Calculate pause duration that falls inside the office-hours window
-  const lifetimeSpan = taskEnd - taskStart;
+  const isPausedState =
+    ((statusUpper === "IN PROGRESS" || statusUpper === "IN_PROGRESS") &&
+      task.autoPaused) ||
+    [
+      "ON HOLD",
+      "ON_HOLD",
+      "REJECTED",
+      "IN REVIEW",
+      "IN_REVIEW",
+      "IN-REVIEW",
+      "CORRECTION",
+    ].includes(statusUpper);
+
+  const lifetimeSpan = Math.max(1, taskEnd - taskStart);
   let dayPausedMs = 0;
 
   let hasHistoryPause = false;
@@ -140,7 +220,7 @@ export const calculateTaskProductivityForDate = (
         const pStart = new Date(b.pausedAt).getTime();
         const pEnd = b.resumedAt
           ? new Date(b.resumedAt).getTime()
-          : isPaused && task.pausedAt
+          : isPausedState && task.pausedAt
             ? new Date(task.pausedAt).getTime()
             : isSameDay(selDateObj, new Date())
               ? Math.min(Date.now(), dayWorkEnd)
@@ -159,10 +239,10 @@ export const calculateTaskProductivityForDate = (
 
   const totalPaused = task.totalPausedMs || 0;
   if (totalPaused > 0) {
-    const ratio = lifetimeSpan > 0 ? daySpan / lifetimeSpan : 0;
+    const ratio = daySpan / lifetimeSpan;
     const propPaused = totalPaused * ratio;
     if (!hasHistoryPause || propPaused > dayPausedMs) {
-      dayPausedMs = propPaused;
+      dayPausedMs = Math.min(daySpan, propPaused);
     }
   }
 
@@ -170,7 +250,12 @@ export const calculateTaskProductivityForDate = (
 };
 
 const LiveProductivityCell = React.memo(
-  ({ tasks = [], initialLoggedMs = 0, selectedDate = new Date(), officeHours = { startHour: 9, endHour: 19 } }) => {
+  ({
+    tasks = [],
+    initialLoggedMs = 0,
+    selectedDate = new Date(),
+    officeHours = { startHour: 9, endHour: 19 },
+  }) => {
     const isSelectedDateToday = useMemo(() => {
       return isSameDay(selectedDate || new Date(), new Date());
     }, [selectedDate]);
@@ -293,26 +378,28 @@ const splitTasksByDateCategory = (columnTasks, colName, selectedDate) => {
   const todayTasks = [];
   const upcomingTasks = [];
 
+  const parseVal = (v) => {
+    if (!v) return null;
+    if (v instanceof Date) return v;
+    if (typeof v === "string") {
+      const p = parseISO(v);
+      if (!isNaN(p.getTime())) return p;
+    }
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
   columnTasks.forEach((t) => {
     let taskDate = null;
     if (isCompletedCol) {
-      taskDate = t.completedAt
-        ? parseISO(t.completedAt)
-        : t.updatedAt
-          ? parseISO(t.updatedAt)
-          : t.dueDate
-            ? parseISO(t.dueDate)
-            : t.createdAt
-              ? parseISO(t.createdAt)
-              : null;
+      taskDate =
+        parseVal(t.completedAt) ||
+        parseVal(t.updatedAt) ||
+        parseVal(t.dueDate) ||
+        parseVal(t.createdAt);
     } else {
-      taskDate = t.dueDate
-        ? parseISO(t.dueDate)
-        : t.startDate
-          ? parseISO(t.startDate)
-          : t.createdAt
-            ? parseISO(t.createdAt)
-            : null;
+      taskDate =
+        parseVal(t.dueDate) || parseVal(t.startDate) || parseVal(t.createdAt);
     }
 
     if (!taskDate || isNaN(taskDate.getTime())) {
@@ -487,6 +574,15 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   const [bottleneckAssignee, setBottleneckAssignee] = useState("All Assignees");
   const [bottleneckStatus, setBottleneckStatus] = useState("All Statuses");
   const [updateTask] = useUpdateTaskMutation();
+
+  // Live Task Board filter state
+  const [boardFilter, setBoardFilter] = useState({
+    search: "",
+    assignee: "All",
+    priority: "All",
+    client: "All",
+  });
+  const [showBoardFilter, setShowBoardFilter] = useState(false);
 
   useEffect(() => {
     const params = {};
@@ -794,10 +890,52 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     return "Pending";
   };
 
+  // Apply board-level filters to designerTasks
+  const boardFilteredTasks = useMemo(() => {
+    return designerTasks.filter((task) => {
+      // Search filter
+      if (boardFilter.search.trim()) {
+        const q = boardFilter.search.toLowerCase();
+        const titleMatch = task.title?.toLowerCase().includes(q);
+        const projId =
+          typeof task.project === "object" ? task.project?._id : task.project;
+        const proj = projects?.find((p) => p._id === projId);
+        const projMatch = proj?.name?.toLowerCase().includes(q);
+        if (!titleMatch && !projMatch) return false;
+      }
+      // Assignee filter
+      if (boardFilter.assignee !== "All") {
+        const aId =
+          typeof task.assignedTo === "object"
+            ? task.assignedTo?._id
+            : task.assignedTo;
+        if (aId !== boardFilter.assignee) return false;
+      }
+      // Priority filter
+      if (boardFilter.priority !== "All") {
+        if ((task.priority || "Medium") !== boardFilter.priority) return false;
+      }
+      // Client filter
+      if (boardFilter.client !== "All") {
+        let cId =
+          typeof task.client === "object" ? task.client?._id : task.client;
+        if (!cId && task.project) {
+          const projId =
+            typeof task.project === "object" ? task.project?._id : task.project;
+          const proj = projects?.find((p) => p._id === projId);
+          cId =
+            typeof proj?.client === "object" ? proj?.client?._id : proj?.client;
+        }
+        if (cId !== boardFilter.client) return false;
+      }
+      return true;
+    });
+  }, [designerTasks, boardFilter, projects]);
+
   const tasksByColumn = useMemo(() => {
     const cols = {};
     boardColumns.forEach((c) => (cols[c] = []));
-    designerTasks.forEach((task) => {
+    boardFilteredTasks.forEach((task) => {
       const col = getColumnForTask(task);
       if (cols[col]) cols[col].push(task);
 
@@ -813,7 +951,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       }
     });
     return cols;
-  }, [designerTasks, selectedDate]);
+  }, [boardFilteredTasks, selectedDate]);
 
   // 5. Team Performance
   const teamPerformance = useMemo(() => {
@@ -868,41 +1006,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             officeHours,
           );
           totalLoggedMs += taskLoggedMs;
-
-          const taskStart = new Date(t.actualStartTime).getTime();
-          const isPaused =
-            (t.status === "In Progress" && t.autoPaused) ||
-            ["On Hold", "Rejected", "In Review", "Correction"].includes(
-              t.status,
-            );
-          const taskEnd = t.actualEndTime
-            ? new Date(t.actualEndTime).getTime()
-            : isPaused && t.pausedAt
-              ? new Date(t.pausedAt).getTime()
-              : Date.now();
-
-          const selDateObj = selectedDate || new Date();
-          const dayStart = startOfDay(selDateObj).getTime();
-          const nextDayStart = startOfDay(addDays(selDateObj, 1)).getTime();
-          const effStart = Math.max(taskStart, dayStart);
-          const effEnd = Math.min(taskEnd, nextDayStart);
-
-          if (effEnd > effStart) {
-            const bizMs = calculateBusinessMs(
-              effStart,
-              effEnd,
-              officeHours.startHour,
-              officeHours.endHour,
-            );
-            const totalElapsed = effEnd - effStart;
-            const ratio = totalElapsed > 0 ? bizMs / totalElapsed : 0;
-            const bizLogged = taskLoggedMs * ratio;
-            const offLogged = taskLoggedMs - bizLogged;
-
-            totalBusinessLoggedMs += bizLogged;
-            totalOffworkingLoggedMs += offLogged;
-          }
-
+          totalBusinessLoggedMs += taskLoggedMs;
           inProgressLoggedMs += taskLoggedMs;
         }
 
@@ -1477,35 +1581,63 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             {task.title}
           </p>
         </div>
-        {/* Due Date & Deadline Badge */}
-        {task.dueDate && (
-          <div className="pl-1.5 flex items-center justify-between gap-1">
-            <span
-              className={`shrink-0 flex items-center gap-1.5 text-[9.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${(() => {
-                const days = getDaysRemaining(task.dueDate, selectedDate);
-                const isCompleted =
-                  task.status?.toLowerCase() === "completed" ||
-                  task.status?.toLowerCase().includes("approve");
-                if (isCompleted)
-                  return "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200/60 dark:border-emerald-500/20";
-                if (days < 0)
-                  return "text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/15 border border-rose-200/60 dark:border-rose-500/20";
-                if (days === 0)
-                  return "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/15 border border-amber-200/60 dark:border-amber-500/20";
-                if (days === 1)
-                  return "text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/15 border border-blue-200/60 dark:border-blue-500/20";
-                return "text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700";
-              })()}`}
-            >
-              <FiClock size={10} />
-              <span>{format(parseISO(task.dueDate), "MMM dd")}</span>
-              <span className="opacity-40 font-normal">|</span>
-              <span className="truncate max-w-[90px]">
-                {getDeadlineBadgeText(task.dueDate, task.status)}
+        {/* Completion Date Badge — shown prominently for completed tasks */}
+        {(() => {
+          const isCompleted =
+            task.status?.toLowerCase() === "completed" ||
+            task.status?.toLowerCase().includes("approve");
+          const completedDate = task.completedAt
+            ? new Date(task.completedAt)
+            : task.updatedAt
+              ? new Date(task.updatedAt)
+              : null;
+          if (isCompleted && completedDate && !isNaN(completedDate.getTime())) {
+            const completedStr = format(completedDate, "MMM dd, h:mm a");
+            const isToday_ = isSameDay(completedDate, new Date());
+            return (
+              <div className="pl-1.5">
+                <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-lg bg-emerald-500 dark:bg-emerald-600 text-white border border-emerald-600/30 dark:border-emerald-500/40 shadow-sm w-full justify-center">
+                  <FiCheckCircle size={10} className="shrink-0" />
+                  <span>Completed: {completedStr}</span>
+                  {isToday_ && (
+                    <span className="ml-0.5 w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0" />
+                  )}
+                </span>
+              </div>
+            );
+          }
+          return null;
+        })()}
+        {/* Due Date & Deadline Badge — shown for non-completed tasks */}
+        {(() => {
+          const isCompleted =
+            task.status?.toLowerCase() === "completed" ||
+            task.status?.toLowerCase().includes("approve");
+          if (isCompleted) return null;
+          return task.dueDate ? (
+            <div className="pl-1.5 flex items-center justify-between gap-1">
+              <span
+                className={`shrink-0 flex items-center gap-1.5 text-[9.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${(() => {
+                  const days = getDaysRemaining(task.dueDate, selectedDate);
+                  if (days < 0)
+                    return "text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/15 border border-rose-200/60 dark:border-rose-500/20";
+                  if (days === 0)
+                    return "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/15 border border-amber-200/60 dark:border-amber-500/20";
+                  if (days === 1)
+                    return "text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/15 border border-blue-200/60 dark:border-blue-500/20";
+                  return "text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700";
+                })()}`}
+              >
+                <FiClock size={10} />
+                <span>{format(parseISO(task.dueDate), "MMM dd")}</span>
+                <span className="opacity-40 font-normal">|</span>
+                <span className="truncate max-w-[90px]">
+                  {getDeadlineBadgeText(task.dueDate, task.status)}
+                </span>
               </span>
-            </span>
-          </div>
-        )}
+            </div>
+          ) : null;
+        })()}
         {/* Project and Priority Info */}
         <div className="flex items-center justify-between gap-1.5 pl-1.5">
           <span
@@ -1664,7 +1796,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             },
           },
           {
-            label: `${getRelativeDateLabel(selectedDate)} Assigned`,
+            label: "Assigned",
             value: metrics.tasksAssigned,
             icon: FiLayers,
             glow: "hover:shadow-[0_4px_20px_rgba(99,102,241,0.15)]",
@@ -1677,7 +1809,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             onClick: () => handleMetricClick("All"),
           },
           {
-            label: `${getRelativeDateLabel(selectedDate)} Pending`,
+            label: "Pending",
             value: metrics.pending,
             icon: FiClock,
             glow: "hover:shadow-[0_4px_20px_rgba(245,158,11,0.15)]",
@@ -1690,7 +1822,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             onClick: () => handleMetricClick("Pending"),
           },
           {
-            label: `${getRelativeDateLabel(selectedDate)} In Progress`,
+            label: "In Progress",
             value: metrics.inProgress,
             icon: FiPlay,
             glow: "hover:shadow-[0_4px_20px_rgba(14,165,233,0.15)]",
@@ -1703,7 +1835,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             onClick: () => handleMetricClick("In Progress"),
           },
           {
-            label: `${getRelativeDateLabel(selectedDate)} On Hold`,
+            label: "On Hold",
             value: metrics.onHold,
             icon: FiPauseCircle,
             glow: "hover:shadow-[0_4px_20px_rgba(217,70,239,0.15)]",
@@ -1716,7 +1848,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             onClick: () => handleMetricClick("On Hold"),
           },
           {
-            label: `${getRelativeDateLabel(selectedDate)} In Review`,
+            label: "In Review",
             value: metrics.inReview,
             icon: FiEye,
             glow: "hover:shadow-[0_4px_20px_rgba(99,102,241,0.15)]",
@@ -1729,7 +1861,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             onClick: () => handleMetricClick("IN-REVIEW"),
           },
           {
-            label: `${getRelativeDateLabel(selectedDate)} Correction`,
+            label: "Correction",
             value: metrics.corrections,
             icon: FiEdit3,
             glow: "hover:shadow-[0_4px_20px_rgba(245,158,11,0.15)]",
@@ -1742,7 +1874,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             onClick: () => handleMetricClick("Correction"),
           },
           {
-            label: `${getRelativeDateLabel(selectedDate)} Completed`,
+            label: "Completed",
             value: metrics.completed,
             icon: FiCheckCircle,
             glow: "hover:shadow-[0_4px_20px_rgba(16,185,129,0.15)]",
@@ -1755,7 +1887,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             onClick: () => handleMetricClick("Completed"),
           },
           {
-            label: `${getRelativeDateLabel(selectedDate)} Overdue`,
+            label: "Overdue",
             value: metrics.overdue,
             icon: FiAlertCircle,
             glow: "hover:shadow-[0_4px_20px_rgba(244,63,94,0.15)]",
@@ -1768,9 +1900,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             onClick: () => handleMetricClick("Overdue"),
           },
           {
-            label: isToday(selectedDate)
-              ? "Due Today"
-              : `Due ${getRelativeDateLabel(selectedDate)}`,
+            label: "Due Tasks",
             value: metrics.dueToday,
             icon: FiCalendar,
             glow: "hover:shadow-[0_4px_20px_rgba(245,158,11,0.15)]",
@@ -1783,7 +1913,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             onClick: () => handleMetricClick("Due Today"),
           },
           {
-            label: `${getRelativeDateLabel(selectedDate)} Rejected`,
+            label: "Rejected",
             value: metrics.rejected,
             icon: FiXCircle,
             glow: "hover:shadow-[0_4px_20px_rgba(239,68,68,0.15)]",
@@ -1901,10 +2031,37 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               LIVE SYNC
             </span>
+            {/* Active filter count badge */}
+            {(() => {
+              const activeCount = [
+                boardFilter.search.trim() !== "",
+                boardFilter.assignee !== "All",
+                boardFilter.priority !== "All",
+                boardFilter.client !== "All",
+              ].filter(Boolean).length;
+              return activeCount > 0 ? (
+                <span className="flex items-center gap-1 text-[10px] font-black bg-indigo-500 text-white px-2.5 py-0.5 rounded-full shadow-sm">
+                  <FiFilter size={9} />
+                  {activeCount} filter{activeCount > 1 ? "s" : ""} active
+                </span>
+              ) : null;
+            })()}
           </div>
 
-          {/* Column Scroll Controls & Info */}
+          {/* Filter toggle + Column Scroll Controls */}
           <div className="flex items-center gap-2 self-end sm:self-auto">
+            <button
+              onClick={() => setShowBoardFilter((v) => !v)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                showBoardFilter
+                  ? "bg-indigo-500 text-white border-indigo-600 shadow-md"
+                  : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-400 hover:text-indigo-600"
+              }`}
+              title="Toggle Board Filters"
+            >
+              <FiFilter size={13} />
+              Filter
+            </button>
             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700/60">
               {boardColumns.length} Columns
             </span>
@@ -1927,6 +2084,129 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             </div>
           </div>
         </div>
+
+        {/* Board Filter Panel */}
+        {showBoardFilter && (
+          <div className="bg-white dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700/60 rounded-2xl p-4 shadow-md">
+            <div className="flex flex-wrap gap-3 items-end">
+              {/* Search */}
+              <div className="flex-1 min-w-[160px]">
+                <label className="block text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
+                  Search Task
+                </label>
+                <div className="relative">
+                  <FiSearch
+                    size={12}
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+                  <input
+                    type="text"
+                    value={boardFilter.search}
+                    onChange={(e) =>
+                      setBoardFilter((f) => ({ ...f, search: e.target.value }))
+                    }
+                    placeholder="Search by task or project..."
+                    className="w-full pl-7 pr-3 py-1.5 text-xs font-medium bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/60 rounded-lg text-slate-700 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 focus:border-indigo-400 transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Assignee */}
+              <div className="min-w-[140px]">
+                <label className="block text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
+                  Assignee
+                </label>
+                <select
+                  value={boardFilter.assignee}
+                  onChange={(e) =>
+                    setBoardFilter((f) => ({ ...f, assignee: e.target.value }))
+                  }
+                  className="w-full px-2.5 py-1.5 text-xs font-medium bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/60 rounded-lg text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer"
+                >
+                  <option value="All">All Designers</option>
+                  {designers.map((d) => (
+                    <option key={d._id} value={d._id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Priority */}
+              <div className="min-w-[120px]">
+                <label className="block text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
+                  Priority
+                </label>
+                <select
+                  value={boardFilter.priority}
+                  onChange={(e) =>
+                    setBoardFilter((f) => ({ ...f, priority: e.target.value }))
+                  }
+                  className="w-full px-2.5 py-1.5 text-xs font-medium bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/60 rounded-lg text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer"
+                >
+                  <option value="All">All Priorities</option>
+                  <option value="Top High">🔴 Top High</option>
+                  <option value="High">🟠 High</option>
+                  <option value="Medium">🔵 Medium</option>
+                  <option value="Low">🟢 Low</option>
+                </select>
+              </div>
+
+              {/* Client */}
+              <div className="min-w-[140px]">
+                <label className="block text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1.5">
+                  Client
+                </label>
+                <select
+                  value={boardFilter.client}
+                  onChange={(e) =>
+                    setBoardFilter((f) => ({ ...f, client: e.target.value }))
+                  }
+                  className="w-full px-2.5 py-1.5 text-xs font-medium bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600/60 rounded-lg text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-400/50 cursor-pointer"
+                >
+                  <option value="All">All Clients</option>
+                  {clients?.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {c.companyName || c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Clear All */}
+              {(boardFilter.search ||
+                boardFilter.assignee !== "All" ||
+                boardFilter.priority !== "All" ||
+                boardFilter.client !== "All") && (
+                <button
+                  onClick={() =>
+                    setBoardFilter({
+                      search: "",
+                      assignee: "All",
+                      priority: "All",
+                      client: "All",
+                    })
+                  }
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-bold hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-all cursor-pointer self-end"
+                >
+                  <FiX size={11} />
+                  Clear All
+                </button>
+              )}
+
+              {/* Task count indicator */}
+              <div className="self-end ml-auto">
+                <span className="text-[10px] font-black text-slate-500 dark:text-slate-400">
+                  Showing{" "}
+                  <span className="text-indigo-600 dark:text-indigo-400">
+                    {boardFilteredTasks.length}
+                  </span>{" "}
+                  / {designerTasks.length} tasks
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Horizontally Scrollable Kanban Columns */}
         <div
@@ -2003,7 +2283,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             const todayConfig = getSectionConfig(col, "today");
             const upcomingConfig = getSectionConfig(col, "upcoming");
 
-            if (isOverdueCol) {
+            const isCompletedCol = lowerCol === "completed";
+
+            if (!isCompletedCol) {
               return (
                 <div
                   key={i}
