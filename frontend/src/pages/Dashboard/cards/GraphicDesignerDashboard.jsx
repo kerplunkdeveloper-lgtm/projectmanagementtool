@@ -5,108 +5,6 @@ import React, {
   useRef,
   useCallback,
 } from "react";
-
-const LiveProductivityCell = React.memo(
-  ({ tasks = [], initialLoggedMs = 0, selectedDate = new Date() }) => {
-    const [liveMs, setLiveMs] = useState(initialLoggedMs);
-
-    const isSelectedDateToday = useMemo(() => {
-      return isSameDay(selectedDate || new Date(), new Date());
-    }, [selectedDate]);
-
-    const hasInProgress = useMemo(() => {
-      return tasks.some((t) => t.status === "In Progress" && !t.actualEndTime);
-    }, [tasks]);
-
-    const hasInReview = useMemo(() => {
-      return tasks.some((t) => {
-        const s = (t.status || "").toLowerCase();
-        return (s === "in review" || s === "in-review") && !t.actualEndTime;
-      });
-    }, [tasks]);
-
-    const calculateTotalLogged = useCallback(() => {
-      let total = 0;
-      const refDate = selectedDate || new Date();
-      const todayStart = startOfDay(new Date());
-      const selStart = startOfDay(refDate);
-
-      tasks.forEach((t) => {
-        if (t.actualStartTime) {
-          const start = new Date(t.actualStartTime).getTime();
-          const isPaused =
-            (t.status === "In Progress" && t.autoPaused) ||
-            ["On Hold", "Rejected", "In Review", "Correction"].includes(
-              t.status,
-            );
-          const end = t.actualEndTime
-            ? new Date(t.actualEndTime).getTime()
-            : isPaused && t.pausedAt
-              ? new Date(t.pausedAt).getTime()
-              : isBefore(selStart, todayStart)
-                ? Math.min(Date.now(), endOfDay(refDate).getTime())
-                : Date.now();
-          const paused = t.totalPausedMs || 0;
-          total += Math.max(0, end - start - paused);
-        }
-      });
-      return total;
-    }, [tasks, selectedDate]);
-
-    useEffect(() => {
-      setLiveMs(calculateTotalLogged());
-      if (isSelectedDateToday && (hasInProgress || hasInReview)) {
-        const interval = setInterval(() => {
-          setLiveMs(calculateTotalLogged());
-        }, 1000);
-        return () => clearInterval(interval);
-      }
-    }, [tasks, isSelectedDateToday, hasInProgress, hasInReview, calculateTotalLogged]);
-
-    if (!liveMs || liveMs <= 0) {
-      return (
-        <span className="text-slate-400 dark:text-slate-500 font-bold">—</span>
-      );
-    }
-
-    const formatLoggedDuration = (ms) => {
-      if (!ms || ms <= 0) return "0m";
-      const totalSecs = Math.floor(ms / 1000);
-      const h = Math.floor(totalSecs / 3600);
-      const m = Math.floor((totalSecs % 3600) / 60);
-      const s = totalSecs % 60;
-      if (h > 0) return `${h}h ${m}m ${s}s`;
-      return `${m}m ${s}s`;
-    };
-
-    let badgeStyle =
-      "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300";
-    let pulseDot = null;
-
-    if (isSelectedDateToday && hasInProgress) {
-      badgeStyle =
-        "bg-blue-50/90 text-blue-700 border-blue-300 dark:bg-blue-900/40 dark:border-blue-700/60 dark:text-blue-400 shadow-sm";
-      pulseDot = (
-        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shrink-0 mr-1.5 inline-block" />
-      );
-    } else if (isSelectedDateToday && hasInReview) {
-      badgeStyle =
-        "bg-yellow-400/90 text-yellow-950 border-yellow-500 dark:bg-yellow-500/30 dark:border-yellow-600/60 dark:text-yellow-300 shadow-sm font-black";
-      pulseDot = (
-        <span className="w-1.5 h-1.5 rounded-full bg-yellow-600 dark:bg-yellow-400 animate-pulse shrink-0 mr-1.5 inline-block" />
-      );
-    }
-
-    return (
-      <div
-        className={`inline-flex items-center justify-center px-2 py-1 rounded-full border font-bold text-[10px] tracking-wide ${badgeStyle}`}
-      >
-        {pulseDot}
-        {formatLoggedDuration(liveMs)}
-      </div>
-    );
-  },
-);
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../../context/ThemeContext";
@@ -163,6 +61,205 @@ import {
   FiEdit3,
 } from "react-icons/fi";
 
+/**
+ * Single source of truth to calculate actual worked time for a task
+ * belonging to a specific calendar date (selectedDate).
+ */
+export const calculateTaskProductivityForDate = (
+  task,
+  selectedDate = new Date(),
+  officeHours = { startHour: 9, endHour: 19 },
+) => {
+  if (!task || !task.actualStartTime) return 0;
+
+  const taskStart = new Date(task.actualStartTime).getTime();
+  if (isNaN(taskStart)) return 0;
+
+  const selDateObj = selectedDate || new Date();
+  const startHour = officeHours?.startHour ?? 9;
+  const endHour = officeHours?.endHour ?? 19;
+
+  // 1. Determine office-hours boundaries [dayWorkStart, dayWorkEnd] for selectedDate
+  const dayWorkStart = new Date(
+    selDateObj.getFullYear(),
+    selDateObj.getMonth(),
+    selDateObj.getDate(),
+    startHour,
+    0,
+    0,
+    0,
+  ).getTime();
+
+  const dayWorkEnd = new Date(
+    selDateObj.getFullYear(),
+    selDateObj.getMonth(),
+    selDateObj.getDate(),
+    endHour,
+    0,
+    0,
+    0,
+  ).getTime();
+
+  // 2. Determine when task's working period stopped or paused
+  const isPaused =
+    (task.status === "In Progress" && task.autoPaused) ||
+    ["On Hold", "Rejected", "In Review", "Correction"].includes(task.status);
+
+  let taskEnd;
+  if (task.actualEndTime) {
+    taskEnd = new Date(task.actualEndTime).getTime();
+  } else if (isPaused && task.pausedAt) {
+    taskEnd = new Date(task.pausedAt).getTime();
+  } else {
+    taskEnd = isSameDay(selDateObj, new Date())
+      ? Math.min(Date.now(), dayWorkEnd)
+      : dayWorkEnd;
+  }
+
+  if (isNaN(taskEnd) || taskEnd <= taskStart) return 0;
+
+  // 3. Intersect task working period [taskStart, taskEnd] with office hours window [dayWorkStart, dayWorkEnd]
+  const effectiveStart = Math.max(taskStart, dayWorkStart);
+  const effectiveEnd = Math.min(taskEnd, dayWorkEnd);
+
+  const daySpan = Math.max(0, effectiveEnd - effectiveStart);
+  if (daySpan <= 0) return 0;
+
+  // 4. Calculate pause duration that falls inside the office-hours window
+  const lifetimeSpan = taskEnd - taskStart;
+  let dayPausedMs = 0;
+
+  let hasHistoryPause = false;
+  if (
+    task.blockerHistory &&
+    Array.isArray(task.blockerHistory) &&
+    task.blockerHistory.length > 0
+  ) {
+    task.blockerHistory.forEach((b) => {
+      if (b.pausedAt) {
+        const pStart = new Date(b.pausedAt).getTime();
+        const pEnd = b.resumedAt
+          ? new Date(b.resumedAt).getTime()
+          : isPaused && task.pausedAt
+            ? new Date(task.pausedAt).getTime()
+            : isSameDay(selDateObj, new Date())
+              ? Math.min(Date.now(), dayWorkEnd)
+              : dayWorkEnd;
+        if (!isNaN(pStart) && !isNaN(pEnd) && pEnd > pStart) {
+          const overlapStart = Math.max(pStart, dayWorkStart);
+          const overlapEnd = Math.min(pEnd, dayWorkEnd);
+          if (overlapEnd > overlapStart) {
+            dayPausedMs += overlapEnd - overlapStart;
+            hasHistoryPause = true;
+          }
+        }
+      }
+    });
+  }
+
+  const totalPaused = task.totalPausedMs || 0;
+  if (totalPaused > 0) {
+    const ratio = lifetimeSpan > 0 ? daySpan / lifetimeSpan : 0;
+    const propPaused = totalPaused * ratio;
+    if (!hasHistoryPause || propPaused > dayPausedMs) {
+      dayPausedMs = propPaused;
+    }
+  }
+
+  return Math.max(0, daySpan - dayPausedMs);
+};
+
+const LiveProductivityCell = React.memo(
+  ({ tasks = [], initialLoggedMs = 0, selectedDate = new Date(), officeHours = { startHour: 9, endHour: 19 } }) => {
+    const isSelectedDateToday = useMemo(() => {
+      return isSameDay(selectedDate || new Date(), new Date());
+    }, [selectedDate]);
+
+    const hasInProgress = useMemo(() => {
+      return tasks.some(
+        (t) => t.status === "In Progress" && !t.actualEndTime && !t.autoPaused,
+      );
+    }, [tasks]);
+
+    const hasInReview = useMemo(() => {
+      return tasks.some((t) => {
+        const s = (t.status || "").toLowerCase();
+        return (s === "in review" || s === "in-review") && !t.actualEndTime;
+      });
+    }, [tasks]);
+
+    const calculateTotalLogged = useCallback(() => {
+      let total = 0;
+      tasks.forEach((t) => {
+        total += calculateTaskProductivityForDate(t, selectedDate, officeHours);
+      });
+      return total;
+    }, [tasks, selectedDate, officeHours]);
+
+    const [liveMs, setLiveMs] = useState(() => calculateTotalLogged());
+
+    useEffect(() => {
+      setLiveMs(calculateTotalLogged());
+      if (isSelectedDateToday && (hasInProgress || hasInReview)) {
+        const interval = setInterval(() => {
+          setLiveMs(calculateTotalLogged());
+        }, 1000);
+        return () => clearInterval(interval);
+      }
+    }, [
+      tasks,
+      selectedDate,
+      isSelectedDateToday,
+      hasInProgress,
+      hasInReview,
+      calculateTotalLogged,
+    ]);
+
+    if (!liveMs || liveMs <= 0) {
+      return (
+        <span className="text-slate-400 dark:text-slate-500 font-bold">—</span>
+      );
+    }
+
+    const formatLoggedDuration = (ms) => {
+      if (!ms || ms <= 0) return "0m";
+      const totalSecs = Math.floor(ms / 1000);
+      const h = Math.floor(totalSecs / 3600);
+      const m = Math.floor((totalSecs % 3600) / 60);
+      const s = totalSecs % 60;
+      if (h > 0) return `${h}h ${m}m ${s}s`;
+      return `${m}m ${s}s`;
+    };
+
+    let badgeStyle =
+      "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300";
+    let pulseDot = null;
+
+    if (isSelectedDateToday && hasInProgress) {
+      badgeStyle =
+        "bg-blue-50/90 text-blue-700 border-blue-300 dark:bg-blue-900/40 dark:border-blue-700/60 dark:text-blue-400 shadow-sm";
+      pulseDot = (
+        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shrink-0 mr-1.5 inline-block" />
+      );
+    } else if (isSelectedDateToday && hasInReview) {
+      badgeStyle =
+        "bg-yellow-400/90 text-yellow-950 border-yellow-500 dark:bg-yellow-500/30 dark:border-yellow-600/60 dark:text-yellow-300 shadow-sm font-black";
+      pulseDot = (
+        <span className="w-1.5 h-1.5 rounded-full bg-yellow-600 dark:bg-yellow-400 animate-pulse shrink-0 mr-1.5 inline-block" />
+      );
+    }
+
+    return (
+      <div
+        className={`inline-flex items-center justify-center px-2 py-1 rounded-full border font-bold text-[10px] tracking-wide ${badgeStyle}`}
+      >
+        {pulseDot}
+        {formatLoggedDuration(liveMs)}
+      </div>
+    );
+  },
+);
+
 const getPriorityStyle = (priority) => {
   const p = priority?.toLowerCase() || "";
   if (p.includes("top high"))
@@ -202,20 +299,20 @@ const splitTasksByDateCategory = (columnTasks, colName, selectedDate) => {
       taskDate = t.completedAt
         ? parseISO(t.completedAt)
         : t.updatedAt
-        ? parseISO(t.updatedAt)
-        : t.dueDate
-        ? parseISO(t.dueDate)
-        : t.createdAt
-        ? parseISO(t.createdAt)
-        : null;
+          ? parseISO(t.updatedAt)
+          : t.dueDate
+            ? parseISO(t.dueDate)
+            : t.createdAt
+              ? parseISO(t.createdAt)
+              : null;
     } else {
       taskDate = t.dueDate
         ? parseISO(t.dueDate)
         : t.startDate
-        ? parseISO(t.startDate)
-        : t.createdAt
-        ? parseISO(t.createdAt)
-        : null;
+          ? parseISO(t.startDate)
+          : t.createdAt
+            ? parseISO(t.createdAt)
+            : null;
     }
 
     if (!taskDate || isNaN(taskDate.getTime())) {
@@ -319,7 +416,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   const scrollBoard = (direction) => {
     if (boardScrollRef.current) {
       const scrollAmount = direction === "left" ? -320 : 320;
-      boardScrollRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+      boardScrollRef.current.scrollBy({
+        left: scrollAmount,
+        behavior: "smooth",
+      });
     }
   };
 
@@ -333,8 +433,12 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     if (targetDept) {
       localStorage.setItem("task_department_filter", targetDept);
     }
-    const deptQuery = targetDept ? `&department=${encodeURIComponent(targetDept)}` : "";
-    navigate(`/${user?.role || "team"}/tasks?status=${encodeURIComponent(status)}${deptQuery}`);
+    const deptQuery = targetDept
+      ? `&department=${encodeURIComponent(targetDept)}`
+      : "";
+    navigate(
+      `/${user?.role || "team"}/tasks?status=${encodeURIComponent(status)}${deptQuery}`,
+    );
   };
   const isDarkMode =
     theme === "dark" ||
@@ -428,8 +532,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             ? parseISO(task.createdAt)
             : null;
           const taskDueDate = task.dueDate ? parseISO(task.dueDate) : null;
-          const taskStartDate = task.startDate ? parseISO(task.startDate) : null;
-          const startCheckDate = taskStartDate || taskDueDate || taskCreatedDate;
+          const taskStartDate = task.startDate
+            ? parseISO(task.startDate)
+            : null;
+          const startCheckDate =
+            taskStartDate || taskDueDate || taskCreatedDate;
 
           const status = task.status?.toLowerCase() || "";
           const isCompleted =
@@ -610,17 +717,58 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       else counts["Other"]++;
     };
 
+    const selDateObj = selectedDate || new Date();
+    const dayStart = startOfDay(selDateObj).getTime();
+    const nextDayStart = startOfDay(addDays(selDateObj, 1)).getTime();
+
     designerTasks.forEach((task) => {
       if (task.blockerHistory && Array.isArray(task.blockerHistory)) {
-        task.blockerHistory.forEach((b) => processBlocker(b.blockerType));
+        task.blockerHistory.forEach((b) => {
+          if (!b.pausedAt) return;
+          const pStart = new Date(b.pausedAt).getTime();
+          if (isNaN(pStart)) return;
+          let pEnd = b.resumedAt
+            ? new Date(b.resumedAt).getTime()
+            : b.totalPauseMinutes
+              ? pStart + b.totalPauseMinutes * 60 * 1000
+              : task.pausedAt
+                ? new Date(task.pausedAt).getTime()
+                : isSameDay(selDateObj, new Date())
+                  ? Date.now()
+                  : nextDayStart;
+          if (isNaN(pEnd) || pEnd <= pStart) return;
+          const overlapStart = Math.max(pStart, dayStart);
+          const overlapEnd = Math.min(pEnd, nextDayStart);
+          if (overlapEnd > overlapStart) {
+            processBlocker(b.blockerType);
+          }
+        });
       }
-      if (task.isBlocked) {
-        processBlocker(task.blockerType);
+      if (task.isBlocked && task.blockerPausedAt) {
+        const pStart = new Date(task.blockerPausedAt).getTime();
+        if (!isNaN(pStart)) {
+          const pEnd = isSameDay(selDateObj, new Date())
+            ? Date.now()
+            : nextDayStart;
+          const overlapStart = Math.max(pStart, dayStart);
+          const overlapEnd = Math.min(pEnd, nextDayStart);
+          if (overlapEnd > overlapStart) {
+            const alreadyHandled =
+              task.blockerHistory &&
+              task.blockerHistory.some((h) => {
+                if (!h.pausedAt) return false;
+                return Math.abs(new Date(h.pausedAt).getTime() - pStart) < 1000;
+              });
+            if (!alreadyHandled) {
+              processBlocker(task.blockerType);
+            }
+          }
+        }
       }
     });
 
     return { total: totalBlockers, counts };
-  }, [designerTasks]);
+  }, [designerTasks, selectedDate]);
 
   // 4. Board Data
   const boardColumns = [
@@ -714,72 +862,110 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         totalRevisions += t.revisions || 0;
 
         if (t.actualStartTime) {
-          const start = new Date(t.actualStartTime).getTime();
-          const todayStart = startOfDay(new Date());
-          const selStart = startOfDay(selectedDate);
+          const taskLoggedMs = calculateTaskProductivityForDate(
+            t,
+            selectedDate,
+            officeHours,
+          );
+          totalLoggedMs += taskLoggedMs;
+
+          const taskStart = new Date(t.actualStartTime).getTime();
           const isPaused =
             (t.status === "In Progress" && t.autoPaused) ||
             ["On Hold", "Rejected", "In Review", "Correction"].includes(
               t.status,
             );
-          const end = t.actualEndTime
+          const taskEnd = t.actualEndTime
             ? new Date(t.actualEndTime).getTime()
             : isPaused && t.pausedAt
               ? new Date(t.pausedAt).getTime()
-              : isBefore(selStart, todayStart)
-                ? Math.min(Date.now(), endOfDay(selectedDate).getTime())
-                : Date.now();
-          const paused = t.totalPausedMs || 0;
-          const taskLoggedMs = Math.max(0, end - start - paused);
-          totalLoggedMs += taskLoggedMs;
+              : Date.now();
 
-          const bizMs = calculateBusinessMs(
-            start,
-            end,
-            officeHours.startHour,
-            officeHours.endHour,
-          );
-          const totalElapsed = end - start;
-          const ratio = totalElapsed > 0 ? bizMs / totalElapsed : 0;
-          const bizLogged = taskLoggedMs * ratio;
-          const offLogged = taskLoggedMs - bizLogged;
+          const selDateObj = selectedDate || new Date();
+          const dayStart = startOfDay(selDateObj).getTime();
+          const nextDayStart = startOfDay(addDays(selDateObj, 1)).getTime();
+          const effStart = Math.max(taskStart, dayStart);
+          const effEnd = Math.min(taskEnd, nextDayStart);
 
-          totalBusinessLoggedMs += bizLogged;
-          totalOffworkingLoggedMs += offLogged;
+          if (effEnd > effStart) {
+            const bizMs = calculateBusinessMs(
+              effStart,
+              effEnd,
+              officeHours.startHour,
+              officeHours.endHour,
+            );
+            const totalElapsed = effEnd - effStart;
+            const ratio = totalElapsed > 0 ? bizMs / totalElapsed : 0;
+            const bizLogged = taskLoggedMs * ratio;
+            const offLogged = taskLoggedMs - bizLogged;
 
-          // Include ALL tasks that have been started — the formula already
-          // subtracts review/hold time via totalPausedMs, so this is pure
-          // "in-progress" worked time regardless of current status.
+            totalBusinessLoggedMs += bizLogged;
+            totalOffworkingLoggedMs += offLogged;
+          }
+
           inProgressLoggedMs += taskLoggedMs;
         }
 
-        // Collect blockers and compute blocker time
+        // Collect blockers and compute blocker time strictly for selectedDate
+        const selDateObj = selectedDate || new Date();
+        const dayStart = startOfDay(selDateObj).getTime();
+        const nextDayStart = startOfDay(addDays(selDateObj, 1)).getTime();
+
         if (t.blockerHistory && Array.isArray(t.blockerHistory)) {
           t.blockerHistory.forEach((item) => {
-            if (item.blockerType) {
-              blockerTypesSet.add(item.blockerType);
-            }
-            if (item.pausedAt && item.resumedAt) {
-              const p = new Date(item.pausedAt).getTime();
-              const r = new Date(item.resumedAt).getTime();
-              if (r >= p) {
-                totalBlockerMs += r - p;
+            if (!item.pausedAt) return;
+            const pStart = new Date(item.pausedAt).getTime();
+            if (isNaN(pStart)) return;
+
+            let pEnd = item.resumedAt
+              ? new Date(item.resumedAt).getTime()
+              : item.totalPauseMinutes
+                ? pStart + item.totalPauseMinutes * 60 * 1000
+                : t.pausedAt
+                  ? new Date(t.pausedAt).getTime()
+                  : isSameDay(selDateObj, new Date())
+                    ? Date.now()
+                    : nextDayStart;
+
+            if (isNaN(pEnd) || pEnd <= pStart) return;
+
+            const overlapStart = Math.max(pStart, dayStart);
+            const overlapEnd = Math.min(pEnd, nextDayStart);
+
+            if (overlapEnd > overlapStart) {
+              totalBlockerMs += overlapEnd - overlapStart;
+              if (item.blockerType) {
+                blockerTypesSet.add(item.blockerType);
               }
-            } else if (item.totalPauseMinutes) {
-              totalBlockerMs += item.totalPauseMinutes * 60 * 1000;
             }
           });
         }
 
-        if (t.isBlocked) {
-          if (t.blockerType) {
-            blockerTypesSet.add(t.blockerType);
-          }
-          if (t.blockerPausedAt) {
-            const pauseStart = new Date(t.blockerPausedAt).getTime();
-            const currentPause = Date.now() - pauseStart;
-            if (currentPause > 0) {
-              totalBlockerMs += currentPause;
+        if (t.isBlocked && t.blockerPausedAt) {
+          const pStart = new Date(t.blockerPausedAt).getTime();
+          if (!isNaN(pStart)) {
+            const pEnd = isSameDay(selDateObj, new Date())
+              ? Date.now()
+              : nextDayStart;
+            const overlapStart = Math.max(pStart, dayStart);
+            const overlapEnd = Math.min(pEnd, nextDayStart);
+
+            if (overlapEnd > overlapStart) {
+              const alreadyHandled =
+                t.blockerHistory &&
+                t.blockerHistory.some((h) => {
+                  if (!h.pausedAt) return false;
+                  return (
+                    Math.abs(new Date(h.pausedAt).getTime() - pStart) < 1000
+                  );
+                });
+
+              if (!alreadyHandled) {
+                totalBlockerMs += overlapEnd - overlapStart;
+                if (t.blockerType) {
+                  blockerTypesSet.add(t.blockerType);
+                }
+              }
             }
           }
         }
@@ -1284,7 +1470,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             size={13}
             className="text-indigo-500 dark:text-indigo-400 shrink-0 mt-0.5"
           />
-          <p className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-snug break-words" title={task.title}>
+          <p
+            className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-snug break-words"
+            title={task.title}
+          >
             {task.title}
           </p>
         </div>
@@ -1311,13 +1500,18 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
               <FiClock size={10} />
               <span>{format(parseISO(task.dueDate), "MMM dd")}</span>
               <span className="opacity-40 font-normal">|</span>
-              <span className="truncate max-w-[90px]">{getDeadlineBadgeText(task.dueDate, task.status)}</span>
+              <span className="truncate max-w-[90px]">
+                {getDeadlineBadgeText(task.dueDate, task.status)}
+              </span>
             </span>
           </div>
         )}
         {/* Project and Priority Info */}
         <div className="flex items-center justify-between gap-1.5 pl-1.5">
-          <span className="text-[9.5px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/40 px-2 py-0.5 rounded-md truncate max-w-[140px]" title={clientName}>
+          <span
+            className="text-[9.5px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/40 px-2 py-0.5 rounded-md truncate max-w-[140px]"
+            title={clientName}
+          >
             {clientName}
           </span>
           {task.priority && (
@@ -1333,7 +1527,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           <div className="pl-1.5 pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2">
             {/* Assigned To — left */}
             {assignedUser ? (
-              <div className="flex items-center gap-1.5 min-w-0" title={`Assigned to: ${assignedUser.name}`}>
+              <div
+                className="flex items-center gap-1.5 min-w-0"
+                title={`Assigned to: ${assignedUser.name}`}
+              >
                 {profileImg ? (
                   <img
                     src={profileImg}
@@ -1354,7 +1551,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             )}
             {/* Assigned By — right */}
             {assignedByName && (
-              <div className="flex items-center gap-1.5 shrink-0" title={`Assigned by: ${assignedByName}`}>
+              <div
+                className="flex items-center gap-1.5 shrink-0"
+                title={`Assigned by: ${assignedByName}`}
+              >
                 <div className="w-5 h-5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center text-[8.5px] font-bold ring-1 ring-amber-400/30 shrink-0">
                   {creatorInitials || "SM"}
                 </div>
@@ -1691,7 +1891,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
           <div className="flex items-center gap-3">
             <h3 className="text-base font-bold text-slate-800 dark:text-white tracking-wide flex items-center gap-2">
-              <FiLayers className="text-indigo-500 dark:text-indigo-400" size={18} />
+              <FiLayers
+                className="text-indigo-500 dark:text-indigo-400"
+                size={18}
+              />
               Live Task Board
             </h3>
             <span className="flex items-center gap-1.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-500/20 shadow-2xs">
@@ -1800,140 +2003,179 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             const todayConfig = getSectionConfig(col, "today");
             const upcomingConfig = getSectionConfig(col, "upcoming");
 
+            if (isOverdueCol) {
+              return (
+                <div
+                  key={i}
+                  className={`w-[290px] md:w-[310px] min-w-[290px] md:min-w-[310px] shrink-0 snap-start ${boardBg} backdrop-blur-md rounded-2xl border ${colBorder} flex flex-col max-h-[600px] shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden`}
+                >
+                  <div
+                    className={`p-3 px-3.5 border-b flex flex-col gap-1.5 rounded-t-2xl backdrop-blur-md ${colBg} ${colBorder}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={`text-xs font-black tracking-wider uppercase truncate max-w-[70%] ${textCol}`}
+                        title={col}
+                      >
+                        {col}
+                      </span>
+                      <span
+                        className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${countBg} ${countText}`}
+                      >
+                        {columnTasks.length}
+                      </span>
+                    </div>
+
+                    {/* Header breakdown pills */}
+                    <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
+                      <span
+                        className="text-[8.5px] font-black px-1.5 py-0.5 rounded bg-black/15 dark:bg-white/15 text-white dark:text-slate-100 border border-white/20 whitespace-nowrap"
+                        title={prevConfig.title}
+                      >
+                        Prev: {previousTasks.length}
+                      </span>
+                      <span
+                        className="text-[8.5px] font-black px-1.5 py-0.5 rounded bg-black/15 dark:bg-white/15 text-white dark:text-slate-100 border border-white/20 whitespace-nowrap"
+                        title={todayConfig.title}
+                      >
+                        Today: {todayTasks.length}
+                      </span>
+                      <span
+                        className="text-[8.5px] font-black px-1.5 py-0.5 rounded bg-black/15 dark:bg-white/15 text-white dark:text-slate-100 border border-white/20 whitespace-nowrap"
+                        title={upcomingConfig.title}
+                      >
+                        Upcoming: {upcomingTasks.length}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 overflow-y-auto space-y-3 flex-1 custom-scrollbar">
+                    <div className="space-y-3">
+                      {/* Previous Section */}
+                      <div className="space-y-1.5">
+                        <div
+                          className={`flex items-center justify-between px-2 py-1 rounded-lg border ${prevConfig.badgeContainer}`}
+                        >
+                          <span
+                            className={`text-[9px] font-black uppercase tracking-wider truncate ${prevConfig.titleColor}`}
+                          >
+                            {prevConfig.title}
+                          </span>
+                          <span
+                            className={`text-[9px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${prevConfig.countBadge}`}
+                          >
+                            {previousTasks.length}
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          <AnimatePresence>
+                            {previousTasks.length > 0 ? (
+                              previousTasks.map((task) => renderTaskCard(task))
+                            ) : (
+                              <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-1.5">
+                                {prevConfig.emptyText}
+                              </p>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </div>
+
+                      {/* Today Section */}
+                      <div className="space-y-1.5">
+                        <div
+                          className={`flex items-center justify-between px-2 py-1 rounded-lg border ${todayConfig.badgeContainer}`}
+                        >
+                          <span
+                            className={`text-[9px] font-black uppercase tracking-wider truncate ${todayConfig.titleColor}`}
+                          >
+                            {todayConfig.title}
+                          </span>
+                          <span
+                            className={`text-[9px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${todayConfig.countBadge}`}
+                          >
+                            {todayTasks.length}
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          <AnimatePresence>
+                            {todayTasks.length > 0 ? (
+                              todayTasks.map((task) => renderTaskCard(task))
+                            ) : (
+                              <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-1.5">
+                                {todayConfig.emptyText}
+                              </p>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </div>
+
+                      {/* Upcoming Section */}
+                      <div className="space-y-1.5">
+                        <div
+                          className={`flex items-center justify-between px-2 py-1 rounded-lg border ${upcomingConfig.badgeContainer}`}
+                        >
+                          <span
+                            className={`text-[9px] font-black uppercase tracking-wider truncate ${upcomingConfig.titleColor}`}
+                          >
+                            {upcomingConfig.title}
+                          </span>
+                          <span
+                            className={`text-[9px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${upcomingConfig.countBadge}`}
+                          >
+                            {upcomingTasks.length}
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          <AnimatePresence>
+                            {upcomingTasks.length > 0 ? (
+                              upcomingTasks.map((task) => renderTaskCard(task))
+                            ) : (
+                              <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-1.5">
+                                {upcomingConfig.emptyText}
+                              </p>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <div
                 key={i}
                 className={`w-[290px] md:w-[310px] min-w-[290px] md:min-w-[310px] shrink-0 snap-start ${boardBg} backdrop-blur-md rounded-2xl border ${colBorder} flex flex-col max-h-[600px] shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden`}
               >
                 <div
-                  className={`p-3 px-3.5 border-b flex flex-col gap-1.5 rounded-t-2xl backdrop-blur-md ${colBg} ${colBorder}`}
+                  className={`p-3 px-3.5 border-b flex items-center justify-between rounded-t-2xl backdrop-blur-md ${colBg} ${colBorder}`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`text-xs font-black tracking-wider uppercase truncate max-w-[70%] ${textCol}`}
-                      title={col}
-                    >
-                      {col}
-                    </span>
-                    <span
-                      className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${countBg} ${countText}`}
-                    >
-                      {columnTasks.length}
-                    </span>
-                  </div>
-
-                  {/* Header breakdown pills */}
-                  <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide">
-                    <span
-                      className="text-[8.5px] font-black px-1.5 py-0.5 rounded bg-black/15 dark:bg-white/15 text-white dark:text-slate-100 border border-white/20 whitespace-nowrap"
-                      title={prevConfig.title}
-                    >
-                      Prev: {previousTasks.length}
-                    </span>
-                    <span
-                      className="text-[8.5px] font-black px-1.5 py-0.5 rounded bg-black/15 dark:bg-white/15 text-white dark:text-slate-100 border border-white/20 whitespace-nowrap"
-                      title={todayConfig.title}
-                    >
-                      Today: {todayTasks.length}
-                    </span>
-                    <span
-                      className="text-[8.5px] font-black px-1.5 py-0.5 rounded bg-black/15 dark:bg-white/15 text-white dark:text-slate-100 border border-white/20 whitespace-nowrap"
-                      title={upcomingConfig.title}
-                    >
-                      Upcoming: {upcomingTasks.length}
-                    </span>
-                  </div>
+                  <span
+                    className={`text-xs font-black tracking-wider uppercase truncate max-w-[75%] ${textCol}`}
+                    title={col}
+                  >
+                    {col}
+                  </span>
+                  <span
+                    className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${countBg} ${countText}`}
+                  >
+                    {todayTasks.length}
+                  </span>
                 </div>
 
-                <div className="p-2.5 overflow-y-auto space-y-3 flex-1 custom-scrollbar">
-                  <div className="space-y-3">
-                    {/* Previous Section */}
-                    <div className="space-y-1.5">
-                      <div
-                        className={`flex items-center justify-between px-2 py-1 rounded-lg border ${prevConfig.badgeContainer}`}
-                      >
-                        <span
-                          className={`text-[9px] font-black uppercase tracking-wider truncate ${prevConfig.titleColor}`}
-                        >
-                          {prevConfig.title}
-                        </span>
-                        <span
-                          className={`text-[9px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${prevConfig.countBadge}`}
-                        >
-                          {previousTasks.length}
-                        </span>
+                <div className="p-2.5 overflow-y-auto space-y-2 flex-1 custom-scrollbar">
+                  <AnimatePresence>
+                    {todayTasks.length > 0 ? (
+                      todayTasks.map((task) => renderTaskCard(task))
+                    ) : (
+                      <div className="py-8 text-center space-y-1">
+                        <p className="text-[11px] font-medium text-slate-400 dark:text-slate-500 italic">
+                          {todayConfig.emptyText}
+                        </p>
                       </div>
-                      <div className="space-y-2">
-                        <AnimatePresence>
-                          {previousTasks.length > 0 ? (
-                            previousTasks.map((task) => renderTaskCard(task))
-                          ) : (
-                            <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-1.5">
-                              {prevConfig.emptyText}
-                            </p>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </div>
-
-                    {/* Today Section */}
-                    <div className="space-y-1.5">
-                      <div
-                        className={`flex items-center justify-between px-2 py-1 rounded-lg border ${todayConfig.badgeContainer}`}
-                      >
-                        <span
-                          className={`text-[9px] font-black uppercase tracking-wider truncate ${todayConfig.titleColor}`}
-                        >
-                          {todayConfig.title}
-                        </span>
-                        <span
-                          className={`text-[9px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${todayConfig.countBadge}`}
-                        >
-                          {todayTasks.length}
-                        </span>
-                      </div>
-                      <div className="space-y-2">
-                        <AnimatePresence>
-                          {todayTasks.length > 0 ? (
-                            todayTasks.map((task) => renderTaskCard(task))
-                          ) : (
-                            <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-1.5">
-                              {todayConfig.emptyText}
-                            </p>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </div>
-
-                    {/* Upcoming Section */}
-                    <div className="space-y-1.5">
-                      <div
-                        className={`flex items-center justify-between px-2 py-1 rounded-lg border ${upcomingConfig.badgeContainer}`}
-                      >
-                        <span
-                          className={`text-[9px] font-black uppercase tracking-wider truncate ${upcomingConfig.titleColor}`}
-                        >
-                          {upcomingConfig.title}
-                        </span>
-                        <span
-                          className={`text-[9px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${upcomingConfig.countBadge}`}
-                        >
-                          {upcomingTasks.length}
-                        </span>
-                      </div>
-                      <div className="space-y-2">
-                        <AnimatePresence>
-                          {upcomingTasks.length > 0 ? (
-                            upcomingTasks.map((task) => renderTaskCard(task))
-                          ) : (
-                            <p className="text-[10px] text-slate-400 dark:text-slate-500 italic text-center py-1.5">
-                              {upcomingConfig.emptyText}
-                            </p>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </div>
-                  </div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
             );
@@ -1966,11 +2208,16 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                 </span>
               </div>
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-250 dark:border-slate-700/80 shadow-2xs">
-                <FiCalendar className="text-indigo-500 dark:text-indigo-400 shrink-0" size={12} />
+                <FiCalendar
+                  className="text-indigo-500 dark:text-indigo-400 shrink-0"
+                  size={12}
+                />
                 <span className="text-[11px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                   {getRelativeDateLabel(selectedDate)}
                 </span>
-                <span className="text-slate-300 dark:text-slate-600 font-extrabold text-xs">•</span>
+                <span className="text-slate-300 dark:text-slate-600 font-extrabold text-xs">
+                  •
+                </span>
                 <span className="text-[11px] font-extrabold text-slate-700 dark:text-slate-200 tracking-wide uppercase">
                   {format(selectedDate, "MMM dd, yyyy")}
                 </span>
@@ -2128,8 +2375,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                     <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] text-center">
                       <LiveProductivityCell
                         tasks={tp.tasks}
-                        initialLoggedMs={tp.inProgressLoggedMs}
+                        initialLoggedMs={tp.totalLoggedMs}
                         selectedDate={selectedDate}
+                        officeHours={officeHours}
                       />
                     </td>
 
@@ -3039,8 +3287,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                       const effectiveReviewStart =
                                         task.reviewStartedAt ||
                                         task.lastReviewStartedAt ||
-                                        (task.reviewCycles && task.reviewCycles.length > 0
-                                          ? task.reviewCycles[task.reviewCycles.length - 1]?.startedAt
+                                        (task.reviewCycles &&
+                                        task.reviewCycles.length > 0
+                                          ? task.reviewCycles[
+                                              task.reviewCycles.length - 1
+                                            ]?.startedAt
                                           : null);
 
                                       if (
@@ -3096,9 +3347,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                         }
                                       };
 
-                                      const startInfo = formatApprovalDate(
-                                        effectiveReviewStart,
-                                      );
+                                      const startInfo =
+                                        formatApprovalDate(
+                                          effectiveReviewStart,
+                                        );
                                       const endInfo = formatApprovalDate(
                                         task.completedAt,
                                       );
@@ -3340,8 +3592,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                               const effectiveReviewStart =
                                 task.reviewStartedAt ||
                                 task.lastReviewStartedAt ||
-                                (task.reviewCycles && task.reviewCycles.length > 0
-                                  ? task.reviewCycles[task.reviewCycles.length - 1]?.startedAt
+                                (task.reviewCycles &&
+                                task.reviewCycles.length > 0
+                                  ? task.reviewCycles[
+                                      task.reviewCycles.length - 1
+                                    ]?.startedAt
                                   : null);
 
                               const totalWaitMs =
@@ -3381,9 +3636,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                 }
                               };
 
-                              const startInfo = formatApprovalDate(
-                                effectiveReviewStart,
-                              );
+                              const startInfo =
+                                formatApprovalDate(effectiveReviewStart);
                               const endInfo = formatApprovalDate(
                                 task.completedAt,
                               );

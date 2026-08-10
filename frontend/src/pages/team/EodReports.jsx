@@ -6,8 +6,9 @@ import {
   useUpdateTaskMutation,
 } from "../../features/api/apiSlice";
 import { getUsers } from "../../features/users/userSlice";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import toast from "react-hot-toast";
+import { calculateTaskProductivityForDate } from "../Dashboard/cards/GraphicDesignerDashboard";
 import {
   getDesignerEodReports,
   createDesignerEodReport,
@@ -104,6 +105,17 @@ const safeFormatDateTime = (timeStr, formatPattern = "MMM dd, yyyy h:mm a") => {
   }
 };
 
+const formatMsToDuration = (ms) => {
+  if (!ms || ms <= 0) return "0s";
+  const totalSecs = Math.floor(ms / 1000);
+  const h = Math.floor(totalSecs / 3600);
+  const m = Math.floor((totalSecs % 3600) / 60);
+  const s = totalSecs % 60;
+  if (h > 0) return `${h}h ${m}m ${s}s`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+};
+
 const formatElapsed = (
   startTime,
   endTime,
@@ -138,42 +150,52 @@ const formatElapsed = (
   return `${seconds}s`;
 };
 
-const LiveTimeTracker = ({ task, allTasks, isSubmitted }) => {
-  const [elapsedStr, setElapsedStr] = React.useState(task.time || "");
+const LiveTimeTracker = ({ task, allTasks, isSubmitted, selectedDate }) => {
+  const selDateObj = React.useMemo(() => {
+    if (!selectedDate) return new Date();
+    return typeof selectedDate === "string" ? parseISO(selectedDate) : selectedDate;
+  }, [selectedDate]);
+
+  const originalTask = React.useMemo(() => {
+    return allTasks.find((t) => t._id === (task.taskId || task.id));
+  }, [allTasks, task]);
+
+  const calculateCurrentMs = React.useCallback(() => {
+    const target = originalTask || task;
+    if (!target) return 0;
+    return calculateTaskProductivityForDate(target, selDateObj);
+  }, [originalTask, task, selDateObj]);
+
+  const [elapsedStr, setElapsedStr] = React.useState(() => {
+    const ms = calculateCurrentMs();
+    return ms > 0 ? formatMsToDuration(ms) : task.time || "0s";
+  });
 
   React.useEffect(() => {
     if (isSubmitted) {
-      setElapsedStr(task.time || "");
+      setElapsedStr(task.time || "0s");
       return;
     }
 
-    const originalTask = allTasks.find((t) => t._id === (task.taskId || task.id));
-    if (
-      !originalTask ||
-      !originalTask.actualStartTime ||
-      originalTask.actualEndTime ||
-      (originalTask.status !== "In Progress" && originalTask.pausedAt) ||
-      originalTask.autoPaused
-    ) {
-      setElapsedStr(task.time || "");
-      return;
+    const updateDisplay = () => {
+      const ms = calculateCurrentMs();
+      setElapsedStr(ms > 0 ? formatMsToDuration(ms) : "0s");
+    };
+
+    updateDisplay();
+
+    const target = originalTask || task;
+    const isRunning =
+      target &&
+      target.status === "In Progress" &&
+      !target.actualEndTime &&
+      !target.autoPaused;
+
+    if (isRunning) {
+      const interval = setInterval(updateDisplay, 1000);
+      return () => clearInterval(interval);
     }
-
-    const interval = setInterval(() => {
-      setElapsedStr(
-        formatElapsed(
-          originalTask.actualStartTime,
-          originalTask.actualEndTime,
-          originalTask.pausedAt,
-          originalTask.totalPausedMs,
-          originalTask.status,
-          originalTask.autoPaused
-        )
-      );
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [allTasks, task, isSubmitted]);
+  }, [allTasks, task, isSubmitted, selectedDate, originalTask, calculateCurrentMs]);
 
   return <span>Time spent: {elapsedStr}</span>;
 };
@@ -305,55 +327,63 @@ const EodReports = () => {
     }
   }, [dispatch, selectedDate]);
 
-  // Filter tasks assigned to me for the selected date
+  // Filter tasks assigned to me that were actually worked on for the selected date
   const myTasks = React.useMemo(() => {
+    const selDateObj = selectedDate ? parseISO(selectedDate) : new Date();
+
     return allTasks.filter((task) => {
       const assigneeId = task.assignedTo?._id || task.assignedTo;
       const isAssignedToMe = assigneeId === (user?._id || user?.id);
       if (!isAssignedToMe) return false;
 
-      const taskCreatedDate = task.createdAt ? new Date(task.createdAt) : null;
-      const taskDueDate = task.dueDate ? new Date(task.dueDate) : null;
-      const taskStartDate = task.startDate ? new Date(task.startDate) : null;
-
       const getLocalDateStr = (date) => {
         if (!date) return null;
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return null;
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
         return `${year}-${month}-${day}`;
       };
 
-      const createdDateStr = getLocalDateStr(taskCreatedDate);
-      const dueDateStr = getLocalDateStr(taskDueDate);
-      const startDateStr = getLocalDateStr(taskStartDate);
-
       const statusLower = task.status?.toLowerCase() || "";
-      const isCompleted = statusLower === "completed" || statusLower.includes("approve");
+      const isCompleted =
+        statusLower === "completed" || statusLower.includes("approve");
 
-      // Helper to check if a date string is on or before selectedDate (YYYY-MM-DD comparison)
-      const isOnOrBeforeSelectedDate = (dateStr) => {
-        if (!dateStr) return false;
-        return dateStr <= selectedDate;
-      };
-
-      // 1. If it's not completed: show it if the selectedDate is on or after its start/creation date
-      if (!isCompleted) {
-        const startCheckDateStr = startDateStr || createdDateStr;
-        if (startCheckDateStr && isOnOrBeforeSelectedDate(startCheckDateStr)) {
-          return true;
-        }
-      }
-
-      // 2. If it is completed: ONLY show it strictly on the day it was completed
+      // 1. Completed tasks: MUST ONLY show on the exact date completed. Completed tasks MUST NOT carry forward to future dates!
       if (isCompleted) {
-        const completedDate = task.completedAt ? new Date(task.completedAt) : (task.updatedAt ? new Date(task.updatedAt) : null);
+        const completedDate = task.completedAt
+          ? new Date(task.completedAt)
+          : task.actualEndTime
+            ? new Date(task.actualEndTime)
+            : task.updatedAt
+              ? new Date(task.updatedAt)
+              : null;
         const completedDateStr = getLocalDateStr(completedDate);
-        return completedDateStr ? completedDateStr === selectedDate : false;
+        return completedDateStr === selectedDate;
       }
 
-      // Fallback for active tasks: show if its due date matches selectedDate
-      return dueDateStr === selectedDate;
+      // 2. Check if work productivity was logged on selectedDate
+      const loggedMsToday = calculateTaskProductivityForDate(task, selDateObj);
+      if (loggedMsToday > 0) {
+        return true;
+      }
+
+      // 3. Check if task is actively running now (In Progress, not autoPaused) on selectedDate
+      const todayStr = getLocalDateStr(new Date());
+      const isSelectedToday = selectedDate === todayStr;
+      const isActivelyRunningNow =
+        isSelectedToday &&
+        task.status === "In Progress" &&
+        !task.actualEndTime &&
+        !task.autoPaused;
+
+      if (isActivelyRunningNow) {
+        return true;
+      }
+
+      // 4. Otherwise, not worked on on selectedDate -> Exclude
+      return false;
     });
   }, [allTasks, user, selectedDate]);
 
@@ -400,6 +430,8 @@ const EodReports = () => {
 
   // Populate form state when EOD Report or tasks load
   useEffect(() => {
+    const selDateObj = selectedDate ? parseISO(selectedDate) : new Date();
+
     if (todayReport) {
       setReportId(todayReport._id);
       setIsSubmitted(!todayReport.isDraft);
@@ -437,6 +469,11 @@ const EodReports = () => {
               ? creator._id
               : creator || "";
 
+          const loggedMs = correspondingTask
+            ? calculateTaskProductivityForDate(correspondingTask, selDateObj)
+            : 0;
+          const calculatedTimeStr = formatMsToDuration(loggedMs);
+
           return {
             id: t.taskId || t._id,
             taskId: t.taskId?._id || t.taskId || t._id,
@@ -448,7 +485,7 @@ const EodReports = () => {
             revision: correspondingTask
               ? correspondingTask.revisions || 0
               : t.revisions || 0,
-            time: t.loggedTime || "",
+            time: (todayReport.isDraft && loggedMs > 0) ? calculatedTimeStr : (t.loggedTime || calculatedTimeStr),
             statusAtEod: actualStatus,
             outputLink: t.outputLink || "",
             reason: t.reason || "",
@@ -473,12 +510,8 @@ const EodReports = () => {
         const unsavedMapped = newUnsavedTasks.map((t) => {
           const clientName = t.project?.client?.companyName || "Internal";
           const projectName = t.project?.name || "Internal";
-          const elapsedStr = formatElapsed(
-            t.actualStartTime,
-            t.actualEndTime,
-            t.pausedAt,
-            t.totalPausedMs,
-          );
+          const loggedMs = calculateTaskProductivityForDate(t, selDateObj);
+          const elapsedStr = formatMsToDuration(loggedMs);
           const taskCode = getTaskDisplayId(t);
 
           const creator = t.createdBy;
@@ -522,12 +555,8 @@ const EodReports = () => {
           myTasks.map((t) => {
             const clientName = t.project?.client?.companyName || "Internal";
             const projectName = t.project?.name || "Internal";
-            const elapsedStr = formatElapsed(
-              t.actualStartTime,
-              t.actualEndTime,
-              t.pausedAt,
-              t.totalPausedMs,
-            );
+            const loggedMs = calculateTaskProductivityForDate(t, selDateObj);
+            const elapsedStr = formatMsToDuration(loggedMs);
             const taskCode = getTaskDisplayId(t);
 
             const creator = t.createdBy;
@@ -573,12 +602,8 @@ const EodReports = () => {
         myTasks.map((t) => {
           const clientName = t.project?.client?.companyName || "Internal";
           const projectName = t.project?.name || "Internal";
-          const elapsedStr = formatElapsed(
-            t.actualStartTime,
-            t.actualEndTime,
-            t.pausedAt,
-            t.totalPausedMs,
-          );
+          const loggedMs = calculateTaskProductivityForDate(t, selDateObj);
+          const elapsedStr = formatMsToDuration(loggedMs);
           const taskCode = getTaskDisplayId(t);
 
           const creator = t.createdBy;
@@ -963,7 +988,7 @@ const EodReports = () => {
                       {task.time && (
                         <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50/50 text-blue-600 border border-blue-150/40 rounded-md text-[10px] font-bold dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/30">
                           <FiClock size={10} className="shrink-0" />
-                          <LiveTimeTracker task={task} allTasks={allTasks} isSubmitted={isSubmitted} />
+                          <LiveTimeTracker task={task} allTasks={allTasks} isSubmitted={isSubmitted} selectedDate={selectedDate} />
                         </div>
                       )}
                     </div>
