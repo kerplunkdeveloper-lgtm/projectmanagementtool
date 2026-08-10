@@ -423,7 +423,7 @@ const GraphicDesignerDeadlines = ({ user }) => {
       </div>
 
       {/* Task List */}
-      <div className="space-y-3 overflow-y-auto max-h-[400px] pr-2 scrollbar-thin">
+      <div className="space-y-2 overflow-y-auto max-h-[380px] pr-1.5 scrollbar-thin">
         {filteredTasks.length > 0 ? (
           filteredTasks.map((task) => {
             const daysLeft = getDaysRemaining(task.dueDate);
@@ -434,6 +434,11 @@ const GraphicDesignerDeadlines = ({ user }) => {
               daysLeft !== null &&
               daysLeft === 0;
             const isCompleted = task.status === "Completed";
+            const isInReview =
+              task.status === "IN-REVIEW" ||
+              task.status === "In Review" ||
+              task.status === "in review" ||
+              task.status === "in-review";
 
             const createdByUserId =
               typeof task.createdBy === "object"
@@ -455,27 +460,33 @@ const GraphicDesignerDeadlines = ({ user }) => {
               : task.priority === "High"
                 ? "border-l-4 border-l-pink-500 dark:border-l-pink-600"
                 : task.priority === "Medium"
-                  ? "border-l-4  border-l-amber-500 dark:border-l-amber-600"
+                  ? "border-l-4 border-l-amber-500 dark:border-l-amber-600"
                   : "border-l-4 border-l-slate-400 dark:border-l-slate-600";
+
+            const isColoredCard = isCompleted || isInReview || isTopHigh;
+
+            const cardBgStyle = isCompleted
+              ? "bg-emerald-600 dark:bg-emerald-700 text-white border-2 border-emerald-400 dark:border-emerald-500 shadow-md"
+              : isInReview
+                ? "bg-orange-500 dark:bg-orange-600 text-white border-2 border-orange-400 dark:border-orange-500 shadow-md"
+                : isTopHigh
+                  ? "bg-red-600 dark:bg-rose-950 text-white border-2 border-yellow-400 animate-pulse shadow-yellow-500/20"
+                  : `border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 hover:bg-slate-50/50 dark:hover:bg-slate-800/80 ${priorityBorder}`;
 
             return (
               <div
                 key={task._id}
-                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl transition-all duration-200 shadow-sm ${
-                  isTopHigh
-                    ? "bg-red-600 dark:bg-rose-950 text-white border-2 border-yellow-400 animate-pulse shadow-yellow-500/20"
-                    : `border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 hover:bg-slate-50/50 dark:hover:bg-slate-800/80 ${priorityBorder}`
-                }`}
+                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-2.5 sm:p-3 rounded-xl transition-all duration-200 shadow-sm ${cardBgStyle}`}
               >
                 {/* Left side: Title, Details */}
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                  <div className="flex items-center gap-1.5 flex-wrap mb-1">
                     {/* Client Badge */}
                     {task.client && (
                       <span
-                        className={`text-[9px] px-2 py-0.5 rounded-full font-bold ${
-                          isTopHigh
-                            ? "bg-white/20 text-yellow-200 border border-white/20"
+                        className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
+                          isColoredCard
+                            ? "bg-white/20 text-white border border-white/20"
                             : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
                         }`}
                       >
@@ -489,8 +500,8 @@ const GraphicDesignerDeadlines = ({ user }) => {
                     {/* Content Type Badge */}
                     {task.contentType && (
                       <span
-                        className={`text-[12px] px-2 py-0.5 rounded-full font-bold ${
-                          isTopHigh
+                        className={`text-[9.5px] px-1.5 py-0.5 rounded-full font-bold ${
+                          isColoredCard
                             ? "bg-white/20 text-white border border-white/20"
                             : "bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-white border border-blue-200 dark:border-blue-700"
                         }`}
@@ -500,18 +511,18 @@ const GraphicDesignerDeadlines = ({ user }) => {
                     )}
                     {/* Status Badge */}
                     <span
-                      className={`text-[13px] px-2 py-0.5 rounded-full font-black ${
-                        isTopHigh
-                          ? "bg-white/20 text-white border border-white/20"
+                      className={`text-[9.5px] px-2 py-0.5 rounded-full font-black ${
+                        isColoredCard
+                          ? "bg-white/30 text-white border border-white/30"
                           : task.status === "Completed"
-                            ? "bg-emerald-400 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
+                            ? "bg-emerald-500 dark:bg-emerald-600 text-white border border-emerald-600 dark:border-emerald-500 shadow-2xs"
                             : task.status === "Pending"
                               ? "bg-slate-400 dark:bg-blue-900 text-slate-800 dark:text-white border border-slate-300 dark:border-slate-700"
                               : task.status === "In Progress"
                                 ? "bg-amber-400 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700"
                                 : task.status === "IN-REVIEW" ||
                                     task.status === "In Review"
-                                  ? "bg-sky-400 dark:bg-sky-950 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-700"
+                                  ? "bg-orange-500 dark:bg-orange-600 text-white border border-orange-600 dark:border-orange-500 shadow-2xs"
                                   : task.status === "On Hold"
                                     ? "bg-rose-400 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-700"
                                     : task.status === "Rejected"
@@ -524,14 +535,16 @@ const GraphicDesignerDeadlines = ({ user }) => {
 
                     {/* Priority Badge */}
                     <span
-                      className={`text-[13px] px-2 py-0.5 rounded-full font-extrabold uppercase tracking-wider ${
+                      className={`text-[9.5px] px-1.5 py-0.5 rounded-full font-extrabold uppercase tracking-wider ${
                         isTopHigh
-                          ? "bg-yellow-300 text-red-950 border border-yellow-200 shadow-sm"
-                          : task.priority === "High"
-                            ? "bg-pink-100 dark:bg-pink-950 text-pink-800 dark:text-pink-300 border border-pink-300 dark:border-pink-700"
-                            : task.priority === "Medium"
-                              ? "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700"
-                              : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700"
+                          ? "bg-yellow-300 text-slate-950 border border-yellow-200 shadow-sm"
+                          : isColoredCard
+                            ? "bg-white/20 text-white border border-white/20"
+                            : task.priority === "High"
+                              ? "bg-pink-100 dark:bg-pink-950 text-pink-800 dark:text-pink-300 border border-pink-300 dark:border-pink-700"
+                              : task.priority === "Medium"
+                                ? "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700"
+                                : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700"
                       }`}
                     >
                       {isSameDateHelper(task.startDate, task.dueDate)
@@ -541,17 +554,17 @@ const GraphicDesignerDeadlines = ({ user }) => {
 
                     {/* Creator Badge */}
                     <span
-                      className={`text-[13px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 border ${
-                        isTopHigh
+                      className={`text-[9.5px] px-1.5 py-0.5 rounded-full font-bold flex items-center gap-1 border ${
+                        isColoredCard
                           ? "bg-white/20 text-white border-white/20"
                           : "bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700"
                       }`}
                     >
                       <FiUser
-                        size={10}
+                        size={9}
                         className={
-                          isTopHigh
-                            ? "text-yellow-300"
+                          isColoredCard
+                            ? "text-yellow-200"
                             : "text-indigo-600 dark:text-indigo-400"
                         }
                       />
@@ -560,8 +573,8 @@ const GraphicDesignerDeadlines = ({ user }) => {
                   </div>
 
                   <h3
-                    className={`text-md font-bold leading-snug ${
-                      isTopHigh
+                    className={`text-xs sm:text-[13px] font-bold leading-snug ${
+                      isColoredCard
                         ? "text-white"
                         : isCompleted
                           ? "line-through text-slate-400 dark:text-white font-medium"
@@ -573,16 +586,16 @@ const GraphicDesignerDeadlines = ({ user }) => {
                 </div>
 
                 {/* Right side: Deadline */}
-                <div className="flex items-center gap-3 shrink-0 flex-wrap justify-between sm:justify-end">
+                <div className="flex items-center gap-2 shrink-0 flex-wrap justify-between sm:justify-end">
                   {/* Deadline Label */}
                   {task.dueDate ? (
                     <div className="flex items-center gap-1.5">
                       <span
-                        className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase tracking-wider flex items-center gap-1 ${
-                          isTopHigh
-                            ? "bg-yellow-300 text-red-950 border border-yellow-200 font-extrabold"
+                        className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider flex items-center gap-1 ${
+                          isColoredCard
+                            ? "bg-white/30 text-white border border-white/30"
                             : isCompleted
-                              ? "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700"
+                              ? "bg-emerald-500 dark:bg-emerald-600 text-white border border-emerald-600 dark:border-emerald-500"
                               : isOverdue
                                 ? "bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-700 animate-pulse"
                                 : isToday
@@ -590,8 +603,8 @@ const GraphicDesignerDeadlines = ({ user }) => {
                                   : "bg-blue-50 dark:bg-slate-800 text-blue-700 dark:text-slate-200 border border-blue-200 dark:border-slate-700"
                         }`}
                       >
-                        {isOverdue && <FiAlertCircle size={10} />}
-                        {isToday && <FiClock size={10} />}
+                        {isOverdue && <FiAlertCircle size={9} />}
+                        {isToday && <FiClock size={9} />}
                         {isCompleted
                           ? "Done"
                           : isOverdue
@@ -604,14 +617,14 @@ const GraphicDesignerDeadlines = ({ user }) => {
                       </span>
 
                       <span
-                        className={`text-[10px] font-bold ${isTopHigh ? "text-yellow-200" : "text-slate-500 dark:text-slate-300"}`}
+                        className={`text-[9px] font-bold ${isColoredCard ? "text-white/90" : "text-slate-500 dark:text-slate-300"}`}
                       >
                         ({formatDate(task.dueDate)})
                       </span>
                     </div>
                   ) : (
                     <span
-                      className={`text-[10px] font-bold italic ${isTopHigh ? "text-yellow-200" : "text-slate-500 dark:text-slate-400"}`}
+                      className={`text-[9px] font-bold italic ${isColoredCard ? "text-white/90" : "text-slate-500 dark:text-slate-400"}`}
                     >
                       No Deadline Set
                     </span>

@@ -830,11 +830,9 @@ const Clients = () => {
                       Client Name
                     </div>
                   </th>
-                  {(user?.role === "admin" || user?.role === "operationmanager") && (
-                    <th className="px-4 py-2.5 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60 w-18">
-                      No. of Projects
-                    </th>
-                  )}
+                  <th className="px-4 py-2.5 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60 w-18">
+                    No. of Projects
+                  </th>
                   <th className="px-4 py-2.5 font-extrabold bg-transparent text-left w-[380px] border-r border-slate-200 dark:border-slate-700/60">
                     Service & Members
                   </th>
@@ -965,13 +963,11 @@ const Clients = () => {
                               </div>
                             </div>
                           </td>
-                          {(user?.role === "admin" || user?.role === "operationmanager") && (
-                            <td className={`${cellClass} text-center w-28`}>
-                              <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold text-[10px] border border-blue-200/50 dark:border-blue-800/30">
-                                {projects?.filter(p => p.client?._id === client._id || p.client === client._id).length || 0}
-                              </span>
-                            </td>
-                          )}
+                          <td className={`${cellClass} text-center w-28`}>
+                            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold text-[10px] border border-blue-200/50 dark:border-blue-800/30">
+                              {projects?.filter(p => p.client?._id === client._id || p.client === client._id).length || 0}
+                            </span>
+                          </td>
                           <td className={cellClass}>
                             <div className="flex flex-col gap-1.5 py-0.5">
                               {/* Service Pills (Digital Marketing, SEO, Website, etc.) */}
@@ -1199,7 +1195,7 @@ const Clients = () => {
                       <td
                         colSpan={
                           1 +
-                          (user?.role === "admin" || user?.role === "operationmanager" ? 1 : 0) +
+                          1 +
                           2 +
                           (user?.role === "team" ? 1 : 0) +
                           (user?.role === "admin" || user?.role === "operationmanager" ? 1 : 0)
