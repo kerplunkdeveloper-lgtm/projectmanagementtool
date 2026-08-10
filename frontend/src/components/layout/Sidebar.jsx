@@ -1088,6 +1088,11 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
             const isGroupedRole = true;
 
+            const topCardNames =
+              role === "operationmanager"
+                ? ["Home", "Sticky Notes", "Chat", "Users", "Reports"]
+                : ["Home", "Sticky Notes", "Chat", "Users"];
+
             return (
               <>
                 {isGroupedRole ? (
@@ -1096,7 +1101,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                     <div className="space-y-1">
                       <div className="border border-slate-200/60 dark:border-white/5 bg-slate-50/30 dark:bg-slate-50 shadow-xl rounded-2xl p-1.5 space-y-0.5 shadow-sm">
                         {menuItems
-                          .filter((item) => ["Home", "Sticky Notes", "Chat", "Users"].includes(item.name))
+                          .filter((item) => topCardNames.includes(item.name))
                           .map((item) => renderMenuItem(item))}
                       </div>
                     </div>
@@ -1105,7 +1110,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                     <div className="space-y-1">
                       <div className="space-y-0.5">
                         {menuItems
-                          .filter((item) => !["Home", "Sticky Notes", "Chat", "Users"].includes(item.name))
+                          .filter((item) => !topCardNames.includes(item.name))
                           .map((item) => renderMenuItem(item))}
                       </div>
                     </div>

@@ -374,7 +374,7 @@ const AdminEodReports = () => {
 
   return (
     <div className="min-h-screen py-6 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-8xl mx-auto">
         {/* HEADER */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <h1 className="text-md font-bold text-slate-800 dark:text-white tracking-tight text-left">
