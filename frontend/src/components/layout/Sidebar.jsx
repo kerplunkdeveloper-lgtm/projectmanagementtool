@@ -160,6 +160,30 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       return false;
     }
 
+    // Show ContentCalender ONLY for Social Media Manager department, Managing Partner, and Operation Manager
+    if (
+      item.name === "ContentCalender" ||
+      item.name === "Content Calendar" ||
+      item.path?.includes("contentcalender")
+    ) {
+      const deptLower = (currentUser?.department || "").toLowerCase();
+      const roleLower = (currentUser?.role || role || "").toLowerCase();
+
+      const isSocialMedia = deptLower.includes("social media");
+      const isManagingPartner =
+        roleLower === "admin" ||
+        deptLower.includes("managing partner") ||
+        roleLower.includes("managing partner");
+      const isOperationManager =
+        roleLower === "operationmanager" ||
+        deptLower.includes("operation manager") ||
+        roleLower.includes("operation manager");
+
+      if (!isSocialMedia && !isManagingPartner && !isOperationManager) {
+        return false;
+      }
+    }
+
     // Hide Chat when admin is impersonating another user
     if (item.name === "Chat" && originalAdminUser) {
       return false;

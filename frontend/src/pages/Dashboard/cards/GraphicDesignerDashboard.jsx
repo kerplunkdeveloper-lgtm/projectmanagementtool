@@ -1427,6 +1427,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           return s.includes("review") || s.includes("revision");
         }),
         overdue: over,
+        totalRevisions,
         avgRevisions,
         totalHours,
         totalLoggedMs,
@@ -2586,7 +2587,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         title={prevConfig.title}
                       >
                         Prev: {previousTasks.length}
-
                       </span>
                       <span
                         className="text-[8.5px] font-black px-1.5 py-0.5 rounded bg-black/15 dark:bg-white/15 text-white dark:text-slate-100 border border-white/20 whitespace-nowrap"
@@ -2938,19 +2938,27 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         {tp.completed}
                       </td>
                       <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] text-center">
-                        <span
-                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-extrabold border ${
-                            tp.avgRevisions === 0
-                              ? "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800/40 dark:text-slate-500 dark:border-slate-700/50"
-                              : tp.avgRevisions <= 1.5
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40"
-                                : tp.avgRevisions <= 3.0
-                                  ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40"
-                                  : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800/40"
-                          }`}
-                        >
-                          {tp.avgRevisions.toFixed(1)} rev
-                        </span>
+                        {(() => {
+                          const revVal =
+                            tp.totalRevisions !== undefined
+                              ? tp.totalRevisions
+                              : Math.round(tp.avgRevisions || 0);
+                          return (
+                            <span
+                              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-extrabold border ${
+                                revVal === 0
+                                  ? "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800/40 dark:text-slate-500 dark:border-slate-700/50"
+                                  : revVal <= 1
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40"
+                                    : revVal <= 3
+                                      ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40"
+                                      : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800/40"
+                              }`}
+                            >
+                              {revVal} rev
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] text-slate-600 dark:text-slate-200">
                         {tp.blockers === "none" ? (

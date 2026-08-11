@@ -48,6 +48,7 @@ const ChatPage = lazyWithRetry(() => import("../pages/chat/ChatPage.jsx"));
 const Portfolio = lazyWithRetry(() => import("../pages/admin/portfolio/Portfolio.jsx"));
 const Workload = lazyWithRetry(() => import("../pages/workload/Workload.jsx"));
 const Stickynotes = lazyWithRetry(() => import("../pages/admin/Stickynotes.jsx"));
+const ContentCalcendor = lazyWithRetry(() => import("../pages/contentcalendor/ContentCalcendor.jsx"));
 
 // Elegant, premium animated page loader
 const PageLoader = () => (
@@ -86,6 +87,11 @@ const AppRoutes = () => {
         <Route
           index
           element={<Dashboardmain />}
+        />
+
+         <Route
+          path="contentcalender"
+          element={<ProtectedRoute requiredPermission="manage_clients"><ContentCalcendor /></ProtectedRoute>}
         />
 
         <Route
@@ -187,7 +193,12 @@ const AppRoutes = () => {
           element={<Stickynotes />}
         />
 
-         <Route
+        <Route
+          path="contentcalender"
+          element={<ProtectedRoute requiredPermission="manage_clients"><ContentCalcendor /></ProtectedRoute>}
+        />
+
+        <Route
           path="clients"
           element={<ProtectedRoute requiredPermission="manage_clients"><Clients /></ProtectedRoute>}
         />
@@ -275,6 +286,11 @@ const AppRoutes = () => {
         <Route
           path="stickynotes"
           element={<Stickynotes />}
+        />
+
+        <Route
+          path="contentcalender"
+          element={<ProtectedRoute requiredPermission="manage_clients"><ContentCalcendor /></ProtectedRoute>}
         />
 
         <Route
