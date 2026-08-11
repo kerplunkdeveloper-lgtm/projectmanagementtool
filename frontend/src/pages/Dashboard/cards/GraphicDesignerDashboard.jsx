@@ -13,6 +13,7 @@ import {
   useUpdateTaskMutation,
 } from "../../../features/api/apiSlice";
 import { createPortal } from "react-dom";
+import { io } from "socket.io-client";
 import toast from "react-hot-toast";
 import { getDesignerEodReports } from "../../../features/eodReports/designerEodReportSlice";
 import {
@@ -765,6 +766,39 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     designerId: null,
     designerName: "",
   });
+
+  const [onlineUserIds, setOnlineUserIds] = useState([]);
+
+  useEffect(() => {
+    try {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL;
+      const socketUrl = baseUrl
+        ? baseUrl
+        : typeof window !== "undefined"
+          ? window.location.origin
+          : "http://localhost:5001";
+
+      const socket = io(socketUrl, {
+        transports: ["polling", "websocket"],
+        withCredentials: true,
+      });
+
+      const userId = user?._id || user?.id;
+      if (userId) {
+        socket.emit("join", userId);
+      }
+
+      socket.on("online_users_list", (usersList) => {
+        if (Array.isArray(usersList)) {
+          setOnlineUserIds(usersList);
+        }
+      });
+
+      return () => {
+        socket.disconnect();
+      };
+    } catch (err) {}
+  }, [user]);
 
   const [officeHours, setOfficeHours] = useState({ startHour: 9, endHour: 19 });
   useEffect(() => {
@@ -2727,6 +2761,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase">
                     {targetDept}
                   </th>
+                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase text-center">
+                    Status
+                  </th>
                   <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider uppercase bg-slate-500 text-white dark:bg-slate-700 dark:text-slate-500">
                     Assigned
                   </th>
@@ -2770,29 +2807,80 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700/80 text-xs">
-                {teamPerformance.map((tp, idx) => (
-                  <tr
-                    key={tp.id}
-                    className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
-                  >
-                    <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-medium text-slate-750 dark:text-slate-200">
-                      <div className="flex items-center gap-2">
-                        {tp.profileImage ? (
-                          <img
-                            src={tp.profileImage}
-                            alt={tp.name}
-                            className="w-5.5 h-5.5 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700 shadow-2xs"
-                          />
-                        ) : (
-                          <div className="w-5.5 h-5.5 rounded-full bg-blue-600 dark:bg-blue-500 text-white text-[9px] font-bold flex items-center justify-center shrink-0 shadow-2xs">
-                            {tp.name ? tp.name.charAt(0).toUpperCase() : "U"}
+                {teamPerformance.map((tp, idx) => {
+                  const isOnline =
+                    onlineUserIds.includes(tp.id) ||
+                    tp.isOnline ||
+                    tp.isUserOnline ||
+                    tp.status === "online" ||
+                    tp.userStatus === "online";
+
+                  return (
+                    <tr
+                      key={tp.id}
+                      className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
+                    >
+                      <td className="py-2 px-2.5 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-medium text-slate-750 dark:text-slate-200">
+                        <div className="flex items-center gap-2.5">
+                          <div className="relative shrink-0">
+                            {tp.profileImage ? (
+                              <img
+                                src={tp.profileImage}
+                                alt={tp.name}
+                                className="w-8 h-8 rounded-full object-cover border-2 border-slate-200 dark:border-slate-700 shadow-2xs"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-blue-600 dark:bg-blue-500 text-white text-xs font-black flex items-center justify-center shrink-0 border-2 border-slate-200 dark:border-slate-700 shadow-2xs">
+                                {tp.name ? tp.name.charAt(0).toUpperCase() : "U"}
+                              </div>
+                            )}
+                            <span
+                              className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 transition-colors ${
+                                isOnline ? "bg-emerald-500" : "bg-rose-500"
+                              }`}
+                              title={isOnline ? "Online" : "Offline"}
+                            />
                           </div>
-                        )}
-                        <span className="font-semibold text-slate-800 dark:text-slate-200 truncate max-w-[130px]">
-                          {tp.name}
+
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-bold text-slate-800 dark:text-slate-100 truncate max-w-[130px] leading-snug">
+                              {tp.name}
+                            </span>
+                            <div className="flex items-center gap-1 text-[9.5px] font-extrabold mt-0.5">
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  isOnline ? "bg-emerald-500 animate-pulse" : "bg-rose-500"
+                                }`}
+                              />
+                              <span
+                                className={
+                                  isOnline
+                                    ? "text-emerald-600 dark:text-emerald-400 font-extrabold"
+                                    : "text-rose-600 dark:text-rose-400 font-extrabold"
+                                }
+                              >
+                                {isOnline ? "Online" : "Offline"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-2 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] text-center">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black border shadow-2xs ${
+                            isOnline
+                              ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/40"
+                              : "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/40"
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isOnline ? "bg-emerald-500 animate-pulse" : "bg-rose-500"
+                            }`}
+                          />
+                          {isOnline ? "Online" : "Offline"}
                         </span>
-                      </div>
-                    </td>
+                      </td>
                     <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-medium text-slate-700 dark:text-slate-200">
                       {tp.assigned}
                     </td>
@@ -2928,8 +3016,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       </button>
                     </td>
                   </tr>
-                ))}
-              </tbody>
+                );
+              })}
+            </tbody>
             </table>
           </div>
         </div>
