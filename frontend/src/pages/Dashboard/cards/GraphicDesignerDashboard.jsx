@@ -1995,12 +1995,12 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         {/* Date Filter & Navigator Group */}
         <div className="flex items-center gap-2">
           {/* Label indicating Today/Yesterday/Tomorrow */}
-          <span className="text-[11px] font-extrabold text-slate-650 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/50 px-3.5 py-2.5 rounded-xl shadow-sm tracking-wide">
+          <span className="text-[11px] font-extrabold text-slate-650 dark:text-slate-300 sidebar-bg  px-3.5 py-2.5 rounded-xl shadow-sm tracking-wide">
             {getRelativeDateLabel(selectedDate)}
           </span>
 
           {/* Date Picker Button */}
-          <label className="relative flex items-center gap-2 px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-250 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-200 shadow-sm cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all font-bold text-xs">
+          <label className="relative flex items-center gap-2 px-3.5 py-2.5 sidebar-bg rounded-xl text-slate-700 dark:text-slate-200 shadow-sm cursor-pointer transition-all font-bold text-xs">
             <FiCalendar
               className="text-emerald-500 dark:text-emerald-400 shrink-0"
               size={14}
@@ -2023,7 +2023,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           </label>
 
           {/* Prev / Next buttons */}
-          <div className="flex items-center border border-slate-250 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-800 shadow-sm">
+          <div className="flex items-center  rounded-xl overflow-hidden sidebar-bg shadow-sm">
             <button
               onClick={() => setSelectedDate((prev) => subDays(prev, 1))}
               className="px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-300 border-r border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
@@ -2323,20 +2323,20 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           <div className="flex items-center gap-2 self-end sm:self-auto">
             <button
               onClick={() => setShowBoardFilter((v) => !v)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl  text-xs font-bold transition-all cursor-pointer ${
                 showBoardFilter
                   ? "bg-indigo-500 text-white border-indigo-600 shadow-md"
-                  : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-400 hover:text-indigo-600"
+                  : "sidebar-bg text-slate-600 dark:text-slate-300  hover:text-indigo-600"
               }`}
               title="Toggle Board Filters"
             >
               <FiFilter size={13} />
               Filter
             </button>
-            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700/60">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 sidebar-bg px-2.5 py-1 rounded-lg ">
               {boardColumns.length} Columns
             </span>
-            <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
+            <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl shadow-2xs">
               <button
                 onClick={() => scrollBoard("left")}
                 className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
@@ -2503,9 +2503,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
               countBg = "bg-red-100 dark:bg-red-900/40";
               countText = "text-red-800 dark:text-red-300";
             } else if (lowerCol === "pending") {
-              colBg = "bg-slate-300 dark:bg-slate-600";
+              colBg = "bg-black dark:bg-white";
               boardBg = "bg-slate-50/50 dark:bg-[#0f172a]";
-              textCol = "text-slate-900 dark:text-white";
+              textCol = "text-white dark:text-black";
               colBorder = "border-slate-300 dark:border-slate-600";
               countBg = "bg-slate-200 dark:bg-slate-700";
               countText = "text-slate-800 dark:text-slate-100";
@@ -2524,7 +2524,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
               countBg = "bg-fuchsia-100 dark:bg-fuchsia-800/50";
               countText = "text-fuchsia-800 dark:text-fuchsia-300";
             } else if (lowerCol === "in review") {
-              colBg = "bg-amber-400 dark:bg-indigo-600";
+              colBg = "bg-amber-400 dark:bg-amber-400";
               boardBg = "bg-indigo-50/30 dark:bg-[#0f172a]";
               textCol = "text-slate-900 dark:text-white";
               colBorder = "border-indigo-200 dark:border-indigo-800/50";
@@ -2586,6 +2586,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         title={prevConfig.title}
                       >
                         Prev: {previousTasks.length}
+
                       </span>
                       <span
                         className="text-[8.5px] font-black px-1.5 py-0.5 rounded bg-black/15 dark:bg-white/15 text-white dark:text-slate-100 border border-white/20 whitespace-nowrap"
@@ -2760,23 +2761,25 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   })()}
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-250 dark:border-slate-700/80 shadow-2xs">
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-xlsidebar-bg shadow-lg">
                 <FiCalendar
                   className="text-indigo-500 dark:text-indigo-400 shrink-0"
                   size={12}
                 />
-                <span className="text-[11px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                <span className="text-[11px] font-black uppercase tracking-wider ">
                   {getRelativeDateLabel(selectedDate)}
                 </span>
                 <span className="text-slate-300 dark:text-slate-600 font-extrabold text-xs">
                   •
                 </span>
-                <span className="text-[11px] font-extrabold text-slate-700 dark:text-slate-200 tracking-wide uppercase">
+                <span className="text-[11px] font-extrabold ">
                   {format(selectedDate, "MMM dd, yyyy")}
                 </span>
               </div>
             </div>
           </div>
+
+          {/* .....................................................performance table ............................ */}
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -2787,22 +2790,22 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase text-center">
                     Status
                   </th>
-                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider uppercase bg-slate-500 text-white dark:bg-slate-700 dark:text-slate-500">
+                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider uppercase bg-slate-600 text-white dark:bg-slate-700 dark:text-white">
                     Assigned
                   </th>
-                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider uppercase bg-red-500 text-white dark:bg-red-650 dark:text-slate-500">
+                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider uppercase bg-red-600 text-white dark:bg-red-700 dark:text-white">
                     Pending
                   </th>
-                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider uppercase bg-violet-500 text-white dark:bg-violet-600 dark:text-slate-500">
+                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider uppercase bg-violet-600 text-white dark:bg-violet-700 dark:text-white">
                     In Progress
                   </th>
-                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider uppercase bg-fuchsia-500 text-white dark:bg-fuchsia-600 dark:text-slate-500">
+                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider uppercase bg-fuchsia-600 text-white dark:bg-fuchsia-700 dark:text-white">
                     On Hold
                   </th>
-                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider uppercase bg-yellow-400 text-slate-950 dark:bg-yellow-500 dark:text-slate-950">
+                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider uppercase bg-amber-500 text-slate-950 dark:bg-amber-600 dark:text-white">
                     In Review
                   </th>
-                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider uppercase bg-emerald-500 text-white dark:bg-emerald-600 dark:text-slate-500">
+                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider uppercase bg-emerald-600 text-white dark:bg-emerald-700 dark:text-white">
                     Completed
                   </th>
                   <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase">
@@ -2841,7 +2844,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   return (
                     <tr
                       key={tp.id}
-                      className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors"
+                      className="hover:bg-slate-100/90 dark:hover:bg-slate-800/80 transition-colors"
                     >
                       <td className="py-2 px-2.5 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-medium text-slate-750 dark:text-slate-200">
                         <div className="flex items-center gap-2.5">
@@ -2853,7 +2856,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                 className="w-8 h-8 rounded-full object-cover border-2 border-slate-200 dark:border-slate-700 shadow-2xs"
                               />
                             ) : (
-                              <div className="w-8 h-8 rounded-full bg-blue-600 dark:bg-blue-500 text-white text-xs font-black flex items-center justify-center shrink-0 border-2 border-slate-200 dark:border-slate-700 shadow-2xs">
+                              <div className="w-8 h-8 rounded-full bg-blue-600 dark:bg-blue-500  text-xs  flex items-center justify-center shrink-0 border-2 border-slate-200 dark:border-slate-700 shadow-2xs">
                                 {tp.name
                                   ? tp.name.charAt(0).toUpperCase()
                                   : "U"}
@@ -2868,7 +2871,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                           </div>
 
                           <div className="flex flex-col min-w-0">
-                            <span className="font-bold text-slate-800 dark:text-slate-100 truncate max-w-[130px] leading-snug">
+                            <span className="font-bold  truncate max-w-[130px] leading-snug">
                               {tp.name}
                             </span>
                             <div className="flex items-center gap-1 text-[9.5px] font-extrabold mt-0.5">
@@ -2913,25 +2916,25 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-medium text-slate-700 dark:text-slate-200">
                         {tp.assigned}
                       </td>
-                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold bg-red-500 text-red-850 dark:bg-red-700 dark:text-red-400">
+                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold bg-rose-500/10 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300">
                         {tp.pending}
                       </td>
-                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold bg-purple-500 text-violet-850 dark:bg-purple-700 dark:text-violet-400">
+                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold bg-violet-500/10 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300">
                         {tp.inProgress}
                       </td>
-                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold bg-fuchsia-500 text-fuchsia-850 dark:bg-fuchsia-700 dark:text-fuchsia-400">
+                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold bg-fuchsia-500/10 dark:bg-fuchsia-500/20 text-fuchsia-700 dark:text-fuchsia-300">
                         {tp.onHold}
                       </td>
                       <td
                         className={`py-1.5 px-2 border-r border-b text-[11px] font-bold transition-all ${
                           tp.inReview > 0
-                            ? "bg-yellow-400/90 text-yellow-950 dark:bg-yellow-500/40 dark:text-yellow-200 animate-pulse ring-2 ring-yellow-500 dark:ring-yellow-400 border-2 border-yellow-600 dark:border-yellow-300 shadow-sm"
-                            : "bg-yellow-500 text-yellow-850 dark:bg-yellow-700 dark:text-yellow-450 border-slate-100 dark:border-slate-700/60"
+                            ? "bg-amber-500/20 text-amber-800 dark:bg-amber-500/30 dark:text-amber-200 animate-pulse ring-1 ring-amber-400/50 dark:ring-amber-400/60 border border-amber-500/40 dark:border-amber-400/50"
+                            : "bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-slate-100 dark:border-slate-700/60"
                         }`}
                       >
                         {tp.inReview}
                       </td>
-                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold bg-emerald-500 text-emerald-850 dark:bg-emerald-700 dark:text-emerald-400">
+                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
                         {tp.completed}
                       </td>
                       <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] text-center">

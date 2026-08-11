@@ -155,7 +155,7 @@ const InReviewNotificationPopup = () => {
               initial={{ opacity: 0, y: 50, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              className="bg-white dark:bg-slate-50 rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-5 pointer-events-auto relative overflow-hidden"
+              className="sidebar-bg border theme-border rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-5 pointer-events-auto relative overflow-hidden backdrop-blur-xl"
             >
               {/* Header */}
               <div className="flex items-center justify-between mb-4">
