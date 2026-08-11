@@ -303,7 +303,9 @@ const LiveProductivityCell = React.memo(
 
     if (!liveMs || liveMs <= 0) {
       return (
-        <span className="text-blue-600 dark:text-slate-500 font-medium">Not started</span>
+        <span className="text-blue-600 dark:text-slate-500 font-medium">
+          Not started
+        </span>
       );
     }
 
@@ -391,11 +393,7 @@ const ApprovalTimelineCell = React.memo(({ task }) => {
     }
   }
 
-  if (
-    !effectiveReviewStart &&
-    !isCompleted &&
-    totalWaitMs <= 0
-  ) {
+  if (!effectiveReviewStart && !isCompleted && totalWaitMs <= 0) {
     return (
       <span className="text-slate-400 dark:text-slate-600 font-bold">—</span>
     );
@@ -2856,7 +2854,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                               />
                             ) : (
                               <div className="w-8 h-8 rounded-full bg-blue-600 dark:bg-blue-500 text-white text-xs font-black flex items-center justify-center shrink-0 border-2 border-slate-200 dark:border-slate-700 shadow-2xs">
-                                {tp.name ? tp.name.charAt(0).toUpperCase() : "U"}
+                                {tp.name
+                                  ? tp.name.charAt(0).toUpperCase()
+                                  : "U"}
                               </div>
                             )}
                             <span
@@ -2874,7 +2874,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                             <div className="flex items-center gap-1 text-[9.5px] font-extrabold mt-0.5">
                               <span
                                 className={`w-1.5 h-1.5 rounded-full ${
-                                  isOnline ? "bg-emerald-500 animate-pulse" : "bg-rose-500"
+                                  isOnline
+                                    ? "bg-emerald-500 animate-pulse"
+                                    : "bg-rose-500"
                                 }`}
                               />
                               <span
@@ -2900,150 +2902,152 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         >
                           <span
                             className={`w-1.5 h-1.5 rounded-full ${
-                              isOnline ? "bg-emerald-500 animate-pulse" : "bg-rose-500"
+                              isOnline
+                                ? "bg-emerald-500 animate-pulse"
+                                : "bg-rose-500"
                             }`}
                           />
                           {isOnline ? "Online" : "Offline"}
                         </span>
                       </td>
-                    <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-medium text-slate-700 dark:text-slate-200">
-                      {tp.assigned}
-                    </td>
-                    <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold bg-red-500 text-red-850 dark:bg-red-700 dark:text-red-400">
-                      {tp.pending}
-                    </td>
-                    <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold bg-purple-500 text-violet-850 dark:bg-purple-700 dark:text-violet-400">
-                      {tp.inProgress}
-                    </td>
-                    <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold bg-fuchsia-500 text-fuchsia-850 dark:bg-fuchsia-700 dark:text-fuchsia-400">
-                      {tp.onHold}
-                    </td>
-                    <td
-                      className={`py-1.5 px-2 border-r border-b text-[11px] font-bold transition-all ${
-                        tp.inReview > 0
-                          ? "bg-yellow-400/90 text-yellow-950 dark:bg-yellow-500/40 dark:text-yellow-200 animate-pulse ring-2 ring-yellow-500 dark:ring-yellow-400 border-2 border-yellow-600 dark:border-yellow-300 shadow-sm"
-                          : "bg-yellow-500 text-yellow-850 dark:bg-yellow-700 dark:text-yellow-450 border-slate-100 dark:border-slate-700/60"
-                      }`}
-                    >
-                      {tp.inReview}
-                    </td>
-                    <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold bg-emerald-500 text-emerald-850 dark:bg-emerald-700 dark:text-emerald-400">
-                      {tp.completed}
-                    </td>
-                    <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] text-center">
-                      <span
-                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-extrabold border ${
-                          tp.avgRevisions === 0
-                            ? "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800/40 dark:text-slate-500 dark:border-slate-700/50"
-                            : tp.avgRevisions <= 1.5
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40"
-                              : tp.avgRevisions <= 3.0
-                                ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40"
-                                : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800/40"
+                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-medium text-slate-700 dark:text-slate-200">
+                        {tp.assigned}
+                      </td>
+                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold bg-red-500 text-red-850 dark:bg-red-700 dark:text-red-400">
+                        {tp.pending}
+                      </td>
+                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold bg-purple-500 text-violet-850 dark:bg-purple-700 dark:text-violet-400">
+                        {tp.inProgress}
+                      </td>
+                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold bg-fuchsia-500 text-fuchsia-850 dark:bg-fuchsia-700 dark:text-fuchsia-400">
+                        {tp.onHold}
+                      </td>
+                      <td
+                        className={`py-1.5 px-2 border-r border-b text-[11px] font-bold transition-all ${
+                          tp.inReview > 0
+                            ? "bg-yellow-400/90 text-yellow-950 dark:bg-yellow-500/40 dark:text-yellow-200 animate-pulse ring-2 ring-yellow-500 dark:ring-yellow-400 border-2 border-yellow-600 dark:border-yellow-300 shadow-sm"
+                            : "bg-yellow-500 text-yellow-850 dark:bg-yellow-700 dark:text-yellow-450 border-slate-100 dark:border-slate-700/60"
                         }`}
                       >
-                        {tp.avgRevisions.toFixed(1)} rev
-                      </span>
-                    </td>
-                    <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] text-slate-600 dark:text-slate-200">
-                      {tp.blockers === "none" ? (
-                        <span className="text-slate-400 dark:text-slate-500 font-bold italic text-[9px]">
-                          none
+                        {tp.inReview}
+                      </td>
+                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold bg-emerald-500 text-emerald-850 dark:bg-emerald-700 dark:text-emerald-400">
+                        {tp.completed}
+                      </td>
+                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] text-center">
+                        <span
+                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-extrabold border ${
+                            tp.avgRevisions === 0
+                              ? "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800/40 dark:text-slate-500 dark:border-slate-700/50"
+                              : tp.avgRevisions <= 1.5
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40"
+                                : tp.avgRevisions <= 3.0
+                                  ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40"
+                                  : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800/40"
+                          }`}
+                        >
+                          {tp.avgRevisions.toFixed(1)} rev
                         </span>
-                      ) : (
-                        <div className="flex flex-wrap gap-1 max-w-[150px]">
-                          {tp.blockers.split(", ").map((b, idx) => (
-                            <span
-                              key={idx}
-                              className="px-1 py-0.5 text-[8px] font-bold rounded bg-orange-50 dark:bg-orange-500/10 text-orange-650 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20"
-                            >
-                              {b}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-medium text-slate-600 dark:text-slate-350">
-                      {tp.blockerTimeMs > 0 ? (
-                        <span className="text-orange-600 dark:text-orange-400">
-                          {(() => {
-                            const totalMinutes = Math.floor(
-                              tp.blockerTimeMs / (1000 * 60),
-                            );
-                            const h = Math.floor(totalMinutes / 60);
-                            const m = totalMinutes % 60;
-                            return h > 0 ? `${h}h ${m}m` : `${m}m`;
-                          })()}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 dark:text-slate-500 font-medium">
-                          0m
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] text-center">
-                      <LiveProductivityCell
-                        tasks={tp.tasks}
-                        initialLoggedMs={tp.totalLoggedMs}
-                        selectedDate={selectedDate}
-                        officeHours={officeHours}
-                      />
-                    </td>
-
-                    <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-medium">
-                      {tp.overdue > 0 ? (
-                        <div className="flex items-center gap-1 text-rose-600 dark:text-rose-400 font-bold">
-                          <span className="w-1 h-1 rounded-full bg-rose-500 animate-pulse" />
-                          <span className="text-[10px]">
-                            {tp.overdue} overdue
+                      </td>
+                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] text-slate-600 dark:text-slate-200">
+                        {tp.blockers === "none" ? (
+                          <span className="text-slate-400 dark:text-slate-500 font-bold italic text-[9px]">
+                            none
                           </span>
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 dark:text-slate-500 font-medium text-[10px]">
-                          0
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[10px] font-bold">
-                      {tp.lastSubmitted === "Not submitted" ? (
-                        <div className="flex items-center gap-1 text-blue-500 dark:text-blue-600 font-medium">
-                          <span className="w-1 h-1 rounded-full bg-slate-350 dark:bg-slate-700" />
-                          <span>Not submitted</span>
-                        </div>
-                      ) : tp.lastSubmitted === "Draft" ? (
-                        <div className="flex items-center gap-1 text-amber-500 dark:text-amber-400 font-bold">
-                          <span className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
-                          <span>Draft</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
-                          <span className="w-1 h-1 rounded-full bg-emerald-500" />
-                          <span>{tp.lastSubmitted}</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-1.5 px-2 border-b border-slate-100 dark:border-slate-700/60 text-[10px] font-bold text-center">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setViewTasksModal({
-                            open: true,
-                            designerId: tp.id,
-                            designerName: tp.name,
-                          });
-                          setTaskTab("all");
-                          setTaskSearch("");
-                        }}
-                        className="p-1 rounded bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60 text-indigo-650 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50 transition-all cursor-pointer flex items-center justify-center mx-auto"
-                        title="View Performance Tasks"
-                      >
-                        <FiEye size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
+                        ) : (
+                          <div className="flex flex-wrap gap-1 max-w-[150px]">
+                            {tp.blockers.split(", ").map((b, idx) => (
+                              <span
+                                key={idx}
+                                className="px-1 py-0.5 text-[8px] font-bold rounded bg-orange-50 dark:bg-orange-500/10 text-orange-650 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20"
+                              >
+                                {b}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-medium text-slate-600 dark:text-slate-350">
+                        {tp.blockerTimeMs > 0 ? (
+                          <span className="text-orange-600 dark:text-orange-400">
+                            {(() => {
+                              const totalMinutes = Math.floor(
+                                tp.blockerTimeMs / (1000 * 60),
+                              );
+                              const h = Math.floor(totalMinutes / 60);
+                              const m = totalMinutes % 60;
+                              return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                            })()}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 dark:text-slate-500 font-medium">
+                            0m
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] text-center">
+                        <LiveProductivityCell
+                          tasks={tp.tasks}
+                          initialLoggedMs={tp.totalLoggedMs}
+                          selectedDate={selectedDate}
+                          officeHours={officeHours}
+                        />
+                      </td>
+
+                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-medium">
+                        {tp.overdue > 0 ? (
+                          <div className="flex items-center gap-1 text-rose-600 dark:text-rose-400 font-bold">
+                            <span className="w-1 h-1 rounded-full bg-rose-500 animate-pulse" />
+                            <span className="text-[10px]">
+                              {tp.overdue} overdue
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 dark:text-slate-500 font-medium text-[10px]">
+                            0
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[10px] font-bold">
+                        {tp.lastSubmitted === "Not submitted" ? (
+                          <div className="flex items-center gap-1 text-blue-500 dark:text-blue-600 font-medium">
+                            <span className="w-1 h-1 rounded-full bg-slate-350 dark:bg-slate-700" />
+                            <span>Not submitted</span>
+                          </div>
+                        ) : tp.lastSubmitted === "Draft" ? (
+                          <div className="flex items-center gap-1 text-amber-500 dark:text-amber-400 font-bold">
+                            <span className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
+                            <span>Draft</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
+                            <span className="w-1 h-1 rounded-full bg-emerald-500" />
+                            <span>{tp.lastSubmitted}</span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-1.5 px-2 border-b border-slate-100 dark:border-slate-700/60 text-[10px] font-bold text-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setViewTasksModal({
+                              open: true,
+                              designerId: tp.id,
+                              designerName: tp.name,
+                            });
+                            setTaskTab("all");
+                            setTaskSearch("");
+                          }}
+                          className="p-1 rounded bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60 text-indigo-650 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50 transition-all cursor-pointer flex items-center justify-center mx-auto"
+                          title="View Performance Tasks"
+                        >
+                          <FiEye size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
             </table>
           </div>
         </div>
@@ -3281,7 +3285,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           )}
         </div>
       </div>
-         {viewTasksModal.open &&
+      {viewTasksModal.open &&
         createPortal(
           <div className="fixed inset-0 z-[999] flex items-center justify-center p-2 sm:p-4 md:p-6">
             {/* Backdrop */}
@@ -3598,7 +3602,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                       c?.companyName ||
                                       c?.name ||
                                       (typeof p.client === "object"
-                                        ? p.client?.companyName || p.client?.name
+                                        ? p.client?.companyName ||
+                                          p.client?.name
                                         : "Unknown Client");
                                   }
                                 }
@@ -3659,8 +3664,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                   targetDate =
                                     task.actualStartTime || task.updatedAt;
                                 else if (taskTab === "onhold")
-                                  targetDate =
-                                    task.pausedAt || task.updatedAt;
+                                  targetDate = task.pausedAt || task.updatedAt;
                                 else if (taskTab === "inreview")
                                   targetDate =
                                     task.actualEndTime || task.updatedAt;
@@ -3870,7 +3874,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
               {/* Footer */}
               <div className="px-4 sm:px-6 py-3.5 border-t border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex items-center justify-between shrink-0">
                 <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400">
-                  Showing {filteredModalTasks.length} {filteredModalTasks.length === 1 ? "task" : "tasks"}
+                  Showing {filteredModalTasks.length}{" "}
+                  {filteredModalTasks.length === 1 ? "task" : "tasks"}
                 </span>
                 <button
                   type="button"
@@ -4023,7 +4028,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                     : users?.find(
                                         (u) => u._id === task.createdBy,
                                       );
-                                const creatorName = creatorObj?.name || "Unknown";
+                                const creatorName =
+                                  creatorObj?.name || "Unknown";
 
                                 const assigneeObj =
                                   task.assignedTo &&

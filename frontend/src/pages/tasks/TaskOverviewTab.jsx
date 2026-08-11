@@ -528,7 +528,7 @@ const ApprovalTimeDisplay = React.memo(
   },
 );
 
-const renderUserAvatarSmall = (u, sizeClass = "w-10 h-10 text-[8px]") => {
+const renderUserAvatarSmall = (u, sizeClass = "w-6 h-6 text-[8px]") => {
   if (!u) return null;
   const avatarUrl =
     (typeof u.profile?.profileImage === "object"
@@ -1537,14 +1537,44 @@ const TaskOverviewTab = ({
         );
       })
       .sort((a, b) => {
-        // Primary sort: Active tasks first, Completed tasks LAST
-        const isCompletedA = a.status === "Completed" ? 1 : 0;
-        const isCompletedB = b.status === "Completed" ? 1 : 0;
-        if (isCompletedA !== isCompletedB) {
-          return isCompletedA - isCompletedB;
+        // 1. Primary sort: Status Order (In Progress -> On Hold -> In Review -> Pending -> Completed)
+        const getStatusSortRank = (task) => {
+          const s = (task.status || "Pending").toUpperCase();
+          if (
+            s === "IN PROGRESS" ||
+            s === "IN_PROGRESS" ||
+            s === "INPROGRESS"
+          ) {
+            return 1;
+          }
+          if (
+            s === "ON HOLD" ||
+            s === "ON_HOLD" ||
+            s === "ON-HOLD" ||
+            s === "CORRECTION" ||
+            s === "REJECTED"
+          ) {
+            return 2;
+          }
+          if (s === "IN REVIEW" || s === "IN_REVIEW" || s === "IN-REVIEW") {
+            return 3;
+          }
+          if (s === "PENDING" || s === "TO DO" || s === "TODO") {
+            return 4;
+          }
+          if (s === "COMPLETED" || s === "DONE") {
+            return 5;
+          }
+          return 4;
+        };
+
+        const sRankA = getStatusSortRank(a);
+        const sRankB = getStatusSortRank(b);
+        if (sRankA !== sRankB) {
+          return sRankA - sRankB;
         }
 
-        // Secondary sort: Priority (Top High -> High -> Medium -> Low)
+        // 2. Secondary sort: Priority (Top High -> High -> Medium -> Low)
         const priorityRank = {
           "Top High": 1,
           "top high": 1,
@@ -1561,7 +1591,7 @@ const TaskOverviewTab = ({
           return pRankA - pRankB;
         }
 
-        // Tertiary sort: Most recent date first
+        // 3. Tertiary sort: Most recent date first
         const dateA = new Date(
           a.createdAt || a.startDate || a.dueDate || 0
         ).getTime();
@@ -1755,52 +1785,42 @@ const TaskOverviewTab = ({
   return (
     <>
       <div className="bg-white dark:bg-[#11131e] overflow-hidden flex flex-col h-[calc(100vh-160px)]">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 pb-2 pt-1 border-b border-slate-100 dark:border-white/5 relative z-30 shrink-0">
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+        {/* Top Control Toolbar */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 pb-2.5 pt-1.5 px-3 mb-1 border-b border-slate-200/80 dark:border-white/10 relative z-30 shrink-0 bg-slate-50/70 dark:bg-[#151725]/70 backdrop-blur-md rounded-2xl">
+          {/* Active Filter Badges - Horizontal pill strip */}
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              Active Filters:
+            </span>
 
-            {/* client display */}
-            <div className="flex items-center gap-1.5 text-[12px] font-extrabold text-slate-700 dark:text-slate-300">
-              <span>Client:</span>
+            {/* Client Badge */}
+            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-extrabold bg-blue-50/90 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/40 shadow-2xs">
+              <span className="text-[9px] text-blue-500 font-bold uppercase">Client:</span>
               {overviewClientFilter === "All" ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-black border rounded bg-slate-50 dark:bg-slate-900/20 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800/30">
-                  <FiBriefcase size={9} />
-                  All
-                </span>
+                <span>All</span>
               ) : (
                 <ClientBadge
                   client={clients?.find((c) => c._id === overviewClientFilter)}
                   size="sm"
-                  className="!text-[9.5px] !px-2 !py-0.5"
+                  className="!text-[9px] !px-1.5 !py-0 border-none !bg-transparent"
                 />
               )}
             </div>
-            {/* status display  */}
-            <div className="flex items-center gap-1.5 text-[12px] font-extrabold text-slate-700 dark:text-slate-300">
-              <span>Status:</span>
-              {overviewStatusFilter === "All" ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-black border rounded bg-slate-50 dark:bg-slate-900/20 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800/30">
-                  <FiBriefcase size={9} />
-                  All
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-black border rounded bg-slate-50 dark:bg-slate-900/20 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800/30">
-                  <FiBriefcase size={9} />
-                  {overviewStatusFilter}
-                </span>
-              )}
+
+            {/* Status Badge */}
+            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-extrabold bg-amber-50/90 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/40 shadow-2xs">
+              <span className="text-[9px] text-amber-500 font-bold uppercase">Status:</span>
+              <span>{overviewStatusFilter}</span>
             </div>
 
-            {/* department display */}
-            <div className="flex items-center gap-1.5 text-[12px] font-extrabold text-slate-700 dark:text-slate-300">
-              <span>Dept:</span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-black border rounded bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/30">
-                <FiBriefcase size={9} />
-                {overviewDepartmentFilter}
-              </span>
+            {/* Dept Badge */}
+            <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-extrabold bg-indigo-50/90 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200/80 dark:border-indigo-800/40 shadow-2xs">
+              <span className="text-[9px] text-indigo-500 font-bold uppercase">Dept:</span>
+              <span>{overviewDepartmentFilter}</span>
             </div>
           </div>
 
-          <div className="flex items-center justify-end gap-1.5 w-full sm:w-auto">
+          <div className="flex items-center justify-end gap-1.5 flex-wrap w-full lg:w-auto">
             <div className="relative" ref={clientDropdownRef}>
               <div className="relative rounded-full p-[1px] overflow-hidden group inline-block shadow-2xs">
                 <div className="absolute inset-[-100%] bg-[conic-gradient(transparent_0deg,#3b82f6_90deg,transparent_180deg)] animate-[spin_2s_linear_infinite] group-hover:bg-[conic-gradient(transparent_0deg,#6366f1_90deg,transparent_180deg)] transition-colors duration-300" />
@@ -2584,13 +2604,13 @@ const TaskOverviewTab = ({
                 )}
 
                 {!hiddenColumns.createdBy && (
-                  <th className="py-2 px-2.5 border-r border-b border-slate-300 dark:border-white/15 w-[210px]">
+                  <th className="py-2 px-2.5 border-r border-b border-slate-300 dark:border-white/15 w-[190px]">
                     CREATED BY
                   </th>
                 )}
 
                 {!hiddenColumns.assignee && (
-                  <th className="py-2 px-2.5 border-r border-b border-slate-300 dark:border-white/15 w-[210px]">
+                  <th className="py-2 px-2.5 border-r border-b border-slate-300 dark:border-white/15 w-[160px]">
                     ASSIGNEE
                   </th>
                 )}
@@ -2747,17 +2767,17 @@ const TaskOverviewTab = ({
                           </td>
                         )}
                         {!hiddenColumns.createdBy && (
-                          <td className="py-2 px-2.5 border-r border-b border-slate-200 dark:border-white/10 text-left">
-                            <div className="flex items-center gap-2">
-                              {renderUserAvatarSmall(task.createdBy)}
+                          <td className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-white/10 text-left">
+                            <div className="flex items-center gap-1.5">
+                              {renderUserAvatarSmall(task.createdBy, "w-6 h-6 text-[8px]")}
                               <div className="flex flex-col justify-center min-w-0">
                                 <span
-                                  className={`font-extrabold text-[11.5px] truncate transition-colors ${getUserColorClass(task.createdBy?.name || "Unknown")}`}
+                                  className={`font-bold text-[10px] truncate transition-colors leading-tight ${getUserColorClass(task.createdBy?.name || "Unknown")}`}
                                 >
                                   {task.createdBy?.name || "Unknown"}
                                 </span>
                                 <span
-                                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[8.5px] font-bold italic border uppercase tracking-wider mt-0.5 w-max ${getDeptBadgeStyle(task.createdBy?.department || "Creator")}`}
+                                  className={`inline-flex items-center px-1.5 p-2 py-0.7 rounded-full text-[10px] font-bold  border uppercase tracking-wider mt-0.5 w-max leading-none ${getDeptBadgeStyle(task.createdBy?.department || "Creator")}`}
                                 >
                                   {task.createdBy?.department || "Creator"}
                                 </span>
@@ -2766,17 +2786,17 @@ const TaskOverviewTab = ({
                           </td>
                         )}
                         {!hiddenColumns.assignee && (
-                          <td className="py-2 px-2.5 border-r border-b border-slate-200 dark:border-white/10 text-left">
-                            <div className="flex items-center gap-2">
-                              {renderUserAvatarSmall(task.assignedTo)}
+                          <td className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-white/10 text-left">
+                            <div className="flex items-center gap-1.5">
+                              {renderUserAvatarSmall(task.assignedTo, "w-6 h-6 text-[8px]")}
                               <div className="flex flex-col justify-center min-w-0">
                                 <span
-                                  className={`font-extrabold text-[11.5px] truncate transition-colors ${getUserColorClass(task.assignedTo?.name || "Unassigned")}`}
+                                  className={`font-bold text-[10px] truncate transition-colors leading-tight ${getUserColorClass(task.assignedTo?.name || "Unassigned")}`}
                                 >
                                   {task.assignedTo?.name || "Unassigned"}
                                 </span>
                                 <span
-                                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[8.5px] font-bold italic border uppercase tracking-wider mt-0.5 w-max ${getDeptBadgeStyle(task.assignedTo?.department || "Team Member")}`}
+                                  className={`inline-flex items-center px-1.5 p-2 py-0.7 rounded-full text-[10px] font-bold border uppercase tracking-wider mt-0.5 w-max leading-none ${getDeptBadgeStyle(task.assignedTo?.department || "Team Member")}`}
                                 >
                                   {task.assignedTo?.department || "Team Member"}
                                 </span>

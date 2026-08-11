@@ -51,28 +51,28 @@ const getTaskCodeStyle = (code) => {
   }
   const colors = [
     {
-      bg: "bg-indigo-50/80 text-indigo-600 border-indigo-200 dark:bg-indigo-950/20 dark:text-indigo-400 dark:border-indigo-900/30",
+      bg: "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800/60",
     },
     {
-      bg: "bg-rose-50/80 text-rose-600 border-rose-200 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/30",
+      bg: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800/60",
     },
     {
-      bg: "bg-amber-50/80 text-amber-600 border-amber-200 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30",
+      bg: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800/60",
     },
     {
-      bg: "bg-emerald-50/80 text-emerald-600 border-emerald-200 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30",
+      bg: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/60",
     },
     {
-      bg: "bg-blue-50/80 text-blue-600 border-blue-200 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/30",
+      bg: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800/60",
     },
     {
-      bg: "bg-purple-50/80 text-purple-650 border-purple-200 dark:bg-purple-950/20 dark:text-purple-400 dark:border-purple-900/30",
+      bg: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800/60",
     },
     {
-      bg: "bg-cyan-50/80 text-cyan-600 border-cyan-200 dark:bg-cyan-950/20 dark:text-cyan-400 dark:border-cyan-900/30",
+      bg: "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/60 dark:text-cyan-300 dark:border-cyan-800/60",
     },
     {
-      bg: "bg-fuchsia-50/80 text-fuchsia-600 border-fuchsia-200 dark:bg-fuchsia-950/20 dark:text-fuchsia-400 dark:border-fuchsia-900/30",
+      bg: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200 dark:bg-fuchsia-950/60 dark:text-fuchsia-300 dark:border-fuchsia-800/60",
     },
   ];
   const idx = Math.abs(hash) % colors.length;
@@ -235,12 +235,44 @@ const LiveTimeTracker = ({ task, allTasks, isSubmitted, selectedDate }) => {
     calculateCurrentMs,
   ]);
 
-  return <span>Time spent: {elapsedStr}</span>;
+  return <span className="whitespace-nowrap">{elapsedStr}</span>;
 };
 
 // Helper: map task board status to EOD status enum
 const mapTaskStatusToEodStatus = (status) => {
   return status || "Pending";
+};
+
+// Helper: Priority sorting order (In Review = 1, In Progress = 2, Pending = 3, Completed = 4)
+const getStatusPriority = (status) => {
+  const s = (status || "Pending").toUpperCase();
+  if (s.includes("REVIEW")) return 1;
+  if (s.includes("PROGRESS")) return 2;
+  if (s === "PENDING") return 3;
+  if (s === "COMPLETED") return 4;
+  return 5;
+};
+
+const getCardBgStyle = (status) => {
+  const s = (status || "Pending").toUpperCase();
+  switch (s) {
+    case "COMPLETED":
+      return "bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-900/50 shadow-xs hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-800";
+    case "IN PROGRESS":
+    case "IN_PROGRESS":
+      return "bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-900/50 shadow-xs hover:shadow-md hover:border-blue-300 dark:hover:border-blue-800";
+    case "IN-REVIEW":
+    case "IN REVIEW":
+    case "IN_REVIEW":
+      return "bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 shadow-xs hover:shadow-md hover:border-amber-300 dark:hover:border-amber-800";
+    case "ON HOLD":
+    case "ON_HOLD":
+      return "bg-orange-50/70 dark:bg-orange-950/30 border border-orange-200/80 dark:border-orange-900/50 shadow-xs";
+    case "REJECTED":
+      return "bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/50 shadow-xs";
+    default: // Pending
+      return "bg-white dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800/80 shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700";
+  }
 };
 
 const getStatusBadgeStyle = (status) => {
@@ -254,14 +286,14 @@ const getStatusBadgeStyle = (status) => {
     case "IN-REVIEW":
     case "IN REVIEW":
     case "IN_REVIEW":
-      return "bg-purple-50 text-purple-600 border-purple-200/50 dark:bg-purple-950/20 dark:text-purple-400 dark:border-purple-900/30";
+      return "bg-amber-50 text-amber-700 border-amber-200/50 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30";
     case "ON HOLD":
     case "ON_HOLD":
       return "bg-amber-50 text-amber-600 border-amber-200/50 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30";
     case "REJECTED":
       return "bg-rose-50 text-rose-600 border-rose-200/50 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/30";
     default: // Pending
-      return "bg-slate-50 text-slate-655 border border-slate-200/60 dark:bg-slate-900/10 dark:text-slate-400 dark:border-slate-800/60";
+      return "bg-slate-50 text-slate-600 border border-slate-200/60 dark:bg-slate-900/10 dark:text-slate-400 dark:border-slate-800/60";
   }
 };
 
@@ -269,21 +301,21 @@ const getStatusTextColor = (status) => {
   const s = (status || "Pending").toUpperCase();
   switch (s) {
     case "COMPLETED":
-      return "text-emerald-600 dark:text-emerald-400";
+      return "text-emerald-700 dark:text-emerald-400";
     case "IN PROGRESS":
     case "IN_PROGRESS":
-      return "text-blue-600 dark:text-blue-400";
+      return "text-blue-700 dark:text-blue-400";
     case "IN-REVIEW":
     case "IN REVIEW":
     case "IN_REVIEW":
-      return "text-purple-605 dark:text-purple-400";
+      return "text-amber-700 dark:text-amber-400";
     case "ON HOLD":
     case "ON_HOLD":
-      return "text-amber-600 dark:text-amber-400";
+      return "text-amber-700 dark:text-amber-400";
     case "REJECTED":
-      return "text-rose-600 dark:text-rose-400";
+      return "text-rose-700 dark:text-rose-400";
     default: // Pending
-      return "text-slate-500 dark:text-slate-400";
+      return "text-slate-600 dark:text-slate-400";
   }
 };
 
@@ -888,7 +920,39 @@ const EodReports = () => {
     }
   };
 
-  // Dynamic stats
+  // Helper to format date string
+  const getLocalDateStr = (date) => {
+    if (!date) return null;
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return null;
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const todayCompletedTasks = React.useMemo(() => {
+    return tasksState.filter((t) => {
+      if (t.statusAtEod !== "Completed") return false;
+      const compDate = getLocalDateStr(
+        t.completedAt || t.updatedAt || t.createdAt,
+      );
+      return !compDate || compDate === selectedDate;
+    });
+  }, [tasksState, selectedDate]);
+
+  const previousCompletedTasks = React.useMemo(() => {
+    return tasksState.filter((t) => {
+      if (t.statusAtEod !== "Completed") return false;
+      const compDate = getLocalDateStr(
+        t.completedAt || t.updatedAt || t.createdAt,
+      );
+      return compDate && compDate < selectedDate;
+    });
+  }, [tasksState, selectedDate]);
+
+  const todayCompletedCount = todayCompletedTasks.length;
+  const previousCompletedCount = previousCompletedTasks.length;
   const totalTasks = tasksState.length;
   const completedCount = tasksState.filter(
     (t) => t.statusAtEod === "Completed",
@@ -926,6 +990,200 @@ const EodReports = () => {
     const titlePart = task.title || "";
     return `${actionWord} ${clientPart}${titlePart}`;
   });
+
+  const completedTasks = React.useMemo(
+    () => tasksState.filter((t) => t.statusAtEod === "Completed"),
+    [tasksState],
+  );
+
+  const todayProductivityTasks = React.useMemo(
+    () =>
+      tasksState
+        .filter((t) => t.statusAtEod !== "Completed")
+        .sort(
+          (a, b) =>
+            getStatusPriority(a.statusAtEod) -
+            getStatusPriority(b.statusAtEod),
+        ),
+    [tasksState],
+  );
+
+  const renderTaskCard = (task) => {
+    const assignerUser = users.find((u) => u._id === task.reviewedBy);
+    const assignerName =
+      assignerUser?.name || task.assignedByName || "Admin";
+
+    const isCompleted = task.statusAtEod === "Completed";
+    const isInProgress = task.statusAtEod === "In Progress";
+    const isInReview = ["In Review", "In-Review", "IN_REVIEW"].includes(
+      task.statusAtEod,
+    );
+
+    return (
+      <div
+        key={task.id}
+        className={`${getCardBgStyle(
+          task.statusAtEod,
+        )} rounded-xl p-4 sm:p-4.5 shadow-xs hover:shadow-md transition-all duration-200 text-left relative overflow-hidden group`}
+      >
+        {/* Top colored accent glow bar */}
+        <div
+          className={`h-1 w-full -mt-4 -mx-4 sm:-mt-4.5 sm:-mx-4.5 mb-3.5 transition-all duration-200 ${
+            isCompleted
+              ? "bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500"
+              : isInProgress
+                ? "bg-gradient-to-r from-blue-500 via-indigo-400 to-blue-500"
+                : isInReview
+                  ? "bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500"
+                  : "bg-gradient-to-r from-slate-300 via-slate-400 to-slate-300 dark:from-slate-700 dark:to-slate-600"
+          }`}
+        />
+
+        {/* Task Top Meta Info Header */}
+        <div className="flex justify-between items-start gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {task.code && (
+                <span
+                  className={`px-2 py-0.5 rounded-md text-[9.5px] font-black border tracking-wider select-none shrink-0 ${getTaskCodeStyle(task.code).bg}`}
+                >
+                  [{task.code}]
+                </span>
+              )}
+              <h3 className="font-bold text-xs theme-text-primary flex items-center gap-1 min-w-0 truncate">
+                <FiFileText
+                  className="text-slate-400 dark:text-slate-500 shrink-0"
+                  size={13}
+                />
+                <span className="italic font-bold text-slate-800 dark:text-slate-100 truncate">
+                  {task.title}
+                </span>
+              </h3>
+            </div>
+
+            {/* Sub-tags Row */}
+            <div className="flex flex-wrap gap-1.5 mt-2 items-center">
+              <span className="bg-slate-100/90 text-slate-650 dark:bg-slate-900/60 dark:text-slate-300 border border-slate-200/80 dark:border-slate-800/80 text-[9.5px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider">
+                {task.client}
+              </span>
+              {task.contentType && (
+                <span className="bg-purple-100/80 text-purple-700 border border-purple-200/60 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900/50 text-[9.5px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider">
+                  {task.contentType}
+                </span>
+              )}
+              {task.time && (
+                <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100/80 text-blue-700 border border-blue-200/60 rounded-md text-[9.5px] font-black dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50 whitespace-nowrap shrink-0">
+                  <FiClock size={10} className="shrink-0 text-blue-500" />
+                  <LiveTimeTracker
+                    task={task}
+                    allTasks={allTasks}
+                    isSubmitted={isSubmitted}
+                    selectedDate={selectedDate}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right priority & revision info */}
+          <div className="text-right shrink-0 flex flex-col items-end gap-1">
+            <span
+              className={`${getPriorityStyle(
+                task.priority,
+              )} text-[9.5px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider`}
+            >
+              {task.priority}
+            </span>
+            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+              Rev. {task.revision || 0}
+            </span>
+          </div>
+        </div>
+
+        {/* Status & Assigned By Row */}
+        <div className="flex justify-between items-center mt-3 pt-2.5 border-t theme-border text-[10.5px]">
+          {/* Status Row */}
+          <div className="flex items-center gap-1">
+            <span className="font-bold theme-text-secondary uppercase tracking-wider text-[9.5px]">
+              Status:
+            </span>
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black tracking-wide ${getStatusBadgeStyle(task.statusAtEod)}`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  isCompleted
+                    ? "bg-emerald-500"
+                    : isInProgress
+                      ? "bg-blue-500 animate-pulse"
+                      : isInReview
+                        ? "bg-amber-500"
+                        : "bg-slate-400"
+                }`}
+              />
+              {task.statusAtEod || "Pending"}
+            </span>
+          </div>
+
+          {/* Assigned By Row */}
+          <div className="flex items-center gap-1">
+            <span className="font-bold theme-text-secondary uppercase tracking-wider text-[9.5px]">
+            By:
+            </span>
+            <span className="font-bold theme-text-primary text-[10.5px] leading-tight">
+              {assignerName}
+            </span>
+          </div>
+        </div>
+
+        {/* Dynamic Reason & Next Action Fields / In Review Full Width Thank You */}
+        {!isCompleted && (
+          <div className="mt-2.5 pt-2.5 border-t theme-border">
+            {isInReview ? (
+              <div className="w-full flex items-center justify-center gap-2 bg-amber-500/15 dark:bg-amber-950/50 border border-amber-500/30 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 rounded-lg px-3 py-2 text-xs font-extrabold shadow-2xs">
+                <span className="text-sm">😁</span>
+                <span>Thank you!</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                    Reason for {task.statusAtEod}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={`Why ${task.statusAtEod.toLowerCase()}?`}
+                    className="w-full mt-1 bg-slate-50 dark:bg-slate-950/70 border border-slate-200/80 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-emerald-500 dark:focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-semibold"
+                    value={task.reason || ""}
+                    onChange={(e) =>
+                      updateTask(task.id, "reason", e.target.value)
+                    }
+                    disabled={isSubmitted}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                    Next Action
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Next plan..."
+                    className="w-full mt-1 bg-slate-50 dark:bg-slate-950/70 border border-slate-200/80 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-emerald-500 dark:focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-semibold"
+                    value={task.nextAction || ""}
+                    onChange={(e) =>
+                      updateTask(task.id, "nextAction", e.target.value)
+                    }
+                    disabled={isSubmitted}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (tasksLoading || reportLoading || projectsLoading) {
     return (
@@ -969,7 +1227,7 @@ const EodReports = () => {
         </div>
       </div>
 
-      {/* Task Cards Grid */}
+      {/* Task Cards Grid / Sections */}
       {tasksState.length === 0 ? (
         <div className="mt-8 theme-bg-card border border-dashed theme-border rounded-2xl p-12 text-center flex flex-col items-center justify-center">
           <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400 border theme-border">
@@ -987,156 +1245,77 @@ const EodReports = () => {
           </p>
         </div>
       ) : (
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {tasksState.map((task) => {
-            const assignerUser = users.find((u) => u._id === task.reviewedBy);
-            const assignerName =
-              assignerUser?.name || task.assignedByName || "Admin";
-            const assignerDept = assignerUser?.department || "Management";
-            const avatarUrl = assignerUser
-              ? (typeof assignerUser.profile?.profileImage === "object"
-                  ? assignerUser.profile?.profileImage?.url
-                  : assignerUser.profile?.profileImage) ||
-                (typeof assignerUser.profileImage === "object"
-                  ? assignerUser.profileImage?.url
-                  : assignerUser.profileImage) ||
-                assignerUser.profilePic ||
-                assignerUser.profile?.profilePic ||
-                assignerUser.profile?.avatar
-              : "";
-
-            return (
-              <div
-                key={task.id}
-                className="theme-bg-card border border-slate-100 dark:border-slate-800/80 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-slate-200 dark:hover:border-slate-700/80 transition-all duration-300 text-left relative overflow-hidden"
-              >
-                {/* Task Top Meta info */}
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex-1">
-                    <h3 className="font-bold text-sm theme-text-primary flex items-center gap-2 flex-wrap leading-relaxed">
-                      {task.code && (
-                        <span
-                          className={`px-2.5 py-0.5 rounded-lg text-[10px] font-extrabold border tracking-wider select-none ${getTaskCodeStyle(task.code).bg}`}
-                        >
-                          [{task.code}]
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1.5 ml-0.5">
-                        <FiFileText
-                          className="text-slate-400 dark:text-slate-500 shrink-0"
-                          size={14}
-                        />
-                        <span className="italic font-semibold text-slate-700 dark:text-slate-200">
-                          {task.title}
-                        </span>
-                      </span>
-                    </h3>
-
-                    <div className="flex flex-wrap gap-2 mt-2.5 items-center">
-                      <span className="bg-slate-50 text-slate-600 dark:bg-slate-900/40 dark:text-slate-400 border border-slate-200/50 dark:border-slate-800/60 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
-                        {task.client}
-                      </span>
-                      {task.contentType && (
-                        <span className="bg-purple-50/50 text-purple-650 border border-purple-200/30 dark:bg-purple-950/20 dark:text-purple-400 dark:border-purple-900/30 text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
-                          {task.contentType}
-                        </span>
-                      )}
-                      {task.time && (
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50/50 text-blue-600 border border-blue-150/40 rounded-md text-[10px] font-bold dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/30">
-                          <FiClock size={10} className="shrink-0" />
-                          <LiveTimeTracker
-                            task={task}
-                            allTasks={allTasks}
-                            isSubmitted={isSubmitted}
-                            selectedDate={selectedDate}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
-                    <span
-                      className={`${getPriorityStyle(
-                        task.priority,
-                      )} text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider`}
-                    >
-                      {task.priority}
-                    </span>
-                    <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest block mt-0.5">
-                      Rev. {task.revision || 0}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Status & Assigned By Row Stack */}
-                <div className="flex justify-between items-center  mt-6 border-t theme-border space-y-3">
-                  {/* Status Row */}
-                  <div className="flex items-center justify-between text-xs px-1">
-                    <span className="font-bold theme-text-secondary uppercase tracking-wider text-[10px]">
-                      status :{" "}
-                      <span
-                        className={`font-black tracking-wide ${getStatusTextColor(task.statusAtEod)}`}
-                      >
-                        {task.statusAtEod || "Pending"}
-                      </span>
-                    </span>
-                  </div>
-
-                  {/* Assigned By Row */}
-                  <div className=" text-xs px-1 ">
-                    <span className="font-bold theme-text-secondary uppercase tracking-wider text-[10px]">
-                      Assigned By :
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <div className="text-right">
-                        <span className="block font-bold theme-text-primary text-[11px] leading-tight">
-                          {assignerName}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Dynamic field rows depending on the status */}
-                {task.statusAtEod !== "Completed" && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 pt-4 border-t theme-border">
-                    <div>
-                      <label className="text-[10px] font-bold theme-text-secondary uppercase tracking-wider block">
-                        Reason for {task.statusAtEod}
-                      </label>
-                      <input
-                        type="text"
-                        placeholder={`Why is it ${task.statusAtEod.toLowerCase()}?`}
-                        className="w-full mt-1.5 bg-slate-50 border border-slate-200 dark:bg-slate-900/40 dark:border-slate-800/80 rounded-xl px-3 py-2.5 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 dark:focus:ring-emerald-500/50 transition-all font-semibold"
-                        value={task.reason || ""}
-                        onChange={(e) =>
-                          updateTask(task.id, "reason", e.target.value)
-                        }
-                        disabled={isSubmitted}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-bold theme-text-secondary uppercase tracking-wider block">
-                        Next Action
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="What is the next plan?"
-                        className="w-full mt-1.5 bg-slate-50 border border-slate-200 dark:bg-slate-900/40 dark:border-slate-800/80 rounded-xl px-3 py-2.5 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 dark:focus:ring-emerald-500/50 transition-all font-semibold"
-                        value={task.nextAction || ""}
-                        onChange={(e) =>
-                          updateTask(task.id, "nextAction", e.target.value)
-                        }
-                        disabled={isSubmitted}
-                      />
-                    </div>
-                  </div>
-                )}
+        <div className="mt-5 space-y-6">
+          {/* TODAY PRODUCTIVITY CARDS */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
+                <h2 className="text-xs font-bold theme-text-primary uppercase tracking-wider">
+                  Today Productivity Cards
+                </h2>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                  {todayProductivityTasks.length}
+                </span>
               </div>
-            );
-          })}
+            </div>
+
+            {todayProductivityTasks.length === 0 ? (
+              <div className="bg-slate-50/50 dark:bg-slate-900/20 border border-slate-200/60 dark:border-slate-800/60 rounded-xl p-3.5 text-xs theme-text-secondary text-left font-medium">
+                No active productivity tasks currently in progress or pending.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
+                {todayProductivityTasks.map((task) => renderTaskCard(task))}
+              </div>
+            )}
+          </div>
+
+          {/* TODAY COMPLETED CARDS */}
+          <div>
+            <div className="flex items-center justify-between mb-3 pt-3.5 border-t theme-border">
+              <div className="flex items-center gap-2.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                <h2 className="text-xs font-bold theme-text-primary uppercase tracking-wider">
+                  Today Completed Cards
+                </h2>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                  {todayCompletedTasks.length}
+                </span>
+              </div>
+            </div>
+
+            {todayCompletedTasks.length === 0 ? (
+              <div className="bg-slate-50/50 dark:bg-slate-900/20 border border-slate-200/60 dark:border-slate-800/60 rounded-xl p-3.5 text-xs theme-text-secondary text-left font-medium">
+                No tasks completed today yet.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
+                {todayCompletedTasks.map((task) => renderTaskCard(task))}
+              </div>
+            )}
+          </div>
+
+          {/* PREVIOUS COMPLETED CARDS */}
+          {previousCompletedTasks.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-3 pt-3.5 border-t theme-border">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-teal-500" />
+                  <h2 className="text-xs font-bold theme-text-primary uppercase tracking-wider">
+                    Previous Completed Cards
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+                    {previousCompletedTasks.length}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
+                {previousCompletedTasks.map((task) => renderTaskCard(task))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1155,59 +1334,89 @@ const EodReports = () => {
               Submitted once, covers all tasks
             </span>
           </div>{" "}
-          {/* eod card  */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-4 mb-5">
-            {/* Completed Card */}
-            <div className="bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent dark:from-emerald-500/15 dark:via-emerald-500/5 dark:to-transparent border border-emerald-500/20 dark:border-emerald-500/30 rounded-2xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/5 rounded-full -mr-6 -mt-6 blur-md group-hover:bg-emerald-500/10 transition-all duration-300" />
-              <span className="text-2xl font-black tracking-tight text-emerald-600 dark:text-emerald-400 block relative z-10">
-                {completedCount}
-              </span>
-              <span className="text-[10px] font-black text-emerald-700/80 dark:text-emerald-300/80 uppercase tracking-widest mt-1.5 block relative z-10">
-                Completed
-              </span>
-            </div>
-            {/* In Progress Card */}
-            <div className="bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-transparent dark:from-blue-500/15 dark:via-blue-500/5 dark:to-transparent border border-blue-500/20 dark:border-blue-500/30 rounded-2xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/5 rounded-full -mr-6 -mt-6 blur-md group-hover:bg-blue-500/10 transition-all duration-300" />
-              <span className="text-2xl font-black tracking-tight text-blue-600 dark:text-blue-400 block relative z-10">
-                {inProgressCount}
-              </span>
-              <span className="text-[10px] font-black text-blue-700/80 dark:text-blue-300/80 uppercase tracking-widest mt-1.5 block relative z-10">
-                In Progress
-              </span>
-            </div>
-
-            {/* In Review Card */}
-            <div className="bg-gradient-to-br from-purple-500/10 via-purple-500/5 to-transparent dark:from-purple-500/15 dark:via-purple-500/5 dark:to-transparent border border-purple-500/20 dark:border-purple-500/30 rounded-2xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/5 rounded-full -mr-6 -mt-6 blur-md group-hover:bg-purple-500/10 transition-all duration-300" />
-              <span className="text-2xl font-black tracking-tight text-purple-600 dark:text-purple-400 block relative z-10">
-                {inReviewCount}
-              </span>
-              <span className="text-[10px] font-black text-purple-700/80 dark:text-purple-300/80 uppercase tracking-widest mt-1.5 block relative z-10">
+          {/* eod summary cards  */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 mt-4 mb-5">
+            {/* 1. In Review Card */}
+            <div className="bg-gradient-to-br from-amber-500/15 via-amber-500/5 to-transparent dark:from-amber-500/20 dark:via-amber-500/5 dark:to-transparent border border-amber-500/30 dark:border-amber-500/40 rounded-2xl p-4 shadow-sm hover:shadow-lg hover:shadow-amber-500/10 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/10 rounded-full -mr-6 -mt-6 blur-md group-hover:scale-125 transition-all duration-300" />
+              <div className="flex items-center justify-between relative z-10">
+                <span className="text-2xl font-black tracking-tight text-amber-600 dark:text-amber-400">
+                  {inReviewCount}
+                </span>
+                <FiClock className="text-amber-500/60 text-lg group-hover:text-amber-500 transition-colors" />
+              </div>
+              <span className="text-[10px] font-black text-amber-700/90 dark:text-amber-300/90 uppercase tracking-widest mt-2 block relative z-10">
                 In Review
               </span>
             </div>
 
-            {/* On Hold Card */}
-            <div className="bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent dark:from-amber-500/15 dark:via-amber-500/5 dark:to-transparent border border-amber-500/20 dark:border-amber-500/30 rounded-2xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/5 rounded-full -mr-6 -mt-6 blur-md group-hover:bg-amber-500/10 transition-all duration-300" />
-              <span className="text-2xl font-black tracking-tight text-amber-600 dark:text-amber-400 block relative z-10">
-                {onHoldCount}
-              </span>
-              <span className="text-[10px] font-black text-amber-700/80 dark:text-amber-300/80 uppercase tracking-widest mt-1.5 block relative z-10">
-                On Hold
+            {/* 2. In Progress Card */}
+            <div className="bg-gradient-to-br from-blue-500/15 via-blue-500/5 to-transparent dark:from-blue-500/20 dark:via-blue-500/5 dark:to-transparent border border-blue-500/30 dark:border-blue-500/40 rounded-2xl p-4 shadow-sm hover:shadow-lg hover:shadow-blue-500/10 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500/10 rounded-full -mr-6 -mt-6 blur-md group-hover:scale-125 transition-all duration-300" />
+              <div className="flex items-center justify-between relative z-10">
+                <span className="text-2xl font-black tracking-tight text-blue-600 dark:text-blue-400">
+                  {inProgressCount}
+                </span>
+                <FiTool className="text-blue-500/60 text-lg group-hover:text-blue-500 transition-colors" />
+              </div>
+              <span className="text-[10px] font-black text-blue-700/90 dark:text-blue-300/90 uppercase tracking-widest mt-2 block relative z-10">
+                In Progress
               </span>
             </div>
 
-            {/* Total Logged Card */}
-            <div className="bg-gradient-to-br from-slate-500/10 via-slate-500/5 to-transparent dark:from-slate-500/15 dark:via-slate-500/5 dark:to-transparent border border-slate-500/20 dark:border-slate-700/30 rounded-2xl p-4 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all duration-300 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-16 h-16 bg-slate-500/5 rounded-full -mr-6 -mt-6 blur-md group-hover:bg-slate-500/10 transition-all duration-300" />
-              <span className="text-2xl font-black tracking-tight theme-text-primary block relative z-10">
-                {calculateTotalLoggedTime(tasksState, allTasks, selectedDate)}
+            {/* 3. Pending Card */}
+            <div className="bg-gradient-to-br from-indigo-500/15 via-indigo-500/5 to-transparent dark:from-indigo-500/20 dark:via-indigo-500/5 dark:to-transparent border border-indigo-500/30 dark:border-indigo-500/40 rounded-2xl p-4 shadow-sm hover:shadow-lg hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-indigo-500/10 rounded-full -mr-6 -mt-6 blur-md group-hover:scale-125 transition-all duration-300" />
+              <div className="flex items-center justify-between relative z-10">
+                <span className="text-2xl font-black tracking-tight text-indigo-600 dark:text-indigo-400">
+                  {pendingCount}
+                </span>
+                <FiCalendar className="text-indigo-500/60 text-lg group-hover:text-indigo-500 transition-colors" />
+              </div>
+              <span className="text-[10px] font-black text-indigo-700/90 dark:text-indigo-300/90 uppercase tracking-widest mt-2 block relative z-10">
+                Pending
               </span>
-              <span className="text-[10px] font-black theme-text-secondary uppercase tracking-widest mt-1.5 block relative z-10">
-                Today total timetaken
+            </div>
+
+            {/* 4. Today Completed Card */}
+            <div className="bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/5 dark:to-transparent border border-emerald-500/30 dark:border-emerald-500/40 rounded-2xl p-4 shadow-sm hover:shadow-lg hover:shadow-emerald-500/10 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/10 rounded-full -mr-6 -mt-6 blur-md group-hover:scale-125 transition-all duration-300" />
+              <div className="flex items-center justify-between relative z-10">
+                <span className="text-2xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
+                  {todayCompletedCount}
+                </span>
+                <FiCheckCircle className="text-emerald-500/60 text-lg group-hover:text-emerald-500 transition-colors" />
+              </div>
+              <span className="text-[10px] font-black text-emerald-700/90 dark:text-emerald-300/90 uppercase tracking-widest mt-2 block relative z-10">
+                Today Completed
+              </span>
+            </div>
+
+            {/* 5. Previous Completed Card */}
+            <div className="bg-gradient-to-br from-teal-500/15 via-teal-500/5 to-transparent dark:from-teal-500/20 dark:via-teal-500/5 dark:to-transparent border border-teal-500/30 dark:border-teal-500/40 rounded-2xl p-4 shadow-sm hover:shadow-lg hover:shadow-teal-500/10 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-teal-500/10 rounded-full -mr-6 -mt-6 blur-md group-hover:scale-125 transition-all duration-300" />
+              <div className="flex items-center justify-between relative z-10">
+                <span className="text-2xl font-black tracking-tight text-teal-600 dark:text-teal-400">
+                  {previousCompletedCount}
+                </span>
+                <FiCheckCircle className="text-teal-500/60 text-lg group-hover:text-teal-500 transition-colors" />
+              </div>
+              <span className="text-[10px] font-black text-teal-700/90 dark:text-teal-300/90 uppercase tracking-widest mt-2 block relative z-10">
+                Previous Completed
+              </span>
+            </div>
+
+            {/* 6. Total Logged Card */}
+            <div className="bg-gradient-to-br from-purple-500/15 via-purple-500/5 to-transparent dark:from-purple-500/20 dark:via-purple-500/5 dark:to-transparent border border-purple-500/30 dark:border-purple-500/40 rounded-2xl p-4 shadow-sm hover:shadow-lg hover:shadow-purple-500/10 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/10 rounded-full -mr-6 -mt-6 blur-md group-hover:scale-125 transition-all duration-300" />
+              <div className="flex items-center justify-between relative z-10">
+                <span className="text-lg font-black tracking-tight text-purple-600 dark:text-purple-400 truncate">
+                  {calculateTotalLoggedTime(tasksState, allTasks, selectedDate)}
+                </span>
+                <FiClock className="text-purple-500/60 text-lg group-hover:text-purple-500 transition-colors shrink-0 ml-1" />
+              </div>
+              <span className="text-[10px] font-black text-purple-700/90 dark:text-purple-300/90 uppercase tracking-widest mt-2 block relative z-10">
+                Total Time Taken
               </span>
             </div>
           </div>

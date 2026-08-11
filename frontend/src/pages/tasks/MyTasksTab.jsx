@@ -1011,11 +1011,35 @@ const MyTasksTab = ({
       }
     };
 
+    const getStatusSortPriority = (task) => {
+      const s = (task.status || "Pending").toUpperCase();
+      if (s === "IN PROGRESS" || s === "IN_PROGRESS" || s === "INPROGRESS") {
+        return 1;
+      }
+      if (
+        s === "ON HOLD" ||
+        s === "ON_HOLD" ||
+        s === "ON-HOLD" ||
+        s === "PENDING" ||
+        s === "CORRECTION" ||
+        s === "REJECTED"
+      ) {
+        return 2;
+      }
+      if (s === "IN REVIEW" || s === "IN_REVIEW" || s === "IN-REVIEW") {
+        return 3;
+      }
+      if (s === "COMPLETED") {
+        return 4;
+      }
+      return 2;
+    };
+
     return [...list].sort((a, b) => {
-      const isCompletedA = a.status === "Completed" ? 1 : 0;
-      const isCompletedB = b.status === "Completed" ? 1 : 0;
-      if (isCompletedA !== isCompletedB) {
-        return isCompletedA - isCompletedB; // Completed tasks go to the end
+      const sRankA = getStatusSortPriority(a);
+      const sRankB = getStatusSortPriority(b);
+      if (sRankA !== sRankB) {
+        return sRankA - sRankB; // 1: In Progress, 2: On Hold, 3: In Review, 4: Completed
       }
       const pRankA = getPriorityRank(a);
       const pRankB = getPriorityRank(b);
@@ -1544,7 +1568,7 @@ const MyTasksTab = ({
         };
       case "In Progress":
         return {
-          bg: "!bg-blue-50 !text-blue-700 !border-blue-200 dark:!bg-blue-950/60 dark:!text-blue-300 dark:!border-blue-800/60",
+          bg: "!bg-blue-400 !text-white !border-blue-200 dark:!bg-blue-400 dark:!text-white dark:!border-blue-800/60",
           dot: "bg-blue-500",
           icon: FiClock,
         };
@@ -2556,13 +2580,6 @@ const MyTasksTab = ({
                       defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] whitespace-nowrap"
                     />
                     <ResizableHeader
-                      id="contentCopy"
-                      label="Content Copy"
-                      colWidths={colWidths}
-                      handleMouseDown={handleMouseDown}
-                      defaultClassName="px-20 py-2 border border-slate-200/70 dark:border-transparent min-w-[150px] max-w-[290px] w-auto whitespace-nowrap"
-                    />
-                    <ResizableHeader
                       id="client"
                       label="Client"
                       colWidths={colWidths}
@@ -2649,6 +2666,13 @@ const MyTasksTab = ({
                       defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-36 whitespace-nowrap"
                     />
                     <ResizableHeader
+                      id="contentCopy"
+                      label="Content Copy"
+                      colWidths={colWidths}
+                      handleMouseDown={handleMouseDown}
+                      defaultClassName="px-20 py-2 border border-slate-200/70 dark:border-transparent min-w-[150px] max-w-[290px] w-auto whitespace-nowrap"
+                    />
+                    <ResizableHeader
                       id="createdTime"
                       label="Created Time"
                       colWidths={colWidths}
@@ -2699,7 +2723,7 @@ const MyTasksTab = ({
                             {/* Priority Badge */}
                             <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center">
                               <span
-                                className={`inline-block text-center w-30 py-3 text-[11px] sm:text-[10px] rounded-[15px] font-bold whitespace-nowrap ${
+                                className={`inline-block text-center w-30 py-3 text-[11px] sm:text-[13px] rounded-[10px] font-bold whitespace-nowrap ${
                                   isSameDate(task.startDate, task.dueDate)
                                     ? "badge-priority-top-high"
                                     : getPriorityStyle(
@@ -2708,7 +2732,7 @@ const MyTasksTab = ({
                                 }`}
                               >
                                 {isSameDate(task.startDate, task.dueDate)
-                                  ? "🔴 Top High"
+                                  ? "Top High"
                                   : task.priority || "Medium"}
                               </span>
                             </td>
@@ -2748,39 +2772,6 @@ const MyTasksTab = ({
                                       Subtasks ({task.subtasks.length})
                                     </span>
                                   </button>
-                                )}
-                              </div>
-                            </td>
-
-                            {/* Content Copy */}
-                            <td
-                              className="px-3 py-2 border border-slate-200/70 dark:border-transparent"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="flex items-center gap-2 group/copy text-xs sm:text-[11px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap break-words w-full max-w-[250px]">
-                                {task.contentCopy ? (
-                                  <>
-                                    <span>{task.contentCopy}</span>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        navigator.clipboard.writeText(
-                                          task.contentCopy,
-                                        );
-                                        toast.success(
-                                          "Content copied to clipboard!",
-                                        );
-                                      }}
-                                      className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-blue-500 transition-all cursor-pointer shrink-0"
-                                      title="Copy to clipboard"
-                                    >
-                                      <FiCopy size={12} />
-                                    </button>
-                                  </>
-                                ) : (
-                                  <span className="text-slate-400 italic font-normal">
-                                    —
-                                  </span>
                                 )}
                               </div>
                             </td>
@@ -3238,6 +3229,39 @@ const MyTasksTab = ({
                                 reviewStartedAt={task.reviewStartedAt}
                                 status={task.status}
                               />
+                            </td>
+
+                            {/* Content Copy */}
+                            <td
+                              className="px-3 py-2 border border-slate-200/70 dark:border-transparent"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="flex items-center gap-2 group/copy text-xs sm:text-[11px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap break-words w-full max-w-[250px]">
+                                {task.contentCopy ? (
+                                  <>
+                                    <span>{task.contentCopy}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(
+                                          task.contentCopy,
+                                        );
+                                        toast.success(
+                                          "Content copied to clipboard!",
+                                        );
+                                      }}
+                                      className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-blue-500 transition-all cursor-pointer shrink-0"
+                                      title="Copy to clipboard"
+                                    >
+                                      <FiCopy size={12} />
+                                    </button>
+                                  </>
+                                ) : (
+                                  <span className="text-slate-400 italic font-normal">
+                                    —
+                                  </span>
+                                )}
+                              </div>
                             </td>
 
                             {/* Created Time */}
