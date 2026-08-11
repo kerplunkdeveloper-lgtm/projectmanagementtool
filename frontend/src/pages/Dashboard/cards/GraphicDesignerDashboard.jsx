@@ -882,17 +882,13 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           const startCheckDate =
             taskStartDate || taskDueDate || taskCreatedDate;
 
-          const status = task.status?.toLowerCase() || "";
+          const statusLower = task.status?.toLowerCase() || "";
           const isCompleted =
-            status === "completed" || status.includes("approve");
+            statusLower === "completed" || statusLower.includes("approve");
+          const isRejected =
+            statusLower.includes("reject") || statusLower.includes("cancel");
 
-          if (!isCompleted) {
-            if (startCheckDate) {
-              includeTask =
-                isSameDay(startCheckDate, selectedDate) ||
-                isBefore(startCheckDate, selectedDate);
-            }
-          } else {
+          if (isCompleted) {
             const completedDate = task.completedAt
               ? parseISO(task.completedAt)
               : task.updatedAt
@@ -901,6 +897,21 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             includeTask = completedDate
               ? isSameDay(completedDate, selectedDate)
               : false;
+          } else if (isRejected) {
+            const rejectedDate = task.rejectedAt
+              ? parseISO(task.rejectedAt)
+              : task.updatedAt
+                ? parseISO(task.updatedAt)
+                : null;
+            includeTask = rejectedDate
+              ? isSameDay(rejectedDate, selectedDate)
+              : false;
+          } else {
+            if (startCheckDate) {
+              includeTask =
+                isSameDay(startCheckDate, selectedDate) ||
+                isBefore(startCheckDate, selectedDate);
+            }
           }
 
           if (includeTask) {
@@ -949,24 +960,13 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       const taskDueDate = task.dueDate ? parseISO(task.dueDate) : null;
       const taskStartDate = task.startDate ? parseISO(task.startDate) : null;
 
+      const statusLower = task.status?.toLowerCase() || "";
       const isCompleted =
-        task.status?.toLowerCase() === "completed" ||
-        task.status?.toLowerCase().includes("approve");
+        statusLower === "completed" || statusLower.includes("approve");
+      const isRejected =
+        statusLower.includes("reject") || statusLower.includes("cancel");
 
-      // 1. If it's not completed, show it if the selectedDate is on or after its start date (or created date if no start date)
-      if (!isCompleted) {
-        const startCheckDate = taskStartDate || taskCreatedDate;
-        if (startCheckDate) {
-          const isStarted =
-            isSameDay(startCheckDate, selectedDate) ||
-            isBefore(startCheckDate, selectedDate);
-          if (isStarted) {
-            return true;
-          }
-        }
-      }
-
-      // 2. Completed tasks: ONLY show them on the day they were actually completed
+      // 1. Completed tasks: ONLY show them on the day they were actually completed
       if (isCompleted) {
         const completedDate = task.completedAt
           ? parseISO(task.completedAt)
@@ -974,6 +974,27 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             ? parseISO(task.updatedAt)
             : null;
         return completedDate ? isSameDay(completedDate, selectedDate) : false;
+      }
+
+      // 2. Rejected tasks: ONLY show them on the day they were rejected (no carryforward)
+      if (isRejected) {
+        const rejectedDate = task.rejectedAt
+          ? parseISO(task.rejectedAt)
+          : task.updatedAt
+            ? parseISO(task.updatedAt)
+            : null;
+        return rejectedDate ? isSameDay(rejectedDate, selectedDate) : false;
+      }
+
+      // 3. Unfinished active tasks: show if selectedDate is on or after its start date (or created date if no start date)
+      const startCheckDate = taskStartDate || taskCreatedDate;
+      if (startCheckDate) {
+        const isStarted =
+          isSameDay(startCheckDate, selectedDate) ||
+          isBefore(startCheckDate, selectedDate);
+        if (isStarted) {
+          return true;
+        }
       }
 
       return false;
@@ -1188,10 +1209,12 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       if (cols[col]) cols[col].push(task);
 
       // Mirror incomplete tasks that have a due date in the Overall Overdue column
-      const isCompleted =
+      const isCompletedOrRejected =
         task.status?.toLowerCase() === "completed" ||
-        task.status?.toLowerCase().includes("approve");
-      if (!isCompleted && task.dueDate) {
+        task.status?.toLowerCase().includes("approve") ||
+        task.status?.toLowerCase().includes("reject") ||
+        task.status?.toLowerCase().includes("cancel");
+      if (!isCompletedOrRejected && task.dueDate) {
         const daysRemaining = getDaysRemaining(task.dueDate, selectedDate);
         if (daysRemaining !== null) {
           cols["Overall Overdue"].push(task);
@@ -1230,18 +1253,20 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       myTasks.forEach((t) => {
         const s = t.status?.toLowerCase() || "";
         const isCompleted = s === "completed" || s.includes("approve");
+        const isRejected = s.includes("reject") || s.includes("cancel");
 
         if (isCompleted) comp++;
         else if (s.includes("hold")) hold++;
         else if (s.includes("progress")) prog++;
         else if (s.includes("review") || s.includes("revision")) rev++;
         else if (s === "pending") pend++;
-        else pend++; // default fallback
+        else if (!isRejected) pend++; // default fallback
 
         if (
           t.dueDate &&
           isBefore(startOfDay(parseISO(t.dueDate)), startOfDay(selectedDate)) &&
-          !isCompleted
+          !isCompleted &&
+          !isRejected
         )
           over++;
 
@@ -2715,11 +2740,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       <div className="relative z-10 scroll-mt-6" ref={performanceTableRef}>
         {/* Team Performance */}
         <div className="sidebar-bg dark:sidebar-bg backdrop-blur-xl rounded-2xl  overflow-hidden shadow-sm dark:shadow-2xl">
-          <div className="p-4 border-b  bg-slate-50 dark:bg-transparent flex justify-between items-center">
-            <h3 className="text-sm font-bold text-slate-800 dark:text-white tracking-widest ">
+          <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-transparent flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-white tracking-widest">
               {targetDept} Performance
             </h3>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center flex-wrap gap-2.5 sm:gap-3">
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40">
                 <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
                   Office:
@@ -3256,13 +3281,12 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           )}
         </div>
       </div>
-      {/* View Tasks Modal */}
-      {viewTasksModal.open &&
+         {viewTasksModal.open &&
         createPortal(
-          <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[999] flex items-center justify-center p-2 sm:p-4 md:p-6">
             {/* Backdrop */}
             <div
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              className="absolute inset-0 bg-slate-900/70 backdrop-blur-md transition-opacity"
               onClick={() =>
                 setViewTasksModal({
                   open: false,
@@ -3271,54 +3295,80 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                 })
               }
             />
-            {/* Modal Content */}
+            {/* Modal Content Window */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative z-10 bg-white dark:bg-[#0f172a] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-6xl h-[85vh] overflow-hidden flex flex-col"
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="relative z-10 bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-2xl w-full max-w-6xl h-[92vh] sm:h-[88vh] overflow-hidden flex flex-col"
             >
               {/* Header */}
-              <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+              <div className="p-3.5 sm:p-5 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex flex-col lg:flex-row lg:items-center justify-between gap-3 shrink-0">
                 <div className="flex items-center gap-3">
                   {activeDesigner?.profileImage ? (
                     <img
                       src={activeDesigner.profileImage}
                       alt={activeDesigner.name}
-                      className="w-9 h-9 rounded-full object-cover border border-indigo-500/20"
+                      className="w-10 h-10 rounded-full object-cover border-2 border-indigo-500/30 shadow-sm shrink-0"
                     />
                   ) : (
-                    <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-black">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center text-white text-xs font-black shrink-0 shadow-sm">
                       {getInitials(activeDesigner?.name)}
                     </div>
                   )}
-                  <div>
-                    <h3 className="text-sm sm:text-base font-black text-slate-800 dark:text-white tracking-wide">
+                  <div className="min-w-0">
+                    <h3 className="text-sm sm:text-base font-black text-slate-850 dark:text-white tracking-wide truncate">
                       {activeDesigner?.name}'s Performance Details
                     </h3>
                     <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-350 font-black text-[9px] border border-slate-200 dark:border-slate-750">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-200/60 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold text-[9.5px] border border-slate-300/50 dark:border-slate-700">
                         Today: {format(new Date(), "dd MMM yyyy")}
                       </span>
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-red-50/70 dark:bg-red-950/20 text-red-655 dark:text-red-400 font-black text-[9px] border border-red-150 dark:border-red-900/20">
-                        Today Assigned: {activeDesigner?.assigned || 0}
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-red-500/10 text-red-600 dark:text-red-400 font-extrabold text-[9.5px] border border-red-500/20">
+                        Assigned Today: {activeDesigner?.assigned || 0}
                       </span>
+                      {(activeDesigner?.overdue || 0) > 0 && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-rose-500/15 text-rose-600 dark:text-rose-400 font-extrabold text-[9.5px] border border-rose-500/30 animate-pulse">
+                          Overdue: {activeDesigner?.overdue}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center flex-wrap gap-2.5 sm:gap-3 ml-12 sm:ml-0">
-                  {/* status filter venum */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9.5px] font-black text-slate-400 dark:text-slate-555 uppercase tracking-widest">
-                      Filter:
-                    </span>
+                <div className="flex items-center flex-wrap sm:flex-nowrap gap-2 sm:gap-3">
+                  {/* Search Input */}
+                  <div className="relative flex-1 sm:w-48 min-w-[130px]">
+                    <FiSearch
+                      className="absolute left-2.5 top-2.5 text-slate-400 dark:text-slate-500"
+                      size={13}
+                    />
+                    <input
+                      type="text"
+                      value={taskSearch}
+                      onChange={(e) => setTaskSearch(e.target.value)}
+                      placeholder="Search task or client..."
+                      className="w-full pl-8 pr-3 py-1.5 text-xs font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all shadow-inner"
+                    />
+                    {taskSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setTaskSearch("")}
+                        className="absolute right-2 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-white"
+                      >
+                        <FiX size={12} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Status Filter Dropdown */}
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <select
                       value={taskTab}
                       onChange={(e) => setTaskTab(e.target.value)}
-                      className="px-2 py-1 text-[11px] font-bold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-lg text-slate-705 dark:text-white placeholder-slate-450 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-all shadow-sm cursor-pointer"
+                      className="px-2.5 py-1.5 text-xs font-extrabold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-750 rounded-xl text-slate-750 dark:text-white focus:outline-none focus:border-indigo-500 transition-all shadow-sm cursor-pointer"
                     >
-                      <option value="all">All</option>
+                      <option value="all">All Tasks</option>
                       <option value="pending">Pending</option>
                       <option value="inprogress">In Progress</option>
                       <option value="onhold">On Hold</option>
@@ -3326,17 +3376,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       <option value="completed">Completed</option>
                     </select>
                   </div>
-
-                  {/* overdue details */}
-                  <span
-                    className={`px-1.5 py-0.5 text-[10px] font-black uppercase rounded-lg border ${
-                      (activeDesigner?.overdue || 0) > 0
-                        ? "bg-red-50 text-red-655 border-red-200 dark:bg-red-950/30 dark:text-red-450 dark:border-red-900/30 animate-pulse shadow-sm"
-                        : "bg-rose-50 text-rose-700 border-rose-250 dark:bg-rose-950/30 dark:text-rose-300 dark:border-rose-900/30"
-                    }`}
-                  >
-                    Overdue: {activeDesigner?.overdue || 0}
-                  </span>
 
                   <button
                     type="button"
@@ -3347,71 +3386,66 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         designerName: "",
                       })
                     }
-                    className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-350 transition-all cursor-pointer shrink-0"
+                    className="p-1.5 rounded-xl hover:bg-slate-200/80 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-all cursor-pointer shrink-0"
+                    title="Close"
                   >
-                    <FiX size={16} />
+                    <FiX size={18} />
                   </button>
                 </div>
               </div>
 
               {/* Modal Body Container */}
               <div className="flex-1 flex flex-col overflow-hidden min-h-0">
-                {/* Top Side: Card Metrics list in grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 p-6 border-b border-slate-100 dark:border-slate-800/60 bg-slate-50/30 dark:bg-slate-900/10 shrink-0 select-none">
+                {/* Top Metrics Strip (Swipable on mobile, grid on desktop) */}
+                <div className="flex sm:grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3.5 p-3.5 sm:p-5 border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/30 overflow-x-auto custom-scrollbar shrink-0 select-none">
                   {[
                     {
                       id: "all",
                       label: "Assigned",
                       count: modalTabCounts.all,
-                      colorClass: "text-blue-600 dark:text-blue-400",
-                      dotBg: "bg-blue-500",
                       activeClass:
-                        "ring-2 ring-blue-500 bg-blue-500 text-white border-transparent",
+                        "bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md shadow-blue-500/20 scale-[1.02]",
+                      dotBg: "bg-blue-500",
                     },
                     {
                       id: "pending",
                       label: "Pending",
                       count: modalTabCounts.pending,
-                      colorClass: "text-rose-650 dark:text-rose-400",
-                      dotBg: "bg-rose-500",
                       activeClass:
-                        "ring-2 ring-rose-500 bg-rose-500 text-white border-transparent",
+                        "bg-gradient-to-br from-rose-500 to-pink-600 text-white shadow-md shadow-rose-500/20 scale-[1.02]",
+                      dotBg: "bg-rose-500",
                     },
                     {
                       id: "inprogress",
                       label: "In Progress",
                       count: modalTabCounts.inprogress,
-                      colorClass: "text-violet-650 dark:text-violet-400",
-                      dotBg: "bg-violet-500",
                       activeClass:
-                        "ring-2 ring-violet-500 bg-violet-500 text-white border-transparent",
+                        "bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-md shadow-violet-500/20 scale-[1.02]",
+                      dotBg: "bg-violet-500",
                     },
                     {
                       id: "onhold",
                       label: "On Hold",
                       count: modalTabCounts.onhold,
-                      colorClass: "text-fuchsia-650 dark:text-fuchsia-400",
-                      dotBg: "bg-fuchsia-500",
                       activeClass:
-                        "ring-2 ring-fuchsia-500 bg-fuchsia-500 text-white border-transparent",
+                        "bg-gradient-to-br from-fuchsia-500 to-pink-600 text-white shadow-md shadow-fuchsia-500/20 scale-[1.02]",
+                      dotBg: "bg-fuchsia-500",
                     },
                     {
                       id: "inreview",
                       label: "In Review",
                       count: modalTabCounts.inreview,
-                      colorClass: "text-amber-600 dark:text-amber-400",
-                      dotBg: "bg-amber-500",
                       activeClass:
-                        "ring-2 ring-amber-500 bg-amber-500 text-white border-transparent",
+                        "bg-gradient-to-br from-amber-500 to-yellow-600 text-white shadow-md shadow-amber-500/20 scale-[1.02]",
+                      dotBg: "bg-amber-500",
                     },
                     {
                       id: "completed",
                       label: "Completed",
                       count: modalTabCounts.completed,
-                      colorClass: "text-emerald-650 dark:text-emerald-400",
-                      dotBg: "bg-emerald-500",
                       activeClass:
-                        "ring-2 ring-emerald-500 bg-emerald-500 text-white border-transparent",
+                        "bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20 scale-[1.02]",
+                      dotBg: "bg-emerald-500",
                     },
                   ].map((card) => {
                     const isActive = taskTab === card.id;
@@ -3420,30 +3454,44 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         key={card.id}
                         type="button"
                         onClick={() => setTaskTab(card.id)}
-                        className={`p-4 rounded-xl border text-left transition-all hover:scale-[1.03] flex flex-col justify-between h-24 relative overflow-hidden shadow-sm duration-200 cursor-pointer ${
+                        className={`p-3 sm:p-3.5 rounded-2xl border text-left transition-all duration-200 flex flex-col justify-between min-w-[110px] sm:min-w-0 h-20 sm:h-22 relative overflow-hidden cursor-pointer ${
                           isActive
-                            ? card.activeClass
-                            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"
+                            ? `${card.activeClass} border-transparent`
+                            : "bg-white dark:bg-slate-900/80 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-2xs hover:scale-[1.01]"
                         }`}
                       >
                         <div className="flex items-center justify-between w-full">
                           <span
-                            className={`text-[10px] font-black uppercase tracking-widest ${isActive ? "text-white/85" : "text-slate-400 dark:text-slate-500"}`}
+                            className={`text-[9.5px] sm:text-[10px] font-black uppercase tracking-wider ${
+                              isActive
+                                ? "text-white/90"
+                                : "text-slate-400 dark:text-slate-500"
+                            }`}
                           >
                             {card.label}
                           </span>
                           <span
-                            className={`w-2 h-2 rounded-full ${isActive ? "bg-white" : card.dotBg}`}
+                            className={`w-2 h-2 rounded-full shrink-0 ${
+                              isActive ? "bg-white" : card.dotBg
+                            }`}
                           />
                         </div>
-                        <div className="mt-2 flex items-baseline gap-1">
+                        <div className="mt-1.5 flex items-baseline gap-1">
                           <span
-                            className={`text-2xl font-black ${isActive ? "text-white" : "text-slate-800 dark:text-white"}`}
+                            className={`text-xl sm:text-2xl font-black ${
+                              isActive
+                                ? "text-white"
+                                : "text-slate-850 dark:text-white"
+                            }`}
                           >
                             {card.count}
                           </span>
                           <span
-                            className={`text-[9px] font-bold ${isActive ? "text-white/77" : "text-slate-400"}`}
+                            className={`text-[9px] font-bold ${
+                              isActive
+                                ? "text-white/80"
+                                : "text-slate-400 dark:text-slate-500"
+                            }`}
                           >
                             tasks
                           </span>
@@ -3453,436 +3501,377 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   })}
                 </div>
 
-                {/* Bottom Side: Task details table */}
-                <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-[#0f172a] p-6 overflow-hidden">
-                  {/* Table Content */}
+                {/* Main Task List Container */}
+                <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-[#0f172a] p-3 sm:p-5 overflow-hidden">
                   <div
-                    className="flex-1 overflow-y-auto min-h-0 scroll-smooth custom-scrollbar"
-                    style={{
-                      scrollBehavior: "smooth",
-                      WebkitOverflowScrolling: "touch",
-                    }}
+                    className="flex-1 overflow-y-auto min-h-0 custom-scrollbar pr-0 sm:pr-1"
+                    style={{ WebkitOverflowScrolling: "touch" }}
                   >
                     {filteredModalTasks.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-16 text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-900/10 rounded-2xl border border-dashed border-slate-200 dark:border-slate-850">
+                      <div className="flex flex-col items-center justify-center py-16 text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-900/20 rounded-3xl border border-dashed border-slate-200 dark:border-slate-800">
                         <FiLayers
-                          size={36}
-                          className="mb-3 opacity-40 text-slate-400"
+                          size={40}
+                          className="mb-3 opacity-30 text-indigo-500"
                         />
-                        <p className="text-sm font-black uppercase tracking-widest text-slate-500">
+                        <p className="text-sm font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">
                           No tasks found
                         </p>
-                        <p className="text-xs text-slate-400 dark:text-slate-550 mt-1 font-semibold">
-                          Try modifying your search or status filter
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 font-bold">
+                          Try changing your filter tab or search keyword
                         </p>
                       </div>
                     ) : (
-                      <div className="border border-slate-200 dark:border-slate-850 rounded-2xl overflow-x-auto shadow-sm bg-white dark:bg-slate-900/20 custom-scrollbar">
-                        <table className="w-full text-left border-collapse min-w-[1050px]">
-                          <thead>
-                            <tr className="bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-850">
-                              <th className="py-3 px-4 text-[11px] font-black tracking-widest text-slate-500 dark:text-slate-455 uppercase">
-                                Task Title
-                              </th>
-                              <th className="py-3 px-4 text-[11px] font-black tracking-widest text-slate-500 dark:text-slate-455 uppercase">
-                                Client
-                              </th>
-                              <th className="py-3 px-4 text-[11px] font-black tracking-widest text-slate-500 dark:text-slate-455 uppercase">
-                                Created By
-                              </th>
-                              <th className="py-3 px-4 text-[11px] font-black tracking-widest text-slate-500 dark:text-slate-455 uppercase">
-                                Priority
-                              </th>
-                              <th className="py-3 px-4 text-[11px] font-black tracking-widest text-slate-500 dark:text-slate-455 uppercase">
-                                {taskTab === "assigned"
-                                  ? "Assigned Date"
-                                  : taskTab === "pending"
-                                    ? "Pending Since"
-                                    : taskTab === "inprogress"
-                                      ? "Started At"
-                                      : taskTab === "onhold"
-                                        ? "Paused At"
-                                        : taskTab === "inreview"
-                                          ? "Submitted At"
-                                          : taskTab === "completed"
-                                            ? "Completed At"
-                                            : "Due Date"}
-                              </th>
-                              <th className="py-3 px-4 text-[11px] font-black tracking-widest text-slate-500 dark:text-slate-455 uppercase">
-                                Status
-                              </th>
-                              <th className="py-3 px-4 text-[11px] font-black tracking-widest text-slate-500 dark:text-slate-455 uppercase text-center">
-                                Approval Timeline
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-150 dark:divide-slate-850">
-                            {filteredModalTasks.map((task) => {
-                              let clientName = "No Client";
-                              if (task.client) {
-                                const cId =
-                                  typeof task.client === "object"
-                                    ? task.client._id
-                                    : task.client;
-                                const c = clients?.find((x) => x._id === cId);
-                                clientName =
-                                  c?.companyName ||
-                                  c?.name ||
-                                  (typeof task.client === "object"
-                                    ? task.client.companyName ||
-                                      task.client.name
-                                    : "Unknown Client");
-                              } else if (task.project) {
-                                const pId =
-                                  typeof task.project === "object"
-                                    ? task.project._id
-                                    : task.project;
-                                const p = projects?.find((x) => x._id === pId);
-                                if (p) {
+                      <>
+                        {/* DESKTOP TABLE VIEW (hidden on small mobile screens) */}
+                        <div className="hidden md:block border border-slate-200/80 dark:border-slate-800 rounded-2xl overflow-x-auto shadow-2xs bg-white dark:bg-slate-900/30 custom-scrollbar">
+                          <table className="w-full text-left border-collapse min-w-[950px]">
+                            <thead>
+                              <tr className="bg-slate-50/80 dark:bg-slate-900/80 border-b border-slate-200/80 dark:border-slate-800">
+                                <th className="py-3 px-4 text-[11px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                                  Task Title
+                                </th>
+                                <th className="py-3 px-4 text-[11px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                                  Client
+                                </th>
+                                <th className="py-3 px-4 text-[11px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                                  Created By
+                                </th>
+                                <th className="py-3 px-4 text-[11px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                                  Priority
+                                </th>
+                                <th className="py-3 px-4 text-[11px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                                  {taskTab === "assigned"
+                                    ? "Assigned Date"
+                                    : taskTab === "pending"
+                                      ? "Pending Since"
+                                      : taskTab === "inprogress"
+                                        ? "Started At"
+                                        : taskTab === "onhold"
+                                          ? "Paused At"
+                                          : taskTab === "inreview"
+                                            ? "Submitted At"
+                                            : taskTab === "completed"
+                                              ? "Completed At"
+                                              : "Due Date"}
+                                </th>
+                                <th className="py-3 px-4 text-[11px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                                  Status
+                                </th>
+                                <th className="py-3 px-4 text-[11px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase text-center">
+                                  Approval Timeline
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                              {filteredModalTasks.map((task) => {
+                                let clientName = "No Client";
+                                if (task.client) {
                                   const cId =
-                                    typeof p.client === "object"
-                                      ? p.client?._id
-                                      : p.client;
+                                    typeof task.client === "object"
+                                      ? task.client._id
+                                      : task.client;
                                   const c = clients?.find((x) => x._id === cId);
                                   clientName =
                                     c?.companyName ||
                                     c?.name ||
-                                    (typeof p.client === "object"
-                                      ? p.client?.companyName || p.client?.name
+                                    (typeof task.client === "object"
+                                      ? task.client.companyName ||
+                                        task.client.name
                                       : "Unknown Client");
+                                } else if (task.project) {
+                                  const pId =
+                                    typeof task.project === "object"
+                                      ? task.project._id
+                                      : task.project;
+                                  const p = projects?.find(
+                                    (x) => x._id === pId,
+                                  );
+                                  if (p) {
+                                    const cId =
+                                      typeof p.client === "object"
+                                        ? p.client?._id
+                                        : p.client;
+                                    const c = clients?.find(
+                                      (x) => x._id === cId,
+                                    );
+                                    clientName =
+                                      c?.companyName ||
+                                      c?.name ||
+                                      (typeof p.client === "object"
+                                        ? p.client?.companyName || p.client?.name
+                                        : "Unknown Client");
+                                  }
                                 }
-                              }
 
-                              const getStatusBadgeStyle = (status = "") => {
-                                const s = status.toLowerCase();
-                                if (
-                                  s === "completed" ||
-                                  s.includes("approve")
-                                ) {
-                                  return "bg-emerald-50 text-emerald-650 border border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-455 dark:border-emerald-900/30";
-                                }
-                                if (s.includes("hold")) {
-                                  return "bg-fuchsia-50 text-fuchsia-655 border border-fuchsia-200 dark:bg-fuchsia-950/30 dark:text-fuchsia-450 dark:border-fuchsia-900/30";
-                                }
-                                if (s.includes("progress")) {
-                                  return "bg-sky-50 text-sky-655 border border-sky-205 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/30";
-                                }
-                                if (
-                                  s.includes("review") ||
-                                  s.includes("revision")
-                                ) {
-                                  return "bg-amber-50 text-amber-655 border border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/30";
-                                }
-                                if (s === "assigned") {
-                                  return "bg-blue-50 text-blue-655 border border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/30";
-                                }
-                                return "bg-rose-50 text-rose-655 border border-rose-200 dark:bg-rose-950/30 dark:text-rose-455 dark:border-rose-900/30";
-                              };
+                                const getStatusBadgeStyle = (status = "") => {
+                                  const s = status.toLowerCase();
+                                  if (
+                                    s === "completed" ||
+                                    s.includes("approve")
+                                  ) {
+                                    return "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/30 font-black";
+                                  }
+                                  if (s.includes("hold")) {
+                                    return "bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 dark:bg-fuchsia-950/40 dark:text-fuchsia-400 dark:border-fuchsia-900/30 font-black";
+                                  }
+                                  if (s.includes("progress")) {
+                                    return "bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/40 dark:text-violet-400 dark:border-violet-900/30 font-black";
+                                  }
+                                  if (
+                                    s.includes("review") ||
+                                    s.includes("revision")
+                                  ) {
+                                    return "bg-amber-50 text-amber-800 border border-amber-250 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/30 font-black";
+                                  }
+                                  if (s === "assigned") {
+                                    return "bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/30 font-black";
+                                  }
+                                  return "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/30 font-black";
+                                };
 
-                              return (
-                                <tr
-                                  key={task._id}
-                                  className="hover:bg-slate-50/70 dark:hover:bg-slate-800/50 transition-all duration-155 border-b border-slate-100 dark:border-slate-850 last:border-b-0"
-                                >
-                                  <td className="py-2 px-3 text-xs font-black text-slate-850 dark:text-slate-100 max-w-xs break-words">
-                                    <span className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                                      {task.title}
-                                    </span>
-                                  </td>
-                                  <td className="py-2 px-3">
-                                    <span
-                                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[10px] font-bold shadow-sm ${(() => {
-                                        const colors = [
-                                          "bg-indigo-50 text-indigo-750 border-indigo-200 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/30",
-                                          "bg-emerald-50 text-emerald-750 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/30",
-                                          "bg-blue-50 text-blue-750 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/30",
-                                          "bg-purple-50 text-purple-755 border-purple-200 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-900/30",
-                                          "bg-amber-50 text-amber-755 border-amber-250 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/30",
-                                          "bg-rose-50 text-rose-755 border-rose-200 dark:bg-rose-950/30 dark:text-rose-450 dark:border-rose-900/30",
-                                          "bg-sky-50 text-sky-755 border-sky-200 dark:bg-sky-950/30 dark:text-sky-400 dark:border-sky-900/30",
-                                          "bg-teal-50 text-teal-755 border-teal-200 dark:bg-teal-950/30 dark:text-teal-400 dark:border-teal-900/30",
-                                        ];
-                                        let hash = 0;
-                                        for (
-                                          let i = 0;
-                                          i < clientName.length;
-                                          i++
-                                        ) {
-                                          hash =
-                                            clientName.charCodeAt(i) +
-                                            ((hash << 5) - hash);
-                                        }
-                                        const index =
-                                          Math.abs(hash) % colors.length;
-                                        return colors[index];
-                                      })()}`}
-                                    >
-                                      <FiBriefcase
-                                        size={9}
-                                        className="opacity-80"
-                                      />
-                                      {clientName}
-                                    </span>
-                                  </td>
-                                  <td className="py-2 px-3">
-                                    {(() => {
-                                      const creatorObj =
-                                        task.createdBy &&
-                                        typeof task.createdBy === "object"
-                                          ? task.createdBy
-                                          : users?.find(
-                                              (u) => u._id === task.createdBy,
-                                            );
-                                      const creatorName =
-                                        creatorObj?.name || "Unknown";
-                                      const creatorImage =
-                                        (typeof creatorObj?.profile
-                                          ?.profileImage === "object"
-                                          ? creatorObj?.profile?.profileImage
-                                              ?.url
-                                          : creatorObj?.profile
-                                              ?.profileImage) ||
-                                        (typeof creatorObj?.profileImage ===
-                                        "object"
-                                          ? creatorObj?.profileImage?.url
-                                          : creatorObj?.profileImage) ||
-                                        creatorObj?.profilePic ||
-                                        creatorObj?.avatar ||
-                                        creatorObj?.profile?.profilePic ||
-                                        creatorObj?.profile?.avatar ||
-                                        null;
-
-                                      return (
-                                        <div className="flex items-center gap-1.5">
-                                          {creatorImage ? (
-                                            <img
-                                              src={creatorImage}
-                                              alt={creatorName}
-                                              className="w-4.5 h-4.5 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shrink-0"
-                                            />
-                                          ) : (
-                                            <div className="w-4.5 h-4.5 rounded-full bg-slate-205 dark:bg-slate-750 text-slate-750 dark:text-slate-300 flex items-center justify-center text-[7.5px] font-black ring-1 ring-slate-300 shrink-0">
-                                              {getInitials(creatorName)}
-                                            </div>
-                                          )}
-                                          <span className="text-[10px] font-bold text-slate-700 dark:text-slate-350">
-                                            {creatorName}
-                                          </span>
-                                        </div>
+                                const creatorObj =
+                                  task.createdBy &&
+                                  typeof task.createdBy === "object"
+                                    ? task.createdBy
+                                    : users?.find(
+                                        (u) => u._id === task.createdBy,
                                       );
-                                    })()}
-                                  </td>
-                                  <td className="py-2 px-3">
-                                    {task.priority && (
-                                      <span
-                                        className={`px-1.5 py-0.5 rounded-md text-[8.5px] font-black uppercase tracking-wider shadow-sm ${getPriorityStyle(task.priority)}`}
-                                      >
-                                        {task.priority}
+                                const creatorName =
+                                  creatorObj?.name || "Unknown";
+                                const creatorImage =
+                                  (typeof creatorObj?.profile?.profileImage ===
+                                  "object"
+                                    ? creatorObj?.profile?.profileImage?.url
+                                    : creatorObj?.profile?.profileImage) ||
+                                  (typeof creatorObj?.profileImage === "object"
+                                    ? creatorObj?.profileImage?.url
+                                    : creatorObj?.profileImage) ||
+                                  creatorObj?.profilePic ||
+                                  creatorObj?.avatar ||
+                                  null;
+
+                                let targetDate = task.dueDate || task.createdAt;
+                                if (taskTab === "assigned")
+                                  targetDate = task.createdAt;
+                                else if (taskTab === "pending")
+                                  targetDate = task.createdAt;
+                                else if (taskTab === "inprogress")
+                                  targetDate =
+                                    task.actualStartTime || task.updatedAt;
+                                else if (taskTab === "onhold")
+                                  targetDate =
+                                    task.pausedAt || task.updatedAt;
+                                else if (taskTab === "inreview")
+                                  targetDate =
+                                    task.actualEndTime || task.updatedAt;
+                                else if (taskTab === "completed")
+                                  targetDate =
+                                    task.approvedAt ||
+                                    task.completedAt ||
+                                    task.actualEndTime ||
+                                    task.updatedAt;
+
+                                return (
+                                  <tr
+                                    key={task._id}
+                                    className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors border-b border-slate-100 dark:border-slate-800/80 last:border-b-0"
+                                  >
+                                    <td className="py-3 px-4 text-xs font-extrabold text-slate-850 dark:text-slate-100 max-w-xs break-words">
+                                      <span className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                                        {task.title}
                                       </span>
-                                    )}
-                                  </td>
-                                  <td className="py-2 px-3 text-xs text-slate-500 dark:text-slate-400">
-                                    {(() => {
-                                      let targetDate = null;
-                                      if (taskTab === "assigned")
-                                        targetDate = task.createdAt;
-                                      else if (taskTab === "pending")
-                                        targetDate = task.createdAt;
-                                      else if (taskTab === "inprogress")
-                                        targetDate =
-                                          task.actualStartTime ||
-                                          task.updatedAt;
-                                      else if (taskTab === "onhold")
-                                        targetDate =
-                                          task.pausedAt ||
-                                          task.blockerPausedAt ||
-                                          task.updatedAt;
-                                      else if (taskTab === "inreview")
-                                        targetDate =
-                                          task.actualEndTime || task.updatedAt;
-                                      else if (taskTab === "completed")
-                                        targetDate =
-                                          task.approvedAt ||
-                                          task.actualEndTime ||
-                                          task.updatedAt;
-                                      else
-                                        targetDate =
-                                          task.dueDate || task.createdAt;
+                                    </td>
+                                    <td className="py-3 px-4">
+                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg border text-[10px] font-extrabold bg-slate-100/70 text-slate-700 border-slate-200 dark:bg-slate-800/60 dark:text-slate-300 dark:border-slate-700 shadow-2xs">
+                                        <FiBriefcase
+                                          size={10}
+                                          className="text-slate-400 shrink-0"
+                                        />
+                                        {clientName}
+                                      </span>
+                                    </td>
+                                    <td className="py-3 px-4">
+                                      <div className="flex items-center gap-2">
+                                        {creatorImage ? (
+                                          <img
+                                            src={creatorImage}
+                                            alt={creatorName}
+                                            className="w-5 h-5 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shrink-0"
+                                          />
+                                        ) : (
+                                          <div className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[8px] font-black shrink-0">
+                                            {getInitials(creatorName)}
+                                          </div>
+                                        )}
+                                        <span className="text-[11px] font-bold text-slate-750 dark:text-slate-300">
+                                          {creatorName}
+                                        </span>
+                                      </div>
+                                    </td>
+                                    <td className="py-3 px-4">
+                                      {task.priority && (
+                                        <span
+                                          className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider ${getPriorityStyle(
+                                            task.priority,
+                                          )}`}
+                                        >
+                                          {task.priority}
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="py-3 px-4 text-xs font-semibold text-slate-600 dark:text-slate-350">
+                                      {targetDate ? (
+                                        <span className="flex items-center gap-1 text-[11px]">
+                                          <FiClock
+                                            size={11}
+                                            className="text-slate-400 shrink-0"
+                                          />
+                                          {format(
+                                            parseISO(targetDate),
+                                            "MMM dd, h:mm a",
+                                          )}
+                                        </span>
+                                      ) : (
+                                        "—"
+                                      )}
+                                    </td>
+                                    <td className="py-3 px-4">
+                                      <span
+                                        className={`px-2.5 py-0.5 rounded-lg text-[10px] uppercase tracking-wider ${getStatusBadgeStyle(
+                                          task.status,
+                                        )}`}
+                                      >
+                                        {task.status || "Pending"}
+                                      </span>
+                                    </td>
+                                    <td className="py-3 px-4 text-center">
+                                      <ApprovalTimelineCell task={task} />
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
 
-                                      if (!targetDate)
-                                        return (
-                                          <span className="text-slate-400 font-medium italic text-[11px]">
-                                            -
-                                          </span>
-                                        );
-                                      try {
-                                        const dateObj = parseISO(targetDate);
-                                        const taskStatus = (
-                                          task.status || ""
-                                        ).toLowerCase();
+                        {/* MOBILE CARD VIEW (Optimized for small touch screens) */}
+                        <div className="block md:hidden space-y-3">
+                          {filteredModalTasks.map((task) => {
+                            let clientName = "No Client";
+                            if (task.client) {
+                              const cId =
+                                typeof task.client === "object"
+                                  ? task.client._id
+                                  : task.client;
+                              const c = clients?.find((x) => x._id === cId);
+                              clientName =
+                                c?.companyName || c?.name || "Unknown Client";
+                            }
 
-                                        if (
-                                          taskStatus === "completed" ||
-                                          taskStatus.includes("approve")
-                                        ) {
-                                          return (
-                                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-50/90 dark:bg-emerald-950/40 text-emerald-650 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/30 shadow-sm transition-all hover:scale-[1.02]">
-                                              <FiCheckCircle
-                                                size={10}
-                                                className="shrink-0 text-emerald-500 animate-pulse"
-                                              />
-                                              <span className="tracking-wide text-[9px]">
-                                                Done
-                                              </span>
-                                              <span className="w-[1px] h-2.5 bg-emerald-300 dark:bg-emerald-800" />
-                                              <span className="text-[9px] font-semibold opacity-90">
-                                                {format(
-                                                  dateObj,
-                                                  "MMM dd, h:mm a",
-                                                )}
-                                              </span>
-                                            </div>
-                                          );
-                                        }
+                            const creatorObj =
+                              task.createdBy &&
+                              typeof task.createdBy === "object"
+                                ? task.createdBy
+                                : users?.find((u) => u._id === task.createdBy);
+                            const creatorName = creatorObj?.name || "Unknown";
 
-                                        if (
-                                          taskStatus.includes("review") ||
-                                          taskStatus.includes("revision")
-                                        ) {
-                                          return (
-                                            <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-50/90 dark:bg-amber-950/40 text-amber-650 dark:text-amber-400 border border-amber-200 dark:border-amber-900/30 shadow-sm transition-all hover:scale-[1.02]">
-                                              <FiClock
-                                                size={10}
-                                                className="shrink-0 text-amber-505 animate-spin"
-                                                style={{
-                                                  animationDuration: "4s",
-                                                }}
-                                              />
-                                              <span className="tracking-wide text-[9px]">
-                                                In Review
-                                              </span>
-                                              <span className="w-[1px] h-2.5 bg-amber-300 dark:bg-amber-800" />
-                                              <span className="text-[9px] font-semibold opacity-90">
-                                                {format(
-                                                  dateObj,
-                                                  "MMM dd, h:mm a",
-                                                )}
-                                              </span>
-                                            </div>
-                                          );
-                                        }
+                            const getStatusBadgeStyle = (status = "") => {
+                              const s = status.toLowerCase();
+                              if (s === "completed" || s.includes("approve")) {
+                                return "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/30 font-black";
+                              }
+                              if (s.includes("hold")) {
+                                return "bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200 dark:bg-fuchsia-950/40 dark:text-fuchsia-400 dark:border-fuchsia-900/30 font-black";
+                              }
+                              if (s.includes("progress")) {
+                                return "bg-violet-50 text-violet-700 border border-violet-200 dark:bg-violet-950/40 dark:text-violet-400 dark:border-violet-900/30 font-black";
+                              }
+                              if (
+                                s.includes("review") ||
+                                s.includes("revision")
+                              ) {
+                                return "bg-amber-50 text-amber-800 border border-amber-250 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/30 font-black";
+                              }
+                              return "bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/30 font-black";
+                            };
 
-                                        const isDueToday = isToday(dateObj);
-                                        if (isDueToday) {
-                                          return (
-                                            <div className="relative w-fit">
-                                              <style>{`
-                                                @keyframes brightBlink {
-                                                  0%, 100% {
-                                                    opacity: 1;
-                                                    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.9));
-                                                    transform: scale(1.02);
-                                                  }
-                                                  50% {
-                                                    opacity: 0.4;
-                                                    filter: drop-shadow(0 0 1px rgba(239, 68, 68, 0.1));
-                                                    transform: scale(0.98);
-                                                  }
-                                                }
-                                                .bright-warning-blink {
-                                                  animation: brightBlink 1s infinite ease-in-out;
-                                                }
-                                              `}</style>
-                                              <div className="relative p-[1px] overflow-hidden rounded-lg bg-gradient-to-r from-red-500 via-rose-500 to-red-500 flex items-center justify-center w-fit shadow-sm bright-warning-blink">
-                                                <div
-                                                  className="absolute inset-0 bg-gradient-to-r from-red-500 via-rose-500 to-red-500 animate-spin"
-                                                  style={{
-                                                    animationDuration: "2s",
-                                                  }}
-                                                />
-                                                <div className="relative bg-red-500 px-1.5 py-0.5 rounded-[7px] flex items-center gap-1 z-10 text-white font-extrabold text-[9px] tracking-wide border-transparent">
-                                                  <FiClock
-                                                    size={9}
-                                                    className="text-white animate-bounce"
-                                                  />
-                                                  <span>
-                                                    Today -{" "}
-                                                    {format(
-                                                      dateObj,
-                                                      "MMM dd, h:mm a",
-                                                    )}
-                                                  </span>
-                                                </div>
-                                              </div>
-                                            </div>
-                                          );
-                                        }
+                            let targetDate = task.dueDate || task.createdAt;
 
-                                        const getRelativeBadge = () => {
-                                          if (isYesterday(dateObj)) {
-                                            return (
-                                              <span className="px-1 py-0.5 text-[8.5px] font-black uppercase bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300 rounded-md border border-rose-200 dark:border-rose-900/30">
-                                                Yesterday
-                                              </span>
-                                            );
-                                          }
-                                          if (isTomorrow(dateObj)) {
-                                            return (
-                                              <span className="px-1 py-0.5 text-[8.5px] font-black uppercase bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300 rounded-md border border-sky-200 dark:border-sky-900/30">
-                                                Tomorrow
-                                              </span>
-                                            );
-                                          }
-                                          return null;
-                                        };
-
-                                        return (
-                                          <span className="flex items-center gap-1 flex-wrap text-[10.5px]">
-                                            <span className="flex items-center gap-1">
-                                              <FiClock
-                                                size={10}
-                                                className="text-slate-400"
-                                              />
-                                              {format(
-                                                dateObj,
-                                                "MMM dd, h:mm a",
-                                              )}
-                                            </span>
-                                            {getRelativeBadge()}
-                                          </span>
-                                        );
-                                      } catch (err) {
-                                        return (
-                                          <span className="text-slate-400 font-medium italic text-xs">
-                                            -
-                                          </span>
-                                        );
-                                      }
-                                    })()}
-                                  </td>
-                                  <td className="py-2 px-3">
+                            return (
+                              <div
+                                key={task._id}
+                                className="p-3.5 bg-slate-50/80 dark:bg-slate-900/60 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-col gap-2.5"
+                              >
+                                {/* Title & Priority */}
+                                <div className="flex items-start justify-between gap-2">
+                                  <h4 className="text-xs font-black text-slate-850 dark:text-white leading-snug">
+                                    {task.title}
+                                  </h4>
+                                  {task.priority && (
                                     <span
-                                      className={`px-2 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider shadow-sm ${getStatusBadgeStyle(task.status)}`}
+                                      className={`px-2 py-0.5 rounded-md text-[8.5px] font-black uppercase shrink-0 ${getPriorityStyle(
+                                        task.priority,
+                                      )}`}
                                     >
-                                      {task.status || "Pending"}
+                                      {task.priority}
                                     </span>
-                                  </td>
-                                  <td className="py-2 px-3 text-center">
-                                    <ApprovalTimelineCell task={task} />
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
+                                  )}
+                                </div>
+
+                                {/* Client & Creator Row */}
+                                <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400">
+                                  <span className="inline-flex items-center gap-1 font-bold text-slate-700 dark:text-slate-300">
+                                    <FiBriefcase size={10} />
+                                    {clientName}
+                                  </span>
+                                  <span className="font-semibold">
+                                    By: {creatorName}
+                                  </span>
+                                </div>
+
+                                {/* Status & Date Row */}
+                                <div className="flex items-center justify-between pt-1 border-t border-slate-200/50 dark:border-slate-800">
+                                  <span
+                                    className={`px-2 py-0.5 rounded-md text-[9.5px] uppercase ${getStatusBadgeStyle(
+                                      task.status,
+                                    )}`}
+                                  >
+                                    {task.status || "Pending"}
+                                  </span>
+
+                                  {targetDate && (
+                                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                      <FiClock size={10} />
+                                      {format(
+                                        parseISO(targetDate),
+                                        "MMM dd, h:mm a",
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
+
+                                {/* Approval Timeline */}
+                                <div className="flex items-center justify-between pt-1">
+                                  <span className="text-[10px] font-black uppercase text-slate-400">
+                                    Timeline:
+                                  </span>
+                                  <ApprovalTimelineCell task={task} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>
               </div>
 
               {/* Footer */}
-              <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end shrink-0">
+              <div className="px-4 sm:px-6 py-3.5 border-t border-slate-200/80 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex items-center justify-between shrink-0">
+                <span className="text-[11px] font-extrabold text-slate-500 dark:text-slate-400">
+                  Showing {filteredModalTasks.length} {filteredModalTasks.length === 1 ? "task" : "tasks"}
+                </span>
                 <button
                   type="button"
                   onClick={() =>
@@ -3892,7 +3881,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       designerName: "",
                     })
                   }
-                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-xs font-black text-slate-650 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 text-xs font-black text-slate-750 dark:text-slate-200 transition-all cursor-pointer shadow-2xs"
                 >
                   Close View
                 </button>
@@ -3917,7 +3906,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                 className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
               />
 
-              <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
+              <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-10 z-[1050]">
                 <motion.div
                   initial={{ x: "100%" }}
                   animate={{ x: 0 }}
@@ -3926,8 +3915,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   className="w-screen max-w-5xl bg-white dark:bg-[#0f111a] border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden"
                 >
                   {/* Header */}
-                  <div className="p-5 px-6 border-b border-slate-150 dark:border-slate-800 flex justify-between items-center bg-slate-50/80 dark:bg-[#0c121e] shrink-0">
-                    <div className="flex items-center gap-3">
+                  <div className="p-4 sm:p-5 px-5 sm:px-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50/80 dark:bg-[#0c121e] shrink-0">
+                    <div className="flex items-center gap-2.5 sm:gap-3">
                       <button
                         type="button"
                         onClick={() =>
@@ -3937,20 +3926,20 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                             tasks: [],
                           })
                         }
-                        className="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer mr-1 shadow-sm"
+                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-2xs"
                         title="Close panel"
                       >
                         <FiArrowRight size={18} />
                       </button>
-                      <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-450 shadow-sm shrink-0">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-450 shadow-2xs shrink-0">
                         <FiClock size={18} />
                       </div>
-                      <div>
-                        <h2 className="text-base font-black text-slate-800 dark:text-white tracking-wider">
+                      <div className="min-w-0">
+                        <h2 className="text-sm sm:text-base font-black text-slate-850 dark:text-white tracking-wider truncate">
                           Approval Info
                         </h2>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-bold tracking-wide mt-0.5">
-                          Detailed review and completion timestamps for{" "}
+                        <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-bold tracking-wide truncate">
+                          Timestamps for{" "}
                           <span className="text-indigo-600 dark:text-indigo-400">
                             {approvalModal.designerName}
                           </span>
@@ -3966,136 +3955,176 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                           tasks: [],
                         })
                       }
-                      className="w-8 h-8 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-655 dark:hover:text-white transition-colors cursor-pointer"
+                      className="w-8 h-8 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer shrink-0"
                     >
-                      <FiXCircle size={20} className="text-slate-450" />
+                      <FiXCircle size={20} />
                     </button>
                   </div>
 
                   {/* Body */}
-                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-4 custom-scrollbar">
                     {approvalModal.tasks.length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-                        <FiAlertCircle size={36} className="opacity-50 mb-2" />
-                        <span className="text-xs font-bold uppercase tracking-wider">
+                        <FiAlertCircle size={36} className="opacity-40 mb-2" />
+                        <span className="text-xs font-black uppercase tracking-wider">
                           No approval tasks found
                         </span>
                       </div>
                     ) : (
-                      <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm bg-white dark:bg-slate-900/40">
-                        <table className="w-full text-left border-collapse">
-                          <thead>
-                            <tr className="bg-slate-50/90 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
-                              <th className="py-3 px-4 border-r border-slate-250 dark:border-slate-800">
-                                Task Name
-                              </th>
-                              <th className="py-3 px-4 border-r border-slate-250 dark:border-slate-800">
-                                Client Name
-                              </th>
-                              <th className="py-3 px-4 border-r border-slate-250 dark:border-slate-800">
-                                Created By
-                              </th>
-                              <th className="py-3 px-4 border-r border-slate-250 dark:border-slate-800">
-                                Assignee
-                              </th>
-                              <th className="py-3 px-4 border-r border-slate-250 dark:border-slate-800">
-                                Start & End Date
-                              </th>
-                              <th className="py-3 px-4 text-center">
-                                Approval Info
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-150 dark:divide-slate-800/80 text-xs">
-                            {approvalModal.tasks.map((task) => {
-                              const clientObj =
-                                task.project?.client || task.client;
-                              // Resolve clientName
-                              let clientName = "No Client";
-                              if (clientObj) {
-                                const cId =
-                                  typeof clientObj === "object"
-                                    ? clientObj._id
-                                    : clientObj;
-                                const c = clients?.find((x) => x._id === cId);
-                                clientName =
-                                  c?.companyName ||
-                                  c?.name ||
-                                  (typeof clientObj === "object"
-                                    ? clientObj.companyName || clientObj.name
-                                    : "Unknown Client");
-                              }
+                      <>
+                        {/* Desktop View */}
+                        <div className="hidden md:block overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xs bg-white dark:bg-slate-900/40 custom-scrollbar">
+                          <table className="w-full text-left border-collapse">
+                            <thead>
+                              <tr className="bg-slate-50/90 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800 text-[10px] font-black tracking-widest text-slate-500 dark:text-slate-400 uppercase">
+                                <th className="py-3 px-4 border-r border-slate-200 dark:border-slate-800">
+                                  Task Name
+                                </th>
+                                <th className="py-3 px-4 border-r border-slate-200 dark:border-slate-800">
+                                  Client Name
+                                </th>
+                                <th className="py-3 px-4 border-r border-slate-200 dark:border-slate-800">
+                                  Created By
+                                </th>
+                                <th className="py-3 px-4 border-r border-slate-200 dark:border-slate-800">
+                                  Assignee
+                                </th>
+                                <th className="py-3 px-4 border-r border-slate-200 dark:border-slate-800">
+                                  Start & End Date
+                                </th>
+                                <th className="py-3 px-4 text-center">
+                                  Approval Info
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs">
+                              {approvalModal.tasks.map((task) => {
+                                const clientObj =
+                                  task.project?.client || task.client;
+                                let clientName = "No Client";
+                                if (clientObj) {
+                                  const cId =
+                                    typeof clientObj === "object"
+                                      ? clientObj._id
+                                      : clientObj;
+                                  const c = clients?.find((x) => x._id === cId);
+                                  clientName =
+                                    c?.companyName ||
+                                    c?.name ||
+                                    (typeof clientObj === "object"
+                                      ? clientObj.companyName || clientObj.name
+                                      : "Unknown Client");
+                                }
 
-                              const creatorObj =
-                                task.createdBy &&
-                                typeof task.createdBy === "object"
-                                  ? task.createdBy
-                                  : users?.find(
-                                      (u) => u._id === task.createdBy,
-                                    );
-                              const creatorName = creatorObj?.name || "Unknown";
+                                const creatorObj =
+                                  task.createdBy &&
+                                  typeof task.createdBy === "object"
+                                    ? task.createdBy
+                                    : users?.find(
+                                        (u) => u._id === task.createdBy,
+                                      );
+                                const creatorName = creatorObj?.name || "Unknown";
 
-                              const assigneeObj =
-                                task.assignedTo &&
-                                typeof task.assignedTo === "object"
-                                  ? task.assignedTo
-                                  : designers.find(
-                                      (d) => d._id === task.assignedTo,
-                                    ) ||
-                                    users?.find(
-                                      (u) => u._id === task.assignedTo,
-                                    );
-                              const assigneeName =
-                                assigneeObj?.name || "Unassigned";
+                                const assigneeObj =
+                                  task.assignedTo &&
+                                  typeof task.assignedTo === "object"
+                                    ? task.assignedTo
+                                    : designers.find(
+                                        (d) => d._id === task.assignedTo,
+                                      ) ||
+                                      users?.find(
+                                        (u) => u._id === task.assignedTo,
+                                      );
+                                const assigneeName =
+                                  assigneeObj?.name || "Unassigned";
 
-                              return (
-                                <tr
-                                  key={task._id}
-                                  className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
-                                >
-                                  <td className="py-3 px-4 border-r border-slate-200 dark:border-slate-800 font-bold text-slate-800 dark:text-white">
-                                    {task.title}
-                                  </td>
-                                  <td className="py-3 px-4 border-r border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-350">
-                                    {clientName}
-                                  </td>
-                                  <td className="py-3 px-4 border-r border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-350">
-                                    {creatorName}
-                                  </td>
-                                  <td className="py-3 px-4 border-r border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-350">
-                                    {assigneeName}
-                                  </td>
-                                  <td className="py-3 px-4 border-r border-slate-200 dark:border-slate-800 font-semibold text-slate-500 dark:text-slate-400">
-                                    {task.startDate
-                                      ? format(
-                                          parseISO(task.startDate),
-                                          "dd MMM yyyy",
-                                        )
-                                      : "—"}
-                                    <span className="mx-1.5 text-slate-300 dark:text-slate-700">
-                                      to
-                                    </span>
-                                    {task.dueDate
-                                      ? format(
-                                          parseISO(task.dueDate),
-                                          "dd MMM yyyy",
-                                        )
-                                      : "—"}
-                                  </td>
-                                  <td className="py-3 px-4 text-center">
-                                    <ApprovalTimelineCell task={task} />
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
+                                return (
+                                  <tr
+                                    key={task._id}
+                                    className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
+                                  >
+                                    <td className="py-3 px-4 border-r border-slate-200 dark:border-slate-800 font-extrabold text-slate-850 dark:text-white">
+                                      {task.title}
+                                    </td>
+                                    <td className="py-3 px-4 border-r border-slate-200 dark:border-slate-800 font-bold text-slate-650 dark:text-slate-350">
+                                      {clientName}
+                                    </td>
+                                    <td className="py-3 px-4 border-r border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-350">
+                                      {creatorName}
+                                    </td>
+                                    <td className="py-3 px-4 border-r border-slate-200 dark:border-slate-800 font-semibold text-slate-600 dark:text-slate-350">
+                                      {assigneeName}
+                                    </td>
+                                    <td className="py-3 px-4 border-r border-slate-200 dark:border-slate-800 font-semibold text-slate-500 dark:text-slate-400">
+                                      {task.startDate
+                                        ? format(
+                                            parseISO(task.startDate),
+                                            "dd MMM yyyy",
+                                          )
+                                        : "—"}
+                                      <span className="mx-1.5 text-slate-300 dark:text-slate-700">
+                                        to
+                                      </span>
+                                      {task.dueDate
+                                        ? format(
+                                            parseISO(task.dueDate),
+                                            "dd MMM yyyy",
+                                          )
+                                        : "—"}
+                                    </td>
+                                    <td className="py-3 px-4 text-center">
+                                      <ApprovalTimelineCell task={task} />
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Mobile Card Stack */}
+                        <div className="block md:hidden space-y-3">
+                          {approvalModal.tasks.map((task) => {
+                            const clientObj =
+                              task.project?.client || task.client;
+                            let clientName = "No Client";
+                            if (clientObj) {
+                              const cId =
+                                typeof clientObj === "object"
+                                  ? clientObj._id
+                                  : clientObj;
+                              const c = clients?.find((x) => x._id === cId);
+                              clientName =
+                                c?.companyName || c?.name || "Unknown Client";
+                            }
+
+                            return (
+                              <div
+                                key={task._id}
+                                className="p-3.5 bg-slate-50/80 dark:bg-slate-900/60 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex flex-col gap-2 shadow-2xs"
+                              >
+                                <h4 className="text-xs font-black text-slate-850 dark:text-white">
+                                  {task.title}
+                                </h4>
+                                <div className="flex items-center justify-between text-[10px] text-slate-500 font-semibold">
+                                  <span>Client: {clientName}</span>
+                                </div>
+                                <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-800">
+                                  <span className="text-[10px] font-black uppercase text-slate-400">
+                                    Approval Details:
+                                  </span>
+                                  <ApprovalTimelineCell task={task} />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
                     )}
                   </div>
 
                   {/* Footer */}
-                  <div className="px-6 py-4 border-t border-slate-150 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 flex justify-end shrink-0">
+                  <div className="px-5 py-3.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/50 flex justify-end shrink-0">
                     <button
                       type="button"
                       onClick={() =>
@@ -4105,7 +4134,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                           tasks: [],
                         })
                       }
-                      className="px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-xs font-black text-slate-655 dark:text-slate-250 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer shadow-sm"
+                      className="px-4 py-2 rounded-xl bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 text-xs font-black text-slate-750 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer shadow-2xs"
                     >
                       Close
                     </button>
