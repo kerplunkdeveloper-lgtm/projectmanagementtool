@@ -302,7 +302,7 @@ const LiveProductivityCell = React.memo(
 
     if (!liveMs || liveMs <= 0) {
       return (
-        <span className="text-slate-400 dark:text-slate-500 font-bold">—</span>
+        <span className="text-blue-600 dark:text-slate-500 font-medium">Not started</span>
       );
     }
 
@@ -2893,7 +2893,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                     </td>
                     <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[10px] font-bold">
                       {tp.lastSubmitted === "Not submitted" ? (
-                        <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500 font-semibold">
+                        <div className="flex items-center gap-1 text-blue-500 dark:text-blue-600 font-medium">
                           <span className="w-1 h-1 rounded-full bg-slate-350 dark:bg-slate-700" />
                           <span>Not submitted</span>
                         </div>
