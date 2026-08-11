@@ -56,6 +56,7 @@ import toast from "react-hot-toast";
 import axiosInstance from "../../services/axiosInstance";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiMail, FiInfo, FiEye } from "react-icons/fi";
+import grouplogo from "../../assets/grouplogo.png"
 
 const EMOJIS = [
   "😀",
@@ -923,11 +924,11 @@ const ChatPage = () => {
               <div
                 className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold shrink-0 ${activeChat === "group" ? "bg-blue-600/10 text-blue-600 dark:bg-[#3b82f6]/10 dark:text-[#3b82f6]" : "bg-blue-600 text-white dark:bg-[#3b82f6] dark:text-black shadow-sm"}`}
               >
-                <FiLayers size={16} />
+                 <img src={grouplogo} alt="" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <span className="item-title truncate">Kerplunk Group Team chat</span>
+                  <span className="item-title truncate">Kerplunk Group</span>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {unreadCounts["group"] > 0 && (
                       <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shrink-0 min-w-[16px] text-center shadow-sm">
@@ -1077,8 +1078,8 @@ const ChatPage = () => {
                     <span
                       className={`shrink-0 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full leading-none ${
                         onlineUsers.includes(u._id)
-                          ? "bg-gray-300 text-emerald-600 dark:bg-gray-100 dark:text-emerald-400"
-                          : "bg-slate-100 text-slate-400 dark:bg-black dark:text-slate-500"
+                          ? "bg-gray-300 text-emerald-600 dark:bg-gray-100 dark:text-emerald-700"
+                          : "bg-slate-50 text-red-400 dark:bg-slate-50 dark:text-red-500"
                       }`}
                     >
                       {onlineUsers.includes(u._id) ? "Online" : "Offline"}
@@ -1147,7 +1148,7 @@ const ChatPage = () => {
             {activeChat === "group" ? (
               <>
                 <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white dark:bg-[#3b82f6] dark:text-black flex items-center justify-center font-bold shadow-md shrink-0">
-                  <FiLayers size={16} />
+                <img src={grouplogo} alt="" />
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-xs font-black theme-text-primary leading-tight truncate max-w-[120px] sm:max-w-xs">

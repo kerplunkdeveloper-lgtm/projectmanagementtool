@@ -1,7 +1,9 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { getEodReports, deleteEodReport } from "../../features/eodReports/eodReportSlice";
 import { getDesignerEodReports, deleteDesignerEodReport } from "../../features/eodReports/designerEodReportSlice";
+import { getUsers } from "../../features/users/userSlice";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import {
@@ -92,6 +94,7 @@ const calculateTotalLoggedTime = (report) => {
 
 const AdminEodReports = () => {
   const dispatch = useDispatch();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const { eodReports, loading: generalLoading } = useSelector(
     (state) => state.eodReports,
@@ -99,23 +102,97 @@ const AdminEodReports = () => {
   const { designerEodReports, loading: designerLoading } = useSelector(
     (state) => state.designerEodReports,
   );
+  const { users: allUsers } = useSelector((state) => state.users || {});
 
-  const [activeTab, setActiveTab] = useState("Graphic Designer");
+  const [activeTab, setActiveTab] = useState(() => {
+    return (
+      searchParams.get("tab") ||
+      sessionStorage.getItem("admin_eod_tab") ||
+      "All Departments"
+    );
+  });
 
   // Filters State
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [clientFilter, setClientFilter] = useState("All");
-  const [dateRange, setDateRange] = useState("All");
-  const [customDate, setCustomDate] = useState("");
+  const [searchQuery, setSearchQuery] = useState(() => {
+    return (
+      searchParams.get("search") ||
+      sessionStorage.getItem("admin_eod_search") ||
+      ""
+    );
+  });
+  const [statusFilter, setStatusFilter] = useState(() => {
+    return (
+      searchParams.get("status") ||
+      sessionStorage.getItem("admin_eod_status") ||
+      "All"
+    );
+  });
+  const [clientFilter, setClientFilter] = useState(() => {
+    return (
+      searchParams.get("client") ||
+      sessionStorage.getItem("admin_eod_client") ||
+      "All"
+    );
+  });
+  const [dateRange, setDateRange] = useState(() => {
+    return (
+      searchParams.get("dateRange") ||
+      sessionStorage.getItem("admin_eod_dateRange") ||
+      "All"
+    );
+  });
+  const [customDate, setCustomDate] = useState(() => {
+    return (
+      searchParams.get("customDate") ||
+      sessionStorage.getItem("admin_eod_customDate") ||
+      ""
+    );
+  });
   const [showDateDropdown, setShowDateDropdown] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(() => {
+    const pageFromUrl = searchParams.get("page");
+    const pageFromStorage = sessionStorage.getItem("admin_eod_page");
+    return parseInt(pageFromUrl || pageFromStorage || "1", 10) || 1;
+  });
   const [openViewModal, setOpenViewModal] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleteConfirm, setDeleteConfirm] = useState({ show: false, target: null });
   const [deleting, setDeleting] = useState(false);
   const itemsPerPage = 10;
+
+  const isInitialMount = useRef(true);
+
+  // Sync state changes to searchParams & sessionStorage
+  useEffect(() => {
+    const params = {};
+    if (activeTab && activeTab !== "All Departments") params.tab = activeTab;
+    if (searchQuery) params.search = searchQuery;
+    if (statusFilter && statusFilter !== "All") params.status = statusFilter;
+    if (clientFilter && clientFilter !== "All") params.client = clientFilter;
+    if (dateRange && dateRange !== "All") params.dateRange = dateRange;
+    if (customDate) params.customDate = customDate;
+    if (currentPage && currentPage > 1) params.page = currentPage.toString();
+
+    setSearchParams(params, { replace: true });
+
+    sessionStorage.setItem("admin_eod_tab", activeTab);
+    sessionStorage.setItem("admin_eod_search", searchQuery);
+    sessionStorage.setItem("admin_eod_status", statusFilter);
+    sessionStorage.setItem("admin_eod_client", clientFilter);
+    sessionStorage.setItem("admin_eod_dateRange", dateRange);
+    sessionStorage.setItem("admin_eod_customDate", customDate);
+    sessionStorage.setItem("admin_eod_page", currentPage.toString());
+  }, [
+    activeTab,
+    searchQuery,
+    statusFilter,
+    clientFilter,
+    dateRange,
+    customDate,
+    currentPage,
+    setSearchParams,
+  ]);
 
   useEffect(() => {
     setSelectedIds([]);
@@ -152,18 +229,51 @@ const AdminEodReports = () => {
   useEffect(() => {
     dispatch(getEodReports());
     dispatch(getDesignerEodReports());
+    dispatch(getUsers());
   }, [dispatch]);
 
   // Group reports by User Department
   const groupedDepartments = useMemo(() => {
     const groups = {};
 
-    // Initialize Graphic Designer tab with designer-specific reports
-    groups["Graphic Designer"] = designerEodReports || [];
+    const allDesigner = designerEodReports || [];
+    const allGeneral = eodReports || [];
+
+    // All Departments contains all designer reports + general reports sorted by date
+    groups["All Departments"] = [...allDesigner, ...allGeneral].sort(
+      (a, b) => new Date(b.date || b.createdAt) - new Date(a.date || a.createdAt)
+    );
+
+    // Initialize Graphic Designer & Videographer tabs
+    groups["Graphic Designer"] = allDesigner;
+    groups["Videographer"] = [];
+
+    // Collect and initialize all department keys from registered users (allUsers)
+    if (Array.isArray(allUsers)) {
+      allUsers.forEach((u) => {
+        if (!u.department || !u.department.trim()) return;
+        let dept = u.department.trim();
+        const deptLower = dept.toLowerCase();
+        if (deptLower === "videographer" || deptLower === "video editor") {
+          dept = "Videographer";
+        } else if (deptLower === "graphic designer" || deptLower === "designer") {
+          dept = "Graphic Designer";
+        }
+        if (!groups[dept]) {
+          groups[dept] = [];
+        }
+      });
+    }
 
     // Group general reports under user's department
-    (eodReports || []).forEach((report) => {
-      const dept = report.user?.department || "General";
+    allGeneral.forEach((report) => {
+      let dept = report.user?.department || "General";
+      const deptLower = dept.trim().toLowerCase();
+      if (deptLower === "videographer" || deptLower === "video editor") {
+        dept = "Videographer";
+      } else if (deptLower === "graphic designer" || deptLower === "designer") {
+        dept = "Graphic Designer";
+      }
       if (!groups[dept]) {
         groups[dept] = [];
       }
@@ -171,15 +281,76 @@ const AdminEodReports = () => {
     });
 
     return groups;
-  }, [eodReports, designerEodReports]);
+  }, [eodReports, designerEodReports, allUsers]);
 
-  // Generate department list (Graphic Designer is always first)
+  // Generate department list:
+  // 1st: "All Departments", 2nd: "Graphic Designer", 3rd: "Videographer", 4th: "Social Media Manager"
+  // "Managing Partner" and "Operation Manager" are removed.
+  // "Mobile Developer" is placed last.
   const departmentsList = useMemo(() => {
-    const depts = Object.keys(groupedDepartments)
-      .filter((d) => d !== "Graphic Designer")
+    const excludedKeywords = [
+      "managing partner",
+      "managingpartner",
+      "operation manager",
+      "operationmanager",
+      "operations manager",
+      "operationsmanager",
+    ];
+
+    const isMobileDev = (d) => {
+      const lower = (d || "").trim().toLowerCase();
+      return lower.includes("mobile");
+    };
+
+    const isSocialMedia = (d) => {
+      const lower = (d || "").trim().toLowerCase();
+      return lower.includes("social media");
+    };
+
+    const isExcluded = (d) => {
+      const lower = (d || "").trim().toLowerCase();
+      return excludedKeywords.some((ex) => lower.includes(ex));
+    };
+
+    // Find Social Media key if present in groupedDepartments or allUsers
+    const socialMediaKey =
+      Object.keys(groupedDepartments).find((d) => isSocialMedia(d)) ||
+      ((allUsers || []).some((u) => isSocialMedia(u.department || u.role))
+        ? "Social Media Manager"
+        : null);
+
+    const defaultDepts = ["All Departments", "Graphic Designer", "Videographer"];
+    if (socialMediaKey) {
+      defaultDepts.push(socialMediaKey);
+    }
+
+    // Filter remaining department keys
+    const remainingDepts = Object.keys(groupedDepartments)
+      .filter((d) => {
+        if (defaultDepts.includes(d)) return false;
+        if (isExcluded(d)) return false;
+        if (isMobileDev(d)) return false;
+        if (isSocialMedia(d)) return false;
+        return true;
+      })
       .sort();
-    return ["Graphic Designer", ...depts];
-  }, [groupedDepartments]);
+
+    // Find Mobile Developer key if present
+    const mobileDevKey = Object.keys(groupedDepartments).find((d) => isMobileDev(d));
+
+    const result = [...defaultDepts, ...remainingDepts];
+
+    if (mobileDevKey) {
+      result.push(mobileDevKey);
+    } else {
+      const hasMobileUser = (allUsers || []).some((u) => isMobileDev(u.department || u.role));
+      if (hasMobileUser) {
+        result.push("Mobile Developer");
+      }
+    }
+
+    return result;
+  }, [groupedDepartments, allUsers]);
 
   // Extract unique clients based on the active tab's reports
   const uniqueClients = useMemo(() => {
@@ -197,10 +368,10 @@ const AdminEodReports = () => {
     return Array.from(clientsSet).sort();
   }, [groupedDepartments, activeTab]);
 
-  // Filter reports of active department
-  const filteredReports = useMemo(() => {
-    const reports = groupedDepartments[activeTab] || [];
-    return reports.filter((report) => {
+  // Helper to apply current search, status, client, and date filters
+  const applyFilters = (reportsList) => {
+    if (!reportsList || !Array.isArray(reportsList)) return [];
+    return reportsList.filter((report) => {
       const searchLower = searchQuery.toLowerCase();
       let client = report.clientName || "";
       let task = report.projectsWorkedOn || "";
@@ -267,6 +438,12 @@ const AdminEodReports = () => {
 
       return matchesSearch && matchesStatus && matchesClient && matchesDate;
     });
+  };
+
+  // Filter reports of active department
+  const filteredReports = useMemo(() => {
+    const reports = groupedDepartments[activeTab] || [];
+    return applyFilters(reports);
   }, [
     groupedDepartments,
     activeTab,
@@ -276,6 +453,87 @@ const AdminEodReports = () => {
     dateRange,
     customDate,
   ]);
+
+  // Dynamic department counts based on active date/status/search filters
+  const departmentCounts = useMemo(() => {
+    const counts = {};
+    Object.keys(groupedDepartments).forEach((dept) => {
+      const deptReports = groupedDepartments[dept] || [];
+      counts[dept] = applyFilters(deptReports).length;
+    });
+    return counts;
+  }, [
+    groupedDepartments,
+    searchQuery,
+    statusFilter,
+    clientFilter,
+    dateRange,
+    customDate,
+  ]);
+
+  // Total registered users count in active department from users database
+  const totalUsersCount = useMemo(() => {
+    const userSet = new Set();
+    const activeTabLower = (activeTab || "").trim().toLowerCase();
+
+    if (Array.isArray(allUsers) && allUsers.length > 0) {
+      allUsers.forEach((u) => {
+        const uDept = (u.department || "").trim().toLowerCase();
+        const uRole = (u.role || "").trim().toLowerCase();
+        const uKey = (u._id || u.id || u.email || u.name || "").toString();
+
+        if (!uKey) return;
+
+        if (activeTab === "All Departments") {
+          userSet.add(uKey);
+        } else if (activeTab === "Graphic Designer") {
+          if (
+            uDept === "graphic designer" ||
+            uDept === "designer" ||
+            uRole === "graphic designer" ||
+            uRole === "designer"
+          ) {
+            userSet.add(uKey);
+          }
+        } else if (activeTab === "Videographer") {
+          if (
+            uDept === "videographer" ||
+            uDept === "video editor" ||
+            uRole === "videographer" ||
+            uRole === "video editor"
+          ) {
+            userSet.add(uKey);
+          }
+        } else {
+          if (uDept === activeTabLower || uRole === activeTabLower) {
+            userSet.add(uKey);
+          }
+        }
+      });
+      return userSet.size;
+    }
+
+    // Fallback if allUsers array is not yet populated
+    const deptReports = groupedDepartments[activeTab] || [];
+    deptReports.forEach((r) => {
+      const uKey = (r.user?._id || r.user?.id || r.user?.name || r.user || "").toString();
+      if (uKey) userSet.add(uKey);
+    });
+
+    return userSet.size;
+  }, [allUsers, groupedDepartments, activeTab]);
+
+  // Dynamic department user label (e.g. Total Designers, Total Videographers, Total Teammates)
+  const totalUsersLabel = useMemo(() => {
+    if (!activeTab || activeTab === "All Departments") return "Total Teammates";
+    if (activeTab === "Graphic Designer") return "Total Designers";
+    if (activeTab === "Videographer") return "Total Videographers";
+    if (activeTab === "Digital Marketing") return "Total Digital Marketers";
+    if (activeTab.toLowerCase().includes("user") || activeTab.toLowerCase().includes("team")) {
+      return `Total ${activeTab}`;
+    }
+    return `Total ${activeTab}s`;
+  }, [activeTab]);
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
@@ -287,12 +545,12 @@ const AdminEodReports = () => {
   }, [filteredReports, currentPage, itemsPerPage]);
 
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     setCurrentPage(1);
   }, [activeTab, searchQuery, statusFilter, clientFilter, dateRange, customDate]);
-
-  useEffect(() => {
-    setClientFilter("All");
-  }, [activeTab]);
 
   const getStatusBadgeStyle = (status) => {
     switch (status) {
@@ -339,21 +597,26 @@ const AdminEodReports = () => {
     setDeleting(true);
     try {
       if (deleteConfirm.target === "bulk") {
-        if (activeTab === "Graphic Designer") {
-          await Promise.all(
-            selectedIds.map((id) => dispatch(deleteDesignerEodReport({ id, silent: true })).unwrap())
-          );
-          toast.success("Designer EOD Reports deleted successfully");
-        } else {
-          await Promise.all(
-            selectedIds.map((id) => dispatch(deleteEodReport({ id, silent: true })).unwrap())
-          );
-          toast.success("EOD Reports deleted successfully");
-        }
+        const designerIdsSet = new Set((designerEodReports || []).map((r) => r._id));
+        await Promise.all(
+          selectedIds.map((id) => {
+            if (designerIdsSet.has(id)) {
+              return dispatch(deleteDesignerEodReport({ id, silent: true })).unwrap();
+            } else {
+              return dispatch(deleteEodReport({ id, silent: true })).unwrap();
+            }
+          })
+        );
+        toast.success("EOD Reports deleted successfully");
         setSelectedIds([]);
       } else if (deleteConfirm.target) {
-        const id = deleteConfirm.target._id;
-        if (activeTab === "Graphic Designer") {
+        const targetReport = deleteConfirm.target;
+        const id = targetReport._id;
+        const isDesigner =
+          (designerEodReports || []).some((r) => r._id === id) ||
+          targetReport.tasks !== undefined;
+
+        if (isDesigner) {
           await dispatch(deleteDesignerEodReport(id)).unwrap();
         } else {
           await dispatch(deleteEodReport(id)).unwrap();
@@ -369,8 +632,13 @@ const AdminEodReports = () => {
   };
 
   const loading =
-    activeTab === "Graphic Designer" ? designerLoading : generalLoading;
-  const totalColumnsCount = activeTab === "Graphic Designer" ? 15 : 14;
+    activeTab === "Graphic Designer"
+      ? designerLoading
+      : activeTab === "All Departments"
+        ? designerLoading || generalLoading
+        : generalLoading;
+  const totalColumnsCount =
+    activeTab === "Graphic Designer" || activeTab === "All Departments" ? 15 : 14;
 
   return (
     <div className="min-h-screen py-6 transition-colors duration-300">
@@ -385,11 +653,14 @@ const AdminEodReports = () => {
         {/* Dynamic Department Tabs */}
         <div className="flex border-b theme-border overflow-x-auto scrollbar-none mb-6">
           {departmentsList.map((dept) => {
-            const count = (groupedDepartments[dept] || []).length;
+            const count = departmentCounts[dept] || 0;
             return (
               <button
                 key={dept}
-                onClick={() => setActiveTab(dept)}
+                onClick={() => {
+                  setActiveTab(dept);
+                  setClientFilter("All");
+                }}
                 className={`px-5 py-3 text-xs font-bold border-b-2 whitespace-nowrap transition-all flex items-center gap-2 cursor-pointer ${
                   activeTab === dept
                     ? "border-blue-600 dark:border-blue-500 theme-text-accent font-black"
@@ -412,7 +683,15 @@ const AdminEodReports = () => {
         </div>
 
         {/* METRICS CARDS */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+          <div className="theme-bg-card border theme-border p-4 rounded-2xl flex flex-col justify-between shadow-sm">
+            <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest text-left">
+              {totalUsersLabel}
+            </span>
+            <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 text-left mt-2">
+              {totalUsersCount}
+            </span>
+          </div>
           <div className="theme-bg-card border theme-border p-4 rounded-2xl flex flex-col justify-between shadow-sm">
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">
               Total Reports
@@ -624,7 +903,7 @@ const AdminEodReports = () => {
                     Task Assigned by
                   </th>
 
-                  {activeTab === "Graphic Designer" && (
+                  {(activeTab === "Graphic Designer" || activeTab === "All Departments") && (
                     <>
                       <th className="px-5 py-3 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
                         Total Completed Designs
@@ -854,7 +1133,7 @@ const AdminEodReports = () => {
                       </td>
 
                       {/* DYNAMIC DESIGNER SPECIFIC FIELDS */}
-                      {activeTab === "Graphic Designer" && (
+                      {(activeTab === "Graphic Designer" || activeTab === "All Departments") && (
                         <>
                           <td className="px-5 py-3 text-left">
                             <span className="text-slate-655 dark:text-slate-400 text-xs">
