@@ -345,6 +345,220 @@ const LiveProductivityCell = React.memo(
   },
 );
 
+const ApprovalTimelineCell = React.memo(({ task }) => {
+  const [showPopup, setShowPopup] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const [now, setNow] = useState(Date.now());
+  const buttonRef = useRef(null);
+  const popupRef = useRef(null);
+
+  const effectiveReviewStart =
+    task?.reviewStartedAt ||
+    task?.lastReviewStartedAt ||
+    (task?.reviewCycles && task.reviewCycles.length > 0
+      ? task.reviewCycles[task.reviewCycles.length - 1]?.startedAt
+      : null);
+
+  const statusLower = (task?.status || "").toLowerCase();
+  const isCompleted = !!(task?.completedAt || task?.approvedAt);
+  const isInReview =
+    (statusLower.includes("review") || statusLower.includes("revision")) &&
+    !isCompleted;
+
+  // Live timer interval for tasks currently in review/waiting
+  useEffect(() => {
+    if (isInReview && effectiveReviewStart) {
+      const interval = setInterval(() => {
+        setNow(Date.now());
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [isInReview, effectiveReviewStart]);
+
+  let totalWaitMs = task?.approvalWaitingMs || 0;
+  if (effectiveReviewStart) {
+    if (isCompleted) {
+      totalWaitMs =
+        totalWaitMs ||
+        calculateBusinessMs(
+          effectiveReviewStart,
+          task.completedAt || task.approvedAt,
+        );
+    } else {
+      totalWaitMs =
+        totalWaitMs + calculateBusinessMs(effectiveReviewStart, new Date(now));
+    }
+  }
+
+  if (
+    !effectiveReviewStart &&
+    !isCompleted &&
+    totalWaitMs <= 0
+  ) {
+    return (
+      <span className="text-slate-400 dark:text-slate-600 font-bold">—</span>
+    );
+  }
+
+  const formatApprovalDate = (dateStr) => {
+    if (!dateStr) return null;
+    try {
+      const d = parseISO(dateStr);
+      return {
+        dateFormatted: `${format(d, "dd MMM")} · ${format(d, "hh:mm a")}`,
+        relative: formatDistanceToNow(d) + " ago",
+      };
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const revInfo = formatApprovalDate(effectiveReviewStart);
+  const doneInfo = formatApprovalDate(task?.completedAt || task?.approvedAt);
+
+  let tookText = "";
+  if (totalWaitMs > 0) {
+    const totalSecs = Math.floor(totalWaitMs / 1000);
+    const h = Math.floor(totalSecs / 3600);
+    const m = Math.floor((totalSecs % 3600) / 60);
+    const s = totalSecs % 60;
+    tookText = h > 0 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`;
+  }
+
+  const handleToggle = (e) => {
+    e.stopPropagation();
+    if (!showPopup && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const popoverWidth = 270;
+      const popoverHeight = revInfo && doneInfo ? 230 : 160;
+
+      let top = rect.top - popoverHeight - 8;
+      if (top < 10) {
+        top = rect.bottom + 8;
+      }
+      let left = rect.right - popoverWidth;
+      if (left < 10) left = 10;
+      if (left + popoverWidth > window.innerWidth - 10) {
+        left = window.innerWidth - popoverWidth - 10;
+      }
+      setCoords({ top, left });
+    }
+    setShowPopup(!showPopup);
+  };
+
+  return (
+    <div className="relative inline-flex items-center gap-1.5 justify-center">
+      {/* Badge Button */}
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={handleToggle}
+        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10.5px] font-black tracking-wide border shadow-sm transition-all hover:scale-[1.03] cursor-pointer ${
+          isInReview
+            ? "bg-[#fefce8] text-[#b45309] border-[#fde68a] dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/40"
+            : "bg-purple-50 text-purple-800 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900/40"
+        }`}
+      >
+        <span
+          className={`w-2 h-2 rounded-full shrink-0 ${
+            isInReview
+              ? "bg-[#f59e0b] animate-pulse"
+              : "bg-purple-500 dark:bg-purple-400"
+          }`}
+        />
+        <span>
+          {isInReview
+            ? tookText
+              ? `Waiting ${tookText}`
+              : "Waiting"
+            : tookText
+              ? `Took ${tookText}`
+              : "Timeline"}
+        </span>
+        <FiEye
+          size={13}
+          className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 ml-0.5 shrink-0 transition-colors"
+        />
+      </button>
+
+      {/* Details Popup rendered via Portal matching Reference Image */}
+      {showPopup &&
+        createPortal(
+          <div className="fixed inset-0 z-[99999] pointer-events-none">
+            {/* Click outside backdrop */}
+            <div
+              className="fixed inset-0 pointer-events-auto bg-black/10 dark:bg-black/40"
+              onClick={() => setShowPopup(false)}
+            />
+
+            <motion.div
+              ref={popupRef}
+              initial={{ opacity: 0, scale: 0.95, y: 4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 4 }}
+              transition={{ duration: 0.15 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: "fixed",
+                top: coords.top,
+                left: coords.left,
+              }}
+              className="pointer-events-auto w-[270px] bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col text-left"
+            >
+              {/* Header */}
+              <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-[#0f172a]">
+                <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  TIMELINE DETAILS
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowPopup(false)}
+                  className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <FiX size={13} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-3.5 flex flex-col gap-3 bg-white dark:bg-[#0f172a]">
+                {/* Review Start Card */}
+                {revInfo && (
+                  <div className="flex flex-col gap-0.5 bg-slate-50/80 dark:bg-slate-900/60 p-3.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                    <span className="text-[10px] font-black text-[#8b5cf6] dark:text-[#a78bfa] uppercase tracking-widest">
+                      REVIEW START
+                    </span>
+                    <span className="font-extrabold text-slate-800 dark:text-white text-[13px] mt-1 leading-snug">
+                      {revInfo.dateFormatted}
+                    </span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
+                      {revInfo.relative}
+                    </span>
+                  </div>
+                )}
+
+                {/* Completed Card */}
+                {doneInfo && (
+                  <div className="flex flex-col gap-0.5 bg-emerald-50/50 dark:bg-emerald-950/20 p-3.5 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 shadow-sm">
+                    <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
+                      COMPLETED
+                    </span>
+                    <span className="font-extrabold text-slate-800 dark:text-white text-[13px] mt-1 leading-snug">
+                      {doneInfo.dateFormatted}
+                    </span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
+                      {doneInfo.relative}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>,
+          document.body,
+        )}
+    </div>
+  );
+});
+
 const getPriorityStyle = (priority) => {
   const p = priority?.toLowerCase() || "";
   if (p.includes("top high"))
@@ -3565,133 +3779,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                     </span>
                                   </td>
                                   <td className="py-2 px-3 text-center">
-                                    {(() => {
-                                      const effectiveReviewStart =
-                                        task.reviewStartedAt ||
-                                        task.lastReviewStartedAt ||
-                                        (task.reviewCycles &&
-                                        task.reviewCycles.length > 0
-                                          ? task.reviewCycles[
-                                              task.reviewCycles.length - 1
-                                            ]?.startedAt
-                                          : null);
-
-                                      if (
-                                        !effectiveReviewStart &&
-                                        !task.completedAt &&
-                                        !task.approvedAt
-                                      ) {
-                                        return (
-                                          <span className="text-slate-400 dark:text-slate-600 font-bold">
-                                            —
-                                          </span>
-                                        );
-                                      }
-
-                                      const totalWaitMs =
-                                        task.approvalWaitingMs ||
-                                        (effectiveReviewStart &&
-                                        task.completedAt
-                                          ? calculateBusinessMs(
-                                              effectiveReviewStart,
-                                              task.completedAt,
-                                            )
-                                          : 0);
-
-                                      let tookText = "";
-                                      if (totalWaitMs > 0) {
-                                        const totalSecs = Math.floor(
-                                          totalWaitMs / 1000,
-                                        );
-                                        const h = Math.floor(totalSecs / 3600);
-                                        const m = Math.floor(
-                                          (totalSecs % 3600) / 60,
-                                        );
-                                        const s = totalSecs % 60;
-                                        tookText =
-                                          h > 0
-                                            ? `Took ${h}h ${m}m ${s}s`
-                                            : `Took ${m}m ${s}s`;
-                                      }
-
-                                      const formatApprovalDate = (dateStr) => {
-                                        if (!dateStr) return null;
-                                        try {
-                                          const d = parseISO(dateStr);
-                                          return {
-                                            dayMonth: format(d, "dd MMM"),
-                                            time: format(d, "hh:mm a"),
-                                            relative:
-                                              formatDistanceToNow(d) + " ago",
-                                          };
-                                        } catch (e) {
-                                          return null;
-                                        }
-                                      };
-
-                                      const startInfo =
-                                        formatApprovalDate(
-                                          effectiveReviewStart,
-                                        );
-                                      const endInfo = formatApprovalDate(
-                                        task.completedAt,
-                                      );
-
-                                      return (
-                                        <div className="flex flex-col items-center gap-1 py-0.5 select-none text-[11px] text-center w-full">
-                                          {/* Duration Badge */}
-                                          {tookText ? (
-                                            <span className="inline-flex items-center gap-1 text-[9.5px] font-black px-2.5 py-0.5 bg-violet-100 dark:bg-violet-950/40 text-violet-750 dark:text-violet-450 border border-violet-200 dark:border-violet-800/30 rounded-full shadow-inner">
-                                              <span className="w-1 h-1 rounded-full bg-violet-500 animate-pulse" />
-                                              {tookText}
-                                            </span>
-                                          ) : (
-                                            <span className="text-[10px] text-slate-400 font-bold">
-                                              —
-                                            </span>
-                                          )}
-
-                                          {/* Times Flow */}
-                                          <div className="flex items-center justify-center gap-1.5 text-[10.5px] font-extrabold mt-0.5">
-                                            <div className="flex flex-col items-center">
-                                              <span className="text-[8px] font-black text-blue-500 dark:text-blue-400 uppercase tracking-widest leading-none mb-0.5">
-                                                Start
-                                              </span>
-                                              <span className="text-slate-800 dark:text-slate-100 leading-tight">
-                                                {startInfo
-                                                  ? `${startInfo.dayMonth}, ${startInfo.time}`
-                                                  : "—"}
-                                              </span>
-                                            </div>
-
-                                            <span className="text-slate-300 dark:text-slate-700 font-normal mt-2">
-                                              →
-                                            </span>
-
-                                            <div className="flex flex-col items-center">
-                                              <span className="text-[8px] font-black text-emerald-500 dark:text-emerald-450 uppercase tracking-widest leading-none mb-0.5">
-                                                End
-                                              </span>
-                                              <span className="text-slate-850 dark:text-slate-100 leading-tight">
-                                                {endInfo
-                                                  ? startInfo?.dayMonth ===
-                                                    endInfo.dayMonth
-                                                    ? endInfo.time
-                                                    : `${endInfo.dayMonth}, ${endInfo.time}`
-                                                  : "—"}
-                                              </span>
-                                            </div>
-                                          </div>
-
-                                          {/* Relatives */}
-                                          {endInfo?.relative && (
-                                            <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 mt-0.5">
-                                              Approved {endInfo.relative}
-                                            </span>
-                                          )}
-                                        </div>
-                                      );
-                                    })()}
+                                    <ApprovalTimelineCell task={task} />
                                   </td>
                                 </tr>
                               );
@@ -3871,59 +3959,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                               const assigneeName =
                                 assigneeObj?.name || "Unassigned";
 
-                              const effectiveReviewStart =
-                                task.reviewStartedAt ||
-                                task.lastReviewStartedAt ||
-                                (task.reviewCycles &&
-                                task.reviewCycles.length > 0
-                                  ? task.reviewCycles[
-                                      task.reviewCycles.length - 1
-                                    ]?.startedAt
-                                  : null);
-
-                              const totalWaitMs =
-                                task.approvalWaitingMs ||
-                                (effectiveReviewStart && task.completedAt
-                                  ? calculateBusinessMs(
-                                      effectiveReviewStart,
-                                      task.completedAt,
-                                    )
-                                  : 0);
-
-                              let tookText = "";
-                              if (totalWaitMs > 0) {
-                                const totalSecs = Math.floor(
-                                  totalWaitMs / 1000,
-                                );
-                                const h = Math.floor(totalSecs / 3600);
-                                const m = Math.floor((totalSecs % 3600) / 60);
-                                const s = totalSecs % 60;
-                                tookText =
-                                  h > 0
-                                    ? `Took ${h}h ${m}m ${s}s`
-                                    : `Took ${m}m ${s}s`;
-                              }
-
-                              const formatApprovalDate = (dateStr) => {
-                                if (!dateStr) return null;
-                                try {
-                                  const d = parseISO(dateStr);
-                                  return {
-                                    dayMonth: format(d, "dd MMM"),
-                                    time: format(d, "hh:mm a"),
-                                    relative: formatDistanceToNow(d) + " ago",
-                                  };
-                                } catch (e) {
-                                  return null;
-                                }
-                              };
-
-                              const startInfo =
-                                formatApprovalDate(effectiveReviewStart);
-                              const endInfo = formatApprovalDate(
-                                task.completedAt,
-                              );
-
                               return (
                                 <tr
                                   key={task._id}
@@ -3958,76 +3993,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                         )
                                       : "—"}
                                   </td>
-                                  <td className="py-3 px-4 text-center flex flex-col items-center justify-center gap-2">
-                                    <div className="flex items-stretch bg-white dark:bg-[#131b2e] border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm max-w-[280px]">
-                                      {/* Left side: Rev Start */}
-                                      <div className="flex-1 p-2 flex flex-col items-start min-w-[105px] text-left">
-                                        <span className="text-[8px] font-black text-blue-500 dark:text-blue-400 uppercase tracking-wider mb-0.5">
-                                          REV START
-                                        </span>
-                                        {startInfo ? (
-                                          <>
-                                            <span className="text-xs font-black text-slate-855 dark:text-white leading-tight">
-                                              {startInfo.dayMonth}
-                                            </span>
-                                            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">
-                                              {startInfo.time}
-                                            </span>
-                                            <span className="text-[9px] font-bold text-blue-500 dark:text-blue-400 leading-tight mt-0.5">
-                                              {startInfo.relative}
-                                            </span>
-                                          </>
-                                        ) : (
-                                          <span className="text-xs font-bold text-slate-400 dark:text-slate-600">
-                                            —
-                                          </span>
-                                        )}
-                                      </div>
-
-                                      {/* Divider */}
-                                      <div className="w-[1px] bg-slate-200 dark:bg-slate-700 self-stretch" />
-
-                                      {/* Right side: Completed */}
-                                      <div className="flex-1 p-2 flex flex-col items-start min-w-[105px] text-left">
-                                        <span className="text-[8px] font-black text-emerald-500 dark:text-emerald-450 uppercase tracking-wider mb-0.5">
-                                          COMPLETED
-                                        </span>
-                                        {endInfo ? (
-                                          <>
-                                            <span className="text-xs font-black text-slate-855 dark:text-white leading-tight">
-                                              {endInfo.dayMonth}
-                                            </span>
-                                            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 leading-tight">
-                                              {endInfo.time}
-                                            </span>
-                                            <span className="text-[9px] font-bold text-emerald-500 dark:text-emerald-450 leading-tight mt-0.5">
-                                              {endInfo.relative}
-                                            </span>
-                                          </>
-                                        ) : (
-                                          <span className="text-xs font-bold text-slate-400 dark:text-slate-600">
-                                            —
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-
-                                    {tookText ? (
-                                      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black bg-violet-50 dark:bg-violet-500/10 text-violet-750 dark:text-violet-400 border border-violet-200 dark:border-violet-500/25">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-violet-500 dark:bg-violet-400" />
-                                        {tookText}
-                                      </div>
-                                    ) : (
-                                      <span className="text-[10px] text-slate-400 dark:text-slate-600 font-bold">
-                                        —
-                                      </span>
-                                    )}
-                                    <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold mt-1.5">
-                                      Created by:{" "}
-                                      <span className="text-slate-700 dark:text-slate-350">
-                                        {creatorName}
-                                      </span>
-                                    </div>
+                                  <td className="py-3 px-4 text-center">
+                                    <ApprovalTimelineCell task={task} />
                                   </td>
                                 </tr>
                               );
