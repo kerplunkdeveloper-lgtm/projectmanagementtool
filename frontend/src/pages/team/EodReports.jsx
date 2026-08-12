@@ -433,16 +433,11 @@ const EodReports = () => {
       const isAssignedToMe = assigneeId === (user?._id || user?.id);
       if (!isAssignedToMe) return false;
 
-      if (getLocalDateStr(task.startDate) === selectedDate) return true;
-      if (getLocalDateStr(task.dueDate) === selectedDate) return true;
-      if (getLocalDateStr(task.completedAt) === selectedDate) return true;
-      if (getLocalDateStr(task.createdAt) === selectedDate) return true;
-      if (getLocalDateStr(task.actualStartTime) === selectedDate) return true;
-      if (getLocalDateStr(task.updatedAt) === selectedDate) return true;
-
+      // 1. Check logged productivity for selectedDate
       const loggedMsToday = calculateTaskProductivityForDate(task, selDateObj);
       if (loggedMsToday > 0) return true;
 
+      // 2. Check if actively running right now (for today only)
       const todayStr = getLocalDateStr(new Date());
       const isSelectedToday = selectedDate === todayStr;
       const isActivelyRunningNow =
@@ -452,6 +447,42 @@ const EodReports = () => {
         !task.autoPaused;
 
       if (isActivelyRunningNow) return true;
+
+      // 3. For tasks in "In Review" or "Completed" status:
+      // If the task was put in review / completed on a date BEFORE selectedDate,
+      // and loggedMsToday === 0, it belongs to that previous date and NOT selectedDate.
+      const isInReviewOrCompleted = [
+        "In Review",
+        "In-Review",
+        "IN_REVIEW",
+        "Completed",
+      ].includes(task.status);
+
+      if (isInReviewOrCompleted) {
+        const reviewOrCompDate = getLocalDateStr(
+          task.status === "Completed"
+            ? task.completedAt || task.actualEndTime || task.updatedAt
+            : task.reviewStartedAt || task.lastReviewStartedAt || task.updatedAt,
+        );
+
+        if (reviewOrCompDate && reviewOrCompDate < selectedDate) {
+          return false;
+        }
+      }
+
+      // 4. Date matching for new / pending / active tasks for selectedDate
+      if (getLocalDateStr(task.startDate) === selectedDate) return true;
+      if (getLocalDateStr(task.dueDate) === selectedDate) return true;
+      if (getLocalDateStr(task.createdAt) === selectedDate) return true;
+      if (getLocalDateStr(task.actualStartTime) === selectedDate) return true;
+      if (getLocalDateStr(task.completedAt) === selectedDate) return true;
+      if (
+        (task.reviewStartedAt || task.lastReviewStartedAt) &&
+        getLocalDateStr(task.reviewStartedAt || task.lastReviewStartedAt) ===
+          selectedDate
+      ) {
+        return true;
+      }
 
       return false;
     });
@@ -931,28 +962,7 @@ const EodReports = () => {
     return `${year}-${month}-${day}`;
   };
 
-  const todayCompletedTasks = React.useMemo(() => {
-    return tasksState.filter((t) => {
-      if (t.statusAtEod !== "Completed") return false;
-      const compDate = getLocalDateStr(
-        t.completedAt || t.updatedAt || t.createdAt,
-      );
-      return !compDate || compDate === selectedDate;
-    });
-  }, [tasksState, selectedDate]);
 
-  const previousCompletedTasks = React.useMemo(() => {
-    return tasksState.filter((t) => {
-      if (t.statusAtEod !== "Completed") return false;
-      const compDate = getLocalDateStr(
-        t.completedAt || t.updatedAt || t.createdAt,
-      );
-      return compDate && compDate < selectedDate;
-    });
-  }, [tasksState, selectedDate]);
-
-  const todayCompletedCount = todayCompletedTasks.length;
-  const previousCompletedCount = previousCompletedTasks.length;
   const totalTasks = tasksState.length;
   const completedCount = tasksState.filter(
     (t) => t.statusAtEod === "Completed",
@@ -1271,51 +1281,7 @@ const EodReports = () => {
             )}
           </div>
 
-          {/* TODAY COMPLETED CARDS */}
-          <div>
-            <div className="flex items-center justify-between mb-3 pt-3.5 border-t theme-border">
-              <div className="flex items-center gap-2.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                <h2 className="text-xs font-bold theme-text-primary uppercase tracking-wider">
-                  Today Completed Cards
-                </h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                  {todayCompletedTasks.length}
-                </span>
-              </div>
-            </div>
 
-            {todayCompletedTasks.length === 0 ? (
-              <div className="bg-slate-50/50 dark:bg-slate-900/20 border border-slate-200/60 dark:border-slate-800/60 rounded-xl p-3.5 text-xs theme-text-secondary text-left font-medium">
-                No tasks completed today yet.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
-                {todayCompletedTasks.map((task) => renderTaskCard(task))}
-              </div>
-            )}
-          </div>
-
-          {/* PREVIOUS COMPLETED CARDS */}
-          {previousCompletedTasks.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between mb-3 pt-3.5 border-t theme-border">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-teal-500" />
-                  <h2 className="text-xs font-bold theme-text-primary uppercase tracking-wider">
-                    Previous Completed Cards
-                  </h2>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
-                    {previousCompletedTasks.length}
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
-                {previousCompletedTasks.map((task) => renderTaskCard(task))}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -1335,7 +1301,7 @@ const EodReports = () => {
             </span>
           </div>{" "}
           {/* eod summary cards  */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 mt-4 mb-5">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mt-4 mb-5">
             {/* 1. In Review Card */}
             <div className="bg-gradient-to-br from-amber-500/15 via-amber-500/5 to-transparent dark:from-amber-500/20 dark:via-amber-500/5 dark:to-transparent border border-amber-500/30 dark:border-amber-500/40 rounded-2xl p-4 shadow-sm hover:shadow-lg hover:shadow-amber-500/10 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/10 rounded-full -mr-6 -mt-6 blur-md group-hover:scale-125 transition-all duration-300" />
@@ -1375,34 +1341,6 @@ const EodReports = () => {
               </div>
               <span className="text-[10px] font-black text-indigo-700/90 dark:text-indigo-300/90 uppercase tracking-widest mt-2 block relative z-10">
                 Pending
-              </span>
-            </div>
-
-            {/* 4. Today Completed Card */}
-            <div className="bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/5 dark:to-transparent border border-emerald-500/30 dark:border-emerald-500/40 rounded-2xl p-4 shadow-sm hover:shadow-lg hover:shadow-emerald-500/10 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/10 rounded-full -mr-6 -mt-6 blur-md group-hover:scale-125 transition-all duration-300" />
-              <div className="flex items-center justify-between relative z-10">
-                <span className="text-2xl font-black tracking-tight text-emerald-600 dark:text-emerald-400">
-                  {todayCompletedCount}
-                </span>
-                <FiCheckCircle className="text-emerald-500/60 text-lg group-hover:text-emerald-500 transition-colors" />
-              </div>
-              <span className="text-[10px] font-black text-emerald-700/90 dark:text-emerald-300/90 uppercase tracking-widest mt-2 block relative z-10">
-                Today Completed
-              </span>
-            </div>
-
-            {/* 5. Previous Completed Card */}
-            <div className="bg-gradient-to-br from-teal-500/15 via-teal-500/5 to-transparent dark:from-teal-500/20 dark:via-teal-500/5 dark:to-transparent border border-teal-500/30 dark:border-teal-500/40 rounded-2xl p-4 shadow-sm hover:shadow-lg hover:shadow-teal-500/10 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-16 h-16 bg-teal-500/10 rounded-full -mr-6 -mt-6 blur-md group-hover:scale-125 transition-all duration-300" />
-              <div className="flex items-center justify-between relative z-10">
-                <span className="text-2xl font-black tracking-tight text-teal-600 dark:text-teal-400">
-                  {previousCompletedCount}
-                </span>
-                <FiCheckCircle className="text-teal-500/60 text-lg group-hover:text-teal-500 transition-colors" />
-              </div>
-              <span className="text-[10px] font-black text-teal-700/90 dark:text-teal-300/90 uppercase tracking-widest mt-2 block relative z-10">
-                Previous Completed
               </span>
             </div>
 
