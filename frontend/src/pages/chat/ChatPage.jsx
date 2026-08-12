@@ -247,6 +247,11 @@ const ChatPage = () => {
   const [showChatWindowMobile, setShowChatWindowMobile] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState([]); // Array of online userIds
 
+  const activeChatRef = useRef(activeChat);
+  useEffect(() => {
+    activeChatRef.current = activeChat;
+  }, [activeChat]);
+
   // New Reply, Forward & Share State
   const [replyingToMessage, setReplyingToMessage] = useState(null);
   const [forwardingMessage, setForwardingMessage] = useState(null);
@@ -419,6 +424,69 @@ const ChatPage = () => {
 
     socketRef.current.on("connect", performJoin);
 
+    const showNewMessageToast = (msg) => {
+      toast.custom(
+        (t) => (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className={`${
+              t.visible ? "animate-enter" : "animate-leave"
+            } max-w-sm w-full bg-white dark:bg-slate-900 shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.3)] rounded-2xl pointer-events-auto flex ring-1 ring-black/5 dark:ring-white/10 overflow-hidden backdrop-blur-xl`}
+          >
+            <div className="flex-1 w-0 p-4">
+              <div className="flex items-start">
+                <div className="flex-shrink-0 pt-0.5 relative">
+                  {msg.sender?.profile?.profileImage?.url ? (
+                    <img
+                      className="h-11 w-11 rounded-full object-cover shadow-sm border border-slate-100 dark:border-slate-800"
+                      src={msg.sender.profile.profileImage.url}
+                      alt={msg.sender?.name}
+                    />
+                  ) : (
+                    <div className="h-11 w-11 rounded-full bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
+                      {msg.sender?.name?.charAt(0) || "U"}
+                    </div>
+                  )}
+                  <span className="absolute bottom-0 right-0 block h-3 w-3 rounded-full ring-2 ring-white dark:ring-slate-900 bg-emerald-500"></span>
+                </div>
+                <div className="ml-3 flex-1">
+                  <p className="text-sm font-bold text-slate-900 dark:text-white flex items-center justify-between">
+                    {msg.sender?.name}
+                    <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">Just now</span>
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                    {msg.messageType === "file"
+                      ? `📁 Sent a file: ${msg.file?.filename || ""}`
+                      : msg.messageType === "sticker"
+                      ? `🎨 Sent a sticker: ${msg.sticker}`
+                      : msg.messageType === "call"
+                      ? "📞 Started a call"
+                      : msg.text}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex border-l border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-800/30">
+              <button
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  setActiveChat(msg.chatRoom === "direct" ? msg.sender._id : msg.chatRoom);
+                  setShowChatWindowMobile(true);
+                }}
+                className="w-full border border-transparent rounded-none rounded-r-2xl px-4 py-3 flex flex-col items-center justify-center text-xs font-bold text-blue-600 dark:text-[#3b82f6] hover:bg-blue-100/50 dark:hover:bg-blue-900/30 focus:outline-none transition-colors"
+              >
+                <FiMessageSquare className="mb-1" size={16} />
+                View
+              </button>
+            </div>
+          </motion.div>
+        ),
+        { position: "top-right", duration: 5000 }
+      );
+    };
+
     socketRef.current.on("direct_message", (msg) => {
       dispatch(
         receiveMessage({
@@ -426,6 +494,9 @@ const ChatPage = () => {
           currentUserId,
         }),
       );
+      if (msg.sender?._id !== currentUserId && activeChatRef.current !== msg.sender?._id) {
+        showNewMessageToast(msg);
+      }
     });
 
     socketRef.current.on("group_message", (msg) => {
@@ -435,6 +506,9 @@ const ChatPage = () => {
           currentUserId,
         }),
       );
+      if (msg.sender?._id !== currentUserId && activeChatRef.current !== msg.chatRoom) {
+        showNewMessageToast(msg);
+      }
     });
 
     socketRef.current.on("message_deleted", ({ messageId }) => {
