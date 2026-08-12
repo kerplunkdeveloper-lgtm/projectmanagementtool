@@ -12,7 +12,7 @@ import {
   LuStickyNote,
 } from "react-icons/lu";
 import { TbPencilHeart } from "react-icons/tb";
-import { FiBarChart2, FiUser, FiHome, FiBell, FiSettings } from "react-icons/fi";
+import { FiBarChart2, FiUser, FiHome, FiBell, FiSettings, FiFileText } from "react-icons/fi";
 
 export const sidebarConfig = {
   admin: [
@@ -20,6 +20,7 @@ export const sidebarConfig = {
     { name: "Sticky Notes", path: "/admin/stickynotes", icon: TbPencilHeart },
     { name: "Chat", path: "/admin/chat", icon: LuMessagesSquare },
     { name: "Users", path: "/admin/users", icon: LuUsers, permissionKey: "manage_users" },
+    { name: "MOM Client Report", path: "/admin/mom-client-report", icon: FiFileText, permissionKey: "manage_users" },
     { name: "ContentCalender", path: "/admin/contentcalender", icon: LuCalendarDays },
     { name: "Clients", path: "/admin/clients", icon: LuBuilding2, permissionKey: "manage_clients" },
     { name: "Projects", path: "/admin/projects", icon: LuFolderKanban, permissionKey: "manage_projects" },
@@ -38,6 +39,7 @@ export const sidebarConfig = {
     { name: "Sticky Notes", path: "/operationmanager/stickynotes", icon: TbPencilHeart },
     { name: "Chat", path: "/operationmanager/chat", icon: LuMessagesSquare },
     { name: "Users", path: "/operationmanager/users", icon: LuUsers, permissionKey: "manage_users" },
+    { name: "MOM Client Report", path: "/operationmanager/mom-client-report", icon: FiFileText, permissionKey: "manage_users" },
     { name: "ContentCalender", path: "/operationmanager/contentcalender", icon: LuCalendarDays },
     { name: "Reports", path: "/operationmanager/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
     { name: "Clients", path: "/operationmanager/clients", icon: LuBuilding2, permissionKey: "manage_clients" },

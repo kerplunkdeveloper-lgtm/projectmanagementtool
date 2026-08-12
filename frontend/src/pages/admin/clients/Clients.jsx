@@ -424,6 +424,11 @@ const Clients = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(7);
 
+  // MOM Table State
+  const [momCurrentPage, setMomCurrentPage] = useState(1);
+  const [momDateFilter, setMomDateFilter] = useState({ start: "", end: "" });
+  const momItemsPerPage = 5;
+
   const initialForm = {
     companyName: "",
     industry: "",
@@ -2292,7 +2297,7 @@ const Clients = () => {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 right-0 z-50 w-full md:w-[480px] lg:w-[540px] bg-slate-50 dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col"
+              className="fixed inset-y-0 right-0 z-50 w-full md:w-[800px] lg:w-[1000px] bg-slate-50 dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col"
             >
               {/* Header Top */}
               <div className="px-4.5 py-3 flex items-center justify-between bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0">
@@ -2328,7 +2333,7 @@ const Clients = () => {
                       key={tab}
                       className={`py-2 text-xs font-bold border-b-2 transition-colors whitespace-nowrap ${
                         tab === "Overview"
-                          ? "border-emerald-500 text-slate-800 dark:text-slate-100"
+                          ? "border-emerald-500 text-slate-800 dark:text-slate-800"
                           : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                       }`}
                     >
@@ -2339,7 +2344,7 @@ const Clients = () => {
               </div>
 
               {/* Scrollable Content */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-slate-50 dark:bg-slate-950 space-y-4">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 sidebar-bg">
                 {(() => {
                   // Calculate Stats
                   const clientProjects = projects.filter(p => {
@@ -2359,157 +2364,315 @@ const Clients = () => {
                     if (t.status === "Completed") return false;
                     return t.status === "Overdue" || (t.dueDate && new Date(t.dueDate) < new Date());
                   }).length;
+                  
+                  // MOM Tasks filtering and pagination
+                  const momTasks = clientTasks.filter(t => t.contentType && t.contentType.toUpperCase() === "MOM");
+                  
+                  const filteredMomTasks = momTasks.filter(t => {
+                    if (momDateFilter.start && new Date(t.createdAt || t.date) < new Date(momDateFilter.start)) return false;
+                    if (momDateFilter.end && new Date(t.createdAt || t.date) > new Date(new Date(momDateFilter.end).setHours(23,59,59,999))) return false;
+                    return true;
+                  }).sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
+                  
+                  const totalMomTasks = filteredMomTasks.length;
+                  const totalMomPages = Math.ceil(totalMomTasks / momItemsPerPage);
+                  const paginatedMomTasks = filteredMomTasks.slice(
+                    (momCurrentPage - 1) * momItemsPerPage,
+                    momCurrentPage * momItemsPerPage
+                  );
 
                   return (
-                    <div className="space-y-4">
-                      {/* Section 1: Client details card */}
-                      <div className="sidebar-bg rounded-2xl p-4.5 shadow-sm">
-                        <h3 className="text-[16px] font-bold text-black dark:text-slate-500 uppercase tracking-widest mb-3.5">
-                          Client Profile :
-                        </h3>
-                        <div className="space-y-2.5">
-                          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/40 pb-2">
-                            <span className="text-[12px] font-medium text-black dark:text-slate-500">Company Name</span>
-                            <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">{viewClient.companyName}</span>
-                          </div>
-                          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/40 pb-2">
-                            <span className="text-[12px] font-medium text-black dark:text-slate-500">Industry</span>
-                            <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">{viewClient.industry || "-"}</span>
-                          </div>
-                          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/60 pb-2">
-                            <span className="text-[11px] font-medium text-black dark:text-slate-500">Account Manager</span>
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-[9px]">
-                                {viewClient.spoc ? viewClient.spoc.charAt(0).toUpperCase() : "-"}
-                              </div>
-                              <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">{viewClient.spoc || "-"}</span>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                      {/* Left Column */}
+                      <div className="lg:col-span-7 xl:col-span-8 space-y-4">
+                        {/* Section 1: Client details card */}
+                        <div className="sidebar-bg rounded-2xl p-5 shadow-sm">
+                          <h3 className="text-[12px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-4">
+                            Client Profile
+                          </h3>
+                          <div className="space-y-2.5">
+                            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/40 pb-2">
+                              <span className="text-[12px] font-medium text-black dark:text-slate-500">Company Name</span>
+                              <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">{viewClient.companyName}</span>
                             </div>
+                            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/40 pb-2">
+                              <span className="text-[12px] font-medium text-black dark:text-slate-500">Industry</span>
+                              <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">{viewClient.industry || "-"}</span>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/60 pb-2">
+                              <span className="text-[11px] font-medium text-black dark:text-slate-500">Account Manager</span>
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-[9px]">
+                                  {viewClient.spoc ? viewClient.spoc.charAt(0).toUpperCase() : "-"}
+                                </div>
+                                <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">{viewClient.spoc || "-"}</span>
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/40 pb-2">
+                              <span className="text-[11px] font-medium text-black dark:text-slate-500">Contact Person</span>
+                              <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">
+                                {viewClient.spoc || "-"}
+                                {viewClient.designation ? ` (${viewClient.designation})` : ""}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/40 pb-2">
+                              <span className="text-[11px] font-medium text-black dark:text-slate-500">Phone</span>
+                              <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">{viewClient.phoneNumber || "-"}</span>
+                            </div>
+                            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/40 pb-2">
+                              <span className="text-[11px] font-medium text-black dark:text-slate-500">Status</span>
+                              <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 font-bold text-[9px] border border-emerald-200 dark:border-emerald-800/60">
+                                Active
+                              </span>
+                            </div>
+                            <div className={`flex justify-between items-center pb-2 ${(user?.role === "admin" || user?.role === "operationmanager") ? "border-b border-slate-100 dark:border-slate-800/60" : ""}`}>
+                              <span className="text-[11px] font-medium text-black dark:text-slate-500">Onboard Date</span>
+                              <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">
+                                {viewClient.onboardingDate
+                                  ? new Date(viewClient.onboardingDate).toLocaleDateString("en-IN", {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "numeric",
+                                    })
+                                  : "-"}
+                              </span>
+                            </div>
+                            
+                            {(user?.role === "admin" || user?.role === "operationmanager") && (
+                              <>
+                                <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/60 py-2">
+                                  <span className="text-[11px] font-medium text-black dark:text-slate-500">Base Budget</span>
+                                  <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">
+                                    ₹{(viewClient.budget || 0).toLocaleString("en-IN")}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/60 py-2">
+                                  <span className="text-[11px] font-medium text-black dark:text-slate-500">GST Slab</span>
+                                  <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">
+                                    {viewClient.gst || 18}%
+                                  </span>
+                                </div>
+                                <div className="flex justify-between items-center pt-2 pb-1">
+                                  <span className="text-[11px] font-bold text-black dark:text-slate-550">Grand Total</span>
+                                  <span className="text-[12.5px] font-extrabold text-emerald-600 dark:text-emerald-400 text-right">
+                                    ₹{(viewClient.totalBudget || viewClient.budget || 0).toLocaleString("en-IN")}
+                                  </span>
+                                </div>
+                              </>
+                            )}
                           </div>
-                          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/40 pb-2">
-                            <span className="text-[11px] font-medium text-black dark:text-slate-500">Contact Person</span>
-                            <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">
-                              {viewClient.spoc || "-"}
-                              {viewClient.designation ? ` (${viewClient.designation})` : ""}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/40 pb-2">
-                            <span className="text-[11px] font-medium text-black dark:text-slate-500">Phone</span>
-                            <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">{viewClient.phoneNumber || "-"}</span>
-                          </div>
-                          <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/40 pb-2">
-                            <span className="text-[11px] font-medium text-black dark:text-slate-500">Status</span>
-                            <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 font-bold text-[9px] border border-emerald-200 dark:border-emerald-800/60">
-                              Active
-                            </span>
-                          </div>
-                          <div className={`flex justify-between items-center pb-2 ${(user?.role === "admin" || user?.role === "operationmanager") ? "border-b border-slate-100 dark:border-slate-800/60" : ""}`}>
-                            <span className="text-[11px] font-medium text-black dark:text-slate-500">Onboard Date</span>
-                            <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">
-                              {viewClient.onboardingDate
-                                ? new Date(viewClient.onboardingDate).toLocaleDateString("en-IN", {
-                                    day: "2-digit",
-                                    month: "short",
-                                    year: "numeric",
-                                  })
-                                : "-"}
-                            </span>
+                        </div>
+
+                        {/* MOM Table */}
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm overflow-hidden">
+                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                            <h3 className="text-[12px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                              <FiBookOpen size={14} className="text-blue-500" />
+                              MOM Tasks
+                            </h3>
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                              <input 
+                                type="date" 
+                                value={momDateFilter.start}
+                                onChange={(e) => {
+                                  setMomDateFilter(prev => ({...prev, start: e.target.value}));
+                                  setMomCurrentPage(1);
+                                }}
+                                className="h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[10px] text-slate-700 dark:text-slate-200 outline-none w-full sm:w-auto focus:border-blue-500"
+                                title="Start Date"
+                              />
+                              <span className="text-slate-400 font-bold">-</span>
+                              <input 
+                                type="date" 
+                                value={momDateFilter.end}
+                                onChange={(e) => {
+                                  setMomDateFilter(prev => ({...prev, end: e.target.value}));
+                                  setMomCurrentPage(1);
+                                }}
+                                className="h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[10px] text-slate-700 dark:text-slate-200 outline-none w-full sm:w-auto focus:border-blue-500"
+                                title="End Date"
+                              />
+                              {(momDateFilter.start || momDateFilter.end) && (
+                                <button
+                                  onClick={() => {
+                                    setMomDateFilter({start: "", end: ""});
+                                    setMomCurrentPage(1);
+                                  }}
+                                  className="h-8 w-8 flex items-center justify-center rounded-lg bg-rose-50 dark:bg-rose-950/30 text-rose-500 hover:bg-rose-100 border border-rose-200 dark:border-rose-900"
+                                  title="Clear filters"
+                                >
+                                  <FiX size={14} />
+                                </button>
+                              )}
+                            </div>
                           </div>
                           
-                          {(user?.role === "admin" || user?.role === "operationmanager") && (
-                            <>
-                              <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/60 py-2">
-                                <span className="text-[11px] font-medium text-black dark:text-slate-500">Base Budget</span>
-                                <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">
-                                  ₹{(viewClient.budget || 0).toLocaleString("en-IN")}
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left whitespace-nowrap text-xs">
+                              <thead>
+                                <tr className="bg-blue-500 text-white font-extrabold uppercase tracking-widest text-[9px]">
+                                  <th className="px-3 py-2.5 rounded-l-md">Task</th>
+                                  <th className="px-3 py-2.5 text-center">Status</th>
+                                  <th className="px-3 py-2.5 text-center">Time</th>
+                                  <th className="px-3 py-2.5 text-right rounded-r-md">Date</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                                {paginatedMomTasks.length > 0 ? (
+                                  paginatedMomTasks.map(task => (
+                                    <tr key={task._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                                      <td className="px-3 py-2.5">
+                                        <div className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[180px] xl:max-w-[250px]">
+                                          {task.taskName}
+                                        </div>
+                                        <div className="text-[9px] text-slate-500 mt-0.5 font-medium truncate max-w-[180px] xl:max-w-[250px]">
+                                          {task.project?.name || "-"}
+                                        </div>
+                                      </td>
+                                      <td className="px-3 py-2.5 text-center">
+                                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                          task.status === "Completed" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" :
+                                          task.status === "In Progress" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
+                                          task.status === "On-Hold" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
+                                          "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400"
+                                        }`}>
+                                          {task.status}
+                                        </span>
+                                      </td>
+                                      <td className="px-3 py-2.5 text-[10px] font-semibold text-slate-600 dark:text-slate-400 text-center">
+                                        {task.status === "In Progress" && task.timer && task.timer.startTime ? (
+                                          <span className="text-blue-600 dark:text-blue-400 flex items-center justify-center gap-1 font-bold">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
+                                            Running
+                                          </span>
+                                        ) : (
+                                          task.totalTimeSpent || "-"
+                                        )}
+                                      </td>
+                                      <td className="px-3 py-2.5 text-right text-[10px] text-slate-500 font-medium">
+                                        {new Date(task.createdAt || task.date).toLocaleDateString("en-IN", {
+                                          day: "2-digit", month: "short", year: "numeric"
+                                        })}
+                                      </td>
+                                    </tr>
+                                  ))
+                                ) : (
+                                  <tr>
+                                    <td colSpan="4" className="px-3 py-8 text-center">
+                                      <div className="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
+                                        <FiBookOpen size={20} className="mb-2 opacity-30" />
+                                        <span className="text-[11px] font-bold">No MOM tasks found.</span>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                          
+                          {/* Pagination */}
+                          {totalMomPages > 1 && (
+                            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+                              <span className="text-[10px] font-semibold text-slate-500">
+                                {totalMomTasks} records
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => setMomCurrentPage(p => Math.max(1, p - 1))}
+                                  disabled={momCurrentPage === 1}
+                                  className="h-6 w-6 flex items-center justify-center rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 disabled:opacity-30 transition-colors"
+                                >
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+                                </button>
+                                <span className="text-[10px] font-bold px-2 text-slate-700 dark:text-slate-300">
+                                  {momCurrentPage} / {totalMomPages}
                                 </span>
+                                <button
+                                  onClick={() => setMomCurrentPage(p => Math.min(totalMomPages, p + 1))}
+                                  disabled={momCurrentPage === totalMomPages}
+                                  className="h-6 w-6 flex items-center justify-center rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 disabled:opacity-30 transition-colors"
+                                >
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+                                </button>
                               </div>
-                              <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/60 py-2">
-                                <span className="text-[11px] font-medium text-black dark:text-slate-500">GST Slab</span>
-                                <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">
-                                  {viewClient.gst || 18}%
-                                </span>
-                              </div>
-                              <div className="flex justify-between items-center pt-2 pb-1">
-                                <span className="text-[11px] font-bold text-black dark:text-slate-550">Grand Total</span>
-                                <span className="text-[12.5px] font-extrabold text-emerald-600 dark:text-emerald-400 text-right">
-                                  ₹{(viewClient.totalBudget || viewClient.budget || 0).toLocaleString("en-IN")}
-                                </span>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Section 2: Projects Card */}
-                      <div className="bg-white dark:bg-slate-900 rounded-2xl p-4.5 border border-slate-200 dark:border-slate-800 shadow-sm">
-                        <div className="flex items-center justify-between mb-3.5">
-                          <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                            Projects ({clientProjects.length})
-                          </h3>
-                          <Link to={`/${user.role}/projects`}>
-                            <span className="text-[10.5px] font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 cursor-pointer">
-                              View All
-                            </span>
-                          </Link>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          {clientProjects.slice(0, 5).map(project => (
-                            <Link
-                              key={project._id}
-                              to={`/${user.role}/projects?id=${project._id}`}
-                              className="block"
-                            >
-                              <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-800/30 transition-colors hover:bg-blue-50/80 dark:hover:bg-blue-950/20 hover:border-blue-200/50 dark:hover:border-blue-800/50 cursor-pointer group">
-                                <div className="flex items-center gap-2.5">
-                                  <div 
-                                    className="w-6.5 h-6.5 rounded-lg flex items-center justify-center text-white shadow-sm"
-                                    style={{ background: project.color || "var(--accent-gradient)" }}
-                                  >
-                                    <FiBriefcase size={12} />
-                                  </div>
-                                  <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{project.name}</span>
-                                </div>
-                                <span className="px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
-                                  {project.status || "Active"}
-                                </span>
-                              </div>
-                            </Link>
-                          ))}
-                          {clientProjects.length === 0 && (
-                            <div className="flex flex-col items-center justify-center py-4 text-slate-400">
-                              <FiBriefcase size={20} className="mb-1.5 opacity-30" />
-                              <span className="text-[11px] font-bold">No projects assigned yet.</span>
                             </div>
                           )}
                         </div>
                       </div>
 
-                      {/* Section 3: Tasks Summary Card */}
-                      <div className="bg-white dark:bg-slate-900 rounded-2xl p-4.5 border border-slate-200 dark:border-slate-800 shadow-sm">
-                        <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3.5">
-                          Tasks Summary
-                        </h3>
-                        <div className="grid grid-cols-4 gap-2.5">
-                          {/* Total */}
-                          <div className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40">
-                            <span className="text-lg font-black text-blue-700 dark:text-blue-400 mb-0.5">{totalTasks}</span>
-                            <span className="text-[8px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">Total</span>
+                      {/* Right Column */}
+                      <div className="lg:col-span-5 xl:col-span-4 space-y-4">
+                        {/* Section 2: Projects Card */}
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-[12px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                              Projects ({clientProjects.length})
+                            </h3>
+                            <Link to={`/${user.role}/projects`}>
+                              <span className="text-[10.5px] font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 cursor-pointer">
+                                View All
+                              </span>
+                            </Link>
                           </div>
-                          {/* In Progress */}
-                          <div className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40">
-                            <span className="text-lg font-black text-amber-600 dark:text-amber-400 mb-0.5">{inProgressTasks}</span>
-                            <span className="text-[8px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">Active</span>
+                          
+                          <div className="space-y-2">
+                            {clientProjects.slice(0, 5).map(project => (
+                              <Link
+                                key={project._id}
+                                to={`/${user.role}/projects?id=${project._id}`}
+                                className="block"
+                              >
+                                <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-800/30 transition-colors hover:bg-blue-50/80 dark:hover:bg-blue-950/20 hover:border-blue-200/50 dark:hover:border-blue-800/50 cursor-pointer group">
+                                  <div className="flex items-center gap-2.5">
+                                    <div 
+                                      className="w-6.5 h-6.5 rounded-lg flex items-center justify-center text-white shadow-sm"
+                                      style={{ background: project.color || "var(--accent-gradient)" }}
+                                    >
+                                      <FiBriefcase size={12} />
+                                    </div>
+                                    <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{project.name}</span>
+                                  </div>
+                                  <span className="px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
+                                    {project.status || "Active"}
+                                  </span>
+                                </div>
+                              </Link>
+                            ))}
+                            {clientProjects.length === 0 && (
+                              <div className="flex flex-col items-center justify-center py-4 text-slate-400">
+                                <FiBriefcase size={20} className="mb-1.5 opacity-30" />
+                                <span className="text-[11px] font-bold">No projects assigned yet.</span>
+                              </div>
+                            )}
                           </div>
-                          {/* Completed */}
-                          <div className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40">
-                            <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 mb-0.5">{completedTasks}</span>
-                            <span className="text-[8px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">Done</span>
-                          </div>
-                          {/* Overdue */}
-                          <div className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/40">
-                            <span className="text-lg font-black text-rose-600 dark:text-rose-400 mb-0.5">{overdueTasks}</span>
-                            <span className="text-[8px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">Overdue</span>
+                        </div>
+
+                        {/* Section 3: Tasks Summary Card */}
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+                          <h3 className="text-[12px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-4">
+                            Tasks Summary
+                          </h3>
+                          <div className="grid grid-cols-2 gap-2.5">
+                            {/* Total */}
+                            <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40">
+                              <span className="text-xl font-black text-blue-700 dark:text-blue-400 mb-0.5">{totalTasks}</span>
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">Total</span>
+                            </div>
+                            {/* In Progress */}
+                            <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40">
+                              <span className="text-xl font-black text-amber-600 dark:text-amber-400 mb-0.5">{inProgressTasks}</span>
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">Active</span>
+                            </div>
+                            {/* Completed */}
+                            <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40">
+                              <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 mb-0.5">{completedTasks}</span>
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">Done</span>
+                            </div>
+                            {/* Overdue */}
+                            <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/40">
+                              <span className="text-xl font-black text-rose-600 dark:text-rose-400 mb-0.5">{overdueTasks}</span>
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">Overdue</span>
+                            </div>
                           </div>
                         </div>
                       </div>

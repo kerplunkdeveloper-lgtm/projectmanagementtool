@@ -49,6 +49,7 @@ const Portfolio = lazyWithRetry(() => import("../pages/admin/portfolio/Portfolio
 const Workload = lazyWithRetry(() => import("../pages/workload/Workload.jsx"));
 const Stickynotes = lazyWithRetry(() => import("../pages/admin/Stickynotes.jsx"));
 const ContentCalcendor = lazyWithRetry(() => import("../pages/contentcalendor/ContentCalcendor.jsx"));
+const MomClientReport = lazyWithRetry(() => import("../pages/admin/MomClientReport.jsx"));
 
 // Elegant, premium animated page loader
 const PageLoader = () => (
@@ -117,6 +118,11 @@ const AppRoutes = () => {
         <Route
           path="users"
           element={<ProtectedRoute requiredPermission="manage_users"><AdminUsers /></ProtectedRoute>}
+        />
+
+        <Route
+          path="mom-client-report"
+          element={<MomClientReport />}
         />
 
         <Route
@@ -248,6 +254,11 @@ const AppRoutes = () => {
         <Route
           path="users"
           element={<ProtectedRoute requiredPermission="manage_users"><AdminUsers /></ProtectedRoute>}
+        />
+
+        <Route
+          path="mom-client-report"
+          element={<MomClientReport />}
         />
 
         <Route

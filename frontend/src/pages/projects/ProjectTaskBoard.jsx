@@ -4020,6 +4020,16 @@ const ProjectTaskBoard = ({
 
               return (
                 <div className="pt-3 w-full">
+                  <div className="flex justify-end mb-3">
+                    <button
+                      type="button"
+                      onClick={() => handleAddTask(null)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-[12px] font-black cursor-pointer transition-all shadow-md"
+                    >
+                      <FiPlus size={14} className="stroke-[3]" />
+                      <span>Add Task</span>
+                    </button>
+                  </div>
                   {/* Mobile Horizontal Scroll Indicator Cue */}
                   <div className="flex md:hidden items-center justify-between gap-1.5 py-1.5 px-3 mb-2 rounded-lg bg-indigo-50/50 dark:bg-white/[0.02] border border-indigo-100/30 dark:border-white/5 text-[9px] text-slate-500 dark:text-slate-400 font-medium">
                     <div className="flex items-center gap-1.5">
@@ -5628,7 +5638,9 @@ const ProjectTaskBoard = ({
                                                                                   : task.contentType ===
                                                                                       "Video shoot"
                                                                                     ? "badge-type-carousel"
-                                                                                    : "badge-type-none"
+                                                                                    : task.contentType === "MOM"
+                                                                                      ? "badge-type-post"
+                                                                                      : "badge-type-none"
                                                                 }`}
                                                               >
                                                                 <option value="">
@@ -5661,6 +5673,9 @@ const ProjectTaskBoard = ({
                                                                 <option value="Video shoot">
                                                                   Video shoot
                                                                 </option>
+                                                                <option value="MOM">
+                                                                  🤝 MOM
+                                                                </option>
                                                                 {task.contentType &&
                                                                   ![
                                                                     "VIDEO",
@@ -5672,6 +5687,7 @@ const ProjectTaskBoard = ({
                                                                     "Website",
                                                                     "SEO",
                                                                     "Video shoot",
+                                                                    "MOM",
                                                                   ].includes(
                                                                     task.contentType,
                                                                   ) && (
@@ -6815,7 +6831,9 @@ const ProjectTaskBoard = ({
                                                                                           : sub.contentType ===
                                                                                               "Video shoot"
                                                                                             ? "badge-type-carousel"
-                                                                                            : "badge-type-none"
+                                                                                            : sub.contentType === "MOM"
+                                                                                              ? "badge-type-post"
+                                                                                              : "badge-type-none"
                                                                         }`}
                                                                       >
                                                                         <option value="">
@@ -6849,6 +6867,9 @@ const ProjectTaskBoard = ({
                                                                           Video
                                                                           shoot
                                                                         </option>
+                                                                        <option value="MOM">
+                                                                          🤝 MOM
+                                                                        </option>
                                                                         {sub.contentType &&
                                                                           ![
                                                                             "VIDEO",
@@ -6860,6 +6881,7 @@ const ProjectTaskBoard = ({
                                                                             "Website",
                                                                             "SEO",
                                                                             "Video shoot",
+                                                                            "MOM",
                                                                           ].includes(
                                                                             sub.contentType,
                                                                           ) && (

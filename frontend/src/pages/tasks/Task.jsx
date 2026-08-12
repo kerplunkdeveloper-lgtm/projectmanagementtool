@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 import { FiCheckSquare, FiBriefcase } from "react-icons/fi";
 import {
@@ -8,12 +8,18 @@ import {
 } from "../../features/api/apiSlice";
 import TaskOverviewTab from "./TaskOverviewTab";
 import MyTasksTab from "./MyTasksTab";
+import { getUsers } from "../../features/users/userSlice";
 
 const Task = () => {
   const { user } = useSelector((state) => state.auth);
   const currentUserId = user?._id || user?.id;
+  const dispatch = useDispatch();
   const [searchParams] = useSearchParams();
   const departmentParam = searchParams.get("department") || searchParams.get("dept");
+
+  useEffect(() => {
+    dispatch(getUsers());
+  }, [dispatch]);
 
   const canSeeTaskOverview =
     user?.department?.toLowerCase() === "social media manager" ||
@@ -88,22 +94,23 @@ const Task = () => {
     <div className="px-0 py-1 space-y-4 pb-16">
       {/* TABS HEADER — only for managers/admins */}
       {canSeeTaskOverview && (
-        <div className="flex items-center justify-center gap-2 border-b border-slate-200/80 dark:border-white/10 px-2 pb-3 pt-1">
-          <button
+        <div className="flex items-center justify-between border-b border-slate-200/80 dark:border-white/10 px-2 pb-3 pt-1">
+          <div className="flex items-center gap-2">
+            <button
             type="button"
             onClick={() => setActiveTab("Task Overview")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold transition-all cursor-pointer ${
               activeTab === "Task Overview"
-                ? "bg-blue-600 dark:bg-[#3b82f6] text-white dark:text-black shadow-xl shadow-blue-500"
-                : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10"
+                ? "bg-gradient-to-r from-[#60a5fa] to-[#3b82f6] text-white shadow-md shadow-blue-500/20"
+                : "bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10"
             }`}
           >
-            <FiBriefcase size={16} />
+            <FiBriefcase size={14} className={activeTab === "Task Overview" ? "text-white" : "text-slate-500"} />
             <span>Task overview</span>
             <span
-              className={`ml-1 text-[13px] px-2 py-0.5 rounded-full font-black ${
+              className={`ml-1 text-[11px] px-2 py-0.5 rounded-full font-black flex items-center justify-center ${
                 activeTab === "Task Overview"
-                  ? "bg-white/50 dark:bg-black/20  "
+                  ? "bg-white/30 text-white"
                   : "bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300"
               }`}
             >
@@ -114,24 +121,28 @@ const Task = () => {
           <button
             type="button"
             onClick={() => setActiveTab("myTasks")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-bold transition-all cursor-pointer ${
               activeTab === "myTasks"
-                ? "bg-blue-600 dark:bg-[#3b82f6] text-white dark:text-black shadow-md shadow-blue-500/20"
-                : "bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10"
+                ? "bg-gradient-to-r from-[#60a5fa] to-[#3b82f6] text-white shadow-md shadow-blue-500/20"
+                : "bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10"
             }`}
           >
-            <FiCheckSquare size={14} />
+            <FiCheckSquare size={14} className={activeTab === "myTasks" ? "text-white" : "text-slate-500"} />
             <span>My Tasks</span>
             <span
-              className={`ml-1 text-[10px] px-2 py-0.5 rounded-full font-black ${
+              className={`ml-1 text-[11px] px-2 py-0.5 rounded-full font-black flex items-center justify-center ${
                 activeTab === "myTasks"
-                  ? "bg-white/20 dark:bg-black/20 text-white dark:text-black"
+                  ? "bg-white/30 text-white"
                   : "bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300"
               }`}
             >
               {myTasksCount}
             </span>
           </button>
+          </div>
+          
+          {/* Portal target for right-side actions (like Export / Hide Column) */}
+          <div id="task-actions-portal" className="flex items-center gap-2 shrink-0"></div>
         </div>
       )}
 
