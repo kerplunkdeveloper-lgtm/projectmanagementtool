@@ -56,8 +56,8 @@ import toast from "react-hot-toast";
 import axiosInstance from "../../services/axiosInstance";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiMail, FiInfo, FiEye } from "react-icons/fi";
-import grouplogo from "../../assets/grouplogo.png"
-
+import grouplogo from "../../assets/grouplogo.png";
+import notificationSound from "../../assets/notification.mp3";
 const EMOJIS = [
   "😀",
   "😃",
@@ -425,6 +425,13 @@ const ChatPage = () => {
     socketRef.current.on("connect", performJoin);
 
     const showNewMessageToast = (msg) => {
+      try {
+        const audio = new Audio(notificationSound);
+        audio.play().catch(err => console.log("Audio play blocked by browser:", err));
+      } catch (err) {
+        console.log("Error playing audio:", err);
+      }
+
       toast.custom(
         (t) => (
           <motion.div
