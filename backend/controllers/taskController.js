@@ -44,6 +44,8 @@ const calculateItemWorkingTime = (item) => {
     end = item.pausedAt ? new Date(item.pausedAt).getTime() : Date.now();
   } else if (item.pausedAt && item.status !== "In Progress") {
     end = new Date(item.pausedAt).getTime();
+  } else if (item.status === "Pending") {
+    end = item.updatedAt ? new Date(item.updatedAt).getTime() : start;
   }
 
   let totalPauseMs = 0;
@@ -456,6 +458,14 @@ if (req.body.status && req.body.status !== previousStatus) {
         req.body.businessTotalPausedMs =
           (task.businessTotalPausedMs || 0) +
           calculateBusinessMs(task.pausedAt, Date.now());
+      } else if (previousStatus === "Pending" && task.actualStartTime) {
+        const pendingDuration = Date.now() - new Date(task.updatedAt).getTime();
+        if (pendingDuration > 0) {
+          req.body.totalPausedMs = (task.totalPausedMs || 0) + pendingDuration;
+          req.body.businessTotalPausedMs =
+            (task.businessTotalPausedMs || 0) +
+            calculateBusinessMs(task.updatedAt, Date.now());
+        }
       }
 
       if (previousStatus === "Correction") {
@@ -657,6 +667,14 @@ if (req.body.subtasks) {
             sub.businessTotalPausedMs =
               (prevSub.businessTotalPausedMs || 0) +
               calculateBusinessMs(prevSub.pausedAt, Date.now());
+          } else if (prevSub.status === "Pending" && prevSub.actualStartTime) {
+            const pendingDuration = Date.now() - new Date(task.updatedAt).getTime();
+            if (pendingDuration > 0) {
+              sub.totalPausedMs = (prevSub.totalPausedMs || 0) + pendingDuration;
+              sub.businessTotalPausedMs =
+                (prevSub.businessTotalPausedMs || 0) +
+                calculateBusinessMs(task.updatedAt, Date.now());
+            }
           }
 
           if (prevSub.status === "Correction") {

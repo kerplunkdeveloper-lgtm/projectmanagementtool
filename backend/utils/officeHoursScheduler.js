@@ -28,7 +28,7 @@ async function checkAndAutoPauseTasks(io) {
     const isOutsideBusiness = isNonWorkingDay || isOutsideHours;
 
     if (isOutsideBusiness) {
-      // OUTSIDE OFFICE HOURS -> Auto-pause active tasks (status remains "In Progress", autoPaused = true)
+      // OUTSIDE OFFICE HOURS -> Auto-pause active tasks (status becomes "On Hold", autoPaused = true)
       const dateStr = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
       const hourStr = String(endHour).padStart(2, "0");
       let pauseTime = new Date(`${dateStr}T${hourStr}:00:00+05:30`);
@@ -36,7 +36,7 @@ async function checkAndAutoPauseTasks(io) {
         pauseTime = new Date(now);
       }
 
-      // 1. Parent tasks with status "In Progress" or legacy autoPaused "On Hold"
+      // 1. Parent tasks with status "In Progress"
       const activeTasks = await Task.find({
         $or: [
           { status: "In Progress", autoPaused: { $ne: true } },
@@ -45,12 +45,12 @@ async function checkAndAutoPauseTasks(io) {
       });
 
       for (let task of activeTasks) {
-        task.status = "In Progress";
+        task.status = "On Hold";
         task.pausedAt = task.pausedAt || pauseTime;
         task.autoPaused = true;
         await task.save();
         
-        console.log(`Auto-paused task: "${task.title}" at ${task.pausedAt}`);
+        console.log(`Auto-paused task (moved to On Hold): "${task.title}" at ${task.pausedAt}`);
         if (io) {
           io.emit("task_updated", { taskId: task._id });
         }
@@ -68,11 +68,11 @@ async function checkAndAutoPauseTasks(io) {
         let updated = false;
         task.subtasks = task.subtasks.map(sub => {
           if ((sub.status === "In Progress" && !sub.autoPaused) || (sub.status === "On Hold" && sub.autoPaused)) {
-            sub.status = "In Progress";
+            sub.status = "On Hold";
             sub.pausedAt = sub.pausedAt || pauseTime;
             sub.autoPaused = true;
             updated = true;
-            console.log(`Auto-paused subtask: "${sub.title}" in task "${task.title}"`);
+            console.log(`Auto-paused subtask (moved to On Hold): "${sub.title}" in task "${task.title}"`);
           }
           return sub;
         });
@@ -85,10 +85,10 @@ async function checkAndAutoPauseTasks(io) {
         }
       }
     } else {
-      // INSIDE OFFICE HOURS -> Auto-resume autoPaused tasks
-      const tasksToResume = await Task.find({ autoPaused: true });
+      // INSIDE OFFICE HOURS -> Move autoPaused tasks/subtasks from On Hold to Pending
+      const tasksToMoveToPending = await Task.find({ autoPaused: true });
 
-      for (let task of tasksToResume) {
+      for (let task of tasksToMoveToPending) {
         if (task.status === "In Progress" || task.status === "On Hold") {
           if (task.pausedAt) {
             const pauseDurationMs = now.getTime() - new Date(task.pausedAt).getTime();
@@ -97,21 +97,21 @@ async function checkAndAutoPauseTasks(io) {
               task.businessTotalPausedMs = (task.businessTotalPausedMs || 0) + calculateBusinessMs(task.pausedAt, now, startHour, endHour, workingDays);
             }
           }
-          task.status = "In Progress";
+          task.status = "Pending";
           task.autoPaused = false;
           task.pausedAt = null;
           await task.save();
 
-          console.log(`Auto-resumed task: "${task.title}" at 9:00 AM working hours`);
+          console.log(`Auto-paused task moved to Pending: "${task.title}" at office hours start`);
           if (io) {
             io.emit("task_updated", { taskId: task._id });
           }
         }
       }
 
-      // Subtasks auto-resume
-      const tasksWithSubtasksToResume = await Task.find({ "subtasks.autoPaused": true });
-      for (let task of tasksWithSubtasksToResume) {
+      // Subtasks move from On Hold to Pending
+      const tasksWithSubtasksToMove = await Task.find({ "subtasks.autoPaused": true });
+      for (let task of tasksWithSubtasksToMove) {
         let updated = false;
         task.subtasks = task.subtasks.map(sub => {
           if (sub.autoPaused) {
@@ -122,11 +122,11 @@ async function checkAndAutoPauseTasks(io) {
                 sub.businessTotalPausedMs = (sub.businessTotalPausedMs || 0) + calculateBusinessMs(sub.pausedAt, now, startHour, endHour, workingDays);
               }
             }
-            sub.status = "In Progress";
+            sub.status = "Pending";
             sub.autoPaused = false;
             sub.pausedAt = null;
             updated = true;
-            console.log(`Auto-resumed subtask: "${sub.title}" in task "${task.title}"`);
+            console.log(`Auto-paused subtask moved to Pending: "${sub.title}" in task "${task.title}"`);
           }
           return sub;
         });
