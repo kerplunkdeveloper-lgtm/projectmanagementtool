@@ -341,13 +341,13 @@ const LiveProductivityCell = React.memo(
 
     if (isSelectedDateToday && hasInProgress) {
       return (
-        <div className="flex items-center justify-center gap-1.5">
-          <span className="text-emerald-600 dark:text-emerald-400 font-black text-[11px] min-w-[75px] text-right">
+        <div className="flex items-center justify-center gap-1 whitespace-nowrap">
+          <span
+            className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping shrink-0"
+            title="Running"
+          />
+          <span className="text-emerald-700 dark:text-emerald-300 font-black text-[9.5px] whitespace-nowrap">
             {formatLoggedDuration(liveMs, true)}
-          </span>
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[8px] font-black uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
-            Running
           </span>
         </div>
       );
@@ -355,13 +355,13 @@ const LiveProductivityCell = React.memo(
 
     if (isSelectedDateToday && hasInReview) {
       return (
-        <div className="flex items-center justify-center gap-1.5">
-          <span className="text-amber-600 dark:text-amber-500 font-black text-[11px] min-w-[75px] text-right">
+        <div className="flex items-center justify-center gap-1 whitespace-nowrap">
+          <span
+            className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping shrink-0"
+            title="In Review"
+          />
+          <span className="text-amber-700 dark:text-amber-300 font-black text-[9.5px] whitespace-nowrap">
             {formatLoggedDuration(liveMs, true)}
-          </span>
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-900/30 text-amber-600 dark:text-amber-400 text-[8px] font-black uppercase tracking-wider animate-pulse">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping shrink-0" />
-            In Review
           </span>
         </div>
       );
@@ -369,14 +369,14 @@ const LiveProductivityCell = React.memo(
 
     if (!liveMs || liveMs <= 0) {
       return (
-        <span className="text-slate-400 dark:text-slate-400 font-semibold text-[10.5px] italic">
+        <span className="text-slate-400 dark:text-slate-500 font-medium text-[8.5px] italic whitespace-nowrap">
           Not started
         </span>
       );
     }
 
     return (
-      <span className="text-orange-600 dark:text-orange-400 font-black text-[11px]">
+      <span className="text-slate-700 dark:text-slate-300 font-extrabold text-[9.5px] whitespace-nowrap">
         {formatLoggedDuration(liveMs)}
       </span>
     );
@@ -397,8 +397,9 @@ const LiveTotalProductivityCell = React.memo(
     const hasAnyInProgress = useMemo(() => {
       return teamPerformance.some((tp) =>
         (tp.tasks || []).some(
-          (t) => t.status === "In Progress" && !t.actualEndTime && !t.autoPaused,
-        )
+          (t) =>
+            t.status === "In Progress" && !t.actualEndTime && !t.autoPaused,
+        ),
       );
     }, [teamPerformance]);
 
@@ -406,7 +407,11 @@ const LiveTotalProductivityCell = React.memo(
       let grandTotal = 0;
       teamPerformance.forEach((tp) => {
         (tp.tasks || []).forEach((t) => {
-          grandTotal += calculateTaskProductivityForDate(t, selectedDate, officeHours);
+          grandTotal += calculateTaskProductivityForDate(
+            t,
+            selectedDate,
+            officeHours,
+          );
         });
       });
       return grandTotal;
@@ -431,20 +436,67 @@ const LiveTotalProductivityCell = React.memo(
     ]);
 
     const formatGrandTotal = (ms) => {
-      if (!ms || ms <= 0) return "00h 00m 00s";
+      if (!ms || ms <= 0) return "0h 0m";
       const totalSecs = Math.floor(ms / 1000);
       const h = Math.floor(totalSecs / 3600);
       const m = Math.floor((totalSecs % 3600) / 60);
-      const s = totalSecs % 60;
-      return `${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+      return `${h}h ${String(m).padStart(2, "0")}m`;
     };
 
     return (
-      <span className="text-[11px] font-black text-blue-600 dark:text-blue-400">
-        Total: {formatGrandTotal(liveMs)}
+      <span className="text-[9.5px] font-black text-emerald-800 dark:text-emerald-300 whitespace-nowrap">
+        {formatGrandTotal(liveMs)}
       </span>
     );
-  }
+  },
+);
+
+const StatusCellValue = React.memo(
+  ({
+    todayVal = 0,
+    carryVal = 0,
+    activeTextClass = "",
+    badgeClass = "",
+    showRunningIndicator = false,
+  }) => {
+    const hasToday = todayVal > 0;
+    const hasCarry = carryVal > 0;
+
+    return (
+      <div className="flex items-center justify-center gap-1 py-0.5 min-h-[22px] group">
+        {/* Main value (Today's count) */}
+        <div className="flex items-center justify-center gap-0.5">
+          <span
+            className={`text-[11.5px] font-extrabold tracking-tight transition-all duration-200 group-hover:scale-105 ${
+              hasToday ? activeTextClass : "text-slate-400 dark:text-slate-600"
+            }`}
+          >
+            {todayVal}
+          </span>
+          {showRunningIndicator && hasToday && (
+            <span className="relative flex h-1 w-1 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-1 w-1 bg-indigo-500"></span>
+            </span>
+          )}
+        </div>
+
+        {/* Carry Forward Badge */}
+        {hasCarry ? (
+          <span
+            className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[7.5px] font-black tracking-wider uppercase border shadow-3xs transition-all duration-300 hover:scale-105 hover:-translate-y-0.5 shrink-0 ${badgeClass}`}
+            title={`${carryVal} Carry Forward`}
+          >
+            {carryVal} CF
+          </span>
+        ) : (
+          <span className="text-[9px] font-bold text-slate-300 dark:text-slate-700 opacity-40 select-none w-3 text-center">
+            -
+          </span>
+        )}
+      </div>
+    );
+  },
 );
 
 const ApprovalTimelineCell = React.memo(({ task }) => {
@@ -1387,6 +1439,37 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         totalRevisions += t.revisions || 0;
       });
 
+      // CARRY FORWARD TASKS ONLY — tasks whose assignment date (startDate || createdAt)
+      // is before selectedDate. Used for status counts in the Performance Table.
+      const carryForwardTasks = myTasks.filter((task) => {
+        const assignmentDate = task.startDate || task.createdAt;
+        if (!assignmentDate) return false;
+        return isBefore(
+          startOfDay(new Date(assignmentDate)),
+          startOfDay(selectedDate),
+        );
+      });
+
+      // --- Status counts: based on CARRY FORWARD BATCH only ---
+      let carryComp = 0;
+      let carryPend = 0;
+      let carryProg = 0;
+      let carryHold = 0;
+      let carryRev = 0;
+
+      carryForwardTasks.forEach((t) => {
+        const s = t.status?.toLowerCase() || "";
+        const isCompleted = s === "completed" || s.includes("approve");
+        const isRejected = s.includes("reject") || s.includes("cancel");
+
+        if (isCompleted) carryComp++;
+        else if (s.includes("hold")) carryHold++;
+        else if (s.includes("progress")) carryProg++;
+        else if (s.includes("review") || s.includes("revision")) carryRev++;
+        else if (s === "pending") carryPend++;
+        else if (!isRejected) carryPend++; // default fallback
+      });
+
       // --- Productivity & Blockers: based on ALL myTasks worked on selectedDate ---
       let totalLoggedMs = 0;
       let totalBusinessLoggedMs = 0;
@@ -1556,6 +1639,14 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         inProgress: prog,
         onHold: hold,
         inReview: rev,
+        carryForward: {
+          assigned: carryForwardTasks.length,
+          completed: carryComp,
+          pending: carryPend,
+          inProgress: carryProg,
+          onHold: carryHold,
+          inReview: carryRev,
+        },
         // inReviewTasks: filtered from todayAssignedTasks (assignment-based)
         inReviewTasks: todayAssignedTasks.filter((t) => {
           const s = t.status?.toLowerCase() || "";
@@ -3172,80 +3263,76 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           {/* ─────────────────── LEFT: Team Performance (6 Columns) ─────────────────── */}
           <div className="lg:col-span-6 sidebar-bg backdrop-blur-xl rounded-2xl overflow-hidden shadow-sm dark:shadow-2xl flex flex-col">
             {/* Header */}
-            <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-transparent flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-              <div>
-                <h3 className="text-xs font-black text-slate-800 dark:text-white tracking-wide uppercase">
+            <div className="px-3 py-2 min-h-[52px] border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="text-xs font-black text-slate-800 dark:text-white tracking-wide uppercase truncate">
                   Team Performance
                 </h3>
-                <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 tracking-wide">
-                  Based on Today Assigned Batch
+                <span className="text-[8.5px] font-semibold text-slate-400 dark:text-slate-500 tracking-wide truncate block">
+                  Today's Assigned & Carry Forward
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40">
-                  <span className="text-[8px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                    Office:
+              <div className="flex items-center gap-1 shrink-0">
+                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-200/50 dark:bg-slate-800/80 text-[7.5px] font-bold text-slate-600 dark:text-slate-400">
+                  <span className="px-1 py-0.2 rounded-xs bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-[6px] font-black uppercase">
+                    CF
                   </span>
-                  <span className="text-[9px] font-extrabold text-emerald-700 dark:text-emerald-300">
+                  <span>Carry Forward</span>
+                </div>
+                <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/40 dark:border-emerald-800/40 text-[7.5px] font-extrabold text-emerald-600 dark:text-emerald-400">
+                  <span>Office:</span>
+                  <span>
                     {(() => {
                       const s = officeHours.startHour;
                       const e = officeHours.endHour;
                       const fmt = (h) => {
                         const ampm = h >= 12 ? "PM" : "AM";
                         const val = h % 12 === 0 ? 12 : h % 12;
-                        return `${String(val).padStart(2, "0")}:00 ${ampm}`;
+                        return `${val} ${ampm}`;
                       };
-                      return `${fmt(s)} – ${fmt(e)}`;
+                      return `${fmt(s)}–${fmt(e)}`;
                     })()}
                   </span>
                 </div>
-                <div className="flex items-center gap-1 px-2 py-0.5 rounded-md sidebar-bg border border-slate-100 dark:border-slate-800 shadow-2xs">
+                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded sidebar-bg border border-slate-200/60 dark:border-slate-800 text-[7.5px] font-extrabold text-slate-700 dark:text-slate-300">
                   <FiCalendar
                     className="text-indigo-500 dark:text-indigo-400 shrink-0"
-                    size={10}
+                    size={9}
                   />
-                  <span className="text-[8px] font-black uppercase tracking-wider">
-                    {getRelativeDateLabel(selectedDate)}
-                  </span>
-                  <span className="text-slate-300 dark:text-slate-600 font-bold text-[10px]">
-                    •
-                  </span>
-                  <span className="text-[9px] font-extrabold">
-                    {format(selectedDate, "MMM dd, yyyy")}
-                  </span>
+                  <span>{format(selectedDate, "MMM dd")}</span>
                 </div>
               </div>
             </div>
 
             {/* Table */}
             <div className="overflow-x-auto flex-1">
-              <table className="w-full text-left border-collapse table-auto">
+              <table className="w-full text-left border-collapse table-auto border border-slate-250 dark:border-slate-700/80">
                 <thead>
-                  <tr className="bg-slate-50/60 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800">
-                    <th className="py-1.5 px-1.5 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider text-slate-500 dark:text-slate-300 uppercase whitespace-nowrap w-[110px]">
+                  <tr className="h-[36px] bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+                    <th className="h-[36px] py-1 px-1.5 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[9px] font-black tracking-wider text-slate-700 dark:text-slate-200 uppercase whitespace-nowrap w-[90px]">
                       Designer
                     </th>
-                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase bg-slate-700 text-white dark:bg-slate-600 dark:text-white whitespace-nowrap text-center">
+                    <th className="h-[36px] py-1 px-1.5 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[9px] font-black tracking-wider uppercase bg-slate-200/80 dark:bg-slate-700/60 text-slate-800 dark:text-slate-100 whitespace-nowrap text-center">
                       Assigned
                     </th>
-                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase bg-red-500 text-white dark:bg-red-650 dark:text-white whitespace-nowrap text-center">
+                    <th className="h-[36px] py-1 px-1.5 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[9px] font-black tracking-wider uppercase bg-red-100/80 dark:bg-red-950/60 text-red-700 dark:text-red-300 whitespace-nowrap text-center">
                       Pend
                     </th>
-                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase bg-violet-600 text-white dark:bg-violet-750 dark:text-white whitespace-nowrap text-center">
+                    <th className="h-[36px] py-1 px-1.5 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[9px] font-black tracking-wider uppercase bg-violet-100/80 dark:bg-violet-950/60 text-violet-700 dark:text-violet-300 whitespace-nowrap text-center">
                       Prog
                     </th>
-                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase bg-fuchsia-600 text-white dark:bg-fuchsia-700 dark:text-white whitespace-nowrap text-center">
+                    <th className="h-[36px] py-1 px-1.5 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[9px] font-black tracking-wider uppercase bg-fuchsia-100/80 dark:bg-fuchsia-950/60 text-fuchsia-700 dark:text-fuchsia-300 whitespace-nowrap text-center">
                       Hold
                     </th>
-                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase bg-amber-500 text-white dark:bg-amber-600 dark:text-white whitespace-nowrap text-center">
+                    <th className="h-[36px] py-1 px-1.5 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[9px] font-black tracking-wider uppercase bg-amber-100/80 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 whitespace-nowrap text-center">
                       Review
                     </th>
-                    <th className="py-1.5 px-1 text-[8.5px] font-black tracking-wider uppercase bg-emerald-600 text-white dark:bg-emerald-700 dark:text-white whitespace-nowrap text-center">
+                    <th className="h-[36px] py-1 px-1.5 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[9px] font-black tracking-wider uppercase bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 whitespace-nowrap text-center">
                       Done
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100/60 dark:divide-slate-800/40">
+                <tbody>
                   {teamPerformance.map((tp, idx) => {
                     const isOnline =
                       onlineUserIds.includes(tp.id) ||
@@ -3269,36 +3356,36 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                     return (
                       <tr
                         key={tp.id}
-                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
+                        className="h-[36px] hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
                       >
                         {/* Designer */}
-                        <td className="py-1.5 px-1.5 border-r border-slate-100 dark:border-slate-800/40">
-                          <div className="flex items-center gap-1.5">
+                        <td className="py-1.5 px-1.5 border-b border-slate-250 dark:border-slate-700/80">
+                          <div className="flex items-center gap-1">
                             <div className="relative shrink-0">
                               {tp.profileImage ? (
                                 <img
                                   src={tp.profileImage}
                                   alt={tp.name}
-                                  className="w-6 h-6 rounded-full object-cover border border-white dark:border-slate-700 shadow-2xs"
+                                  className="w-5 h-5 rounded-full object-cover border border-white dark:border-slate-700 shadow-2xs"
                                 />
                               ) : (
                                 <div
-                                  className={`w-6 h-6 rounded-full ${avatarBg} text-white text-[9px] font-black flex items-center justify-center shrink-0 shadow-2xs`}
+                                  className={`w-5 h-5 rounded-full ${avatarBg} text-white text-[8px] font-black flex items-center justify-center shrink-0 shadow-2xs`}
                                 >
                                   {getInitials(tp.name)}
                                 </div>
                               )}
                               <span
-                                className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white dark:border-slate-900 ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-300 dark:bg-slate-500"}`}
+                                className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full border border-white dark:border-slate-900 ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-300 dark:bg-slate-500"}`}
                                 title={isOnline ? "Online" : "Offline"}
                               />
                             </div>
                             <div className="flex flex-col min-w-0">
-                              <span className="text-[10.5px] font-bold text-slate-800 dark:text-white truncate max-w-[85px] leading-tight">
+                              <span className="text-[9.5px] font-bold text-slate-800 dark:text-white truncate max-w-[70px] leading-tight">
                                 {tp.name}
                               </span>
                               <span
-                                className={`text-[7.5px] font-semibold leading-none mt-0.5 ${isOnline ? "text-emerald-500" : "text-slate-400 dark:text-slate-400"}`}
+                                className={`text-[7px] font-semibold leading-none mt-0.5 ${isOnline ? "text-emerald-500" : "text-slate-400 dark:text-slate-400"}`}
                               >
                                 {isOnline ? "Online" : "Offline"}
                               </span>
@@ -3307,57 +3394,64 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         </td>
 
                         {/* Today Assigned */}
-                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center">
-                          <span className="text-[11px] font-extrabold text-slate-700 dark:text-slate-200">
-                            {tp.assigned}
-                          </span>
+                        <td className="py-1.5 px-1.5 border-b border-slate-250 dark:border-slate-700/80 text-center">
+                          <StatusCellValue
+                            todayVal={tp.assigned}
+                            carryVal={tp.carryForward?.assigned || 0}
+                            activeTextClass="text-slate-755 dark:text-slate-200"
+                            badgeClass="bg-white dark:bg-slate-955 text-slate-650 dark:text-slate-350 border-slate-200 dark:border-slate-800/60 shadow-3xs"
+                          />
                         </td>
 
                         {/* Pending */}
-                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center bg-red-500/10">
-                          <span
-                            className={`text-[11px] font-extrabold ${tp.pending > 0 ? "text-red-600 dark:text-red-400" : "text-slate-400 dark:text-slate-400"}`}
-                          >
-                            {tp.pending}
-                          </span>
+                        <td className="py-1.5 px-1.5 border-b border-slate-250 dark:border-slate-700/80 text-center bg-red-500/5 dark:bg-red-950/10">
+                          <StatusCellValue
+                            todayVal={tp.pending}
+                            carryVal={tp.carryForward?.pending || 0}
+                            activeTextClass="text-red-600 dark:text-red-400"
+                            badgeClass="bg-white dark:bg-slate-955 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/60 shadow-3xs"
+                          />
                         </td>
 
                         {/* In Progress */}
-                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center bg-violet-500/10">
-                          <span
-                            className={`text-[11px] font-extrabold ${tp.inProgress > 0 ? "text-violet-600 dark:text-violet-400 animate-pulse" : "text-slate-400 dark:text-slate-400"}`}
-                          >
-                            {tp.inProgress}
-                          </span>
+                        <td className="py-1.5 px-1.5 border-b border-slate-250 dark:border-slate-700/80 text-center bg-violet-500/5 dark:bg-violet-950/10">
+                          <StatusCellValue
+                            todayVal={tp.inProgress}
+                            carryVal={tp.carryForward?.inProgress || 0}
+                            activeTextClass="text-violet-600 dark:text-violet-400"
+                            badgeClass="bg-white dark:bg-slate-955 text-violet-600 dark:text-violet-400 border-violet-200 dark:border-violet-900/60 shadow-3xs"
+                            showRunningIndicator={true}
+                          />
                         </td>
 
                         {/* On Hold */}
-                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center bg-fuchsia-500/10">
-                          <span
-                            className={`text-[11px] font-extrabold ${tp.onHold > 0 ? "text-fuchsia-600 dark:text-fuchsia-400" : "text-slate-400 dark:text-slate-400"}`}
-                          >
-                            {tp.onHold}
-                          </span>
+                        <td className="py-1.5 px-1.5 border-b border-slate-250 dark:border-slate-700/80 text-center bg-fuchsia-500/5 dark:bg-fuchsia-950/10">
+                          <StatusCellValue
+                            todayVal={tp.onHold}
+                            carryVal={tp.carryForward?.onHold || 0}
+                            activeTextClass="text-fuchsia-600 dark:text-fuchsia-400"
+                            badgeClass="bg-white dark:bg-slate-955 text-fuchsia-600 dark:text-fuchsia-400 border-fuchsia-200/50 dark:border-fuchsia-900/60 shadow-3xs"
+                          />
                         </td>
 
                         {/* In Review */}
-                        <td
-                          className={`py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center bg-amber-500/10 ${tp.inReview > 0 ? "bg-amber-500/15" : ""}`}
-                        >
-                          <span
-                            className={`text-[11px] font-extrabold ${tp.inReview > 0 ? "text-amber-600 dark:text-amber-400 font-black" : "text-slate-400 dark:text-slate-400"}`}
-                          >
-                            {tp.inReview}
-                          </span>
+                        <td className="py-1.5 px-1.5 border-b border-slate-250 dark:border-slate-700/80 text-center bg-amber-500/5 dark:bg-amber-955/10">
+                          <StatusCellValue
+                            todayVal={tp.inReview}
+                            carryVal={tp.carryForward?.inReview || 0}
+                            activeTextClass="text-amber-600 dark:text-amber-400"
+                            badgeClass="bg-white dark:bg-slate-955 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900/60 shadow-3xs"
+                          />
                         </td>
 
                         {/* Completed */}
-                        <td className="py-1.5 px-1 text-center bg-emerald-500/10">
-                          <span
-                            className={`text-[11px] font-extrabold ${tp.completed > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-400"}`}
-                          >
-                            {tp.completed}
-                          </span>
+                        <td className="py-1.5 px-1.5 border-b border-slate-250 dark:border-slate-700/80 text-center bg-emerald-500/5 dark:bg-emerald-950/10">
+                          <StatusCellValue
+                            todayVal={tp.completed}
+                            carryVal={tp.carryForward?.completed || 0}
+                            activeTextClass="text-emerald-600 dark:text-emerald-400"
+                            badgeClass="bg-white dark:bg-slate-955 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/60 shadow-3xs"
+                          />
                         </td>
                       </tr>
                     );
@@ -3366,30 +3460,93 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                 {/* Total row */}
                 {teamPerformance.length > 0 && (
                   <tfoot>
-                    <tr className="bg-slate-100/50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 font-bold">
-                      <td className="py-1.5 px-1.5 border-r border-slate-200 dark:border-slate-700 text-[9.5px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    <tr className="h-[36px] bg-slate-200/90 dark:bg-slate-800 border-t-2 border-slate-300 dark:border-slate-700 font-bold">
+                      <td className="h-[36px] py-1 px-1.5 align-middle bg-slate-300/80 dark:bg-slate-800 text-[9.5px] font-black text-slate-900 dark:text-slate-100 uppercase tracking-wider text-center border-r border-slate-300/50 dark:border-slate-700/50">
                         Total
                       </td>
-                      <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-slate-700 dark:text-slate-200">
-                        {teamPerformance.reduce((s, tp) => s + tp.assigned, 0)}
+                      <td className="h-[36px] py-1 px-1.5 align-middle text-center bg-slate-200/80 dark:bg-slate-800/70 border-r border-slate-300/50 dark:border-slate-700/50">
+                        <StatusCellValue
+                          todayVal={teamPerformance.reduce(
+                            (s, tp) => s + tp.assigned,
+                            0,
+                          )}
+                          carryVal={teamPerformance.reduce(
+                            (s, tp) => s + (tp.carryForward?.assigned || 0),
+                            0,
+                          )}
+                          activeTextClass="text-slate-950 dark:text-slate-100 font-black text-[11.5px]"
+                          badgeClass="bg-slate-300/80 text-slate-900 dark:bg-slate-700 dark:text-slate-100 border border-slate-400/60 dark:border-slate-600 font-bold text-[7.5px]"
+                        />
                       </td>
-                      <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-red-600 dark:text-red-400 bg-red-500/10">
-                        {teamPerformance.reduce((s, tp) => s + tp.pending, 0)}
+                      <td className="h-[36px] py-1 px-1.5 align-middle text-center bg-red-100/80 dark:bg-red-950/50 border-r border-red-200/40 dark:border-red-900/40">
+                        <StatusCellValue
+                          todayVal={teamPerformance.reduce(
+                            (s, tp) => s + tp.pending,
+                            0,
+                          )}
+                          carryVal={teamPerformance.reduce(
+                            (s, tp) => s + (tp.carryForward?.pending || 0),
+                            0,
+                          )}
+                          activeTextClass="text-red-800 dark:text-red-300 font-black text-[11.5px]"
+                          badgeClass="bg-red-200/80 text-red-900 dark:bg-red-900/70 dark:text-red-200 border border-red-300/60 dark:border-red-700 font-bold text-[7.5px]"
+                        />
                       </td>
-                      <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-violet-600 dark:text-violet-400 bg-violet-500/10">
-                        {teamPerformance.reduce(
-                          (s, tp) => s + tp.inProgress,
-                          0,
-                        )}
+                      <td className="h-[36px] py-1 px-1.5 align-middle text-center bg-violet-100/80 dark:bg-violet-950/50 border-r border-violet-200/40 dark:border-violet-900/40">
+                        <StatusCellValue
+                          todayVal={teamPerformance.reduce(
+                            (s, tp) => s + tp.inProgress,
+                            0,
+                          )}
+                          carryVal={teamPerformance.reduce(
+                            (s, tp) => s + (tp.carryForward?.inProgress || 0),
+                            0,
+                          )}
+                          activeTextClass="text-violet-800 dark:text-violet-300 font-black text-[11.5px]"
+                          badgeClass="bg-violet-200/80 text-violet-900 dark:bg-violet-900/70 dark:text-violet-200 border border-violet-300/60 dark:border-violet-700 font-bold text-[7.5px]"
+                        />
                       </td>
-                      <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-500/10">
-                        {teamPerformance.reduce((s, tp) => s + tp.onHold, 0)}
+                      <td className="h-[36px] py-1 px-1.5 align-middle text-center bg-fuchsia-100/80 dark:bg-fuchsia-950/50 border-r border-fuchsia-200/40 dark:border-fuchsia-900/40">
+                        <StatusCellValue
+                          todayVal={teamPerformance.reduce(
+                            (s, tp) => s + tp.onHold,
+                            0,
+                          )}
+                          carryVal={teamPerformance.reduce(
+                            (s, tp) => s + (tp.carryForward?.onHold || 0),
+                            0,
+                          )}
+                          activeTextClass="text-fuchsia-800 dark:text-fuchsia-300 font-black text-[11.5px]"
+                          badgeClass="bg-fuchsia-200/80 text-fuchsia-900 dark:bg-fuchsia-900/70 dark:text-fuchsia-200 border border-fuchsia-300/60 dark:border-fuchsia-700 font-bold text-[7.5px]"
+                        />
                       </td>
-                      <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-500/10">
-                        {teamPerformance.reduce((s, tp) => s + tp.inReview, 0)}
+                      <td className="h-[36px] py-1 px-1.5 align-middle text-center bg-amber-100/80 dark:bg-amber-950/50 border-r border-amber-200/40 dark:border-amber-900/40">
+                        <StatusCellValue
+                          todayVal={teamPerformance.reduce(
+                            (s, tp) => s + tp.inReview,
+                            0,
+                          )}
+                          carryVal={teamPerformance.reduce(
+                            (s, tp) => s + (tp.carryForward?.inReview || 0),
+                            0,
+                          )}
+                          activeTextClass="text-amber-800 dark:text-amber-300 font-black text-[11.5px]"
+                          badgeClass="bg-amber-200/80 text-amber-900 dark:bg-amber-900/70 dark:text-amber-200 border border-amber-300/60 dark:border-amber-700 font-bold text-[7.5px]"
+                        />
                       </td>
-                      <td className="py-1.5 px-1 text-center text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10">
-                        {teamPerformance.reduce((s, tp) => s + tp.completed, 0)}
+                      <td className="h-[36px] py-1 px-1.5 align-middle text-center bg-emerald-100/80 dark:bg-emerald-950/50">
+                        <StatusCellValue
+                          todayVal={teamPerformance.reduce(
+                            (s, tp) => s + tp.completed,
+                            0,
+                          )}
+                          carryVal={teamPerformance.reduce(
+                            (s, tp) => s + (tp.carryForward?.completed || 0),
+                            0,
+                          )}
+                          activeTextClass="text-emerald-800 dark:text-emerald-300 font-black text-[11.5px]"
+                          badgeClass="bg-emerald-200/80 text-emerald-950 dark:bg-emerald-900/70 dark:text-emerald-200 border border-emerald-300/60 dark:border-emerald-700 font-bold text-[7.5px]"
+                        />
                       </td>
                     </tr>
                   </tfoot>
@@ -3398,13 +3555,14 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             </div>
 
             {/* Info note */}
-            <div className="px-3 py-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5">
+            <div className="px-3 py-1.5 min-h-[30px] border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5">
               <FiAlertCircle
                 size={10}
                 className="text-indigo-400 dark:text-indigo-500 shrink-0"
               />
               <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
-                Counts are calculated from tasks assigned on selected date only.
+                Counts show Today's Assigned tasks (main number) and Carry
+                Forward tasks (CF badge).
               </span>
             </div>
           </div>
@@ -3412,55 +3570,58 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           {/* ─────────────────── RIGHT: Today's Productivity (6 Columns) ─────────────────── */}
           <div className="lg:col-span-6 sidebar-bg backdrop-blur-xl rounded-2xl overflow-hidden shadow-sm dark:shadow-2xl flex flex-col">
             {/* Header */}
-            <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-transparent flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-              <div>
-                <h3 className="text-xs font-black text-slate-800 dark:text-white tracking-wide uppercase">
+            <div className="px-3 py-2 min-h-[52px] border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <h3 className="text-xs font-black text-slate-800 dark:text-white tracking-wide uppercase truncate">
                   Today's Productivity
                 </h3>
-                <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-450 tracking-wide">
+                <span className="text-[8.5px] font-semibold text-slate-400 dark:text-slate-450 tracking-wide truncate block">
                   Actual Work Done Today
                 </span>
               </div>
-              <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/40">
-                <span className="w-1 h-1 rounded-full bg-blue-500 animate-ping" />
-                <span className="text-[8px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-                  Live
-                </span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/40 text-[7.5px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping shrink-0" />
+                  <span>Live Tracker</span>
+                </div>
               </div>
             </div>
 
             {/* Table */}
             <div className="overflow-x-auto flex-1">
-              <table className="w-full text-left border-collapse table-auto">
+              <table className="w-full text-left border-collapse table-auto border border-slate-250 dark:border-slate-700/80">
                 <thead>
-                  <tr className="bg-slate-50/60 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800">
-                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-300 whitespace-nowrap text-center">
+                  <tr className="h-[36px] bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+                    <th className="h-[36px] py-1 px-1.5 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[9px] font-black tracking-wider uppercase text-slate-700 dark:text-slate-200 whitespace-nowrap text-center">
                       Revisions
                     </th>
-                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-300 whitespace-nowrap text-center">
+                    <th className="h-[36px] py-1 px-1.5 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[9px] font-black tracking-wider uppercase text-slate-700 dark:text-slate-200 whitespace-nowrap text-center">
                       Blockers
                     </th>
-                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-300 whitespace-nowrap text-center">
+                    <th className="h-[36px] py-1 px-1.5 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[9px] font-black tracking-wider uppercase text-slate-700 dark:text-slate-200 whitespace-nowrap text-center">
                       Blocker Timer
                     </th>
-                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-300 whitespace-nowrap text-center">
-                      Productive Time
+                    <th className="h-[36px] py-1 px-1 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[9px] font-black tracking-wider uppercase text-slate-700 dark:text-slate-200 whitespace-nowrap text-center">
+                      Prod Time
                     </th>
-                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-300 whitespace-nowrap text-center">
+                    <th className="h-[36px] py-1 px-1.5 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[9px] font-black tracking-wider uppercase text-slate-700 dark:text-slate-200 whitespace-nowrap text-center">
                       Tasks Worked
                     </th>
-                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-300 whitespace-nowrap text-center">
+                    <th className="h-[36px] py-1 px-1 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[9px] font-black tracking-wider uppercase text-rose-700 dark:text-rose-300 bg-rose-100/80 dark:bg-rose-950/60 whitespace-nowrap text-center">
+                      Dly
+                    </th>
+                    <th className="h-[36px] py-1 px-1.5 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[9px] font-black tracking-wider uppercase text-slate-700 dark:text-slate-200 whitespace-nowrap text-center">
                       Efficiency
                     </th>
-                    <th className="py-1.5 px-1.5 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider text-slate-500 dark:text-slate-300 uppercase whitespace-nowrap text-center">
+                    <th className="h-[36px] py-1 px-1.5 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[9px] font-black tracking-wider text-slate-700 dark:text-slate-200 uppercase whitespace-nowrap text-center">
                       Submitted
                     </th>
-                    <th className="py-1.5 px-1.5 text-[8.5px] font-black tracking-wider text-slate-500 dark:text-slate-300 uppercase whitespace-nowrap text-center">
+                    <th className="h-[36px] py-1 px-1.5 align-middle border-b border-slate-250 dark:border-slate-700/80 text-[9px] font-black tracking-wider text-slate-700 dark:text-slate-200 uppercase whitespace-nowrap text-center">
                       Action
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100/60 dark:divide-slate-800/40">
+                <tbody className="">
                   {teamPerformance.map((tp, idx) => {
                     // Efficiency: productive time vs total office hours (capped at 100%)
                     const totalOfficeMs =
@@ -3479,17 +3640,17 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
                     const efficiencyColor =
                       efficiency >= 80
-                        ? "bg-emerald-100 text-emerald-750 dark:bg-emerald-950/40 dark:text-emerald-400"
+                        ? "bg-emerald-100 text-emerald-755 dark:bg-emerald-950/40 dark:text-emerald-400"
                         : efficiency >= 50
                           ? "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
-                          : efficiency >= 25;
+                          : "bg-slate-100 text-slate-500 dark:bg-slate-800/50 dark:text-slate-400";
                     return (
                       <tr
                         key={tp.id}
-                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
+                        className="h-[36px] hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
                       >
                         {/* Revisions */}
-                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center">
+                        <td className="py-1.5 px-1.5 border-b border-slate-250 dark:border-slate-700/80 text-center">
                           {(() => {
                             const revVal =
                               tp.totalRevisions !== undefined
@@ -3497,14 +3658,14 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                 : Math.round(tp.avgRevisions || 0);
                             return (
                               <span
-                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8.5px] font-extrabold border ${
+                                className={`inline-flex items-center gap-1 px-1 py-0.2 rounded text-[8px] font-extrabold border ${
                                   revVal === 0
                                     ? "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-700"
                                     : revVal <= 1
                                       ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40"
                                       : revVal <= 3
-                                        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40"
-                                        : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800/40"
+                                        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-955/30 dark:text-amber-400 dark:border-amber-800/40"
+                                        : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-955/30 dark:text-rose-400 dark:border-rose-800/40"
                                 }`}
                               >
                                 {revVal} rev
@@ -3514,9 +3675,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         </td>
 
                         {/* Blockers */}
-                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center">
+                        <td className="py-1.5 px-1.5 border-b border-slate-250 dark:border-slate-700/80 text-center">
                           {tp.blockers === "none" ? (
-                            <span className="text-slate-400 dark:text-slate-400 font-bold italic text-[8.5px]">
+                            <span className="text-slate-400 dark:text-slate-400 font-bold italic text-[8px]">
                               none
                             </span>
                           ) : (
@@ -3524,7 +3685,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                               {tp.blockers.split(", ").map((b, idx) => (
                                 <span
                                   key={idx}
-                                  className="px-1 py-0.5 text-[7px] font-bold rounded bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20"
+                                  className="px-1 py-0.2 text-[6.5px] font-bold rounded bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20"
                                 >
                                   {b}
                                 </span>
@@ -3534,9 +3695,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         </td>
 
                         {/* Blocker Timer */}
-                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center">
+                        <td className="py-1.5 px-1.5 border-b border-slate-250 dark:border-slate-700/80 text-center">
                           {tp.blockerTimeMs > 0 ? (
-                            <span className="text-orange-600 dark:text-orange-400 font-bold text-[10.5px]">
+                            <span className="text-orange-600 dark:text-orange-400 font-bold text-[9.5px]">
                               {(() => {
                                 const totalMinutes = Math.floor(
                                   tp.blockerTimeMs / (1000 * 60),
@@ -3547,14 +3708,14 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                               })()}
                             </span>
                           ) : (
-                            <span className="text-slate-400 dark:text-slate-400 font-medium text-[10.5px]">
+                            <span className="text-slate-400 dark:text-slate-400 font-medium text-[9.5px]">
                               0m
                             </span>
                           )}
                         </td>
 
                         {/* Productive Time — live when In Progress */}
-                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center">
+                        <td className="py-1 px-1 border-b border-slate-250 dark:border-slate-700/80 text-center whitespace-nowrap">
                           <LiveProductivityCell
                             tasks={tp.tasks}
                             initialLoggedMs={tp.totalLoggedMs}
@@ -3564,42 +3725,71 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         </td>
 
                         {/* Tasks Worked On */}
-                        <td className="py-1.5 px-1.5 border-r border-slate-100 dark:border-slate-800/40 text-center">
+                        <td className="py-1.5 px-1.5 border-b border-slate-250 dark:border-slate-700/80 text-center">
                           <span
-                            className={`text-[11px] font-extrabold ${tp.tasksWorkedOn > 0 ? "text-slate-700 dark:text-slate-200" : "text-slate-400 dark:text-slate-400"}`}
+                            className={`text-[10px] font-extrabold ${tp.tasksWorkedOn > 0 ? "text-slate-700 dark:text-slate-200" : "text-slate-400 dark:text-slate-400"}`}
                           >
                             {tp.tasksWorkedOn}
                           </span>
                         </td>
 
+                        {/* Delays */}
+                        <td className="py-1 px-1 border-b border-slate-250 dark:border-slate-700/80 text-center whitespace-nowrap">
+                          {(() => {
+                            const delayCount = (tp.tasks || []).filter((t) => {
+                              const s = (t.status || "").toLowerCase();
+                              if (s === "completed" || s.includes("approve"))
+                                return false;
+                              if (!t.dueDate) return false;
+                              return isBefore(
+                                startOfDay(parseISO(t.dueDate)),
+                                startOfDay(selectedDate),
+                              );
+                            }).length;
+
+                            if (delayCount === 0) {
+                              return (
+                                <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500">
+                                  0
+                                </span>
+                              );
+                            }
+                            return (
+                              <span className="inline-flex items-center px-1 py-0.2 rounded-sm text-[7.5px] font-black bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800/40 shadow-3xs whitespace-nowrap">
+                                {delayCount} Dly
+                              </span>
+                            );
+                          })()}
+                        </td>
+
                         {/* Efficiency */}
-                        <td className="py-1.5 px-1.5 border-r border-slate-100 dark:border-slate-800/40 text-center">
+                        <td className="py-1.5 px-1.5 border-b border-slate-250 dark:border-slate-700/80 text-center">
                           <span
-                            className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold border-0 ${efficiencyColor}`}
+                            className={`inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-extrabold border-0 ${efficiencyColor}`}
                           >
                             {efficiency}%
                           </span>
                         </td>
 
                         {/* Last Submitted */}
-                        <td className="py-1.5 px-1.5 border-r border-slate-100 dark:border-slate-800/40 text-center">
+                        <td className="py-1.5 px-1.5 border-b border-slate-250 dark:border-slate-700/80 text-center">
                           {tp.lastSubmitted === "Not submitted" ? (
-                            <span className="inline-flex items-center gap-0.5 text-[8.5px] font-medium text-slate-400 dark:text-slate-400">
+                            <span className="inline-flex items-center gap-0.5 text-[8px] font-medium text-slate-400 dark:text-slate-400">
                               Not submitted
                             </span>
                           ) : tp.lastSubmitted === "Draft" ? (
-                            <span className="inline-flex items-center gap-0.5 text-[8.5px] font-bold text-amber-500 dark:text-amber-400 animate-pulse">
+                            <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-amber-500 dark:text-amber-400 animate-pulse">
                               Draft
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-0.5 text-[8.5px] font-bold text-emerald-600 dark:text-emerald-400">
+                            <span className="inline-flex items-center gap-0.5 text-[8px] font-bold text-emerald-600 dark:text-emerald-400">
                               {tp.lastSubmitted}
                             </span>
                           )}
                         </td>
 
                         {/* Action */}
-                        <td className="py-1.5 px-1.5 text-center">
+                        <td className="py-1.5 px-1.5 border-b border-slate-250 dark:border-slate-700/80 text-center">
                           <button
                             type="button"
                             onClick={() => {
@@ -3614,7 +3804,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                             className="p-1 rounded bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-805/40 transition-all cursor-pointer flex items-center justify-center mx-auto"
                             title="View Performance Tasks"
                           >
-                            <FiEye size={12} />
+                            <FiEye size={11} />
                           </button>
                         </td>
                       </tr>
@@ -3639,10 +3829,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
                     return (
                       <tfoot>
-                        <tr className="bg-slate-100/50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-700 font-bold">
+                        <tr className="h-[36px] bg-slate-200 dark:bg-slate-800 border-t-2 border-slate-300 dark:border-slate-700 font-bold">
                           {/* 1. Revisions */}
-                          <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center">
-                            <span className="text-[11px] font-black text-slate-700 dark:text-slate-250">
+                          <td className="h-[36px] py-1 px-1.5 align-middle text-center bg-slate-200/80 dark:bg-slate-800/80 border-r border-slate-300/50 dark:border-slate-700/50">
+                            <span className="text-[10px] font-black text-slate-800 dark:text-slate-100">
                               {(() => {
                                 const totalRevisionsSum =
                                   teamPerformance.reduce((s, tp) => {
@@ -3658,11 +3848,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                           </td>
 
                           {/* 2. Blockers */}
-                          <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center" />
+                          <td className="h-[36px] py-1 px-1.5 align-middle text-center bg-slate-200/70 dark:bg-slate-800/60 border-r border-slate-300/50 dark:border-slate-700/50" />
 
                           {/* 3. Blocker Timer */}
-                          <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center">
-                            <span className="text-[11px] font-black text-orange-600 dark:text-orange-400">
+                          <td className="h-[36px] py-1 px-1.5 align-middle text-center bg-orange-100/80 dark:bg-orange-950/50 border-r border-orange-200/40 dark:border-orange-900/40">
+                            <span className="text-[10px] font-black text-orange-700 dark:text-orange-300">
                               {(() => {
                                 const totalBlockerTimeMs =
                                   teamPerformance.reduce(
@@ -3682,7 +3872,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                           </td>
 
                           {/* 4. Productive Time */}
-                          <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center">
+                          <td className="h-[36px] py-1 px-1 align-middle text-center bg-emerald-100/80 dark:bg-emerald-950/50 border-r border-emerald-200/40 dark:border-emerald-900/40 whitespace-nowrap">
                             <LiveTotalProductivityCell
                               teamPerformance={teamPerformance}
                               selectedDate={selectedDate}
@@ -3691,19 +3881,53 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                           </td>
 
                           {/* 5. Tasks Worked */}
-                          <td className="py-1.5 px-1.5 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-slate-700 dark:text-slate-200">
+                          <td className="h-[36px] py-1 px-1.5 align-middle text-center bg-slate-200/70 dark:bg-slate-800/60 text-[10px] font-black text-slate-800 dark:text-slate-100 border-r border-slate-300/50 dark:border-slate-700/50">
                             {totalTasksWorkedOn}
                           </td>
 
+                          {/* 5.5. Delays Total */}
+                          <td className="h-[36px] py-1 px-1 align-middle text-center bg-rose-100/80 dark:bg-rose-950/50 border-r border-rose-200/40 dark:border-rose-900/40 whitespace-nowrap">
+                            <span className="text-[9.5px] font-black text-rose-700 dark:text-rose-300 whitespace-nowrap">
+                              {(() => {
+                                const totalDelaysSum = teamPerformance.reduce(
+                                  (s, tp) => {
+                                    const dCount = (tp.tasks || []).filter(
+                                      (t) => {
+                                        const st = (
+                                          t.status || ""
+                                        ).toLowerCase();
+                                        if (
+                                          st === "completed" ||
+                                          st.includes("approve")
+                                        )
+                                          return false;
+                                        if (!t.dueDate) return false;
+                                        return isBefore(
+                                          startOfDay(parseISO(t.dueDate)),
+                                          startOfDay(selectedDate),
+                                        );
+                                      },
+                                    ).length;
+                                    return s + dCount;
+                                  },
+                                  0,
+                                );
+                                return totalDelaysSum > 0
+                                  ? `${totalDelaysSum} Dly`
+                                  : "0 Dly";
+                              })()}
+                            </span>
+                          </td>
+
                           {/* 6. Efficiency */}
-                          <td className="py-1.5 px-1.5 border-r border-slate-200 dark:border-slate-700 text-center">
+                          <td className="h-[36px] py-1 px-1.5 align-middle text-center bg-blue-100/80 dark:bg-blue-950/50 border-r border-blue-200/40 dark:border-blue-900/40">
                             <span
-                              className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black shadow-2xs ${
                                 avgEfficiency >= 80
-                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                                  ? "bg-emerald-200/90 text-emerald-950 dark:bg-emerald-900/70 dark:text-emerald-200"
                                   : avgEfficiency >= 50
-                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
-                                    : "bg-slate-100 text-slate-500 dark:bg-slate-800/50 dark:text-slate-400"
+                                    ? "bg-blue-200/90 text-blue-950 dark:bg-blue-900/70 dark:text-blue-200"
+                                    : "bg-slate-300 text-slate-900 dark:bg-slate-700 dark:text-slate-200"
                               }`}
                             >
                               {avgEfficiency}%
@@ -3711,10 +3935,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                           </td>
 
                           {/* 7. Submitted */}
-                          <td className="py-1.5 px-1.5 border-r border-slate-200 dark:border-slate-700 text-center" />
+                          <td className="h-[36px] py-1 px-1.5 align-middle text-center bg-slate-200/70 dark:bg-slate-800/60 border-r border-slate-300/50 dark:border-slate-700/50" />
 
                           {/* 8. Action */}
-                          <td className="py-1.5 px-1.5 text-center" />
+                          <td className="h-[36px] py-1 px-1.5 align-middle text-center bg-slate-200/70 dark:bg-slate-800/60" />
                         </tr>
                       </tfoot>
                     );
@@ -3723,7 +3947,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             </div>
 
             {/* Info note */}
-            <div className="px-3 py-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5">
+            <div className="px-3 py-1.5 min-h-[30px] border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5">
               <FiAlertCircle
                 size={10}
                 className="text-emerald-400 dark:text-emerald-500 shrink-0"
