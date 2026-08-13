@@ -9,6 +9,7 @@ import { getUsers } from "../../features/users/userSlice";
 import { format, parseISO } from "date-fns";
 import toast from "react-hot-toast";
 import { calculateTaskProductivityForDate } from "../Dashboard/cards/GraphicDesignerDashboard";
+import axiosInstance from "../../services/axiosInstance";
 import {
   getDesignerEodReports,
   createDesignerEodReport,
@@ -152,34 +153,26 @@ const formatElapsed = (
   return `${seconds}s`;
 };
 
-const getTaskInprogressTime = (task, selDateObj) => {
+const getTaskInprogressTime = (task, selDateObj, officeHours) => {
   if (!task) return "0s";
-  if (task.actualStartTime) {
-    const end =
-      task.actualEndTime ||
-      task.completedAt ||
-      task.reviewStartedAt ||
-      task.lastReviewStartedAt ||
-      task.pausedAt ||
-      null;
-    const timeStr = formatElapsed(
-      task.actualStartTime,
-      end,
-      task.pausedAt,
-      task.totalPausedMs,
-      task.status,
-      task.autoPaused,
-    );
-    if (timeStr && timeStr !== "0s") return timeStr;
-  }
-  const loggedMs = calculateTaskProductivityForDate(task, selDateObj);
+  const loggedMs = calculateTaskProductivityForDate(
+    task,
+    selDateObj,
+    officeHours,
+  );
   if (loggedMs > 0) {
     return formatMsToDuration(loggedMs);
   }
   return task.time || "0s";
 };
 
-const LiveTimeTracker = ({ task, allTasks, isSubmitted, selectedDate }) => {
+const LiveTimeTracker = ({
+  task,
+  allTasks,
+  isSubmitted,
+  selectedDate,
+  officeHours,
+}) => {
   const selDateObj = React.useMemo(() => {
     if (!selectedDate) return new Date();
     return typeof selectedDate === "string"
@@ -194,8 +187,8 @@ const LiveTimeTracker = ({ task, allTasks, isSubmitted, selectedDate }) => {
   const calculateCurrentMs = React.useCallback(() => {
     const target = originalTask || task;
     if (!target) return 0;
-    return calculateTaskProductivityForDate(target, selDateObj);
-  }, [originalTask, task, selDateObj]);
+    return calculateTaskProductivityForDate(target, selDateObj, officeHours);
+  }, [originalTask, task, selDateObj, officeHours]);
 
   const [elapsedStr, setElapsedStr] = React.useState(() => {
     const ms = calculateCurrentMs();
@@ -319,7 +312,12 @@ const getStatusTextColor = (status) => {
   }
 };
 
-const calculateTotalLoggedTime = (tasks, allTasks = [], selectedDate) => {
+const calculateTotalLoggedTime = (
+  tasks,
+  allTasks = [],
+  selectedDate,
+  officeHours,
+) => {
   const selDateObj = selectedDate ? parseISO(selectedDate) : new Date();
   let totalMs = 0;
 
@@ -329,7 +327,11 @@ const calculateTotalLoggedTime = (tasks, allTasks = [], selectedDate) => {
     );
     const target = originalTask || t;
 
-    const msToday = calculateTaskProductivityForDate(target, selDateObj);
+    const msToday = calculateTaskProductivityForDate(
+      target,
+      selDateObj,
+      officeHours,
+    );
     if (msToday > 0) {
       totalMs += msToday;
     } else {
@@ -389,6 +391,7 @@ const EodReports = () => {
   const [overallStatus, setOverallStatus] = useState("On Track");
   const [reportId, setReportId] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [officeHours, setOfficeHours] = useState({ startHour: 9, endHour: 19 });
 
   const getLocalDateString = (date = new Date()) => {
     const year = date.getFullYear();
@@ -398,6 +401,25 @@ const EodReports = () => {
   };
 
   const [selectedDate, setSelectedDate] = useState(getLocalDateString());
+
+  // Fetch office hours configuration
+  useEffect(() => {
+    const fetchOfficeHours = async () => {
+      try {
+        const res = await axiosInstance.get("/office-hours");
+        if (res.data) {
+          setOfficeHours({
+            startHour: res.data.startHour,
+            endHour: res.data.endHour,
+            workingDays: res.data.workingDays,
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching office hours", err);
+      }
+    };
+    fetchOfficeHours();
+  }, []);
 
   // Fetch users and designer EOD report
   useEffect(() => {
@@ -434,7 +456,11 @@ const EodReports = () => {
       if (!isAssignedToMe) return false;
 
       // 1. Check logged productivity for selectedDate
-      const loggedMsToday = calculateTaskProductivityForDate(task, selDateObj);
+      const loggedMsToday = calculateTaskProductivityForDate(
+        task,
+        selDateObj,
+        officeHours,
+      );
       if (loggedMsToday > 0) return true;
 
       // 2. Check if actively running right now (for today only)
@@ -462,7 +488,9 @@ const EodReports = () => {
         const reviewOrCompDate = getLocalDateStr(
           task.status === "Completed"
             ? task.completedAt || task.actualEndTime || task.updatedAt
-            : task.reviewStartedAt || task.lastReviewStartedAt || task.updatedAt,
+            : task.reviewStartedAt ||
+                task.lastReviewStartedAt ||
+                task.updatedAt,
         );
 
         if (reviewOrCompDate && reviewOrCompDate < selectedDate) {
@@ -486,7 +514,7 @@ const EodReports = () => {
 
       return false;
     });
-  }, [allTasks, user, selectedDate]);
+  }, [allTasks, user, selectedDate, officeHours]);
 
   // Generate task display ID (e.g. WBLT1)
   const getTaskDisplayId = (task) => {
@@ -585,9 +613,12 @@ const EodReports = () => {
                 : creator && typeof creator === "object"
                   ? creator._id
                   : creator || "";
-
             const calculatedTimeStr = correspondingTask
-              ? getTaskInprogressTime(correspondingTask, selDateObj)
+              ? getTaskInprogressTime(
+                  correspondingTask,
+                  selDateObj,
+                  officeHours,
+                )
               : "0s";
 
             return {
@@ -630,7 +661,7 @@ const EodReports = () => {
         const unsavedMapped = newUnsavedTasks.map((t) => {
           const clientName = t.project?.client?.companyName || "Internal";
           const projectName = t.project?.name || "Internal";
-          const elapsedStr = getTaskInprogressTime(t, selDateObj);
+          const elapsedStr = getTaskInprogressTime(t, selDateObj, officeHours);
           const taskCode = getTaskDisplayId(t);
 
           const creator = t.createdBy;
@@ -674,7 +705,11 @@ const EodReports = () => {
           myTasks.map((t) => {
             const clientName = t.project?.client?.companyName || "Internal";
             const projectName = t.project?.name || "Internal";
-            const elapsedStr = getTaskInprogressTime(t, selDateObj);
+            const elapsedStr = getTaskInprogressTime(
+              t,
+              selDateObj,
+              officeHours,
+            );
             const taskCode = getTaskDisplayId(t);
 
             const creator = t.createdBy;
@@ -720,7 +755,7 @@ const EodReports = () => {
         myTasks.map((t) => {
           const clientName = t.project?.client?.companyName || "Internal";
           const projectName = t.project?.name || "Internal";
-          const elapsedStr = getTaskInprogressTime(t, selDateObj);
+          const elapsedStr = getTaskInprogressTime(t, selDateObj, officeHours);
           const taskCode = getTaskDisplayId(t);
 
           const creator = t.createdBy;
@@ -780,7 +815,7 @@ const EodReports = () => {
       setReportId(null);
       setIsSubmitted(false);
     }
-  }, [todayReport, myTasks, projects, users]);
+  }, [todayReport, myTasks, projects, users, officeHours]);
 
   // Sync task status, code, and elapsed time dynamically from allTasks/myTasks
   useEffect(() => {
@@ -797,6 +832,7 @@ const EodReports = () => {
             const calculatedTimeStr = getTaskInprogressTime(
               correspondingTask,
               selDateObj,
+              officeHours,
             );
             const taskCode = getTaskDisplayId(correspondingTask);
 
@@ -849,7 +885,7 @@ const EodReports = () => {
         }),
       );
     }
-  }, [myTasks, projects, users, selectedDate, isSubmitted]);
+  }, [myTasks, projects, users, selectedDate, isSubmitted, officeHours]);
 
   // Automatically calculate overallStatus from tasksState
   useEffect(() => {
@@ -962,7 +998,6 @@ const EodReports = () => {
     return `${year}-${month}-${day}`;
   };
 
-
   const totalTasks = tasksState.length;
   const completedCount = tasksState.filter(
     (t) => t.statusAtEod === "Completed",
@@ -1002,7 +1037,7 @@ const EodReports = () => {
   });
 
   const completedTasks = React.useMemo(
-    () => tasksState.filter((t) => t.statusAtEod === "Completed"),
+    () => tasksState.filter((t) => t.statusAtEod === "Completed" && t.time && t.time !== "0s"),
     [tasksState],
   );
 
@@ -1012,16 +1047,14 @@ const EodReports = () => {
         .filter((t) => t.statusAtEod !== "Completed")
         .sort(
           (a, b) =>
-            getStatusPriority(a.statusAtEod) -
-            getStatusPriority(b.statusAtEod),
+            getStatusPriority(a.statusAtEod) - getStatusPriority(b.statusAtEod),
         ),
     [tasksState],
   );
 
   const renderTaskCard = (task) => {
     const assignerUser = users.find((u) => u._id === task.reviewedBy);
-    const assignerName =
-      assignerUser?.name || task.assignedByName || "Admin";
+    const assignerName = assignerUser?.name || task.assignedByName || "Admin";
 
     const isCompleted = task.statusAtEod === "Completed";
     const isInProgress = task.statusAtEod === "In Progress";
@@ -1089,6 +1122,7 @@ const EodReports = () => {
                     allTasks={allTasks}
                     isSubmitted={isSubmitted}
                     selectedDate={selectedDate}
+                    officeHours={officeHours}
                   />
                 </div>
               )}
@@ -1138,7 +1172,7 @@ const EodReports = () => {
           {/* Assigned By Row */}
           <div className="flex items-center gap-1">
             <span className="font-bold theme-text-secondary uppercase tracking-wider text-[9.5px]">
-            By:
+              By:
             </span>
             <span className="font-bold theme-text-primary text-[10.5px] leading-tight">
               {assignerName}
@@ -1281,7 +1315,26 @@ const EodReports = () => {
             )}
           </div>
 
+          {/* TODAY COMPLETED CARDS */}
+          {completedTasks.length > 0 && (
+            <div className="mt-8">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  <h2 className="text-xs font-bold theme-text-primary uppercase tracking-wider">
+                    Today Completed Cards
+                  </h2>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                    {completedTasks.length}
+                  </span>
+                </div>
+              </div>
 
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
+                {completedTasks.map((task) => renderTaskCard(task))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1289,7 +1342,7 @@ const EodReports = () => {
                       DAY SUMMARY
       ========================================= */}
       {(tasksState.length > 0 || todayReport) && (
-        <div className="theme-bg-card border theme-border rounded-2xl mt-8 p-6 text-left shadow-sm">
+        <div className="sidebar-bg rounded-2xl mt-8 p-6 text-left shadow-sm">
           <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3">
             <div>
               <h2 className="text-md font-bold theme-text-primary">
@@ -1349,7 +1402,12 @@ const EodReports = () => {
               <div className="absolute top-0 right-0 w-16 h-16 bg-purple-500/10 rounded-full -mr-6 -mt-6 blur-md group-hover:scale-125 transition-all duration-300" />
               <div className="flex items-center justify-between relative z-10">
                 <span className="text-lg font-black tracking-tight text-purple-600 dark:text-purple-400 truncate">
-                  {calculateTotalLoggedTime(tasksState, allTasks, selectedDate)}
+                  {calculateTotalLoggedTime(
+                    tasksState,
+                    allTasks,
+                    selectedDate,
+                    officeHours,
+                  )}
                 </span>
                 <FiClock className="text-purple-500/60 text-lg group-hover:text-purple-500 transition-colors shrink-0 ml-1" />
               </div>

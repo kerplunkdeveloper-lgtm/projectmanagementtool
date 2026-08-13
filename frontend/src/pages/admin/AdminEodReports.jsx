@@ -19,6 +19,10 @@ import {
   FiInfo,
   FiChevronDown,
   FiTrash2,
+  FiUsers,
+  FiCheckCircle,
+  FiActivity,
+  FiAlertCircle,
 } from "react-icons/fi";
 
 const getContentTypeStyle = (contentType) => {
@@ -92,6 +96,12 @@ const calculateTotalLoggedTime = (report) => {
   return `${m}m`;
 };
 
+const isTaskCompleted = (t) => {
+  if (!t || !t.statusAtEod) return false;
+  const s = t.statusAtEod.trim().toLowerCase();
+  return s === "completed" || s === "in review" || s === "in-review" || s === "in_review";
+};
+
 const AdminEodReports = () => {
   const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -134,21 +144,21 @@ const AdminEodReports = () => {
       "All"
     );
   });
-  const [dateRange, setDateRange] = useState(() => {
+  const getLocalDateStr = (date = new Date()) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const [selectedDate, setSelectedDate] = useState(() => {
     return (
-      searchParams.get("dateRange") ||
-      sessionStorage.getItem("admin_eod_dateRange") ||
-      "All"
+      searchParams.get("date") ||
+      sessionStorage.getItem("admin_eod_selectedDate") ||
+      getLocalDateStr()
     );
   });
-  const [customDate, setCustomDate] = useState(() => {
-    return (
-      searchParams.get("customDate") ||
-      sessionStorage.getItem("admin_eod_customDate") ||
-      ""
-    );
-  });
-  const [showDateDropdown, setShowDateDropdown] = useState(false);
+  const [showDeptDropdown, setShowDeptDropdown] = useState(false);
   const [currentPage, setCurrentPage] = useState(() => {
     const pageFromUrl = searchParams.get("page");
     const pageFromStorage = sessionStorage.getItem("admin_eod_page");
@@ -170,8 +180,7 @@ const AdminEodReports = () => {
     if (searchQuery) params.search = searchQuery;
     if (statusFilter && statusFilter !== "All") params.status = statusFilter;
     if (clientFilter && clientFilter !== "All") params.client = clientFilter;
-    if (dateRange && dateRange !== "All") params.dateRange = dateRange;
-    if (customDate) params.customDate = customDate;
+    if (selectedDate) params.date = selectedDate;
     if (currentPage && currentPage > 1) params.page = currentPage.toString();
 
     setSearchParams(params, { replace: true });
@@ -180,16 +189,14 @@ const AdminEodReports = () => {
     sessionStorage.setItem("admin_eod_search", searchQuery);
     sessionStorage.setItem("admin_eod_status", statusFilter);
     sessionStorage.setItem("admin_eod_client", clientFilter);
-    sessionStorage.setItem("admin_eod_dateRange", dateRange);
-    sessionStorage.setItem("admin_eod_customDate", customDate);
+    sessionStorage.setItem("admin_eod_selectedDate", selectedDate);
     sessionStorage.setItem("admin_eod_page", currentPage.toString());
   }, [
     activeTab,
     searchQuery,
     statusFilter,
     clientFilter,
-    dateRange,
-    customDate,
+    selectedDate,
     currentPage,
     setSearchParams,
   ]);
@@ -198,33 +205,31 @@ const AdminEodReports = () => {
     setSelectedIds([]);
   }, [activeTab]);
 
-  const dateRangeOptions = [
-    { value: "All", label: "All Dates" },
-    { value: "Today", label: "Today" },
-    { value: "Yesterday", label: "Yesterday" },
-    { value: "Week", label: "This Week" },
-    { value: "Month", label: "This Month" },
-    { value: "Custom", label: "Custom Date" },
-  ];
-
-  const dateRangeLabelMap = {
-    All: "All Dates",
-    Today: "Today",
-    Yesterday: "Yesterday",
-    Week: "This Week",
-    Month: "This Month",
-    Custom: "Custom Date",
-  };
-
   useEffect(() => {
     const handleOutsideClick = (event) => {
-      if (!event.target.closest("#date-filter-dropdown-container")) {
-        setShowDateDropdown(false);
+      if (!event.target.closest("#dept-filter-dropdown-container")) {
+        setShowDeptDropdown(false);
       }
     };
     document.addEventListener("click", handleOutsideClick);
     return () => document.removeEventListener("click", handleOutsideClick);
   }, []);
+
+  const handlePrevDay = () => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() - 1);
+    setSelectedDate(getLocalDateStr(d));
+  };
+
+  const handleNextDay = () => {
+    const d = new Date(selectedDate);
+    d.setDate(d.getDate() + 1);
+    setSelectedDate(getLocalDateStr(d));
+  };
+
+  const handleSetToday = () => {
+    setSelectedDate(getLocalDateStr());
+  };
 
   useEffect(() => {
     dispatch(getEodReports());
@@ -408,32 +413,14 @@ const AdminEodReports = () => {
       }
 
       let matchesDate = true;
-      const reportDate = new Date(report.date);
-      const reportDateStr = reportDate.toISOString().split("T")[0];
+      if (selectedDate) {
+        const reportDate = new Date(report.date);
+        const reportYear = reportDate.getFullYear();
+        const reportMonth = String(reportDate.getMonth() + 1).padStart(2, "0");
+        const reportDay = String(reportDate.getDate()).padStart(2, "0");
+        const reportDateStr = `${reportYear}-${reportMonth}-${reportDay}`;
 
-      const today = new Date();
-      const todayStr = today.toISOString().split("T")[0];
-
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split("T")[0];
-
-      if (dateRange === "Today") {
-        matchesDate = reportDateStr === todayStr;
-      } else if (dateRange === "Yesterday") {
-        matchesDate = reportDateStr === yesterdayStr;
-      } else if (dateRange === "Week") {
-        const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - today.getDay());
-        startOfWeek.setHours(0, 0, 0, 0);
-        matchesDate = reportDate >= startOfWeek && reportDate <= today;
-      } else if (dateRange === "Month") {
-        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        matchesDate = reportDate >= startOfMonth && reportDate <= today;
-      } else if (dateRange === "Custom") {
-        if (customDate) {
-          matchesDate = reportDateStr === customDate;
-        }
+        matchesDate = reportDateStr === selectedDate;
       }
 
       return matchesSearch && matchesStatus && matchesClient && matchesDate;
@@ -450,8 +437,7 @@ const AdminEodReports = () => {
     searchQuery,
     statusFilter,
     clientFilter,
-    dateRange,
-    customDate,
+    selectedDate,
   ]);
 
   // Dynamic department counts based on active date/status/search filters
@@ -467,8 +453,7 @@ const AdminEodReports = () => {
     searchQuery,
     statusFilter,
     clientFilter,
-    dateRange,
-    customDate,
+    selectedDate,
   ]);
 
   // Total registered users count in active department from users database
@@ -550,7 +535,7 @@ const AdminEodReports = () => {
       return;
     }
     setCurrentPage(1);
-  }, [activeTab, searchQuery, statusFilter, clientFilter, dateRange, customDate]);
+  }, [activeTab, searchQuery, statusFilter, clientFilter, selectedDate]);
 
   const getStatusBadgeStyle = (status) => {
     switch (status) {
@@ -643,79 +628,187 @@ const AdminEodReports = () => {
   return (
     <div className="min-h-screen py-6 transition-colors duration-300">
       <div className="max-w-8xl mx-auto">
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <h1 className="text-md font-bold text-slate-800 dark:text-white tracking-tight text-left">
-            Teammate EOD Reports
-          </h1>
-        </div>
+        
+        {/* HEADER SECTION (Title, Dropdown & Date Navigation) */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-6">
+          {/* Left: Title & Department Selector */}
+          <div className="flex flex-wrap items-center gap-4">
+           
 
-        {/* Dynamic Department Tabs */}
-        <div className="flex border-b theme-border overflow-x-auto scrollbar-none mb-6">
-          {departmentsList.map((dept) => {
-            const count = departmentCounts[dept] || 0;
-            return (
+            {/* Department Dropdown Selector */}
+            <div id="dept-filter-dropdown-container" className="relative">
               <button
-                key={dept}
-                onClick={() => {
-                  setActiveTab(dept);
-                  setClientFilter("All");
-                }}
-                className={`px-5 py-3 text-xs font-bold border-b-2 whitespace-nowrap transition-all flex items-center gap-2 cursor-pointer ${
-                  activeTab === dept
-                    ? "border-blue-600 dark:border-blue-500 theme-text-accent font-black"
-                    : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                }`}
+                type="button"
+                onClick={() => setShowDeptDropdown(!showDeptDropdown)}
+                className="px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl flex items-center gap-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 shadow-xs transition-all cursor-pointer min-w-[190px] justify-between h-[38px]"
               >
-                <span>{dept}</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                    activeTab === dept
-                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                      : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                  }`}
-                >
-                  {count}
+                <span className="flex items-center gap-2 truncate">
+                  <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+                  {activeTab}
                 </span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                    {departmentCounts[activeTab] || 0}
+                  </span>
+                  <FiChevronDown className="text-slate-400 dark:text-slate-500" size={14} />
+                </div>
               </button>
-            );
-          })}
+
+              {showDeptDropdown && (
+                <div className="absolute left-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-2xl shadow-xl border border-slate-200/60 dark:border-slate-700/50 py-2 z-20 animate-in fade-in slide-in-from-top-2 duration-155">
+                  <div className="px-3 py-1.5 text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-750 mb-1">
+                    Select Department
+                  </div>
+                  {departmentsList.map((dept) => {
+                    const count = departmentCounts[dept] || 0;
+                    return (
+                      <button
+                        key={dept}
+                        type="button"
+                        onClick={() => {
+                          setActiveTab(dept);
+                          setClientFilter("All");
+                          setShowDeptDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2.5 text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
+                          activeTab === dept
+                            ? "bg-blue-50/50 dark:bg-blue-500/10 text-blue-650 dark:text-blue-400 font-extrabold"
+                            : "text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-750"
+                        }`}
+                      >
+                        <span className="flex items-center gap-2 truncate">
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${activeTab === dept ? "bg-blue-500" : "bg-slate-300 dark:bg-slate-600"}`} />
+                          {dept}
+                        </span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                          activeTab === dept
+                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                            : "bg-slate-100 text-slate-500 dark:bg-slate-800/80 dark:text-slate-400"
+                        }`}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Date Navigation Filter (Reference Image Style) */}
+          <div className="flex flex-wrap items-center gap-2 bg-slate-50 dark:bg-slate-900/50 p-1.5 rounded-2xl border border-slate-200/50 dark:border-slate-800/80 w-full sm:w-auto">
+            {/* Today Button */}
+            <button
+              type="button"
+              onClick={handleSetToday}
+              className={`px-4 py-2 text-xs font-black rounded-xl transition-all cursor-pointer h-[38px] ${
+                selectedDate === getLocalDateStr()
+                  ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs"
+                  : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+              }`}
+            >
+              Today
+            </button>
+
+            {/* Date Picker Button */}
+            <div className="relative">
+              <button 
+                type="button"
+                className="px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-750 rounded-xl flex items-center gap-2 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/80 shadow-xs cursor-pointer h-[38px]"
+              >
+                <FiCalendar className="text-emerald-500 dark:text-emerald-400" size={14} />
+                <span>
+                  {new Date(selectedDate).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </span>
+                <FiChevronDown className="text-slate-400 dark:text-slate-500" size={12} />
+              </button>
+              <input
+                type="date"
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                value={selectedDate}
+                onChange={(e) => {
+                  if (e.target.value) setSelectedDate(e.target.value);
+                }}
+              />
+            </div>
+
+            {/* Prev / Next buttons group */}
+            <div className="flex items-center bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-750 rounded-xl overflow-hidden divide-x divide-slate-200 dark:divide-slate-750 shadow-xs h-[38px]">
+              <button
+                type="button"
+                onClick={handlePrevDay}
+                className="px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-600 dark:text-slate-355 cursor-pointer transition-all active:scale-95"
+              >
+                <FiChevronLeft size={14} />
+              </button>
+              <button
+                type="button"
+                onClick={handleNextDay}
+                className="px-3.5 py-2 hover:bg-slate-50 dark:hover:bg-slate-750 text-slate-600 dark:text-slate-355 cursor-pointer transition-all active:scale-95"
+              >
+                <FiChevronRight size={14} />
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* METRICS CARDS */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-          <div className="theme-bg-card border theme-border p-4 rounded-2xl flex flex-col justify-between shadow-sm">
-            <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest text-left">
-              {totalUsersLabel}
-            </span>
-            <span className="text-2xl font-black text-indigo-600 dark:text-indigo-400 text-left mt-2">
+          {/* Card 1: Registered Users */}
+          <div className="bg-indigo-50/40 dark:bg-indigo-950/15 border border-indigo-100/85 dark:border-indigo-900/30 p-4 rounded-2xl flex flex-col justify-between shadow-xs relative overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-sm">
+            <div className="flex justify-between items-start">
+              <span className="text-[10px] font-black text-indigo-650 dark:text-indigo-400 uppercase tracking-widest text-left">
+                {totalUsersLabel}
+              </span>
+              <FiUsers className="text-indigo-500/80 dark:text-indigo-450/80 shrink-0" size={16} />
+            </div>
+            <span className="text-2xl font-black text-indigo-700 dark:text-indigo-300 text-left mt-2">
               {totalUsersCount}
             </span>
           </div>
-          <div className="theme-bg-card border theme-border p-4 rounded-2xl flex flex-col justify-between shadow-sm">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">
-              Total Reports
-            </span>
-            <span className="text-2xl font-black theme-text-primary text-left mt-2">
+
+          {/* Card 2: Total Reports */}
+          <div className="bg-slate-50/60 dark:bg-slate-900/40 border border-slate-200/50 dark:border-slate-800/60 p-4 rounded-2xl flex flex-col justify-between shadow-xs relative overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-sm">
+            <div className="flex justify-between items-start">
+              <span className="text-[10px] font-black text-slate-550 dark:text-slate-450 uppercase tracking-widest text-left">
+                Total Reports
+              </span>
+              <FiFile className="text-slate-500/80 dark:text-slate-450/80 shrink-0" size={16} />
+            </div>
+            <span className="text-2xl font-black text-slate-800 dark:text-slate-200 text-left mt-2">
               {filteredReports.length}
             </span>
           </div>
-          <div className="theme-bg-card border theme-border p-4 rounded-2xl flex flex-col justify-between shadow-sm">
-            <span className="text-[10px] font-black uppercase tracking-widest text-left text-emerald-600 dark:text-emerald-400">
-              Completed
-            </span>
-            <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400 text-left mt-2">
+
+          {/* Card 3: Completed */}
+          <div className="bg-emerald-50/40 dark:bg-emerald-950/15 border border-emerald-100/85 dark:border-emerald-900/30 p-4 rounded-2xl flex flex-col justify-between shadow-xs relative overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-sm">
+            <div className="flex justify-between items-start">
+              <span className="text-[10px] font-black text-emerald-650 dark:text-emerald-450 uppercase tracking-widest text-left">
+                Completed
+              </span>
+              <FiCheckCircle className="text-emerald-500/80 dark:text-emerald-450/80 shrink-0" size={16} />
+            </div>
+            <span className="text-2xl font-black text-emerald-700 dark:text-emerald-300 text-left mt-2">
               {
                 filteredReports.filter((r) => r.overallStatus === "Completed")
                   .length
               }
             </span>
           </div>
-          <div className="theme-bg-card border theme-border p-4 rounded-2xl flex flex-col justify-between shadow-sm">
-            <span className="text-[10px] font-black uppercase tracking-widest text-left text-blue-600 dark:text-blue-400">
-              Active / On Track
-            </span>
-            <span className="text-2xl font-black text-blue-600 dark:text-blue-400 text-left mt-2">
+
+          {/* Card 4: Active / On Track */}
+          <div className="bg-blue-50/40 dark:bg-blue-950/15 border border-blue-100/85 dark:border-blue-900/30 p-4 rounded-2xl flex flex-col justify-between shadow-xs relative overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-sm">
+            <div className="flex justify-between items-start">
+              <span className="text-[10px] font-black text-blue-650 dark:text-blue-400 uppercase tracking-widest text-left">
+                Active / On Track
+              </span>
+              <FiActivity className="text-blue-500/80 dark:text-blue-450/80 shrink-0" size={16} />
+            </div>
+            <span className="text-2xl font-black text-blue-700 dark:text-blue-300 text-left mt-2">
               {
                 filteredReports.filter(
                   (r) =>
@@ -725,11 +818,16 @@ const AdminEodReports = () => {
               }
             </span>
           </div>
-          <div className="theme-bg-card border theme-border p-4 rounded-2xl flex flex-col justify-between shadow-sm">
-            <span className="text-[10px] font-black uppercase tracking-widest text-left text-rose-600 dark:text-rose-450">
-              Delayed / Blocked
-            </span>
-            <span className="text-2xl font-black text-rose-600 dark:text-rose-400 text-left mt-2">
+
+          {/* Card 5: Delayed / Blocked */}
+          <div className="bg-rose-50/40 dark:bg-rose-950/15 border border-rose-100/85 dark:border-rose-900/30 p-4 rounded-2xl flex flex-col justify-between shadow-xs relative overflow-hidden transition-all duration-300 hover:scale-[1.02] hover:shadow-sm">
+            <div className="flex justify-between items-start">
+              <span className="text-[10px] font-black text-rose-650 dark:text-rose-450 uppercase tracking-widest text-left">
+                Delayed / Blocked
+              </span>
+              <FiAlertCircle className="text-rose-500/80 dark:text-rose-455/80 shrink-0" size={16} />
+            </div>
+            <span className="text-2xl font-black text-rose-700 dark:text-rose-300 text-left mt-2">
               {
                 filteredReports.filter(
                   (r) =>
@@ -755,81 +853,6 @@ const AdminEodReports = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-            {/* DATE FILTER (Custom Dropdown matching Reference Image) */}
-            <div
-              id="date-filter-dropdown-container"
-              className="relative w-full sm:w-auto"
-            >
-              <button
-                type="button"
-                onClick={() => setShowDateDropdown(!showDateDropdown)}
-                className="w-full sm:w-auto px-5 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full flex items-center justify-between sm:justify-start gap-3 text-xs font-bold text-slate-705 dark:text-slate-205 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all cursor-pointer min-w-[130px] h-[38px]"
-              >
-                <div className="flex items-center gap-2">
-                  <FiFilter
-                    className="text-emerald-500 dark:text-emerald-400 font-bold"
-                    size={13}
-                  />
-                  <span>
-                    {dateRange === "Custom" && customDate
-                      ? new Date(customDate).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })
-                      : dateRangeLabelMap[dateRange]}
-                  </span>
-                </div>
-                <FiChevronDown
-                  className="text-slate-400 dark:text-slate-500 ml-1"
-                  size={12}
-                />
-              </button>
-
-              {showDateDropdown && (
-                <div className="absolute right-0 sm:left-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-100 dark:border-slate-700 py-1.5 z-30 animate-in fade-in slide-in-from-top-2 duration-150">
-                  {dateRangeOptions.map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => {
-                        setDateRange(opt.value);
-                        if (opt.value !== "Custom") {
-                          setShowDateDropdown(false);
-                        }
-                      }}
-                      className={`w-full text-left px-4 py-2 text-xs font-bold transition-colors cursor-pointer ${
-                        dateRange === opt.value
-                          ? "bg-slate-50 dark:bg-slate-700/50 text-blue-650 dark:text-blue-400"
-                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-750"
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-
-                  {dateRange === "Custom" && (
-                    <div className="px-3 py-2 border-t border-slate-100 dark:border-slate-750 mt-1">
-                      <input
-                        type="date"
-                        value={customDate}
-                        onChange={(e) => {
-                          setCustomDate(e.target.value);
-                        }}
-                        className="w-full px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-[11px] font-medium text-slate-800 dark:text-slate-200 outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer [&::-webkit-calendar-picker-indicator]:dark:invert"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowDateDropdown(false)}
-                        className="w-full mt-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-[10px] font-bold transition-colors cursor-pointer"
-                      >
-                        Apply
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
             {/* STATUS FILTER */}
             <div className="relative w-full sm:w-auto">
               <select
@@ -1138,7 +1161,7 @@ const AdminEodReports = () => {
                           <td className="px-5 py-3 text-left">
                             <span className="text-slate-655 dark:text-slate-400 text-xs">
                               {report.tasks
-                                ? `${report.tasks.filter((t) => t.statusAtEod === "Completed").length} / ${report.tasks.length}`
+                                ? `${report.tasks.filter(isTaskCompleted).length} / ${report.tasks.length}`
                                 : report.designCount || "-"}
                             </span>
                           </td>
@@ -1147,11 +1170,11 @@ const AdminEodReports = () => {
 
                       {/* PENDING TASKS */}
                       <td
-                        className="px-5 py-3 min-w-[200px] max-w-[220px] truncate text-left text-xs text-slate-700 dark:text-slate-350"
+                        className="px-5 py-3 min-w-[200px] max-w-[220px] truncate text-left text-xs text-slate-700 dark:text-slate-355"
                         title={
                           report.tasks
                             ? report.tasks
-                                .filter((t) => t.statusAtEod !== "Completed")
+                                .filter((t) => !isTaskCompleted(t))
                                 .map((t) => t.title)
                                 .join(", ")
                             : report.pendingTasks
@@ -1159,7 +1182,7 @@ const AdminEodReports = () => {
                       >
                         {report.tasks
                           ? report.tasks
-                              .filter((t) => t.statusAtEod !== "Completed")
+                              .filter((t) => !isTaskCompleted(t))
                               .map((t) => t.title)
                               .join(", ") || "None"
                           : report.pendingTasks || "-"}
@@ -1417,9 +1440,7 @@ const AdminEodReports = () => {
                         </span>
                         <span className="text-sm font-extrabold text-emerald-600 dark:text-emerald-450">
                           {
-                            selectedReport.tasks.filter(
-                              (t) => t.statusAtEod === "Completed",
-                            ).length
+                            selectedReport.tasks.filter(isTaskCompleted).length
                           }
                         </span>
                       </div>
@@ -1431,8 +1452,8 @@ const AdminEodReports = () => {
                           {
                             selectedReport.tasks.filter(
                               (t) =>
-                                t.statusAtEod === "Pending" ||
-                                t.statusAtEod === "In Progress",
+                                !isTaskCompleted(t) &&
+                                t.statusAtEod !== "Rejected",
                             ).length
                           }
                         </span>
@@ -1464,7 +1485,7 @@ const AdminEodReports = () => {
                           >
                             <div
                               className={`absolute top-0 left-0 bottom-0 w-1 ${
-                                task.statusAtEod === "Completed"
+                                isTaskCompleted(task)
                                   ? "bg-emerald-500"
                                   : task.statusAtEod === "Rejected"
                                     ? "bg-rose-500"
@@ -1492,7 +1513,7 @@ const AdminEodReports = () => {
                               </div>
                               <span
                                 className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
-                                  task.statusAtEod === "Completed"
+                                  isTaskCompleted(task)
                                     ? "bg-emerald-50 text-emerald-600 border border-emerald-200/40"
                                     : task.statusAtEod === "Rejected"
                                       ? "bg-rose-50 text-rose-600 border border-rose-200/40"
