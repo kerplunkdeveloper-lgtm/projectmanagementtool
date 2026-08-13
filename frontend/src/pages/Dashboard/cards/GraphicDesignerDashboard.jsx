@@ -365,14 +365,14 @@ const LiveProductivityCell = React.memo(
 
     if (!liveMs || liveMs <= 0) {
       return (
-        <span className="text-slate-400 dark:text-slate-500 font-semibold text-[10.5px] italic">
+        <span className="text-slate-400 dark:text-slate-400 font-semibold text-[10.5px] italic">
           Not started
         </span>
       );
     }
 
     return (
-      <span className="text-slate-700 dark:text-slate-350 font-black text-[11px]">
+      <span className="text-slate-700 dark:text-slate-300 font-black text-[11px]">
         {formatLoggedDuration(liveMs)}
       </span>
     );
@@ -1520,6 +1520,23 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     });
   }, [designers, designerTasks, designerEodReports, selectedDate, officeHours]);
 
+  const avgEfficiency = useMemo(() => {
+    const totalLoggedAll = teamPerformance.reduce(
+      (s, tp) => s + tp.totalLoggedMs,
+      0,
+    );
+    const totalOfficeMs =
+      (officeHours.endHour - officeHours.startHour) * 3600 * 1000;
+    return totalOfficeMs > 0 && teamPerformance.length > 0
+      ? Math.min(
+          100,
+          Math.round(
+            (totalLoggedAll / (totalOfficeMs * teamPerformance.length)) * 100,
+          ),
+        )
+      : 0;
+  }, [teamPerformance, officeHours]);
+
   // 5.5. Productivity Trend for the last 7 days ending on selectedDate
   const productivityTrendData = useMemo(() => {
     const days = [];
@@ -1980,7 +1997,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             className="text-indigo-500 dark:text-indigo-400 shrink-0 mt-0.5"
           />
           <p
-            className="text-xs font-bold text-slate-800 dark:text-slate-100 leading-snug break-words"
+            className="text-xs font-bold text-slate-800 dark:text-white leading-snug break-words"
             title={task.title}
           >
             {task.title}
@@ -2522,8 +2539,25 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             valueColor: "text-slate-100 dark:text-white",
             iconBg:
               "bg-red-100 dark:bg-red-950/60 border border-red-200 dark:border-red-500/20",
-            iconColor: "text-red-650 dark:text-red-400",
+            iconColor: "text-red-600 dark:text-red-400",
             onClick: () => handleMetricClick("Rejected"),
+          },
+          {
+            label: "Team Efficiency",
+            value: `${avgEfficiency}%`,
+            icon: FiTrendingUp,
+            glow: "hover:shadow-[0_4px_20px_rgba(139,92,246,0.15)]",
+            bg: "bg-gradient-to-br from-indigo-500 to-purple-600 dark:from-indigo-950 dark:to-purple-900 border border-indigo-200/50 dark:border-indigo-900/30",
+            labelColor: "text-white dark:text-white",
+            valueColor: "text-slate-100 dark:text-white",
+            iconBg:
+              "bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-500/20",
+            iconColor: "text-indigo-600 dark:text-indigo-400",
+            onClick: () => {
+              performanceTableRef.current?.scrollIntoView({
+                behavior: "smooth",
+              });
+            },
           },
         ].map((m, i) => {
           const IconComponent = m.icon;
@@ -3120,7 +3154,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
               <table className="w-full text-left border-collapse table-auto">
                 <thead>
                   <tr className="bg-slate-50/60 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800">
-                    <th className="py-1.5 px-1.5 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap w-[110px]">
+                    <th className="py-1.5 px-1.5 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider text-slate-500 dark:text-slate-300 uppercase whitespace-nowrap w-[110px]">
                       Designer
                     </th>
                     <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase bg-slate-700 text-white dark:bg-slate-600 dark:text-white whitespace-nowrap text-center">
@@ -3132,14 +3166,14 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                     <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase bg-violet-600 text-white dark:bg-violet-750 dark:text-white whitespace-nowrap text-center">
                       Prog
                     </th>
+                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase bg-fuchsia-600 text-white dark:bg-fuchsia-700 dark:text-white whitespace-nowrap text-center">
+                      Hold
+                    </th>
                     <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase bg-amber-500 text-white dark:bg-amber-600 dark:text-white whitespace-nowrap text-center">
                       Review
                     </th>
-                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase bg-emerald-600 text-white dark:bg-emerald-700 dark:text-white whitespace-nowrap text-center">
+                    <th className="py-1.5 px-1 text-[8.5px] font-black tracking-wider uppercase bg-emerald-600 text-white dark:bg-emerald-700 dark:text-white whitespace-nowrap text-center">
                       Done
-                    </th>
-                    <th className="py-1.5 px-1 text-[8.5px] font-black tracking-wider uppercase bg-fuchsia-600 text-white dark:bg-fuchsia-700 dark:text-white whitespace-nowrap text-center">
-                      Hold
                     </th>
                   </tr>
                 </thead>
@@ -3187,16 +3221,16 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                 </div>
                               )}
                               <span
-                                className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white dark:border-slate-900 ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-300 dark:bg-slate-650"}`}
+                                className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white dark:border-slate-900 ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-300 dark:bg-slate-500"}`}
                                 title={isOnline ? "Online" : "Offline"}
                               />
                             </div>
                             <div className="flex flex-col min-w-0">
-                              <span className="text-[10.5px] font-bold text-slate-800 dark:text-slate-100 truncate max-w-[85px] leading-tight">
+                              <span className="text-[10.5px] font-bold text-slate-800 dark:text-white truncate max-w-[85px] leading-tight">
                                 {tp.name}
                               </span>
                               <span
-                                className={`text-[7.5px] font-semibold leading-none mt-0.5 ${isOnline ? "text-emerald-500" : "text-slate-400 dark:text-slate-500"}`}
+                                className={`text-[7.5px] font-semibold leading-none mt-0.5 ${isOnline ? "text-emerald-500" : "text-slate-400 dark:text-slate-400"}`}
                               >
                                 {isOnline ? "Online" : "Offline"}
                               </span>
@@ -3212,49 +3246,49 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         </td>
 
                         {/* Pending */}
-                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center bg-red-500/5">
+                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center bg-red-500/10">
                           <span
-                            className={`text-[11px] font-extrabold ${tp.pending > 0 ? "text-red-600 dark:text-red-400" : "text-slate-400 dark:text-slate-500"}`}
+                            className={`text-[11px] font-extrabold ${tp.pending > 0 ? "text-red-600 dark:text-red-400" : "text-slate-400 dark:text-slate-400"}`}
                           >
                             {tp.pending}
                           </span>
                         </td>
 
                         {/* In Progress */}
-                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center bg-violet-500/5">
+                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center bg-violet-500/10">
                           <span
-                            className={`text-[11px] font-extrabold ${tp.inProgress > 0 ? "text-violet-600 dark:text-violet-400 animate-pulse" : "text-slate-400 dark:text-slate-500"}`}
+                            className={`text-[11px] font-extrabold ${tp.inProgress > 0 ? "text-violet-600 dark:text-violet-400 animate-pulse" : "text-slate-400 dark:text-slate-400"}`}
                           >
                             {tp.inProgress}
                           </span>
                         </td>
 
+                        {/* On Hold */}
+                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center bg-fuchsia-500/10">
+                          <span
+                            className={`text-[11px] font-extrabold ${tp.onHold > 0 ? "text-fuchsia-600 dark:text-fuchsia-400" : "text-slate-400 dark:text-slate-400"}`}
+                          >
+                            {tp.onHold}
+                          </span>
+                        </td>
+
                         {/* In Review */}
                         <td
-                          className={`py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center bg-amber-500/5 ${tp.inReview > 0 ? "bg-amber-500/10" : ""}`}
+                          className={`py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center bg-amber-500/10 ${tp.inReview > 0 ? "bg-amber-500/15" : ""}`}
                         >
                           <span
-                            className={`text-[11px] font-extrabold ${tp.inReview > 0 ? "text-amber-600 dark:text-amber-400 font-black" : "text-slate-400 dark:text-slate-500"}`}
+                            className={`text-[11px] font-extrabold ${tp.inReview > 0 ? "text-amber-600 dark:text-amber-400 font-black" : "text-slate-400 dark:text-slate-400"}`}
                           >
                             {tp.inReview}
                           </span>
                         </td>
 
                         {/* Completed */}
-                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center bg-emerald-500/5">
+                        <td className="py-1.5 px-1 text-center bg-emerald-500/10">
                           <span
-                            className={`text-[11px] font-extrabold ${tp.completed > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500"}`}
+                            className={`text-[11px] font-extrabold ${tp.completed > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-400"}`}
                           >
                             {tp.completed}
-                          </span>
-                        </td>
-
-                        {/* On Hold */}
-                        <td className="py-1.5 px-1 text-center bg-fuchsia-500/5">
-                          <span
-                            className={`text-[11px] font-extrabold ${tp.onHold > 0 ? "text-fuchsia-600 dark:text-fuchsia-400" : "text-slate-400 dark:text-slate-500"}`}
-                          >
-                            {tp.onHold}
                           </span>
                         </td>
                       </tr>
@@ -3271,23 +3305,23 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-slate-700 dark:text-slate-200">
                         {teamPerformance.reduce((s, tp) => s + tp.assigned, 0)}
                       </td>
-                      <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-red-600 dark:text-red-400 bg-red-500/5">
+                      <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-red-600 dark:text-red-400 bg-red-500/10">
                         {teamPerformance.reduce((s, tp) => s + tp.pending, 0)}
                       </td>
-                      <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-violet-600 dark:text-violet-400 bg-violet-500/5">
+                      <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-violet-600 dark:text-violet-400 bg-violet-500/10">
                         {teamPerformance.reduce(
                           (s, tp) => s + tp.inProgress,
                           0,
                         )}
                       </td>
-                      <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-500/5">
+                      <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-500/10">
+                        {teamPerformance.reduce((s, tp) => s + tp.onHold, 0)}
+                      </td>
+                      <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-500/10">
                         {teamPerformance.reduce((s, tp) => s + tp.inReview, 0)}
                       </td>
-                      <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/5">
+                      <td className="py-1.5 px-1 text-center text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10">
                         {teamPerformance.reduce((s, tp) => s + tp.completed, 0)}
-                      </td>
-                      <td className="py-1.5 px-1 text-center text-[11px] font-extrabold text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-500/5">
-                        {teamPerformance.reduce((s, tp) => s + tp.onHold, 0)}
                       </td>
                     </tr>
                   </tfoot>
@@ -3315,7 +3349,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                 <h3 className="text-xs font-black text-slate-800 dark:text-white tracking-wide uppercase">
                   Today's Productivity
                 </h3>
-                <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 tracking-wide">
+                <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-450 tracking-wide">
                   Actual Work Done Today
                 </span>
               </div>
@@ -3332,28 +3366,28 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
               <table className="w-full text-left border-collapse table-auto">
                 <thead>
                   <tr className="bg-slate-50/60 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800">
-                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">
+                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-300 whitespace-nowrap text-center">
                       Revisions
                     </th>
-                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">
+                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-300 whitespace-nowrap text-center">
                       Blockers
                     </th>
-                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">
+                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-300 whitespace-nowrap text-center">
                       Blocker Timer
                     </th>
-                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">
+                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-300 whitespace-nowrap text-center">
                       Productive Time
                     </th>
-                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">
+                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-300 whitespace-nowrap text-center">
                       Tasks Worked
                     </th>
-                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">
+                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-300 whitespace-nowrap text-center">
                       Efficiency
                     </th>
-                    <th className="py-1.5 px-1.5 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap text-center">
+                    <th className="py-1.5 px-1.5 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider text-slate-500 dark:text-slate-300 uppercase whitespace-nowrap text-center">
                       Submitted
                     </th>
-                    <th className="py-1.5 px-1.5 text-[8.5px] font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap text-center">
+                    <th className="py-1.5 px-1.5 text-[8.5px] font-black tracking-wider text-slate-500 dark:text-slate-300 uppercase whitespace-nowrap text-center">
                       Action
                     </th>
                   </tr>
@@ -3380,8 +3414,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         ? "bg-emerald-100 text-emerald-750 dark:bg-emerald-950/40 dark:text-emerald-400"
                         : efficiency >= 50
                           ? "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
-                          : efficiency >= 25
-                                              return (
+                          : efficiency >= 25;
+                    return (
                       <tr
                         key={tp.id}
                         className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
@@ -3397,7 +3431,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                               <span
                                 className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8.5px] font-extrabold border ${
                                   revVal === 0
-                                    ? "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800/40 dark:text-slate-500 dark:border-slate-700/50"
+                                    ? "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800/40 dark:text-slate-400 dark:border-slate-700"
                                     : revVal <= 1
                                       ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40"
                                       : revVal <= 3
@@ -3414,7 +3448,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         {/* Blockers */}
                         <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center">
                           {tp.blockers === "none" ? (
-                            <span className="text-slate-400 dark:text-slate-500 font-bold italic text-[8.5px]">
+                            <span className="text-slate-400 dark:text-slate-400 font-bold italic text-[8.5px]">
                               none
                             </span>
                           ) : (
@@ -3445,7 +3479,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                               })()}
                             </span>
                           ) : (
-                            <span className="text-slate-400 dark:text-slate-500 font-medium text-[10.5px]">
+                            <span className="text-slate-400 dark:text-slate-400 font-medium text-[10.5px]">
                               0m
                             </span>
                           )}
@@ -3464,7 +3498,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         {/* Tasks Worked On */}
                         <td className="py-1.5 px-1.5 border-r border-slate-100 dark:border-slate-800/40 text-center">
                           <span
-                            className={`text-[11px] font-extrabold ${tp.tasksWorkedOn > 0 ? "text-slate-700 dark:text-slate-200" : "text-slate-400 dark:text-slate-500"}`}
+                            className={`text-[11px] font-extrabold ${tp.tasksWorkedOn > 0 ? "text-slate-700 dark:text-slate-200" : "text-slate-400 dark:text-slate-400"}`}
                           >
                             {tp.tasksWorkedOn}
                           </span>
@@ -3482,7 +3516,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         {/* Last Submitted */}
                         <td className="py-1.5 px-1.5 border-r border-slate-100 dark:border-slate-800/40 text-center">
                           {tp.lastSubmitted === "Not submitted" ? (
-                            <span className="inline-flex items-center gap-0.5 text-[8.5px] font-medium text-slate-400 dark:text-slate-500">
+                            <span className="inline-flex items-center gap-0.5 text-[8.5px] font-medium text-slate-400 dark:text-slate-400">
                               Not submitted
                             </span>
                           ) : tp.lastSubmitted === "Draft" ? (
@@ -3530,22 +3564,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       (s, tp) => s + tp.totalLoggedMs,
                       0,
                     );
-                    const totalOfficeMs =
-                      (officeHours.endHour - officeHours.startHour) *
-                      3600 *
-                      1000;
-                    const avgEfficiency =
-                      totalOfficeMs > 0 && teamPerformance.length > 0
-                        ? Math.min(
-                            100,
-                            Math.round(
-                              (totalLoggedAll /
-                                (totalOfficeMs * teamPerformance.length)) *
-                                100,
-                            ),
-                          )
-                        : 0;
-
                     const totalSecs = Math.floor(totalLoggedAll / 1000);
                     const th = Math.floor(totalSecs / 3600);
                     const tm = Math.floor((totalSecs % 3600) / 60);
@@ -4010,10 +4028,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       {activeDesigner?.name}'s Performance Details
                     </h3>
                     <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-200/60 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-extrabold text-[9.5px] border border-slate-300/50 dark:border-slate-700">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-200/60 dark:bg-slate-800 text-slate-700 dark:text-black font-extrabold text-[9.5px] border border-slate-300/50 dark:border-slate-700">
                         Today: {format(new Date(), "dd MMM yyyy")}
                       </span>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-red-500/10 text-red-600 dark:text-red-400 font-extrabold text-[9.5px] border border-red-500/20">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-red-500 text-white dark:text-white font-extrabold text-[9.5px] border border-red-500/20">
                         Assigned Today: {activeDesigner?.assigned || 0}
                       </span>
                       {(activeDesigner?.overdue || 0) > 0 && (
@@ -4100,7 +4118,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                     }`}
                   >
-                    Today's Assigned Batch ({groupedModalTasks.assignedToday.length})
+                    Today's Assigned Batch (
+                    {groupedModalTasks.assignedToday.length})
                   </button>
                   <button
                     type="button"
@@ -4114,7 +4133,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                         : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                     }`}
                   >
-                    Carried Forward Tasks ({groupedModalTasks.carriedForward.length})
+                    Carried Forward Tasks (
+                    {groupedModalTasks.carriedForward.length})
                   </button>
                 </div>
                 {/* Top Metrics Strip (Swipable on mobile, grid on desktop) */}
@@ -4603,7 +4623,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                       designerName: "",
                     })
                   }
-                  className="px-4 py-2 rounded-xl bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-750 text-xs font-black text-slate-750 dark:text-slate-200 transition-all cursor-pointer shadow-2xs"
+                  className="px-4 py-2 rounded-xl bg-slate-200/80 dark:bg-black text-xs font-black text-slate-750 dark:text-white transition-all cursor-pointer shadow-2xs"
                 >
                   Close View
                 </button>
