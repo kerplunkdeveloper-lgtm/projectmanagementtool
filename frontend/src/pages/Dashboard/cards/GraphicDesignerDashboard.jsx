@@ -17,6 +17,32 @@ import { io } from "socket.io-client";
 import toast from "react-hot-toast";
 import { getDesignerEodReports } from "../../../features/eodReports/designerEodReportSlice";
 import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Filler,
+} from "chart.js";
+import { Doughnut, Line } from "react-chartjs-2";
+
+ChartJS.register(
+  ArcElement,
+  Tooltip,
+  Legend,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Filler,
+);
+
+import {
   format,
   isToday,
   isPast,
@@ -301,49 +327,54 @@ const LiveProductivityCell = React.memo(
       calculateTotalLogged,
     ]);
 
+    const formatLoggedDuration = (ms) => {
+      if (!ms || ms <= 0) return "00h 00m";
+      const totalSecs = Math.floor(ms / 1000);
+      const h = Math.floor(totalSecs / 3600);
+      const m = Math.floor((totalSecs % 3600) / 60);
+      return `${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m`;
+    };
+
+    if (isSelectedDateToday && hasInProgress) {
+      return (
+        <div className="flex items-center justify-center gap-1.5">
+          <span className="text-emerald-600 dark:text-emerald-400 font-black text-[11px]">
+            {formatLoggedDuration(liveMs)}
+          </span>
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[8px] font-black uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
+            Running
+          </span>
+        </div>
+      );
+    }
+
+    if (isSelectedDateToday && hasInReview) {
+      return (
+        <div className="flex items-center justify-center gap-1.5">
+          <span className="text-amber-600 dark:text-amber-500 font-black text-[11px]">
+            {formatLoggedDuration(liveMs)}
+          </span>
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-900/30 text-amber-600 dark:text-amber-400 text-[8px] font-black uppercase tracking-wider animate-pulse">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping shrink-0" />
+            In Review
+          </span>
+        </div>
+      );
+    }
+
     if (!liveMs || liveMs <= 0) {
       return (
-        <span className="text-blue-600 dark:text-slate-500 font-medium">
+        <span className="text-slate-400 dark:text-slate-500 font-semibold text-[10.5px] italic">
           Not started
         </span>
       );
     }
 
-    const formatLoggedDuration = (ms) => {
-      if (!ms || ms <= 0) return "0m";
-      const totalSecs = Math.floor(ms / 1000);
-      const h = Math.floor(totalSecs / 3600);
-      const m = Math.floor((totalSecs % 3600) / 60);
-      const s = totalSecs % 60;
-      if (h > 0) return `${h}h ${m}m ${s}s`;
-      return `${m}m ${s}s`;
-    };
-
-    let badgeStyle =
-      "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300";
-    let pulseDot = null;
-
-    if (isSelectedDateToday && hasInProgress) {
-      badgeStyle =
-        "bg-blue-50/90 text-blue-700 border-blue-300 dark:bg-blue-900/40 dark:border-blue-700/60 dark:text-blue-400 shadow-sm";
-      pulseDot = (
-        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shrink-0 mr-1.5 inline-block" />
-      );
-    } else if (isSelectedDateToday && hasInReview) {
-      badgeStyle =
-        "bg-yellow-400/90 text-yellow-950 border-yellow-500 dark:bg-yellow-500/30 dark:border-yellow-600/60 dark:text-yellow-300 shadow-sm font-black";
-      pulseDot = (
-        <span className="w-1.5 h-1.5 rounded-full bg-yellow-600 dark:bg-yellow-400 animate-pulse shrink-0 mr-1.5 inline-block" />
-      );
-    }
-
     return (
-      <div
-        className={`inline-flex items-center justify-center px-2 py-1 rounded-full border font-bold text-[10px] tracking-wide ${badgeStyle}`}
-      >
-        {pulseDot}
+      <span className="text-slate-700 dark:text-slate-350 font-black text-[11px]">
         {formatLoggedDuration(liveMs)}
-      </div>
+      </span>
     );
   },
 );
@@ -1000,6 +1031,17 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   }, [allTasks, designerIds, selectedDate, user]);
 
   // 3. Compute Metrics
+  // todayAssignedTasks: only tasks whose assignment date (startDate || createdAt) falls on selectedDate.
+  // This is used for Metric Cards and Performance Table status counts.
+  // Productivity continues to use all designerTasks (actual work done on selectedDate).
+  const todayAssignedDesignerTasks = useMemo(() => {
+    return designerTasks.filter((task) => {
+      const assignmentDate = task.startDate || task.createdAt;
+      if (!assignmentDate) return false;
+      return isSameDay(new Date(assignmentDate), selectedDate);
+    });
+  }, [designerTasks, selectedDate]);
+
   const metrics = useMemo(() => {
     let completed = 0;
     let pending = 0;
@@ -1012,7 +1054,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     let corrections = 0;
     let totalRevisions = 0;
 
-    designerTasks.forEach((task) => {
+    // Metric card counts reflect TODAY ASSIGNED TASKS ONLY.
+    todayAssignedDesignerTasks.forEach((task) => {
       const status = task.status?.toLowerCase() || "";
       if (status === "completed" || status.includes("approve")) completed++;
       else if (status.includes("reject")) rejected++;
@@ -1042,7 +1085,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
     return {
       designersWorking: designers.length,
-      tasksAssigned: designerTasks.length,
+      // tasksAssigned = today's assigned batch only
+      tasksAssigned: todayAssignedDesignerTasks.length,
       completed,
       pending,
       inProgress,
@@ -1054,7 +1098,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       rejected,
       totalRevisions,
     };
-  }, [designerTasks, designers.length, selectedDate]);
+  }, [todayAssignedDesignerTasks, designers.length, selectedDate]);
 
   const interruptions = useMemo(() => {
     let totalBlockers = 0;
@@ -1225,6 +1269,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   // 5. Team Performance
   const teamPerformance = useMemo(() => {
     return designers.map((designer) => {
+      // All tasks for this designer that are visible on selectedDate
+      // (used for Productivity, Blockers, Approval time)
       const myTasks = designerTasks.filter((t) => {
         if (!t.assignedTo) return false;
         const aId =
@@ -1232,6 +1278,15 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         return aId === designer._id;
       });
 
+      // TODAY ASSIGNED TASKS ONLY — tasks whose assignment date (startDate || createdAt)
+      // falls on selectedDate. Used for status counts in the Performance Table.
+      const todayAssignedTasks = myTasks.filter((task) => {
+        const assignmentDate = task.startDate || task.createdAt;
+        if (!assignmentDate) return false;
+        return isSameDay(new Date(assignmentDate), selectedDate);
+      });
+
+      // --- Status counts: based on TODAY ASSIGNED BATCH only ---
       let comp = 0;
       let pend = 0;
       let prog = 0;
@@ -1239,16 +1294,8 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       let rev = 0;
       let over = 0;
       let totalRevisions = 0;
-      let totalLoggedMs = 0;
-      let totalBusinessLoggedMs = 0;
-      let totalOffworkingLoggedMs = 0;
-      let inProgressLoggedMs = 0;
-      let totalBlockerMs = 0;
-      let totalApprovalMs = 0;
-      let approvalCount = 0;
-      const blockerTypesSet = new Set();
 
-      myTasks.forEach((t) => {
+      todayAssignedTasks.forEach((t) => {
         const s = t.status?.toLowerCase() || "";
         const isCompleted = s === "completed" || s.includes("approve");
         const isRejected = s.includes("reject") || s.includes("cancel");
@@ -1269,7 +1316,19 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           over++;
 
         totalRevisions += t.revisions || 0;
+      });
 
+      // --- Productivity & Blockers: based on ALL myTasks worked on selectedDate ---
+      let totalLoggedMs = 0;
+      let totalBusinessLoggedMs = 0;
+      let totalOffworkingLoggedMs = 0;
+      let inProgressLoggedMs = 0;
+      let totalBlockerMs = 0;
+      let totalApprovalMs = 0;
+      let approvalCount = 0;
+      const blockerTypesSet = new Set();
+
+      myTasks.forEach((t) => {
         if (t.actualStartTime) {
           const taskLoggedMs = calculateTaskProductivityForDate(
             t,
@@ -1319,6 +1378,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         if (t.isBlocked && t.blockerPausedAt) {
           const pStart = new Date(t.blockerPausedAt).getTime();
           if (!isNaN(pStart)) {
+            const selDateObj = selectedDate || new Date();
+            const dayStart = startOfDay(selDateObj).getTime();
+            const nextDayStart = startOfDay(addDays(selDateObj, 1)).getTime();
             const pEnd = isSameDay(selDateObj, new Date())
               ? Date.now()
               : nextDayStart;
@@ -1346,7 +1408,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         }
       });
 
-      // Compute approval time using actual review and completion fields
+      // Compute approval time using actual review and completion fields (all tasks)
       myTasks.forEach((t) => {
         const totalWaitMs =
           t.approvalWaitingMs ||
@@ -1360,7 +1422,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       });
 
       const avgRevisions =
-        myTasks.length > 0 ? totalRevisions / myTasks.length : 0;
+        todayAssignedTasks.length > 0
+          ? totalRevisions / todayAssignedTasks.length
+          : 0;
       const totalHours = totalLoggedMs / (1000 * 60 * 60);
       const inProgressHours = inProgressLoggedMs / (1000 * 60 * 60);
       const avgApprovalMs =
@@ -1416,13 +1480,15 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           designer.avatar ||
           designer.profile?.profilePic ||
           designer.profile?.avatar,
-        assigned: myTasks.length,
+        // assigned = today's assigned batch count only
+        assigned: todayAssignedTasks.length,
         completed: comp,
         pending: pend,
         inProgress: prog,
         onHold: hold,
         inReview: rev,
-        inReviewTasks: myTasks.filter((t) => {
+        // inReviewTasks: filtered from todayAssignedTasks (assignment-based)
+        inReviewTasks: todayAssignedTasks.filter((t) => {
           const s = t.status?.toLowerCase() || "";
           return s.includes("review") || s.includes("revision");
         }),
@@ -1442,10 +1508,52 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             : "none",
         blockerTimeMs: totalBlockerMs,
         lastSubmitted: lastSubmittedStr,
+        // tasksWorkedOn: count of tasks that had productivity > 0 on selectedDate (all tasks, not just today-assigned)
+        tasksWorkedOn: myTasks.filter(
+          (t) =>
+            calculateTaskProductivityForDate(t, selectedDate, officeHours) > 0,
+        ).length,
+        // tasks passed to LiveProductivityCell = all myTasks (productivity includes historical tasks worked today)
         tasks: myTasks,
       };
     });
   }, [designers, designerTasks, designerEodReports, selectedDate, officeHours]);
+
+  // 5.5. Productivity Trend for the last 7 days ending on selectedDate
+  const productivityTrendData = useMemo(() => {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      days.push(subDays(selectedDate, i));
+    }
+
+    return days.map((day) => {
+      let totalMs = 0;
+      designers.forEach((designer) => {
+        const designerTasksFromAll = allTasks.filter((t) => {
+          if (!t.assignedTo) return false;
+          const aId =
+            typeof t.assignedTo === "object" ? t.assignedTo._id : t.assignedTo;
+          return aId === designer._id;
+        });
+
+        designerTasksFromAll.forEach((t) => {
+          totalMs += calculateTaskProductivityForDate(t, day, officeHours);
+        });
+      });
+
+      const totalHours = totalMs / (1000 * 60 * 60);
+      return {
+        date: day,
+        label: format(day, "d MMM"), // e.g. "13 Aug"
+        hours: totalHours,
+        formatted: (() => {
+          const mins = Math.round((totalMs / (1000 * 60)) % 60);
+          const hrs = Math.floor(totalMs / (1000 * 60 * 60));
+          return `${hrs}h ${String(mins).padStart(2, "0")}m`;
+        })(),
+      };
+    });
+  }, [selectedDate, designers, allTasks, officeHours]);
 
   // 6. Client Progress
   const clientProgress = useMemo(() => {
@@ -1979,6 +2087,201 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     if (isTomorrow(date)) return "Tomorrow";
     return format(date, "EEEE");
   };
+
+  // Chart configs and data mapping
+  const totalAssignedTasksCount = metrics.tasksAssigned || 0;
+  const getPercentageString = (count) => {
+    if (totalAssignedTasksCount === 0) return "0%";
+    return `${Math.round((count / totalAssignedTasksCount) * 100)}%`;
+  };
+
+  const doughnutData = {
+    labels: [
+      "Pending",
+      "In Progress",
+      "In Review",
+      "Completed",
+      "On Hold",
+      "Rejected",
+    ],
+    datasets: [
+      {
+        data: [
+          metrics.pending,
+          metrics.inProgress,
+          metrics.inReview,
+          metrics.completed,
+          metrics.onHold,
+          metrics.rejected,
+        ],
+        backgroundColor: [
+          "#f97316", // Pending (Orange)
+          "#3b82f6", // In Progress (Blue)
+          "#a855f7", // In Review (Purple)
+          "#10b981", // Completed (Green)
+          "#eab308", // On Hold (Yellow)
+          "#ef4444", // Rejected (Red)
+        ],
+        borderWidth: 2,
+        borderColor: isDarkMode ? "#1e293b" : "#ffffff",
+        hoverOffset: 4,
+      },
+    ],
+  };
+
+  const doughnutOptions = {
+    cutout: "75%",
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        enabled: true,
+        callbacks: {
+          label: (context) => {
+            const label = context.label || "";
+            const value = context.raw || 0;
+            const percentage = getPercentageString(value);
+            return ` ${label}: ${value} (${percentage})`;
+          },
+        },
+      },
+    },
+    maintainAspectRatio: false,
+    responsive: true,
+    animation: {
+      animateRotate: true,
+      animateScale: true,
+      duration: 1000,
+      easing: "easeOutQuart",
+    },
+  };
+
+  const lineChartData = {
+    labels: productivityTrendData.map((d) => d.label),
+    datasets: [
+      {
+        label: "Productivity",
+        data: productivityTrendData.map((d) => d.hours),
+        borderColor: "#a855f7", // Purple line matching the mockup
+        borderWidth: 2.5,
+        pointBackgroundColor: "#a855f7",
+        pointBorderColor: "#ffffff",
+        pointBorderWidth: 1.5,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        tension: 0.35, // Smooth curve
+        fill: true,
+        backgroundColor: (context) => {
+          const chart = context.chart;
+          const { ctx, chartArea } = chart;
+          if (!chartArea) return null;
+          const gradient = ctx.createLinearGradient(
+            0,
+            chartArea.top,
+            0,
+            chartArea.bottom,
+          );
+          gradient.addColorStop(0, "rgba(168, 85, 247, 0.25)");
+          gradient.addColorStop(1, "rgba(168, 85, 247, 0.0)");
+          return gradient;
+        },
+      },
+    ],
+  };
+
+  const lineChartOptions = {
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const index = context.dataIndex;
+            return ` Productivity: ${productivityTrendData[index].formatted}`;
+          },
+        },
+      },
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          font: {
+            size: 8.5,
+            weight: "600",
+          },
+          color: isDarkMode ? "#94a3b8" : "#64748b",
+        },
+      },
+      y: {
+        min: 0,
+        suggestedMax: 8,
+        ticks: {
+          callback: (value) => `${value}h`,
+          font: {
+            size: 8.5,
+            weight: "600",
+          },
+          color: isDarkMode ? "#94a3b8" : "#64748b",
+          stepSize: 2,
+        },
+        grid: {
+          color: isDarkMode
+            ? "rgba(255, 255, 255, 0.05)"
+            : "rgba(0, 0, 0, 0.04)",
+        },
+      },
+    },
+    maintainAspectRatio: false,
+    responsive: true,
+    animation: {
+      duration: 1000,
+      easing: "easeOutQuart",
+    },
+  };
+
+  const statusLegendItems = [
+    {
+      label: "Pending",
+      count: metrics.pending,
+      percent: getPercentageString(metrics.pending),
+      color: "#f97316",
+    },
+    {
+      label: "In Progress",
+      count: metrics.inProgress,
+      percent: getPercentageString(metrics.inProgress),
+      color: "#3b82f6",
+    },
+    {
+      label: "In Review",
+      count: metrics.inReview,
+      percent: getPercentageString(metrics.inReview),
+      color: "#a855f7",
+    },
+    {
+      label: "Completed",
+      count: metrics.completed,
+      percent: getPercentageString(metrics.completed),
+      color: "#10b981",
+    },
+    {
+      label: "On Hold",
+      count: metrics.onHold,
+      percent: getPercentageString(metrics.onHold),
+      color: "#eab308",
+    },
+    {
+      label: "Rejected",
+      count: metrics.rejected,
+      percent: getPercentageString(metrics.rejected),
+      color: "#ef4444",
+    },
+  ];
 
   return (
     <div className="bg-white dark:bg-[#0b1120] py-4 md:py-4 px-0 md:px-0 space-y-8 font-sans  overflow-visible transition-colors duration-300 relative">
@@ -2737,332 +3040,677 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         </div>
       </div>
       <div className="relative z-10 scroll-mt-6" ref={performanceTableRef}>
-        {/* Team Performance */}
-        <div className="sidebar-bg dark:sidebar-bg backdrop-blur-xl rounded-2xl  overflow-hidden shadow-sm dark:shadow-2xl">
-          <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-transparent flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <h3 className="text-sm font-bold text-slate-800 dark:text-white tracking-widest">
-              {targetDept} Performance
-            </h3>
-            <div className="flex items-center flex-wrap gap-2.5 sm:gap-3">
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40">
-                <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                  Office:
-                </span>
-                <span className="text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300">
-                  {(() => {
-                    const s = officeHours.startHour;
-                    const e = officeHours.endHour;
-                    const fmt = (h) => {
-                      const ampm = h >= 12 ? "PM" : "AM";
-                      const val = h % 12 === 0 ? 12 : h % 12;
-                      return `${String(val).padStart(2, "0")}:00 ${ampm}`;
-                    };
-                    return `${fmt(s)} – ${fmt(e)}`;
-                  })()}
+        {/* Two-panel layout: Team Performance (left, 6cols) + Today's Productivity (right, 6cols) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* ─────────────────── LEFT: Team Performance (6 Columns) ─────────────────── */}
+          <div className="lg:col-span-6 sidebar-bg backdrop-blur-xl rounded-2xl overflow-hidden shadow-sm dark:shadow-2xl flex flex-col">
+            {/* Header */}
+            <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-transparent flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <div>
+                <h3 className="text-xs font-black text-slate-800 dark:text-white tracking-wide uppercase">
+                  Team Performance
+                </h3>
+                <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 tracking-wide">
+                  Based on Today Assigned Batch
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-xlsidebar-bg shadow-lg">
-                <FiCalendar
-                  className="text-indigo-500 dark:text-indigo-400 shrink-0"
-                  size={12}
-                />
-                <span className="text-[11px] font-black uppercase tracking-wider ">
-                  {getRelativeDateLabel(selectedDate)}
-                </span>
-                <span className="text-slate-300 dark:text-slate-600 font-extrabold text-xs">
-                  •
-                </span>
-                <span className="text-[11px] font-extrabold ">
-                  {format(selectedDate, "MMM dd, yyyy")}
-                </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40">
+                  <span className="text-[8px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                    Office:
+                  </span>
+                  <span className="text-[9px] font-extrabold text-emerald-700 dark:text-emerald-300">
+                    {(() => {
+                      const s = officeHours.startHour;
+                      const e = officeHours.endHour;
+                      const fmt = (h) => {
+                        const ampm = h >= 12 ? "PM" : "AM";
+                        const val = h % 12 === 0 ? 12 : h % 12;
+                        return `${String(val).padStart(2, "0")}:00 ${ampm}`;
+                      };
+                      return `${fmt(s)} – ${fmt(e)}`;
+                    })()}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 px-2 py-0.5 rounded-md sidebar-bg border border-slate-100 dark:border-slate-800 shadow-2xs">
+                  <FiCalendar
+                    className="text-indigo-500 dark:text-indigo-400 shrink-0"
+                    size={10}
+                  />
+                  <span className="text-[8px] font-black uppercase tracking-wider">
+                    {getRelativeDateLabel(selectedDate)}
+                  </span>
+                  <span className="text-slate-300 dark:text-slate-600 font-bold text-[10px]">
+                    •
+                  </span>
+                  <span className="text-[9px] font-extrabold">
+                    {format(selectedDate, "MMM dd, yyyy")}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* .....................................................performance table ............................ */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/50 dark:bg-slate-800/60">
-                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase">
-                    {targetDept}
-                  </th>
-                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase text-center">
-                    Status
-                  </th>
-                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider uppercase bg-slate-600 text-white dark:bg-slate-700 dark:text-white">
-                    Assigned
-                  </th>
-                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider uppercase bg-red-600 text-white dark:bg-red-700 dark:text-white">
-                    Pending
-                  </th>
-                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider uppercase bg-violet-600 text-white dark:bg-violet-700 dark:text-white">
-                    In Progress
-                  </th>
-                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider uppercase bg-fuchsia-600 text-white dark:bg-fuchsia-700 dark:text-white">
-                    On Hold
-                  </th>
-                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider uppercase bg-amber-500 text-slate-950 dark:bg-amber-600 dark:text-white">
-                    In Review
-                  </th>
-                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider uppercase bg-emerald-600 text-white dark:bg-emerald-700 dark:text-white">
-                    Completed
-                  </th>
-                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase">
-                    Revisions
-                  </th>
-                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase">
-                    Blockers
-                  </th>
-                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase">
-                    Blocker Time
-                  </th>
-                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase">
-                    Productivity
-                  </th>
+            {/* Table */}
+            <div className="overflow-x-auto flex-1">
+              <table className="w-full text-left border-collapse table-auto">
+                <thead>
+                  <tr className="bg-slate-50/60 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800">
+                    <th className="py-1.5 px-1.5 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap w-[110px]">
+                      Designer
+                    </th>
+                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase bg-slate-700 text-white dark:bg-slate-600 dark:text-white whitespace-nowrap text-center">
+                      Assigned
+                    </th>
+                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase bg-red-500 text-white dark:bg-red-650 dark:text-white whitespace-nowrap text-center">
+                      Pend
+                    </th>
+                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase bg-violet-600 text-white dark:bg-violet-750 dark:text-white whitespace-nowrap text-center">
+                      Prog
+                    </th>
+                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase bg-amber-500 text-white dark:bg-amber-600 dark:text-white whitespace-nowrap text-center">
+                      Review
+                    </th>
+                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase bg-emerald-600 text-white dark:bg-emerald-700 dark:text-white whitespace-nowrap text-center">
+                      Done
+                    </th>
+                    <th className="py-1.5 px-1 text-[8.5px] font-black tracking-wider uppercase bg-fuchsia-600 text-white dark:bg-fuchsia-700 dark:text-white whitespace-nowrap text-center">
+                      Hold
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100/60 dark:divide-slate-800/40">
+                  {teamPerformance.map((tp, idx) => {
+                    const isOnline =
+                      onlineUserIds.includes(tp.id) ||
+                      tp.isOnline ||
+                      tp.isUserOnline ||
+                      tp.status === "online" ||
+                      tp.userStatus === "online";
 
-                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase">
-                    Delay
-                  </th>
-                  <th className="py-1.5 px-2 border-r border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase">
-                    Last Submitted
-                  </th>
-                  <th className="py-1.5 px-2 border-b border-slate-200 dark:border-slate-700 text-[9px] font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase">
-                    Action
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-700/80 text-xs">
-                {teamPerformance.map((tp, idx) => {
-                  const isOnline =
-                    onlineUserIds.includes(tp.id) ||
-                    tp.isOnline ||
-                    tp.isUserOnline ||
-                    tp.status === "online" ||
-                    tp.userStatus === "online";
+                    const avatarColors = [
+                      "bg-blue-500",
+                      "bg-violet-500",
+                      "bg-rose-500",
+                      "bg-emerald-500",
+                      "bg-amber-500",
+                      "bg-cyan-500",
+                      "bg-pink-500",
+                      "bg-indigo-500",
+                    ];
+                    const avatarBg = avatarColors[idx % avatarColors.length];
 
-                  return (
-                    <tr
-                      key={tp.id}
-                      className="hover:bg-slate-100/90 dark:hover:bg-slate-800/80 transition-colors"
-                    >
-                      <td className="py-2 px-2.5 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-medium text-slate-750 dark:text-slate-200">
-                        <div className="flex items-center gap-2.5">
-                          <div className="relative shrink-0">
-                            {tp.profileImage ? (
-                              <img
-                                src={tp.profileImage}
-                                alt={tp.name}
-                                className="w-8 h-8 rounded-full object-cover border-2 border-slate-200 dark:border-slate-700 shadow-2xs"
-                              />
-                            ) : (
-                              <div className="w-8 h-8 rounded-full bg-blue-600 dark:bg-blue-500  text-xs  flex items-center justify-center shrink-0 border-2 border-slate-200 dark:border-slate-700 shadow-2xs">
-                                {tp.name
-                                  ? tp.name.charAt(0).toUpperCase()
-                                  : "U"}
-                              </div>
-                            )}
-                            <span
-                              className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 transition-colors ${
-                                isOnline ? "bg-emerald-500" : "bg-rose-500"
-                              }`}
-                              title={isOnline ? "Online" : "Offline"}
-                            />
-                          </div>
-
-                          <div className="flex flex-col min-w-0">
-                            <span className="font-bold  truncate max-w-[130px] leading-snug">
-                              {tp.name}
-                            </span>
-                            <div className="flex items-center gap-1 text-[9.5px] font-extrabold mt-0.5">
+                    return (
+                      <tr
+                        key={tp.id}
+                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
+                      >
+                        {/* Designer */}
+                        <td className="py-1.5 px-1.5 border-r border-slate-100 dark:border-slate-800/40">
+                          <div className="flex items-center gap-1.5">
+                            <div className="relative shrink-0">
+                              {tp.profileImage ? (
+                                <img
+                                  src={tp.profileImage}
+                                  alt={tp.name}
+                                  className="w-6 h-6 rounded-full object-cover border border-white dark:border-slate-700 shadow-2xs"
+                                />
+                              ) : (
+                                <div
+                                  className={`w-6 h-6 rounded-full ${avatarBg} text-white text-[9px] font-black flex items-center justify-center shrink-0 shadow-2xs`}
+                                >
+                                  {getInitials(tp.name)}
+                                </div>
+                              )}
                               <span
-                                className={`w-1.5 h-1.5 rounded-full ${
-                                  isOnline
-                                    ? "bg-emerald-500 animate-pulse"
-                                    : "bg-rose-500"
-                                }`}
+                                className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-white dark:border-slate-900 ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-300 dark:bg-slate-650"}`}
+                                title={isOnline ? "Online" : "Offline"}
                               />
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-[10.5px] font-bold text-slate-800 dark:text-slate-100 truncate max-w-[85px] leading-tight">
+                                {tp.name}
+                              </span>
                               <span
-                                className={
-                                  isOnline
-                                    ? "text-emerald-600 dark:text-emerald-400 font-extrabold"
-                                    : "text-rose-600 dark:text-rose-400 font-extrabold"
-                                }
+                                className={`text-[7.5px] font-semibold leading-none mt-0.5 ${isOnline ? "text-emerald-500" : "text-slate-400 dark:text-slate-500"}`}
                               >
                                 {isOnline ? "Online" : "Offline"}
                               </span>
                             </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="py-2 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] text-center">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black border shadow-2xs ${
-                            isOnline
-                              ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/40"
-                              : "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/40"
-                          }`}
+                        </td>
+
+                        {/* Today Assigned */}
+                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center">
+                          <span className="text-[11px] font-extrabold text-slate-700 dark:text-slate-200">
+                            {tp.assigned}
+                          </span>
+                        </td>
+
+                        {/* Pending */}
+                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center bg-red-500/5">
+                          <span
+                            className={`text-[11px] font-extrabold ${tp.pending > 0 ? "text-red-600 dark:text-red-400" : "text-slate-400 dark:text-slate-500"}`}
+                          >
+                            {tp.pending}
+                          </span>
+                        </td>
+
+                        {/* In Progress */}
+                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center bg-violet-500/5">
+                          <span
+                            className={`text-[11px] font-extrabold ${tp.inProgress > 0 ? "text-violet-600 dark:text-violet-400 animate-pulse" : "text-slate-400 dark:text-slate-500"}`}
+                          >
+                            {tp.inProgress}
+                          </span>
+                        </td>
+
+                        {/* In Review */}
+                        <td
+                          className={`py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center bg-amber-500/5 ${tp.inReview > 0 ? "bg-amber-500/10" : ""}`}
                         >
                           <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              isOnline
-                                ? "bg-emerald-500 animate-pulse"
-                                : "bg-rose-500"
-                            }`}
-                          />
-                          {isOnline ? "Online" : "Offline"}
-                        </span>
-                      </td>
-                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-medium text-slate-700 dark:text-slate-200">
-                        {tp.assigned}
-                      </td>
-                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold bg-rose-500/10 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300">
-                        {tp.pending}
-                      </td>
-                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold bg-violet-500/10 dark:bg-violet-500/20 text-violet-700 dark:text-violet-300">
-                        {tp.inProgress}
-                      </td>
-                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold bg-fuchsia-500/10 dark:bg-fuchsia-500/20 text-fuchsia-700 dark:text-fuchsia-300">
-                        {tp.onHold}
-                      </td>
-                      <td
-                        className={`py-1.5 px-2 border-r border-b text-[11px] font-bold transition-all ${
-                          tp.inReview > 0
-                            ? "bg-amber-500/20 text-amber-800 dark:bg-amber-500/30 dark:text-amber-200 animate-pulse ring-1 ring-amber-400/50 dark:ring-amber-400/60 border border-amber-500/40 dark:border-amber-400/50"
-                            : "bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-slate-100 dark:border-slate-700/60"
-                        }`}
-                      >
-                        {tp.inReview}
-                      </td>
-                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-bold bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300">
-                        {tp.completed}
-                      </td>
-                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] text-center">
-                        {(() => {
-                          const revVal =
-                            tp.totalRevisions !== undefined
-                              ? tp.totalRevisions
-                              : Math.round(tp.avgRevisions || 0);
-                          return (
-                            <span
-                              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-extrabold border ${
-                                revVal === 0
-                                  ? "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800/40 dark:text-slate-500 dark:border-slate-700/50"
-                                  : revVal <= 1
-                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40"
-                                    : revVal <= 3
-                                      ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40"
-                                      : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800/40"
-                              }`}
-                            >
-                              {revVal} rev
-                            </span>
-                          );
-                        })()}
-                      </td>
-                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] text-slate-600 dark:text-slate-200">
-                        {tp.blockers === "none" ? (
-                          <span className="text-slate-400 dark:text-slate-500 font-bold italic text-[9px]">
-                            none
+                            className={`text-[11px] font-extrabold ${tp.inReview > 0 ? "text-amber-600 dark:text-amber-400 font-black" : "text-slate-400 dark:text-slate-500"}`}
+                          >
+                            {tp.inReview}
                           </span>
-                        ) : (
-                          <div className="flex flex-wrap gap-1 max-w-[150px]">
-                            {tp.blockers.split(", ").map((b, idx) => (
-                              <span
-                                key={idx}
-                                className="px-1 py-0.5 text-[8px] font-bold rounded bg-orange-50 dark:bg-orange-500/10 text-orange-650 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20"
-                              >
-                                {b}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-medium text-slate-600 dark:text-slate-350">
-                        {tp.blockerTimeMs > 0 ? (
-                          <span className="text-orange-600 dark:text-orange-400">
-                            {(() => {
-                              const totalMinutes = Math.floor(
-                                tp.blockerTimeMs / (1000 * 60),
-                              );
-                              const h = Math.floor(totalMinutes / 60);
-                              const m = totalMinutes % 60;
-                              return h > 0 ? `${h}h ${m}m` : `${m}m`;
-                            })()}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 dark:text-slate-500 font-medium">
-                            0m
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] text-center">
-                        <LiveProductivityCell
-                          tasks={tp.tasks}
-                          initialLoggedMs={tp.totalLoggedMs}
-                          selectedDate={selectedDate}
-                          officeHours={officeHours}
-                        />
-                      </td>
+                        </td>
 
-                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[11px] font-medium">
-                        {tp.overdue > 0 ? (
-                          <div className="flex items-center gap-1 text-rose-600 dark:text-rose-400 font-bold">
-                            <span className="w-1 h-1 rounded-full bg-rose-500 animate-pulse" />
-                            <span className="text-[10px]">
-                              {tp.overdue} overdue
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 dark:text-slate-500 font-medium text-[10px]">
-                            0
+                        {/* Completed */}
+                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center bg-emerald-500/5">
+                          <span
+                            className={`text-[11px] font-extrabold ${tp.completed > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500"}`}
+                          >
+                            {tp.completed}
                           </span>
+                        </td>
+
+                        {/* On Hold */}
+                        <td className="py-1.5 px-1 text-center bg-fuchsia-500/5">
+                          <span
+                            className={`text-[11px] font-extrabold ${tp.onHold > 0 ? "text-fuchsia-600 dark:text-fuchsia-400" : "text-slate-400 dark:text-slate-500"}`}
+                          >
+                            {tp.onHold}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                {/* Total row */}
+                {teamPerformance.length > 0 && (
+                  <tfoot>
+                    <tr className="bg-slate-100/50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-800 font-bold">
+                      <td className="py-1.5 px-1.5 border-r border-slate-200 dark:border-slate-700 text-[9.5px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        Total
+                      </td>
+                      <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-slate-700 dark:text-slate-200">
+                        {teamPerformance.reduce((s, tp) => s + tp.assigned, 0)}
+                      </td>
+                      <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-red-600 dark:text-red-400 bg-red-500/5">
+                        {teamPerformance.reduce((s, tp) => s + tp.pending, 0)}
+                      </td>
+                      <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-violet-600 dark:text-violet-400 bg-violet-500/5">
+                        {teamPerformance.reduce(
+                          (s, tp) => s + tp.inProgress,
+                          0,
                         )}
                       </td>
-                      <td className="py-1.5 px-2 border-r border-b border-slate-100 dark:border-slate-700/60 text-[10px] font-bold">
-                        {tp.lastSubmitted === "Not submitted" ? (
-                          <div className="flex items-center gap-1 text-blue-500 dark:text-blue-600 font-medium">
-                            <span className="w-1 h-1 rounded-full bg-slate-350 dark:bg-slate-700" />
-                            <span>Not submitted</span>
-                          </div>
-                        ) : tp.lastSubmitted === "Draft" ? (
-                          <div className="flex items-center gap-1 text-amber-500 dark:text-amber-400 font-bold">
-                            <span className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
-                            <span>Draft</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-bold">
-                            <span className="w-1 h-1 rounded-full bg-emerald-500" />
-                            <span>{tp.lastSubmitted}</span>
-                          </div>
-                        )}
+                      <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-amber-600 dark:text-amber-400 bg-amber-500/5">
+                        {teamPerformance.reduce((s, tp) => s + tp.inReview, 0)}
                       </td>
-                      <td className="py-1.5 px-2 border-b border-slate-100 dark:border-slate-700/60 text-[10px] font-bold text-center">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setViewTasksModal({
-                              open: true,
-                              designerId: tp.id,
-                              designerName: tp.name,
-                            });
-                            setTaskTab("all");
-                            setTaskSearch("");
-                          }}
-                          className="p-1 rounded bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60 text-indigo-650 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50 transition-all cursor-pointer flex items-center justify-center mx-auto"
-                          title="View Performance Tasks"
-                        >
-                          <FiEye size={14} />
-                        </button>
+                      <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/5">
+                        {teamPerformance.reduce((s, tp) => s + tp.completed, 0)}
+                      </td>
+                      <td className="py-1.5 px-1 text-center text-[11px] font-extrabold text-fuchsia-600 dark:text-fuchsia-400 bg-fuchsia-500/5">
+                        {teamPerformance.reduce((s, tp) => s + tp.onHold, 0)}
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+
+            {/* Info note */}
+            <div className="px-3 py-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5">
+              <FiAlertCircle
+                size={10}
+                className="text-indigo-400 dark:text-indigo-500 shrink-0"
+              />
+              <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
+                Counts are calculated from tasks assigned on selected date only.
+              </span>
+            </div>
+          </div>
+
+          {/* ─────────────────── RIGHT: Today's Productivity (6 Columns) ─────────────────── */}
+          <div className="lg:col-span-6 sidebar-bg backdrop-blur-xl rounded-2xl overflow-hidden shadow-sm dark:shadow-2xl flex flex-col">
+            {/* Header */}
+            <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-transparent flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <div>
+                <h3 className="text-xs font-black text-slate-800 dark:text-white tracking-wide uppercase">
+                  Today's Productivity
+                </h3>
+                <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 tracking-wide">
+                  Actual Work Done Today
+                </span>
+              </div>
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/40">
+                <span className="w-1 h-1 rounded-full bg-blue-500 animate-ping" />
+                <span className="text-[8px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                  Live
+                </span>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto flex-1">
+              <table className="w-full text-left border-collapse table-auto">
+                <thead>
+                  <tr className="bg-slate-50/60 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800">
+                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">
+                      Revisions
+                    </th>
+                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">
+                      Blockers
+                    </th>
+                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">
+                      Blocker Timer
+                    </th>
+                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">
+                      Productive Time
+                    </th>
+                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">
+                      Tasks Worked
+                    </th>
+                    <th className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider uppercase text-slate-500 dark:text-slate-400 whitespace-nowrap text-center">
+                      Efficiency
+                    </th>
+                    <th className="py-1.5 px-1.5 border-r border-slate-200 dark:border-slate-700 text-[8.5px] font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap text-center">
+                      Submitted
+                    </th>
+                    <th className="py-1.5 px-1.5 text-[8.5px] font-black tracking-wider text-slate-500 dark:text-slate-400 uppercase whitespace-nowrap text-center">
+                      Action
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100/60 dark:divide-slate-800/40">
+                  {teamPerformance.map((tp, idx) => {
+                    // Efficiency: productive time vs total office hours (capped at 100%)
+                    const totalOfficeMs =
+                      (officeHours.endHour - officeHours.startHour) *
+                      3600 *
+                      1000;
+                    const efficiency =
+                      totalOfficeMs > 0
+                        ? Math.min(
+                            100,
+                            Math.round(
+                              (tp.totalLoggedMs / totalOfficeMs) * 100,
+                            ),
+                          )
+                        : 0;
+
+                    const efficiencyColor =
+                      efficiency >= 80
+                        ? "bg-emerald-100 text-emerald-750 dark:bg-emerald-950/40 dark:text-emerald-400"
+                        : efficiency >= 50
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                          : efficiency >= 25
+                                              return (
+                      <tr
+                        key={tp.id}
+                        className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors"
+                      >
+                        {/* Revisions */}
+                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center">
+                          {(() => {
+                            const revVal =
+                              tp.totalRevisions !== undefined
+                                ? tp.totalRevisions
+                                : Math.round(tp.avgRevisions || 0);
+                            return (
+                              <span
+                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8.5px] font-extrabold border ${
+                                  revVal === 0
+                                    ? "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-800/40 dark:text-slate-500 dark:border-slate-700/50"
+                                    : revVal <= 1
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40"
+                                      : revVal <= 3
+                                        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800/40"
+                                        : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800/40"
+                                }`}
+                              >
+                                {revVal} rev
+                              </span>
+                            );
+                          })()}
+                        </td>
+
+                        {/* Blockers */}
+                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center">
+                          {tp.blockers === "none" ? (
+                            <span className="text-slate-400 dark:text-slate-500 font-bold italic text-[8.5px]">
+                              none
+                            </span>
+                          ) : (
+                            <div className="flex flex-wrap gap-0.5 justify-center max-w-[100px] mx-auto">
+                              {tp.blockers.split(", ").map((b, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-1 py-0.5 text-[7px] font-bold rounded bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-500/20"
+                                >
+                                  {b}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Blocker Timer */}
+                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center">
+                          {tp.blockerTimeMs > 0 ? (
+                            <span className="text-orange-600 dark:text-orange-400 font-bold text-[10.5px]">
+                              {(() => {
+                                const totalMinutes = Math.floor(
+                                  tp.blockerTimeMs / (1000 * 60),
+                                );
+                                const h = Math.floor(totalMinutes / 60);
+                                const m = totalMinutes % 60;
+                                return h > 0 ? `${h}h ${m}m` : `${m}m`;
+                              })()}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400 dark:text-slate-500 font-medium text-[10.5px]">
+                              0m
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Productive Time — live when In Progress */}
+                        <td className="py-1.5 px-1 border-r border-slate-100 dark:border-slate-800/40 text-center">
+                          <LiveProductivityCell
+                            tasks={tp.tasks}
+                            initialLoggedMs={tp.totalLoggedMs}
+                            selectedDate={selectedDate}
+                            officeHours={officeHours}
+                          />
+                        </td>
+
+                        {/* Tasks Worked On */}
+                        <td className="py-1.5 px-1.5 border-r border-slate-100 dark:border-slate-800/40 text-center">
+                          <span
+                            className={`text-[11px] font-extrabold ${tp.tasksWorkedOn > 0 ? "text-slate-700 dark:text-slate-200" : "text-slate-400 dark:text-slate-500"}`}
+                          >
+                            {tp.tasksWorkedOn}
+                          </span>
+                        </td>
+
+                        {/* Efficiency */}
+                        <td className="py-1.5 px-1.5 border-r border-slate-100 dark:border-slate-800/40 text-center">
+                          <span
+                            className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold border-0 ${efficiencyColor}`}
+                          >
+                            {efficiency}%
+                          </span>
+                        </td>
+
+                        {/* Last Submitted */}
+                        <td className="py-1.5 px-1.5 border-r border-slate-100 dark:border-slate-800/40 text-center">
+                          {tp.lastSubmitted === "Not submitted" ? (
+                            <span className="inline-flex items-center gap-0.5 text-[8.5px] font-medium text-slate-400 dark:text-slate-500">
+                              Not submitted
+                            </span>
+                          ) : tp.lastSubmitted === "Draft" ? (
+                            <span className="inline-flex items-center gap-0.5 text-[8.5px] font-bold text-amber-500 dark:text-amber-400 animate-pulse">
+                              Draft
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-0.5 text-[8.5px] font-bold text-emerald-600 dark:text-emerald-400">
+                              {tp.lastSubmitted}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Action */}
+                        <td className="py-1.5 px-1.5 text-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setViewTasksModal({
+                                open: true,
+                                designerId: tp.id,
+                                designerName: tp.name,
+                              });
+                              setTaskTab("all");
+                              setTaskSearch("");
+                            }}
+                            className="p-1 rounded bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-805/40 transition-all cursor-pointer flex items-center justify-center mx-auto"
+                            title="View Performance Tasks"
+                          >
+                            <FiEye size={12} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                {/* Total / Average row */}
+                {teamPerformance.length > 0 &&
+                  (() => {
+                    const totalTasksWorkedOn = teamPerformance.reduce(
+                      (s, tp) => s + tp.tasksWorkedOn,
+                      0,
+                    );
+                    const totalLoggedAll = teamPerformance.reduce(
+                      (s, tp) => s + tp.totalLoggedMs,
+                      0,
+                    );
+                    const totalOfficeMs =
+                      (officeHours.endHour - officeHours.startHour) *
+                      3600 *
+                      1000;
+                    const avgEfficiency =
+                      totalOfficeMs > 0 && teamPerformance.length > 0
+                        ? Math.min(
+                            100,
+                            Math.round(
+                              (totalLoggedAll /
+                                (totalOfficeMs * teamPerformance.length)) *
+                                100,
+                            ),
+                          )
+                        : 0;
+
+                    const totalSecs = Math.floor(totalLoggedAll / 1000);
+                    const th = Math.floor(totalSecs / 3600);
+                    const tm = Math.floor((totalSecs % 3600) / 60);
+                    const totalFmt = th > 0 ? `${th}h ${tm}m` : `${tm}m`;
+
+                    return (
+                      <tfoot>
+                        <tr className="bg-slate-100/50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-700 font-bold">
+                          {/* 1. Revisions */}
+                          <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center">
+                            <span className="text-[11px] font-black text-slate-700 dark:text-slate-250">
+                              {(() => {
+                                const totalRevisionsSum =
+                                  teamPerformance.reduce((s, tp) => {
+                                    const revVal =
+                                      tp.totalRevisions !== undefined
+                                        ? tp.totalRevisions
+                                        : Math.round(tp.avgRevisions || 0);
+                                    return s + revVal;
+                                  }, 0);
+                                return `${totalRevisionsSum} rev`;
+                              })()}
+                            </span>
+                          </td>
+
+                          {/* 2. Blockers */}
+                          <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center" />
+
+                          {/* 3. Blocker Timer */}
+                          <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center">
+                            <span className="text-[11px] font-black text-orange-600 dark:text-orange-400">
+                              {(() => {
+                                const totalBlockerTimeMs =
+                                  teamPerformance.reduce(
+                                    (s, tp) => s + tp.blockerTimeMs,
+                                    0,
+                                  );
+                                const totalBlockerSecs = Math.floor(
+                                  totalBlockerTimeMs / 1000,
+                                );
+                                const tbh = Math.floor(totalBlockerSecs / 3600);
+                                const tbm = Math.floor(
+                                  (totalBlockerSecs % 3600) / 60,
+                                );
+                                return tbh > 0 ? `${tbh}h ${tbm}m` : `${tbm}m`;
+                              })()}
+                            </span>
+                          </td>
+
+                          {/* 4. Productive Time */}
+                          <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center">
+                            <span className="text-[11px] font-black text-blue-600 dark:text-blue-400">
+                              Total: {totalFmt}
+                            </span>
+                          </td>
+
+                          {/* 5. Tasks Worked */}
+                          <td className="py-1.5 px-1.5 border-r border-slate-200 dark:border-slate-700 text-center text-[11px] font-extrabold text-slate-700 dark:text-slate-200">
+                            {totalTasksWorkedOn}
+                          </td>
+
+                          {/* 6. Efficiency */}
+                          <td className="py-1.5 px-1.5 border-r border-slate-200 dark:border-slate-700 text-center">
+                            <span
+                              className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                                avgEfficiency >= 80
+                                  ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                                  : avgEfficiency >= 50
+                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400"
+                                    : "bg-slate-100 text-slate-500 dark:bg-slate-800/50 dark:text-slate-400"
+                              }`}
+                            >
+                              {avgEfficiency}%
+                            </span>
+                          </td>
+
+                          {/* 7. Submitted */}
+                          <td className="py-1.5 px-1.5 border-r border-slate-200 dark:border-slate-700 text-center" />
+
+                          {/* 8. Action */}
+                          <td className="py-1.5 px-1.5 text-center" />
+                        </tr>
+                      </tfoot>
+                    );
+                  })()}
+              </table>
+            </div>
+
+            {/* Info note */}
+            <div className="px-3 py-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5">
+              <FiAlertCircle
+                size={10}
+                className="text-emerald-400 dark:text-emerald-500 shrink-0"
+              />
+              <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
+                Includes previous tasks worked today + today assigned tasks.
+              </span>
+            </div>
           </div>
         </div>
-      </div>{" "}
+      </div>
+
+      {/* Charts Section: Task Status Distribution + Productivity Trend */}
+      <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* LEFT: Today's Task Status Distribution */}
+        <div className="sidebar-bg backdrop-blur-xl rounded-2xl overflow-hidden shadow-sm dark:shadow-2xl flex flex-col p-4">
+          <div className="pb-3 mb-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <div>
+              <h3 className="text-xs font-black text-slate-800 dark:text-white tracking-wide uppercase">
+                Today's Task Status Distribution
+              </h3>
+              <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 tracking-wide">
+                Based on Today Assigned
+              </span>
+            </div>
+          </div>
+          <div className="flex-1 grid grid-cols-1 sm:grid-cols-12 gap-4 items-center min-h-[180px]">
+            {/* Chart Area (7/12 width) */}
+            <div className="sm:col-span-7 relative flex items-center justify-center h-[170px]">
+              <Doughnut data={doughnutData} options={doughnutOptions} />
+              <div className="absolute flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-[22px] font-black text-slate-800 dark:text-white leading-none">
+                  {metrics.tasksAssigned}
+                </span>
+                <span className="text-[8.5px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-0.5">
+                  Total
+                </span>
+              </div>
+            </div>
+            {/* Custom Legend Area (5/12 width) */}
+            <div className="sm:col-span-5 space-y-1.5 px-1">
+              {statusLegendItems.map((item, index) => {
+                const total = metrics.tasksAssigned || 0;
+                const opacityStyle =
+                  total > 0 && item.count === 0 ? "opacity-40" : "";
+                return (
+                  <div
+                    key={index}
+                    className={`flex items-center justify-between text-[10.5px] font-semibold text-slate-600 dark:text-slate-350 transition-opacity duration-200 ${opacityStyle}`}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs"
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <span className="truncate max-w-[85px] text-slate-700 dark:text-slate-350 font-bold">
+                        {item.label}
+                      </span>
+                    </div>
+                    <span className="font-extrabold text-slate-800 dark:text-slate-100 whitespace-nowrap ml-2">
+                      {item.count}{" "}
+                      <span className="text-[9.5px] text-slate-400 dark:text-slate-550 font-semibold">
+                        ({item.percent})
+                      </span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT: Productivity Trend (This Week) */}
+        <div className="sidebar-bg backdrop-blur-xl rounded-2xl overflow-hidden shadow-sm dark:shadow-2xl flex flex-col p-4">
+          <div className="pb-3 mb-2 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+            <div>
+              <h3 className="text-xs font-black text-slate-800 dark:text-white tracking-wide uppercase">
+                Productivity Trend
+              </h3>
+              <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 tracking-wide">
+                This Week
+              </span>
+            </div>
+          </div>
+          <div className="flex-1 min-h-[170px] relative mt-1">
+            <Line data={lineChartData} options={lineChartOptions} />
+          </div>
+          <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-1.5">
+            <FiAlertCircle
+              size={10}
+              className="text-indigo-400 dark:text-indigo-500 shrink-0"
+            />
+            <span className="text-[9px] font-medium text-slate-500 dark:text-slate-400">
+              Productivity is calculated based on actual time worked within
+              office hours.
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Delayed Projects & Bottlenecks */}
       <div className="sidebar-bg backdrop-blur-md rounded-2xl  overflow-hidden shadow-sm dark:shadow-xl relative z-10">
         <div className="p-5 border-b border-slate-200 dark:border-slate-700/80 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-50 dark:bg-transparent">

@@ -1,9 +1,146 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useGetTasksQuery, useGetProjectsQuery } from "../../features/api/apiSlice";
 import { getUsers } from "../../features/users/userSlice";
 import { FiFileText, FiClock, FiCheckCircle, FiCalendar, FiChevronDown, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import ClientBadge from "../../components/common/ClientBadge";
+
+const SimpleTimeTracker = ({
+  startTime,
+  endTime,
+  status,
+  pausedAt,
+  autoPaused,
+  savedPausedMs = 0,
+  isBlocked,
+  blockerPausedAt,
+  blockerHistory,
+  mode = "active",
+}) => {
+  const [elapsed, setElapsed] = useState(0);
+  const [blockedMs, setBlockedMs] = useState(0);
+
+  useEffect(() => {
+    if (!startTime) return;
+
+    const calculateTime = () => {
+      const start = new Date(startTime).getTime();
+      let end;
+
+      if (endTime) {
+        end = new Date(endTime).getTime();
+      } else if (status === "In Progress" && autoPaused) {
+        end = pausedAt ? new Date(pausedAt).getTime() : Date.now();
+      } else if (
+        pausedAt &&
+        ["On Hold", "Rejected", "In Review", "Correction"].includes(status)
+      ) {
+        end = new Date(pausedAt).getTime();
+      } else {
+        end = Date.now();
+      }
+
+      let totalPauseMs = 0;
+      if (blockerHistory && blockerHistory.length > 0) {
+        blockerHistory.forEach((item) => {
+          if (item.pausedAt) {
+            const p = new Date(item.pausedAt).getTime();
+            let r = item.resumedAt
+              ? new Date(item.resumedAt).getTime()
+              : Date.now();
+            if (r > end) r = end;
+            if (r >= p) {
+              totalPauseMs += r - p;
+            }
+          }
+        });
+      }
+
+      if (isBlocked && blockerPausedAt) {
+        const pauseStart = new Date(blockerPausedAt).getTime();
+        if (pauseStart < end) {
+          totalPauseMs += end - pauseStart;
+        }
+      }
+
+      const totalElapsedMs = end - start - (savedPausedMs || 0) - totalPauseMs;
+      return {
+        active: Math.max(0, Math.floor(totalElapsedMs / 1000)),
+        blocked: Math.max(0, Math.floor(totalPauseMs / 1000)),
+      };
+    };
+
+    const update = () => {
+      const { active, blocked } = calculateTime();
+      setElapsed(active);
+      setBlockedMs(blocked);
+    };
+
+    update();
+
+    if (status === "In Progress" && !autoPaused && !endTime) {
+      const interval = setInterval(update, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [
+    startTime,
+    endTime,
+    pausedAt,
+    autoPaused,
+    status,
+    isBlocked,
+    blockerPausedAt,
+    blockerHistory,
+    savedPausedMs,
+  ]);
+
+  if (!startTime) {
+    if (!status || status.toLowerCase() === "pending") {
+      return (
+        <span className="text-slate-455 dark:text-slate-500 font-semibold text-[11px]">
+          Not started
+        </span>
+      );
+    }
+    return (
+      <span className="text-slate-455 dark:text-slate-500 font-normal">—</span>
+    );
+  }
+
+  const formatTime = (secs) => {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    return `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
+  };
+
+  if (mode === "blocker") {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-xl text-[11px] font-black border shadow-2xs bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20">
+        {formatTime(blockedMs)}
+      </span>
+    );
+  }
+
+  const colorClasses =
+    status === "In Progress"
+      ? "bg-blue-50/80 text-blue-700 border-blue-200 dark:bg-blue-955/30 dark:text-blue-400 dark:border-blue-900/30"
+      : status === "In Review"
+        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-550/10 dark:text-amber-400 dark:border-amber-550/30"
+        : status === "On Hold"
+          ? "bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/30"
+          : status === "Completed"
+            ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
+            : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-500/5 dark:text-slate-400 dark:border-slate-500/20";
+
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded-xl text-[11px] font-black border shadow-2xs ${colorClasses}`}
+    >
+      {formatTime(elapsed)}
+    </span>
+  );
+};
 
 const renderUserAvatarSmall = (u, sizeClass = "w-6 h-6 text-[8px]") => {
   if (!u) return null;
@@ -115,6 +252,16 @@ const MomClientReport = () => {
   const [dateFilter, setDateFilter] = useState("");
   const [assigneeFilter, setAssigneeFilter] = useState("");
   const [clientFilter, setClientFilter] = useState("");
+  const [localCheckedTasks, setLocalCheckedTasks] = useState(new Set());
+
+  const handleToggleCheck = (taskId) => {
+    setLocalCheckedTasks(prev => {
+      const next = new Set(prev);
+      if (next.has(taskId)) next.delete(taskId);
+      else next.add(taskId);
+      return next;
+    });
+  };
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
@@ -308,8 +455,8 @@ const MomClientReport = () => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-[#151b2b] border-b border-slate-200 dark:border-slate-800">
-                    <th className="px-4 py-3 w-10 text-center">
-                      <FiCheckCircle size={16} className="text-slate-400 inline-block" />
+                    <th className="px-4 py-3 w-24 text-center">
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Check</span>
                     </th>
                     <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Assignee</th>
                     <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Client Name</th>
@@ -317,13 +464,14 @@ const MomClientReport = () => {
                     <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Start Date</th>
                     <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">End Date</th>
                     <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Priority</th>
+                    <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase text-center">Time Tracker</th>
                     <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
                   {filteredTasks.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 text-sm">
+                      <td colSpan={9} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 text-sm">
                         No MOM tasks found for the selected criteria.
                       </td>
                     </tr>
@@ -344,13 +492,21 @@ const MomClientReport = () => {
                       return (
                         <tr key={task._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
                           <td className="px-4 py-3 text-center">
-                            {isCompleted ? (
-                              <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center mx-auto text-white shadow-sm">
-                                <FiCheckCircle size={12} strokeWidth={3} />
-                              </div>
-                            ) : (
-                              <div className="w-5 h-5 rounded-full border-2 border-slate-300 dark:border-slate-600 mx-auto"></div>
-                            )}
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button 
+                                onClick={() => handleToggleCheck(task._id)}
+                                className={`w-5 h-5 rounded-full flex items-center justify-center shadow-sm cursor-pointer transition-colors ${
+                                  (isCompleted || localCheckedTasks.has(task._id))
+                                    ? "bg-emerald-500 text-white border-emerald-500" 
+                                    : "border-2 border-slate-300 dark:border-slate-600"
+                                }`}
+                              >
+                                {(isCompleted || localCheckedTasks.has(task._id)) && <FiCheckCircle size={12} strokeWidth={3} />}
+                              </button>
+                              {(isCompleted || localCheckedTasks.has(task._id)) && (
+                                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">Checked</span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-200">
                             <div className="flex items-center gap-2">
@@ -374,6 +530,19 @@ const MomClientReport = () => {
                             <span className={`px-2 py-1 rounded-md ${getPriorityStyle(task.priority)}`}>
                               {task.priority || "Medium"}
                             </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <SimpleTimeTracker 
+                              startTime={task.startTime}
+                              endTime={task.endTime}
+                              status={task.status}
+                              pausedAt={task.pausedAt}
+                              autoPaused={task.autoPaused}
+                              savedPausedMs={task.savedPausedMs}
+                              isBlocked={task.isBlocked}
+                              blockerPausedAt={task.blockerPausedAt}
+                              blockerHistory={task.blockerHistory}
+                            />
                           </td>
                           <td className="px-4 py-3 text-xs text-center">
                             <span className={`px-2 py-1 rounded-md ${getStatusStyle(task.status)} font-bold`}>
