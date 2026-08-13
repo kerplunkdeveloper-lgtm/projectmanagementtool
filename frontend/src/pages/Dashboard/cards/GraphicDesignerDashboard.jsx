@@ -3935,7 +3935,25 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                           </td>
 
                           {/* 7. Submitted */}
-                          <td className="h-[36px] py-1 px-1.5 align-middle text-center bg-slate-200/70 dark:bg-slate-800/60 border-r border-slate-300/50 dark:border-slate-700/50" />
+                          <td className="h-[36px] py-1 px-1 align-middle text-center bg-emerald-100/70 dark:bg-emerald-950/40 border-r border-emerald-200/40 dark:border-emerald-900/40 whitespace-nowrap">
+                            {(() => {
+                              const submittedCount = teamPerformance.filter(
+                                (tp) =>
+                                  tp.lastSubmitted &&
+                                  tp.lastSubmitted !== "Not submitted" &&
+                                  tp.lastSubmitted !== "Draft",
+                              ).length;
+                              const totalUsers = teamPerformance.length;
+                              return (
+                                <span
+                                  className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-black bg-emerald-200/90 text-emerald-950 dark:bg-emerald-900/70 dark:text-emerald-200 shadow-2xs whitespace-nowrap"
+                                  title={`${submittedCount} out of ${totalUsers} users submitted report`}
+                                >
+                                  {submittedCount}/{totalUsers}
+                                </span>
+                              );
+                            })()}
+                          </td>
 
                           {/* 8. Action */}
                           <td className="h-[36px] py-1 px-1.5 align-middle text-center bg-slate-200/70 dark:bg-slate-800/60" />
