@@ -846,6 +846,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   }, []);
   const [taskTab, setTaskTab] = useState("all");
   const [taskSearch, setTaskSearch] = useState("");
+  const [modalGroupTab, setModalGroupTab] = useState("assignedToday");
   const [bottleneckClient, setBottleneckClient] = useState("All Clients");
   const [bottleneckCreator, setBottleneckCreator] = useState("All Creators");
   const [bottleneckAssignee, setBottleneckAssignee] = useState("All Assignees");
@@ -1778,8 +1779,32 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     return "pending";
   };
 
+  const groupedModalTasks = useMemo(() => {
+    const assignedToday = [];
+    const carriedForward = [];
+
+    designerTasksList.forEach((task) => {
+      const assignmentDate = task.startDate || task.createdAt;
+      const isAssignedToday =
+        assignmentDate && isSameDay(new Date(assignmentDate), selectedDate);
+      if (isAssignedToday) {
+        assignedToday.push(task);
+      } else {
+        carriedForward.push(task);
+      }
+    });
+
+    return { assignedToday, carriedForward };
+  }, [designerTasksList, selectedDate]);
+
+  const activeModalTasksList = useMemo(() => {
+    return modalGroupTab === "assignedToday"
+      ? groupedModalTasks.assignedToday
+      : groupedModalTasks.carriedForward;
+  }, [modalGroupTab, groupedModalTasks]);
+
   const filteredModalTasks = useMemo(() => {
-    const filtered = designerTasksList.filter((task) => {
+    const filtered = activeModalTasksList.filter((task) => {
       if (taskTab !== "all") {
         const cat = getTaskCategory(task.status);
         if (cat !== taskTab) return false;
@@ -1818,7 +1843,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       const orderB = orderMap[catB] || 99;
       return orderA - orderB;
     });
-  }, [designerTasksList, taskTab, taskSearch, projects]);
+  }, [activeModalTasksList, taskTab, taskSearch, projects]);
 
   const modalTabCounts = useMemo(() => {
     const counts = {
@@ -1830,7 +1855,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       inreview: 0,
       completed: 0,
     };
-    designerTasksList.forEach((task) => {
+    activeModalTasksList.forEach((task) => {
       counts.all++;
       const cat = getTaskCategory(task.status);
       if (counts[cat] !== undefined) {
@@ -1838,7 +1863,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       }
     });
     return counts;
-  }, [designerTasksList]);
+  }, [activeModalTasksList]);
 
   if (isLoading) {
     return (
@@ -3950,13 +3975,14 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             {/* Backdrop */}
             <div
               className="absolute inset-0 bg-slate-900/70 backdrop-blur-md transition-opacity"
-              onClick={() =>
+              onClick={() => {
                 setViewTasksModal({
                   open: false,
                   designerId: null,
                   designerName: "",
-                })
-              }
+                });
+                setModalGroupTab("assignedToday");
+              }}
             />
             {/* Modal Content Window */}
             <motion.div
@@ -4042,13 +4068,14 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
                   <button
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
                       setViewTasksModal({
                         open: false,
                         designerId: null,
                         designerName: "",
-                      })
-                    }
+                      });
+                      setModalGroupTab("assignedToday");
+                    }}
                     className="p-1.5 rounded-xl hover:bg-slate-200/80 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-all cursor-pointer shrink-0"
                     title="Close"
                   >
@@ -4058,7 +4085,38 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
               </div>
 
               {/* Modal Body Container */}
-              <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+              <div className="flex-1 flex flex-col overflow-hidden min-h-0 bg-slate-50/20 dark:bg-slate-900/10">
+                {/* Task Group Toggle Tabs */}
+                <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 px-3.5 sm:px-5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalGroupTab("assignedToday");
+                      setTaskTab("all");
+                    }}
+                    className={`py-2.5 px-4 text-xs font-black tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
+                      modalGroupTab === "assignedToday"
+                        ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
+                        : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                    }`}
+                  >
+                    Today's Assigned Batch ({groupedModalTasks.assignedToday.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalGroupTab("carriedForward");
+                      setTaskTab("all");
+                    }}
+                    className={`py-2.5 px-4 text-xs font-black tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
+                      modalGroupTab === "carriedForward"
+                        ? "border-indigo-500 text-indigo-600 dark:text-indigo-400"
+                        : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                    }`}
+                  >
+                    Carried Forward Tasks ({groupedModalTasks.carriedForward.length})
+                  </button>
+                </div>
                 {/* Top Metrics Strip (Swipable on mobile, grid on desktop) */}
                 <div className="flex sm:grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3.5 p-3.5 sm:p-5 border-b border-slate-200/80 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/30 overflow-x-auto custom-scrollbar shrink-0 select-none">
                   {[
