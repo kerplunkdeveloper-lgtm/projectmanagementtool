@@ -2353,7 +2353,7 @@ const Clients = () => {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 right-0 z-50 w-full md:w-[900px] lg:w-[1200px] xl:w-[1400px] bg-slate-50 dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col"
+              className="fixed inset-y-0 right-0 z-50 w-full md:w-[800px] lg:w-[1000px] bg-slate-50 dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col"
             >
               {/* Header Top */}
               <div className="px-4.5 py-3 flex items-center justify-between bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0">
@@ -2492,7 +2492,7 @@ const Clients = () => {
                   return (
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
                       {/* Left Column */}
-                      <div className="lg:col-span-4 xl:col-span-3 space-y-4">
+                      <div className="lg:col-span-7 xl:col-span-8 space-y-4">
                         {/* Section 1: Client details card */}
                         <div className="sidebar-bg rounded-2xl p-5 shadow-sm">
                           <h3 className="text-[12px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-4">
@@ -2570,10 +2570,7 @@ const Clients = () => {
                             )}
                           </div>
                         </div>
-                      </div>
 
-                      {/* Right Column */}
-                      <div className="lg:col-span-8 xl:col-span-9 space-y-4">
                         {/* MOM Table */}
                         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm overflow-hidden">
                           <div className="flex flex-col gap-4 mb-4">
@@ -2595,6 +2592,20 @@ const Clients = () => {
                                   <option value="">All Assignees</option>
                                   {uniqueAssignees.map(a => (
                                     <option key={a.id} value={a.id}>{a.name}</option>
+                                  ))}
+                                </select>
+                                
+                                <select
+                                  value={momClientFilter}
+                                  onChange={(e) => {
+                                    setMomClientFilter(e.target.value);
+                                    setMomCurrentPage(1);
+                                  }}
+                                  className="px-3 py-2 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 min-w-[130px] shadow-sm cursor-pointer hover:border-slate-300 transition-colors"
+                                >
+                                  <option value="">All Clients</option>
+                                  {uniqueClients.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
                                   ))}
                                 </select>
                               </div>
@@ -2783,7 +2794,10 @@ const Clients = () => {
                             </div>
                           )}
                         </div>
+                      </div>
 
+                      {/* Right Column */}
+                      <div className="lg:col-span-5 xl:col-span-4 space-y-4">
                         {/* Section 2: Projects Card */}
                         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
                           <div className="flex items-center justify-between mb-4">
