@@ -5701,9 +5701,11 @@ const ProjectTaskBoard = ({
                                                                       }
                                                                     </option>
                                                                   )}
-                                                                <option value="__ADD_CUSTOM__">
-                                                                  ➕ Custom...
-                                                                </option>
+                                                                {currentUser?.role === "admin" && (
+                                                                  <option value="__ADD_CUSTOM__">
+                                                                    ➕ Custom...
+                                                                  </option>
+                                                                )}
                                                               </select>
                                                             ) : (
                                                               <span
@@ -6895,10 +6897,12 @@ const ProjectTaskBoard = ({
                                                                               }
                                                                             </option>
                                                                           )}
-                                                                        <option value="__ADD_CUSTOM__">
-                                                                          ➕
-                                                                          Custom...
-                                                                        </option>
+                                                                        {currentUser?.role === "admin" && (
+                                                                          <option value="__ADD_CUSTOM__">
+                                                                            ➕
+                                                                            Custom...
+                                                                          </option>
+                                                                        )}
                                                                       </select>
                                                                     ) : (
                                                                       <span

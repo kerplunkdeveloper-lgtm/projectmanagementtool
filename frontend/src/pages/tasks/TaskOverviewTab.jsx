@@ -3327,7 +3327,9 @@ const TaskOverviewTab = ({
                               {newTaskContentType}
                             </option>
                           )}
-                        <option value="__ADD_CUSTOM__">➕ Custom...</option>
+                        {currentUser?.role === "admin" && (
+                          <option value="__ADD_CUSTOM__">➕ Custom...</option>
+                        )}
                       </select>
                     </td>
                   )}
@@ -3709,9 +3711,11 @@ const TaskOverviewTab = ({
                                       {task.contentType}
                                     </option>
                                   )}
-                                <option value="__ADD_CUSTOM__">
-                                  ➕ Custom...
-                                </option>
+                                {currentUser?.role === "admin" && (
+                                  <option value="__ADD_CUSTOM__">
+                                    ➕ Custom...
+                                  </option>
+                                )}
                               </select>
                             </div>
                           </td>

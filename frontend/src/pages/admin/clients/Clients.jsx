@@ -25,6 +25,10 @@ import {
   FiEye,
   FiArrowLeft,
   FiMoreHorizontal,
+  FiChevronDown,
+  FiChevronLeft,
+  FiChevronRight,
+  FiCheckCircle,
 } from "react-icons/fi";
 import { FaRegBuilding } from "react-icons/fa";
 import {
@@ -48,6 +52,56 @@ import { getUsers } from "../../../features/users/userSlice";
 import { getProjects } from "../../../features/projects/projectSlice";
 import { getTasks } from "../../../features/tasks/taskSlice";
 import { useTheme } from "../../../context/ThemeContext";
+
+const renderUserAvatarSmall = (u, sizeClass = "w-6 h-6 text-[8px]") => {
+  if (!u) return null;
+  const avatarUrl =
+    (typeof u.profile?.profileImage === "object"
+      ? u.profile?.profileImage?.url
+      : u.profile?.profileImage) ||
+    (typeof u.profileImage === "object"
+      ? u.profileImage?.url
+      : u.profileImage) ||
+    u.profilePic ||
+    u.avatar ||
+    u.profile?.profilePic ||
+    u.profile?.avatar;
+
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={u.name || "User"}
+        className={`${sizeClass} rounded-full object-cover border border-slate-200/80 dark:border-white/10 shadow-2xs shrink-0`}
+      />
+    );
+  }
+
+  const initials = (u.name || "U")
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase();
+
+  const AVATAR_COLORS = [
+    "from-violet-500 to-indigo-600",
+    "from-cyan-500 to-blue-600",
+    "from-emerald-500 to-teal-600",
+    "from-orange-500 to-amber-600",
+    "from-pink-500 to-rose-600",
+  ];
+  const colorClass =
+    AVATAR_COLORS[((u.name || "U").charCodeAt(0) || 0) % AVATAR_COLORS.length];
+
+  return (
+    <div
+      className={`${sizeClass} rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-white font-black border border-white/10 shadow-2xs shrink-0`}
+    >
+      {initials}
+    </div>
+  );
+};
 
 const getUserColor = (userId) => {
   if (!userId)
@@ -426,7 +480,9 @@ const Clients = () => {
 
   // MOM Table State
   const [momCurrentPage, setMomCurrentPage] = useState(1);
-  const [momDateFilter, setMomDateFilter] = useState({ start: "", end: "" });
+  const [momDateFilter, setMomDateFilter] = useState("");
+  const [momAssigneeFilter, setMomAssigneeFilter] = useState("");
+  const [momClientFilter, setMomClientFilter] = useState("");
   const momItemsPerPage = 5;
 
   const initialForm = {
@@ -2297,7 +2353,7 @@ const Clients = () => {
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed inset-y-0 right-0 z-50 w-full md:w-[800px] lg:w-[1000px] bg-slate-50 dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col"
+              className="fixed inset-y-0 right-0 z-50 w-full md:w-[900px] lg:w-[1200px] xl:w-[1400px] bg-slate-50 dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col"
             >
               {/* Header Top */}
               <div className="px-4.5 py-3 flex items-center justify-between bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0">
@@ -2369,10 +2425,62 @@ const Clients = () => {
                   const momTasks = clientTasks.filter(t => t.contentType && t.contentType.toUpperCase() === "MOM");
                   
                   const filteredMomTasks = momTasks.filter(t => {
-                    if (momDateFilter.start && new Date(t.createdAt || t.date) < new Date(momDateFilter.start)) return false;
-                    if (momDateFilter.end && new Date(t.createdAt || t.date) > new Date(new Date(momDateFilter.end).setHours(23,59,59,999))) return false;
+                    const assigneeId = t.assignedTo?._id || t.assignedTo;
+                    if (momAssigneeFilter && assigneeId !== momAssigneeFilter) return false;
+
+                    const cId = t.client?._id || t.client || t.project?.client?._id || t.project?.client;
+                    if (momClientFilter && cId !== momClientFilter) return false;
+
+                    if (momDateFilter) {
+                      const taskDate = t.dueDate ? new Date(t.dueDate).toISOString().split('T')[0] : null;
+                      if (taskDate !== momDateFilter) return false;
+                    }
                     return true;
                   }).sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
+
+                  const uniqueAssignees = Array.from(new Map(momTasks.map(t => {
+                    const id = t.assignedTo?._id || t.assignedTo;
+                    const name = typeof t.assignedTo === "object" ? t.assignedTo.name : users?.find(u => (u._id || u.id) === id)?.name || "Unknown";
+                    return [id, { id, name }];
+                  }).filter(([id]) => id)).values()).sort((a,b) => a.name.localeCompare(b.name));
+
+                  const uniqueClients = Array.from(new Map(momTasks.map(t => {
+                    const id = t.client?._id || t.client || t.project?.client?._id || t.project?.client;
+                    const name = viewClient.companyName || "Unknown Client";
+                    return [id, { id, name }];
+                  }).filter(([id]) => id)).values()).sort((a,b) => a.name.localeCompare(b.name));
+
+                  const handleAdjustMomDate = (days) => {
+                    let d;
+                    if (momDateFilter) {
+                      const [year, month, day] = momDateFilter.split("-").map(Number);
+                      d = new Date(year, month - 1, day);
+                    } else {
+                      d = new Date();
+                    }
+                    d.setDate(d.getDate() + days);
+                    const y = d.getFullYear();
+                    const m = String(d.getMonth() + 1).padStart(2, '0');
+                    const dayStr = String(d.getDate()).padStart(2, '0');
+                    setMomDateFilter(`${y}-${m}-${dayStr}`);
+                    setMomCurrentPage(1);
+                  };
+
+                  const handleSetMomToday = () => {
+                    const d = new Date();
+                    const y = d.getFullYear();
+                    const m = String(d.getMonth() + 1).padStart(2, '0');
+                    const dayStr = String(d.getDate()).padStart(2, '0');
+                    setMomDateFilter(`${y}-${m}-${dayStr}`);
+                    setMomCurrentPage(1);
+                  };
+
+                  const getMomDisplayDate = () => {
+                    if (!momDateFilter) return "Select Date";
+                    const [year, month, day] = momDateFilter.split("-").map(Number);
+                    const d = new Date(year, month - 1, day);
+                    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                  };
                   
                   const totalMomTasks = filteredMomTasks.length;
                   const totalMomPages = Math.ceil(totalMomTasks / momItemsPerPage);
@@ -2384,7 +2492,7 @@ const Clients = () => {
                   return (
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
                       {/* Left Column */}
-                      <div className="lg:col-span-7 xl:col-span-8 space-y-4">
+                      <div className="lg:col-span-4 xl:col-span-3 space-y-4">
                         {/* Section 1: Client details card */}
                         <div className="sidebar-bg rounded-2xl p-5 shadow-sm">
                           <h3 className="text-[12px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-4">
@@ -2462,103 +2570,180 @@ const Clients = () => {
                             )}
                           </div>
                         </div>
+                      </div>
 
+                      {/* Right Column */}
+                      <div className="lg:col-span-8 xl:col-span-9 space-y-4">
                         {/* MOM Table */}
                         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm overflow-hidden">
-                          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                          <div className="flex flex-col gap-4 mb-4">
                             <h3 className="text-[12px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-2">
                               <FiBookOpen size={14} className="text-blue-500" />
                               MOM Tasks
                             </h3>
-                            <div className="flex items-center gap-2 w-full sm:w-auto">
-                              <input 
-                                type="date" 
-                                value={momDateFilter.start}
-                                onChange={(e) => {
-                                  setMomDateFilter(prev => ({...prev, start: e.target.value}));
-                                  setMomCurrentPage(1);
-                                }}
-                                className="h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[10px] text-slate-700 dark:text-slate-200 outline-none w-full sm:w-auto focus:border-blue-500"
-                                title="Start Date"
-                              />
-                              <span className="text-slate-400 font-bold">-</span>
-                              <input 
-                                type="date" 
-                                value={momDateFilter.end}
-                                onChange={(e) => {
-                                  setMomDateFilter(prev => ({...prev, end: e.target.value}));
-                                  setMomCurrentPage(1);
-                                }}
-                                className="h-8 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[10px] text-slate-700 dark:text-slate-200 outline-none w-full sm:w-auto focus:border-blue-500"
-                                title="End Date"
-                              />
-                              {(momDateFilter.start || momDateFilter.end) && (
-                                <button
-                                  onClick={() => {
-                                    setMomDateFilter({start: "", end: ""});
+
+                            <div className="flex flex-col xl:flex-row xl:justify-between xl:items-center gap-4">
+                              <div className="flex flex-wrap items-center gap-3">
+                                <select
+                                  value={momAssigneeFilter}
+                                  onChange={(e) => {
+                                    setMomAssigneeFilter(e.target.value);
                                     setMomCurrentPage(1);
                                   }}
-                                  className="h-8 w-8 flex items-center justify-center rounded-lg bg-rose-50 dark:bg-rose-950/30 text-rose-500 hover:bg-rose-100 border border-rose-200 dark:border-rose-900"
-                                  title="Clear filters"
+                                  className="px-3 py-2 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 min-w-[130px] shadow-sm cursor-pointer hover:border-slate-300 transition-colors"
                                 >
-                                  <FiX size={14} />
+                                  <option value="">All Assignees</option>
+                                  {uniqueAssignees.map(a => (
+                                    <option key={a.id} value={a.id}>{a.name}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className="flex flex-wrap items-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    setMomDateFilter("");
+                                    setMomCurrentPage(1);
+                                  }}
+                                  className="px-3 py-1.5 bg-[#f0f5fa] dark:bg-slate-800 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-extrabold text-[11px] rounded-lg transition-colors cursor-pointer"
+                                >
+                                  All Dates
                                 </button>
-                              )}
+                                <button
+                                  onClick={handleSetMomToday}
+                                  className="px-3 py-1.5 bg-[#f0f5fa] dark:bg-slate-800 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-extrabold text-[11px] rounded-lg transition-colors cursor-pointer"
+                                >
+                                  Today
+                                </button>
+
+                                <div 
+                                  className="relative group cursor-pointer" 
+                                  onClick={(e) => {
+                                    const input = e.currentTarget.querySelector('input[type="date"]');
+                                    if (input && typeof input.showPicker === 'function') {
+                                      input.showPicker();
+                                    }
+                                  }}
+                                >
+                                  <div className="flex items-center gap-3 px-3 py-1.5 bg-[#f0f5fa] dark:bg-slate-800 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 rounded-lg transition-colors min-w-[120px] justify-between cursor-pointer">
+                                    <div className="flex items-center gap-2">
+                                      <FiCalendar className="text-emerald-500" size={14} />
+                                      <span className="text-slate-800 dark:text-slate-200 font-extrabold text-[11px]">
+                                        {getMomDisplayDate()}
+                                      </span>
+                                    </div>
+                                    <FiChevronDown className="text-slate-400" size={12} />
+                                  </div>
+                                  <input
+                                    type="date"
+                                    value={momDateFilter}
+                                    onChange={(e) => {
+                                      setMomDateFilter(e.target.value);
+                                      setMomCurrentPage(1);
+                                    }}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                  />
+                                </div>
+
+                                <div className="flex items-center bg-[#f0f5fa] dark:bg-slate-800 rounded-lg overflow-hidden">
+                                  <button
+                                    onClick={() => handleAdjustMomDate(-1)}
+                                    className="px-2 py-1.5 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                                  >
+                                    <FiChevronLeft size={14} strokeWidth={2.5} />
+                                  </button>
+                                  <div className="w-px h-3 bg-slate-200 dark:bg-slate-600"></div>
+                                  <button
+                                    onClick={() => handleAdjustMomDate(1)}
+                                    className="px-2 py-1.5 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                                  >
+                                    <FiChevronRight size={14} strokeWidth={2.5} />
+                                  </button>
+                                </div>
+                              </div>
                             </div>
                           </div>
                           
                           <div className="overflow-x-auto">
                             <table className="w-full text-left whitespace-nowrap text-xs">
                               <thead>
-                                <tr className="bg-blue-500 text-white font-extrabold uppercase tracking-widest text-[9px]">
-                                  <th className="px-3 py-2.5 rounded-l-md">Task</th>
+                                <tr className="bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-extrabold uppercase tracking-widest text-[9px]">
+                                  <th className="px-3 py-2.5 rounded-l-md w-8 text-center">
+                                    <FiCheckCircle size={14} className="text-slate-400 mx-auto inline-block" />
+                                  </th>
+                                  <th className="px-3 py-2.5">Assignee</th>
+                                  <th className="px-3 py-2.5">Task</th>
+                                  <th className="px-3 py-2.5">Start Date</th>
+                                  <th className="px-3 py-2.5">End Date</th>
                                   <th className="px-3 py-2.5 text-center">Status</th>
-                                  <th className="px-3 py-2.5 text-center">Time</th>
-                                  <th className="px-3 py-2.5 text-right rounded-r-md">Date</th>
+                                  <th className="px-3 py-2.5 text-center rounded-r-md">Time</th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                                 {paginatedMomTasks.length > 0 ? (
-                                  paginatedMomTasks.map(task => (
-                                    <tr key={task._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
-                                      <td className="px-3 py-2.5">
-                                        <div className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[180px] xl:max-w-[250px]">
-                                          {task.taskName}
-                                        </div>
-                                        <div className="text-[9px] text-slate-500 mt-0.5 font-medium truncate max-w-[180px] xl:max-w-[250px]">
-                                          {task.project?.name || "-"}
-                                        </div>
-                                      </td>
-                                      <td className="px-3 py-2.5 text-center">
-                                        <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                                          task.status === "Completed" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" :
-                                          task.status === "In Progress" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
-                                          task.status === "On-Hold" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
-                                          "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400"
-                                        }`}>
-                                          {task.status}
-                                        </span>
-                                      </td>
-                                      <td className="px-3 py-2.5 text-[10px] font-semibold text-slate-600 dark:text-slate-400 text-center">
-                                        {task.status === "In Progress" && task.timer && task.timer.startTime ? (
-                                          <span className="text-blue-600 dark:text-blue-400 flex items-center justify-center gap-1 font-bold">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
-                                            Running
+                                  paginatedMomTasks.map(task => {
+                                    const assigneeId = task.assignedTo?._id || task.assignedTo;
+                                    const assigneeUserObj = typeof task.assignedTo === "object" ? task.assignedTo : users?.find(u => (u._id || u.id) === assigneeId);
+                                    const assigneeName = assigneeUserObj?.name || "Unknown";
+                                    const isCompleted = task.status?.toLowerCase() === "completed" || task.status?.toLowerCase() === "done";
+                                    
+                                    return (
+                                      <tr key={task._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-b border-slate-100/50 dark:border-slate-800/50 last:border-0 transition-colors">
+                                        <td className="px-3 py-2.5 text-center">
+                                          {isCompleted ? (
+                                            <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center mx-auto text-white shadow-sm">
+                                              <FiCheckCircle size={10} strokeWidth={3} />
+                                            </div>
+                                          ) : (
+                                            <div className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 mx-auto"></div>
+                                          )}
+                                        </td>
+                                        <td className="px-3 py-2.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
+                                          <div className="flex items-center gap-2">
+                                            {renderUserAvatarSmall(assigneeUserObj, "w-6 h-6 text-[8px]")}
+                                            <span className="truncate max-w-[120px]">{assigneeName}</span>
+                                          </div>
+                                        </td>
+                                        <td className="px-3 py-2.5">
+                                          <div className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[150px] xl:max-w-[200px]">
+                                            {task.taskName || task.title}
+                                          </div>
+                                          <div className="text-[9px] text-slate-500 mt-0.5 font-medium truncate max-w-[150px] xl:max-w-[200px]">
+                                            {task.project?.name || "-"}
+                                          </div>
+                                        </td>
+                                        <td className="px-3 py-2.5 text-[10px] font-medium text-slate-600 dark:text-slate-400">
+                                          {task.startDate ? new Date(task.startDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : "—"}
+                                        </td>
+                                        <td className="px-3 py-2.5 text-[10px] font-medium text-slate-600 dark:text-slate-400">
+                                          {task.dueDate ? new Date(task.dueDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : "—"}
+                                        </td>
+                                        <td className="px-3 py-2.5 text-center">
+                                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                            task.status === "Completed" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" :
+                                            task.status === "In Progress" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
+                                            task.status === "On-Hold" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
+                                            "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400"
+                                          }`}>
+                                            {task.status}
                                           </span>
-                                        ) : (
-                                          task.totalTimeSpent || "-"
-                                        )}
-                                      </td>
-                                      <td className="px-3 py-2.5 text-right text-[10px] text-slate-500 font-medium">
-                                        {new Date(task.createdAt || task.date).toLocaleDateString("en-IN", {
-                                          day: "2-digit", month: "short", year: "numeric"
-                                        })}
-                                      </td>
-                                    </tr>
-                                  ))
+                                        </td>
+                                        <td className="px-3 py-2.5 text-[10px] font-semibold text-slate-600 dark:text-slate-400 text-center">
+                                          {task.status === "In Progress" && task.timer && task.timer.startTime ? (
+                                            <span className="text-blue-600 dark:text-blue-400 flex items-center justify-center gap-1 font-bold">
+                                              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
+                                              Running
+                                            </span>
+                                          ) : (
+                                            task.totalTimeSpent || "-"
+                                          )}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })
                                 ) : (
                                   <tr>
-                                    <td colSpan="4" className="px-3 py-8 text-center">
+                                    <td colSpan="7" className="px-3 py-8 text-center">
                                       <div className="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
                                         <FiBookOpen size={20} className="mb-2 opacity-30" />
                                         <span className="text-[11px] font-bold">No MOM tasks found.</span>
@@ -2598,10 +2783,7 @@ const Clients = () => {
                             </div>
                           )}
                         </div>
-                      </div>
 
-                      {/* Right Column */}
-                      <div className="lg:col-span-5 xl:col-span-4 space-y-4">
                         {/* Section 2: Projects Card */}
                         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
                           <div className="flex items-center justify-between mb-4">
