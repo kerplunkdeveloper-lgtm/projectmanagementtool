@@ -327,19 +327,23 @@ const LiveProductivityCell = React.memo(
       calculateTotalLogged,
     ]);
 
-    const formatLoggedDuration = (ms) => {
-      if (!ms || ms <= 0) return "00h 00m";
+    const formatLoggedDuration = (ms, includeSeconds = false) => {
+      if (!ms || ms <= 0) return includeSeconds ? "00h 00m 00s" : "00h 00m";
       const totalSecs = Math.floor(ms / 1000);
       const h = Math.floor(totalSecs / 3600);
       const m = Math.floor((totalSecs % 3600) / 60);
+      const s = totalSecs % 60;
+      if (includeSeconds) {
+        return `${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+      }
       return `${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m`;
     };
 
     if (isSelectedDateToday && hasInProgress) {
       return (
         <div className="flex items-center justify-center gap-1.5">
-          <span className="text-emerald-600 dark:text-emerald-400 font-black text-[11px]">
-            {formatLoggedDuration(liveMs)}
+          <span className="text-emerald-600 dark:text-emerald-400 font-black text-[11px] min-w-[75px] text-right">
+            {formatLoggedDuration(liveMs, true)}
           </span>
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[8px] font-black uppercase tracking-wider">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
@@ -352,8 +356,8 @@ const LiveProductivityCell = React.memo(
     if (isSelectedDateToday && hasInReview) {
       return (
         <div className="flex items-center justify-center gap-1.5">
-          <span className="text-amber-600 dark:text-amber-500 font-black text-[11px]">
-            {formatLoggedDuration(liveMs)}
+          <span className="text-amber-600 dark:text-amber-500 font-black text-[11px] min-w-[75px] text-right">
+            {formatLoggedDuration(liveMs, true)}
           </span>
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50 dark:border-amber-900/30 text-amber-600 dark:text-amber-400 text-[8px] font-black uppercase tracking-wider animate-pulse">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping shrink-0" />
@@ -372,11 +376,75 @@ const LiveProductivityCell = React.memo(
     }
 
     return (
-      <span className="text-slate-700 dark:text-slate-300 font-black text-[11px]">
+      <span className="text-orange-600 dark:text-orange-400 font-black text-[11px]">
         {formatLoggedDuration(liveMs)}
       </span>
     );
   },
+);
+
+const LiveTotalProductivityCell = React.memo(
+  ({
+    teamPerformance = [],
+    selectedDate = new Date(),
+    officeHours = { startHour: 9, endHour: 19 },
+  }) => {
+    const isSelectedDateToday = useMemo(() => {
+      return isSameDay(selectedDate || new Date(), new Date());
+    }, [selectedDate]);
+
+    // Check if any designer has an active task running
+    const hasAnyInProgress = useMemo(() => {
+      return teamPerformance.some((tp) =>
+        (tp.tasks || []).some(
+          (t) => t.status === "In Progress" && !t.actualEndTime && !t.autoPaused,
+        )
+      );
+    }, [teamPerformance]);
+
+    const calculateGrandTotal = useCallback(() => {
+      let grandTotal = 0;
+      teamPerformance.forEach((tp) => {
+        (tp.tasks || []).forEach((t) => {
+          grandTotal += calculateTaskProductivityForDate(t, selectedDate, officeHours);
+        });
+      });
+      return grandTotal;
+    }, [teamPerformance, selectedDate, officeHours]);
+
+    const [liveMs, setLiveMs] = useState(() => calculateGrandTotal());
+
+    useEffect(() => {
+      setLiveMs(calculateGrandTotal());
+      if (isSelectedDateToday && hasAnyInProgress) {
+        const interval = setInterval(() => {
+          setLiveMs(calculateGrandTotal());
+        }, 1000);
+        return () => clearInterval(interval);
+      }
+    }, [
+      teamPerformance,
+      selectedDate,
+      isSelectedDateToday,
+      hasAnyInProgress,
+      calculateGrandTotal,
+    ]);
+
+    const formatGrandTotal = (ms) => {
+      if (!ms || ms <= 0) return "00h 00m 00s";
+      const totalSecs = Math.floor(ms / 1000);
+      const h = Math.floor(totalSecs / 3600);
+      const m = Math.floor((totalSecs % 3600) / 60);
+      const s = totalSecs % 60;
+      return `${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+    };
+
+    return (
+      <span className="text-[11px] font-black text-blue-600 dark:text-blue-400">
+        Total: {formatGrandTotal(liveMs)}
+      </span>
+    );
+  }
 );
 
 const ApprovalTimelineCell = React.memo(({ task }) => {
@@ -3615,9 +3683,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
                           {/* 4. Productive Time */}
                           <td className="py-1.5 px-1 border-r border-slate-200 dark:border-slate-700 text-center">
-                            <span className="text-[11px] font-black text-blue-600 dark:text-blue-400">
-                              Total: {totalFmt}
-                            </span>
+                            <LiveTotalProductivityCell
+                              teamPerformance={teamPerformance}
+                              selectedDate={selectedDate}
+                              officeHours={officeHours}
+                            />
                           </td>
 
                           {/* 5. Tasks Worked */}
