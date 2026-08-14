@@ -3241,18 +3241,18 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         {/* Merged Layout: Team Performance & Today's Productivity (Full Width Single Table) */}
         <div className="sidebar-bg rounded-2xl overflow-hidden shadow-sm dark:shadow-2xl flex flex-col w-full">
           {/* Header */}
-          <div className="px-4 py-3 min-h-[58px] border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 flex flex-wrap items-center justify-between gap-2.5">
+          <div className="px-4 py-3 min-h-[58px] border-b border-slate-200 dark:border-slate-800  flex flex-wrap items-center justify-between gap-2.5">
             <div className="min-w-0">
               <h3 className="text-sm font-black text-slate-800 dark:text-white tracking-wide uppercase truncate">
-                Team Performance  &  Today's Productivity
+                Team Performance & Today's Productivity
               </h3>
               <span className="text-[10.5px] font-bold text-slate-400 dark:text-slate-500 tracking-wide truncate block">
-                Today's Assigned, Carry Forward  &  Actual Work Tracker
+                Today's Assigned, Carry Forward & Actual Work Tracker
               </span>
             </div>
             <div className="flex items-center gap-2 flex-wrap shrink-0">
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-200/50 dark:bg-slate-800/80 text-[12px] font-extrabold text-slate-700 dark:text-slate-300">
-                <span className="px-1.5 py-0.3 rounded bg-slate-300 dark:bg-slate-700 text-slate-800 dark:text-slate-200 text-[12px] font-black uppercase">
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg  text-[12px] font-extrabold text-slate-700 dark:text-slate-300">
+                <span className="px-1.5 py-0.3 rounded  sidebar-bg text-slate-800 dark:text-slate-200 text-[12px] font-black uppercase">
                   CF
                 </span>
                 <span>Carry Forward</span>
@@ -3281,7 +3281,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   className="text-indigo-500 dark:text-indigo-400 shrink-0"
                   size={14}
                 />
-                <span className="text-[12px]">{format(selectedDate, "MMM dd")}</span>
+                <span className="text-[12px]">
+                  {format(selectedDate, "MMM dd")}
+                </span>
               </div>
             </div>
           </div>
@@ -3800,9 +3802,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                           />
                         </td>
 
-                       
-
-
                         {/* Revisions */}
                         <td className="h-[42px] bg-blue-600 py-2 px-2 align-middle text-center border-r border-white/20 text-white">
                           <span className="text-[11.5px] font-black text-white">
@@ -3820,7 +3819,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                           </span>
                         </td>
 
-
                         {/* Productive Time */}
                         <td className="h-[42px] bg-blue-600 py-2 px-2 align-middle text-center border-r border-white/20 text-white whitespace-nowrap">
                           <LiveTotalProductivityCell
@@ -3836,8 +3834,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                             {avgEfficiency}%
                           </span>
                         </td>
-
-                      
 
                         {/* Delays Total */}
                         <td className="h-[42px] bg-blue-600 py-2 px-1.5 align-middle text-center border-r border-white/20 text-white whitespace-nowrap">
