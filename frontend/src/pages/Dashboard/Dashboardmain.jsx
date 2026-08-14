@@ -1384,7 +1384,7 @@ const Dashboardmain = () => {
 
   const uniqueDepartments = React.useMemo(() => {
     if (!users || users.length === 0)
-      return ["Graphic Designer", "VideoGrapher"];
+      return ["Graphic Designer", "Cinematographer", "Social Media Manager"];
     const depts = users
       .map((u) => u.department)
       .filter((d) => d && d.trim() !== "");
@@ -1398,6 +1398,8 @@ const Dashboardmain = () => {
         !lower.includes("managing partner") &&
         !lower.includes("operation manager") &&
         !lower.includes("graphic designer") &&
+        !lower.includes("cinematographer") &&
+        !lower.includes("social media manager") &&
         !lower.includes("videographer") &&
         !lower.includes("editor")
       ) {
@@ -1405,10 +1407,10 @@ const Dashboardmain = () => {
       }
     });
 
-    // Priority Order: 1. Graphic Designer, 2. VideoGrapher, followed by others
-    const ordered = ["Graphic Designer", "VideoGrapher"];
+    // Priority Order: 1. Graphic Designer, 2. Cinematographer, 3. Social Media Manager, followed by others
+    const ordered = ["Graphic Designer", "Cinematographer", "Social Media Manager"];
     middleDepts.forEach((d) => {
-      if (!ordered.includes(d)) {
+      if (!ordered.includes(d) && !d.toLowerCase().includes("videographer")) {
         ordered.push(d);
       }
     });
