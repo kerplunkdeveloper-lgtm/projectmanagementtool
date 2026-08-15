@@ -184,6 +184,32 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       }
     }
 
+    // Show SM Creditionals ONLY for Social Media Manager department, Managing Partner / Admin, and Operation Manager
+    if (
+      item.name === "SM Creditionals" ||
+      item.name === "SM Credentials" ||
+      item.name === "Social Accounts" ||
+      item.name?.toLowerCase().includes("sm cred") ||
+      item.path?.includes("social-accounts")
+    ) {
+      const deptLower = (currentUser?.department || "").toLowerCase();
+      const roleLower = (currentUser?.role || role || "").toLowerCase();
+
+      const isSocialMedia = deptLower.includes("social media");
+      const isManagingPartner =
+        roleLower === "admin" ||
+        deptLower.includes("managing partner") ||
+        roleLower.includes("managing partner");
+      const isOperationManager =
+        roleLower === "operationmanager" ||
+        deptLower.includes("operation manager") ||
+        roleLower.includes("operation manager");
+
+      if (!isSocialMedia && !isManagingPartner && !isOperationManager) {
+        return false;
+      }
+    }
+
     // Hide Chat when admin is impersonating another user
     if (item.name === "Chat" && originalAdminUser) {
       return false;
@@ -1097,8 +1123,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
             const topCardNames =
               role === "operationmanager"
-                ? ["Home", "Sticky Notes", "Chat", "Users", "Reports"]
-                : ["Home", "Sticky Notes", "Chat", "Users"];
+                ? ["Home", "Sticky Notes", "Chat", "Users", "Reports", "SM Creditionals", "MOM Client Report"]
+                : ["Home", "Sticky Notes", "Chat", "Users", "SM Creditionals", "MOM Client Report", "Reports"];
 
             return (
               <>

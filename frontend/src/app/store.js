@@ -12,6 +12,7 @@ import notificationReducer from "../features/notifications/notificationSlice";
 import chatReducer from "../features/chat/chatSlice";
 import stickyNoteReducer from '../features/stickynotes/stickyNoteSlice';
 import portfolioReducer from "../features/portfolio/portfolioSlice";
+import socialAccountReducer from "../features/socialAccounts/socialAccountSlice";
 import { apiSlice } from "../features/api/apiSlice";
 
 export const store = configureStore({
@@ -29,6 +30,7 @@ export const store = configureStore({
     chat: chatReducer,
     portfolios: portfolioReducer,
     stickyNotes: stickyNoteReducer,
+    socialAccounts: socialAccountReducer,
     [apiSlice.reducerPath]: apiSlice.reducer,
   },
   middleware: (getDefaultMiddleware) =>

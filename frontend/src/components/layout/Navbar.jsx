@@ -447,7 +447,7 @@ const Navbar = ({ setSidebarOpen }) => {
           >
             <HiOutlineMenuAlt3 className="text-[1.0625rem] transform hover:scale-110 transition-transform duration-200" />
           </button>
-        )}
+        )} 
 
         {/* PAGE TITLE */}
         <h1 className="text-xs md:text-[1.05rem] theme-text-accent font-medium shrink-0">

@@ -156,6 +156,32 @@ const HorizontalSidebar = ({ role }) => {
       }
     }
 
+    // Show SM Creditionals ONLY for Social Media Manager department, Managing Partner / Admin, and Operation Manager
+    if (
+      item.name === "SM Creditionals" ||
+      item.name === "SM Credentials" ||
+      item.name === "Social Accounts" ||
+      item.name?.toLowerCase().includes("sm cred") ||
+      item.path?.includes("social-accounts")
+    ) {
+      const deptLower = (currentUser?.department || "").toLowerCase();
+      const roleLower = (currentUser?.role || role || "").toLowerCase();
+
+      const isSocialMedia = deptLower.includes("social media");
+      const isManagingPartner =
+        roleLower === "admin" ||
+        deptLower.includes("managing partner") ||
+        roleLower.includes("managing partner");
+      const isOperationManager =
+        roleLower === "operationmanager" ||
+        deptLower.includes("operation manager") ||
+        roleLower.includes("operation manager");
+
+      if (!isSocialMedia && !isManagingPartner && !isOperationManager) {
+        return false;
+      }
+    }
+
     if (role === "admin") return true;
     if (item.permissionKey === "manage_clients") return true;
     if (!item.permissionKey) return true;

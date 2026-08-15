@@ -49,6 +49,7 @@ const Workload = lazyWithRetry(() => import("../pages/workload/Workload.jsx"));
 const Stickynotes = lazyWithRetry(() => import("../pages/admin/Stickynotes.jsx"));
 const ContentCalcendor = lazyWithRetry(() => import("../pages/contentcalendor/ContentCalcendor.jsx"));
 const MomClientReport = lazyWithRetry(() => import("../pages/admin/MomClientReport.jsx"));
+const SocialAccounts = lazyWithRetry(() => import("../pages/socialAccounts/SocialAccounts.jsx"));
 
 // Elegant, premium animated page loader
 const PageLoader = () => (
@@ -92,6 +93,11 @@ const AppRoutes = () => {
          <Route
           path="contentcalender"
           element={<ProtectedRoute requiredPermission="manage_clients"><ContentCalcendor /></ProtectedRoute>}
+        />
+
+        <Route
+          path="social-accounts"
+          element={<ProtectedRoute requiredPermission="manage_clients"><SocialAccounts /></ProtectedRoute>}
         />
 
         <Route
@@ -199,6 +205,11 @@ const AppRoutes = () => {
         />
 
         <Route
+          path="social-accounts"
+          element={<ProtectedRoute requiredPermission="manage_clients"><SocialAccounts /></ProtectedRoute>}
+        />
+
+        <Route
           path="clients"
           element={<ProtectedRoute requiredPermission="manage_clients"><Clients /></ProtectedRoute>}
         />
@@ -291,6 +302,11 @@ const AppRoutes = () => {
         <Route
           path="contentcalender"
           element={<ProtectedRoute requiredPermission="manage_clients"><ContentCalcendor /></ProtectedRoute>}
+        />
+
+        <Route
+          path="social-accounts"
+          element={<ProtectedRoute requiredPermission="manage_clients"><SocialAccounts /></ProtectedRoute>}
         />
 
         <Route
