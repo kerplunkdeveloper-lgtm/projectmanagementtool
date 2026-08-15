@@ -248,12 +248,6 @@ const Navbar = ({ setSidebarOpen }) => {
         path: `/${user?.role}/portfolio`,
       },
       {
-        id: "nav-calendar",
-        category: "Navigation",
-        title: "Go to Calendar",
-        path: `/${user?.role}/calendar`,
-      },
-      {
         id: "nav-chat",
         category: "Navigation",
         title: "Go to Chat / Messages",

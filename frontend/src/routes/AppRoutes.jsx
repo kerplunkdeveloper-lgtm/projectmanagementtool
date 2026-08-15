@@ -41,7 +41,6 @@ const EodReports = lazyWithRetry(() => import("../pages/team/EodReports.jsx"));
 const AdminEodReports = lazyWithRetry(() => import("../pages/admin/AdminEodReports.jsx"));
 const Templatelib = lazyWithRetry(() => import("../pages/admin/templatelibrary/Templatelib.jsx"));
 const Clients = lazyWithRetry(() => import("../pages/admin/clients/Clients.jsx"));
-const CalendarPage = lazyWithRetry(() => import("../pages/calendar/CalendarPage.jsx"));
 const Notifications = lazyWithRetry(() => import("../pages/notifications/Notifications.jsx"));
 const Task = lazyWithRetry(() => import("../pages/tasks/Task.jsx"));
 const ChatPage = lazyWithRetry(() => import("../pages/chat/ChatPage.jsx"));
@@ -148,11 +147,6 @@ const AppRoutes = () => {
         />
         
         <Route
-          path="calendar"
-          element={<CalendarPage />}
-        />
-
-        <Route
           path="partnerhub"
           element={<ProtectedRoute requiredPermission="manage_settings"><PartnerHub /></ProtectedRoute>}
         />
@@ -240,11 +234,6 @@ const AppRoutes = () => {
         />
 
         <Route
-          path="calendar"
-          element={<CalendarPage />}
-        />
-
-        <Route
           path="template-library"
           element={<ProtectedRoute requiredPermission="manage_settings"><Templatelib /></ProtectedRoute>}
         />
@@ -326,11 +315,6 @@ const AppRoutes = () => {
         <Route
           path="tasks"
           element={<ProtectedRoute requiredPermission="manage_tasks"><Task /></ProtectedRoute>}   
-        />
-
-        <Route
-          path="calendar"
-          element={<CalendarPage />}
         />
 
         <Route

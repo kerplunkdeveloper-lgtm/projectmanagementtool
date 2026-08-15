@@ -940,24 +940,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
             };
 
             const renderPortfoliosList = () => {
-              const canSeeMyProject =
-                currentUser?.role?.toLowerCase() === "admin";
-
-              return (
-                <>
-                  {canSeeMyProject && renderPortfolioDropdown(
-                    "My Project",
-                    <FiLayers
-                      size={14}
-                      className="shrink-0 transition-colors"
-                    />,
-                    isPortfoliosListOpen,
-                    setIsPortfoliosListOpen,
-                    [], // list not used for My Project
-                    false, // Disable user name folder dropdown under My Project
-                  )}
-                </>
-              );
+              return null;
             };
 
             const renderMenuItem = (item) => {

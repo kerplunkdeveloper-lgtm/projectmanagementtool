@@ -468,7 +468,9 @@ const Clients = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [serviceFilter, setServiceFilter] = useState("All");
   const [clientNameFilter, setClientNameFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("All");
   const [memberFilter, setMemberFilter] = useState("All");
+  const [showMemberFilterDropdown, setShowMemberFilterDropdown] = useState(false);
   const [clientToDelete, setClientToDelete] = useState(null);
   const [viewClient, setViewClient] = useState(null);
   const [showViewOffcanvas, setShowViewOffcanvas] = useState(false);
@@ -506,6 +508,7 @@ const Clients = () => {
     assignedTo: [],
     color: "#3b82f6",
     icon: "FaRegBuilding",
+    status: "Active",
   };
 
   const [formData, setFormData] = useState(initialForm);
@@ -578,6 +581,7 @@ const Clients = () => {
       ...client,
       color: client.color || "#3b82f6",
       icon: client.icon || "FaRegBuilding",
+      status: client.status || "Active",
       spoc: client.spoc || "",
       designation: client.designation || "",
       onboardingDate: client.onboardingDate
@@ -609,6 +613,12 @@ const Clients = () => {
     return [...new Set(names)].sort((a, b) => a.localeCompare(b));
   }, [clients]);
 
+  const uniqueIndustries = useMemo(() => {
+    if (!clients) return [];
+    const industries = clients.map((c) => c.industry).filter(Boolean);
+    return [...new Set(industries)].sort((a, b) => a.localeCompare(b));
+  }, [clients]);
+
   const filteredClients = useMemo(() => {
     return (clients || [])
       .filter((client) => {
@@ -631,6 +641,11 @@ const Clients = () => {
           clientNameFilter === "All"
             ? true
             : client.companyName === clientNameFilter;
+            
+        const matchesStatus = 
+          statusFilter === "All"
+            ? true
+            : client.status === statusFilter;
 
         const matchesMember =
           memberFilter === "All"
@@ -640,9 +655,7 @@ const Clients = () => {
               : client.assignedTo &&
                 (client.assignedTo._id || client.assignedTo) === memberFilter;
 
-        return (
-          matchesSearch && matchesService && matchesClientName && matchesMember
-        );
+        return matchesSearch && matchesService && matchesClientName && matchesStatus && matchesMember;
       })
       // Sort A → Z by company name (ascending)
       .sort((a, b) =>
@@ -650,12 +663,12 @@ const Clients = () => {
           sensitivity: "base",
         })
       );
-  }, [clients, searchTerm, serviceFilter, clientNameFilter, memberFilter]);
+  }, [clients, searchTerm, serviceFilter, clientNameFilter, memberFilter, statusFilter]);
 
   // Reset pagination to page 1 when search or filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, serviceFilter, clientNameFilter, memberFilter]);
+  }, [searchTerm, serviceFilter, clientNameFilter, memberFilter, statusFilter]);
 
   const totalItems = filteredClients.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -782,6 +795,34 @@ const Clients = () => {
             </div>
           </div>
 
+          {/* STATUS FILTER */}
+          <div className="relative w-full sm:w-40">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full h-10 pl-3.5 pr-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-white/5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold cursor-pointer appearance-none"
+            >
+              <option value="All">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </div>
+          </div>
+
           {/* SERVICE FILTER */}
           <div className="relative w-full sm:w-52">
             <select
@@ -816,33 +857,75 @@ const Clients = () => {
 
           {/* MEMBERS FILTER */}
           <div className="relative w-full sm:w-52">
-            <select
-              value={memberFilter}
-              onChange={(e) => setMemberFilter(e.target.value)}
-              className="w-full h-10 pl-3.5 pr-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-white/5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold cursor-pointer appearance-none"
+            <div
+              onClick={() => setShowMemberFilterDropdown(!showMemberFilterDropdown)}
+              className="w-full h-10 pl-3.5 pr-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-white/5 text-xs text-slate-800 dark:text-slate-100 outline-none flex items-center transition-all font-semibold cursor-pointer"
             >
-              <option value="All">All Members</option>
-              {allUsers.map((u) => (
-                <option key={u._id} value={u._id}>
-                  {u.name || u.email}
-                </option>
-              ))}
-            </select>
+              {memberFilter === "All" ? "All Members" : (() => {
+                const selectedUser = allUsers.find(u => u._id === memberFilter);
+                if (!selectedUser) return "All Members";
+                return (
+                  <div className="flex items-center gap-2">
+                    {renderUserAvatarSmall(selectedUser, "w-5 h-5 text-[9px] shrink-0")}
+                    <span className="truncate">{selectedUser.name || selectedUser.email}</span>
+                  </div>
+                );
+              })()}
+            </div>
+            
             <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-              <svg
-                className="w-3.5 h-3.5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M19 9l-7 7-7-7"
-                />
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
             </div>
+
+            {showMemberFilterDropdown && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setShowMemberFilterDropdown(false)} 
+                />
+                <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 max-h-80 overflow-y-auto no-scrollbar">
+                  <div 
+                    className={`px-3 py-2 text-xs font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 ${memberFilter === "All" ? "text-blue-600 bg-blue-50 dark:bg-blue-900/20" : "text-slate-700 dark:text-slate-300"}`}
+                    onClick={() => { setMemberFilter("All"); setShowMemberFilterDropdown(false); }}
+                  >
+                    All Members
+                  </div>
+                  
+                  {(() => {
+                    const depts = {};
+                    allUsers.forEach(u => {
+                      const dept = u.department || "Other";
+                      if (!depts[dept]) depts[dept] = [];
+                      depts[dept].push(u);
+                    });
+                    
+                    const sortedDepts = Object.keys(depts).sort();
+                    
+                    return sortedDepts.map(dept => (
+                      <div key={dept}>
+                        <div className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800/80 text-[10px] font-extrabold text-slate-500 uppercase tracking-wider sticky top-0 border-y border-slate-100 dark:border-slate-800/50 z-10 backdrop-blur-sm">
+                          {dept}
+                        </div>
+                        {depts[dept].sort((a,b) => (a.name || a.email).localeCompare(b.name || b.email)).map(u => (
+                          <div 
+                            key={u._id}
+                            className={`flex items-center gap-2.5 px-3 py-2 text-xs font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${memberFilter === u._id ? "bg-blue-50 dark:bg-blue-900/10" : ""}`}
+                            onClick={() => { setMemberFilter(u._id); setShowMemberFilterDropdown(false); }}
+                          >
+                            {renderUserAvatarSmall(u, "w-6 h-6 text-[10px] shrink-0")}
+                            <span className={`truncate ${memberFilter === u._id ? "text-blue-700 dark:text-blue-400 font-bold" : "text-slate-700 dark:text-slate-200"}`}>
+                              {u.name || u.email}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -884,31 +967,34 @@ const Clients = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left  whitespace-nowrap min-w-[1100px] text-xs">
               <thead>
-                <tr className=" text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-widest text-[8.5px]">
-                  <th className="px-4 py-2.5 font-extrabold bg-transparent text-left w-[190px] border-r border-slate-200 dark:border-slate-700/60">
+                <tr className=" text-slate-400 dark:text-slate-500 font-extrabold uppercase tracking-widest text-[10px]">
+                  <th className="px-4 py-3 font-extrabold bg-transparent text-left w-[190px] border-r border-slate-200 dark:border-slate-700/60">
                     <div className="flex items-center justify-start gap-1.5">
-                      <FaRegBuilding size={10} className="opacity-70" />
+                      <FaRegBuilding size={12} className="opacity-70" />
                       Client Name
                     </div>
                   </th>
-                  <th className="px-4 py-2.5 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60 w-18">
+                  <th className="px-4 py-3 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60 w-20">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60 w-18">
                     No. of Projects
                   </th>
-                  <th className="px-4 py-2.5 font-extrabold bg-transparent text-left w-[380px] border-r border-slate-200 dark:border-slate-700/60">
+                  <th className="px-4 py-3 font-extrabold bg-transparent text-left w-[380px] border-r border-slate-200 dark:border-slate-700/60">
                     Service & Members
                   </th>
-                  <th className="px-4 py-2.5 font-extrabold bg-transparent text-left w-[280px] border-r border-slate-200 dark:border-slate-700/60">
+                  <th className="px-4 py-3 font-extrabold bg-transparent text-left w-[280px] border-r border-slate-200 dark:border-slate-700/60">
                     Deliverables
                   </th>
 
                   {user?.role === "team" && (
-                    <th className="px-4 py-2.5 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60 last:border-r-0">
+                    <th className="px-4 py-3 font-extrabold bg-transparent text-center border-r border-slate-200 dark:border-slate-700/60 last:border-r-0">
                       Assigned By
                     </th>
                   )}
                   {(user?.role === "admin" ||
                     user?.role === "operationmanager") && (
-                    <th className="px-4 py-2.5 font-extrabold bg-transparent text-center w-20 border-r-0">
+                    <th className="px-4 py-3 font-extrabold bg-transparent text-center w-20 border-r-0">
                       Actions
                     </th>
                   )}
@@ -1024,6 +1110,17 @@ const Clients = () => {
                               </div>
                             </div>
                           </td>
+                          <td className={`${cellClass} text-center w-20`}>
+                            {client.status === "Inactive" ? (
+                              <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 font-bold text-[10px] border border-rose-200/50 dark:border-rose-800/30">
+                                Disabled
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] border border-emerald-200/50 dark:border-emerald-800/30">
+                                Active
+                              </span>
+                            )}
+                          </td>
                           <td className={`${cellClass} text-center w-28`}>
                             <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold text-[10px] border border-blue-200/50 dark:border-blue-800/30">
                               {projects?.filter(p => p.client?._id === client._id || p.client === client._id).length || 0}
@@ -1070,16 +1167,17 @@ const Clients = () => {
                                       return (
                                         <span
                                           key={member._id || member}
-                                          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 shadow-2xs border border-slate-200/80 dark:border-slate-700/60 transition-all hover:border-blue-400 dark:hover:border-blue-500 cursor-default whitespace-nowrap shrink-0"
+                                          className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-white dark:bg-slate-800 shadow-2xs border border-slate-200/80 dark:border-slate-700/60 transition-all hover:border-blue-400 dark:hover:border-blue-500 cursor-default whitespace-nowrap shrink-0 pr-2.5"
                                           title={`${memberName}${formattedDept ? ` · ${formattedDept}` : ""}`}
                                         >
-                                          <span className="text-[9.5px] font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                                          {renderUserAvatarSmall(fullUser, "w-5 h-5 text-[9px]")}
+                                          <span className="text-[10.5px] font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
                                             {memberName}
                                           </span>
                                           {formattedDept && (
                                             <>
-                                              <span className="w-[1px] h-2.5 bg-slate-200 dark:bg-slate-700 shrink-0"></span>
-                                              <span className={`text-[8px] font-bold ${getDeptColor(dept)} whitespace-nowrap`}>
+                                              <span className="w-[1px] h-3 bg-slate-200 dark:bg-slate-700 shrink-0"></span>
+                                              <span className={`text-[9px] font-bold ${getDeptColor(dept)} whitespace-nowrap`}>
                                                 {formattedDept}
                                               </span>
                                             </>
@@ -1100,16 +1198,17 @@ const Clients = () => {
                                       const formattedDept = dept ? dept.charAt(0).toUpperCase() + dept.slice(1) : "";
                                       return (
                                         <span
-                                          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white dark:bg-slate-800 shadow-2xs border border-slate-200/80 dark:border-slate-700/60 transition-all hover:border-blue-400 dark:hover:border-blue-500 cursor-default whitespace-nowrap shrink-0"
+                                          className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-white dark:bg-slate-800 shadow-2xs border border-slate-200/80 dark:border-slate-700/60 transition-all hover:border-blue-400 dark:hover:border-blue-500 cursor-default whitespace-nowrap shrink-0 pr-2.5"
                                           title={`${memberName}${formattedDept ? ` · ${formattedDept}` : ""}`}
                                         >
-                                          <span className="text-[9.5px] font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                                          {renderUserAvatarSmall(fullUser, "w-5 h-5 text-[9px]")}
+                                          <span className="text-[10.5px] font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
                                             {memberName}
                                           </span>
                                           {formattedDept && (
                                             <>
-                                              <span className="w-[1px] h-2.5 bg-slate-200 dark:bg-slate-700 shrink-0"></span>
-                                              <span className={`text-[8px] font-bold ${getDeptColor(dept)} whitespace-nowrap`}>
+                                              <span className="w-[1px] h-3 bg-slate-200 dark:bg-slate-700 shrink-0"></span>
+                                              <span className={`text-[9px] font-bold ${getDeptColor(dept)} whitespace-nowrap`}>
                                                 {formattedDept}
                                               </span>
                                             </>
@@ -1128,46 +1227,46 @@ const Clients = () => {
                             </div>
                           </td>
                           <td className={cellClass}>
-                            <div className="flex flex-wrap items-center gap-1 max-w-[320px] py-0.5">
+                            <div className="flex flex-wrap items-center gap-2 max-w-[320px] py-1">
                               {client.posts > 0 && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.25 rounded bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/50 font-bold text-[8.5px]" title="Posts">
-                                  <FiLayers size={8.5} className="text-blue-500" />
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/60 font-bold text-[10px]" title="Posts">
+                                  <FiLayers size={11} className="text-blue-500" />
                                   {client.posts} Posts
                                 </span>
                               )}
                               {client.reels > 0 && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.25 rounded bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 border border-purple-200/60 dark:border-purple-800/50 font-bold text-[8.5px]" title="Reels">
-                                  <FiVideo size={8.5} className="text-purple-500" />
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60 font-bold text-[10px]" title="Reels">
+                                  <FiVideo size={11} className="text-purple-500" />
                                   {client.reels} Reels
                                 </span>
                               )}
                               {client.story > 0 && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.25 rounded bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-800/50 font-bold text-[8.5px]" title="Stories">
-                                  <FiVideo size={8.5} className="text-rose-500" />
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60 font-bold text-[10px]" title="Stories">
+                                  <FiVideo size={11} className="text-rose-500" />
                                   {client.story} Stories
                                 </span>
                               )}
                               {client.needDslr && client.needDslr !== "No DSLR" && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.25 rounded bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/50 font-bold text-[8.5px]" title="DSLR Requirement">
-                                  <FiVideo size={8.5} className="text-amber-500" />
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60 font-bold text-[10px]" title="DSLR Requirement">
+                                  <FiVideo size={11} className="text-amber-500" />
                                   DSLR: {client.needDslr}
                                 </span>
                               )}
                               {client.pages > 0 && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.25 rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/50 font-bold text-[8.5px]" title="Website Pages">
-                                  <FiGlobe size={8.5} className="text-emerald-500" />
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 font-bold text-[10px]" title="Website Pages">
+                                  <FiGlobe size={11} className="text-emerald-500" />
                                   {client.pages} Pages
                                 </span>
                               )}
                               {client.onpage && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.25 rounded bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300 border border-orange-200/60 dark:border-orange-800/50 font-bold text-[8.5px]" title="SEO On-Page">
-                                  <FiSearch size={8.5} className="text-orange-500" />
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border border-orange-200/80 dark:border-orange-800/60 font-bold text-[10px]" title="SEO On-Page">
+                                  <FiSearch size={11} className="text-orange-500" />
                                   On-Page
                                 </span>
                               )}
                               {client.offpage && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.25 rounded bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-300 border border-orange-200/60 dark:border-orange-800/50 font-bold text-[8.5px]" title="SEO Off-Page">
-                                  <FiSearch size={8.5} className="text-orange-500" />
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border border-orange-200/80 dark:border-orange-800/60 font-bold text-[10px]" title="SEO Off-Page">
+                                  <FiSearch size={11} className="text-orange-500" />
                                   Off-Page
                                 </span>
                               )}
@@ -1177,7 +1276,7 @@ const Clients = () => {
                                 !client.pages &&
                                 !client.onpage &&
                                 !client.offpage && (
-                                  <span className="text-[8.5px] text-slate-400 dark:text-slate-500 italic">
+                                  <span className="text-[10px] text-slate-400 dark:text-slate-500 italic px-1">
                                     No deliverables set.
                                   </span>
                                 )}
@@ -1255,9 +1354,10 @@ const Clients = () => {
                     <tr>
                       <td
                         colSpan={
-                          1 +
-                          1 +
-                          2 +
+                          1 + // Client Name
+                          1 + // Status
+                          1 + // No. of Projects
+                          2 + // Services & Deliverables
                           (user?.role === "team" ? 1 : 0) +
                           (user?.role === "admin" || user?.role === "operationmanager" ? 1 : 0)
                         }
@@ -1444,16 +1544,16 @@ const Clients = () => {
                       }}
                       className="space-y-4 min-h-[280px] sm:min-h-[340px]"
                     >
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         {/* Company Name */}
                         <div>
-                          <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">
-                            Company Name
+                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
+                            Company Name <span className="text-rose-500">*</span>
                           </label>
-                          <div className="flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-black rounded-xl focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 dark:focus-within:ring-[var(--accent-color-dark)]/20 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color-dark)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 shadow-sm group">
+                          <div className="flex items-center w-full h-11 px-4 border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-[var(--accent-color)]/10 dark:focus-within:ring-[var(--accent-color)]/10 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color)] hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 shadow-sm group">
                             <FaRegBuilding
-                              size={12}
-                              className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250"
+                              size={14}
+                              className="text-slate-400 dark:text-slate-500 mr-3 shrink-0 group-focus-within:theme-text-accent transition-colors duration-300"
                             />
                             <input
                               type="text"
@@ -1461,7 +1561,7 @@ const Clients = () => {
                               value={formData.companyName}
                               onChange={handleChange}
                               placeholder="Enter Client or Company Name"
-                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-xs text-slate-850 dark:text-slate-100 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-[13px] text-slate-800 dark:text-slate-100 font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500"
                               required
                             />
                           </div>
@@ -1469,42 +1569,57 @@ const Clients = () => {
 
                         {/* Industry Sector */}
                         <div>
-                          <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">
-                            Industry Sector
+                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
+                            Industry Sector <span className="text-rose-500">*</span>
                           </label>
-                          <div className="flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-black rounded-xl focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 dark:focus-within:ring-[var(--accent-color-dark)]/20 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color-dark)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 shadow-sm group">
+                          <div className="flex items-center w-full h-11 px-4 border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-[var(--accent-color)]/10 dark:focus-within:ring-[var(--accent-color)]/10 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color)] hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 shadow-sm group relative">
                             <FiLayers
-                              size={12}
-                              className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250"
+                              size={14}
+                              className="text-slate-400 dark:text-slate-500 mr-3 shrink-0 group-focus-within:theme-text-accent transition-colors duration-300"
                             />
-                            <input
-                              type="text"
+                            <select
                               name="industry"
                               value={formData.industry}
                               onChange={handleChange}
-                              placeholder="e.g. Technology / Retail"
-                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-xs text-slate-850 dark:text-slate-100 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-[13px] text-slate-800 dark:text-slate-100 font-semibold cursor-pointer appearance-none"
                               required
-                            />
+                            >
+                              <option value="" disabled className="text-slate-400">Select Industry...</option>
+                              {uniqueIndustries.map((ind, idx) => (
+                                <option key={idx} value={ind}>{ind}</option>
+                              ))}
+                              {/* Add some standard fallbacks just in case uniqueIndustries is empty initially */}
+                              {!uniqueIndustries.includes("Technology") && <option value="Technology">Technology</option>}
+                              {!uniqueIndustries.includes("Healthcare") && <option value="Healthcare">Healthcare</option>}
+                              {!uniqueIndustries.includes("Retail") && <option value="Retail">Retail</option>}
+                              {!uniqueIndustries.includes("Finance") && <option value="Finance">Finance</option>}
+                              {!uniqueIndustries.includes("Education") && <option value="Education">Education</option>}
+                              {!uniqueIndustries.includes("Real Estate") && <option value="Real Estate">Real Estate</option>}
+                              {!uniqueIndustries.includes("Hospitality") && <option value="Hospitality">Hospitality</option>}
+                              {!uniqueIndustries.includes("Other") && <option value="Other">Other</option>}
+                            </select>
+                            <div className="pointer-events-none text-slate-400 absolute right-4">
+                              <FiChevronDown size={16} />
+                            </div>
                           </div>
                         </div>
 
                         {/* Onboarding Date */}
                         <div>
-                          <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">
-                            Onboarding Date
+                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
+                            Onboarding Date <span className="text-rose-500">*</span>
                           </label>
-                          <div className="flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-black rounded-xl focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 dark:focus-within:ring-[var(--accent-color-dark)]/20 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color-dark)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 shadow-sm group">
+                          <div className="flex items-center w-full h-11 px-4 border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-[var(--accent-color)]/10 dark:focus-within:ring-[var(--accent-color)]/10 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color)] hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 shadow-sm group">
                             <FiCalendar
-                              size={12}
-                              className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250"
+                              size={14}
+                              className="text-slate-400 dark:text-slate-500 mr-3 shrink-0 group-focus-within:theme-text-accent transition-colors duration-300"
                             />
                             <input
                               type="date"
                               name="onboardingDate"
                               value={formData.onboardingDate}
                               onChange={handleChange}
-                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-xs text-slate-850 dark:text-slate-100 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600 cursor-pointer"
+                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-[13px] text-slate-800 dark:text-slate-100 font-semibold cursor-pointer"
                               required
                             />
                           </div>
@@ -1512,13 +1627,13 @@ const Clients = () => {
 
                         {/* SPOC Name */}
                         <div>
-                          <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">
-                            SPOC Name
+                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
+                            Account Manager / SPOC
                           </label>
-                          <div className="flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-black rounded-xl focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 dark:focus-within:ring-[var(--accent-color-dark)]/20 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color-dark)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 shadow-sm group">
+                          <div className="flex items-center w-full h-11 px-4 border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-[var(--accent-color)]/10 dark:focus-within:ring-[var(--accent-color)]/10 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color)] hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 shadow-sm group">
                             <FiUser
-                              size={12}
-                              className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250"
+                              size={14}
+                              className="text-slate-400 dark:text-slate-500 mr-3 shrink-0 group-focus-within:theme-text-accent transition-colors duration-300"
                             />
                             <input
                               type="text"
@@ -1526,20 +1641,20 @@ const Clients = () => {
                               value={formData.spoc}
                               onChange={handleChange}
                               placeholder="Representative Name"
-                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-xs text-slate-850 dark:text-slate-100 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-[13px] text-slate-800 dark:text-slate-100 font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500"
                             />
                           </div>
                         </div>
 
                         {/* Designation */}
                         <div>
-                          <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">
+                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
                             Designation
                           </label>
-                          <div className="flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-black rounded-xl focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 dark:focus-within:ring-[var(--accent-color-dark)]/20 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color-dark)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 shadow-sm group">
+                          <div className="flex items-center w-full h-11 px-4 border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-[var(--accent-color)]/10 dark:focus-within:ring-[var(--accent-color)]/10 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color)] hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 shadow-sm group">
                             <FiBriefcase
-                              size={12}
-                              className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250"
+                              size={14}
+                              className="text-slate-400 dark:text-slate-500 mr-3 shrink-0 group-focus-within:theme-text-accent transition-colors duration-300"
                             />
                             <input
                               type="text"
@@ -1547,20 +1662,45 @@ const Clients = () => {
                               value={formData.designation}
                               onChange={handleChange}
                               placeholder="e.g. Marketing Manager"
-                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-xs text-slate-850 dark:text-slate-100 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-[13px] text-slate-800 dark:text-slate-100 font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500"
                             />
+                          </div>
+                        </div>
+
+                        {/* Status */}
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
+                            Status
+                          </label>
+                          <div className="flex items-center w-full h-11 px-4 border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-[var(--accent-color)]/10 dark:focus-within:ring-[var(--accent-color)]/10 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color)] hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 shadow-sm group relative">
+                            <FiCheckCircle
+                              size={14}
+                              className="text-slate-400 dark:text-slate-500 mr-3 shrink-0 group-focus-within:theme-text-accent transition-colors duration-300"
+                            />
+                            <select
+                              name="status"
+                              value={formData.status}
+                              onChange={handleChange}
+                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-[13px] text-slate-800 dark:text-slate-100 font-semibold cursor-pointer appearance-none"
+                            >
+                              <option value="Active">Active</option>
+                              <option value="Inactive">Inactive</option>
+                            </select>
+                            <div className="pointer-events-none text-slate-400 absolute right-4">
+                              <FiChevronDown size={16} />
+                            </div>
                           </div>
                         </div>
 
                         {/* Phone Number */}
                         <div>
-                          <label className="block text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1.5">
-                            Phone Number
+                          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
+                            Phone Number <span className="text-rose-500">*</span>
                           </label>
-                          <div className="flex items-center w-full h-10 px-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-black rounded-xl focus-within:ring-2 focus-within:ring-[var(--accent-color)]/20 dark:focus-within:ring-[var(--accent-color-dark)]/20 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color-dark)] hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 shadow-sm group">
+                          <div className="flex items-center w-full h-11 px-4 border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-[var(--accent-color)]/10 dark:focus-within:ring-[var(--accent-color)]/10 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color)] hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 shadow-sm group">
                             <FiPhone
-                              size={12}
-                              className="text-slate-400 dark:text-slate-500 mr-2.5 shrink-0 group-focus-within:theme-text-accent transition-colors duration-250"
+                              size={14}
+                              className="text-slate-400 dark:text-slate-500 mr-3 shrink-0 group-focus-within:theme-text-accent transition-colors duration-300"
                             />
                             <input
                               type="tel"
@@ -1569,7 +1709,7 @@ const Clients = () => {
                               value={formData.phoneNumber}
                               onChange={handleChange}
                               placeholder="Enter Phone Number"
-                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-xs text-slate-850 dark:text-slate-100 font-semibold placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                              className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-[13px] text-slate-800 dark:text-slate-100 font-semibold placeholder:text-slate-400 dark:placeholder:text-slate-500"
                               required
                             />
                           </div>
@@ -2368,9 +2508,15 @@ const Clients = () => {
                     <h2 className="text-base font-bold text-slate-800 dark:text-slate-100">
                       {viewClient.companyName}
                     </h2>
-                    <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 font-bold text-[9px] border border-emerald-200 dark:border-emerald-800/60">
-                      Active
-                    </span>
+                    {viewClient.status === "Inactive" ? (
+                      <span className="px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400 font-bold text-[9px] border border-rose-200 dark:border-rose-800/60">
+                        Inactive
+                      </span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 font-bold text-[9px] border border-emerald-200 dark:border-emerald-800/60">
+                        Active
+                      </span>
+                    )}
                   </div>
                 </div>
                 <button 
@@ -2493,51 +2639,73 @@ const Clients = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
                       {/* Left Column */}
                       <div className="lg:col-span-7 xl:col-span-8 space-y-4">
-                        {/* Section 1: Client details card */}
-                        <div className="sidebar-bg rounded-2xl p-5 shadow-sm">
-                          <h3 className="text-[12px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-4">
-                            Client Profile
-                          </h3>
-                          <div className="space-y-2.5">
-                            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/40 pb-2">
-                              <span className="text-[12px] font-medium text-black dark:text-slate-500">Company Name</span>
-                              <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">{viewClient.companyName}</span>
+                        {/* Section 1: Client Profile (Reference Image Match) */}
+                        <div className="bg-[#F8F4FC] dark:bg-purple-950/20 border border-[#EBE4F2] dark:border-purple-900/40 rounded-xl overflow-hidden shadow-sm">
+                          {/* Header */}
+                          <div className="px-5 py-4 border-b border-[#EBE4F2] dark:border-purple-900/40">
+                            <h3 className="text-[13px] font-extrabold text-[#1B1229] dark:text-purple-100 uppercase tracking-widest">
+                              Client Profile
+                            </h3>
+                          </div>
+
+                          {/* Detail Rows */}
+                          <div className="flex flex-col gap-0 divide-y divide-[#EBE4F2] dark:divide-purple-900/40 text-[13px]">
+                            
+                            {/* Company Name */}
+                            <div className="flex items-center justify-between px-5 py-3.5">
+                              <span className="text-slate-700 dark:text-purple-200/70 font-medium">Company Name</span>
+                              <span className="font-bold text-[#1B1229] dark:text-purple-50">{viewClient.companyName}</span>
                             </div>
-                            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/40 pb-2">
-                              <span className="text-[12px] font-medium text-black dark:text-slate-500">Industry</span>
-                              <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">{viewClient.industry || "-"}</span>
+
+                            {/* Industry */}
+                            <div className="flex items-center justify-between px-5 py-3.5">
+                              <span className="text-slate-700 dark:text-purple-200/70 font-medium">Industry</span>
+                              <span className="font-bold text-[#1B1229] dark:text-purple-50">{viewClient.industry || "-"}</span>
                             </div>
-                            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/60 pb-2">
-                              <span className="text-[11px] font-medium text-black dark:text-slate-500">Account Manager</span>
-                              <div className="flex items-center gap-1.5">
-                                <div className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold text-[9px]">
+
+                            {/* Account Manager */}
+                            <div className="flex items-center justify-between px-5 py-3.5">
+                              <span className="text-slate-700 dark:text-purple-200/70 font-medium">Account Manager</span>
+                              <div className="flex items-center gap-2">
+                                <div className="w-5 h-5 rounded-full bg-[#E5D4F5] dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold text-[9px]">
                                   {viewClient.spoc ? viewClient.spoc.charAt(0).toUpperCase() : "-"}
                                 </div>
-                                <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">{viewClient.spoc || "-"}</span>
+                                <span className="font-bold text-[#1B1229] dark:text-purple-50">{viewClient.spoc || "-"}</span>
                               </div>
                             </div>
-                            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/40 pb-2">
-                              <span className="text-[11px] font-medium text-black dark:text-slate-500">Contact Person</span>
-                              <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">
-                                {viewClient.spoc || "-"}
-                                {viewClient.designation ? ` (${viewClient.designation})` : ""}
-                              </span>
+
+                            {/* Contact Person (Fallback if any) */}
+                            <div className="flex items-center justify-between px-5 py-3.5">
+                              <span className="text-slate-700 dark:text-purple-200/70 font-medium">Contact Person</span>
+                              <span className="font-bold text-[#1B1229] dark:text-purple-50">{viewClient.contactPerson || viewClient.spoc || "-"}</span>
                             </div>
-                            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/40 pb-2">
-                              <span className="text-[11px] font-medium text-black dark:text-slate-500">Phone</span>
-                              <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">{viewClient.phoneNumber || "-"}</span>
+
+                            {/* Phone */}
+                            <div className="flex items-center justify-between px-5 py-3.5">
+                              <span className="text-slate-700 dark:text-purple-200/70 font-medium">Phone</span>
+                              <span className="font-bold text-[#1B1229] dark:text-purple-50">{viewClient.phoneNumber || "-"}</span>
                             </div>
-                            <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/40 pb-2">
-                              <span className="text-[11px] font-medium text-black dark:text-slate-500">Status</span>
-                              <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 font-bold text-[9px] border border-emerald-200 dark:border-emerald-800/60">
-                                Active
-                              </span>
+
+                            {/* Status */}
+                            <div className="flex items-center justify-between px-5 py-3.5">
+                              <span className="text-slate-700 dark:text-purple-200/70 font-medium">Status</span>
+                              {viewClient.status === "Inactive" ? (
+                                <span className="px-2.5 py-0.5 rounded text-rose-700 dark:text-rose-400 font-bold text-[11px] bg-rose-100/80 border border-rose-200 dark:border-rose-900/50">
+                                  Inactive
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-0.5 rounded text-emerald-700 dark:text-emerald-400 font-bold text-[11px] bg-emerald-100/80 border border-emerald-200 dark:border-emerald-900/50">
+                                  Active
+                                </span>
+                              )}
                             </div>
-                            <div className={`flex justify-between items-center pb-2 ${(user?.role === "admin" || user?.role === "operationmanager") ? "border-b border-slate-100 dark:border-slate-800/60" : ""}`}>
-                              <span className="text-[11px] font-medium text-black dark:text-slate-500">Onboard Date</span>
-                              <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">
+
+                            {/* Onboard Date */}
+                            <div className="flex items-center justify-between px-5 py-3.5">
+                              <span className="text-slate-700 dark:text-purple-200/70 font-medium">Onboard Date</span>
+                              <span className="font-bold text-[#1B1229] dark:text-purple-50">
                                 {viewClient.onboardingDate
-                                  ? new Date(viewClient.onboardingDate).toLocaleDateString("en-IN", {
+                                  ? new Date(viewClient.onboardingDate).toLocaleDateString("en-GB", {
                                       day: "2-digit",
                                       month: "short",
                                       year: "numeric",
@@ -2545,29 +2713,36 @@ const Clients = () => {
                                   : "-"}
                               </span>
                             </div>
-                            
+
+                            {/* Financial Fields (Role-Based) */}
                             {(user?.role === "admin" || user?.role === "operationmanager") && (
-                              <>
-                                <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/60 py-2">
-                                  <span className="text-[11px] font-medium text-black dark:text-slate-500">Base Budget</span>
-                                  <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">
+                              <React.Fragment>
+                                {/* Base Budget */}
+                                <div className="flex items-center justify-between px-5 py-3.5">
+                                  <span className="text-[#1B1229] dark:text-purple-200 font-bold">Base Budget</span>
+                                  <span className="font-bold text-[#1B1229] dark:text-purple-50">
                                     ₹{(viewClient.budget || 0).toLocaleString("en-IN")}
                                   </span>
                                 </div>
-                                <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800/60 py-2">
-                                  <span className="text-[11px] font-medium text-black dark:text-slate-500">GST Slab</span>
-                                  <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-200 text-right">
+
+                                {/* GST Slab */}
+                                <div className="flex items-center justify-between px-5 py-3.5">
+                                  <span className="text-[#1B1229] dark:text-purple-200 font-bold">GST Slab</span>
+                                  <span className="font-bold text-[#1B1229] dark:text-purple-50">
                                     {viewClient.gst || 18}%
                                   </span>
                                 </div>
-                                <div className="flex justify-between items-center pt-2 pb-1">
-                                  <span className="text-[11px] font-bold text-black dark:text-slate-550">Grand Total</span>
-                                  <span className="text-[12.5px] font-extrabold text-emerald-600 dark:text-emerald-400 text-right">
+
+                                {/* Grand Total */}
+                                <div className="flex items-center justify-between px-5 py-4">
+                                  <span className="text-[14px] text-[#1B1229] dark:text-purple-100 font-black">Grand Total</span>
+                                  <span className="text-[15px] font-black text-emerald-600 dark:text-emerald-400">
                                     ₹{(viewClient.totalBudget || viewClient.budget || 0).toLocaleString("en-IN")}
                                   </span>
                                 </div>
-                              </>
+                              </React.Fragment>
                             )}
+
                           </div>
                         </div>
 
@@ -2579,37 +2754,7 @@ const Clients = () => {
                               MOM Tasks
                             </h3>
 
-                            <div className="flex flex-col xl:flex-row xl:justify-between xl:items-center gap-4">
-                              <div className="flex flex-wrap items-center gap-3">
-                                <select
-                                  value={momAssigneeFilter}
-                                  onChange={(e) => {
-                                    setMomAssigneeFilter(e.target.value);
-                                    setMomCurrentPage(1);
-                                  }}
-                                  className="px-3 py-2 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 min-w-[130px] shadow-sm cursor-pointer hover:border-slate-300 transition-colors"
-                                >
-                                  <option value="">All Assignees</option>
-                                  {uniqueAssignees.map(a => (
-                                    <option key={a.id} value={a.id}>{a.name}</option>
-                                  ))}
-                                </select>
-                                
-                                <select
-                                  value={momClientFilter}
-                                  onChange={(e) => {
-                                    setMomClientFilter(e.target.value);
-                                    setMomCurrentPage(1);
-                                  }}
-                                  className="px-3 py-2 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 min-w-[130px] shadow-sm cursor-pointer hover:border-slate-300 transition-colors"
-                                >
-                                  <option value="">All Clients</option>
-                                  {uniqueClients.map(c => (
-                                    <option key={c.id} value={c.id}>{c.name}</option>
-                                  ))}
-                                </select>
-                              </div>
-
+                            <div className="flex flex-col xl:flex-row xl:justify-end xl:items-center gap-4">
                               <div className="flex flex-wrap items-center gap-2">
                                 <button
                                   onClick={() => {

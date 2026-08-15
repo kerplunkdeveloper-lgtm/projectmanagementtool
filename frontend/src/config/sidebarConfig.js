@@ -28,7 +28,6 @@ export const sidebarConfig = {
     { name: "Reports", path: "/admin/eod-reports", icon: FiBarChart2, permissionKey: "view_reports" },
     { name: "Portfolio", path: "/admin/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
     { name: "Template", path: "/admin/template-library", icon: LuLayoutTemplate, permissionKey: "manage_settings" },
-    { name: "Calendar", path: "/admin/calendar", icon: LuCalendarDays },
     { name: "PartnerHub", path: "/admin/partnerhub", icon: LuHandshake, permissionKey: "manage_settings" },
     { name: "Profile", path: "/admin/profile", icon: FiUser },
     { name: "Settings", path: "/admin/settings", icon: FiSettings },
@@ -47,7 +46,6 @@ export const sidebarConfig = {
     { name: "Tasks", path: "/operationmanager/tasks", icon: LuClipboardCheck, permissionKey: "manage_tasks" },
     { name: "Portfolio", path: "/operationmanager/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
     { name: "Template Library", path: "/operationmanager/template-library", icon: LuLayoutTemplate, permissionKey: "manage_settings" },
-    { name: "Calendar", path: "/operationmanager/calendar", icon: LuCalendarDays },
     { name: "Profile", path: "/operationmanager/profile", icon: FiUser },
     { name: "Settings", path: "/operationmanager/settings", icon: FiSettings },
   ],
@@ -64,7 +62,6 @@ export const sidebarConfig = {
     { name: "Portfolio", path: "/team/portfolio", icon: LuFolderOpen, permissionKey: "manage_portfolios" },
     { name: "Users", path: "/team/users", icon: LuUsers, permissionKey: "manage_users" },
     { name: "Profile", path: "/team/profile", icon: FiUser },
-    { name: "Calendar", path: "/team/calendar", icon: LuCalendarDays },
     { name: "Settings", path: "/team/settings", icon: FiSettings },
   ],
 };
