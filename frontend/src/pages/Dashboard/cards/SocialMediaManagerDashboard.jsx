@@ -1,8 +1,11 @@
 import React from 'react';
-import GraphicDesignerDashboard from './GraphicDesignerDashboard';
 
-const SocialMediaManagerDashboard = ({ targetDept = "Social Media Manager" }) => {
-  return <GraphicDesignerDashboard targetDept={targetDept} />;
-};
 
+const SocialMediaManagerDashboard = () => {
+  return (
+    <div>
+      <h1>Social Media Manager Dashboard</h1>
+    </div>
+  )
+}
 export default SocialMediaManagerDashboard;

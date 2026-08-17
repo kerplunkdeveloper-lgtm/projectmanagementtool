@@ -30,7 +30,14 @@ const DashboardCards = () => {
   // CALCULATIONS
   // ============================================
 
-  const activeClientsCount = clients ? clients.length : 0;
+  const activeClientsCount = (clients || []).filter(
+    (c) => !c.status || c.status === "Active"
+  ).length;
+
+  const inactiveClientsCount = (clients || []).filter(
+    (c) => c.status === "Inactive"
+  ).length;
+
   const teamStrengthCount = users ? users.length : 0;
 
   const uniqueDepts = Array.from(
@@ -82,18 +89,32 @@ const DashboardCards = () => {
   const cards = [
     {
       title: isAdminOrOpManager
-        ? "Total Overall No.of Active Clients"
+        ? "No.of Active Clients"
         : "No.of Assigned Clients",
       value: activeClientsCount,
       icon: FiBriefcase,
-      gradient: "bg-gradient-to-br from-amber-300 to-orange-400 ",
-      border: "border-white/30 ",
-
+      gradient: "bg-gradient-to-br from-amber-300 to-orange-400",
+      border: "border-white/30",
       valueColor: "text-white",
       glowColor: "rgba(245, 158, 11, 0.4)",
-      subtitleColor: "text-white/80 ",
-      subtitle: "Total managed client accounts",
+      subtitleColor: "text-white/80",
+      subtitle: "Total active client accounts",
     },
+    ...(isAdminOrOpManager
+      ? [
+          {
+            title: "No.of Inactive Clients",
+            value: inactiveClientsCount,
+            icon: FiBriefcase,
+            gradient: "bg-gradient-to-br from-rose-300 to-red-400",
+            border: "border-white/30",
+            valueColor: "text-white",
+            glowColor: "rgba(239, 68, 68, 0.4)",
+            subtitleColor: "text-white/80",
+            subtitle: "Inactive client accounts",
+          },
+        ]
+      : []),
     ...(isAdminOrOpManager ? deptCards : []),
     ...(isAdminOrOpManager
       ? [
@@ -102,11 +123,10 @@ const DashboardCards = () => {
             value: teamStrengthCount,
             icon: FiUsers,
             gradient: "bg-gradient-to-br from-emerald-300 to-teal-400",
-            border: "border-white/30 ",
-
+            border: "border-white/30",
             valueColor: "text-white",
             glowColor: "rgba(16, 185, 129, 0.4)",
-            subtitleColor: "text-white/80 ",
+            subtitleColor: "text-white/80",
             subtitle: "Active registered team members",
           },
         ]
