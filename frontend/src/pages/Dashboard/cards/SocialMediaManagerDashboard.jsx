@@ -1,11 +1,9 @@
-import React from 'react';
-
+import React from 'react'
 
 const SocialMediaManagerDashboard = () => {
   return (
-    <div>
-      <h1>Social Media Manager Dashboard</h1>
-    </div>
+    <div>SocialMediaManagerDashboard</div>
   )
 }
-export default SocialMediaManagerDashboard;
+
+export default SocialMediaManagerDashboard

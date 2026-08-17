@@ -36,6 +36,12 @@ const userSchema = new mongoose.Schema({
     type: String,
   },
 
+  location: {
+    type: String,
+    default: "",
+    trim: true,
+  },
+
   salary: {
     type: Number,
     default: function() {

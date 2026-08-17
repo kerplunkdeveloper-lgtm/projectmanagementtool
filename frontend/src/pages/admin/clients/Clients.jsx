@@ -747,8 +747,89 @@ const Clients = () => {
     }
   };
 
+  const totalClientsCount = (clients || []).length;
+  const activeClientsCount = (clients || []).filter(
+    (c) => !c.status || c.status === "Active"
+  ).length;
+  const inactiveClientsCount = (clients || []).filter(
+    (c) => c.status === "Inactive"
+  ).length;
+
   return (
     <div className="min-h-screen pb-12 transition-colors duration-300">
+      {/* QUICK METRICS & STATUS TABS (No.of Clients & Active/Inactive filter) */}
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+        <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-100/80 dark:bg-slate-900/60 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+          {/* All Clients Tab */}
+          <button
+            type="button"
+            onClick={() => setStatusFilter("All")}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              statusFilter === "All"
+                ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-white shadow-sm ring-1 ring-slate-200 dark:ring-slate-700"
+                : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+            }`}
+          >
+            <FiBriefcase
+              size={13}
+              className={statusFilter === "All" ? "text-blue-500" : "opacity-60"}
+            />
+            <span>All Clients</span>
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                statusFilter === "All"
+                  ? "bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400"
+                  : "bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+              }`}
+            >
+              {totalClientsCount}
+            </span>
+          </button>
+
+          {/* Active Clients Tab */}
+          <button
+            type="button"
+            onClick={() => setStatusFilter("Active")}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              statusFilter === "Active"
+                ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-sm ring-1 ring-emerald-300 dark:ring-emerald-700"
+                : "text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400"
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Active Clients</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100/80 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
+              {activeClientsCount}
+            </span>
+          </button>
+
+          {/* Inactive Clients Tab */}
+          <button
+            type="button"
+            onClick={() => setStatusFilter("Inactive")}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              statusFilter === "Inactive"
+                ? "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 shadow-sm ring-1 ring-rose-300 dark:ring-rose-700"
+                : "text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400"
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-rose-500" />
+            <span>Inactive Clients</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100/80 text-rose-700 dark:bg-rose-900/60 dark:text-rose-300">
+              {inactiveClientsCount}
+            </span>
+          </button>
+        </div>
+
+        {/* Filter Results Count Indicator */}
+        <div className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+          <span>Showing:</span>
+          <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-extrabold shadow-2xs">
+            {filteredClients.length} of {totalClientsCount} Clients
+          </span>
+        </div>
+      </div>
+
       {/* SEARCH + FILTER CONTROLS */}
       <div className=" mb-6 flex flex-col md:flex-row items-center justify-between ">
         {/* LEFT: Search & Filter */}

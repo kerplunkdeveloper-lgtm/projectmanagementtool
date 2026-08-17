@@ -195,7 +195,8 @@ const AdminUsers = () => {
     .filter((user) => {
       const matchesSearch =
         user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase());
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (user.location && user.location.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesDept = filterDept === "" || user.department === filterDept;
       return matchesSearch && matchesDept;
     })

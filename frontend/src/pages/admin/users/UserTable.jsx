@@ -4,6 +4,7 @@ import {
   FiEdit2,
   FiTrash2,
   FiMail,
+  FiMapPin,
   FiShield,
   FiUsers,
   FiLogIn,
@@ -181,7 +182,7 @@ const UserTable = ({
   const rolesPerms = currentUser?.permissions?.["manage_roles"];
   const canManageRoles = currentUser?.role === "admin" || rolesPerms === true || rolesPerms?.update;
 
-  const colSpan = isReadOnly ? 5 : 6;
+  const colSpan = isReadOnly ? 6 : 7;
 
   return (
     /* ── Container ─────────────────────────────────────────────── */
@@ -192,7 +193,7 @@ const UserTable = ({
           {/* ── HEADER ─────────────────────────────────────────── */}
           <thead>
             <tr className="bg-slate-50 dark:bg-[#0d1117] border-b border-slate-100 dark:border-white/5">
-              {["User", "Email Address", "Role", "Department", "Status", !isReadOnly && "Actions"]
+              {["User", "Email Address", "Location", "Role", "Department", "Status", !isReadOnly && "Actions"]
                 .filter(Boolean)
                 .map((h) => (
                   <th
@@ -288,6 +289,18 @@ const UserTable = ({
                           )}
                         </button>
                       </div>
+                    </td>
+
+                    {/* ── LOCATION ─────────────────────────────── */}
+                    <td className="px-5 py-3.5 align-middle">
+                      {user.location ? (
+                        <div className="flex items-center gap-1.5 text-[12.5px] font-medium text-slate-600 dark:text-slate-300">
+                          <FiMapPin size={12} className="text-indigo-500 dark:text-indigo-400 shrink-0" />
+                          <span className="truncate max-w-[150px]">{user.location}</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-300 dark:text-slate-600 text-sm font-semibold">—</span>
+                      )}
                     </td>
 
                     {/* ── ROLE ─────────────────────────────────── */}
