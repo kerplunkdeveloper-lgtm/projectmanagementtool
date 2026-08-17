@@ -180,6 +180,36 @@ const ContentCalcendor = () => {
   // Clear Confirmation Modal State
   const [showClearModal, setShowClearModal] = useState(false);
 
+  // Delete Post Confirmation Modal State
+  const [deletePostModal, setDeletePostModal] = useState({
+    open: false,
+    postId: null,
+    title: "",
+  });
+
+  // Drag and Drop Visual Feedback & Speed Optimization States
+  const [draggingPostId, setDraggingPostId] = useState(null);
+  const [dragOverDate, setDragOverDate] = useState(null);
+
+  // PDF Month Selection Modal State (Matching User Reference Image)
+  const [pdfModal, setPdfModal] = useState({ open: false, type: "visual" });
+  const [selectedPdfMonths, setSelectedPdfMonths] = useState([]);
+
+  // Available Months for PDF Generation
+  const availableMonths = useMemo(() => {
+    const base = new Date();
+    const list = [];
+    for (let i = -2; i <= 6; i++) {
+      const d = addMonths(base, i);
+      list.push({
+        key: format(d, "yyyy-MM"),
+        label: format(d, "MMMM yyyy"),
+        date: d,
+      });
+    }
+    return list;
+  }, []);
+
   // Close dropdowns on click outside
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -483,26 +513,46 @@ const ContentCalcendor = () => {
     }
   };
 
-  // Delete Calendar Post
-  const handleDeleteCalendarPost = async (postId, e) => {
+  // Delete Calendar Post with Confirmation Prompt
+  const handlePromptDeletePost = (post, e) => {
     if (e) e.stopPropagation();
+    setDeletePostModal({
+      open: true,
+      postId: post._id,
+      title: post.title || "Untitled Post",
+    });
+  };
+
+  // Execute Confirmed Delete
+  const handleConfirmDeletePost = async () => {
+    if (!deletePostModal.postId) return;
     try {
-      await deletePost(postId).unwrap();
+      await deletePost(deletePostModal.postId).unwrap();
       toast.success("Post removed from calendar");
+      setDeletePostModal({ open: false, postId: null, title: "" });
     } catch (err) {
       toast.error("Failed to delete post");
     }
   };
 
-  // Drag and Drop handlers between calendar dates
+  // Drag and Drop handlers between calendar dates with instant visual feedback
   const handleDragStart = (e, postId) => {
     e.dataTransfer.setData("text/plain", postId);
     e.dataTransfer.effectAllowed = "move";
+    setDraggingPostId(postId);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingPostId(null);
+    setDragOverDate(null);
   };
 
   const handleDropPostOnDate = async (targetDateStr, e) => {
     e.preventDefault();
-    const postId = e.dataTransfer.getData("text/plain");
+    const postId = e.dataTransfer.getData("text/plain") || draggingPostId;
+    setDragOverDate(null);
+    setDraggingPostId(null);
+
     if (!postId) return;
 
     try {
@@ -512,6 +562,7 @@ const ContentCalcendor = () => {
       }).unwrap();
       toast.success(
         `Post moved to ${format(parseISO(targetDateStr), "dd MMM yyyy")}`,
+        { duration: 1500 }
       );
     } catch (err) {
       toast.error("Failed to reschedule post");
@@ -728,63 +779,164 @@ const ContentCalcendor = () => {
     printWindow.document.close();
   };
 
-  // 1. Download Visual PDF
-  const handleDownloadVisualPDF = () => {
+  // Open Month Selection Modal for Visual or Combined PDF
+  const handleOpenPdfModal = (type) => {
+    setSelectedPdfMonths([format(currentMonth, "yyyy-MM")]);
+    setPdfModal({ open: true, type });
+  };
+
+  // Toggle Month Checkbox Selection
+  const handleTogglePdfMonth = (monthKey) => {
+    if (selectedPdfMonths.includes(monthKey)) {
+      if (selectedPdfMonths.length === 1) {
+        toast.error("Please select at least one month");
+        return;
+      }
+      setSelectedPdfMonths(selectedPdfMonths.filter((m) => m !== monthKey));
+    } else {
+      setSelectedPdfMonths([...selectedPdfMonths, monthKey]);
+    }
+  };
+
+  // Generate Multi-Month PDF (Visual or Combined)
+  const handleGeneratePdf = () => {
+    if (selectedPdfMonths.length === 0) {
+      toast.error("Please select at least one month");
+      return;
+    }
+
     const clientName = selectedClient?.companyName || "Client";
-    const monthName = format(currentMonth, "MMMM yyyy");
+    const sortedMonths = [...selectedPdfMonths].sort();
+    const type = pdfModal.type;
 
-    let daysHtml = calendarDays
-      .map((day) => {
-        const dStr = format(day, "yyyy-MM-dd");
-        const dayPosts = postsByDate[dStr] || [];
-        const isCurrentMonth = isSameMonth(day, currentMonth);
+    let fullPagesHtml = "";
 
-        const postsMarkup = dayPosts
-          .map((p) => {
-            const img =
-              p.media && p.media.length > 0
-                ? `<img class="post-thumb" src="${p.media[0].url}" alt="" />`
-                : "";
-            return `
-            <div class="post-card">
-              ${img}
-              <div style="font-weight:700; color:#1e293b; margin-bottom:2px;">${p.title}</div>
-              <div style="font-size:9px; color:#475569;">${p.category || "Post"}</div>
-              ${p.link ? `<div style="font-size:8px; color:#3b82f6;">${p.link}</div>` : ""}
+    sortedMonths.forEach((mKey, pageIdx) => {
+      const monthDate = parseISO(`${mKey}-01`);
+      const monthName = format(monthDate, "MMMM yyyy");
+
+      const mStart = startOfMonth(monthDate);
+      const mEnd = endOfMonth(mStart);
+      const sDate = startOfWeek(mStart);
+      const eDate = endOfWeek(mEnd);
+      const days = eachDayOfInterval({ start: sDate, end: eDate });
+
+      const daysHtml = days
+        .map((day) => {
+          const dStr = format(day, "yyyy-MM-dd");
+          const dayPosts = postsByDate[dStr] || [];
+          const isCurrM = isSameMonth(day, monthDate);
+
+          const postsMarkup = dayPosts
+            .map((p) => {
+              const img =
+                p.media && p.media.length > 0
+                  ? `<img class="post-thumb" src="${p.media[0].url}" alt="" />`
+                  : "";
+              return `
+              <div class="post-card">
+                ${img}
+                <div style="font-weight:700; color:#1e293b; margin-bottom:2px;">${p.title}</div>
+                <div style="font-size:9px; color:#475569;">${p.category || "Post"}</div>
+                ${p.link ? `<div style="font-size:8px; color:#3b82f6;">${p.link}</div>` : ""}
+              </div>
+            `;
+            })
+            .join("");
+
+          return `
+            <div class="day-cell" style="opacity: ${isCurrM ? "1" : "0.35"}; min-height: 100px;">
+              <div class="day-header">
+                <span>${format(day, "d")}</span>
+                <span>${format(day, "EEE")}</span>
+              </div>
+              ${postsMarkup}
             </div>
           `;
-          })
-          .join("");
+        })
+        .join("");
 
-        return `
-          <div class="day-cell" style="opacity: ${isCurrentMonth ? "1" : "0.35"};">
-            <div class="day-header">
-              <span>${format(day, "d")}</span>
-              <span>${format(day, "EEE")}</span>
-            </div>
-            ${postsMarkup}
+      const pageBreak =
+        pageIdx > 0 ? `<div style="page-break-before: always;"></div>` : "";
+
+      fullPagesHtml += `
+        ${pageBreak}
+        <div class="header">
+          <div>
+            <h1>${clientName} — Content Calendar (Visual)</h1>
+            <p>Month: <strong>${monthName}</strong> | Total Scheduled Posts: <strong>${calendarPosts.length}</strong></p>
           </div>
+          <div style="text-align: right;">
+            <div class="badge" style="background:#3b82f6; color:#fff;">Page ${pageIdx + 1} of ${sortedMonths.length}</div>
+            <p style="font-size:10px; color:#94a3b8; margin-top:4px;">Generated: ${format(new Date(), "dd MMM yyyy, hh:mm a")}</p>
+          </div>
+        </div>
+        <div class="calendar-grid">
+          ${daysHtml}
+        </div>
+      `;
+    });
+
+    // If Combined, append the detailed Table Matrix
+    if (type === "combined") {
+      const rowsHtml = calendarPosts
+        .map((p, idx) => {
+          const dStr = p.scheduledDate
+            ? format(parseISO(p.scheduledDate), "dd MMM yyyy")
+            : "-";
+          return `
+          <tr>
+            <td><strong>#${idx + 1}</strong></td>
+            <td><strong>${dStr}</strong></td>
+            <td>${p.category || "Post"}</td>
+            <td><strong>${p.title}</strong></td>
+            <td>${p.link || "—"}</td>
+            <td style="max-width:260px; white-space:pre-wrap;">${p.content || "—"}</td>
+          </tr>
         `;
-      })
-      .join("");
+        })
+        .join("");
 
-    const content = `
-      <div class="header">
-        <div>
-          <h1>${clientName} — Content Calendar (Visual)</h1>
-          <p>Month: <strong>${monthName}</strong> | Total Scheduled Posts: <strong>${calendarPosts.length}</strong></p>
+      fullPagesHtml += `
+        <div style="page-break-before: always;"></div>
+        <div class="header">
+          <div>
+            <h1>${clientName} — Detailed Content Plan Matrix</h1>
+            <p>Total Scheduled Posts: <strong>${calendarPosts.length}</strong></p>
+          </div>
+          <div style="text-align: right;">
+            <div class="badge" style="background:#10b981; color:#fff;">Table View</div>
+            <p style="font-size:10px; color:#94a3b8; margin-top:4px;">Generated: ${format(new Date(), "dd MMM yyyy")}</p>
+          </div>
         </div>
-        <div style="text-align: right;">
-          <div class="badge" style="background:#3b82f6; color:#fff;">Content Calendar</div>
-          <p style="font-size:10px; color:#94a3b8; margin-top:4px;">Generated: ${format(new Date(), "dd MMM yyyy, hh:mm a")}</p>
-        </div>
-      </div>
-      <div class="calendar-grid">
-        ${daysHtml}
-      </div>
-    `;
+        <table>
+          <thead>
+            <tr>
+              <th style="width:30px;">#</th>
+              <th style="width:95px;">Date</th>
+              <th style="width:85px;">Type</th>
+              <th style="width:160px;">Title</th>
+              <th style="width:140px;">Link</th>
+              <th>Caption</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+      `;
+    }
 
-    printDocument(content, `${clientName}_Visual_Calendar_${monthName}`);
+    setPdfModal({ open: false, type: "visual" });
+    printDocument(
+      fullPagesHtml,
+      `${clientName}_${type === "combined" ? "Combined" : "Visual"}_Calendar`
+    );
+  };
+
+  // 1. Download Visual PDF
+  const handleDownloadVisualPDF = () => {
+    handleOpenPdfModal("visual");
   };
 
   // 2. Download Table PDF
@@ -843,94 +995,7 @@ const ContentCalcendor = () => {
 
   // 3. Download Combined PDF
   const handleDownloadCombinedPDF = () => {
-    const clientName = selectedClient?.companyName || "Client";
-    const monthName = format(currentMonth, "MMMM yyyy");
-
-    let daysHtml = calendarDays
-      .map((day) => {
-        const dStr = format(day, "yyyy-MM-dd");
-        const dayPosts = postsByDate[dStr] || [];
-        const isCurrentMonth = isSameMonth(day, currentMonth);
-
-        const postsMarkup = dayPosts
-          .map((p) => {
-            return `
-            <div class="post-card">
-              <div style="font-weight:700; color:#1e293b;">${p.title}</div>
-              <div style="font-size:8.5px; color:#475569;">${p.category || "Post"}</div>
-            </div>
-          `;
-          })
-          .join("");
-
-        return `
-          <div class="day-cell" style="opacity: ${isCurrentMonth ? "1" : "0.35"}; min-height:85px;">
-            <div class="day-header">
-              <span>${format(day, "d")}</span>
-              <span>${format(day, "EEE")}</span>
-            </div>
-            ${postsMarkup}
-          </div>
-        `;
-      })
-      .join("");
-
-    const rowsHtml = calendarPosts
-      .map((p, idx) => {
-        const dStr = p.scheduledDate
-          ? format(parseISO(p.scheduledDate), "dd MMM yyyy")
-          : "-";
-        return `
-        <tr>
-          <td><strong>#${idx + 1}</strong></td>
-          <td><strong>${dStr}</strong></td>
-          <td>${p.category || "Post"}</td>
-          <td><strong>${p.title}</strong></td>
-          <td>${p.link || "—"}</td>
-          <td style="max-width:260px; white-space:pre-wrap;">${p.content || "—"}</td>
-        </tr>
-      `;
-      })
-      .join("");
-
-    const content = `
-      <div class="header">
-        <div>
-          <h1>${clientName} — Content Strategy Calendar</h1>
-          <p>Month: <strong>${monthName}</strong> | Total Posts: <strong>${calendarPosts.length}</strong></p>
-        </div>
-        <div style="text-align: right;">
-          <div class="badge" style="background:#6366f1; color:#fff;">Combined View</div>
-          <p style="font-size:10px; color:#94a3b8; margin-top:4px;">Generated: ${format(new Date(), "dd MMM yyyy")}</p>
-        </div>
-      </div>
-      
-      <h3 style="font-size:14px; font-weight:700; margin-bottom:8px; color:#334155;">1. Monthly Schedule Overview</h3>
-      <div class="calendar-grid" style="margin-bottom:30px;">
-        ${daysHtml}
-      </div>
-
-      <div style="page-break-before: always;"></div>
-
-      <h3 style="font-size:14px; font-weight:700; margin-top:20px; margin-bottom:8px; color:#334155;">2. Detailed Content Matrix & Copy</h3>
-      <table>
-        <thead>
-          <tr>
-            <th style="width:30px;">#</th>
-            <th style="width:95px;">Date</th>
-            <th style="width:85px;">Type</th>
-            <th style="width:160px;">Title</th>
-            <th style="width:140px;">Link</th>
-            <th>Caption</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rowsHtml}
-        </tbody>
-      </table>
-    `;
-
-    printDocument(content, `${clientName}_Combined_Calendar_${monthName}`);
+    handleOpenPdfModal("combined");
   };
 
   return (
@@ -1025,9 +1090,6 @@ const ContentCalcendor = () => {
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-[10.5px] font-black px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
-                    {calendarPosts.length} posts
-                  </span>
                   <FiChevronRight
                     className={`text-slate-400 transition-transform duration-200 ${
                       showTopClientDropdown ? "rotate-90" : ""
@@ -1061,9 +1123,6 @@ const ContentCalcendor = () => {
                       )
                       .map((c) => {
                         const isSelected = selectedClientId === c._id;
-                        const postCount =
-                          summaryMap[c._id] ||
-                          (isSelected ? calendarPosts.length : 0);
 
                         return (
                           <div
@@ -1100,9 +1159,6 @@ const ContentCalcendor = () => {
                             </div>
 
                             <div className="flex items-center gap-1.5 shrink-0">
-                              <span className="text-[10px] font-bold text-slate-400">
-                                {postCount} {postCount === 1 ? "post" : "posts"}
-                              </span>
                               {isSelected && (
                                 <FiCheck
                                   size={14}
@@ -1447,219 +1503,247 @@ const ContentCalcendor = () => {
           </div>
         </div>
 
-        {/* 7-Column Month Calendar Grid (Matching Image 4) */}
-        <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs">
-          {/* Day Names Header */}
-          <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 text-center text-[11px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-wider py-2.5">
-            <div>SUN</div>
-            <div>MON</div>
-            <div>TUE</div>
-            <div>WED</div>
-            <div>THU</div>
-            <div>FRI</div>
-            <div>SAT</div>
-          </div>
+        {/* 7-Column Month Calendar Grid (Responsive with Auto-Height & Visual Drag Highlight) */}
+        <div className="w-full border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-2xs bg-white dark:bg-slate-900">
+          <div className="overflow-x-auto custom-scrollbar">
+            <div className="min-w-[700px] lg:min-w-0">
+              {/* Day Names Header */}
+              <div className="grid grid-cols-7 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 text-center text-[10.5px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-wider py-2.5">
+                <div>SUN</div>
+                <div>MON</div>
+                <div>TUE</div>
+                <div>WED</div>
+                <div>THU</div>
+                <div>FRI</div>
+                <div>SAT</div>
+              </div>
 
-          {/* Days Cells */}
-          <div className="grid grid-cols-7 divide-x divide-y divide-slate-200 dark:divide-slate-800 bg-slate-100/50 dark:bg-slate-900/40">
-            {calendarDays.map((day) => {
-              const dStr = format(day, "yyyy-MM-dd");
-              const dayPosts = postsByDate[dStr] || [];
-              const isCurrMonth = isSameMonth(day, currentMonth);
-              const isCurrDay = isToday(day);
+              {/* Days Cells */}
+              <div className="grid grid-cols-7 divide-x divide-y divide-slate-200 dark:divide-slate-800 bg-slate-100/50 dark:bg-slate-900/40">
+                {calendarDays.map((day) => {
+                  const dStr = format(day, "yyyy-MM-dd");
+                  const dayPosts = postsByDate[dStr] || [];
+                  const isCurrMonth = isSameMonth(day, currentMonth);
+                  const isCurrDay = isToday(day);
+                  const isBeingDraggedOver = dragOverDate === dStr;
 
-              return (
-                <div
-                  key={dStr}
-                  onClick={() => handleDateCellClick(day)}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    e.dataTransfer.dropEffect = "move";
-                  }}
-                  onDrop={(e) => handleDropPostOnDate(dStr, e)}
-                  className={`min-h-[140px] sm:min-h-[170px] p-1.5 sm:p-2 transition-all flex flex-col justify-between group ${
-                    isPickingStartDate
-                      ? "hover:bg-amber-50 dark:hover:bg-amber-950/30 cursor-pointer ring-1 ring-inset ring-amber-300/40"
-                      : isCurrMonth
-                        ? "bg-white dark:bg-slate-900/80"
-                        : "bg-slate-50/60 dark:bg-slate-950/40 text-slate-300 dark:text-slate-700"
-                  }`}
-                >
-                  {/* Day Header (+ icon on top right & date number on top left) (Matching Image 4) */}
-                  <div className="flex items-center justify-between mb-1.5">
-                    {/* Date Number Badge */}
-                    {isCurrDay ? (
-                      <span
-                        style={{ backgroundColor: activeAccentHex }}
-                        className="w-6 h-6 rounded-full text-white font-black text-xs flex items-center justify-center shadow-xs"
-                      >
-                        {format(day, "d")}
-                      </span>
-                    ) : (
-                      <span
-                        className={`text-xs font-bold ${
-                          isCurrMonth
-                            ? "text-slate-700 dark:text-slate-300"
-                            : "text-slate-300 dark:text-slate-600"
-                        }`}
-                      >
-                        {format(day, "d")}
-                      </span>
-                    )}
-
-                    {/* Plus Icon to Add on this date */}
-                    <button
-                      type="button"
-                      onClick={(e) => handleAddDirectPost(day, e)}
-                      className="opacity-40 group-hover:opacity-100 hover:text-indigo-600 p-0.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all text-xs font-bold cursor-pointer"
-                      title={`Add post on ${format(day, "dd MMM")}`}
+                  return (
+                    <div
+                      key={dStr}
+                      onClick={() => handleDateCellClick(day)}
+                      onDragEnter={() => setDragOverDate(dStr)}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                        if (dragOverDate !== dStr) setDragOverDate(dStr);
+                      }}
+                      onDragLeave={(e) => {
+                        if (e.currentTarget.contains(e.relatedTarget)) return;
+                        if (dragOverDate === dStr) setDragOverDate(null);
+                      }}
+                      onDrop={(e) => handleDropPostOnDate(dStr, e)}
+                      className={`min-h-[145px] sm:min-h-[165px] h-auto p-1.5 sm:p-2 transition-all duration-150 flex flex-col justify-start gap-1.5 group relative ${
+                        isBeingDraggedOver
+                          ? "bg-indigo-50/95 dark:bg-indigo-950/70 ring-2 ring-indigo-500 ring-inset shadow-md scale-[1.005] z-10"
+                          : isPickingStartDate
+                            ? "hover:bg-amber-50 dark:hover:bg-amber-950/30 cursor-pointer ring-1 ring-inset ring-amber-300/40"
+                            : isCurrMonth
+                              ? "bg-white dark:bg-slate-900/80"
+                              : "bg-slate-50/60 dark:bg-slate-950/40 text-slate-300 dark:text-slate-700"
+                      }`}
                     >
-                      +
-                    </button>
-                  </div>
+                      {/* Day Header (+ icon on top right & date number on top left) */}
+                      <div className="flex items-center justify-between">
+                        {/* Date Number Badge */}
+                        {isCurrDay ? (
+                          <span
+                            style={{ backgroundColor: activeAccentHex }}
+                            className="w-5.5 h-5.5 rounded-full text-white font-black text-[11px] flex items-center justify-center shadow-xs"
+                          >
+                            {format(day, "d")}
+                          </span>
+                        ) : (
+                          <span
+                            className={`text-[11px] font-bold ${
+                              isCurrMonth
+                                ? "text-slate-700 dark:text-slate-300"
+                                : "text-slate-300 dark:text-slate-600"
+                            }`}
+                          >
+                            {format(day, "d")}
+                          </span>
+                        )}
 
-                  {/* Scheduled Posts in Cell (Matching Image 4 Post Card Spec) */}
-                  <div className="flex-1 space-y-2 overflow-y-auto max-h-[220px] custom-scrollbar pr-0.5">
-                    {dayPosts.map((post, postIdx) => {
-                      const hasMedia = post.media && post.media.length > 0;
-
-                      return (
-                        <div
-                          key={post._id}
-                          draggable={true}
-                          onDragStart={(e) => handleDragStart(e, post._id)}
-                          className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xs space-y-1.5 relative group/card hover:shadow-md transition-shadow cursor-grab active:cursor-grabbing"
+                        {/* Plus Icon to Add on this date */}
+                        <button
+                          type="button"
+                          onClick={(e) => handleAddDirectPost(day, e)}
+                          className="opacity-40 group-hover:opacity-100 hover:text-indigo-600 p-0.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-all text-xs font-bold cursor-pointer"
+                          title={`Add post on ${format(day, "dd MMM")}`}
                         >
-                          {/* Circular Dark Delete X Button on Top Right (Matching Image 4) */}
-                          <button
-                            type="button"
-                            onClick={(e) =>
-                              handleDeleteCalendarPost(post._id, e)
-                            }
-                            className="absolute -top-1 -right-1 w-4.5 h-4.5 rounded-full bg-slate-700 hover:bg-rose-600 text-white flex items-center justify-center text-[9px] shadow-sm z-10 transition-colors cursor-pointer"
-                            title="Delete post"
-                          >
-                            <FiX size={10} />
-                          </button>
+                          +
+                        </button>
+                      </div>
 
-                          {/* Image preview thumbnail (Matching Image 4) */}
-                          {hasMedia ? (
-                            <div className="w-full h-16 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
-                              <img
-                                src={post.media[0].url}
-                                alt=""
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          ) : (
-                            <div className="w-full h-10 rounded-lg border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center text-slate-400 text-[10px]">
-                              <FiImage size={14} className="opacity-50" />
-                            </div>
-                          )}
-
-                          {/* Title text + 🔄 Refresh/Sync Icon (Matching Image 4) */}
-                          <div className="flex items-center justify-between gap-1">
-                            <input
-                              type="text"
-                              defaultValue={post.title}
-                              onBlur={(e) =>
-                                handleUpdatePostField(
-                                  post._id,
-                                  "title",
-                                  e.target.value,
-                                )
-                              }
-                              placeholder="Title..."
-                              className="w-full text-[10.5px] font-bold text-slate-800 dark:text-white bg-transparent focus:outline-none truncate"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const curIdx = CATEGORIES.indexOf(
-                                  post.category,
-                                );
-                                const nextCat =
-                                  CATEGORIES[(curIdx + 1) % CATEGORIES.length];
-                                handleUpdatePostField(
-                                  post._id,
-                                  "category",
-                                  nextCat,
-                                );
-                              }}
-                              className="p-0.5 text-slate-400 hover:text-indigo-600 transition-colors shrink-0"
-                            >
-                              <FiRefreshCw size={10} />
-                            </button>
-                          </div>
-
-                          {/* Category Dropdown (Matching Image 4) */}
-                          <select
-                            value={post.category || "Post"}
-                            onChange={(e) =>
-                              handleUpdatePostField(
-                                post._id,
-                                "category",
-                                e.target.value,
-                              )
-                            }
-                            className="w-full px-1.5 py-0.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-semibold text-slate-700 dark:text-slate-300 focus:outline-none"
-                          >
-                            {CATEGORIES.map((cat) => (
-                              <option key={cat} value={cat}>
-                                {cat}
-                              </option>
-                            ))}
-                          </select>
-
-                          {/* Link... Input Field (Matching Image 4) */}
-                          <input
-                            type="text"
-                            defaultValue={post.link || ""}
-                            onBlur={(e) =>
-                              handleUpdatePostField(
-                                post._id,
-                                "link",
-                                e.target.value,
-                              )
-                            }
-                            placeholder="Link..."
-                            className="w-full px-1.5 py-0.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-[9.5px] text-slate-600 dark:text-slate-400 focus:outline-none"
-                          />
-
-                          {/* Description... Input / Textarea (Matching Image 4) */}
-                          <div className="relative">
-                            <textarea
-                              rows={2}
-                              defaultValue={post.content || ""}
-                              onBlur={(e) =>
-                                handleUpdatePostField(
-                                  post._id,
-                                  "content",
-                                  e.target.value,
-                                )
-                              }
-                              placeholder="Description..."
-                              className="w-full px-1.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-[9.5px] text-slate-600 dark:text-slate-400 focus:outline-none resize-none custom-scrollbar"
-                            />
-                            <FiEdit3
-                              size={10}
-                              className="absolute bottom-1.5 right-1.5 text-slate-400 pointer-events-none"
-                            />
-                          </div>
-
-                          {/* Bottom Footer Label: Post 1, Post 2... (Matching Image 4) */}
-                          <div className="text-center pt-0.5 border-t border-slate-100 dark:border-slate-700/60">
-                            <span className="text-[9.5px] font-bold text-slate-400 dark:text-slate-500">
-                              Post {postIdx + 1}
-                            </span>
-                          </div>
+                      {/* Drop Target Visual Banner */}
+                      {isBeingDraggedOver && (
+                        <div className="w-full py-1.5 border-2 border-dashed border-indigo-500 bg-indigo-100/70 dark:bg-indigo-900/50 rounded-lg text-center text-[9.5px] font-extrabold text-indigo-600 dark:text-indigo-300 animate-pulse shadow-2xs">
+                          Drop to place here
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+                      )}
+
+                      {/* Scheduled Posts in Cell: Stacked One-by-One with auto-expanding cell height */}
+                      <div className="w-full space-y-1.5 flex flex-col flex-1">
+                        {dayPosts.map((post, postIdx) => {
+                          const hasMedia = post.media && post.media.length > 0;
+                          const isDraggingThis = draggingPostId === post._id;
+
+                          return (
+                            <div
+                              key={post._id}
+                              draggable={true}
+                              onDragStart={(e) => handleDragStart(e, post._id)}
+                              onDragEnd={handleDragEnd}
+                              className={`p-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xs space-y-1 relative group/card hover:shadow-md transition-all cursor-grab active:cursor-grabbing ${
+                                isDraggingThis
+                                  ? "opacity-30 scale-95 ring-2 ring-indigo-500 shadow-xl"
+                                  : ""
+                              }`}
+                            >
+                              {/* Circular Dark Delete X Button on Top Right */}
+                              <button
+                                type="button"
+                                onClick={(e) =>
+                                  handlePromptDeletePost(post, e)
+                                }
+                                className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-slate-700 hover:bg-rose-600 text-white flex items-center justify-center text-[8.5px] shadow-sm z-10 transition-colors cursor-pointer"
+                                title="Delete post"
+                              >
+                                <FiX size={9} />
+                              </button>
+
+                              {/* Image preview thumbnail */}
+                              {hasMedia ? (
+                                <div className="w-full h-14 rounded-lg overflow-hidden border border-slate-100 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 flex items-center justify-center">
+                                  <img
+                                    src={post.media[0].url}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-full h-9 rounded-lg border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex items-center justify-center text-slate-400 text-[9px]">
+                                  <FiImage size={13} className="opacity-50" />
+                                </div>
+                              )}
+
+                              {/* Title text + 🔄 Refresh/Sync Icon */}
+                              <div className="flex items-center justify-between gap-1">
+                                <input
+                                  type="text"
+                                  defaultValue={post.title}
+                                  onBlur={(e) =>
+                                    handleUpdatePostField(
+                                      post._id,
+                                      "title",
+                                      e.target.value,
+                                    )
+                                  }
+                                  placeholder="Title..."
+                                  className="w-full text-[10px] font-bold text-slate-800 dark:text-white bg-transparent focus:outline-none truncate"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const curIdx = CATEGORIES.indexOf(
+                                      post.category,
+                                    );
+                                    const nextCat =
+                                      CATEGORIES[
+                                        (curIdx + 1) % CATEGORIES.length
+                                      ];
+                                    handleUpdatePostField(
+                                      post._id,
+                                      "category",
+                                      nextCat,
+                                    );
+                                  }}
+                                  className="p-0.5 text-slate-400 hover:text-indigo-600 transition-colors shrink-0 cursor-pointer"
+                                >
+                                  <FiRefreshCw size={9} />
+                                </button>
+                              </div>
+
+                              {/* Category Dropdown */}
+                              <select
+                                value={post.category || "Post"}
+                                onChange={(e) =>
+                                  handleUpdatePostField(
+                                    post._id,
+                                    "category",
+                                    e.target.value,
+                                  )
+                                }
+                                className="w-full px-1.5 py-0.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-[9.5px] font-semibold text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer"
+                              >
+                                {CATEGORIES.map((cat) => (
+                                  <option key={cat} value={cat}>
+                                    {cat}
+                                  </option>
+                                ))}
+                              </select>
+
+                              {/* Link... Input Field */}
+                              <input
+                                type="text"
+                                defaultValue={post.link || ""}
+                                onBlur={(e) =>
+                                  handleUpdatePostField(
+                                    post._id,
+                                    "link",
+                                    e.target.value,
+                                  )
+                                }
+                                placeholder="Link..."
+                                className="w-full px-1.5 py-0.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-[9px] text-slate-600 dark:text-slate-400 focus:outline-none"
+                              />
+
+                              {/* Description... Input / Textarea */}
+                              <div className="relative">
+                                <textarea
+                                  rows={1}
+                                  defaultValue={post.content || ""}
+                                  onBlur={(e) =>
+                                    handleUpdatePostField(
+                                      post._id,
+                                      "content",
+                                      e.target.value,
+                                    )
+                                  }
+                                  placeholder="Description..."
+                                  className="w-full px-1.5 py-0.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-[9px] text-slate-600 dark:text-slate-400 focus:outline-none resize-none custom-scrollbar"
+                                />
+                                <FiEdit3
+                                  size={9}
+                                  className="absolute bottom-1 right-1 text-slate-400 pointer-events-none opacity-60"
+                                />
+                              </div>
+
+                              {/* Bottom Footer Label: Post 1, Post 2... */}
+                              <div className="text-center pt-0.5 border-t border-slate-100 dark:border-slate-700/60">
+                                <span className="text-[8.5px] font-bold text-slate-400 dark:text-slate-500">
+                                  Post {postIdx + 1}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1691,9 +1775,6 @@ const ContentCalcendor = () => {
                   </span>
                 )}
               </div>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/50 shrink-0">
-                {calendarPosts.length} posts
-              </span>
             </div>
           </div>
 
@@ -1914,6 +1995,133 @@ const ContentCalcendor = () => {
                   className="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-md transition-all"
                 >
                   {isClearing ? "Clearing..." : "Yes, Clear All"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─────────────────────────────────────────────────────────────
+          SELECT PDF PAGES MODAL (Matching User Reference Image)
+      ───────────────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {pdfModal.open && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="fixed inset-0 bg-black/50 backdrop-blur-xs"
+              onClick={() => setPdfModal({ open: false, type: "visual" })}
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-sm bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 z-10 space-y-4"
+            >
+              <div>
+                <h3 className="text-base font-extrabold text-slate-800 dark:text-white">
+                  Select PDF Pages
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                  Select which months to include in your {pdfModal.type === "combined" ? "combined" : "visual"} PDF. Each month will be a separate page.
+                </p>
+              </div>
+
+              {/* Checkbox List of Months */}
+              <div className="max-h-56 overflow-y-auto custom-scrollbar border border-slate-200 dark:border-slate-800 rounded-xl p-3 space-y-2 bg-slate-50/50 dark:bg-slate-900/50">
+                {availableMonths.map((m) => {
+                  const isChecked = selectedPdfMonths.includes(m.key);
+                  return (
+                    <label
+                      key={m.key}
+                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer select-none transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleTogglePdfMonth(m.key)}
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer accent-blue-600"
+                      />
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                        {m.label}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setPdfModal({ open: false, type: "visual" })}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGeneratePdf}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-[#000080] hover:bg-[#000066] shadow-md transition-all active:scale-95 cursor-pointer"
+                >
+                  Generate PDF
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─────────────────────────────────────────────────────────────
+          DELETE POST CONFIRMATION MODAL
+      ───────────────────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {deletePostModal.open && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="fixed inset-0 bg-black/50 backdrop-blur-xs"
+              onClick={() =>
+                setDeletePostModal({ open: false, postId: null, title: "" })
+              }
+            />
+
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-sm bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-5 z-10 space-y-4 text-center"
+            >
+              <div className="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 mx-auto flex items-center justify-center">
+                <FiTrash2 size={22} />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-800 dark:text-white">
+                  Delete Post?
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Are you sure you want to delete{" "}
+                  <strong>"{deletePostModal.title}"</strong> from your
+                  calendar?
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setDeletePostModal({ open: false, postId: null, title: "" })
+                  }
+                  className="flex-1 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDeletePost}
+                  className="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 shadow-md transition-all active:scale-95 cursor-pointer"
+                >
+                  Yes, Delete
                 </button>
               </div>
             </motion.div>
