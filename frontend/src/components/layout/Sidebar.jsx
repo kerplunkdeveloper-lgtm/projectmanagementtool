@@ -1123,8 +1123,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
             const topCardNames =
               role === "operationmanager"
-                ? ["Home", "Sticky Notes", "Chat", "Users", "Reports", "SM Creditionals", "MOM Client Report"]
-                : ["Home", "Sticky Notes", "Chat", "Users", "SM Creditionals", "MOM Client Report", "Reports"];
+                ? ["Home", "Sticky Notes", "Chat", "Users", "Reports", "SM Credentials", "MOM Client Report"]
+                : ["Home", "Sticky Notes", "Chat", "Users", "SM Credentials", "MOM Client Report", "Reports"];
 
             return (
               <>

@@ -27,7 +27,7 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: baseQueryWithReauth,
-  tagTypes: ["Task", "Project", "Notification", "Goal"],
+  tagTypes: ["Task", "Project", "Notification", "Goal", "ContentCalendar"],
   endpoints: (builder) => ({
     // ==========================================
     // GOALS ENDPOINTS
@@ -259,6 +259,64 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ["Task"],
     }),
+
+    // ==========================================
+    // CONTENT CALENDAR ENDPOINTS
+    // ==========================================
+    getContentCalendarSummary: builder.query({
+      query: () => "/content-calendar/summary",
+      providesTags: ["ContentCalendar"],
+      transformResponse: (response) => response.data || [],
+    }),
+    getContentCalendarPosts: builder.query({
+      query: (params = {}) => {
+        const queryString = new URLSearchParams(params).toString();
+        return `/content-calendar${queryString ? `?${queryString}` : ""}`;
+      },
+      providesTags: ["ContentCalendar"],
+      transformResponse: (response) => response.data || [],
+    }),
+    createContentCalendarPost: builder.mutation({
+      query: (postData) => ({
+        url: "/content-calendar",
+        method: "POST",
+        body: postData,
+      }),
+      invalidatesTags: ["ContentCalendar"],
+    }),
+    bulkCreateContentCalendarPosts: builder.mutation({
+      query: (bulkData) => ({
+        url: "/content-calendar/bulk",
+        method: "POST",
+        body: bulkData,
+      }),
+      invalidatesTags: ["ContentCalendar"],
+    }),
+    updateContentCalendarPost: builder.mutation({
+      query: ({ id, postData }) => ({
+        url: `/content-calendar/${id}`,
+        method: "PUT",
+        body: postData,
+      }),
+      invalidatesTags: ["ContentCalendar"],
+    }),
+    deleteContentCalendarPost: builder.mutation({
+      query: (id) => ({
+        url: `/content-calendar/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["ContentCalendar"],
+    }),
+    clearClientCalendar: builder.mutation({
+      query: ({ clientId, params = {} }) => {
+        const queryString = new URLSearchParams(params).toString();
+        return {
+          url: `/content-calendar/client/${clientId}${queryString ? `?${queryString}` : ""}`,
+          method: "DELETE",
+        };
+      },
+      invalidatesTags: ["ContentCalendar"],
+    }),
   }),
 });
 
@@ -290,5 +348,14 @@ export const {
   useCreateGoalMutation,
   useUpdateGoalMutation,
   useDeleteGoalMutation,
+
+  // Content Calendar hooks
+  useGetContentCalendarSummaryQuery,
+  useGetContentCalendarPostsQuery,
+  useCreateContentCalendarPostMutation,
+  useBulkCreateContentCalendarPostsMutation,
+  useUpdateContentCalendarPostMutation,
+  useDeleteContentCalendarPostMutation,
+  useClearClientCalendarMutation,
 } = apiSlice;
 

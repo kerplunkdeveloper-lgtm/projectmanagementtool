@@ -92,8 +92,9 @@ connectDB().then(() => {
 
 const app = express();
 
-// Body parser
-app.use(express.json());
+// Body parser with high limit for image uploads & content calendar bulk import
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Cookie parser
 app.use(cookieParser());
@@ -151,7 +152,7 @@ const goalRoutes = require("./routes/goalRoutes");
 const stickyNoteRoutes = require("./routes/stickyNoteRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const socialAccountRoutes = require("./routes/socialAccountRoutes");
-
+const contentCalendarRoutes = require("./routes/contentCalendarRoutes");
 
 app.get("/", (req, res) => {
   res.send("demo testing api da ithu :) ");
@@ -198,6 +199,7 @@ app.use('/api/goals', goalRoutes);
 app.use('/api/stickynotes', stickyNoteRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/social-accounts', socialAccountRoutes);
+app.use('/api/content-calendar', contentCalendarRoutes);
 
 const PORT = process.env.PORT || 5001;
 
