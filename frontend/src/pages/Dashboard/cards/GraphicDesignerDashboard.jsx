@@ -1004,8 +1004,31 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         if (deptLower.includes("graphic")) {
           return uDept.includes("graphic") || uDept.includes("design");
         }
-        if (deptLower.includes("videographer") || deptLower.includes("video")) {
-          return uDept.includes("video") || uDept.includes("edit");
+        if (
+          deptLower.includes("videographer") ||
+          deptLower.includes("video") ||
+          deptLower.includes("cinema") ||
+          deptLower.includes("cinematog")
+        ) {
+          return (
+            uDept.includes("video") ||
+            uDept.includes("edit") ||
+            uDept.includes("cinema") ||
+            uDept.includes("cinematog")
+          );
+        }
+        if (deptLower.includes("mobile")) {
+          return (
+            uDept.includes("mobile") ||
+            uDept.includes("flutter") ||
+            uDept.includes("react native") ||
+            uDept.includes("android") ||
+            uDept.includes("ios") ||
+            uDept.includes("app")
+          );
+        }
+        if (deptLower.includes("web")) {
+          return uDept.includes("web");
         }
         return uDept.includes(deptLower);
       }) || [];

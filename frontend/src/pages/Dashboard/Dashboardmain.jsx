@@ -5,6 +5,7 @@ import WelcomeUser from "../admin/partnerhub/components/WelcomeUser";
 import DashboardCards from "./cards/DashboardCards";
 import GraphicDesignerDashboard from "./cards/GraphicDesignerDashboard";
 import WebDeveloperDashboard from "./cards/WebDeveloperDashboard";
+import MobileDeveloperDashboard from "./cards/MobileDeveloperDashboard";
 import SocialMediaManagerDashboard from "./cards/SocialMediaManagerDashboard";
 import SEOSpecialistDashboard from "./cards/SEOSpecialistDashboard";
 import PerformanceMarketerDashboard from "./cards/PerformanceMarketerDashboard";
@@ -1354,39 +1355,85 @@ const Dashboardmain = () => {
   }, [clients, clientSearchQuery]);
 
   const uniqueDepartments = React.useMemo(() => {
-    if (!users || users.length === 0)
-      return ["Graphic Designer", "Cinematographer", "Social Media Manager"];
-    const depts = users
+    const depts = (users || [])
       .map((u) => u.department)
       .filter((d) => d && d.trim() !== "");
     const unique = Array.from(new Set(depts));
 
-    const middleDepts = [];
+    const isExcluded = (d) => {
+      const lower = (d || "").trim().toLowerCase();
+      return (
+        lower.includes("managing partner") ||
+        lower.includes("managingpartner") ||
+        lower.includes("operation manager") ||
+        lower.includes("operationmanager") ||
+        lower.includes("operations manager")
+      );
+    };
 
-    unique.forEach((d) => {
-      const lower = d.toLowerCase();
+    const isGraphic = (d) => {
+      const lower = (d || "").trim().toLowerCase();
+      return lower.includes("graphic") || lower.includes("design");
+    };
+
+    const isCinema = (d) => {
+      const lower = (d || "").trim().toLowerCase();
+      return (
+        lower.includes("cinematog") ||
+        lower.includes("video") ||
+        lower.includes("cinema") ||
+        lower.includes("edit")
+      );
+    };
+
+    const isSocialMedia = (d) => {
+      const lower = (d || "").trim().toLowerCase();
+      return lower.includes("social media") || lower.includes("social");
+    };
+
+    const isWebDev = (d) => {
+      const lower = (d || "").trim().toLowerCase();
+      return lower.includes("web");
+    };
+
+    const isMobileDev = (d) => {
+      const lower = (d || "").trim().toLowerCase();
+      return (
+        lower.includes("mobile") ||
+        lower.includes("flutter") ||
+        lower.includes("react native") ||
+        lower.includes("android") ||
+        lower.includes("ios") ||
+        lower.includes("app")
+      );
+    };
+
+    // Find actual department key present in database or fallback to formatted default name
+    const graphicKey = unique.find(isGraphic) || "Graphic Designer";
+    const cinemaKey = unique.find(isCinema) || "Cinematographer";
+    const socialKey = unique.find(isSocialMedia) || "Social Media Manager";
+    const webKey = unique.find(isWebDev) || "Web Developer";
+    const mobileKey = unique.find(isMobileDev) || "Mobile Developer";
+
+    // Specified order: 1. Graphic Designer, 2. Cinematographer, 3. Social Media Manager, 4. Web Developer, 5. Mobile Developer
+    const ordered = [graphicKey, cinemaKey, socialKey, webKey, mobileKey];
+
+    // Filter remaining department keys (e.g. SEO Specialist, Performance Marketer, etc.)
+    const remainingDepts = unique.filter((d) => {
+      if (ordered.includes(d)) return false;
+      if (isExcluded(d)) return false;
       if (
-        !lower.includes("managing partner") &&
-        !lower.includes("operation manager") &&
-        !lower.includes("graphic designer") &&
-        !lower.includes("cinematographer") &&
-        !lower.includes("social media manager") &&
-        !lower.includes("videographer") &&
-        !lower.includes("editor")
-      ) {
-        middleDepts.push(d);
-      }
+        isGraphic(d) ||
+        isCinema(d) ||
+        isSocialMedia(d) ||
+        isWebDev(d) ||
+        isMobileDev(d)
+      )
+        return false;
+      return true;
     });
 
-    // Priority Order: 1. Graphic Designer, 2. Cinematographer, 3. Social Media Manager, followed by others
-    const ordered = ["Graphic Designer", "Cinematographer", "Social Media Manager"];
-    middleDepts.forEach((d) => {
-      if (!ordered.includes(d) && !d.toLowerCase().includes("videographer")) {
-        ordered.push(d);
-      }
-    });
-
-    return ordered;
+    return [...ordered, ...remainingDepts];
   }, [users]);
 
   const getInitials = (name) => {
@@ -2085,9 +2132,13 @@ const Dashboardmain = () => {
         user?.department?.toLowerCase() === "social media manager") && (
         <div className="w-full py-4 md:py-10">
           {/* Department Tabs */}
-          <div className="flex justify-center w-full mb-8">
+          <div className="flex justify-center w-full mb-8 px-2">
             <div
-              className={`flex gap-1.5 p-2.5  border rounded-full shadow-inner max-w-full overflow-x-auto scrollbar-hide backdrop-blur-md ${isDark ? "bg-slate-50 border-slate-100" : "bg-slate-100/80 border-slate-200/50"}`}
+              className={`flex gap-1.5 p-2.5 border rounded-full shadow-inner max-w-full overflow-x-auto scrollbar-hide no-scrollbar backdrop-blur-md ${isDark ? "bg-slate-50 border-slate-100" : "bg-slate-100/80 border-slate-200/50"}`}
+              style={{
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+              }}
             >
               {uniqueDepartments.map((dept) => {
                 const isActive = activeDeptTab === dept;
@@ -2122,11 +2173,19 @@ const Dashboardmain = () => {
           </div>
 
           {/* Tab Content */}
-          {["Graphic Designer", "VideoGrapher"].includes(
-            activeDeptTab,
-          ) && <GraphicDesignerDashboard targetDept={activeDeptTab} />}
+          {(["Graphic Designer", "VideoGrapher", "Cinematographer"].some((k) =>
+            activeDeptTab?.toLowerCase().includes(k.toLowerCase()),
+          ) ||
+            activeDeptTab?.toLowerCase().includes("design") ||
+            activeDeptTab?.toLowerCase().includes("cinema") ||
+            activeDeptTab?.toLowerCase().includes("video")) && (
+            <GraphicDesignerDashboard targetDept={activeDeptTab} />
+          )}
           {activeDeptTab?.toLowerCase().includes("web") && (
             <WebDeveloperDashboard targetDept={activeDeptTab} />
+          )}
+          {activeDeptTab?.toLowerCase().includes("mobile") && (
+            <MobileDeveloperDashboard targetDept={activeDeptTab} />
           )}
           {activeDeptTab?.toLowerCase().includes("social") && (
             <SocialMediaManagerDashboard targetDept={activeDeptTab} />
@@ -2138,10 +2197,12 @@ const Dashboardmain = () => {
             <PerformanceMarketerDashboard targetDept={activeDeptTab} />
           )}
 
-          {!["Graphic Designer", "VideoGrapher"].includes(
-            activeDeptTab,
-          ) &&
+          {!activeDeptTab?.toLowerCase().includes("graphic") &&
+            !activeDeptTab?.toLowerCase().includes("design") &&
+            !activeDeptTab?.toLowerCase().includes("cinema") &&
+            !activeDeptTab?.toLowerCase().includes("video") &&
             !activeDeptTab?.toLowerCase().includes("web") &&
+            !activeDeptTab?.toLowerCase().includes("mobile") &&
             !activeDeptTab?.toLowerCase().includes("social") &&
             !activeDeptTab?.toLowerCase().includes("seo") &&
             !activeDeptTab?.toLowerCase().includes("performance") && (

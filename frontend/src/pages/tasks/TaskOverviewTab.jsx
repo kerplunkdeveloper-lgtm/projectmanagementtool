@@ -678,10 +678,39 @@ const AssigneeCell = ({ task, users, handleTaskFieldChange }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
+  const isMOM = task.contentType === "MOM";
+
   const assignedUser =
-    typeof task.assignedTo === "object"
-      ? task.assignedTo
-      : users?.find((u) => (u._id || u.id) === task.assignedTo);
+    (typeof task.assignedTo === "object" && task.assignedTo) ||
+    users?.find((u) => (u._id || u.id) === task.assignedTo) ||
+    (isMOM
+      ? (typeof task.createdBy === "object" && task.createdBy) ||
+        users?.find((u) => (u._id || u.id) === task.createdBy)
+      : null);
+
+  if (isMOM) {
+    const displayUser =
+      assignedUser ||
+      (typeof task.createdBy === "object" ? task.createdBy : null);
+    return (
+      <div
+        className="relative inline-block"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="bg-white dark:bg-[#181a29] border border-slate-200/90 dark:border-white/10 rounded-full px-2.5 py-1 inline-flex items-center gap-2 shadow-2xs select-none">
+          {renderUserAvatarSmall(displayUser, "w-6 h-6 text-[8px]")}
+          <div className="flex flex-col text-left leading-none min-w-0 pr-1">
+            <span className="font-extrabold text-[11px] text-slate-800 dark:text-slate-100 truncate">
+              {displayUser?.name || "Assigned"}
+            </span>
+            <span className="text-[9px] font-bold text-sky-600 dark:text-sky-400 truncate mt-0.5">
+              {displayUser?.department || "Team Member"}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const filteredUsers = React.useMemo(() => {
     if (!users) return [];
@@ -1047,7 +1076,12 @@ const TaskOverviewTab = ({
       toast.error("Please select an end date");
       return;
     }
-    if (!newTaskAssignee) {
+    const effectiveAssignee =
+      newTaskContentType === "MOM"
+        ? (newTaskAssignee || currentUser?._id || currentUser?.id)
+        : newTaskAssignee;
+
+    if (!effectiveAssignee) {
       toast.error("Please select an assignee");
       return;
     }
@@ -1069,7 +1103,7 @@ const TaskOverviewTab = ({
         project: newTaskProject,
         contentCopy: newTaskContentCopy.trim(),
         contentType: newTaskContentType,
-        assignedTo: newTaskAssignee || null,
+        assignedTo: effectiveAssignee || null,
         startDate: effectiveStart,
         dueDate: effectiveEnd,
         priority: finalPriority,
@@ -3291,9 +3325,19 @@ const TaskOverviewTab = ({
                             );
                             if (customVal && customVal.trim() !== "") {
                               setNewTaskContentType(customVal.trim());
+                              if (customVal.trim() === "MOM") {
+                                setNewTaskAssignee(
+                                  currentUser?._id || currentUser?.id || "",
+                                );
+                              }
                             }
                           } else {
                             setNewTaskContentType(val);
+                            if (val === "MOM") {
+                              setNewTaskAssignee(
+                                currentUser?._id || currentUser?.id || "",
+                              );
+                            }
                           }
                         }}
                         className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-2 py-1 rounded-lg text-[11px] font-bold text-slate-700 dark:text-slate-200 outline-none w-full"
@@ -3369,18 +3413,35 @@ const TaskOverviewTab = ({
                   )}
                   {!hiddenColumns.assignee && (
                     <td className="py-2 px-3 border-r border-b border-slate-200 dark:border-white/10 text-left whitespace-nowrap">
-                      <select
-                        value={newTaskAssignee}
-                        onChange={(e) => setNewTaskAssignee(e.target.value)}
-                        className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-2 py-1 rounded-lg text-[11px] font-bold text-slate-700 dark:text-slate-200 outline-none max-w-[140px]"
-                      >
-                        <option value="">Unassigned</option>
-                        {users?.map((u) => (
-                          <option key={u._id || u.id} value={u._id || u.id}>
-                            {u.name}
-                          </option>
-                        ))}
-                      </select>
+                      {newTaskContentType === "MOM" ? (
+                        <div className="bg-white dark:bg-[#181a29] border border-slate-200/90 dark:border-white/10 rounded-full px-2.5 py-1 inline-flex items-center gap-2 shadow-2xs select-none">
+                          {renderUserAvatarSmall(
+                            currentUser,
+                            "w-6 h-6 text-[8px]",
+                          )}
+                          <div className="flex flex-col text-left leading-none min-w-0 pr-1">
+                            <span className="font-extrabold text-[11px] text-slate-800 dark:text-slate-100 truncate">
+                              {currentUser?.name || "You"}
+                            </span>
+                            <span className="text-[9px] font-bold text-sky-600 dark:text-sky-400 truncate mt-0.5">
+                              {currentUser?.department || "Team Member"}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <select
+                          value={newTaskAssignee}
+                          onChange={(e) => setNewTaskAssignee(e.target.value)}
+                          className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 px-2 py-1 rounded-lg text-[11px] font-bold text-slate-700 dark:text-slate-200 outline-none max-w-[140px]"
+                        >
+                          <option value="">Unassigned</option>
+                          {users?.map((u) => (
+                            <option key={u._id || u.id} value={u._id || u.id}>
+                              {u.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                     </td>
                   )}
                   {!hiddenColumns.priority && (
@@ -3648,14 +3709,42 @@ const TaskOverviewTab = ({
                                       "Enter custom content type:",
                                     );
                                     if (customVal && customVal.trim() !== "") {
-                                      handleTaskFieldChange(task._id, {
+                                      const creatorId =
+                                        task.createdBy?._id ||
+                                        task.createdBy?.id ||
+                                        (typeof task.createdBy === "string"
+                                          ? task.createdBy
+                                          : null) ||
+                                        currentUser?._id ||
+                                        currentUser?.id;
+                                      const updates = {
                                         contentType: customVal.trim(),
-                                      });
+                                      };
+                                      if (
+                                        customVal.trim() === "MOM" &&
+                                        creatorId
+                                      ) {
+                                        updates.assignedTo = creatorId;
+                                      }
+                                      handleTaskFieldChange(
+                                        task._id,
+                                        updates,
+                                      );
                                     }
                                   } else {
-                                    handleTaskFieldChange(task._id, {
-                                      contentType: val,
-                                    });
+                                    const creatorId =
+                                      task.createdBy?._id ||
+                                      task.createdBy?.id ||
+                                      (typeof task.createdBy === "string"
+                                        ? task.createdBy
+                                        : null) ||
+                                      currentUser?._id ||
+                                      currentUser?.id;
+                                    const updates = { contentType: val };
+                                    if (val === "MOM" && creatorId) {
+                                      updates.assignedTo = creatorId;
+                                    }
+                                    handleTaskFieldChange(task._id, updates);
                                   }
                                 }}
                                 className={`badge-select ${

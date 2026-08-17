@@ -771,7 +771,11 @@ const SubtaskRow = ({
         {/* Assignee Picker (Always Visible) */}
         <div className="flex items-center gap-1.5">
           <AssigneeDropdown
-            selectedUser={sub.assignedTo}
+            selectedUser={
+              sub.contentType === "MOM"
+                ? (sub.assignedTo || sub.createdBy?._id || sub.createdBy?.id || sub.createdBy || task.createdBy?._id || task.createdBy?.id || task.createdBy || currentUser?._id || currentUser?.id)
+                : sub.assignedTo
+            }
             users={users}
             onChange={(userId) =>
               handleSubtaskFieldChange(task, sub._id, {
@@ -779,10 +783,13 @@ const SubtaskRow = ({
               })
             }
             isAdminOrManager={isAdminOrManager}
+            disabled={sub.contentType === "MOM"}
+            isLocked={sub.contentType === "MOM"}
+            isMOM={sub.contentType === "MOM"}
             getAvatarColor={getAvatarColor}
             size="sm"
           />
-          {sub.assignedTo && isAdminOrManager && (
+          {sub.assignedTo && isAdminOrManager && sub.contentType !== "MOM" && (
             <button
               type="button"
               onClick={(e) => {
@@ -825,6 +832,10 @@ const AssigneeDropdown = ({
   getAvatarColor,
   align = "left",
   size = "md",
+  disabled = false,
+  isLocked = false,
+  isMOM = false,
+  currentUser = null,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -836,6 +847,8 @@ const AssigneeDropdown = ({
     isUpward: false,
   });
   const dropdownRef = useRef(null);
+
+  const canEdit = isAdminOrManager && !disabled && !isLocked && !isMOM;
 
   const updateCoords = () => {
     if (dropdownRef.current) {
@@ -894,10 +907,16 @@ const AssigneeDropdown = ({
     };
   }, [isOpen]);
 
-  const selectedUserObj =
+  let selectedUserObj =
     typeof selectedUser === "string"
-      ? (users || []).find((u) => u && u._id === selectedUser)
+      ? (users || []).find((u) => u && (u._id === selectedUser || u.id === selectedUser))
       : selectedUser;
+  if (!selectedUserObj && selectedUser && currentUser && (selectedUser === currentUser._id || selectedUser === currentUser.id)) {
+    selectedUserObj = currentUser;
+  }
+  if (!selectedUserObj && isMOM && currentUser) {
+    selectedUserObj = currentUser;
+  }
 
   const handleSelect = (user) => {
     onChange(user ? user._id : null);
@@ -956,9 +975,11 @@ const AssigneeDropdown = ({
     if (size === "sm") {
       return (
         <div
-          onClick={() => isAdminOrManager && setIsOpen(!isOpen)}
-          className={`relative w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-indigo-900 flex items-center justify-center text-slate-400 dark:text-indigo-400/75 hover:border-indigo-400 hover:text-indigo-700 dark:hover:text-[#3b82f6] dark:hover:border-[#3b82f6]/40 bg-white dark:bg-[#111111] transition-all ${
-            isAdminOrManager ? "cursor-pointer" : "cursor-not-allowed"
+          onClick={() => canEdit && setIsOpen(!isOpen)}
+          className={`relative w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-indigo-900 flex items-center justify-center text-slate-400 dark:text-indigo-400/75 bg-white dark:bg-[#111111] transition-all ${
+            canEdit
+              ? "cursor-pointer hover:border-indigo-400 hover:text-indigo-700 dark:hover:text-[#3b82f6] dark:hover:border-[#3b82f6]/40"
+              : "cursor-default"
           } overflow-hidden`}
         >
           {selectedUserObj ? (
@@ -988,12 +1009,12 @@ const AssigneeDropdown = ({
       return (
         <button
           type="button"
-          disabled={!isAdminOrManager}
+          disabled={!canEdit}
           onClick={() => setIsOpen(!isOpen)}
           className={`w-full flex items-center justify-between bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 ${
-            isAdminOrManager
+            canEdit
               ? "cursor-pointer hover:border-slate-350 dark:hover:border-white/20"
-              : "cursor-not-allowed"
+              : "cursor-default opacity-95"
           } focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3b82f6]`}
         >
           <div className="flex items-center gap-2 truncate">
@@ -1029,10 +1050,12 @@ const AssigneeDropdown = ({
               </span>
             )}
           </div>
-          <FiChevronDown
-            size={14}
-            className="text-slate-400 dark:text-slate-500 shrink-0"
-          />
+          {canEdit && (
+            <FiChevronDown
+              size={14}
+              className="text-slate-400 dark:text-slate-500 shrink-0"
+            />
+          )}
         </button>
       );
     }
@@ -1040,9 +1063,11 @@ const AssigneeDropdown = ({
     if (selectedUserObj) {
       return (
         <div
-          onClick={() => isAdminOrManager && setIsOpen(!isOpen)}
-          className={`group/assigned relative flex items-center gap-1.5 bg-slate-50/40 dark:bg-white/5 hover:bg-slate-100/50 dark:hover:bg-white/10 px-1.5 py-0.5 rounded-lg border border-slate-200/60 dark:border-white/10 transition-all ${
-            isAdminOrManager ? "cursor-pointer" : "cursor-not-allowed"
+          onClick={() => canEdit && setIsOpen(!isOpen)}
+          className={`group/assigned relative flex items-center gap-1.5 bg-slate-50/40 dark:bg-white/5 px-1.5 py-0.5 rounded-lg border border-slate-200/60 dark:border-white/10 transition-all ${
+            canEdit
+              ? "cursor-pointer hover:bg-slate-100/50 dark:hover:bg-white/10"
+              : "cursor-default"
           } w-[135px] h-[28px] shadow-sm`}
         >
           {avatarUrl ? (
@@ -1070,7 +1095,7 @@ const AssigneeDropdown = ({
               </span>
             )}
           </div>
-          {isAdminOrManager && (
+          {canEdit && (
             <button
               type="button"
               onClick={(e) => {
@@ -1090,18 +1115,22 @@ const AssigneeDropdown = ({
     return (
       <button
         type="button"
-        disabled={!isAdminOrManager}
+        disabled={!canEdit}
         onClick={() => setIsOpen(!isOpen)}
         className={`group/assign relative flex items-center gap-1.5 bg-slate-50/20 dark:bg-white/5 hover:bg-slate-100/40 dark:hover:bg-white/10 px-1.5 py-0.5 rounded-lg border border-dashed border-slate-300 dark:border-white/10 transition-all ${
-          isAdminOrManager ? "cursor-pointer" : "cursor-not-allowed"
+          canEdit
+            ? "cursor-pointer hover:bg-slate-100/40 dark:hover:bg-white/10"
+            : "cursor-default"
         } w-[135px] h-[28px] text-left`}
       >
         <div className="w-5.5 h-5.5 rounded-full border border-dashed border-slate-300 dark:border-white/20 flex items-center justify-center text-slate-400 dark:text-slate-500 shrink-0 bg-white dark:bg-[#111111]">
-          <FiUser size={10} className="group-hover/assign:hidden" />
-          <FiPlus
-            size={10}
-            className="hidden group-hover/assign:block text-blue-500 dark:text-[#3b82f6]"
-          />
+          <FiUser size={10} className={canEdit ? "group-hover/assign:hidden" : ""} />
+          {canEdit && (
+            <FiPlus
+              size={10}
+              className="hidden group-hover/assign:block text-blue-500 dark:text-[#3b82f6]"
+            />
+          )}
         </div>
         <div className="flex-1 min-w-0 flex flex-col text-left">
           <span className="text-[9.5px] font-bold text-slate-400 dark:text-slate-550 truncate leading-tight">
@@ -5533,7 +5562,9 @@ const ProjectTaskBoard = ({
                                                           >
                                                             <AssigneeDropdown
                                                               selectedUser={
-                                                                task.assignedTo
+                                                                task.contentType === "MOM"
+                                                                  ? (task.assignedTo || task.createdBy?._id || task.createdBy?.id || task.createdBy || currentUser?._id || currentUser?.id)
+                                                                  : task.assignedTo
                                                               }
                                                               users={users}
                                                               onChange={(
@@ -5550,6 +5581,16 @@ const ProjectTaskBoard = ({
                                                               isAdminOrManager={
                                                                 isAdminOrManager
                                                               }
+                                                              disabled={
+                                                                task.contentType === "MOM"
+                                                              }
+                                                              isLocked={
+                                                                task.contentType === "MOM"
+                                                              }
+                                                              isMOM={
+                                                                task.contentType === "MOM"
+                                                              }
+                                                              currentUser={currentUser}
                                                               getAvatarColor={
                                                                 getAvatarColor
                                                               }
@@ -5592,21 +5633,55 @@ const ProjectTaskBoard = ({
                                                                       customVal.trim() !==
                                                                         ""
                                                                     ) {
+                                                                      const creatorId =
+                                                                        task.createdBy?._id ||
+                                                                        task.createdBy?.id ||
+                                                                        (typeof task.createdBy === "string"
+                                                                          ? task.createdBy
+                                                                          : null) ||
+                                                                        currentUser?._id ||
+                                                                        currentUser?.id;
+                                                                      const updates = {
+                                                                        contentType:
+                                                                          customVal.trim(),
+                                                                      };
+                                                                      if (
+                                                                        customVal.trim() ===
+                                                                          "MOM" &&
+                                                                        creatorId
+                                                                      ) {
+                                                                        updates.assignedTo =
+                                                                          creatorId;
+                                                                      }
                                                                       handleTaskFieldChange(
                                                                         task._id,
-                                                                        {
-                                                                          contentType:
-                                                                            customVal.trim(),
-                                                                        },
+                                                                        updates,
                                                                       );
                                                                     }
                                                                   } else {
+                                                                    const creatorId =
+                                                                      task.createdBy?._id ||
+                                                                      task.createdBy?.id ||
+                                                                      (typeof task.createdBy === "string"
+                                                                        ? task.createdBy
+                                                                        : null) ||
+                                                                      currentUser?._id ||
+                                                                      currentUser?.id;
+                                                                    const updates = {
+                                                                      contentType:
+                                                                        val,
+                                                                    };
+                                                                    if (
+                                                                      val ===
+                                                                        "MOM" &&
+                                                                      creatorId
+                                                                    ) {
+                                                                      updates.assignedTo =
+                                                                        creatorId;
+                                                                    }
                                                                     handleTaskFieldChange(
                                                                       task._id,
-                                                                      {
-                                                                        contentType:
-                                                                          val,
-                                                                      },
+                                                                      updates,
                                                                     );
                                                                   }
                                                                 }}
@@ -6740,6 +6815,16 @@ const ProjectTaskBoard = ({
                                                                       isAdminOrManager={
                                                                         isAdminOrManager
                                                                       }
+                                                                      disabled={
+                                                                        sub.contentType === "MOM"
+                                                                      }
+                                                                      isLocked={
+                                                                        sub.contentType === "MOM"
+                                                                      }
+                                                                      isMOM={
+                                                                        sub.contentType === "MOM"
+                                                                      }
+                                                                      currentUser={currentUser}
                                                                       getAvatarColor={
                                                                         getAvatarColor
                                                                       }
@@ -6772,6 +6857,19 @@ const ProjectTaskBoard = ({
                                                                             e
                                                                               .target
                                                                               .value;
+                                                                          const creatorId =
+                                                                            sub.createdBy?._id ||
+                                                                            sub.createdBy?.id ||
+                                                                            (typeof sub.createdBy === "string"
+                                                                              ? sub.createdBy
+                                                                              : null) ||
+                                                                            task.createdBy?._id ||
+                                                                            task.createdBy?.id ||
+                                                                            (typeof task.createdBy === "string"
+                                                                              ? task.createdBy
+                                                                              : null) ||
+                                                                            currentUser?._id ||
+                                                                            currentUser?.id;
                                                                           if (
                                                                             val ===
                                                                             "__ADD_CUSTOM__"
@@ -6785,23 +6883,41 @@ const ProjectTaskBoard = ({
                                                                               customVal.trim() !==
                                                                                 ""
                                                                             ) {
+                                                                              const updates = {
+                                                                                contentType:
+                                                                                  customVal.trim(),
+                                                                              };
+                                                                              if (
+                                                                                customVal.trim() ===
+                                                                                  "MOM" &&
+                                                                                creatorId
+                                                                              ) {
+                                                                                updates.assignedTo =
+                                                                                  creatorId;
+                                                                              }
                                                                               handleSubtaskFieldChange(
                                                                                 task,
                                                                                 sub._id,
-                                                                                {
-                                                                                  contentType:
-                                                                                    customVal.trim(),
-                                                                                },
+                                                                                updates,
                                                                               );
                                                                             }
                                                                           } else {
+                                                                            const updates = {
+                                                                              contentType:
+                                                                                val,
+                                                                            };
+                                                                            if (
+                                                                              val ===
+                                                                                "MOM" &&
+                                                                              creatorId
+                                                                            ) {
+                                                                              updates.assignedTo =
+                                                                                creatorId;
+                                                                            }
                                                                             handleSubtaskFieldChange(
                                                                               task,
                                                                               sub._id,
-                                                                              {
-                                                                                contentType:
-                                                                                  val,
-                                                                              },
+                                                                              updates,
                                                                             );
                                                                           }
                                                                         }}
@@ -7517,7 +7633,11 @@ const ProjectTaskBoard = ({
                                           onClick={(e) => e.stopPropagation()}
                                         >
                                           <AssigneeDropdown
-                                            selectedUser={task.assignedTo}
+                                            selectedUser={
+                                              task.contentType === "MOM"
+                                                ? (task.assignedTo || task.createdBy?._id || task.createdBy?.id || task.createdBy || currentUser?._id || currentUser?.id)
+                                                : task.assignedTo
+                                            }
                                             users={users}
                                             onChange={(userId) =>
                                               handleTaskFieldChange(task._id, {
@@ -7525,6 +7645,10 @@ const ProjectTaskBoard = ({
                                               })
                                             }
                                             isAdminOrManager={isAdminOrManager}
+                                            disabled={task.contentType === "MOM"}
+                                            isLocked={task.contentType === "MOM"}
+                                            isMOM={task.contentType === "MOM"}
+                                            currentUser={currentUser}
                                             getAvatarColor={getAvatarColor}
                                             size="md"
                                           />
@@ -8039,7 +8163,11 @@ const ProjectTaskBoard = ({
                       <FiUser size={12} /> Assignee
                     </label>
                     <AssigneeDropdown
-                      selectedUser={selectedTask.assignedTo}
+                      selectedUser={
+                        selectedTask.contentType === "MOM"
+                          ? (selectedTask.assignedTo || selectedTask.createdBy?._id || selectedTask.createdBy?.id || selectedTask.createdBy || currentUser?._id || currentUser?.id)
+                          : selectedTask.assignedTo
+                      }
                       users={users}
                       onChange={(userId) =>
                         handleTaskFieldChange(selectedTask._id, {
@@ -8047,6 +8175,10 @@ const ProjectTaskBoard = ({
                         })
                       }
                       isAdminOrManager={isAdminOrManager}
+                      disabled={selectedTask.contentType === "MOM"}
+                      isLocked={selectedTask.contentType === "MOM"}
+                      isMOM={selectedTask.contentType === "MOM"}
+                      currentUser={currentUser}
                       getAvatarColor={getAvatarColor}
                       size="lg"
                     />
