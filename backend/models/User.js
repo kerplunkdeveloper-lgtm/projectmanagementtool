@@ -103,6 +103,11 @@ const userSchema = new mongoose.Schema({
     default: 'vertical',
   },
 
+  lastSeen: {
+    type: Date,
+    default: Date.now,
+  },
+
   createdAt: {
     type: Date,
     default: Date.now,

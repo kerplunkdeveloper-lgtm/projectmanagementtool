@@ -161,15 +161,17 @@ const useSocket = () => {
         dispatch(addNotification(notification));
         dispatch(apiSlice.util.invalidateTags(["Notification"]));
 
-        if (notification.type === "message_received") {
-          // If it's a message, increment the sidebar chat unread count
+        if (notification.type === "message_received" || notification.type === "mention_received") {
+          const isMention = notification.type === "mention_received";
+
+          // If it's a message or mention, increment the sidebar chat unread count
           if (notification.chatRoomId) {
             dispatch(incrementUnreadCount(notification.chatRoomId));
           }
 
           // Flash tab title
           const senderName = notification.sender?.name || "Someone";
-          flashTabTitle(`New Message from ${senderName}`);
+          flashTabTitle(isMention ? `🔔 ${senderName} mentioned you!` : `New Message from ${senderName}`);
 
           // Premium Chatting-Style Toast Card on the Top Right
           const senderImage = notification.sender?.profile?.profileImage?.url;
@@ -179,10 +181,15 @@ const useSocket = () => {
               <div
                 className={`${
                   t.visible ? "animate-enter" : "animate-leave"
-                } max-w-[360px] w-full bg-white dark:bg-[#0f172a] shadow-2xl rounded-2xl pointer-events-auto flex items-start p-4 border border-slate-100 dark:border-slate-800 relative cursor-pointer`}
+                } max-w-[360px] w-full bg-white dark:bg-[#0f172a] shadow-2xl rounded-2xl pointer-events-auto flex items-start p-4 border ${
+                  isMention
+                    ? "border-amber-400/60 dark:border-amber-500/40 bg-gradient-to-r from-amber-50/30 to-transparent dark:from-amber-950/20"
+                    : "border-slate-100 dark:border-slate-800"
+                } relative cursor-pointer`}
                 onClick={() => {
                   toast.dismiss(t.id);
-                  navigate(`/${user?.role}/chat?id=${notification.chatRoomId}`);
+                  const targetUrl = `/${user?.role}/chat?id=${notification.chatRoomId}${notification.messageId ? `&messageId=${notification.messageId}` : ''}`;
+                  navigate(targetUrl);
                 }}
               >
                 {/* Sender Image / Initials */}
@@ -191,10 +198,16 @@ const useSocket = () => {
                     <img
                       src={senderImage}
                       alt={senderName}
-                      className="w-10 h-10 rounded-full object-cover border-2 border-indigo-500/10"
+                      className={`w-10 h-10 rounded-full object-cover border-2 ${
+                        isMention ? "border-amber-500" : "border-indigo-500/10"
+                      }`}
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-black shadow-inner">
+                    <div className={`w-10 h-10 rounded-full ${
+                      isMention
+                        ? "bg-gradient-to-tr from-amber-500 to-orange-600"
+                        : "bg-gradient-to-tr from-indigo-500 to-purple-600"
+                    } flex items-center justify-center text-white text-xs font-black shadow-inner`}>
                       {senderName.charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -206,13 +219,23 @@ const useSocket = () => {
                     <p className="text-[11px] font-black text-slate-800 dark:text-slate-100 truncate">
                       {senderName}
                     </p>
-                    <span className="text-[8px] font-bold text-indigo-600 dark:text-[#3b82f6] uppercase tracking-wider bg-indigo-50 dark:bg-[#3b82f6]/10 px-1.5 py-0.5 rounded-md">
-                      Message
-                    </span>
+                    {isMention ? (
+                      <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md ${
+                        notification.message.includes("@all")
+                          ? "bg-amber-500 text-white shadow-xs"
+                          : "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
+                      }`}>
+                        {notification.message.includes("@all") ? "📢 @ALL" : "@Mention"}
+                      </span>
+                    ) : (
+                      <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md text-indigo-600 dark:text-[#3b82f6] bg-indigo-50 dark:bg-[#3b82f6]/10">
+                        Message
+                      </span>
+                    )}
                   </div>
                   <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
                     {notification.message.replace(
-                      /^New message( in General Team Chat)? from [^:]+: /,
+                      /^New message( in [^:]+)? from [^:]+: /,
                       "",
                     )}
                   </p>
@@ -231,7 +254,7 @@ const useSocket = () => {
               </div>
             ),
             {
-              duration: 3500,
+              duration: 4000,
               position: "top-right",
             },
           );

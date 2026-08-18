@@ -217,30 +217,122 @@ const io = require('socket.io')(server, {
 // Keep track of active calls in memory
 const activeCalls = {};
 
-// Keep track of online users
+// Keep track of online users and presence state
 const onlineUsers = {}; // userId -> Array of socketId
 const socketToUser = {}; // socketId -> userId
+const userPresence = {}; // userId -> { status: 'online' | 'offline', lastSeen: Date }
+
+// Lazy require for models in socket event handlers
+const Message = require('./models/Message');
+const ChatRoom = require('./models/ChatRoom');
+const User = require('./models/User');
 
 // Socket.io connection logic
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
-  socket.on('join', (userId) => {
-    socket.join(userId);
+  socket.on('join', async (userId) => {
+    if (!userId) return;
+    socket.join(userId.toString());
     socket.join("group_chat");
     console.log(`User ${userId} joined room & group_chat`);
     
     // Track online user
-    socketToUser[socket.id] = userId;
+    socketToUser[socket.id] = userId.toString();
     if (!onlineUsers[userId]) {
       onlineUsers[userId] = [];
     }
     if (!onlineUsers[userId].includes(socket.id)) {
       onlineUsers[userId].push(socket.id);
     }
+
+    userPresence[userId] = {
+      status: 'online',
+      lastSeen: new Date(),
+    };
     
+    // Send complete presence state to the newly joined socket
+    socket.emit('presence_state', userPresence);
+
     // Broadcast the list of currently online userIds to everyone
     io.emit('online_users_list', Object.keys(onlineUsers));
+
+    // Broadcast individual user:presence update
+    io.emit('user:presence', {
+      userId: userId.toString(),
+      status: 'online',
+      lastSeen: userPresence[userId].lastSeen,
+    });
+  });
+
+  // Real-Time Group Message Read Receipts (Seen By)
+  socket.on('message:seen', async ({ messageIds, chatRoom }) => {
+    try {
+      const userId = socketToUser[socket.id];
+      if (!userId || !Array.isArray(messageIds) || messageIds.length === 0 || !chatRoom) {
+        return;
+      }
+
+      // If custom group room, verify user is a member
+      if (chatRoom !== "group" && chatRoom !== "direct") {
+        const room = await ChatRoom.findById(chatRoom);
+        if (!room) return;
+        const isMember = room.members.some((m) => m.toString() === userId.toString());
+        if (!isMember) return;
+      }
+
+      const seenAt = new Date();
+
+      // Atomic update of messages to prevent duplicates in seenBy
+      const updateResult = await Message.updateMany(
+        {
+          _id: { $in: messageIds },
+          chatRoom: chatRoom,
+          'seenBy.userId': { $ne: userId }
+        },
+        {
+          $addToSet: {
+            seenBy: {
+              userId: userId,
+              seenAt: seenAt,
+            }
+          }
+        }
+      );
+
+      if (updateResult.modifiedCount > 0) {
+        // Fetch viewer's display info
+        const viewer = await User.findById(userId)
+          .select('name role profile')
+          .populate('profile');
+
+        const seenPayload = {
+          messageIds,
+          chatRoom,
+          userId,
+          seenAt,
+          user: {
+            _id: viewer?._id || userId,
+            name: viewer?.name || 'User',
+            role: viewer?.role || 'team',
+            profile: viewer?.profile || null,
+          }
+        };
+
+        if (chatRoom === 'group') {
+          io.to('group_chat').emit('message:seen:update', seenPayload);
+        } else if (chatRoom !== 'direct') {
+          const room = await ChatRoom.findById(chatRoom);
+          if (room) {
+            room.members.forEach((memberId) => {
+              io.to(memberId.toString()).emit('message:seen:update', seenPayload);
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[Socket message:seen Error]:', err);
+    }
   });
 
   // WebRTC Signaling Events for Video/Audio Meetings
@@ -289,7 +381,7 @@ io.on('connection', (socket) => {
     console.log(`Socket ${socket.id} left call room ${roomId}`);
   });
 
-  socket.on('disconnect', () => {
+  socket.on('disconnect', async () => {
     console.log('User disconnected:', socket.id);
     
     // Remove from online tracking
@@ -300,6 +392,25 @@ io.on('connection', (socket) => {
         onlineUsers[userId] = onlineUsers[userId].filter(id => id !== socket.id);
         if (onlineUsers[userId].length === 0) {
           delete onlineUsers[userId];
+          
+          // Mark offline with lastSeen
+          const lastSeenDate = new Date();
+          userPresence[userId] = {
+            status: 'offline',
+            lastSeen: lastSeenDate,
+          };
+
+          // Broadcast offline status to everyone
+          io.emit('user:presence', {
+            userId: userId,
+            status: 'offline',
+            lastSeen: lastSeenDate,
+          });
+
+          // Asynchronously persist to database
+          User.findByIdAndUpdate(userId, { lastSeen: lastSeenDate }).catch((err) => {
+            console.error('Error updating user lastSeen:', err);
+          });
         }
       }
       // Broadcast updated online list

@@ -21,6 +21,7 @@ import {
   setActiveChatId,
   clearChatAction,
   clearChatLocal,
+  updateMessageSeen,
 } from "../../features/chat/chatSlice";
 import {
   FiSend,
@@ -50,6 +51,9 @@ import {
   FiShare2,
   FiMonitor,
   FiCopy,
+  FiAtSign,
+  FiCheck,
+  FiCheckCircle,
 } from "react-icons/fi";
 import io from "socket.io-client";
 import toast from "react-hot-toast";
@@ -235,6 +239,8 @@ const ChatPage = () => {
     messages,
     rooms,
     loading,
+    loadingOlder,
+    hasMoreGroupMessages,
     unreadCounts = {},
     lastMessages = {},
   } = useSelector((s) => s.chat);
@@ -246,6 +252,19 @@ const ChatPage = () => {
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [showChatWindowMobile, setShowChatWindowMobile] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState([]); // Array of online userIds
+  const [userPresence, setUserPresence] = useState({}); // userId -> { status, lastSeen }
+
+  // Group Member Presence Panel State
+  const [showMembersDrawer, setShowMembersDrawer] = useState(false);
+  const [memberSearchTerm, setMemberSearchTerm] = useState("");
+
+  // Group @Mention System State (Group Chat Only)
+  const [mentionQuery, setMentionQuery] = useState(null); // string or null
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const [mentions, setMentions] = useState([]); // [{ userId, username }]
+
+  // Seen By Modal State (Group Chat Only)
+  const [seenModalMessage, setSeenModalMessage] = useState(null);
 
   const activeChatRef = useRef(activeChat);
   useEffect(() => {
@@ -287,9 +306,109 @@ const ChatPage = () => {
 
   const socketRef = useRef();
   const messagesEndRef = useRef();
+  const messagesContainerRef = useRef(null);
   const fileInputRef = useRef();
+  const inputRef = useRef(null);
 
   const currentUserId = user?._id || user?.id;
+
+  const isGroupType =
+    activeChat === "group" || rooms.some((r) => r._id === activeChat);
+
+  // Group Members calculation
+  const currentGroupMembers = React.useMemo(() => {
+    if (!isGroupType) return [];
+    if (activeChat === "group") {
+      return users || [];
+    }
+    const room = rooms.find((r) => r._id === activeChat);
+    return room?.members || [];
+  }, [isGroupType, activeChat, users, rooms]);
+
+  // Local filter for @mentions (Group chat only, zero API calls)
+  const filteredMentionMembers = React.useMemo(() => {
+    if (mentionQuery === null || !isGroupType) return [];
+    const q = mentionQuery.toLowerCase();
+    const members = currentGroupMembers.filter(
+      (m) =>
+        m._id !== currentUserId &&
+        (m.name?.toLowerCase().includes(q) ||
+          m.role?.toLowerCase().includes(q) ||
+          m.department?.toLowerCase().includes(q))
+    );
+
+    // If query is empty or matches 'all' / 'everyone', include special @all option at top
+    const showAllOption = "all".includes(q) || "everyone".includes(q) || q === "";
+    if (showAllOption) {
+      const allOption = {
+        _id: "all",
+        isAll: true,
+        name: "all",
+        role: "Notify everyone in this room",
+      };
+      return [allOption, ...members];
+    }
+
+    return members;
+  }, [mentionQuery, isGroupType, currentGroupMembers, currentUserId]);
+
+  // Live Presence Helpers
+  const isMemberOnline = useCallback(
+    (memberId) => {
+      if (!memberId) return false;
+      const idStr = memberId.toString();
+      return (
+        onlineUsers.includes(idStr) ||
+        userPresence[idStr]?.status === "online"
+      );
+    },
+    [onlineUsers, userPresence]
+  );
+
+  const formatMemberLastSeen = useCallback(
+    (memberId, fallbackLastSeen) => {
+      if (!memberId) return "Offline";
+      const idStr = memberId.toString();
+      if (isMemberOnline(idStr)) return "Online";
+      const lastSeenDate = userPresence[idStr]?.lastSeen || fallbackLastSeen;
+      if (!lastSeenDate) return "Offline";
+      const d = new Date(lastSeenDate);
+      if (isNaN(d.getTime())) return "Offline";
+      const diffMs = Date.now() - d.getTime();
+      const diffMin = Math.floor(diffMs / 60000);
+      if (diffMin < 1) return "Just now";
+      if (diffMin < 60) return `${diffMin}m ago`;
+      const diffHrs = Math.floor(diffMin / 60);
+      if (diffHrs < 24) return `${diffHrs}h ago`;
+      return d.toLocaleDateString([], { month: "short", day: "numeric" });
+    },
+    [isMemberOnline, userPresence]
+  );
+
+  // Batch and debounce seen message emissions
+  const seenBufferRef = useRef(new Set());
+  const seenTimeoutRef = useRef(null);
+
+  const flushSeenBuffer = useCallback(() => {
+    if (seenBufferRef.current.size > 0 && socketRef.current && isGroupType) {
+      const messageIds = Array.from(seenBufferRef.current);
+      seenBufferRef.current.clear();
+      socketRef.current.emit("message:seen", {
+        messageIds,
+        chatRoom: activeChat,
+      });
+    }
+  }, [activeChat, isGroupType]);
+
+  const markMessageAsSeen = useCallback(
+    (messageId) => {
+      if (!isGroupType || !messageId) return;
+      seenBufferRef.current.add(messageId);
+      if (seenTimeoutRef.current) clearTimeout(seenTimeoutRef.current);
+      seenTimeoutRef.current = setTimeout(flushSeenBuffer, 300);
+    },
+    [flushSeenBuffer, isGroupType]
+  );
 
   // Join existing Call Room via clicked meeting invitation
   const joinCallRoom = useCallback(async (roomId, type) => {
@@ -528,11 +647,38 @@ const ChatPage = () => {
 
     // Track online/offline users
     socketRef.current.on("online_users_list", (userIds) => {
-      setOnlineUsers(userIds);
+      setOnlineUsers(userIds || []);
+    });
+
+    // Receive full initial presence state
+    socketRef.current.on("presence_state", (presenceMap) => {
+      if (presenceMap && typeof presenceMap === "object") {
+        setUserPresence(presenceMap);
+      }
+    });
+
+    // Receive individual user presence updates
+    socketRef.current.on("user:presence", ({ userId, status, lastSeen }) => {
+      if (userId) {
+        setUserPresence((prev) => ({
+          ...prev,
+          [userId]: {
+            status,
+            lastSeen: lastSeen ? new Date(lastSeen) : new Date(),
+          },
+        }));
+      }
+    });
+
+    // Receive real-time group message seen updates
+    socketRef.current.on("message:seen:update", (data) => {
+      dispatch(updateMessageSeen(data));
     });
 
     return () => {
-      socketRef.current.disconnect();
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
     };
   }, [currentUserId, dispatch]);
 
@@ -659,15 +805,97 @@ const ChatPage = () => {
     }
   };
 
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    const cursorPos = e.target.selectionStart;
+    setInputText(val);
+
+    // Mentions are only active inside Group Chats
+    if (!isGroupType) {
+      setMentionQuery(null);
+      return;
+    }
+
+    const textBeforeCursor = val.slice(0, cursorPos);
+    const lastAtIdx = textBeforeCursor.lastIndexOf("@");
+
+    if (lastAtIdx !== -1) {
+      const charBeforeAt = lastAtIdx > 0 ? textBeforeCursor[lastAtIdx - 1] : " ";
+      const textAfterAt = textBeforeCursor.slice(lastAtIdx + 1);
+
+      // Check if cursor is right after @ or typing a query without whitespace
+      if ((charBeforeAt === " " || charBeforeAt === "\n" || lastAtIdx === 0) && !textAfterAt.includes(" ")) {
+        setMentionQuery(textAfterAt);
+        setMentionIndex(0);
+        return;
+      }
+    }
+
+    setMentionQuery(null);
+  };
+
+  const handleSelectMention = (member) => {
+    if (!member) return;
+    const cursorPos = inputRef.current ? inputRef.current.selectionStart : inputText.length;
+    const textBeforeCursor = inputText.slice(0, cursorPos);
+    const textAfterCursor = inputText.slice(cursorPos);
+    const lastAtIdx = textBeforeCursor.lastIndexOf("@");
+
+    if (lastAtIdx !== -1) {
+      const newText = textBeforeCursor.slice(0, lastAtIdx) + `@${member.name} ` + textAfterCursor;
+      setInputText(newText);
+      setMentions((prev) => {
+        const exists = prev.some((m) => m.userId === member._id);
+        if (!exists) {
+          return [...prev, { userId: member._id, username: member.name }];
+        }
+        return prev;
+      });
+    }
+
+    setMentionQuery(null);
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
+
+  const handleInputKeyDown = (e) => {
+    if (mentionQuery !== null && filteredMentionMembers.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setMentionIndex((prev) => (prev + 1) % filteredMentionMembers.length);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setMentionIndex((prev) => (prev - 1 + filteredMentionMembers.length) % filteredMentionMembers.length);
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        handleSelectMention(filteredMentionMembers[mentionIndex]);
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        setMentionQuery(null);
+      }
+    }
+  };
+
   const handleSendMessage = async (e) => {
     e?.preventDefault();
     const trimmedText = inputText.trim();
     if (!trimmedText) return;
 
-    const isGroupType =
-      activeChat === "group" || rooms.some((r) => r._id === activeChat);
     const isSingleSticker =
       STICKERS.includes(trimmedText) || EMOJIS.includes(trimmedText);
+
+    // Filter mentions to only those currently present in the text
+    let activeMentions = isGroupType
+      ? mentions.filter((m) => inputText.includes(`@${m.username}`))
+      : [];
+
+    // Automatically ensure @all is captured if present in text
+    if (isGroupType && (/\B@all\b/i.test(inputText) || /\B@everyone\b/i.test(inputText))) {
+      if (!activeMentions.some((m) => m.username === "all")) {
+        activeMentions.push({ userId: "all", username: "all" });
+      }
+    }
 
     const payload = {
       recipient: isGroupType ? null : activeChat,
@@ -676,11 +904,88 @@ const ChatPage = () => {
         ? { sticker: trimmedText, messageType: "sticker" }
         : { text: inputText, messageType: "text" }),
       replyTo: replyingToMessage?._id || null,
+      mentions: activeMentions,
     };
 
     setInputText("");
+    setMentions([]);
+    setMentionQuery(null);
     setReplyingToMessage(null);
     await dispatch(sendMessageAction(payload)).unwrap();
+  };
+
+  const handleScroll = (e) => {
+    const { scrollTop, scrollHeight } = e.currentTarget;
+    if (
+      scrollTop === 0 &&
+      hasMoreGroupMessages &&
+      !loadingOlder &&
+      isGroupType &&
+      messages.length > 0
+    ) {
+      const oldestMessage = messages[0];
+      if (oldestMessage && oldestMessage.createdAt) {
+        const prevScrollHeight = scrollHeight;
+        dispatch(
+          fetchGroupMessages({
+            roomId: activeChat,
+            before: oldestMessage.createdAt,
+            isLoadMore: true,
+          })
+        ).then(() => {
+          if (messagesContainerRef.current) {
+            const newScrollHeight = messagesContainerRef.current.scrollHeight;
+            messagesContainerRef.current.scrollTop =
+              newScrollHeight - prevScrollHeight;
+          }
+        });
+      }
+    }
+  };
+
+  const renderMessageContentWithMentions = (text, messageMentions) => {
+    if (!text) return null;
+    const allMentions = messageMentions || [];
+    const mentionNames = allMentions.map((m) => m.username).filter(Boolean);
+
+    // Also include 'all' and 'everyone' in recognized mentions
+    if (!mentionNames.includes("all")) mentionNames.push("all");
+    if (!mentionNames.includes("everyone")) mentionNames.push("everyone");
+
+    const regex = new RegExp(
+      `(@(?:${mentionNames.map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")}))`,
+      "gi"
+    );
+    const parts = text.split(regex);
+
+    return parts.map((part, i) => {
+      if (part.startsWith("@")) {
+        const lowerPart = part.toLowerCase();
+        if (lowerPart === "@all" || lowerPart === "@everyone" || lowerPart === "@channel") {
+          return (
+            <span
+              key={i}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-black text-amber-900 dark:text-amber-200 bg-amber-100/90 dark:bg-amber-950/70 border border-amber-300/80 dark:border-amber-700/60 text-[11px] mx-0.5 select-none shadow-2xs"
+            >
+              📢 {part}
+            </span>
+          );
+        }
+
+        const cleanName = part.slice(1).trim().toLowerCase();
+        if (mentionNames.some((n) => n.toLowerCase() === cleanName)) {
+          return (
+            <span
+              key={i}
+              className="inline-flex items-center px-1.5 py-0.5 rounded-md font-bold text-blue-600 dark:text-[#3b82f6] bg-blue-50/80 dark:bg-[#3b82f6]/15 text-[11px] mx-0.5 select-none"
+            >
+              {part}
+            </span>
+          );
+        }
+      }
+      return part;
+    });
   };
 
   const handleDeleteMessage = async (messageId) => {
@@ -1229,16 +1534,24 @@ const ChatPage = () => {
             {activeChat === "group" ? (
               <>
                 <div className="w-10 h-10 rounded-2xl bg-blue-600 text-white dark:bg-[#3b82f6] dark:text-black flex items-center justify-center font-bold shadow-md shrink-0">
-                <img src={grouplogo} alt="" />
+                  <img src={grouplogo} alt="" />
                 </div>
                 <div className="min-w-0">
                   <h3 className="text-xs font-black theme-text-primary leading-tight truncate max-w-[120px] sm:max-w-xs">
                     Kerplunk Group Chat
                   </h3>
-                  <p className="text-[9px] text-emerald-500 font-black uppercase tracking-wider leading-none mt-1 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />{" "}
-                    Active Room
-                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowMembersDrawer(true)}
+                    className="text-[9px] text-emerald-500 hover:text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider leading-none mt-1 flex items-center gap-1 cursor-pointer transition-colors"
+                    title="View Group Members & Presence"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>
+                      {currentGroupMembers.length} members ·{" "}
+                      {currentGroupMembers.filter((m) => isMemberOnline(m._id)).length} online
+                    </span>
+                  </button>
                 </div>
               </>
             ) : activeCustomRoom ? (
@@ -1250,12 +1563,28 @@ const ChatPage = () => {
                   <h3 className="text-xs font-black theme-text-primary leading-tight truncate max-w-[120px] sm:max-w-xs">
                     {activeCustomRoom.name}
                   </h3>
-                  <button
-                    onClick={handleOpenManageModal}
-                    className="text-[9px] text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 font-bold uppercase tracking-wider leading-none mt-1 flex items-center gap-1 cursor-pointer"
-                  >
-                    <FiSettings size={10} /> Manage Members
-                  </button>
+                  <div className="flex items-center gap-2 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowMembersDrawer(true)}
+                      className="text-[9px] text-emerald-500 hover:text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider leading-none flex items-center gap-1 cursor-pointer transition-colors"
+                      title="View Group Members & Presence"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      <span>
+                        {currentGroupMembers.length} members ·{" "}
+                        {currentGroupMembers.filter((m) => isMemberOnline(m._id)).length} online
+                      </span>
+                    </button>
+                    <span className="text-[9px] text-slate-300 dark:text-slate-700">•</span>
+                    <button
+                      type="button"
+                      onClick={handleOpenManageModal}
+                      className="text-[9px] text-indigo-500 dark:text-indigo-400 hover:text-indigo-600 dark:hover:text-indigo-300 font-bold uppercase tracking-wider leading-none flex items-center gap-1 cursor-pointer"
+                    >
+                      <FiSettings size={10} /> Manage
+                    </button>
+                  </div>
                 </div>
               </>
             ) : activeChatUser ? (
@@ -1307,10 +1636,21 @@ const ChatPage = () => {
             ) : null}
           </div>
 
-          {/* CALL TRIGGER BUTTONS */}
+          {/* CALL & ACTION TRIGGER BUTTONS */}
           <div className="flex items-center gap-1.5 shrink-0">
+            {isGroupType && (
+              <button
+                type="button"
+                onClick={() => setShowMembersDrawer(true)}
+                className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-blue-600 dark:text-[#3b82f6] flex items-center justify-center transition-all cursor-pointer shadow-sm"
+                title="Group Members & Live Presence"
+              >
+                <FiUsers size={14} />
+              </button>
+            )}
             {activeChatUser && (
               <button
+                type="button"
                 onClick={() => {
                   if (
                     window.confirm(
@@ -1344,7 +1684,19 @@ const ChatPage = () => {
         </div>
 
         {/* MESSAGES LIST AREA */}
-        <div className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-3.5 scrollbar-thin bg-chat-wallpaper">
+        <div
+          ref={messagesContainerRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto p-2 sm:p-4 space-y-2 sm:space-y-3.5 scrollbar-thin bg-chat-wallpaper"
+        >
+          {loadingOlder && (
+            <div className="flex justify-center py-2">
+              <div className="text-[10px] font-bold theme-text-secondary bg-white/70 dark:bg-slate-800/70 border theme-border px-3 py-1 rounded-full shadow-xs flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
+                Loading older messages...
+              </div>
+            </div>
+          )}
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <span className="text-xs theme-text-secondary font-semibold">
@@ -1413,9 +1765,31 @@ const ChatPage = () => {
                 );
               }
 
+              // Check if current user has already seen this message
+              const hasSeen = m.seenBy && m.seenBy.some((s) => {
+                const sId = s?.userId?._id || s?.userId || s;
+                return sId?.toString() === currentUserId?.toString();
+              });
+
               return (
                 <div
                   key={m._id}
+                  ref={(el) => {
+                    if (el && isGroupType && !isMe && !hasSeen) {
+                      const observer = new IntersectionObserver(
+                        (entries) => {
+                          entries.forEach((entry) => {
+                            if (entry.isIntersecting) {
+                              markMessageAsSeen(m._id);
+                              observer.unobserve(el);
+                            }
+                          });
+                        },
+                        { threshold: 0.5 }
+                      );
+                      observer.observe(el);
+                    }
+                  }}
                   onClick={() =>
                     setActiveMessageMenu(
                       activeMessageMenu === m._id ? null : m._id,
@@ -1599,18 +1973,76 @@ const ChatPage = () => {
                             </button>
                           </div>
                         ) : (
-                          m.text
+                          renderMessageContentWithMentions(m.text, m.mentions)
                         )}
                       </div>
                     )}
 
-                    {/* Timestamp */}
-                    <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold mt-1 px-1">
-                      {new Date(m.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
+                    {/* Timestamp & Seen Status */}
+                    <div className={`flex items-center gap-1.5 mt-1 px-1 flex-wrap ${isMe ? "justify-end" : "justify-start"}`}>
+                      <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold">
+                        {new Date(m.createdAt).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+
+                      {/* Group Read Receipts (Seen By) */}
+                      {isGroupType && (
+                        m.seenBy && m.seenBy.length > 0 ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSeenModalMessage(m);
+                            }}
+                            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border transition-all cursor-pointer select-none ${
+                              isMe
+                                ? "bg-blue-50/90 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 border-blue-200/80 dark:border-blue-800/60 text-blue-700 dark:text-[#3b82f6]"
+                                : "bg-slate-100/90 dark:bg-slate-800/70 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
+                            }`}
+                            title="Click to view who read this message"
+                          >
+                            <span className="flex items-center text-blue-600 dark:text-[#3b82f6]">
+                              <FiCheck size={11} className="stroke-[3]" />
+                              <FiCheck size={11} className="-ml-1.5 stroke-[3]" />
+                            </span>
+                            <div className="flex -space-x-1.5 overflow-hidden py-0.5 items-center">
+                              {m.seenBy.slice(0, 3).map((reader, idx) => {
+                                const rUser = reader.userId || reader;
+                                const rProfileImg = rUser?.profile?.profileImage?.url;
+                                const rName = rUser?.name || "Member";
+                                return rProfileImg ? (
+                                  <img
+                                    key={reader._id || idx}
+                                    src={rProfileImg}
+                                    alt={rName}
+                                    className="inline-block h-3.5 w-3.5 rounded-full ring-1.5 ring-white dark:ring-slate-900 object-cover shadow-2xs"
+                                  />
+                                ) : (
+                                  <div
+                                    key={reader._id || idx}
+                                    className="inline-flex h-3.5 w-3.5 rounded-full ring-1.5 ring-white dark:ring-slate-900 bg-gradient-to-tr from-blue-500 to-indigo-600 text-white text-[7px] font-black items-center justify-center shadow-2xs"
+                                  >
+                                    {rName.charAt(0).toUpperCase()}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <span className="text-[9px] font-extrabold">
+                              Seen by {m.seenBy.length}
+                            </span>
+                          </button>
+                        ) : isMe ? (
+                          <span
+                            className="inline-flex items-center gap-0.5 text-[9px] text-slate-400 dark:text-slate-500 font-bold px-1.5 py-0.5 rounded-full bg-slate-100/70 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-800/50 select-none"
+                            title="Sent to group"
+                          >
+                            <FiCheck size={10} className="stroke-[2.5]" /> Sent
+                          </span>
+                        ) : null
+                      )}
+                    </div>
                   </div>
 
                   {/* Message Options Menu */}
@@ -1623,6 +2055,20 @@ const ChatPage = () => {
                         : "opacity-0 md:group-hover:opacity-100"
                     }`}
                   >
+                    {isGroupType && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSeenModalMessage(m);
+                          setActiveMessageMenu(null);
+                        }}
+                        className="p-1 rounded-lg theme-bg-main hover:theme-bg-card text-blue-600 dark:text-[#3b82f6] border theme-border cursor-pointer"
+                        title="Seen By / Message Info"
+                      >
+                        <FiEye size={11} />
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={(e) => {
@@ -1717,6 +2163,97 @@ const ChatPage = () => {
 
         {/* INPUT FORM CONTAINER */}
         <div className="px-2 sm:px-4 py-2.5 sm:py-3 theme-bg-card border-t theme-border relative shrink-0 transition-colors duration-300">
+          {/* @Mention Suggestion Popup (GROUP CHAT ONLY) */}
+          {isGroupType && mentionQuery !== null && filteredMentionMembers.length > 0 && (
+            <div className="absolute bottom-full left-2 sm:left-4 mb-2 w-72 sm:w-80 theme-bg-card border theme-border rounded-2xl shadow-2xl z-40 overflow-hidden animate-slide-up backdrop-blur-xl">
+              <div className="px-3 py-2 border-b theme-border flex items-center justify-between bg-slate-50/70 dark:bg-slate-900/70">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <FiAtSign size={12} className="text-blue-500" /> Mention Member
+                </span>
+                <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium">
+                  ↑↓ Navigate · ↵ Select
+                </span>
+              </div>
+              <div className="max-h-52 overflow-y-auto p-1.5 space-y-1 scrollbar-thin">
+                {filteredMentionMembers.map((m, idx) => {
+                  const isSelected = idx === mentionIndex;
+                  const isOnline = m.isAll ? true : isMemberOnline(m._id);
+                  return (
+                    <button
+                      key={m._id}
+                      type="button"
+                      onClick={() => handleSelectMention(m)}
+                      className={`w-full flex items-center gap-2.5 p-2 rounded-xl text-left transition-all cursor-pointer ${
+                        m.isAll
+                          ? isSelected
+                            ? "bg-amber-100 dark:bg-amber-950/50 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700/80"
+                            : "hover:bg-amber-50/80 dark:hover:bg-amber-950/30 text-amber-900 dark:text-amber-200 border border-amber-200/60 dark:border-amber-800/40 bg-amber-50/40 dark:bg-amber-950/20"
+                          : isSelected
+                          ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60"
+                          : "hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-200 border border-transparent"
+                      }`}
+                    >
+                      {m.isAll ? (
+                        <div className="relative shrink-0">
+                          <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-amber-500 to-orange-500 text-white font-black text-xs flex items-center justify-center shadow-xs">
+                            📢
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="relative shrink-0">
+                          {m.profile?.profileImage?.url ? (
+                            <img
+                              src={m.profile.profileImage.url}
+                              alt={m.name}
+                              className="w-7 h-7 rounded-lg object-cover"
+                            />
+                          ) : (
+                            <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-500 to-indigo-600 text-white font-black text-xs flex items-center justify-center">
+                              {m.name?.charAt(0) || "U"}
+                            </div>
+                          )}
+                          <span
+                            className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-white dark:ring-slate-900 ${
+                              isOnline ? "bg-emerald-500" : "bg-slate-400 dark:bg-slate-600"
+                            }`}
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold truncate leading-tight flex items-center gap-1.5">
+                          {m.isAll ? (
+                            <>
+                              <span className="text-amber-700 dark:text-amber-300 font-black">@all</span>
+                              <span className="text-[8px] font-black uppercase px-1 py-0.2 rounded bg-amber-200/70 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200">
+                                Everyone
+                              </span>
+                            </>
+                          ) : (
+                            m.name
+                          )}
+                        </p>
+                        <p className="text-[9px] text-slate-400 dark:text-slate-500 truncate capitalize mt-0.5">
+                          {m.role} {m.department ? `• ${m.department}` : ""}
+                        </p>
+                      </div>
+                      <span
+                        className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md ${
+                          m.isAll
+                            ? "text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60"
+                            : isOnline
+                            ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30"
+                            : "text-slate-400 dark:text-slate-500"
+                        }`}
+                      >
+                        {m.isAll ? "All Members" : isOnline ? "Online" : "Offline"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Sticker Picker Drawer */}
           {showStickerPicker && (
             <div className="absolute bottom-16 left-2 right-2 sm:left-4 sm:right-auto theme-bg-card border theme-border rounded-2xl p-3 shadow-xl z-20 w-auto sm:w-72">
@@ -1823,10 +2360,16 @@ const ChatPage = () => {
             </button>
 
             <input
+              ref={inputRef}
               type="text"
-              placeholder="Type message or reply..."
+              placeholder={
+                isGroupType
+                  ? "Type message, reply, or @ to mention..."
+                  : "Type message or reply..."
+              }
               value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
+              onChange={handleInputChange}
+              onKeyDown={handleInputKeyDown}
               className="flex-1 theme-bg-main border theme-border rounded-xl px-4 py-2 text-xs outline-none focus:border-blue-600 dark:focus:border-[#3b82f6] focus:ring-2 focus:ring-blue-600/20 dark:focus:ring-[#3b82f6]/20 transition-all theme-text-primary placeholder:theme-text-secondary"
             />
 
@@ -2375,6 +2918,332 @@ const ChatPage = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* GROUP MEMBERS PRESENCE DRAWER (GROUP CHAT ONLY) */}
+      {isGroupType && showMembersDrawer && (
+        <div className="fixed inset-0 z-[220] bg-slate-950/50 backdrop-blur-xs flex justify-end animate-fade-in">
+          <div className="theme-bg-card w-full max-w-sm h-full shadow-2xl border-l theme-border flex flex-col animate-slide-left">
+            {/* Drawer Header */}
+            <div className="p-4 border-b theme-border flex items-center justify-between theme-bg-main">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-600/10 text-blue-600 dark:bg-[#3b82f6]/10 dark:text-[#3b82f6] flex items-center justify-center font-bold">
+                  <FiUsers size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black theme-text-primary leading-tight">
+                    Group Members
+                  </h3>
+                  <p className="text-[10px] text-emerald-500 font-bold mt-0.5">
+                    {currentGroupMembers.length} members ·{" "}
+                    {currentGroupMembers.filter((m) => isMemberOnline(m._id)).length} online
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMembersDrawer(false)}
+                className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <FiX size={16} />
+              </button>
+            </div>
+
+            {/* Member Search */}
+            <div className="p-3 border-b theme-border theme-bg-main">
+              <div className="relative">
+                <FiSearch
+                  size={12}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  type="text"
+                  placeholder="Search members..."
+                  value={memberSearchTerm}
+                  onChange={(e) => setMemberSearchTerm(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500/20 theme-text-primary"
+                />
+              </div>
+            </div>
+
+            {/* Members List */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin">
+              {currentGroupMembers
+                .filter(
+                  (m) =>
+                    !memberSearchTerm ||
+                    m.name?.toLowerCase().includes(memberSearchTerm.toLowerCase()) ||
+                    m.role?.toLowerCase().includes(memberSearchTerm.toLowerCase())
+                )
+                .sort((a, b) => {
+                  const onlineA = isMemberOnline(a._id) ? 1 : 0;
+                  const onlineB = isMemberOnline(b._id) ? 1 : 0;
+                  return onlineB - onlineA;
+                })
+                .map((m) => {
+                  const isOnline = isMemberOnline(m._id);
+                  const lastSeenText = formatMemberLastSeen(m._id, m.lastSeen);
+                  const isSelf = m._id === currentUserId;
+
+                  return (
+                    <div
+                      key={m._id}
+                      className="flex items-center justify-between p-2.5 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800/40 border border-transparent hover:border-slate-100 dark:hover:border-slate-800 transition-all"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="relative shrink-0">
+                          {m.profile?.profileImage?.url ? (
+                            <img
+                              src={m.profile.profileImage.url}
+                              alt={m.name}
+                              className="w-10 h-10 rounded-2xl object-cover"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-500 to-indigo-600 text-white font-black text-xs flex items-center justify-center">
+                              {m.name?.charAt(0) || "U"}
+                            </div>
+                          )}
+                          <span
+                            className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 ${
+                              isOnline ? "bg-emerald-500" : "bg-slate-400 dark:bg-slate-600"
+                            }`}
+                            title={isOnline ? "Online" : "Offline"}
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-800 dark:text-white truncate flex items-center gap-1.5">
+                            {m.name}{" "}
+                            {isSelf && (
+                              <span className="text-[9px] text-blue-500 font-bold">
+                                (You)
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate capitalize mt-0.5">
+                            {m.role} {m.department ? `• ${m.department}` : ""}
+                          </p>
+                          <p
+                            className={`text-[9px] font-semibold mt-0.5 ${
+                              isOnline
+                                ? "text-emerald-500"
+                                : "text-slate-400 dark:text-slate-500"
+                            }`}
+                          >
+                            {isOnline ? "🟢 Online" : `⚪ ${lastSeenText}`}
+                          </p>
+                        </div>
+                      </div>
+
+                      {!isSelf && (
+                        <div className="flex items-center gap-1 shrink-0 ml-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowMembersDrawer(false);
+                              setActiveChat(m._id);
+                              setShowChatWindowMobile(true);
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600 dark:hover:text-[#3b82f6] transition-colors cursor-pointer"
+                            title="Direct Chat"
+                          >
+                            <FiMessageSquare size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowMembersDrawer(false);
+                              handleSelectMention(m);
+                            }}
+                            className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-600 dark:hover:text-[#3b82f6] transition-colors cursor-pointer"
+                            title="Mention in message"
+                          >
+                            <FiAtSign size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SEEN BY DETAILS MODAL (GROUP CHAT ONLY) */}
+      {seenModalMessage && (() => {
+        const seenUserIds = (seenModalMessage.seenBy || []).map(
+          (s) => (s.userId?._id || s.userId || s).toString()
+        );
+        const senderId = (seenModalMessage.sender?._id || seenModalMessage.sender || "").toString();
+
+        const notSeenMembers = currentGroupMembers.filter(
+          (m) => m._id.toString() !== senderId && !seenUserIds.includes(m._id.toString())
+        );
+
+        return (
+          <div className="fixed inset-0 z-[250] bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-3 animate-fade-in">
+            <div className="theme-bg-card w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl border theme-border flex flex-col max-h-[85vh]">
+              {/* Modal Header */}
+              <div className="px-4 py-3.5 border-b theme-border flex items-center justify-between theme-bg-main">
+                <div>
+                  <h3 className="text-xs font-black text-slate-800 dark:text-white flex items-center gap-2">
+                    <FiCheckCircle size={14} className="text-blue-500" />
+                    Message Info & Read Status
+                  </h3>
+                  <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5 truncate max-w-[220px]">
+                    "{seenModalMessage.text || (seenModalMessage.messageType === 'file' ? seenModalMessage.file?.filename : 'Attachment')}"
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSeenModalMessage(null)}
+                  className="w-7 h-7 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-rose-500 flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <FiX size={14} />
+                </button>
+              </div>
+
+              {/* Message Sent Preview */}
+              <div className="px-4 py-2.5 bg-slate-50/70 dark:bg-slate-900/50 border-b theme-border flex items-center justify-between text-[10px]">
+                <span className="font-bold text-slate-500 dark:text-slate-400">
+                  Sent at {new Date(seenModalMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <span className="font-extrabold text-blue-600 dark:text-[#3b82f6]">
+                  {seenModalMessage.seenBy?.length || 0} of {currentGroupMembers.filter(m => m._id.toString() !== senderId).length} read
+                </span>
+              </div>
+
+              {/* Readers List */}
+              <div className="p-3 flex-1 overflow-y-auto space-y-3 scrollbar-thin">
+                {/* READ BY SECTION */}
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2 flex items-center gap-1.5">
+                    <span className="flex items-center text-blue-500">
+                      <FiCheck size={11} className="stroke-[3]" />
+                      <FiCheck size={11} className="-ml-1.5 stroke-[3]" />
+                    </span>
+                    Read by ({seenModalMessage.seenBy?.length || 0})
+                  </h4>
+
+                  {(!seenModalMessage.seenBy || seenModalMessage.seenBy.length === 0) ? (
+                    <p className="text-xs text-center text-slate-400 py-3 font-semibold">
+                      No one has read this message yet.
+                    </p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {seenModalMessage.seenBy.map((item, idx) => {
+                        const reader = item.userId || item;
+                        const isOnline = isMemberOnline(reader._id);
+                        const seenTime = item.seenAt
+                          ? new Date(item.seenAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "Recently";
+
+                        return (
+                          <div
+                            key={item._id || idx}
+                            className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all border border-transparent hover:border-slate-100 dark:hover:border-slate-800"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="relative shrink-0">
+                                {reader.profile?.profileImage?.url ? (
+                                  <img
+                                    src={reader.profile.profileImage.url}
+                                    alt={reader.name}
+                                    className="w-8 h-8 rounded-xl object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-500 to-indigo-600 text-white font-bold text-xs flex items-center justify-center">
+                                    {reader.name?.charAt(0) || "U"}
+                                  </div>
+                                )}
+                                <span
+                                  className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-1.5 ring-white dark:ring-slate-900 ${
+                                    isOnline ? "bg-emerald-500" : "bg-slate-400 dark:bg-slate-600"
+                                  }`}
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-slate-800 dark:text-white truncate">
+                                  {reader.name}
+                                </p>
+                                <p className="text-[9px] text-slate-400 dark:text-slate-500 capitalize">
+                                  {reader.role || "Member"} {reader.department ? `• ${reader.department}` : ""}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="text-right shrink-0">
+                              <span className="text-[10px] font-bold text-blue-600 dark:text-[#3b82f6] flex items-center gap-1 justify-end">
+                                <FiCheck size={11} /> {seenTime}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* NOT READ YET SECTION */}
+                {notSeenMembers.length > 0 && (
+                  <div className="pt-2 border-t theme-border">
+                    <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2 flex items-center gap-1.5">
+                      <FiCheck size={11} className="text-slate-400" />
+                      Delivered / Not read yet ({notSeenMembers.length})
+                    </h4>
+                    <div className="space-y-1.5">
+                      {notSeenMembers.map((m) => {
+                        const isOnline = isMemberOnline(m._id);
+                        return (
+                          <div
+                            key={m._id}
+                            className="flex items-center justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-all opacity-80"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="relative shrink-0">
+                                {m.profile?.profileImage?.url ? (
+                                  <img
+                                    src={m.profile.profileImage.url}
+                                    alt={m.name}
+                                    className="w-8 h-8 rounded-xl object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs flex items-center justify-center">
+                                    {m.name?.charAt(0) || "U"}
+                                  </div>
+                                )}
+                                <span
+                                  className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full ring-1.5 ring-white dark:ring-slate-900 ${
+                                    isOnline ? "bg-emerald-500" : "bg-slate-400 dark:bg-slate-600"
+                                  }`}
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">
+                                  {m.name}
+                                </p>
+                                <p className="text-[9px] text-slate-400 dark:text-slate-500 capitalize">
+                                  {m.role || "Member"}
+                                </p>
+                              </div>
+                            </div>
+
+                            <span className="text-[9px] font-bold text-slate-400 bg-slate-100 dark:bg-red-500 dark:text-white px-2 py-0.5 rounded-full">
+                              Delivered
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
