@@ -1423,7 +1423,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         if (!t.assignedTo) return false;
         const aId =
           typeof t.assignedTo === "object" ? t.assignedTo._id : t.assignedTo;
-        return aId === designer._id;
+        if (aId !== designer._id) return false;
+        const s = (t.status || "").toLowerCase();
+        if (s.includes("reject") || s.includes("cancel")) return false;
+        return true;
       });
 
       // TODAY ASSIGNED TASKS ONLY — tasks whose assignment date (startDate || createdAt)
@@ -1737,7 +1740,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
           if (!t.assignedTo) return false;
           const aId =
             typeof t.assignedTo === "object" ? t.assignedTo._id : t.assignedTo;
-          return aId === designer._id;
+          if (aId !== designer._id) return false;
+          const s = (t.status || "").toLowerCase();
+          if (s.includes("reject") || s.includes("cancel")) return false;
+          return true;
         });
 
         designerTasksFromAll.forEach((t) => {
@@ -1786,8 +1792,9 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
       }
 
       const s = task.status?.toLowerCase() || "";
-      if (s === "completed") cp[clientId].completed++;
-      else {
+      const isRejected = s.includes("reject") || s.includes("cancel");
+      if (s === "completed" || s.includes("approve")) cp[clientId].completed++;
+      else if (!isRejected) {
         cp[clientId].pending++;
         if (s.includes("revision")) cp[clientId].revision++;
         if (task.dueDate) {
@@ -1810,7 +1817,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
     return designerTasks
       .filter((t) => {
         const s = t.status?.toLowerCase() || "";
-        const isActive = s !== "completed" && !s.includes("approve");
+        const isActive =
+          s !== "completed" &&
+          !s.includes("approve") &&
+          !s.includes("reject") &&
+          !s.includes("cancel");
         return isActive;
       })
       .map((t) => {
@@ -2574,7 +2585,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         </div>
       </div>
       {/* Premium Metrics Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 lg:gap-2 relative z-10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-9 gap-3 lg:gap-2 relative z-10">
         {[
           {
             label:
@@ -2690,19 +2701,6 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
               "bg-amber-100 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-500/20",
             iconColor: "text-amber-600 dark:text-amber-400",
             onClick: () => handleMetricClick("Due Today"),
-          },
-          {
-            label: "Rejected",
-            value: metrics.rejected,
-            icon: FiXCircle,
-            glow: "hover:shadow-[0_4px_20px_rgba(239,68,68,0.15)]",
-            bg: "bg-gradient-to-br from-red-500 to-red-600 dark:from-red-650 dark:to-red-800 border border-red-200/50 dark:border-red-900/30",
-            labelColor: "text-white dark:text-white",
-            valueColor: "text-slate-100 dark:text-white",
-            iconBg:
-              "bg-red-100 dark:bg-red-950/60 border border-red-200 dark:border-red-500/20",
-            iconColor: "text-red-600 dark:text-red-400",
-            onClick: () => handleMetricClick("Rejected"),
           },
           {
             label: "Team Efficiency",
@@ -3411,7 +3409,12 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
 
                   const delayCount = (tp.tasks || []).filter((t) => {
                     const s = (t.status || "").toLowerCase();
-                    if (s === "completed" || s.includes("approve"))
+                    if (
+                      s === "completed" ||
+                      s.includes("approve") ||
+                      s.includes("reject") ||
+                      s.includes("cancel")
+                    )
                       return false;
                     if (!t.dueDate) return false;
                     return isBefore(
@@ -3696,7 +3699,12 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                   const totalDelaysSum = teamPerformance.reduce((s, tp) => {
                     const dCount = (tp.tasks || []).filter((t) => {
                       const st = (t.status || "").toLowerCase();
-                      if (st === "completed" || st.includes("approve"))
+                      if (
+                        st === "completed" ||
+                        st.includes("approve") ||
+                        st.includes("reject") ||
+                        st.includes("cancel")
+                      )
                         return false;
                       if (!t.dueDate) return false;
                       return isBefore(
