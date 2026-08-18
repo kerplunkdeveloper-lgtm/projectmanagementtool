@@ -3032,7 +3032,7 @@ const TaskOverviewTab = ({
                 setIsAddingNewTask(true);
                 setNewTaskProject("");
               }}
-              className="flex items-center justify-center gap-1.5 px-3 py-1 h-7 rounded-full bg-gradient-to-r from-[#60a5fa] to-[#3b82f6] text-white text-[11px] font-bold cursor-pointer transition-all shadow-md hover:shadow-blue-500/20 active:scale-95 shrink-0"
+              className="flex items-center justify-center gap-1.5 px-3 py-1 h-7 rounded-full theme-bg-accent  text-white text-[11px] font-bold cursor-pointer transition-all shadow-md hover:shadow-blue-500/20 active:scale-95 shrink-0"
               title="Create a new task"
             >
               <FiPlus size={13} className="stroke-[3]" />
