@@ -1159,8 +1159,8 @@ const ChatPage = () => {
                     <span
                       className={`shrink-0 text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full leading-none ${
                         onlineUsers.includes(u._id)
-                          ? "bg-gray-300 text-emerald-600 dark:bg-gray-100 dark:text-emerald-700"
-                          : "bg-slate-50 text-red-400 dark:bg-slate-50 dark:text-red-500"
+                          ? " text-emerald-600  dark:text-emerald-600"
+                          : " text-red-600  dark:text-red-600"
                       }`}
                     >
                       {onlineUsers.includes(u._id) ? "Online" : "Offline"}
