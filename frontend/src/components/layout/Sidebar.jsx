@@ -22,7 +22,9 @@ import { getProjects } from "../../features/projects/projectSlice";
 import { getUsers } from "../../features/users/userSlice";
 import { getPortfolios } from "../../features/portfolio/portfolioSlice";
 import { getClients } from "../../features/clients/clientslice";
-import { apiSlice } from "../../features/api/apiSlice";
+import { apiSlice, useGetTasksQuery } from "../../features/api/apiSlice";
+import { getEodReports } from "../../features/eodReports/eodReportSlice";
+import { getDesignerEodReports } from "../../features/eodReports/designerEodReportSlice";
 import { markAllChatAsRead } from "../../features/notifications/notificationSlice";
 import { clearAllUnreadCounts } from "../../features/chat/chatSlice";
 import ProjectIcon from "../common/ProjectIcon";
@@ -141,6 +143,54 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   
   // Use the database notifications count as the source of truth if it exists, otherwise fallback to local session state
   const totalUnreadChatCount = Math.max(localUnreadChatCount, dbUnreadChatCount);
+
+  // Fetch tasks for MOM reports count
+  const { data: allTasks = [] } = useGetTasksQuery(undefined, {
+    skip: !currentUser,
+  });
+
+  // EOD Reports for Admin / Operation Manager count
+  const { eodReports } = useSelector((state) => state.eodReports || {});
+  const { designerEodReports } = useSelector(
+    (state) => state.designerEodReports || {},
+  );
+
+  useEffect(() => {
+    if (role === "admin" || role === "operationmanager") {
+      dispatch(getEodReports());
+      dispatch(getDesignerEodReports());
+    }
+  }, [dispatch, role]);
+
+  const newMomCount = React.useMemo(() => {
+    return (allTasks || []).filter(
+      (t) =>
+        (t.contentType || "").toUpperCase() === "MOM" &&
+        (t.status || "").toLowerCase() !== "completed" &&
+        (t.status || "").toLowerCase() !== "done",
+    ).length;
+  }, [allTasks]);
+
+  const newReportsCount = React.useMemo(() => {
+    if (role !== "admin" && role !== "operationmanager") return 0;
+    const todayStr = new Date().toISOString().split("T")[0];
+    const isToday = (d) => {
+      if (!d) return false;
+      try {
+        const str = new Date(d).toISOString().split("T")[0];
+        return str === todayStr;
+      } catch {
+        return false;
+      }
+    };
+    const todayGeneral = (eodReports || []).filter((r) =>
+      isToday(r.date || r.createdAt),
+    );
+    const todayDesigner = (designerEodReports || []).filter(
+      (r) => !r.isDraft && isToday(r.date || r.createdAt),
+    );
+    return todayGeneral.length + todayDesigner.length;
+  }, [eodReports, designerEodReports, role]);
 
   const menuItems = (sidebarConfig[role] || []).filter((item) => {
     // Hide Projects Overview for Social Media Manager department
@@ -1088,12 +1138,36 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                               {totalUnreadChatCount}
                             </span>
                           )}
+                        {(item.name === "MOM Report" ||
+                          item.name === "MOM Client Report") &&
+                          newMomCount > 0 && (
+                            <span className="flex h-[1rem] min-w-[1rem] items-center justify-center rounded-full bg-indigo-600 dark:bg-indigo-500 px-1 text-[0.5625rem] font-black text-white shadow-xs shrink-0 animate-pulse">
+                              {newMomCount}
+                            </span>
+                          )}
+                        {item.name === "Reports" &&
+                          (role === "admin" || role === "operationmanager") &&
+                          newReportsCount > 0 && (
+                            <span className="flex h-[1rem] min-w-[1rem] items-center justify-center rounded-full bg-emerald-600 dark:bg-emerald-500 px-1 text-[0.5625rem] font-black text-white shadow-xs shrink-0 animate-pulse">
+                              {newReportsCount}
+                            </span>
+                          )}
 
                         {/* Active dot (for items without badge) */}
                         {isActive &&
                           !unreadCount &&
                           item.name !== "Notifications" &&
-                          item.name !== "Chat" && (
+                          item.name !== "Chat" &&
+                          !(
+                            (item.name === "MOM Report" ||
+                              item.name === "MOM Client Report") &&
+                            newMomCount > 0
+                          ) &&
+                          !(
+                            item.name === "Reports" &&
+                            (role === "admin" || role === "operationmanager") &&
+                            newReportsCount > 0
+                          ) && (
                             <motion.span
                               className="w-1.5 h-1.5 rounded-full bg-slate-900 dark:bg-white shrink-0"
                               initial={{ scale: 0 }}
@@ -1123,8 +1197,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
             const topCardNames =
               role === "operationmanager"
-                ? ["Home", "Sticky Notes", "Chat", "Users", "Reports", "SM Credentials", "MOM Client Report"]
-                : ["Home", "Sticky Notes", "Chat", "Users", "SM Credentials", "MOM Client Report", "Reports"];
+                ? ["Home", "Sticky Notes", "Chat", "Users", "Reports", "SM Credentials", "MOM Report"]
+                : ["Home", "Sticky Notes", "Chat", "Users", "SM Credentials", "MOM Report", "Reports"];
 
             return (
               <>
