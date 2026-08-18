@@ -230,23 +230,23 @@ const MomClientReport = () => {
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#020710] overflow-hidden">
-      <div className="flex items-center gap-3 px-6 py-4 theme-bg-accent shadow-md">
-        <div className="bg-white/20 p-2 rounded-lg">
-          <FiFileText size={20} className="text-white" />
+      <div className="flex items-center gap-3 px-6 py-3.5 theme-bg-accent shadow-md shrink-0">
+        <div className="bg-white/20 p-1.5 rounded-lg">
+          <FiFileText size={18} className="text-white" />
         </div>
         <div>
-          <h1 className="text-lg font-bold text-white">MOM Client Report</h1>
-          <p className="text-xs font-medium text-indigo-100">Social Media Team - MOM Tasks Overview</p>
+          <h1 className="text-base font-bold text-white leading-tight">MOM Client Report</h1>
+          <p className="text-[11px] font-medium text-indigo-100">Social Media Team - MOM Tasks Overview</p>
         </div>
       </div>
       
-      <div className=" py-4 flex-1 flex flex-col min-h-0 overflow-y-auto">
-        <div className="flex flex-col xl:flex-row xl:justify-between xl:items-center mb-4 gap-4">
-          <div className="flex flex-wrap items-center gap-3">
+      <div className="  py-3 flex-1 flex flex-col min-h-0 overflow-y-auto">
+        <div className="flex flex-col xl:flex-row xl:justify-between xl:items-center mb-3 gap-2.5 shrink-0">
+          <div className="flex flex-wrap items-center gap-2">
             <select
               value={assigneeFilter}
               onChange={(e) => setAssigneeFilter(e.target.value)}
-              className="px-3 py-2 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[150px] shadow-sm cursor-pointer hover:border-slate-300 transition-colors"
+              className="px-2.5 py-1.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 min-w-[130px] shadow-2xs cursor-pointer hover:border-slate-300 transition-colors"
             >
               <option value="">All Assignees</option>
               {uniqueAssignees.map(a => (
@@ -257,7 +257,7 @@ const MomClientReport = () => {
             <select
               value={clientFilter}
               onChange={(e) => setClientFilter(e.target.value)}
-              className="px-3 py-2 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[150px] shadow-sm cursor-pointer hover:border-slate-300 transition-colors"
+              className="px-2.5 py-1.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 min-w-[130px] shadow-2xs cursor-pointer hover:border-slate-300 transition-colors"
             >
               <option value="">All Clients</option>
               {uniqueClients.map(c => (
@@ -266,16 +266,16 @@ const MomClientReport = () => {
             </select>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               onClick={() => setDateFilter("")}
-              className="px-4 py-2 bg-[#f0f5fa] dark:bg-slate-800 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-extrabold text-sm rounded-xl transition-colors cursor-pointer"
+              className="px-3 py-1.5 bg-[#f0f5fa] dark:bg-slate-800 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-lg transition-colors cursor-pointer"
             >
               All Dates
             </button>
             <button
               onClick={handleSetToday}
-              className="px-4 py-2 bg-[#f0f5fa] dark:bg-slate-800 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-extrabold text-sm rounded-xl transition-colors cursor-pointer"
+              className="px-3 py-1.5 bg-[#f0f5fa] dark:bg-slate-800 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-lg transition-colors cursor-pointer"
             >
               Today
             </button>
@@ -289,14 +289,14 @@ const MomClientReport = () => {
                 }
               }}
             >
-              <div className="flex items-center gap-3 px-4 py-2 bg-[#f0f5fa] dark:bg-slate-800 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 rounded-xl transition-colors min-w-[150px] justify-between cursor-pointer">
-                <div className="flex items-center gap-2">
-                  <FiCalendar className="text-emerald-500" size={16} />
-                  <span className="text-slate-800 dark:text-slate-200 font-extrabold text-sm">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-[#f0f5fa] dark:bg-slate-800 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 rounded-lg transition-colors min-w-[130px] justify-between cursor-pointer">
+                <div className="flex items-center gap-1.5">
+                  <FiCalendar className="text-emerald-500" size={14} />
+                  <span className="text-slate-800 dark:text-slate-200 font-bold text-xs">
                     {getDisplayDate()}
                   </span>
                 </div>
-                <FiChevronDown className="text-slate-400" size={14} />
+                <FiChevronDown className="text-slate-400" size={12} />
               </div>
               <input
                 type="date"
@@ -306,19 +306,21 @@ const MomClientReport = () => {
               />
             </div>
 
-            <div className="flex items-center bg-[#f0f5fa] dark:bg-slate-800 rounded-xl overflow-hidden">
+            <div className="flex items-center bg-[#f0f5fa] dark:bg-slate-800 rounded-lg overflow-hidden">
               <button
                 onClick={() => handleAdjustDate(-1)}
-                className="px-3 py-2 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                className="px-2 py-1.5 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                title="Previous Day"
               >
-                <FiChevronLeft size={16} strokeWidth={2.5} />
+                <FiChevronLeft size={14} strokeWidth={2.5} />
               </button>
-              <div className="w-px h-4 bg-slate-200 dark:bg-slate-600"></div>
+              <div className="w-px h-3.5 bg-slate-200 dark:bg-slate-600"></div>
               <button
                 onClick={() => handleAdjustDate(1)}
-                className="px-3 py-2 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                className="px-2 py-1.5 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                title="Next Day"
               >
-                <FiChevronRight size={16} strokeWidth={2.5} />
+                <FiChevronRight size={14} strokeWidth={2.5} />
               </button>
             </div>
           </div>
@@ -326,32 +328,32 @@ const MomClientReport = () => {
 
         {loading ? (
           <div className="flex justify-center items-center py-20">
-            <span className="text-slate-500 text-sm font-medium animate-pulse">Loading reports...</span>
+            <span className="text-slate-500 text-xs font-medium animate-pulse">Loading reports...</span>
           </div>
         ) : (
-          <div className="bg-white dark:bg-[#0f172a] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-[#151b2b] border-b border-slate-200 dark:border-slate-800">
-                    <th className="px-4 py-3 w-24 text-center">
-                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Check</span>
+          <div className="bg-white dark:bg-[#0f172a] rounded-xl shadow-2xs border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col min-h-0">
+            <div className="overflow-x-auto overflow-y-auto flex-1">
+              <table className="w-full table-auto text-left border-collapse">
+                <thead className="sticky top-0 z-10">
+                  <tr className="bg-slate-50 dark:bg-[#151b2b] border-b border-slate-200 dark:border-slate-800 shadow-2xs">
+                    <th className="px-3 py-2 text-center whitespace-nowrap">
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Check</span>
                     </th>
-                    <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Assignee</th>
-                    <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Client Name</th>
-                    <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Task Title</th>
-                    <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Start Date</th>
-                    <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">End Date</th>
-                    <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Priority</th>
-                    <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase text-center">Created Time</th>
-                    <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase text-center">Status</th>
-                    <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Feedback MOM</th>
+                    <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Assignee</th>
+                    <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Client Name</th>
+                    <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Task Title</th>
+                    <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Start Date</th>
+                    <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">End Date</th>
+                    <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap text-center">Priority</th>
+                    <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center whitespace-nowrap">Created Time</th>
+                    <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-center whitespace-nowrap">Status</th>
+                    <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Feedback MOM</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
                   {filteredTasks.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 text-sm">
+                      <td colSpan={10} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 text-xs">
                         No MOM tasks found for the selected criteria.
                       </td>
                     </tr>
@@ -370,58 +372,62 @@ const MomClientReport = () => {
                       const isCompleted = task.status?.toLowerCase() === "completed" || task.status?.toLowerCase() === "done";
 
                       return (
-                        <tr key={task._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors">
-                          <td className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
+                        <tr key={task._id} className="hover:bg-slate-50/70 dark:hover:bg-slate-900/40 transition-colors">
+                          <td className="px-3 py-1.5 text-center whitespace-nowrap">
+                            <div className="flex items-center justify-center gap-1">
                               <button 
                                 onClick={() => handleToggleCheck(task._id)}
-                                className={`w-5 h-5 rounded-full flex items-center justify-center shadow-sm cursor-pointer transition-colors ${
+                                className={`w-4 h-4 rounded-full flex items-center justify-center shadow-2xs cursor-pointer transition-colors ${
                                   (isCompleted || localCheckedTasks.has(task._id))
                                     ? "bg-emerald-500 text-white border-emerald-500" 
-                                    : "border-2 border-slate-300 dark:border-slate-600"
+                                    : "border border-slate-300 dark:border-slate-600 hover:border-slate-400"
                                 }`}
                               >
-                                {(isCompleted || localCheckedTasks.has(task._id)) && <FiCheckCircle size={12} strokeWidth={3} />}
+                                {(isCompleted || localCheckedTasks.has(task._id)) && <FiCheckCircle size={10} strokeWidth={3} />}
                               </button>
                               {(isCompleted || localCheckedTasks.has(task._id)) && (
-                                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">Checked</span>
+                                <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">Checked</span>
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-sm font-semibold text-slate-800 dark:text-slate-200">
-                            <div className="flex items-center gap-2">
-                              {renderUserAvatarSmall(assigneeUserObj, "w-7 h-7 text-[9px]")}
+                          <td className="px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                            <div className="flex items-center gap-1.5">
+                              {renderUserAvatarSmall(assigneeUserObj, "w-5 h-5 text-[8px]")}
                               <span>{assigneeName}</span>
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-300">
-                            {clientObj ? <ClientBadge client={clientObj} /> : clientName}
+                          <td className="px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                            {clientObj ? (
+                              <ClientBadge client={clientObj} size="sm" />
+                            ) : (
+                              <span>{clientName}</span>
+                            )}
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 max-w-[200px] truncate">
+                          <td className="px-3 py-1.5 text-xs text-slate-700 dark:text-slate-300 whitespace-nowrap font-medium" title={task.title}>
                             {task.title}
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                          <td className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
                             {task.startDate ? new Date(task.startDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : "—"}
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                          <td className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
                             {task.dueDate ? new Date(task.dueDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : "—"}
                           </td>
-                          <td className="px-4 py-3 text-xs">
-                            <span className={`px-2 py-1 rounded-md ${getPriorityStyle(task.priority)}`}>
+                          <td className="px-3 py-1.5 text-[11px] text-center whitespace-nowrap">
+                            <span className={`px-1.5 py-0.5 rounded ${getPriorityStyle(task.priority)}`}>
                               {task.priority || "Medium"}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap text-center">
+                          <td className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap text-center">
                             {formatCreatedTime(task.createdAt)}
                           </td>
-                          <td className="px-4 py-3 text-xs text-center">
-                            <span className={`px-2 py-1 rounded-md ${getStatusStyle(task.status)} font-bold`}>
+                          <td className="px-3 py-1.5 text-[11px] text-center whitespace-nowrap">
+                            <span className={`px-1.5 py-0.5 rounded ${getStatusStyle(task.status)} font-bold`}>
                               {task.status || "Pending"}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-xs text-slate-700 dark:text-slate-200 max-w-[200px] truncate" title={task.feedbackMom || ""}>
+                          <td className="px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 whitespace-nowrap" title={task.feedbackMom || ""}>
                             {task.feedbackMom ? (
-                              <span className="font-semibold text-slate-700 dark:text-slate-200">
+                              <span className="font-medium text-slate-700 dark:text-slate-200">
                                 {task.feedbackMom}
                               </span>
                             ) : (

@@ -240,6 +240,30 @@ exports.createTask = async (req, res) => {
       });
     }
 
+    // Validate that assignee is an active employee
+    if (req.body.assignedTo) {
+      const assignee = await User.findById(req.body.assignedTo);
+      if (assignee && (assignee.employmentStatus === 'relieved' || assignee.accountStatus === 'inactive')) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot assign tasks to a relieved/inactive employee.',
+        });
+      }
+    }
+    if (req.body.subtasks && Array.isArray(req.body.subtasks)) {
+      for (const sub of req.body.subtasks) {
+        if (sub.assignedTo) {
+          const subAssignee = await User.findById(sub.assignedTo);
+          if (subAssignee && (subAssignee.employmentStatus === 'relieved' || subAssignee.accountStatus === 'inactive')) {
+            return res.status(400).json({
+              success: false,
+              message: 'Cannot assign subtasks to a relieved/inactive employee.',
+            });
+          }
+        }
+      }
+    }
+
     const task = await Task.create(req.body);
 
     const populatedTask = await Task.findById(task._id)
@@ -344,6 +368,30 @@ exports.updateTask = async (req, res) => {
 
     if (!task) {
       return res.status(404).json({ success: false, message: "Task not found" });
+    }
+
+    // Validate that new assignee is an active employee
+    if (req.body.assignedTo) {
+      const assignee = await User.findById(req.body.assignedTo);
+      if (assignee && (assignee.employmentStatus === 'relieved' || assignee.accountStatus === 'inactive')) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot assign tasks to a relieved/inactive employee.',
+        });
+      }
+    }
+    if (req.body.subtasks && Array.isArray(req.body.subtasks)) {
+      for (const sub of req.body.subtasks) {
+        if (sub.assignedTo) {
+          const subAssignee = await User.findById(sub.assignedTo);
+          if (subAssignee && (subAssignee.employmentStatus === 'relieved' || subAssignee.accountStatus === 'inactive')) {
+            return res.status(400).json({
+              success: false,
+              message: 'Cannot assign subtasks to a relieved/inactive employee.',
+            });
+          }
+        }
+      }
     }
 
     const previousStatus = task.status;

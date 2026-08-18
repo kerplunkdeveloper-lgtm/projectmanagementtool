@@ -3,6 +3,7 @@ import { io } from "socket.io-client";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { addNotification } from "../features/notifications/notificationSlice";
+import { logoutUser } from "../features/auth/authSlice";
 import { apiSlice } from "../features/api/apiSlice";
 import { incrementUnreadCount } from "../features/chat/chatSlice";
 import toast from "react-hot-toast";
@@ -151,6 +152,20 @@ const useSocket = () => {
 
       socket.current.on("task_updated", () => {
         dispatch(apiSlice.util.invalidateTags(["Task"]));
+      });
+
+      socket.current.on("account_deactivated", (data) => {
+        toast.error(
+          data?.message || "Your account has been deactivated. Please contact your administrator.",
+          { duration: 6000, id: "account-deactivated-toast" }
+        );
+        dispatch(logoutUser());
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("originalRole");
+        localStorage.removeItem("originalAdminUser");
+        localStorage.removeItem("originalAdminToken");
+        window.location.href = "/";
       });
 
       socket.current.on("notification", (notification) => {

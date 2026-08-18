@@ -18,6 +18,8 @@ exports.getSocialAccounts = async (req, res) => {
       queryConditions.push({
         $or: [
           { clientName: searchRegex },
+          { registeredEmail: searchRegex },
+          { registeredPhone: searchRegex },
           { "instagram.username": searchRegex },
           { "instagram.email": searchRegex },
           { "instagram.phoneNumber": searchRegex },
@@ -52,8 +54,16 @@ exports.getSocialAccounts = async (req, res) => {
     const finalQuery = queryConditions.length > 0 ? { $and: queryConditions } : {};
 
     const socialAccounts = await SocialAccount.find(finalQuery)
-      .populate("client", "companyName industry phoneNumber color icon status assignedTo")
-      .populate("createdBy", "name email")
+      .populate({
+        path: "client",
+        select: "companyName industry phoneNumber color icon status assignedTo spoc designation",
+        populate: {
+          path: "assignedTo",
+          select: "name email profileImage profilePic avatar role department profile",
+        },
+      })
+      .populate("accountManager", "name email profileImage profilePic avatar role department profile")
+      .populate("createdBy", "name email profileImage profilePic avatar role department profile")
       .populate("updatedBy", "name email")
       .sort({ updatedAt: -1, createdAt: -1 });
 
@@ -78,8 +88,16 @@ exports.getSocialAccounts = async (req, res) => {
 exports.getSocialAccountById = async (req, res) => {
   try {
     const socialAccount = await SocialAccount.findById(req.params.id)
-      .populate("client", "companyName industry phoneNumber color icon status assignedTo")
-      .populate("createdBy", "name email")
+      .populate({
+        path: "client",
+        select: "companyName industry phoneNumber color icon status assignedTo spoc designation",
+        populate: {
+          path: "assignedTo",
+          select: "name email profileImage profilePic avatar role department profile",
+        },
+      })
+      .populate("accountManager", "name email profileImage profilePic avatar role department profile")
+      .populate("createdBy", "name email profileImage profilePic avatar role department profile")
       .populate("updatedBy", "name email");
 
     if (!socialAccount) {
@@ -130,6 +148,11 @@ exports.createSocialAccount = async (req, res) => {
     const {
       client,
       clientName,
+      spoc,
+      designation,
+      accountManager,
+      registeredEmail,
+      registeredPhone,
       instagram,
       facebook,
       tiktok,
@@ -140,12 +163,26 @@ exports.createSocialAccount = async (req, res) => {
     } = req.body;
 
     let finalClientName = clientName;
+    let finalSpoc = spoc !== undefined ? spoc.trim() : "";
+    let finalDesignation = designation !== undefined ? designation.trim() : "";
+    let finalAccountManager = accountManager || null;
 
     // If client ID was provided but clientName was not, find the client
-    if (client && (!finalClientName || finalClientName.trim() === "")) {
+    if (client) {
       const clientDoc = await Client.findById(client);
       if (clientDoc) {
-        finalClientName = clientDoc.companyName;
+        if (!finalClientName || finalClientName.trim() === "") {
+          finalClientName = clientDoc.companyName;
+        }
+        if (!finalSpoc && clientDoc.spoc) {
+          finalSpoc = clientDoc.spoc;
+        }
+        if (!finalDesignation && clientDoc.designation) {
+          finalDesignation = clientDoc.designation;
+        }
+        if (!finalAccountManager && clientDoc.assignedTo && clientDoc.assignedTo.length > 0) {
+          finalAccountManager = clientDoc.assignedTo[0];
+        }
       }
     }
 
@@ -159,6 +196,11 @@ exports.createSocialAccount = async (req, res) => {
     const newAccount = await SocialAccount.create({
       client: client || null,
       clientName: finalClientName.trim(),
+      spoc: finalSpoc,
+      designation: finalDesignation,
+      accountManager: finalAccountManager || null,
+      registeredEmail: registeredEmail !== undefined ? registeredEmail.trim() : "",
+      registeredPhone: registeredPhone !== undefined ? registeredPhone.trim() : "",
       instagram: instagram || {},
       facebook: facebook || {},
       tiktok: tiktok || {},
@@ -171,8 +213,16 @@ exports.createSocialAccount = async (req, res) => {
     });
 
     const populatedAccount = await SocialAccount.findById(newAccount._id)
-      .populate("client", "companyName industry phoneNumber color icon status assignedTo")
-      .populate("createdBy", "name email")
+      .populate({
+        path: "client",
+        select: "companyName industry phoneNumber color icon status assignedTo spoc designation",
+        populate: {
+          path: "assignedTo",
+          select: "name email profileImage profilePic avatar role department profile",
+        },
+      })
+      .populate("accountManager", "name email profileImage profilePic avatar role department profile")
+      .populate("createdBy", "name email profileImage profilePic avatar role department profile")
       .populate("updatedBy", "name email");
 
     res.status(201).json({
@@ -226,6 +276,11 @@ exports.updateSocialAccount = async (req, res) => {
     const {
       client,
       clientName,
+      spoc,
+      designation,
+      accountManager,
+      registeredEmail,
+      registeredPhone,
       instagram,
       facebook,
       tiktok,
@@ -245,6 +300,11 @@ exports.updateSocialAccount = async (req, res) => {
 
     socialAccount.client = client !== undefined ? client : socialAccount.client;
     socialAccount.clientName = finalClientName ? finalClientName.trim() : socialAccount.clientName;
+    if (spoc !== undefined) socialAccount.spoc = spoc.trim();
+    if (designation !== undefined) socialAccount.designation = designation.trim();
+    if (accountManager !== undefined) socialAccount.accountManager = accountManager || null;
+    if (registeredEmail !== undefined) socialAccount.registeredEmail = registeredEmail.trim();
+    if (registeredPhone !== undefined) socialAccount.registeredPhone = registeredPhone.trim();
     
     if (instagram !== undefined) socialAccount.instagram = instagram;
     if (facebook !== undefined) socialAccount.facebook = facebook;
@@ -261,8 +321,16 @@ exports.updateSocialAccount = async (req, res) => {
     await socialAccount.save();
 
     const populatedAccount = await SocialAccount.findById(socialAccount._id)
-      .populate("client", "companyName industry phoneNumber color icon status assignedTo")
-      .populate("createdBy", "name email")
+      .populate({
+        path: "client",
+        select: "companyName industry phoneNumber color icon status assignedTo spoc designation",
+        populate: {
+          path: "assignedTo",
+          select: "name email profileImage profilePic avatar role department profile",
+        },
+      })
+      .populate("accountManager", "name email profileImage profilePic avatar role department profile")
+      .populate("createdBy", "name email profileImage profilePic avatar role department profile")
       .populate("updatedBy", "name email");
 
     res.status(200).json({

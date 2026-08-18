@@ -195,3 +195,85 @@ exports.deleteUser = async (req, res) => {
     });
   }
 };
+
+// .....................................................relieve user.................................
+
+exports.relieveUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    if (user.role === 'admin') {
+      return res.status(400).json({
+        success: false,
+        message: 'Admin accounts cannot be relieved',
+      });
+    }
+
+    user.employmentStatus = 'relieved';
+    user.accountStatus = 'inactive';
+    user.relievedAt = new Date();
+    user.relievedBy = req.user._id;
+    user.relievedReason = req.body.reason || '';
+    await user.save();
+
+    // Force logout active session via Socket.IO
+    const io = req.app.get('io');
+    if (io) {
+      io.to(req.params.id.toString()).emit('account_deactivated', {
+        userId: req.params.id,
+        message: 'Your account has been deactivated. Please contact your administrator.',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user,
+      message: 'User has been successfully relieved.',
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+// .....................................................reactivate user.................................
+
+exports.reactivateUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    user.employmentStatus = 'active';
+    user.accountStatus = 'active';
+    user.relievedAt = null;
+    user.relievedBy = null;
+    user.relievedReason = '';
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      data: user,
+      message: 'User has been successfully reactivated.',
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};

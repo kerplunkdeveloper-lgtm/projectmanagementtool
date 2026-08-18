@@ -108,6 +108,35 @@ const userSchema = new mongoose.Schema({
     default: Date.now,
   },
 
+  employmentStatus: {
+    type: String,
+    enum: ['active', 'relieved'],
+    default: 'active',
+  },
+
+  accountStatus: {
+    type: String,
+    enum: ['active', 'inactive'],
+    default: 'active',
+  },
+
+  relievedAt: {
+    type: Date,
+    default: null,
+  },
+
+  relievedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+  },
+
+  relievedReason: {
+    type: String,
+    default: '',
+    trim: true,
+  },
+
   createdAt: {
     type: Date,
     default: Date.now,

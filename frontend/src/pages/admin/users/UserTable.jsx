@@ -11,6 +11,8 @@ import {
   FiSliders,
   FiCopy,
   FiCheck,
+  FiUserMinus,
+  FiUserCheck,
 } from "react-icons/fi";
 import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
@@ -118,7 +120,11 @@ const avatarGrad = (name) =>
 const ActionBtn = ({ onClick, label, colorClass, children }) => (
   <div className="relative group/tip">
     <button
-      onClick={onClick}
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        if (onClick) onClick(e);
+      }}
       className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer ${colorClass}`}
     >
       {children}
@@ -134,6 +140,8 @@ const UserTable = ({
   users,
   loading,
   handleDeleteUser,
+  handleRequestRelieve,
+  handleRequestReactivate,
   setOpenModal,
   setEditUser,
   handleImpersonate,
@@ -177,8 +185,9 @@ const UserTable = ({
   };
 
   const userPerms = currentUser?.permissions?.["manage_users"];
-  const canUpdate = currentUser?.role === "admin" || userPerms === true || userPerms?.update;
+  const canUpdate = currentUser?.role === "admin" || userPerms === true || userPerms?.update || userPerms?.write;
   const canDelete = currentUser?.role === "admin" || userPerms === true || userPerms?.delete;
+  const canRelieve = currentUser?.role === "admin" || userPerms === true || userPerms?.update || userPerms?.write;
   const rolesPerms = currentUser?.permissions?.["manage_roles"];
   const canManageRoles = currentUser?.role === "admin" || rolesPerms === true || rolesPerms?.update;
 
@@ -228,13 +237,19 @@ const UserTable = ({
             ) : users?.length > 0 ? (
               users.map((user, idx) => {
                 const roleCfg = ROLE_STYLE[user.role] || ROLE_STYLE.team;
+                const isRelieved = user.employmentStatus === "relieved" || user.accountStatus === "inactive";
+
                 return (
                   <motion.tr
                     key={user._id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ type: "spring", stiffness: 120, damping: 16, delay: idx * 0.04 }}
-                    className="group hover:bg-slate-50/80 dark:hover:bg-white/[0.03] transition-colors duration-200"
+                    className={`group transition-colors duration-200 ${
+                      isRelieved
+                        ? "bg-slate-50/40 dark:bg-slate-900/20 hover:bg-slate-100/50 dark:hover:bg-slate-800/30 opacity-75"
+                        : "hover:bg-slate-50/80 dark:hover:bg-white/[0.03]"
+                    }`}
                   >
 
                     {/* ── USER ─────────────────────────────────── */}
@@ -243,7 +258,9 @@ const UserTable = ({
                         {/* Avatar */}
                         <div className="relative shrink-0">
                           <div
-                            className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatarGrad(user.name)} flex items-center justify-center text-white font-bold text-sm overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-200`}
+                            className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatarGrad(user.name)} flex items-center justify-center text-white font-bold text-sm overflow-hidden shadow-md group-hover:scale-105 transition-transform duration-200 ${
+                              isRelieved ? "grayscale" : ""
+                            }`}
                           >
                             {user?.profile?.profileImage?.url ? (
                               <img
@@ -256,15 +273,16 @@ const UserTable = ({
                             )}
                           </div>
                           {/* Online dot */}
-                          <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 transition-colors duration-300 ${onlineUserIds.includes(user._id) ? "bg-emerald-500" : "bg-slate-400"}`} />
+                          {!isRelieved && (
+                            <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white dark:border-slate-900 transition-colors duration-300 ${onlineUserIds.includes(user._id) ? "bg-emerald-500" : "bg-slate-400"}`} />
+                          )}
                         </div>
 
                         {/* Name + ID */}
                         <div>
-                          <p className="text-[13px] font-bold text-slate-900 dark:text-white leading-tight">
+                          <p className={`text-[13px] font-bold leading-tight ${isRelieved ? "text-slate-500 dark:text-slate-400" : "text-slate-900 dark:text-white"}`}>
                             {user.name}
                           </p>
-                          
                         </div>
                       </div>
                     </td>
@@ -330,14 +348,19 @@ const UserTable = ({
 
                     {/* ── STATUS ───────────────────────────────── */}
                     <td className="px-5 py-3.5 align-middle">
-                      {onlineUserIds.includes(user._id) ? (
+                      {isRelieved ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10.5px] font-black border bg-slate-200 text-slate-800 border-slate-300 dark:bg-slate-800/90 dark:text-slate-300 dark:border-slate-700 shadow-xs">
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-900 dark:bg-slate-400" />
+                          Relieved
+                        </span>
+                      ) : onlineUserIds.includes(user._id) ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10.5px] font-black border bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-transparent">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                           Online
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10.5px] font-black border bg-red-500 text-white border-slate-200 dark:bg-red-500 dark:text-white dark:border-slate-700">
-                          <span className="w-1.5 h-1.5 rounded-full bg-red-700" />
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10.5px] font-black border bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/60 dark:text-slate-400 dark:border-slate-700">
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500" />
                           Offline
                         </span>
                       )}
@@ -347,37 +370,65 @@ const UserTable = ({
                     {!isReadOnly && (
                       <td className="px-5 py-3.5 align-middle">
                         <div className="flex items-center gap-2">
-                          {canUpdate && (
-                            <ActionBtn
-                              onClick={() => handleEdit(user)}
-                              label="Edit User"
-                              colorClass="bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:hover:bg-amber-500/35"
-                            >
-                              <FiEdit2 size={13} />
-                            </ActionBtn>
-                          )}
+                          {!isRelieved ? (
+                            <>
+                              {canUpdate && (
+                                <ActionBtn
+                                  onClick={() => handleEdit(user)}
+                                  label="Edit User"
+                                  colorClass="bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:hover:bg-amber-500/35"
+                                >
+                                  <FiEdit2 size={13} />
+                                </ActionBtn>
+                              )}
 
-                          {canManageRoles && (
-                            <ActionBtn
-                              onClick={() => handlePermissions(user)}
-                              label="Permissions"
-                              colorClass="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:hover:bg-indigo-500/35"
-                            >
-                              <FiSliders size={13} />
-                            </ActionBtn>
-                          )}
+                              {canManageRoles && (
+                                <ActionBtn
+                                  onClick={() => handlePermissions(user)}
+                                  label="Permissions"
+                                  colorClass="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:hover:bg-indigo-500/35"
+                                >
+                                  <FiSliders size={13} />
+                                </ActionBtn>
+                              )}
 
-                          {currentUser?.role === "admin" &&
-                            currentUser?.id !== user._id &&
-                            currentUser?._id !== user._id && (
-                              <ActionBtn
-                                onClick={() => handleImpersonate(user._id)}
-                                label="Login As"
-                                colorClass="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:hover:bg-emerald-500/35"
-                              >
-                                <FiLogIn size={13} />
-                              </ActionBtn>
-                            )}
+                              {currentUser?.role === "admin" &&
+                                currentUser?.id !== user._id &&
+                                currentUser?._id !== user._id && (
+                                  <ActionBtn
+                                    onClick={() => handleImpersonate(user._id)}
+                                    label="Login As"
+                                    colorClass="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:hover:bg-emerald-500/35"
+                                  >
+                                    <FiLogIn size={13} />
+                                  </ActionBtn>
+                                )}
+
+                              {canRelieve &&
+                                user.role !== "admin" &&
+                                (currentUser?._id || currentUser?.id)?.toString() !== (user._id || user.id)?.toString() && (
+                                  <ActionBtn
+                                    onClick={() => handleRequestRelieve && handleRequestRelieve(user)}
+                                    label="Relieve User"
+                                    colorClass="bg-slate-200 text-slate-800 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+                                  >
+                                    <FiUserMinus size={13} />
+                                  </ActionBtn>
+                                )}
+                            </>
+                          ) : (
+                            <>
+                              {canRelieve && (
+                                <ActionBtn
+                                  onClick={() => handleRequestReactivate && handleRequestReactivate(user)}
+                                  label="Reactivate User"
+                                  colorClass="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:hover:bg-emerald-500/35"
+                                >
+                                  <FiUserCheck size={13} />
+                                </ActionBtn>
+                              )}
+                            </>
+                          )}
 
                           {canDelete && (
                             <ActionBtn

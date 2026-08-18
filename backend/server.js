@@ -214,6 +214,8 @@ const io = require('socket.io')(server, {
   transports: ['polling', 'websocket']
 });
 
+app.set('io', io);
+
 // Keep track of active calls in memory
 const activeCalls = {};
 

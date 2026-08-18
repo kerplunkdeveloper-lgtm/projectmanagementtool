@@ -89,6 +89,16 @@ const socialAccountSchema = new mongoose.Schema(
       required: [true, "Client name is required"],
       trim: true,
     },
+    registeredEmail: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    registeredPhone: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     instagram: {
       type: platformCredentialSchema,
       default: () => ({}),
@@ -114,6 +124,21 @@ const socialAccountSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: "",
+    },
+    spoc: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    designation: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    accountManager: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
     },
     status: {
       type: String,

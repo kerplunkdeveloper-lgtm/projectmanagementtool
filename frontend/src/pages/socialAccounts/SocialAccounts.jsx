@@ -18,6 +18,7 @@ import {
   FiPhone,
   FiMail,
   FiUser,
+  FiBriefcase,
   FiDownload,
   FiLayers,
   FiGrid,
@@ -39,7 +40,59 @@ import {
   deleteSocialAccount,
 } from "../../features/socialAccounts/socialAccountSlice";
 import { getClients } from "../../features/clients/clientslice";
+import { getUsers } from "../../features/users/userSlice";
+import ClientBadge from "../../components/common/ClientBadge";
 import toast from "react-hot-toast";
+
+const renderUserAvatarSmall = (u, sizeClass = "w-7 h-7 text-[9px]") => {
+  if (!u) return null;
+  const avatarUrl =
+    (typeof u.profile?.profileImage === "object"
+      ? u.profile?.profileImage?.url
+      : u.profile?.profileImage) ||
+    (typeof u.profileImage === "object"
+      ? u.profileImage?.url
+      : u.profileImage) ||
+    u.profilePic ||
+    u.avatar ||
+    u.profile?.profilePic ||
+    u.profile?.avatar;
+
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={u.name || "User"}
+        className={`${sizeClass} rounded-full object-cover border border-slate-200/80 dark:border-white/10 shadow-2xs shrink-0`}
+      />
+    );
+  }
+
+  const initials = (u.name || "U")
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase();
+
+  const AVATAR_COLORS = [
+    "from-violet-500 to-indigo-600",
+    "from-cyan-500 to-blue-600",
+    "from-emerald-500 to-teal-600",
+    "from-orange-500 to-amber-600",
+    "from-pink-500 to-rose-600",
+  ];
+  const colorClass =
+    AVATAR_COLORS[((u.name || "U").charCodeAt(0) || 0) % AVATAR_COLORS.length];
+
+  return (
+    <div
+      className={`${sizeClass} rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-white font-black border border-white/10 shadow-2xs shrink-0`}
+    >
+      {initials}
+    </div>
+  );
+};
 
 // Helper to check if a platform object has any content
 const hasPlatformData = (platform) => {
@@ -247,6 +300,8 @@ const TableCredentialCell = ({ username, password, email, phone, link, icon: Ico
 const initialFormData = {
   client: "",
   clientName: "",
+  registeredEmail: "",
+  registeredPhone: "",
   status: "Active",
   instagram: {
     username: "",
@@ -273,6 +328,9 @@ const initialFormData = {
     notes: "",
   },
   otherPlatforms: [],
+  spoc: "",
+  designation: "",
+  accountManager: "",
   twoFactorNotes: "",
   generalNotes: "",
 };
@@ -283,12 +341,13 @@ const SocialAccounts = () => {
     (state) => state.socialAccounts || { socialAccounts: [], isLoading: false, isSubmitting: false }
   );
   const { clients } = useSelector((state) => state.clients || { clients: [] });
+  const { users } = useSelector((state) => state.users || { users: [] });
 
   const [searchTerm, setSearchTerm] = useState("");
   const [clientFilter, setClientFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [platformFilter, setPlatformFilter] = useState("All");
-  const [viewMode, setViewMode] = useState("cards");
+  const [viewMode, setViewMode] = useState("table");
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -301,7 +360,68 @@ const SocialAccounts = () => {
   useEffect(() => {
     dispatch(getSocialAccounts());
     dispatch(getClients());
+    dispatch(getUsers());
   }, [dispatch]);
+
+  // Helper to get assigned Social Media / Account Manager(s) for a client/account (Filtered by Social Media Manager department or explicitly assigned)
+  const getAssignedManagers = (acc) => {
+    let assigned = [];
+    if (acc.accountManager) {
+      assigned = [acc.accountManager];
+    } else if (acc.client?.assignedTo && (Array.isArray(acc.client.assignedTo) ? acc.client.assignedTo.length > 0 : Boolean(acc.client.assignedTo))) {
+      assigned = acc.client.assignedTo;
+    } else {
+      const foundClient = clients.find(
+        (c) =>
+          c._id === (acc.client?._id || acc.client) ||
+          (c.companyName &&
+            acc.clientName &&
+            c.companyName.trim().toLowerCase() === acc.clientName.trim().toLowerCase())
+      );
+      if (foundClient?.assignedTo) {
+        assigned = foundClient.assignedTo;
+      }
+    }
+
+    if (!assigned || (Array.isArray(assigned) && assigned.length === 0)) return [];
+    const assignedArr = Array.isArray(assigned) ? assigned : [assigned];
+
+    // 1. Resolve full user object (from populate or Redux users state)
+    const resolvedUsers = assignedArr
+      .map((item) => {
+        let userObj = item;
+        const userId = item?._id || item;
+        const found = users?.find((u) => (u._id || u.id) === userId);
+
+        if (typeof item === "string" || !item?.name) {
+          if (found) userObj = found;
+          else userObj = { _id: userId, name: "Assigned Member" };
+        } else if (found) {
+          // Merge to ensure department & full profile are available
+          userObj = { ...item, ...found, department: item.department || found.department };
+        }
+        return userObj;
+      })
+      .filter(Boolean);
+
+    // 2. Filter for users whose department or role is Social Media / SMM / Account Manager, or if explicitly assigned
+    const smmUsers = resolvedUsers.filter((u) => {
+      const dept = (u.department || "").toLowerCase().trim();
+      const role = (u.role || "").toLowerCase().trim();
+      const desig = (u.designation || "").toLowerCase().trim();
+
+      return (
+        dept.includes("social media") ||
+        dept.includes("smm") ||
+        role.includes("social media") ||
+        role === "socialmediamanager" ||
+        desig.includes("social media") ||
+        desig.includes("smm")
+      );
+    });
+
+    return smmUsers.length > 0 ? smmUsers : resolvedUsers;
+  };
 
   // Unique client options list
   const clientOptions = useMemo(() => {
@@ -326,16 +446,24 @@ const SocialAccounts = () => {
 
       const matchStatus = statusFilter === "All" || acc.status === statusFilter;
       const term = searchTerm.toLowerCase().trim();
+      const managers = getAssignedManagers(acc);
+      const matchManager = managers.some((m) => m.name?.toLowerCase().includes(term));
 
       const matchSearch =
         !term ||
+        matchManager ||
         acc.clientName?.toLowerCase().includes(term) ||
+        acc.registeredEmail?.toLowerCase().includes(term) ||
+        acc.registeredPhone?.toLowerCase().includes(term) ||
         acc.instagram?.username?.toLowerCase().includes(term) ||
         acc.instagram?.email?.toLowerCase().includes(term) ||
+        acc.instagram?.phoneNumber?.toLowerCase().includes(term) ||
         acc.facebook?.username?.toLowerCase().includes(term) ||
         acc.facebook?.email?.toLowerCase().includes(term) ||
+        acc.facebook?.phoneNumber?.toLowerCase().includes(term) ||
         acc.tiktok?.username?.toLowerCase().includes(term) ||
         acc.tiktok?.email?.toLowerCase().includes(term) ||
+        acc.tiktok?.phoneNumber?.toLowerCase().includes(term) ||
         acc.otherPlatforms?.some(
           (p) =>
             p.username?.toLowerCase().includes(term) ||
@@ -355,14 +483,14 @@ const SocialAccounts = () => {
 
       return matchClient && matchStatus && matchSearch && matchPlatform;
     });
-  }, [socialAccounts, clientFilter, searchTerm, statusFilter, platformFilter]);
+  }, [socialAccounts, clientFilter, searchTerm, statusFilter, platformFilter, clients, users]);
 
   // Check if any accounts have other platforms configured
   const hasAnyOtherPlatforms = useMemo(() => {
-    return filteredAccounts.some((acc) =>
-      acc.otherPlatforms?.some((p) => hasPlatformData(p))
+    return (socialAccounts || []).some((acc) =>
+      (acc.otherPlatforms || []).some(hasPlatformData)
     );
-  }, [filteredAccounts]);
+  }, [socialAccounts]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -388,67 +516,88 @@ const SocialAccounts = () => {
 
   const handleOpenEdit = (acc) => {
     setEditingId(acc._id);
+    let managerId = acc.accountManager?._id || acc.accountManager || "";
+    if (!managerId && acc.client?.assignedTo && acc.client.assignedTo.length > 0) {
+      managerId = acc.client.assignedTo[0]?._id || acc.client.assignedTo[0] || "";
+    }
+
     setFormData({
       client: acc.client?._id || acc.client || "",
       clientName: acc.clientName || "",
-      status: acc.status || "Active",
+      spoc: acc.spoc || acc.client?.spoc || "",
+      designation: acc.designation || acc.client?.designation || "",
+      accountManager: managerId,
+      registeredEmail: acc.registeredEmail || acc.instagram?.email || acc.facebook?.email || acc.tiktok?.email || "",
+      registeredPhone: acc.registeredPhone || acc.instagram?.phoneNumber || acc.facebook?.phoneNumber || acc.tiktok?.phoneNumber || acc.client?.phoneNumber || "",
       instagram: {
         username: acc.instagram?.username || "",
         password: acc.instagram?.password || "",
         email: acc.instagram?.email || "",
         phoneNumber: acc.instagram?.phoneNumber || "",
-        profileUrl: acc.instagram?.profileUrl || "",
-        notes: acc.instagram?.notes || "",
       },
       facebook: {
         username: acc.facebook?.username || "",
         password: acc.facebook?.password || "",
         email: acc.facebook?.email || "",
         phoneNumber: acc.facebook?.phoneNumber || "",
-        pageUrl: acc.facebook?.pageUrl || "",
-        notes: acc.facebook?.notes || "",
       },
       tiktok: {
         username: acc.tiktok?.username || "",
         password: acc.tiktok?.password || "",
         email: acc.tiktok?.email || "",
         phoneNumber: acc.tiktok?.phoneNumber || "",
-        profileUrl: acc.tiktok?.profileUrl || "",
-        notes: acc.tiktok?.notes || "",
       },
-      otherPlatforms: Array.isArray(acc.otherPlatforms)
-        ? [...acc.otherPlatforms]
-        : [],
+      otherPlatforms: (acc.otherPlatforms || []).map((op) => ({
+        platformName: op.platformName || "YouTube",
+        username: op.username || "",
+        password: op.password || "",
+        email: op.email || "",
+        phoneNumber: op.phoneNumber || "",
+        profileUrl: op.profileUrl || "",
+        notes: op.notes || "",
+      })),
       twoFactorNotes: acc.twoFactorNotes || "",
       generalNotes: acc.generalNotes || "",
+      status: acc.status || "Active",
     });
     setActiveTab("instagram");
     setIsModalOpen(true);
   };
 
   const handleClientSelect = (clientId) => {
-    if (!clientId) {
-      setFormData((prev) => ({ ...prev, client: "", clientName: "" }));
-      return;
-    }
     const found = clients.find((c) => c._id === clientId);
     if (found) {
+      // Find assigned Account Manager (from client's assignedTo in Clients.jsx)
+      let managerId = "";
+      if (found.assignedTo && found.assignedTo.length > 0) {
+        const smm = found.assignedTo.find((u) => {
+          const userObj = typeof u === "object" ? u : users?.find((usr) => (usr._id || usr.id) === u);
+          const dept = (userObj?.department || "").toLowerCase();
+          const role = (userObj?.role || "").toLowerCase();
+          return dept.includes("social media") || dept.includes("smm") || role.includes("social media");
+        });
+        const chosen = smm || found.assignedTo[0];
+        managerId = chosen?._id || chosen || "";
+      }
+
       setFormData((prev) => ({
         ...prev,
         client: found._id,
         clientName: found.companyName || "",
-        instagram: {
-          ...prev.instagram,
-          phoneNumber: prev.instagram.phoneNumber || found.phoneNumber || "",
-        },
-        facebook: {
-          ...prev.facebook,
-          phoneNumber: prev.facebook.phoneNumber || found.phoneNumber || "",
-        },
-        tiktok: {
-          ...prev.tiktok,
-          phoneNumber: prev.tiktok.phoneNumber || found.phoneNumber || "",
-        },
+        spoc: found.spoc || "",
+        designation: found.designation || "",
+        accountManager: managerId || prev.accountManager,
+        registeredEmail: prev.registeredEmail || found.email || "",
+        registeredPhone: found.phoneNumber || prev.registeredPhone || "",
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        client: "",
+        clientName: "",
+        spoc: "",
+        designation: "",
+        accountManager: "",
       }));
     }
   };
@@ -523,42 +672,41 @@ const SocialAccounts = () => {
     }
 
     const headers = [
+      "Social Media Manager",
       "Client Name",
       "Status",
+      "Registered Email / Gmail",
+      "Registered Phone",
       "Instagram User",
       "Instagram Pass",
-      "Instagram Phone",
-      "Instagram Gmail",
       "Facebook User",
       "Facebook Pass",
-      "Facebook Phone",
-      "Facebook Email",
       "TikTok User",
       "TikTok Pass",
-      "TikTok Phone",
-      "TikTok Email",
       "2FA Notes",
       "General Notes",
     ];
 
-    const rows = filteredAccounts.map((acc) => [
-      `"${acc.clientName || ""}"`,
-      `"${acc.status || ""}"`,
-      `"${acc.instagram?.username || ""}"`,
-      `"${acc.instagram?.password || ""}"`,
-      `"${acc.instagram?.phoneNumber || ""}"`,
-      `"${acc.instagram?.email || ""}"`,
-      `"${acc.facebook?.username || ""}"`,
-      `"${acc.facebook?.password || ""}"`,
-      `"${acc.facebook?.phoneNumber || ""}"`,
-      `"${acc.facebook?.email || ""}"`,
-      `"${acc.tiktok?.username || ""}"`,
-      `"${acc.tiktok?.password || ""}"`,
-      `"${acc.tiktok?.phoneNumber || ""}"`,
-      `"${acc.tiktok?.email || ""}"`,
-      `"${(acc.twoFactorNotes || "").replace(/"/g, '""')}"`,
-      `"${(acc.generalNotes || "").replace(/"/g, '""')}"`,
-    ]);
+    const rows = filteredAccounts.map((acc) => {
+      const managers = getAssignedManagers(acc);
+      const managerNames = managers.map((m) => m.name).filter(Boolean).join("; ") || "Unassigned";
+
+      return [
+        `"${managerNames}"`,
+        `"${acc.clientName || ""}"`,
+        `"${acc.status || ""}"`,
+        `"${acc.registeredEmail || acc.instagram?.email || acc.facebook?.email || acc.tiktok?.email || ""}"`,
+        `"${acc.registeredPhone || acc.instagram?.phoneNumber || acc.facebook?.phoneNumber || acc.tiktok?.phoneNumber || acc.client?.phoneNumber || ""}"`,
+        `"${acc.instagram?.username || ""}"`,
+        `"${acc.instagram?.password || ""}"`,
+        `"${acc.facebook?.username || ""}"`,
+        `"${acc.facebook?.password || ""}"`,
+        `"${acc.tiktok?.username || ""}"`,
+        `"${acc.tiktok?.password || ""}"`,
+        `"${(acc.twoFactorNotes || "").replace(/"/g, '""')}"`,
+        `"${(acc.generalNotes || "").replace(/"/g, '""')}"`,
+      ];
+    });
 
     const csvContent =
       "data:text/csv;charset=utf-8," +
@@ -578,7 +726,7 @@ const SocialAccounts = () => {
   };
 
   return (
-    <div className="p-3 sm:p-5 lg:p-6 space-y-4 max-w-[1600px] mx-auto transition-all text-slate-800 dark:text-slate-100">
+    <div className="p-2 space-y-4 max-w-[1600px] mx-auto transition-all text-slate-800 dark:text-slate-100">
       {/* ======================================================== */}
       {/* HEADER                                                   */}
       {/* ======================================================== */}
@@ -725,7 +873,7 @@ const SocialAccounts = () => {
       {/* ======================================================== */}
       {/* SEARCH, FILTER & VIEW CONTROLS                          */}
       {/* ======================================================== */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 p-2.5 rounded-xl bg-white dark:bg-[#0c1322] border border-slate-200/70 dark:border-white/[0.08] shadow-xs">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 ">
         {/* Search Input */}
         <div className="relative w-full sm:w-80">
           <input
@@ -890,11 +1038,18 @@ const SocialAccounts = () => {
                           {acc.status}
                         </span>
                       </div>
-                      {acc.client?.industry && (
-                        <p className="text-[10px] text-slate-400 dark:text-slate-400 truncate">
-                          {acc.client.industry}
-                        </p>
-                      )}
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-400 truncate">
+                        {acc.client?.industry && <span>{acc.client.industry}</span>}
+                        {(() => {
+                          const managers = getAssignedManagers(acc);
+                          if (!managers || managers.length === 0) return null;
+                          return (
+                            <span className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-medium truncate">
+                              • {managers.map((m) => m.name).join(", ")}
+                            </span>
+                          );
+                        })()}
+                      </div>
                     </div>
                   </div>
 
@@ -921,10 +1076,26 @@ const SocialAccounts = () => {
 
                 {/* Card Body */}
                 <div className="p-3.5 space-y-3 flex-1">
+                  {/* Common Registered Email / Phone Pill Banner in Card */}
+                  {(acc.registeredEmail || acc.registeredPhone || acc.instagram?.email || acc.instagram?.phoneNumber || acc.client?.phoneNumber) && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-2 rounded-xl bg-slate-50/80 dark:bg-[#141e33] border border-slate-200/80 dark:border-white/10">
+                      <CredentialPill
+                        label="Registered Gmail / Email"
+                        value={acc.registeredEmail || acc.instagram?.email || acc.facebook?.email || acc.tiktok?.email}
+                        icon={FiMail}
+                      />
+                      <CredentialPill
+                        label="Registered Phone"
+                        value={acc.registeredPhone || acc.instagram?.phoneNumber || acc.facebook?.phoneNumber || acc.tiktok?.phoneNumber || acc.client?.phoneNumber}
+                        icon={FiPhone}
+                      />
+                    </div>
+                  )}
+
                   {!hasAnyPlatform && (
                     <div className="p-4 text-center border border-dashed border-slate-200 dark:border-white/10 rounded-xl">
                       <p className="text-[11px] text-slate-400 dark:text-slate-500 italic">
-                        No credentials entered for this client yet.
+                        No platform credentials entered for this client yet.
                       </p>
                     </div>
                   )}
@@ -965,16 +1136,6 @@ const SocialAccounts = () => {
                           value={acc.instagram?.password}
                           isPassword={true}
                           icon={FiLock}
-                        />
-                        <CredentialPill
-                          label="Gmail / Email"
-                          value={acc.instagram?.email}
-                          icon={FiMail}
-                        />
-                        <CredentialPill
-                          label="Phone"
-                          value={acc.instagram?.phoneNumber}
-                          icon={FiPhone}
                         />
                       </div>
                     </div>
@@ -1020,16 +1181,6 @@ const SocialAccounts = () => {
                           isPassword={true}
                           icon={FiLock}
                         />
-                        <CredentialPill
-                          label="Email"
-                          value={acc.facebook?.email}
-                          icon={FiMail}
-                        />
-                        <CredentialPill
-                          label="Phone"
-                          value={acc.facebook?.phoneNumber}
-                          icon={FiPhone}
-                        />
                       </div>
                     </div>
                   )}
@@ -1071,16 +1222,6 @@ const SocialAccounts = () => {
                           isPassword={true}
                           icon={FiLock}
                         />
-                        <CredentialPill
-                          label="Email"
-                          value={acc.tiktok?.email}
-                          icon={FiMail}
-                        />
-                        <CredentialPill
-                          label="Phone"
-                          value={acc.tiktok?.phoneNumber}
-                          icon={FiPhone}
-                        />
                       </div>
                     </div>
                   )}
@@ -1118,16 +1259,6 @@ const SocialAccounts = () => {
                                 value={op.password}
                                 isPassword={true}
                                 icon={FiLock}
-                              />
-                              <CredentialPill
-                                label="Email"
-                                value={op.email}
-                                icon={FiMail}
-                              />
-                              <CredentialPill
-                                label="Phone"
-                                value={op.phoneNumber}
-                                icon={FiPhone}
                               />
                             </div>
                           </div>
@@ -1183,10 +1314,10 @@ const SocialAccounts = () => {
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-100 dark:!bg-[#111c33] border-b border-slate-200/80 dark:border-white/10 text-slate-700 dark:!text-slate-200 font-extrabold uppercase tracking-wider text-[10px]">
-                  <th className="py-3 px-4 text-slate-700 dark:!text-slate-200 font-extrabold">Client Name</th>
+                  <th className="py-3 px-4 text-slate-700 dark:!text-slate-200 font-extrabold whitespace-nowrap">Social Media Manager</th>
+                  <th className="py-3 px-4 text-slate-700 dark:!text-slate-200 font-extrabold whitespace-nowrap">Client & Contact</th>
                   <th className="py-3 px-4 text-slate-700 dark:!text-slate-200 font-extrabold">Instagram</th>
                   <th className="py-3 px-4 text-slate-700 dark:!text-slate-200 font-extrabold">Facebook</th>
-                  <th className="py-3 px-4 text-slate-700 dark:!text-slate-200 font-extrabold">TikTok</th>
                   {hasAnyOtherPlatforms && (
                     <th className="py-3 px-4 text-slate-700 dark:!text-slate-200 font-extrabold">Other Platforms</th>
                   )}
@@ -1197,18 +1328,84 @@ const SocialAccounts = () => {
               <tbody className="divide-y divide-slate-100 dark:divide-white/[0.04]">
                 {filteredAccounts.map((acc) => {
                   const validOther = (acc.otherPlatforms || []).filter(hasPlatformData);
+                  const displayEmail = acc.registeredEmail || acc.instagram?.email || acc.facebook?.email || acc.tiktok?.email;
+                  const displayPhone = acc.registeredPhone || acc.instagram?.phoneNumber || acc.facebook?.phoneNumber || acc.tiktok?.phoneNumber || acc.client?.phoneNumber;
+                  const managers = getAssignedManagers(acc);
+                  const clientObj = acc.client?._id
+                    ? acc.client
+                    : (clients || []).find((c) =>
+                        c._id === (acc.client?._id || acc.client) ||
+                        (c.companyName && acc.clientName && c.companyName.trim().toLowerCase() === acc.clientName.trim().toLowerCase())
+                      ) || { companyName: acc.clientName, color: "#6366f1" };
+
                   return (
                     <tr
                       key={acc._id}
                       className="hover:bg-slate-50/70 dark:hover:bg-[#131e36]/60 transition-colors"
                     >
+                      {/* Social Media Manager (First Field with Profile Image) */}
+                      <td className="py-3.5 px-4 align-top whitespace-nowrap">
+                        {managers && managers.length > 0 ? (
+                          <div className="space-y-1.5">
+                            {managers.map((m, mIdx) => (
+                              <div key={m._id || mIdx} className="flex items-center gap-2.5">
+                                {renderUserAvatarSmall(m, "w-7 h-7 text-[9px]")}
+                                <div className="flex flex-col min-w-0">
+                                  <span className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[150px]" title={m.name}>
+                                    {m.name || "Manager"}
+                                  </span>
+                                  <span className="text-[9.5px] font-medium text-indigo-600 dark:text-indigo-400 capitalize truncate max-w-[150px]">
+                                    {m.department || (m.role === "socialmediamanager" ? "Social Media Manager" : "Social Media")}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500 italic">
+                            <div className="w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-[10px]">
+                              <FiUser className="w-3 h-3 text-slate-400" />
+                            </div>
+                            <span>Unassigned</span>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Client Name & Contact */}
                       <td className="py-3.5 px-4 align-top">
-                        <div className="font-bold text-xs text-slate-900 dark:text-white">
-                          {acc.clientName}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <ClientBadge client={clientObj} size="sm" />
+                          {acc.client?.industry && (
+                            <span className="text-[9.5px] text-slate-400 dark:text-slate-500 font-medium">
+                              {acc.client.industry}
+                            </span>
+                          )}
                         </div>
-                        {acc.client?.industry && (
-                          <div className="text-[10px] text-slate-400 dark:text-slate-400">
-                            {acc.client.industry}
+                        {(acc.spoc || acc.client?.spoc || clientObj?.spoc) && (
+                          <div className="flex items-center gap-1 text-[10px] font-semibold text-slate-700 dark:text-slate-300 mt-1">
+                            <FiUser className="w-2.5 h-2.5 text-indigo-500 shrink-0" />
+                            <span>{acc.spoc || acc.client?.spoc || clientObj?.spoc}</span>
+                            {(acc.designation || acc.client?.designation || clientObj?.designation) && (
+                              <span className="text-[9px] text-slate-400 dark:text-slate-500 font-normal">
+                                • {acc.designation || acc.client?.designation || clientObj?.designation}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {(displayEmail || displayPhone) && (
+                          <div className="mt-1 space-y-0.5 text-[9.5px]">
+                            {displayEmail && (
+                              <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300 font-medium truncate" title={displayEmail}>
+                                <FiMail className="w-2.5 h-2.5 text-indigo-500 shrink-0" />
+                                <span className="truncate max-w-[170px]">{displayEmail}</span>
+                              </div>
+                            )}
+                            {displayPhone && (
+                              <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300 font-medium">
+                                <FiPhone className="w-2.5 h-2.5 text-emerald-500 shrink-0" />
+                                <span>{displayPhone}</span>
+                              </div>
+                            )}
                           </div>
                         )}
                         {(acc.twoFactorNotes || acc.generalNotes) && (
@@ -1224,8 +1421,6 @@ const SocialAccounts = () => {
                         <TableCredentialCell
                           username={acc.instagram?.username}
                           password={acc.instagram?.password}
-                          email={acc.instagram?.email}
-                          phone={acc.instagram?.phoneNumber}
                           link={
                             acc.instagram?.username
                               ? `https://instagram.com/${acc.instagram.username.replace("@", "")}`
@@ -1242,8 +1437,6 @@ const SocialAccounts = () => {
                         <TableCredentialCell
                           username={acc.facebook?.username}
                           password={acc.facebook?.password}
-                          email={acc.facebook?.email}
-                          phone={acc.facebook?.phoneNumber}
                           link={
                             acc.facebook?.pageUrl ||
                             (acc.facebook?.username
@@ -1253,24 +1446,6 @@ const SocialAccounts = () => {
                           icon={FaFacebookF}
                           brandColor="text-blue-600 dark:text-blue-400"
                           brandName="Facebook"
-                        />
-                      </td>
-
-                      {/* TikTok Cell */}
-                      <td className="py-3.5 px-4 align-top">
-                        <TableCredentialCell
-                          username={acc.tiktok?.username}
-                          password={acc.tiktok?.password}
-                          email={acc.tiktok?.email}
-                          phone={acc.tiktok?.phoneNumber}
-                          link={
-                            acc.tiktok?.username
-                              ? `https://tiktok.com/@${acc.tiktok.username.replace("@", "")}`
-                              : null
-                          }
-                          icon={FaTiktok}
-                          brandColor="text-cyan-500 dark:text-cyan-400"
-                          brandName="TikTok"
                         />
                       </td>
 
@@ -1394,56 +1569,134 @@ const SocialAccounts = () => {
 
               {/* Modal Form */}
               <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
-                {/* Client Details Section */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-xl bg-slate-50 dark:bg-[#141e33] border border-slate-200/80 dark:border-white/10">
-                  <div className="sm:col-span-1">
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
-                      Select Client
-                    </label>
-                    <select
-                      value={formData.client || ""}
-                      onChange={(e) => handleClientSelect(e.target.value)}
-                      className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                    >
-                      <option value="">-- Existing Client --</option>
-                      {clients?.map((c) => (
-                        <option key={c._id} value={c._id}>
-                          {c.companyName}
-                        </option>
-                      ))}
-                    </select>
+                {/* Client Details & Common Contact Section */}
+                <div className="p-3 sm:p-4 rounded-xl bg-slate-50 dark:bg-[#141e33] border border-slate-200/80 dark:border-white/10 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                        Select Client
+                      </label>
+                      <select
+                        value={formData.client || ""}
+                        onChange={(e) => handleClientSelect(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      >
+                        <option value="">-- Existing Client --</option>
+                        {clients?.map((c) => (
+                          <option key={c._id} value={c._id}>
+                            {c.companyName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                        Client Name <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.clientName}
+                        onChange={(e) =>
+                          setFormData({ ...formData, clientName: e.target.value })
+                        }
+                        placeholder="e.g. Acme Corp"
+                        className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
+                        Status
+                      </label>
+                      <select
+                        value={formData.status}
+                        onChange={(e) =>
+                          setFormData({ ...formData, status: e.target.value })
+                        }
+                        className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      >
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                      </select>
+                    </div>
                   </div>
 
-                  <div className="sm:col-span-1">
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
-                      Client Name <span className="text-rose-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.clientName}
-                      onChange={(e) =>
-                        setFormData({ ...formData, clientName: e.target.value })
-                      }
-                      placeholder="e.g. Acme Corp"
-                      className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                    />
+                  {/* Client SPOC Details (Auto-fetched from Client) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2.5 border-t border-slate-200/70 dark:border-white/[0.06]">
+                    <div>
+                      <label className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">
+                        <FiUser className="w-3 h-3 text-indigo-500" />
+                        <span>Client SPOC Name (Contact Person)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.spoc}
+                        onChange={(e) =>
+                          setFormData({ ...formData, spoc: e.target.value })
+                        }
+                        placeholder="e.g. John Doe (Auto-fetched from Client)"
+                        className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">
+                        <FiBriefcase className="w-3 h-3 text-purple-500" />
+                        <span>SPOC Designation</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.designation}
+                        onChange={(e) =>
+                          setFormData({ ...formData, designation: e.target.value })
+                        }
+                        placeholder="e.g. Marketing Lead / Director"
+                        className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                      />
+                    </div>
                   </div>
 
-                  <div className="sm:col-span-1">
-                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1">
-                      Status
-                    </label>
-                    <select
-                      value={formData.status}
-                      onChange={(e) =>
-                        setFormData({ ...formData, status: e.target.value })
-                      }
-                      className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                    >
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
-                    </select>
+                  {/* Common Registered Email & Phone Number */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2.5 border-t border-slate-200/70 dark:border-white/[0.06]">
+                    <div>
+                      <label className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">
+                        <FiMail className="w-3 h-3 text-indigo-500" />
+                        <span>Registered Gmail / Email ID (Common)</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={formData.registeredEmail}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            registeredEmail: e.target.value,
+                          })
+                        }
+                        placeholder="e.g. acme.social@gmail.com"
+                        className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200 mb-1">
+                        <FiPhone className="w-3 h-3 text-emerald-500" />
+                        <span>Registered Phone Number (Common)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.registeredPhone}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            registeredPhone: e.target.value,
+                          })
+                        }
+                        placeholder="e.g. +91 98765 43210"
+                        className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -1562,48 +1815,6 @@ const SocialAccounts = () => {
                           className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500/20 font-mono"
                         />
                       </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
-                          Registered Gmail / Email ID
-                        </label>
-                        <input
-                          type="email"
-                          value={formData.instagram.email}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              instagram: {
-                                ...formData.instagram,
-                                email: e.target.value,
-                              },
-                            })
-                          }
-                          placeholder="e.g. acme.social@gmail.com"
-                          className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500/20"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
-                          Registered Phone Number
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.instagram.phoneNumber}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              instagram: {
-                                ...formData.instagram,
-                                phoneNumber: e.target.value,
-                              },
-                            })
-                          }
-                          placeholder="e.g. +91 98765 43210"
-                          className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500/20"
-                        />
-                      </div>
                     </div>
                   </motion.div>
                 )}
@@ -1653,48 +1864,6 @@ const SocialAccounts = () => {
                           className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-mono"
                         />
                       </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
-                          Facebook Login Email ID
-                        </label>
-                        <input
-                          type="email"
-                          value={formData.facebook.email}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              facebook: {
-                                ...formData.facebook,
-                                email: e.target.value,
-                              },
-                            })
-                          }
-                          placeholder="e.g. login@acme.com"
-                          className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
-                          Facebook Phone Number
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.facebook.phoneNumber}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              facebook: {
-                                ...formData.facebook,
-                                phoneNumber: e.target.value,
-                              },
-                            })
-                          }
-                          placeholder="e.g. +91 98765 43210"
-                          className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                        />
-                      </div>
                     </div>
                   </motion.div>
                 )}
@@ -1742,48 +1911,6 @@ const SocialAccounts = () => {
                           }
                           placeholder="Password"
                           className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
-                          TikTok Email ID
-                        </label>
-                        <input
-                          type="email"
-                          value={formData.tiktok.email}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              tiktok: {
-                                ...formData.tiktok,
-                                email: e.target.value,
-                              },
-                            })
-                          }
-                          placeholder="e.g. tiktok@acme.com"
-                          className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
-                          TikTok Phone Number
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.tiktok.phoneNumber}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              tiktok: {
-                                ...formData.tiktok,
-                                phoneNumber: e.target.value,
-                              },
-                            })
-                          }
-                          placeholder="e.g. +91 98765 43210"
-                          className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                         />
                       </div>
                     </div>

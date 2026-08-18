@@ -73,6 +73,14 @@ exports.login = async (req, res, next) => {
       });
     }
 
+    // Check if account is deactivated or relieved
+    if (user.employmentStatus === 'relieved' || user.accountStatus === 'inactive') {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been deactivated. Please contact your administrator.',
+      });
+    }
+
     sendTokenResponse(user, 200, res);
   } catch (err) {
     res.status(400).json({

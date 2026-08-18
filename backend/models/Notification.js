@@ -52,4 +52,16 @@ const NotificationSchema = new mongoose.Schema({
 NotificationSchema.index({ recipient: 1, isRead: 1 });
 NotificationSchema.index({ createdAt: -1 });
 
+NotificationSchema.pre('save', async function () {
+  if (this.recipient) {
+    const User = mongoose.model('User');
+    const user = await User.findById(this.recipient).select('employmentStatus accountStatus');
+    if (user && (user.employmentStatus === 'relieved' || user.accountStatus === 'inactive')) {
+      const err = new Error('Recipient is relieved/inactive. Notification suppressed.');
+      err.name = 'NotificationSuppressed';
+      throw err;
+    }
+  }
+});
+
 module.exports = mongoose.model('Notification', NotificationSchema);

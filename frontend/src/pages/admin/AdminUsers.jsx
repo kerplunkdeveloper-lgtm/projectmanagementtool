@@ -17,6 +17,8 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  relieveUser,
+  reactivateUser,
   clearUserError,
 } from "../../features/users/userSlice";
 
@@ -27,6 +29,7 @@ import UserTable from "./users/UserTable";
 import UserModal from "./users/UserModel";
 import DeleteUserModal from "./users/DeleteUserModal";
 import PermissionsModal from "./users/PermissionsModal";
+import RelieveUserModal from "./users/RelieveUserModal";
 
 const USERS_PER_PAGE = 7;
 
@@ -74,6 +77,11 @@ const AdminUsers = () => {
 
   const [openPermissionsModal, setOpenPermissionsModal] = useState(false);
   const [permissionsUser, setPermissionsUser] = useState(null);
+
+  const [openRelieveModal, setOpenRelieveModal] = useState(false);
+  const [relieveTargetUser, setRelieveTargetUser] = useState(null);
+  const [relieveMode, setRelieveMode] = useState("relieve");
+  const [relieveLoading, setRelieveLoading] = useState(false);
 
 
 
@@ -190,6 +198,40 @@ const AdminUsers = () => {
     }
   };
 
+  // RELIEVE USER MODAL TRIGGER
+  const handleRequestRelieve = (user) => {
+    setRelieveTargetUser(user);
+    setRelieveMode("relieve");
+    setOpenRelieveModal(true);
+  };
+
+  // REACTIVATE USER MODAL TRIGGER
+  const handleRequestReactivate = (user) => {
+    setRelieveTargetUser(user);
+    setRelieveMode("reactivate");
+    setOpenRelieveModal(true);
+  };
+
+  // CONFIRM RELIEVE / REACTIVATE
+  const handleConfirmRelieve = async (user, reason) => {
+    setRelieveLoading(true);
+    try {
+      if (relieveMode === "relieve") {
+        await dispatch(relieveUser({ id: user._id, reason })).unwrap();
+        toast.success("User has been successfully relieved.");
+      } else {
+        await dispatch(reactivateUser(user._id)).unwrap();
+        toast.success("User has been successfully reactivated.");
+      }
+      setOpenRelieveModal(false);
+      setRelieveTargetUser(null);
+    } catch (err) {
+      toast.error(err || "Action failed");
+    } finally {
+      setRelieveLoading(false);
+    }
+  };
+
   // FILTER & SORT LOGIC
   const filteredUsers = [...users]
     .filter((user) => {
@@ -296,6 +338,8 @@ const AdminUsers = () => {
         handleDeleteUser={
           requestDeleteUser
         }
+        handleRequestRelieve={handleRequestRelieve}
+        handleRequestReactivate={handleRequestReactivate}
         setOpenModal={setOpenModal}
         setEditUser={setEditUser}
         handleImpersonate={handleImpersonate}
@@ -380,6 +424,16 @@ const AdminUsers = () => {
         setOpen={setOpenDeleteModal}
         onConfirm={handleDeleteUser}
         user={userToDelete}
+      />
+
+      {/* RELIEVE / REACTIVATE MODAL */}
+      <RelieveUserModal
+        open={openRelieveModal}
+        setOpen={setOpenRelieveModal}
+        onConfirm={handleConfirmRelieve}
+        user={relieveTargetUser}
+        mode={relieveMode}
+        loading={relieveLoading}
       />
 
       {/* PERMISSIONS MODAL */}

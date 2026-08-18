@@ -6,6 +6,8 @@ const {
   createUser,
   updateUser,
   deleteUser,
+  relieveUser,
+  reactivateUser,
 } = require('../controllers/userController');
 
 const { protect, authorize } = require('../middleware/auth');
@@ -43,6 +45,22 @@ router.put(
   '/me',
   protect,
   updateUser
+);
+
+// RELIEVE USER - Admin only
+router.put(
+  '/:id/relieve',
+  protect,
+  authorize('admin'),
+  relieveUser
+);
+
+// REACTIVATE USER - Admin only
+router.put(
+  '/:id/reactivate',
+  protect,
+  authorize('admin'),
+  reactivateUser
 );
 
 // UPDATE - Admin only
