@@ -3278,11 +3278,20 @@ const TaskOverviewTab = ({
                         <option value="" disabled>
                           Select Project
                         </option>
-                        {projects?.map((p) => (
-                          <option key={p._id} value={p._id}>
-                            {p.name}
-                          </option>
-                        ))}
+                        {projects?.map((p) => {
+                          const clientRaw = p.client;
+                          const clientId = clientRaw?._id || clientRaw;
+                          const clientObj =
+                            (clients || []).find((c) => c._id === clientId) ||
+                            (typeof clientRaw === "object" ? clientRaw : null);
+                          const clientName =
+                            clientObj?.companyName || clientObj?.name || "";
+                          return (
+                            <option key={p._id} value={p._id}>
+                              {p.name} {clientName ? `(${clientName})` : ""}
+                            </option>
+                          );
+                        })}
                       </select>
                     </td>
                   )}
