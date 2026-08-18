@@ -2,145 +2,24 @@ import React, { useMemo, useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useGetTasksQuery, useGetProjectsQuery } from "../../features/api/apiSlice";
 import { getUsers } from "../../features/users/userSlice";
-import { FiFileText, FiClock, FiCheckCircle, FiCalendar, FiChevronDown, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { FiFileText, FiCheckCircle, FiCalendar, FiChevronDown, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import ClientBadge from "../../components/common/ClientBadge";
 
-const SimpleTimeTracker = ({
-  startTime,
-  endTime,
-  status,
-  pausedAt,
-  autoPaused,
-  savedPausedMs = 0,
-  isBlocked,
-  blockerPausedAt,
-  blockerHistory,
-  mode = "active",
-}) => {
-  const [elapsed, setElapsed] = useState(0);
-  const [blockedMs, setBlockedMs] = useState(0);
-
-  useEffect(() => {
-    if (!startTime) return;
-
-    const calculateTime = () => {
-      const start = new Date(startTime).getTime();
-      let end;
-
-      if (endTime) {
-        end = new Date(endTime).getTime();
-      } else if (status === "In Progress" && autoPaused) {
-        end = pausedAt ? new Date(pausedAt).getTime() : Date.now();
-      } else if (
-        pausedAt &&
-        ["On Hold", "Rejected", "In Review", "Correction"].includes(status)
-      ) {
-        end = new Date(pausedAt).getTime();
-      } else {
-        end = Date.now();
-      }
-
-      let totalPauseMs = 0;
-      if (blockerHistory && blockerHistory.length > 0) {
-        blockerHistory.forEach((item) => {
-          if (item.pausedAt) {
-            const p = new Date(item.pausedAt).getTime();
-            let r = item.resumedAt
-              ? new Date(item.resumedAt).getTime()
-              : Date.now();
-            if (r > end) r = end;
-            if (r >= p) {
-              totalPauseMs += r - p;
-            }
-          }
-        });
-      }
-
-      if (isBlocked && blockerPausedAt) {
-        const pauseStart = new Date(blockerPausedAt).getTime();
-        if (pauseStart < end) {
-          totalPauseMs += end - pauseStart;
-        }
-      }
-
-      const totalElapsedMs = end - start - (savedPausedMs || 0) - totalPauseMs;
-      return {
-        active: Math.max(0, Math.floor(totalElapsedMs / 1000)),
-        blocked: Math.max(0, Math.floor(totalPauseMs / 1000)),
-      };
-    };
-
-    const update = () => {
-      const { active, blocked } = calculateTime();
-      setElapsed(active);
-      setBlockedMs(blocked);
-    };
-
-    update();
-
-    if (status === "In Progress" && !autoPaused && !endTime) {
-      const interval = setInterval(update, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [
-    startTime,
-    endTime,
-    pausedAt,
-    autoPaused,
-    status,
-    isBlocked,
-    blockerPausedAt,
-    blockerHistory,
-    savedPausedMs,
-  ]);
-
-  if (!startTime) {
-    if (!status || status.toLowerCase() === "pending") {
-      return (
-        <span className="text-slate-455 dark:text-slate-500 font-semibold text-[11px]">
-          Not started
-        </span>
-      );
-    }
-    return (
-      <span className="text-slate-455 dark:text-slate-500 font-normal">—</span>
-    );
-  }
-
-  const formatTime = (secs) => {
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
-    return `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
-  };
-
-  if (mode === "blocker") {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-xl text-[11px] font-black border shadow-2xs bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20">
-        {formatTime(blockedMs)}
-      </span>
-    );
-  }
-
-  const colorClasses =
-    status === "In Progress"
-      ? "bg-blue-50/80 text-blue-700 border-blue-200 dark:bg-blue-955/30 dark:text-blue-400 dark:border-blue-900/30"
-      : status === "In Review"
-        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-550/10 dark:text-amber-400 dark:border-amber-550/30"
-        : status === "On Hold"
-          ? "bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/30"
-          : status === "Completed"
-            ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
-            : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-500/5 dark:text-slate-400 dark:border-slate-500/20";
-
-  return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-xl text-[11px] font-black border shadow-2xs ${colorClasses}`}
-    >
-      {formatTime(elapsed)}
-    </span>
-  );
+const formatCreatedTime = (time) => {
+  if (!time) return "—";
+  const date = new Date(time);
+  if (isNaN(date.getTime())) return "—";
+  return date.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
 };
+
+
 
 const renderUserAvatarSmall = (u, sizeClass = "w-6 h-6 text-[8px]") => {
   if (!u) return null;
@@ -284,7 +163,7 @@ const MomClientReport = () => {
 
       return true;
     });
-  }, [tasks, users, projects, dateFilter, assigneeFilter, clientFilter]);
+  }, [tasks, projects, dateFilter, assigneeFilter, clientFilter]);
 
   const uniqueAssignees = useMemo(() => {
     const map = new Map();
@@ -351,7 +230,7 @@ const MomClientReport = () => {
 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-[#020710] overflow-hidden">
-      <div className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-indigo-500 to-indigo-600 shadow-md">
+      <div className="flex items-center gap-3 px-6 py-4 theme-bg-accent shadow-md">
         <div className="bg-white/20 p-2 rounded-lg">
           <FiFileText size={20} className="text-white" />
         </div>
@@ -361,7 +240,7 @@ const MomClientReport = () => {
         </div>
       </div>
       
-      <div className="px-6 py-4 flex-1 flex flex-col min-h-0 overflow-y-auto">
+      <div className=" py-4 flex-1 flex flex-col min-h-0 overflow-y-auto">
         <div className="flex flex-col xl:flex-row xl:justify-between xl:items-center mb-4 gap-4">
           <div className="flex flex-wrap items-center gap-3">
             <select
@@ -464,14 +343,15 @@ const MomClientReport = () => {
                     <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Start Date</th>
                     <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">End Date</th>
                     <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Priority</th>
-                    <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase text-center">Time Tracker</th>
+                    <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase text-center">Created Time</th>
                     <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase text-center">Status</th>
+                    <th className="px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Feedback MOM</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
                   {filteredTasks.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 text-sm">
+                      <td colSpan={10} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 text-sm">
                         No MOM tasks found for the selected criteria.
                       </td>
                     </tr>
@@ -531,23 +411,22 @@ const MomClientReport = () => {
                               {task.priority || "Medium"}
                             </span>
                           </td>
-                          <td className="px-4 py-3 text-center">
-                            <SimpleTimeTracker 
-                              startTime={task.startTime}
-                              endTime={task.endTime}
-                              status={task.status}
-                              pausedAt={task.pausedAt}
-                              autoPaused={task.autoPaused}
-                              savedPausedMs={task.savedPausedMs}
-                              isBlocked={task.isBlocked}
-                              blockerPausedAt={task.blockerPausedAt}
-                              blockerHistory={task.blockerHistory}
-                            />
+                          <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap text-center">
+                            {formatCreatedTime(task.createdAt)}
                           </td>
                           <td className="px-4 py-3 text-xs text-center">
                             <span className={`px-2 py-1 rounded-md ${getStatusStyle(task.status)} font-bold`}>
                               {task.status || "Pending"}
                             </span>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-slate-700 dark:text-slate-200 max-w-[200px] truncate" title={task.feedbackMom || ""}>
+                            {task.feedbackMom ? (
+                              <span className="font-semibold text-slate-700 dark:text-slate-200">
+                                {task.feedbackMom}
+                              </span>
+                            ) : (
+                              <span className="text-slate-400 italic">—</span>
+                            )}
                           </td>
                         </tr>
                       );

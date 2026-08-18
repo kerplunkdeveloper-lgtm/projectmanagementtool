@@ -493,7 +493,8 @@ if (req.body.status && req.body.status !== previousStatus) {
       break;
 
     case "On Hold":
-      if (!task.actualStartTime) {
+      const isMOMTask = task.contentType === "MOM" || req.body.contentType === "MOM";
+      if (!task.actualStartTime && !isMOMTask) {
         return res.status(400).json({
           message: "Please start the task by setting its status to 'In Progress' first before placing it on hold.",
         });
@@ -703,7 +704,8 @@ if (req.body.subtasks) {
           break;
 
         case "On Hold":
-          if (!prevSub.actualStartTime && !sub.actualStartTime) {
+          const isSubMOM = (sub && sub.contentType === "MOM") || (prevSub && prevSub.contentType === "MOM") || task.contentType === "MOM";
+          if (!prevSub.actualStartTime && !sub.actualStartTime && !isSubMOM) {
             return res.status(400).json({
               message: "Please start the subtask by setting its status to 'In Progress' first before placing it on hold.",
             });

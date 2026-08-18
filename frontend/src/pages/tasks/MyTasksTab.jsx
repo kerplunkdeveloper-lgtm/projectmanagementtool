@@ -87,9 +87,7 @@ const TimeTracker = ({
         end = pausedAt ? new Date(pausedAt).getTime() : Date.now();
       } else if (
         pausedAt &&
-        ["On Hold", "Rejected", "In Review", "Correction"].includes(
-          status,
-        )
+        ["On Hold", "Rejected", "In Review", "Correction"].includes(status)
       ) {
         end = new Date(pausedAt).getTime();
       } else {
@@ -205,151 +203,154 @@ const TimeTracker = ({
   );
 };
 
-const SingleTimeDisplay = React.memo(({
-  mode = "active", // "active" or "blocker"
-  startTime,
-  endTime,
-  status,
-  pausedAt,
-  autoPaused,
-  savedPausedMs = 0,
-  isBlocked,
-  blockerPausedAt,
-  blockerHistory,
-}) => {
-  const [elapsed, setElapsed] = useState(0);
-  const [blockedMs, setBlockedMs] = useState(0);
-
-  useEffect(() => {
-    if (!startTime) return;
-
-    const calculateTime = () => {
-      const start = new Date(startTime).getTime();
-      let end;
-
-      if (endTime) {
-        end = new Date(endTime).getTime();
-      } else if (status === "In Progress" && autoPaused) {
-        end = pausedAt ? new Date(pausedAt).getTime() : Date.now();
-      } else if (
-        pausedAt &&
-        ["On Hold", "Rejected", "In Review", "Correction"].includes(
-          status,
-        )
-      ) {
-        end = new Date(pausedAt).getTime();
-      } else {
-        end = Date.now();
-      }
-
-      let totalPauseMs = 0;
-      if (blockerHistory && blockerHistory.length > 0) {
-        blockerHistory.forEach((item) => {
-          if (item.pausedAt) {
-            const p = new Date(item.pausedAt).getTime();
-            let r = item.resumedAt
-              ? new Date(item.resumedAt).getTime()
-              : Date.now();
-            if (r > end) r = end;
-            if (r >= p) {
-              totalPauseMs += r - p;
-            }
-          }
-        });
-      }
-
-      if (isBlocked && blockerPausedAt) {
-        const pauseStart = new Date(blockerPausedAt).getTime();
-        if (pauseStart < end) {
-          totalPauseMs += end - pauseStart;
-        }
-      }
-
-      const totalElapsedMs = end - start - (savedPausedMs || 0) - totalPauseMs;
-      return {
-        active: Math.max(0, Math.floor(totalElapsedMs / 1000)),
-        blocked: Math.max(0, Math.floor(totalPauseMs / 1000)),
-      };
-    };
-
-    const update = () => {
-      const { active, blocked } = calculateTime();
-      setElapsed(active);
-      setBlockedMs(blocked);
-    };
-
-    update();
-
-    if (status === "In Progress" && !autoPaused && !endTime) {
-      const interval = setInterval(update, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [
+const SingleTimeDisplay = React.memo(
+  ({
+    mode = "active", // "active" or "blocker"
     startTime,
     endTime,
+    status,
     pausedAt,
     autoPaused,
-    status,
+    savedPausedMs = 0,
     isBlocked,
     blockerPausedAt,
     blockerHistory,
-    savedPausedMs,
-  ]);
+  }) => {
+    const [elapsed, setElapsed] = useState(0);
+    const [blockedMs, setBlockedMs] = useState(0);
 
-  if (!startTime && status !== "In Progress") {
-    if (!status || status.toLowerCase() === "pending") {
+    useEffect(() => {
+      if (!startTime) return;
+
+      const calculateTime = () => {
+        const start = new Date(startTime).getTime();
+        let end;
+
+        if (endTime) {
+          end = new Date(endTime).getTime();
+        } else if (status === "In Progress" && autoPaused) {
+          end = pausedAt ? new Date(pausedAt).getTime() : Date.now();
+        } else if (
+          pausedAt &&
+          ["On Hold", "Rejected", "In Review", "Correction"].includes(status)
+        ) {
+          end = new Date(pausedAt).getTime();
+        } else {
+          end = Date.now();
+        }
+
+        let totalPauseMs = 0;
+        if (blockerHistory && blockerHistory.length > 0) {
+          blockerHistory.forEach((item) => {
+            if (item.pausedAt) {
+              const p = new Date(item.pausedAt).getTime();
+              let r = item.resumedAt
+                ? new Date(item.resumedAt).getTime()
+                : Date.now();
+              if (r > end) r = end;
+              if (r >= p) {
+                totalPauseMs += r - p;
+              }
+            }
+          });
+        }
+
+        if (isBlocked && blockerPausedAt) {
+          const pauseStart = new Date(blockerPausedAt).getTime();
+          if (pauseStart < end) {
+            totalPauseMs += end - pauseStart;
+          }
+        }
+
+        const totalElapsedMs =
+          end - start - (savedPausedMs || 0) - totalPauseMs;
+        return {
+          active: Math.max(0, Math.floor(totalElapsedMs / 1000)),
+          blocked: Math.max(0, Math.floor(totalPauseMs / 1000)),
+        };
+      };
+
+      const update = () => {
+        const { active, blocked } = calculateTime();
+        setElapsed(active);
+        setBlockedMs(blocked);
+      };
+
+      update();
+
+      if (status === "In Progress" && !autoPaused && !endTime) {
+        const interval = setInterval(update, 1000);
+        return () => clearInterval(interval);
+      }
+    }, [
+      startTime,
+      endTime,
+      pausedAt,
+      autoPaused,
+      status,
+      isBlocked,
+      blockerPausedAt,
+      blockerHistory,
+      savedPausedMs,
+    ]);
+
+    if (!startTime && status !== "In Progress") {
+      if (!status || status.toLowerCase() === "pending") {
+        return (
+          <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs">
+            Not started
+          </span>
+        );
+      }
       return (
         <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs">
-          Not started
+          —
         </span>
       );
     }
-    return (
-      <span className="text-slate-400 dark:text-slate-500 font-semibold text-xs">
-        —
-      </span>
-    );
-  }
-  if (!startTime && status === "In Progress") {
-    return (
-      <span className="text-[10px] font-bold text-blue-500 animate-pulse">
-        Starting...
-      </span>
-    );
-  }
+    if (!startTime && status === "In Progress") {
+      return (
+        <span className="text-[10px] font-bold text-blue-500 animate-pulse">
+          Starting...
+        </span>
+      );
+    }
 
-  const formatTime = (secs) => {
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
-    return `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
-  };
+    const formatTime = (secs) => {
+      const h = Math.floor(secs / 3600);
+      const m = Math.floor((secs % 3600) / 60);
+      const s = secs % 60;
+      return `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
+    };
 
-  if (mode === "active") {
-    const colorClasses =
-      status === "In Progress"
-        ? "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-[#3b82f6]/30 text-blue-600 dark:text-[#3b82f6]"
-        : status === "In Review"
-          ? "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-400"
+    if (mode === "active") {
+      const colorClasses =
+        status === "In Progress"
+          ? "bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-[#3b82f6]/30 text-blue-600 dark:text-[#3b82f6]"
+          : status === "In Review"
+            ? "bg-amber-50 dark:bg-amber-500/10 border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-400"
             : status === "On Hold"
               ? "bg-violet-50 dark:bg-violet-500/10 border-violet-200 dark:border-violet-500/30 text-violet-600 dark:text-violet-400"
               : status === "Completed"
                 ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200/50 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400"
                 : "bg-slate-50 dark:bg-slate-500/5 border-slate-200 dark:border-slate-500/20 text-slate-500 dark:text-slate-400";
 
+      return (
+        <span
+          className={`inline-flex items-center gap-1 px-2 py-1 rounded border font-bold text-[10px] ${colorClasses}`}
+        >
+          {formatTime(elapsed)}
+        </span>
+      );
+    }
+
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded border font-bold text-[10px] ${colorClasses}`}>
-        {formatTime(elapsed)}
+      <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-orange-50 dark:bg-orange-500/10 border border-orange-200/50 dark:border-orange-500/20 text-orange-700 dark:text-orange-400 font-bold text-[10px]">
+        {formatTime(blockedMs)}
       </span>
     );
-  }
-
-  return (
-    <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-orange-50 dark:bg-orange-500/10 border border-orange-200/50 dark:border-orange-500/20 text-orange-700 dark:text-orange-400 font-bold text-[10px]">
-      {formatTime(blockedMs)}
-    </span>
-  );
-});
+  },
+);
 
 const formatBusinessDuration = (ms) => {
   if (!ms) return "0m 0s";
@@ -361,140 +362,141 @@ const formatBusinessDuration = (ms) => {
   return `${m}m ${s}s`;
 };
 
-const ApprovalTimeDisplay = React.memo(({
-  reviewStartedAt,
-  completedAt,
-  approvalWaitingMs,
-  status,
-  lastReviewStartedAt,
-  reviewCycles,
-}) => {
-  const [liveElapsed, setLiveElapsed] = useState(0);
+const ApprovalTimeDisplay = React.memo(
+  ({
+    reviewStartedAt,
+    completedAt,
+    approvalWaitingMs,
+    status,
+    lastReviewStartedAt,
+    reviewCycles,
+  }) => {
+    const [liveElapsed, setLiveElapsed] = useState(0);
 
-  useEffect(() => {
-    if (
-      !reviewStartedAt ||
-      status !== "In Review"
-    ) {
-      setLiveElapsed(0);
-      return;
+    useEffect(() => {
+      if (!reviewStartedAt || status !== "In Review") {
+        setLiveElapsed(0);
+        return;
+      }
+      const updateTime = () => {
+        const elapsed = calculateBusinessMs(reviewStartedAt, Date.now());
+        setLiveElapsed(elapsed);
+      };
+      updateTime();
+      const interval = setInterval(updateTime, 1000);
+      return () => clearInterval(interval);
+    }, [reviewStartedAt, status]);
+
+    const effectiveReviewStart =
+      reviewStartedAt ||
+      lastReviewStartedAt ||
+      (reviewCycles && reviewCycles.length > 0
+        ? reviewCycles[reviewCycles.length - 1]?.startedAt
+        : null);
+
+    if (!effectiveReviewStart && !approvalWaitingMs) {
+      return (
+        <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
+      );
     }
-    const updateTime = () => {
-      const elapsed = calculateBusinessMs(reviewStartedAt, Date.now());
-      setLiveElapsed(elapsed);
+
+    const formatDateTime = (dateStr) => {
+      if (!dateStr) return { date: "—", time: "", relative: "" };
+      const d = new Date(dateStr);
+      const date = d.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+      });
+      const time = d.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+      const diffMs = Date.now() - d;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMins / 60);
+      const diffDays = Math.floor(diffHours / 24);
+      let relative = "just now";
+      if (diffDays > 0) relative = `${diffDays}d ago`;
+      else if (diffHours > 0) relative = `${diffHours}h ago`;
+      else if (diffMins > 0) relative = `${diffMins}m ago`;
+      return { date, time, relative };
     };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, [reviewStartedAt, status]);
 
-  const effectiveReviewStart =
-    reviewStartedAt ||
-    lastReviewStartedAt ||
-    (reviewCycles && reviewCycles.length > 0
-      ? reviewCycles[reviewCycles.length - 1]?.startedAt
-      : null);
+    const totalWaitMs = (approvalWaitingMs || 0) + liveElapsed;
+    const isInReview = status === "In Review";
+    const revInfo = effectiveReviewStart
+      ? formatDateTime(effectiveReviewStart)
+      : null;
+    const doneInfo = completedAt ? formatDateTime(completedAt) : null;
 
-  if (!effectiveReviewStart && !approvalWaitingMs) {
     return (
-      <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
+      <div className="inline-flex flex-col gap-1.5 text-[10px]">
+        {/* Horizontal 2-col table: Review Start | Completed */}
+        {(revInfo || doneInfo) && (
+          <div className="flex items-stretch rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40 shadow-sm">
+            {/* Rev Start column */}
+            {revInfo && (
+              <div className="flex-1 flex flex-col px-2.5 py-2 border-r border-slate-200 dark:border-slate-700/60">
+                <span className="text-[8px] font-black uppercase tracking-widest text-blue-500 dark:text-blue-400 leading-none mb-1">
+                  Rev Start
+                </span>
+                <span className="font-bold text-slate-700 dark:text-slate-100 text-[10px] leading-tight whitespace-nowrap">
+                  {revInfo.date}
+                </span>
+                <span className="text-[9.5px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                  {revInfo.time}
+                </span>
+                <span className="text-[9px] text-blue-400 dark:text-blue-500 font-medium mt-0.5">
+                  {revInfo.relative}
+                </span>
+              </div>
+            )}
+
+            {/* Completed column */}
+            {doneInfo && (
+              <div className="flex-1 flex flex-col px-2.5 py-2">
+                <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 dark:text-emerald-400 leading-none mb-1">
+                  Completed
+                </span>
+                <span className="font-bold text-slate-700 dark:text-slate-100 text-[10px] leading-tight whitespace-nowrap">
+                  {doneInfo.date}
+                </span>
+                <span className="text-[9.5px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                  {doneInfo.time}
+                </span>
+                <span className="text-[9px] text-emerald-400 dark:text-emerald-500 font-medium mt-0.5">
+                  {doneInfo.relative}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Duration badge */}
+        {totalWaitMs > 0 && (
+          <div
+            className={`self-start flex items-center gap-1.5 px-2.5 py-1 rounded-full font-black text-[10px] tracking-wide ${
+              isInReview
+                ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/25 shadow-sm"
+                : "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-500/25 shadow-sm"
+            }`}
+          >
+            {isInReview ? (
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+            ) : (
+              <span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
+            )}
+            {isInReview ? "Waiting " : "Took "}
+            <span className="font-black">
+              {formatBusinessDuration(totalWaitMs)}
+            </span>
+          </div>
+        )}
+      </div>
     );
-  }
-
-  const formatDateTime = (dateStr) => {
-    if (!dateStr) return { date: "—", time: "", relative: "" };
-    const d = new Date(dateStr);
-    const date = d.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-    });
-    const time = d.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-    const diffMs = Date.now() - d;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-    let relative = "just now";
-    if (diffDays > 0) relative = `${diffDays}d ago`;
-    else if (diffHours > 0) relative = `${diffHours}h ago`;
-    else if (diffMins > 0) relative = `${diffMins}m ago`;
-    return { date, time, relative };
-  };
-
-  const totalWaitMs = (approvalWaitingMs || 0) + liveElapsed;
-  const isInReview = status === "In Review";
-  const revInfo = effectiveReviewStart ? formatDateTime(effectiveReviewStart) : null;
-  const doneInfo = completedAt ? formatDateTime(completedAt) : null;
-
-  return (
-    <div className="inline-flex flex-col gap-1.5 text-[10px]">
-      {/* Horizontal 2-col table: Review Start | Completed */}
-      {(revInfo || doneInfo) && (
-        <div className="flex items-stretch rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700/60 bg-white dark:bg-slate-800/40 shadow-sm">
-          {/* Rev Start column */}
-          {revInfo && (
-            <div className="flex-1 flex flex-col px-2.5 py-2 border-r border-slate-200 dark:border-slate-700/60">
-              <span className="text-[8px] font-black uppercase tracking-widest text-blue-500 dark:text-blue-400 leading-none mb-1">
-                Rev Start
-              </span>
-              <span className="font-bold text-slate-700 dark:text-slate-100 text-[10px] leading-tight whitespace-nowrap">
-                {revInfo.date}
-              </span>
-              <span className="text-[9.5px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                {revInfo.time}
-              </span>
-              <span className="text-[9px] text-blue-400 dark:text-blue-500 font-medium mt-0.5">
-                {revInfo.relative}
-              </span>
-            </div>
-          )}
-
-          {/* Completed column */}
-          {doneInfo && (
-            <div className="flex-1 flex flex-col px-2.5 py-2">
-              <span className="text-[8px] font-black uppercase tracking-widest text-emerald-500 dark:text-emerald-400 leading-none mb-1">
-                Completed
-              </span>
-              <span className="font-bold text-slate-700 dark:text-slate-100 text-[10px] leading-tight whitespace-nowrap">
-                {doneInfo.date}
-              </span>
-              <span className="text-[9.5px] font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">
-                {doneInfo.time}
-              </span>
-              <span className="text-[9px] text-emerald-400 dark:text-emerald-500 font-medium mt-0.5">
-                {doneInfo.relative}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Duration badge */}
-      {totalWaitMs > 0 && (
-        <div
-          className={`self-start flex items-center gap-1.5 px-2.5 py-1 rounded-full font-black text-[10px] tracking-wide ${
-            isInReview
-              ? "bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/25 shadow-sm"
-              : "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-500/25 shadow-sm"
-          }`}
-        >
-          {isInReview ? (
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
-          ) : (
-            <span className="w-1.5 h-1.5 rounded-full bg-violet-400 shrink-0" />
-          )}
-          {isInReview ? "Waiting " : "Took "}
-          <span className="font-black">
-            {formatBusinessDuration(totalWaitMs)}
-          </span>
-        </div>
-      )}
-    </div>
-  );
-});
+  },
+);
 
 // Lightweight badge — shows only the approval duration (no date cards)
 const ApprovalDurationBadge = ({
@@ -612,6 +614,63 @@ const ResizableHeader = ({
   );
 };
 
+const MomFeedbackInput = ({ task, onSave }) => {
+  const [value, setValue] = useState(task?.feedbackMom || "");
+
+  useEffect(() => {
+    setValue(task?.feedbackMom || "");
+  }, [task?.feedbackMom]);
+
+  const handleBlur = () => {
+    const trimmed = value.trim();
+    if (trimmed !== (task?.feedbackMom || "").trim()) {
+      onSave(task._id, { feedbackMom: trimmed });
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.target.blur();
+    }
+  };
+
+  return (
+    <input
+      type="text"
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      placeholder="Enter MOM feedback..."
+      className="w-full bg-white dark:bg-[#11131e] border border-slate-200 dark:border-slate-700/80 hover:border-slate-300 dark:hover:border-slate-600 focus:border-blue-500 dark:focus:border-blue-500 rounded-lg px-2.5 py-1 text-[11px] font-medium text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-blue-500/30 transition-all shadow-2xs"
+      title="Click to edit MOM feedback"
+      onClick={(e) => e.stopPropagation()}
+    />
+  );
+};
+
+const COLUMN_OPTIONS = [
+  { key: "id", label: "ID" },
+  { key: "priority", label: "Priority" },
+  { key: "taskName", label: "Task Name" },
+  { key: "client", label: "Client" },
+  { key: "contentType", label: "Content-type" },
+  { key: "status", label: "Status" },
+  { key: "feedbackMom", label: "Feedback MOM" },
+  { key: "blocker", label: "Blocker" },
+  { key: "activeTime", label: "Inprogress time taken" },
+  { key: "blockerTime", label: "Blocker time" },
+  { key: "timeTracker", label: "Time tracker" },
+  { key: "revision", label: "Revision" },
+  { key: "startDate", label: "Start Date" },
+  { key: "endDate", label: "Due Date" },
+  { key: "assignedBy", label: "Assigned By" },
+  { key: "approvalTime", label: "Approval Info" },
+  { key: "contentCopy", label: "Content Copy" },
+  { key: "createdTime", label: "Created Time" },
+];
+
 const MyTasksTab = ({
   tasks,
   projects,
@@ -679,6 +738,64 @@ const MyTasksTab = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const itemsPerPage = 10;
+
+  const [hiddenColumns, setHiddenColumns] = useState(() => {
+    try {
+      const saved = localStorage.getItem("mytasks_hidden_columns");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      id: false,
+      priority: false,
+      taskName: false,
+      client: false,
+      contentType: false,
+      status: false,
+      feedbackMom: false,
+      blocker: false,
+      activeTime: false,
+      blockerTime: false,
+      timeTracker: false,
+      revision: false,
+      startDate: false,
+      endDate: false,
+      assignedBy: false,
+      approvalTime: false,
+      contentCopy: false,
+      createdTime: false,
+    };
+  });
+  const [isColsOpen, setIsColsOpen] = useState(false);
+  const colsDropdownRef = useRef(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "mytasks_hidden_columns",
+        JSON.stringify(hiddenColumns),
+      );
+    } catch (e) {}
+  }, [hiddenColumns]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        colsDropdownRef.current &&
+        !colsDropdownRef.current.contains(event.target)
+      ) {
+        setIsColsOpen(false);
+      }
+    };
+    if (isColsOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isColsOpen]);
+
+  const visibleColCount =
+    Object.values(hiddenColumns).filter((v) => !v).length || 1;
 
   const [openDropdown, setOpenDropdown] = useState(null);
   const filterRef = useRef(null);
@@ -1128,10 +1245,7 @@ const MyTasksTab = ({
       return;
     }
 
-    if (
-      sanitizedFields.status &&
-      sanitizedFields.status === "In Review"
-    ) {
+    if (sanitizedFields.status && sanitizedFields.status === "In Review") {
       const currentTaskObj = tasks?.find((t) => t._id === taskId);
       if (currentTaskObj && !currentTaskObj.actualStartTime) {
         showStartInProgressWarning("review");
@@ -1183,7 +1297,10 @@ const MyTasksTab = ({
         taskData: sanitizedFields,
       }).unwrap();
     } catch (err) {
-      if (err?.data?.isOfficeHoursEnded || err?.error?.data?.isOfficeHoursEnded) {
+      if (
+        err?.data?.isOfficeHoursEnded ||
+        err?.error?.data?.isOfficeHoursEnded
+      ) {
         const errorData = err?.data || err?.error?.data;
         window.dispatchEvent(
           new CustomEvent("show-office-hours-ended-popup", {
@@ -1191,7 +1308,7 @@ const MyTasksTab = ({
               workingTimeMs: errorData.workingTimeMs,
               pausedAtHour: errorData.pausedAt,
             },
-          })
+          }),
         );
         return;
       }
@@ -1374,10 +1491,7 @@ const MyTasksTab = ({
       return;
     }
 
-    if (
-      newStatus &&
-      newStatus === "In Review"
-    ) {
+    if (newStatus && newStatus === "In Review") {
       const currentTaskObj = tasks?.find((t) => t._id === taskId);
       if (currentTaskObj && !currentTaskObj.actualStartTime) {
         showStartInProgressWarning("review");
@@ -1402,7 +1516,10 @@ const MyTasksTab = ({
         taskData: { status: newStatus },
       }).unwrap();
     } catch (err) {
-      if (err?.data?.isOfficeHoursEnded || err?.error?.data?.isOfficeHoursEnded) {
+      if (
+        err?.data?.isOfficeHoursEnded ||
+        err?.error?.data?.isOfficeHoursEnded
+      ) {
         const errorData = err?.data || err?.error?.data;
         window.dispatchEvent(
           new CustomEvent("show-office-hours-ended-popup", {
@@ -1410,12 +1527,16 @@ const MyTasksTab = ({
               workingTimeMs: errorData?.workingTimeMs || 0,
               pausedAtHour: errorData?.pausedAt,
             },
-          })
+          }),
         );
         return;
       }
 
-      if (err?.status === 409 || err?.originalStatus === 409 || err?.data?.status === 409) {
+      if (
+        err?.status === 409 ||
+        err?.originalStatus === 409 ||
+        err?.data?.status === 409
+      ) {
         toast.custom(
           (t) => (
             <div
@@ -1483,7 +1604,11 @@ const MyTasksTab = ({
         return;
       }
 
-      toast.error(err?.data?.message || err?.error?.data?.message || "Failed to update task");
+      toast.error(
+        err?.data?.message ||
+          err?.error?.data?.message ||
+          "Failed to update task",
+      );
     }
   };
 
@@ -1721,13 +1846,24 @@ const MyTasksTab = ({
         ? t.project.client
         : projectObj?.client || t.project?.client;
       if (client) {
-        const cId = (typeof client === "object" ? (client._id || client.id) : client) || client.companyName;
+        const cId =
+          (typeof client === "object" ? client._id || client.id : client) ||
+          client.companyName;
         if (cId) {
           clientsMap[cId] = {
             id: cId,
-            name: (typeof client === "object" && client.companyName) ? client.companyName : (client.name || String(client)),
-            color: (typeof client === "object" && client.color) ? client.color : "#3b82f6",
-            icon: (typeof client === "object" && client.icon) ? client.icon : "FaRegBuilding",
+            name:
+              typeof client === "object" && client.companyName
+                ? client.companyName
+                : client.name || String(client),
+            color:
+              typeof client === "object" && client.color
+                ? client.color
+                : "#3b82f6",
+            icon:
+              typeof client === "object" && client.icon
+                ? client.icon
+                : "FaRegBuilding",
           };
         }
       }
@@ -1756,7 +1892,8 @@ const MyTasksTab = ({
   }, [activeTasksList]);
 
   const handleExportExcel = () => {
-    const tasksToExport = sortedTasks && sortedTasks.length > 0 ? sortedTasks : activeTasksList;
+    const tasksToExport =
+      sortedTasks && sortedTasks.length > 0 ? sortedTasks : activeTasksList;
     if (!tasksToExport || tasksToExport.length === 0) {
       toast.error("No tasks data available to export");
       return;
@@ -1792,7 +1929,11 @@ const MyTasksTab = ({
 
     const computeTaskTimes = (task) => {
       if (!task.actualStartTime) {
-        return { activeStr: "Not started", blockerStr: "0m 0s", totalStr: "0m 0s" };
+        return {
+          activeStr: "Not started",
+          blockerStr: "0m 0s",
+          totalStr: "0m 0s",
+        };
       }
       const start = new Date(task.actualStartTime).getTime();
       let end;
@@ -1812,7 +1953,9 @@ const MyTasksTab = ({
         task.blockerHistory.forEach((item) => {
           if (item.pausedAt) {
             const p = new Date(item.pausedAt).getTime();
-            let r = item.resumedAt ? new Date(item.resumedAt).getTime() : Date.now();
+            let r = item.resumedAt
+              ? new Date(item.resumedAt).getTime()
+              : Date.now();
             if (r > end) r = end;
             if (r >= p) totalPauseMs += r - p;
           }
@@ -1824,7 +1967,8 @@ const MyTasksTab = ({
         if (pauseStart < end) totalPauseMs += end - pauseStart;
       }
 
-      const totalElapsedMs = end - start - (task.totalPausedMs || 0) - totalPauseMs;
+      const totalElapsedMs =
+        end - start - (task.totalPausedMs || 0) - totalPauseMs;
       const activeSecs = Math.max(0, Math.floor(totalElapsedMs / 1000));
       const blockedSecs = Math.max(0, Math.floor(totalPauseMs / 1000));
 
@@ -1847,7 +1991,10 @@ const MyTasksTab = ({
 
       let durationMs = task.approvalWaitingMs || 0;
       if (task.status === "In Review" && effectiveReviewStart) {
-        durationMs += Math.max(0, Date.now() - new Date(effectiveReviewStart).getTime());
+        durationMs += Math.max(
+          0,
+          Date.now() - new Date(effectiveReviewStart).getTime(),
+        );
       }
       if (!durationMs || durationMs <= 0) return "—";
       const totalSecs = Math.floor(durationMs / 1000);
@@ -1855,7 +2002,9 @@ const MyTasksTab = ({
     };
 
     const rows = tasksToExport.map((task) => {
-      const displayId = getTaskDisplayId ? getTaskDisplayId(task) : task._id || "";
+      const displayId = getTaskDisplayId
+        ? getTaskDisplayId(task)
+        : task._id || "";
       const projId = task.project?._id || task.project;
       const projectObj = (projects || []).find((p) => p._id === projId);
       const clientRaw = task.project?.client?.companyName
@@ -1866,12 +2015,18 @@ const MyTasksTab = ({
       const createdBy = task.createdBy?.name || "Unknown";
       const startDate = task.startDate ? formatDate(task.startDate) : "—";
       const dueDate = task.dueDate ? formatDate(task.dueDate) : "—";
-      const createdTime = task.createdAt ? new Date(task.createdAt).toLocaleString() : "—";
-      const blockerStr = task.isBlocked ? (task.blockerReason || "Blocked") : "—";
+      const createdTime = task.createdAt
+        ? new Date(task.createdAt).toLocaleString()
+        : "—";
+      const blockerStr = task.isBlocked ? task.blockerReason || "Blocked" : "—";
       const contentCopy = task.contentCopy || task.copy || "—";
       const revisionCount = task.reviewCycles?.length || 0;
 
-      const { activeStr, blockerStr: blockerTimeStr, totalStr } = computeTaskTimes(task);
+      const {
+        activeStr,
+        blockerStr: blockerTimeStr,
+        totalStr,
+      } = computeTaskTimes(task);
       const approvalStr = computeApprovalStr(task);
 
       return [
@@ -1898,7 +2053,9 @@ const MyTasksTab = ({
     const csvContent =
       "\uFEFF" +
       [headers, ...rows]
-        .map((e) => e.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(","))
+        .map((e) =>
+          e.map((val) => `"${String(val).replace(/"/g, '""')}"`).join(","),
+        )
         .join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -1920,7 +2077,6 @@ const MyTasksTab = ({
       <div className="flex px-4 xl:px-6 py-2.5 items-center justify-between gap-3 bg-white dark:bg-[#11131e] relative z-30 border-b border-slate-100 dark:border-slate-800/60 flex-wrap xl:flex-nowrap">
         {/* Left: Search Bar */}
         <div className="relative w-40 sm:w-90 shrink-0">
-         
           <input
             type="text"
             placeholder="Search tasks..."
@@ -2031,7 +2187,12 @@ const MyTasksTab = ({
             type="button"
             onClick={() => setFilterPanelOpen(true)}
             className={`py-1.5 px-2.5 flex items-center justify-center gap-1.5 rounded-xl border text-[11px] font-extrabold transition-all shadow-2xs cursor-pointer ${
-              priorityFilter !== "All" || projectFilter !== "All" || statusFilter !== "All" || clientFilter !== "All" || dateFilter !== "All" || assignerFilter !== "All"
+              priorityFilter !== "All" ||
+              projectFilter !== "All" ||
+              statusFilter !== "All" ||
+              clientFilter !== "All" ||
+              dateFilter !== "All" ||
+              assignerFilter !== "All"
                 ? "bg-blue-50/80 border-blue-300 text-blue-800 dark:bg-blue-950/40 dark:border-blue-500/40 dark:text-blue-300 font-black"
                 : "bg-white dark:bg-[#151725] border-slate-200/90 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:border-blue-500/50"
             }`}
@@ -2039,7 +2200,12 @@ const MyTasksTab = ({
           >
             <FiFilter className="text-blue-500 text-[11px]" />
             <span>Filter</span>
-            {(priorityFilter !== "All" || projectFilter !== "All" || statusFilter !== "All" || clientFilter !== "All" || dateFilter !== "All" || assignerFilter !== "All") && (
+            {(priorityFilter !== "All" ||
+              projectFilter !== "All" ||
+              statusFilter !== "All" ||
+              clientFilter !== "All" ||
+              dateFilter !== "All" ||
+              assignerFilter !== "All") && (
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
             )}
           </button>
@@ -2051,9 +2217,98 @@ const MyTasksTab = ({
             className="py-1.5 px-2.5 flex items-center justify-center gap-1 rounded-xl border border-emerald-300 dark:border-emerald-500/40 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300 text-[11px] font-black cursor-pointer transition-all shadow-2xs hover:bg-emerald-100 dark:hover:bg-emerald-900/40 shrink-0"
             title="Export table data to Excel"
           >
-            <FiDownload size={12} className="text-emerald-600 dark:text-emerald-400" />
+            <FiDownload
+              size={12}
+              className="text-emerald-600 dark:text-emerald-400"
+            />
             <span>Export Excel</span>
           </button>
+
+          {/* Hide Column Dropdown Button */}
+          <div className="relative" ref={colsDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsColsOpen(!isColsOpen)}
+              className="py-1.5 px-2.5 flex items-center justify-center gap-1.5 rounded-xl border border-slate-200/90 dark:border-white/10 bg-white dark:bg-[#151725] text-slate-700 dark:text-slate-200 text-[11px] font-black cursor-pointer transition-all shadow-2xs hover:border-blue-500/50 hover:bg-slate-50 dark:hover:bg-slate-800 shrink-0"
+              title="Show or hide table columns"
+            >
+              <FiColumns className="text-blue-500 text-[11px]" />
+              <span>Hide Column</span>
+              {Object.values(hiddenColumns).filter(Boolean).length > 0 && (
+                <span className="text-[10px] font-black bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center ml-0.5">
+                  {Object.values(hiddenColumns).filter(Boolean).length}
+                </span>
+              )}
+            </button>
+
+            <AnimatePresence>
+              {isColsOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#151725] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-2.5 z-50 space-y-1.5 backdrop-blur-md"
+                >
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-1.5 px-1">
+                    <span className="text-[12px] font-bold text-slate-800 dark:text-white tracking-wider">
+                      Toggle Columns
+                    </span>
+                    {Object.values(hiddenColumns).some(Boolean) && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setHiddenColumns({
+                            id: false,
+                            priority: false,
+                            taskName: false,
+                            client: false,
+                            contentType: false,
+                            status: false,
+                            blocker: false,
+                            activeTime: false,
+                            blockerTime: false,
+                            timeTracker: false,
+                            revision: false,
+                            startDate: false,
+                            endDate: false,
+                            assignedBy: false,
+                            approvalTime: false,
+                            contentCopy: false,
+                            createdTime: false,
+                          })
+                        }
+                        className="text-[11px] font-bold text-blue-500 hover:text-blue-600 transition-colors cursor-pointer"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-0.5 max-h-64 overflow-y-auto custom-scrollbar">
+                    {COLUMN_OPTIONS.map((col) => (
+                      <label
+                        key={col.key}
+                        className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer text-[12px] font-bold text-slate-700 dark:text-slate-300 select-none transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={!hiddenColumns[col.key]}
+                          onChange={() =>
+                            setHiddenColumns((prev) => ({
+                              ...prev,
+                              [col.key]: !prev[col.key],
+                            }))
+                          }
+                          className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-white/10 dark:bg-black/20 cursor-pointer"
+                        />
+                        <span className="truncate">{col.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 
@@ -2185,14 +2440,14 @@ const MyTasksTab = ({
                             },
                           ]
                         : statusFilter === "Due Today"
-                        ? [
-                            {
-                              name: "Due Today",
-                              label: "Due Today",
-                              color: "bg-amber-600 animate-pulse",
-                            },
-                          ]
-                        : []),
+                          ? [
+                              {
+                                name: "Due Today",
+                                label: "Due Today",
+                                color: "bg-amber-600 animate-pulse",
+                              },
+                            ]
+                          : []),
                     ].map((st) => (
                       <button
                         key={st.name}
@@ -2401,7 +2656,9 @@ const MyTasksTab = ({
             "Completed",
             "Rejected",
           ].map((colStatus) => {
-            const colTasks = filteredTasks.filter((t) => t.status === colStatus);
+            const colTasks = filteredTasks.filter(
+              (t) => t.status === colStatus,
+            );
             const style = getStatusStyle(colStatus);
 
             return (
@@ -2440,7 +2697,9 @@ const MyTasksTab = ({
                         <div
                           key={task._id || `task-board-${idx}`}
                           draggable={!isRejected}
-                          onDragStart={(e) => !isRejected && handleDragStart(e, task._id)}
+                          onDragStart={(e) =>
+                            !isRejected && handleDragStart(e, task._id)
+                          }
                           onDragEnd={() => setDraggedTaskId(null)}
                           onClick={() => handleSelectTaskForDrawer(task._id)}
                           className={`shadow-sm rounded-2xl p-5 border transition-all flex flex-col gap-3 ${
@@ -2558,134 +2817,175 @@ const MyTasksTab = ({
               <table className="w-full min-w-[1300px] text-left  table-auto ">
                 <thead>
                   <tr className="sticky top-0 z-20  text-center bg-slate-50 dark:bg-[#11131e] text-slate-500 dark:text-slate-400 text-[10.5px] sm:text-[12px] font-medium border-b border-slate-200 dark:border-slate-200 shadow-sm">
-                    <ResizableHeader
-                      id="id"
-                      label="ID"
-                      colWidths={colWidths}
-                      handleMouseDown={handleMouseDown}
-                      defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-16"
-                    />
-                    <ResizableHeader
-                      id="priority"
-                      label="Priority"
-                      colWidths={colWidths}
-                      handleMouseDown={handleMouseDown}
-                      defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-20"
-                    />
-                    <ResizableHeader
-                      id="taskName"
-                      label="Task Name"
-                      colWidths={colWidths}
-                      handleMouseDown={handleMouseDown}
-                      defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] whitespace-nowrap"
-                    />
-                    <ResizableHeader
-                      id="client"
-                      label="Client"
-                      colWidths={colWidths}
-                      handleMouseDown={handleMouseDown}
-                      defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-24"
-                    />
-                    <ResizableHeader
-                      id="contentType"
-                      label="Content-type"
-                      colWidths={colWidths}
-                      handleMouseDown={handleMouseDown}
-                      defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap"
-                    />
-                    <ResizableHeader
-                      id="status"
-                      label="Status"
-                      colWidths={colWidths}
-                      handleMouseDown={handleMouseDown}
-                      defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-48 min-w-[180px]"
-                    />
-                    <ResizableHeader
-                      id="blocker"
-                      label="Blocker"
-                      colWidths={colWidths}
-                      handleMouseDown={handleMouseDown}
-                      defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 min-w-[125px]"
-                    />
-                    <ResizableHeader
-                      id="activeTime"
-                      label="Inprogress time taken"
-                      colWidths={colWidths}
-                      handleMouseDown={handleMouseDown}
-                      defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-36 whitespace-nowrap"
-                    />
-
-                    <ResizableHeader
-                      id="blockerTime"
-                      label="Blocker time"
-                      colWidths={colWidths}
-                      handleMouseDown={handleMouseDown}
-                      defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap"
-                    />
-                    <ResizableHeader
-                      id="timeTracker"
-                      label="Time tracker"
-                      colWidths={colWidths}
-                      handleMouseDown={handleMouseDown}
-                      defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap"
-                    />
-                    <ResizableHeader
-                      id="revision"
-                      label="Revision"
-                      colWidths={colWidths}
-                      handleMouseDown={handleMouseDown}
-                      defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-28"
-                    />
-                    <ResizableHeader
-                      id="startDate"
-                      label="Start Date"
-                      colWidths={colWidths}
-                      handleMouseDown={handleMouseDown}
-                      defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32"
-                    />
-                    <ResizableHeader
-                      id="endDate"
-                      label="DUE DATE"
-                      colWidths={colWidths}
-                      handleMouseDown={handleMouseDown}
-                      defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32"
-                    />
-                    <ResizableHeader
-                      id="assignedBy"
-                      label="Assigned By"
-                      colWidths={colWidths}
-                      handleMouseDown={handleMouseDown}
-                      defaultClassName="px-20 py-2 border border-slate-200/70 dark:border-transparent w-60"
-                    />
-
-                    <ResizableHeader
-                      id="approvalTime"
-                      label="Approval Info"
-                      colWidths={colWidths}
-                      handleMouseDown={handleMouseDown}
-                      defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-36 whitespace-nowrap"
-                    />
-                    <ResizableHeader
-                      id="contentCopy"
-                      label="Content Copy"
-                      colWidths={colWidths}
-                      handleMouseDown={handleMouseDown}
-                      defaultClassName="px-20 py-2 border border-slate-200/70 dark:border-transparent min-w-[150px] max-w-[290px] w-auto whitespace-nowrap"
-                    />
-                    <ResizableHeader
-                      id="createdTime"
-                      label="Created Time"
-                      colWidths={colWidths}
-                      handleMouseDown={handleMouseDown}
-                      defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[200px] w-56"
-                    />
+                    {!hiddenColumns.id && (
+                      <ResizableHeader
+                        id="id"
+                        label="ID"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-16"
+                      />
+                    )}
+                    {!hiddenColumns.priority && (
+                      <ResizableHeader
+                        id="priority"
+                        label="Priority"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-20"
+                      />
+                    )}
+                    {!hiddenColumns.taskName && (
+                      <ResizableHeader
+                        id="taskName"
+                        label="Task Name"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[180px] whitespace-nowrap"
+                      />
+                    )}
+                    {!hiddenColumns.client && (
+                      <ResizableHeader
+                        id="client"
+                        label="Client"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-24"
+                      />
+                    )}
+                    {!hiddenColumns.contentType && (
+                      <ResizableHeader
+                        id="contentType"
+                        label="Content-type"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap"
+                      />
+                    )}
+                    {!hiddenColumns.status && (
+                      <ResizableHeader
+                        id="status"
+                        label="Status"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-48 min-w-[180px]"
+                      />
+                    )}
+                    {!hiddenColumns.blocker && (
+                      <ResizableHeader
+                        id="blocker"
+                        label="Blocker"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 min-w-[125px]"
+                      />
+                    )}
+                    {!hiddenColumns.activeTime && (
+                      <ResizableHeader
+                        id="activeTime"
+                        label="Inprogress time taken"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-36 whitespace-nowrap"
+                      />
+                    )}
+                    {!hiddenColumns.blockerTime && (
+                      <ResizableHeader
+                        id="blockerTime"
+                        label="Blocker time"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap"
+                      />
+                    )}
+                    {!hiddenColumns.timeTracker && (
+                      <ResizableHeader
+                        id="timeTracker"
+                        label="Time tracker"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap"
+                      />
+                    )}
+                    {!hiddenColumns.revision && (
+                      <ResizableHeader
+                        id="revision"
+                        label="Revision"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-28"
+                      />
+                    )}
+                    {!hiddenColumns.startDate && (
+                      <ResizableHeader
+                        id="startDate"
+                        label="Start Date"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32"
+                      />
+                    )}
+                    {!hiddenColumns.endDate && (
+                      <ResizableHeader
+                        id="endDate"
+                        label="DUE DATE"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32"
+                      />
+                    )}
+                    {!hiddenColumns.assignedBy && (
+                      <ResizableHeader
+                        id="assignedBy"
+                        label="Assigned By"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-20 py-2 border border-slate-200/70 dark:border-transparent w-60"
+                      />
+                    )}
+                    {!hiddenColumns.approvalTime && (
+                      <ResizableHeader
+                        id="approvalTime"
+                        label="Approval Info"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent w-36 whitespace-nowrap"
+                      />
+                    )}
+                    {!hiddenColumns.contentCopy && (
+                      <ResizableHeader
+                        id="contentCopy"
+                        label="Content Copy"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-20 py-2 border border-slate-200/70 dark:border-transparent min-w-[150px] max-w-[290px] w-auto whitespace-nowrap"
+                      />
+                    )}
+                    {!hiddenColumns.createdTime && (
+                      <ResizableHeader
+                        id="createdTime"
+                        label="Created Time"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[200px] w-56"
+                      />
+                    )}
+                    {!hiddenColumns.feedbackMom && (
+                      <ResizableHeader
+                        id="feedbackMom"
+                        label="Feedback MOM"
+                        colWidths={colWidths}
+                        handleMouseDown={handleMouseDown}
+                        defaultClassName="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[170px] max-w-[280px]"
+                      />
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
                   {sortedTasks.length === 0 ? (
                     <tr>
                       <td
-                        colSpan={13}
+                        colSpan={visibleColCount}
                         className="px-6 py-8 text-center text-slate-450 dark:text-slate-500 font-bold bg-slate-50/5 dark:bg-slate-900/5 text-xs"
                       >
                         No tasks found.
@@ -2716,558 +3016,650 @@ const MyTasksTab = ({
                             onClick={() => handleSelectTaskForDrawer(task._id)}
                           >
                             {/* ID */}
-                            <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent font-bold text-[11px] text-slate-500 dark:text-slate-400 text-center">
-                              {getTaskDisplayId(task)}
-                            </td>
+                            {!hiddenColumns.id && (
+                              <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent font-bold text-[11px] text-slate-500 dark:text-slate-400 text-center">
+                                {getTaskDisplayId(task)}
+                              </td>
+                            )}
 
                             {/* Priority Badge */}
-                            <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center">
-                              <span
-                                className={`inline-block text-center w-30 py-3 text-[11px] sm:text-[13px] rounded-[10px] font-bold whitespace-nowrap ${
-                                  isSameDate(task.startDate, task.dueDate)
-                                    ? "badge-priority-top-high"
-                                    : getPriorityStyle(
-                                        task.priority || "Medium",
-                                      )
-                                }`}
-                              >
-                                {isSameDate(task.startDate, task.dueDate)
-                                  ? "Top High"
-                                  : task.priority || "Medium"}
-                              </span>
-                            </td>
+                            {!hiddenColumns.priority && (
+                              <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center">
+                                <span
+                                  className={`inline-block text-center w-30 py-3 text-[11px] sm:text-[13px] rounded-[10px] font-bold whitespace-nowrap ${
+                                    isSameDate(task.startDate, task.dueDate)
+                                      ? "badge-priority-top-high"
+                                      : getPriorityStyle(
+                                          task.priority || "Medium",
+                                        )
+                                  }`}
+                                >
+                                  {isSameDate(task.startDate, task.dueDate)
+                                    ? "Top High"
+                                    : task.priority || "Medium"}
+                                </span>
+                              </td>
+                            )}
 
                             {/* Title & Subtasks Dropdown */}
-                            <td className="px-3 py-2 font-bold border border-slate-200/70 dark:border-transparent text-left">
-                              <div className="flex items-center gap-3">
-                                <span
-                                  className={`text-xs sm:text-[11px] ${isCompleted ? "line-through decoration-green-600 dark:decoration-green-500 decoration-2 text-slate-400 dark:text-slate-555" : "text-slate-700 dark:text-white"}`}
-                                >
-                                  <span className="flex items-center gap-1 text-[12.5px] sm:text-[12px] whitespace-nowrap">
-                                    <BiFile /> {task.title}
-                                  </span>
-                                </span>
-                                {task.isBlocked && (
+                            {!hiddenColumns.taskName && (
+                              <td className="px-3 py-2 font-bold border border-slate-200/70 dark:border-transparent text-left">
+                                <div className="flex items-center gap-3">
                                   <span
-                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 dark:bg-rose-955 dark:text-rose-400 border border-rose-200 dark:border-rose-800 text-[11px] sm:text-[10px] font-black tracking-wider uppercase animate-pulse shrink-0"
-                                    title={task.blockerReason || "Blocked"}
+                                    className={`text-xs sm:text-[11px] ${isCompleted ? "line-through decoration-green-600 dark:decoration-green-500 decoration-2 text-slate-400 dark:text-slate-555" : "text-slate-700 dark:text-white"}`}
                                   >
-                                    <FiAlertCircle size={10} /> Blocked
-                                  </span>
-                                )}
-                                {task.subtasks?.length > 0 && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleTaskExpanded(task._id);
-                                    }}
-                                    className="text-slate-405 hover:text-blue-600 flex items-center gap-0.5 text-xs sm:text-[10px] font-extrabold shrink-0"
-                                  >
-                                    {isExpanded ? (
-                                      <FiChevronDown size={14} />
-                                    ) : (
-                                      <FiChevronRight size={14} />
-                                    )}
-                                    <span>
-                                      Subtasks ({task.subtasks.length})
+                                    <span className="flex items-center gap-1 text-[12.5px] sm:text-[12px] whitespace-nowrap">
+                                      <BiFile /> {task.title}
                                     </span>
-                                  </button>
-                                )}
-                              </div>
-                            </td>
+                                  </span>
+                                  {task.isBlocked && (
+                                    <span
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 dark:bg-rose-955 dark:text-rose-400 border border-rose-200 dark:border-rose-800 text-[11px] sm:text-[10px] font-black tracking-wider uppercase animate-pulse shrink-0"
+                                      title={task.blockerReason || "Blocked"}
+                                    >
+                                      <FiAlertCircle size={10} /> Blocked
+                                    </span>
+                                  )}
+                                  {task.subtasks?.length > 0 && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleTaskExpanded(task._id);
+                                      }}
+                                      className="text-slate-405 hover:text-blue-600 flex items-center gap-0.5 text-xs sm:text-[10px] font-extrabold shrink-0"
+                                    >
+                                      {isExpanded ? (
+                                        <FiChevronDown size={14} />
+                                      ) : (
+                                        <FiChevronRight size={14} />
+                                      )}
+                                      <span>
+                                        Subtasks ({task.subtasks.length})
+                                      </span>
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            )}
 
                             {/* Client Name */}
-                            <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center">
-                              {(() => {
-                                const projId =
-                                  task.project?._id || task.project;
-                                const projectObj = projects.find(
-                                  (p) => p._id === projId,
-                                );
-                                const client = task.project?.client?.companyName
-                                  ? task.project.client
-                                  : projectObj?.client || task.project?.client;
-                                if (client) {
-                                  return (
-                                    <ClientBadge client={client} size="sm" />
+                            {!hiddenColumns.client && (
+                              <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center">
+                                {(() => {
+                                  const projId =
+                                    task.project?._id || task.project;
+                                  const projectObj = projects.find(
+                                    (p) => p._id === projId,
                                   );
-                                }
-                                return (
-                                  <span className="text-slate-400 italic text-xs sm:text-[10px]">
-                                    No Client
-                                  </span>
-                                );
-                              })()}
-                            </td>
+                                  const client = task.project?.client
+                                    ?.companyName
+                                    ? task.project.client
+                                    : projectObj?.client ||
+                                      task.project?.client;
+                                  if (client) {
+                                    return (
+                                      <ClientBadge client={client} size="sm" />
+                                    );
+                                  }
+                                  return (
+                                    <span className="text-slate-400 italic text-xs sm:text-[10px]">
+                                      No Client
+                                    </span>
+                                  );
+                                })()}
+                              </td>
+                            )}
 
                             {/* Content-type */}
-                            <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent whitespace-nowrap text-center">
-                              <span
-                                className={`px-2 py-0.5 rounded-md text-xs sm:text-[10px] font-bold tracking-wider uppercase border whitespace-nowrap ${(() => {
-                                  const t = (
-                                    task.contentType || ""
-                                  ).toUpperCase();
-                                  switch (t) {
-                                    case "VIDEO":
-                                    case "WEBSITE":
-                                      return "badge-type-video";
-                                    case "IMAGE":
-                                    case "SEO":
-                                      return "badge-type-image";
-                                    case "CAROUSEL":
-                                    case "VIDEO SHOOT":
-                                      return "badge-type-carousel";
-                                    case "REEL":
-                                      return "badge-type-reel";
-                                    case "POST":
-                                      return "badge-type-post";
-                                    case "STORY":
-                                      return "badge-type-story";
-                                    default:
-                                      return "badge-type-none";
-                                  }
-                                })()}`}
-                              >
-                                {task.contentType || "None"}
-                              </span>
-                            </td>
+                            {!hiddenColumns.contentType && (
+                              <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent whitespace-nowrap text-center">
+                                <span
+                                  className={`px-2 py-0.5 rounded-md text-xs sm:text-[10px] font-bold tracking-wider uppercase border whitespace-nowrap ${(() => {
+                                    const t = (
+                                      task.contentType || ""
+                                    ).toUpperCase();
+                                    switch (t) {
+                                      case "VIDEO":
+                                      case "WEBSITE":
+                                        return "badge-type-video";
+                                      case "IMAGE":
+                                      case "SEO":
+                                        return "badge-type-image";
+                                      case "CAROUSEL":
+                                      case "VIDEO SHOOT":
+                                        return "badge-type-carousel";
+                                      case "REEL":
+                                        return "badge-type-reel";
+                                      case "POST":
+                                        return "badge-type-post";
+                                      case "STORY":
+                                        return "badge-type-story";
+                                      default:
+                                        return "badge-type-none";
+                                    }
+                                  })()}`}
+                                >
+                                  {task.contentType || "None"}
+                                </span>
+                              </td>
+                            )}
 
                             {/* Status Select Column Field */}
-                            <td
-                              className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-48 min-w-[180px] text-center"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {task.isBlocked ? (
-                                <div className="px-2.5 py-1 text-[11px] sm:text-[9.5px] font-black rounded-full border border-orange-200 dark:border-orange-500/30 text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center gap-1.5 shadow-sm ">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-                                  Paused - Blocked
-                                </div>
-                              ) : task.status === "Completed" ? (
-                                <div className="px-2.5 py-2 text-[11px] sm:text-[13px] font-extrabold rounded-md border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 bg-emerald-200 dark:bg-emerald-500/10 flex items-center justify-center gap-1.5 shadow-sm ">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                  Completed
-                                </div>
-                              ) : task.status === "In Review" ? (
-                                <div className="px-2.5 py-2 text-[11px] sm:text-[13px] font-extrabold rounded-md border border-yellow-800 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300 bg-yellow-200 dark:bg-yellow-500/10 flex items-center justify-center gap-1.5 shadow-sm ">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
-                                  In Review
-                                </div>
-                              ) : task.status === "Correction" ? (
-                                <div className="flex flex-col gap-1 items-center">
-                                  <div className="px-2.5 py-1 text-[11px] sm:text-[9.5px] font-extrabold rounded-md border border-orange-300 dark:border-orange-500/30 text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-500/10 flex items-center justify-center gap-1.5 shadow-sm">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
-                                    Corrections Required
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleStatusChange(task._id, "In Progress")}
-                                    className="px-2.5 py-0.5 text-[9px] font-extrabold bg-orange-600 hover:bg-orange-700 text-white rounded shadow transition-all cursor-pointer"
-                                  >
-                                    Resume Work
-                                  </button>
-                                </div>
-                              ) : task.status === "Rejected" ? (
-                                <div className="px-2.5 py-2 text-[11px] sm:text-[13px] font-extrabold rounded-md border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-400 bg-rose-200 dark:bg-rose-500/10 flex items-center justify-center gap-1.5 shadow-sm ">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                                  Rejected
-                                </div>
-                              ) : (
-                                <div className="relative w-full group">
-                                  <select
-                                    value={task.status}
-                                    onChange={(e) =>
-                                      handleStatusChange(
-                                        task._id,
-                                        e.target.value,
-                                      )
-                                    }
-                                    className={`appearance-none pl-2.5 pr-6 py-0.5 text-[11px] sm:text-[9.5px] font-bold rounded-full border-2 cursor-pointer w-full text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-sm hover:shadow ${statusStyle.bg}`}
-                                  >
-                                    <option
-                                      value="Pending"
-                                      className="bg-white dark:bg-gray-500 text-slate-700 dark:text-white"
-                                    >
-                                      Pending
-                                    </option>
-                                    <option
-                                      value="In Progress"
-                                      className="bg-white dark:bg-blue-500 text-slate-700 dark:text-white"
-                                    >
-                                      In Progress
-                                    </option>
-                                    <option
-                                      value="In Review"
-                                      className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
-                                    >
-                                      In Review
-                                    </option>
-                                    {task.status === "Completed" && (
-                                      <option
-                                        value="Completed"
-                                        className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
-                                      >
-                                        Completed
-                                      </option>
-                                    )}
-                                    <option
-                                      value="On Hold"
-                                      className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
-                                    >
-                                      On Hold
-                                    </option>
-                                    {task.status === "Rejected" && (
-                                      <option
-                                        value="Rejected"
-                                        className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
-                                      >
-                                        Rejected
-                                      </option>
-                                    )}
-                                  </select>
-                                  <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-505 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
-                                    <FiChevronDown size={9} strokeWidth={2.5} />
-                                  </div>
-                                </div>
-                              )}
-                            </td>
-
-                            {/* Blocker Column */}
-                            <td
-                              className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 min-w-[125px] hover:relative hover:z-50 text-center"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="flex flex-col gap-1.5 w-full">
+                            {!hiddenColumns.status && (
+                              <td
+                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-48 min-w-[180px] text-center"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 {task.isBlocked ? (
-                                  <div className="space-y-1.5 p-2 bg-rose-500/5 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-955 rounded-2xl">
-                                    <div className="flex justify-between items-center gap-1.5">
-                                      <span
-                                        className="px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-955 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30 text-rose-700 dark:text-rose-455 text-[10px] sm:text-[8.5px] font-black uppercase tracking-wider truncate max-w-[100px]"
-                                        title={task.blockerType}
-                                      >
-                                        {task.blockerType}
-                                      </span>
-                                      <span
-                                        className={`px-1.5 py-0.5 rounded-md text-[9px] sm:text-[8px] font-black uppercase ${task.blockerPriority === "Urgent" ? "bg-red-500/20 text-red-650 dark:text-red-400 border border-red-500/30" : "bg-slate-100 dark:bg-slate-800 text-slate-505 dark:text-slate-400 border border-transparent"}`}
-                                      >
-                                        {task.blockerPriority}
-                                      </span>
-                                    </div>
-                                    <p
-                                      className="text-xs sm:text-[10px] text-slate-600 dark:text-slate-400 font-medium italic line-clamp-2 leading-tight"
-                                      title={task.blockerDescription}
-                                    >
-                                      "{task.blockerDescription}"
-                                    </p>
-                                    <div className="flex justify-between items-center text-[10px] sm:text-[8.5px] font-bold text-slate-450 dark:text-slate-500">
-                                      <span>
-                                        ⏳ Exp: {task.blockerExpectedTime}
-                                      </span>
-                                      <span>
-                                        Paused:{" "}
-                                        {formatDate(task.blockerPausedAt)}
-                                      </span>
-                                    </div>
-                                    <button
-                                      onClick={() => handleResumeTask(task)}
-                                      className="w-full mt-1 flex items-center justify-center gap-1 px-2.5 py-1 rounded-xl text-[10px] sm:text-[9px] font-black tracking-wider uppercase bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-500/10 hover:shadow transition-all cursor-pointer"
-                                    >
-                                      ✅ Resume Work
-                                    </button>
+                                  <div className="px-2.5 py-1 text-[11px] sm:text-[9.5px] font-black rounded-full border border-orange-200 dark:border-orange-500/30 text-orange-700 dark:text-orange-400 bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center gap-1.5 shadow-sm ">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                                    Paused - Blocked
                                   </div>
-                                ) : (
-                                  <>
-                                    <button
-                                      onClick={() =>
-                                        handleOpenBlockerModal(task)
-                                      }
-                                      className="flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[9.5px] sm:text-[8px] font-black tracking-wider uppercase bg-slate-100 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-600/50 text-slate-700 dark:text-slate-200 hover:border-rose-505 hover:text-rose-505 transition-all w-full text-center cursor-pointer shadow-sm whitespace-nowrap"
-                                    >
-                                      <FiPlus size={10} /> Add Blocker
-                                    </button>
-                                    {task.blockerHistory &&
-                                      task.blockerHistory.length > 0 && (
-                                        <div className="relative group/history mt-1 text-center">
-                                          <span className="inline-flex items-center gap-1 text-xs sm:text-[9px] font-extrabold text-slate-400 dark:text-slate-550 hover:text-rose-500 cursor-pointer transition-colors">
-                                            ⏱️ Pause History (
-                                            {task.blockerHistory.length})
-                                          </span>
-                                          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover/history:block z-50 w-64 bg-white dark:bg-[#0f111a] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-3 text-left space-y-2 pointer-events-none transition-all">
-                                            <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-105 dark:border-slate-800/80 pb-1 flex justify-between">
-                                              <span>Pause Log</span>
-                                              <span>
-                                                Total Pauses:{" "}
-                                                {task.blockerHistory.length}
-                                              </span>
-                                            </div>
-                                            <div className="max-h-40 overflow-y-auto space-y-2 scrollbar-thin pr-1">
-                                              {task.blockerHistory.map(
-                                                (hist, idx) => (
-                                                  <div
-                                                    key={idx}
-                                                    className="text-[10px] space-y-0.5 border-b border-slate-50 dark:border-slate-900/55 pb-1.5 last:border-0 last:pb-0"
-                                                  >
-                                                    <div className="flex justify-between font-black text-slate-700 dark:text-slate-350">
-                                                      <span className="text-rose-600 dark:text-rose-400">
-                                                        {hist.blockerType}
-                                                      </span>
-                                                      <span className="text-slate-505">
-                                                        {hist.totalPauseMinutes}{" "}
-                                                        mins
-                                                      </span>
-                                                    </div>
-                                                    {hist.blockerDescription && (
-                                                      <p className="text-slate-505 dark:text-slate-455 italic line-clamp-2">
-                                                        "
-                                                        {
-                                                          hist.blockerDescription
-                                                        }
-                                                        "
-                                                      </p>
-                                                    )}
-                                                    <div className="text-[8px] text-slate-400 dark:text-slate-500 flex justify-between">
-                                                      <span>
-                                                        In:{" "}
-                                                        {formatDateTime(
-                                                          hist.pausedAt,
-                                                        )}
-                                                      </span>
-                                                      <span>
-                                                        Out:{" "}
-                                                        {formatDateTime(
-                                                          hist.resumedAt,
-                                                        )}
-                                                      </span>
-                                                    </div>
-                                                  </div>
-                                                ),
-                                              )}
-                                            </div>
-                                          </div>
-                                        </div>
-                                      )}
-                                  </>
-                                )}
-                              </div>
-                            </td>
-
-                            {/* Inprogress Time Taken Column */}
-                            <td
-                              className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-36 whitespace-nowrap text-center"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <SingleTimeDisplay
-                                mode="active"
-                                startTime={task.actualStartTime}
-                                endTime={task.actualEndTime}
-                                pausedAt={task.pausedAt}
-                                savedPausedMs={task.totalPausedMs}
-                                status={task.status}
-                                isBlocked={task.isBlocked}
-                                blockerPausedAt={task.blockerPausedAt}
-                                blockerHistory={task.blockerHistory}
-                              />
-                            </td>
-
-                            {/* Blocker Time Column */}
-                            <td
-                              className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap text-center"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <SingleTimeDisplay
-                                mode="blocker"
-                                startTime={task.actualStartTime}
-                                endTime={task.actualEndTime}
-                                pausedAt={task.pausedAt}
-                                savedPausedMs={task.totalPausedMs}
-                                status={task.status}
-                                isBlocked={task.isBlocked}
-                                blockerPausedAt={task.blockerPausedAt}
-                                blockerHistory={task.blockerHistory}
-                              />
-                            </td>
-
-                            {/* Timer Column */}
-                            <td
-                              className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap text-center"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <TimeTracker
-                                startTime={task.actualStartTime}
-                                endTime={task.actualEndTime}
-                                pausedAt={task.pausedAt}
-                                savedPausedMs={task.totalPausedMs}
-                                status={task.status}
-                                isBlocked={task.isBlocked}
-                                blockerPausedAt={task.blockerPausedAt}
-                                blockerHistory={task.blockerHistory}
-                              />
-                            </td>
-
-                            {/* Revision Column */}
-                            <td
-                              className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-28 text-center"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="flex justify-center items-center gap-1.5">
-                                <span className="font-extrabold text-[11px] text-slate-805 dark:text-yellow-50 text-center">
-                                  {task.revisions || 0}
-                                </span>
-                                {(task.revisions || 0) > 3 && (
-                                  <span
-                                    className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)] animate-pulse"
-                                    title="More than 3 revisions"
-                                  />
-                                )}
-                              </div>
-                            </td>
-
-                            {/* Start Date */}
-                            <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 text-center">
-                              <span
-                                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-[10px] font-bold whitespace-nowrap ${task.startDate ? "bg-blue-200 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300 border border-blue-200/50 dark:border-blue-500/20" : "text-slate-450 dark:text-slate-505 border border-dashed border-slate-200 dark:border-[#1e293b]/40"}`}
-                              >
-                                <FiCalendar size={11} />
-                                {formatDate(task.startDate)}
-                              </span>
-                            </td>
-
-                            {/* DUE DATE */}
-                            <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 text-center">
-                              <span
-                                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-[10px] font-bold whitespace-nowrap ${task.dueDate ? "bg-rose-200 text-rose-700 dark:bg-rose-500/10 dark:text-rose-350 border border-rose-200/50 dark:border-rose-500/20" : "text-slate-450 dark:text-slate-550 border border-dashed border-slate-200 dark:border-[#1e293b]/40"}`}
-                              >
-                                <FiCalendar size={11} />
-                                {formatDate(task.dueDate)}
-                              </span>
-                            </td>
-
-                            {/* Assigned By */}
-                            <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-44 text-left">
-                              <div className="flex items-center gap-2">
-                                <div className="relative shrink-0">
-                                  {(() => {
-                                    const assignerUser =
-                                      task.assignedBy || task.createdBy;
-                                    const avatarUrl =
-                                      (typeof assignerUser?.profile
-                                        ?.profileImage === "object"
-                                        ? assignerUser?.profile?.profileImage
-                                            ?.url
-                                        : assignerUser?.profile
-                                            ?.profileImage) ||
-                                      (typeof assignerUser?.profileImage ===
-                                      "object"
-                                        ? assignerUser?.profileImage?.url
-                                        : assignerUser?.profileImage) ||
-                                      assignerUser?.profilePic ||
-                                      assignerUser?.avatar ||
-                                      assignerUser?.profile?.profilePic ||
-                                      assignerUser?.profile?.avatar;
-
-                                    if (avatarUrl) {
-                                      return (
-                                        <img
-                                          src={avatarUrl}
-                                          alt={assignerUser?.name || "Assigner"}
-                                          className="w-8 h-8 rounded-full object-cover border border-slate-200/80 dark:border-white/10 shadow-sm"
-                                        />
-                                      );
-                                    }
-
-                                    // Fallback colored gradient avatar with initials
-                                    const initials = (assignerUser?.name || "I")
-                                      .split(" ")
-                                      .map((n) => n[0])
-                                      .join("")
-                                      .substring(0, 2)
-                                      .toUpperCase();
-
-                                    const AVATAR_COLORS = [
-                                      "from-violet-500 to-indigo-600",
-                                      "from-cyan-500 to-blue-600",
-                                      "from-emerald-500 to-teal-600",
-                                      "from-orange-500 to-amber-600",
-                                      "from-pink-500 to-rose-600",
-                                    ];
-                                    const colorClass =
-                                      AVATAR_COLORS[
-                                        ((assignerUser?.name || "I").charCodeAt(
-                                          0,
-                                        ) || 0) % AVATAR_COLORS.length
-                                      ];
-
-                                    return (
-                                      <div
-                                        className={`w-8 h-8 rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-white font-black text-[9px] border border-white/10 shadow-sm`}
-                                      >
-                                        {initials}
-                                      </div>
-                                    );
-                                  })()}
-                                </div>
-                                <div className="flex flex-col">
-                                  <span className="font-extrabold text-[11px] text-slate-800 dark:text-slate-200">
-                                    {task.assignedBy?.name ||
-                                      task.createdBy?.name ||
-                                      "Internal"}
-                                  </span>
-                                  <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">
-                                    {(task.assignedBy || task.createdBy)
-                                      ?.department || "Management"}
-                                  </span>
-                                </div>
-                              </div>
-                            </td>
-
-                            {/* Approval Info — duration only */}
-                            <td
-                              className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <ApprovalDurationBadge
-                                approvalWaitingMs={task.approvalWaitingMs}
-                                reviewStartedAt={task.reviewStartedAt}
-                                status={task.status}
-                              />
-                            </td>
-
-                            {/* Content Copy */}
-                            <td
-                              className="px-3 py-2 border border-slate-200/70 dark:border-transparent"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="flex items-center gap-2 group/copy text-xs sm:text-[11px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap break-words w-full max-w-[250px]">
-                                {task.contentCopy ? (
-                                  <>
-                                    <span>{task.contentCopy}</span>
+                                ) : task.status === "Completed" ? (
+                                  <div className="px-2.5 py-2 text-[11px] sm:text-[13px] font-extrabold rounded-md border border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400 bg-emerald-200 dark:bg-emerald-500/10 flex items-center justify-center gap-1.5 shadow-sm ">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                    Completed
+                                  </div>
+                                ) : task.status === "In Review" ? (
+                                  <div className="px-2.5 py-2 text-[11px] sm:text-[13px] font-extrabold rounded-md border border-yellow-800 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300 bg-yellow-200 dark:bg-yellow-500/10 flex items-center justify-center gap-1.5 shadow-sm ">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
+                                    In Review
+                                  </div>
+                                ) : task.status === "Correction" ? (
+                                  <div className="flex flex-col gap-1 items-center">
+                                    <div className="px-2.5 py-1 text-[11px] sm:text-[9.5px] font-extrabold rounded-md border border-orange-300 dark:border-orange-500/30 text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-500/10 flex items-center justify-center gap-1.5 shadow-sm">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                                      Corrections Required
+                                    </div>
                                     <button
                                       type="button"
-                                      onClick={() => {
-                                        navigator.clipboard.writeText(
-                                          task.contentCopy,
-                                        );
-                                        toast.success(
-                                          "Content copied to clipboard!",
-                                        );
-                                      }}
-                                      className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-blue-500 transition-all cursor-pointer shrink-0"
-                                      title="Copy to clipboard"
+                                      onClick={() =>
+                                        handleStatusChange(
+                                          task._id,
+                                          "In Progress",
+                                        )
+                                      }
+                                      className="px-2.5 py-0.5 text-[9px] font-extrabold bg-orange-600 hover:bg-orange-700 text-white rounded shadow transition-all cursor-pointer"
                                     >
-                                      <FiCopy size={12} />
+                                      Resume Work
                                     </button>
-                                  </>
+                                  </div>
+                                ) : task.status === "Rejected" ? (
+                                  <div className="px-2.5 py-2 text-[11px] sm:text-[13px] font-extrabold rounded-md border border-rose-200 dark:border-rose-500/30 text-rose-700 dark:text-rose-400 bg-rose-200 dark:bg-rose-500/10 flex items-center justify-center gap-1.5 shadow-sm ">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                    Rejected
+                                  </div>
                                 ) : (
-                                  <span className="text-slate-400 italic font-normal">
+                                  <div className="relative w-full group">
+                                    <select
+                                      value={task.status}
+                                      onChange={(e) =>
+                                        handleStatusChange(
+                                          task._id,
+                                          e.target.value,
+                                        )
+                                      }
+                                      className={`appearance-none pl-2.5 pr-6 py-0.5 text-[11px] sm:text-[9.5px] font-bold rounded-full border-2 cursor-pointer w-full text-left transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/30 shadow-sm hover:shadow ${statusStyle.bg}`}
+                                    >
+                                      {task.contentType === "MOM" ? (
+                                        <>
+                                          <option
+                                            value="Pending"
+                                            className="bg-white dark:bg-gray-500 text-slate-700 dark:text-white"
+                                          >
+                                            Pending
+                                          </option>
+
+                                          <option
+                                            value="Completed"
+                                            className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
+                                          >
+                                            Completed
+                                          </option>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <option
+                                            value="Pending"
+                                            className="bg-white dark:bg-gray-500 text-slate-700 dark:text-white"
+                                          >
+                                            Pending
+                                          </option>
+                                          <option
+                                            value="In Progress"
+                                            className="bg-white dark:bg-blue-500 text-slate-700 dark:text-white"
+                                          >
+                                            In Progress
+                                          </option>
+                                          <option
+                                            value="In Review"
+                                            className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
+                                          >
+                                            In Review
+                                          </option>
+                                          {task.status === "Completed" && (
+                                            <option
+                                              value="Completed"
+                                              className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
+                                            >
+                                              Completed
+                                            </option>
+                                          )}
+                                          <option
+                                            value="On Hold"
+                                            className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
+                                          >
+                                            On Hold
+                                          </option>
+                                          {task.status === "Rejected" && (
+                                            <option
+                                              value="Rejected"
+                                              className="bg-white dark:bg-[#11131e] text-slate-700 dark:text-slate-200"
+                                            >
+                                              Rejected
+                                            </option>
+                                          )}
+                                        </>
+                                      )}
+                                    </select>
+                                    <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-505 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
+                                      <FiChevronDown
+                                        size={9}
+                                        strokeWidth={2.5}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+                              </td>
+                            )}
+
+                            {/* Blocker Column */}
+                            {!hiddenColumns.blocker && (
+                              <td
+                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 min-w-[125px] hover:relative hover:z-50 text-center"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <div className="flex flex-col gap-1.5 w-full">
+                                  {task.isBlocked ? (
+                                    <div className="space-y-1.5 p-2 bg-rose-500/5 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-955 rounded-2xl">
+                                      <div className="flex justify-between items-center gap-1.5">
+                                        <span
+                                          className="px-2 py-0.5 rounded-md bg-rose-50 dark:bg-rose-955 dark:text-rose-400 border border-rose-100 dark:border-rose-900/30 text-rose-700 dark:text-rose-455 text-[10px] sm:text-[8.5px] font-black uppercase tracking-wider truncate max-w-[100px]"
+                                          title={task.blockerType}
+                                        >
+                                          {task.blockerType}
+                                        </span>
+                                        <span
+                                          className={`px-1.5 py-0.5 rounded-md text-[9px] sm:text-[8px] font-black uppercase ${task.blockerPriority === "Urgent" ? "bg-red-500/20 text-red-650 dark:text-red-400 border border-red-500/30" : "bg-slate-100 dark:bg-slate-800 text-slate-505 dark:text-slate-400 border border-transparent"}`}
+                                        >
+                                          {task.blockerPriority}
+                                        </span>
+                                      </div>
+                                      <p
+                                        className="text-xs sm:text-[10px] text-slate-600 dark:text-slate-400 font-medium italic line-clamp-2 leading-tight"
+                                        title={task.blockerDescription}
+                                      >
+                                        "{task.blockerDescription}"
+                                      </p>
+                                      <div className="flex justify-between items-center text-[10px] sm:text-[8.5px] font-bold text-slate-450 dark:text-slate-500">
+                                        <span>
+                                          ⏳ Exp: {task.blockerExpectedTime}
+                                        </span>
+                                        <span>
+                                          Paused:{" "}
+                                          {formatDate(task.blockerPausedAt)}
+                                        </span>
+                                      </div>
+                                      <button
+                                        onClick={() => handleResumeTask(task)}
+                                        className="w-full mt-1 flex items-center justify-center gap-1 px-2.5 py-1 rounded-xl text-[10px] sm:text-[9px] font-black tracking-wider uppercase bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm shadow-emerald-500/10 hover:shadow transition-all cursor-pointer"
+                                      >
+                                        ✅ Resume Work
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <button
+                                        onClick={() =>
+                                          handleOpenBlockerModal(task)
+                                        }
+                                        className="flex items-center justify-center gap-1 px-2 py-1.5 rounded-xl text-[9.5px] sm:text-[8px] font-black tracking-wider uppercase bg-slate-100 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-600/50 text-slate-700 dark:text-slate-200 hover:border-rose-505 hover:text-rose-505 transition-all w-full text-center cursor-pointer shadow-sm whitespace-nowrap"
+                                      >
+                                        <FiPlus size={10} /> Add Blocker
+                                      </button>
+                                      {task.blockerHistory &&
+                                        task.blockerHistory.length > 0 && (
+                                          <div className="relative group/history mt-1 text-center">
+                                            <span className="inline-flex items-center gap-1 text-xs sm:text-[9px] font-extrabold text-slate-400 dark:text-slate-550 hover:text-rose-500 cursor-pointer transition-colors">
+                                              ⏱️ Pause History (
+                                              {task.blockerHistory.length})
+                                            </span>
+                                            <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover/history:block z-50 w-64 bg-white dark:bg-[#0f111a] border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl p-3 text-left space-y-2 pointer-events-none transition-all">
+                                              <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-105 dark:border-slate-800/80 pb-1 flex justify-between">
+                                                <span>Pause Log</span>
+                                                <span>
+                                                  Total Pauses:{" "}
+                                                  {task.blockerHistory.length}
+                                                </span>
+                                              </div>
+                                              <div className="max-h-40 overflow-y-auto space-y-2 scrollbar-thin pr-1">
+                                                {task.blockerHistory.map(
+                                                  (hist, idx) => (
+                                                    <div
+                                                      key={idx}
+                                                      className="text-[10px] space-y-0.5 border-b border-slate-50 dark:border-slate-900/55 pb-1.5 last:border-0 last:pb-0"
+                                                    >
+                                                      <div className="flex justify-between font-black text-slate-700 dark:text-slate-350">
+                                                        <span className="text-rose-600 dark:text-rose-400">
+                                                          {hist.blockerType}
+                                                        </span>
+                                                        <span className="text-slate-505">
+                                                          {
+                                                            hist.totalPauseMinutes
+                                                          }{" "}
+                                                          mins
+                                                        </span>
+                                                      </div>
+                                                      {hist.blockerDescription && (
+                                                        <p className="text-slate-505 dark:text-slate-455 italic line-clamp-2">
+                                                          "
+                                                          {
+                                                            hist.blockerDescription
+                                                          }
+                                                          "
+                                                        </p>
+                                                      )}
+                                                      <div className="text-[8px] text-slate-400 dark:text-slate-500 flex justify-between">
+                                                        <span>
+                                                          In:{" "}
+                                                          {formatDateTime(
+                                                            hist.pausedAt,
+                                                          )}
+                                                        </span>
+                                                        <span>
+                                                          Out:{" "}
+                                                          {formatDateTime(
+                                                            hist.resumedAt,
+                                                          )}
+                                                        </span>
+                                                      </div>
+                                                    </div>
+                                                  ),
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )}
+                                    </>
+                                  )}
+                                </div>
+                              </td>
+                            )}
+
+                            {/* Inprogress Time Taken Column */}
+                            {!hiddenColumns.activeTime && (
+                              <td
+                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-36 whitespace-nowrap text-center"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <SingleTimeDisplay
+                                  mode="active"
+                                  startTime={task.actualStartTime}
+                                  endTime={task.actualEndTime}
+                                  pausedAt={task.pausedAt}
+                                  savedPausedMs={task.totalPausedMs}
+                                  status={task.status}
+                                  isBlocked={task.isBlocked}
+                                  blockerPausedAt={task.blockerPausedAt}
+                                  blockerHistory={task.blockerHistory}
+                                />
+                              </td>
+                            )}
+
+                            {/* Blocker Time Column */}
+                            {!hiddenColumns.blockerTime && (
+                              <td
+                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap text-center"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <SingleTimeDisplay
+                                  mode="blocker"
+                                  startTime={task.actualStartTime}
+                                  endTime={task.actualEndTime}
+                                  pausedAt={task.pausedAt}
+                                  savedPausedMs={task.totalPausedMs}
+                                  status={task.status}
+                                  isBlocked={task.isBlocked}
+                                  blockerPausedAt={task.blockerPausedAt}
+                                  blockerHistory={task.blockerHistory}
+                                />
+                              </td>
+                            )}
+
+                            {/* Timer Column */}
+                            {!hiddenColumns.timeTracker && (
+                              <td
+                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 whitespace-nowrap text-center"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <TimeTracker
+                                  startTime={task.actualStartTime}
+                                  endTime={task.actualEndTime}
+                                  pausedAt={task.pausedAt}
+                                  savedPausedMs={task.totalPausedMs}
+                                  status={task.status}
+                                  isBlocked={task.isBlocked}
+                                  blockerPausedAt={task.blockerPausedAt}
+                                  blockerHistory={task.blockerHistory}
+                                />
+                              </td>
+                            )}
+
+                            {/* Revision Column */}
+                            {!hiddenColumns.revision && (
+                              <td
+                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-28 text-center"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <div className="flex justify-center items-center gap-1.5">
+                                  <span className="font-extrabold text-[11px] text-slate-805 dark:text-yellow-50 text-center">
+                                    {task.revisions || 0}
+                                  </span>
+                                  {(task.revisions || 0) > 3 && (
+                                    <span
+                                      className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_6px_rgba(244,63,94,0.7)] animate-pulse"
+                                      title="More than 3 revisions"
+                                    />
+                                  )}
+                                </div>
+                              </td>
+                            )}
+
+                            {/* Start Date */}
+                            {!hiddenColumns.startDate && (
+                              <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 text-center">
+                                <span
+                                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-[10px] font-bold whitespace-nowrap ${task.startDate ? "bg-blue-200 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300 border border-blue-200/50 dark:border-blue-500/20" : "text-slate-450 dark:text-slate-505 border border-dashed border-slate-200 dark:border-[#1e293b]/40"}`}
+                                >
+                                  <FiCalendar size={11} />
+                                  {formatDate(task.startDate)}
+                                </span>
+                              </td>
+                            )}
+
+                            {/* DUE DATE */}
+                            {!hiddenColumns.endDate && (
+                              <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-32 text-center">
+                                <span
+                                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs sm:text-[10px] font-bold whitespace-nowrap ${task.dueDate ? "bg-rose-200 text-rose-700 dark:bg-rose-500/10 dark:text-rose-350 border border-rose-200/50 dark:border-rose-500/20" : "text-slate-450 dark:text-slate-550 border border-dashed border-slate-200 dark:border-[#1e293b]/40"}`}
+                                >
+                                  <FiCalendar size={11} />
+                                  {formatDate(task.dueDate)}
+                                </span>
+                              </td>
+                            )}
+
+                            {/* Assigned By */}
+                            {!hiddenColumns.assignedBy && (
+                              <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent w-44 text-left">
+                                <div className="flex items-center gap-2">
+                                  <div className="relative shrink-0">
+                                    {(() => {
+                                      const assignerUser =
+                                        task.assignedBy || task.createdBy;
+                                      const avatarUrl =
+                                        (typeof assignerUser?.profile
+                                          ?.profileImage === "object"
+                                          ? assignerUser?.profile?.profileImage
+                                              ?.url
+                                          : assignerUser?.profile
+                                              ?.profileImage) ||
+                                        (typeof assignerUser?.profileImage ===
+                                        "object"
+                                          ? assignerUser?.profileImage?.url
+                                          : assignerUser?.profileImage) ||
+                                        assignerUser?.profilePic ||
+                                        assignerUser?.avatar ||
+                                        assignerUser?.profile?.profilePic ||
+                                        assignerUser?.profile?.avatar;
+
+                                      if (avatarUrl) {
+                                        return (
+                                          <img
+                                            src={avatarUrl}
+                                            alt={
+                                              assignerUser?.name || "Assigner"
+                                            }
+                                            className="w-8 h-8 rounded-full object-cover border border-slate-200/80 dark:border-white/10 shadow-sm"
+                                          />
+                                        );
+                                      }
+
+                                      // Fallback colored gradient avatar with initials
+                                      const initials = (
+                                        assignerUser?.name || "I"
+                                      )
+                                        .split(" ")
+                                        .map((n) => n[0])
+                                        .join("")
+                                        .substring(0, 2)
+                                        .toUpperCase();
+
+                                      const AVATAR_COLORS = [
+                                        "from-violet-500 to-indigo-600",
+                                        "from-cyan-500 to-blue-600",
+                                        "from-emerald-500 to-teal-600",
+                                        "from-orange-500 to-amber-600",
+                                        "from-pink-500 to-rose-600",
+                                      ];
+                                      const colorClass =
+                                        AVATAR_COLORS[
+                                          ((
+                                            assignerUser?.name || "I"
+                                          ).charCodeAt(0) || 0) %
+                                            AVATAR_COLORS.length
+                                        ];
+
+                                      return (
+                                        <div
+                                          className={`w-8 h-8 rounded-full bg-gradient-to-br ${colorClass} flex items-center justify-center text-white font-black text-[9px] border border-white/10 shadow-sm`}
+                                        >
+                                          {initials}
+                                        </div>
+                                      );
+                                    })()}
+                                  </div>
+                                  <div className="flex flex-col">
+                                    <span className="font-extrabold text-[11px] text-slate-800 dark:text-slate-200">
+                                      {task.assignedBy?.name ||
+                                        task.createdBy?.name ||
+                                        "Internal"}
+                                    </span>
+                                    <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">
+                                      {(task.assignedBy || task.createdBy)
+                                        ?.department || "Management"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </td>
+                            )}
+
+                            {/* Approval Info — duration only */}
+                            {!hiddenColumns.approvalTime && (
+                              <td
+                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <ApprovalDurationBadge
+                                  approvalWaitingMs={task.approvalWaitingMs}
+                                  reviewStartedAt={task.reviewStartedAt}
+                                  status={task.status}
+                                />
+                              </td>
+                            )}
+
+                            {/* Content Copy */}
+                            {!hiddenColumns.contentCopy && (
+                              <td
+                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <div className="flex items-center gap-2 group/copy text-xs sm:text-[11px] text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap break-words w-full max-w-[250px]">
+                                  {task.contentCopy ? (
+                                    <>
+                                      <span>{task.contentCopy}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          navigator.clipboard.writeText(
+                                            task.contentCopy,
+                                          );
+                                          toast.success(
+                                            "Content copied to clipboard!",
+                                          );
+                                        }}
+                                        className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-blue-500 transition-all cursor-pointer shrink-0"
+                                        title="Copy to clipboard"
+                                      >
+                                        <FiCopy size={12} />
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <span className="text-slate-400 italic font-normal">
+                                      —
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                            )}
+
+                            {/* Created Time */}
+                            {!hiddenColumns.createdTime && (
+                              <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center font-bold text-slate-500 dark:text-slate-400 text-xs sm:text-[11.5px]">
+                                <CreatedTime time={task.createdAt} />
+                              </td>
+                            )}
+
+                            {/* Feedback MOM Column */}
+                            {!hiddenColumns.feedbackMom && (
+                              <td
+                                className="px-3 py-2 border border-slate-200/70 dark:border-transparent min-w-[170px] max-w-[280px]"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {task.contentType === "MOM" ? (
+                                  <MomFeedbackInput
+                                    task={task}
+                                    onSave={(id, fields) =>
+                                      handleTaskFieldChange(id, fields)
+                                    }
+                                  />
+                                ) : (
+                                  <span className="text-slate-300 dark:text-slate-600 font-semibold text-xs flex justify-center">
                                     —
                                   </span>
                                 )}
-                              </div>
-                            </td>
-
-                            {/* Created Time */}
-                            <td className="px-3 py-2 border border-slate-200/70 dark:border-transparent text-center font-bold text-slate-500 dark:text-slate-400 text-xs sm:text-[11.5px]">
-                              <CreatedTime time={task.createdAt} />
-                            </td>
+                              </td>
+                            )}
                           </tr>
 
                           {/* Expanded Subtasks Row */}
@@ -3276,7 +3668,7 @@ const MyTasksTab = ({
                             task.subtasks.length > 0 && (
                               <tr>
                                 <td
-                                  colSpan={13}
+                                  colSpan={visibleColCount}
                                   className="bg-slate-50/[0.15] dark:bg-[#121522]/30 px-6 py-4"
                                 >
                                   <div className="space-y-2 border-l-2 border-blue-500/60 dark:border-blue-500/40 pl-6">
@@ -3289,7 +3681,11 @@ const MyTasksTab = ({
                                           sub.status === "Completed";
                                         return (
                                           <div
-                                            key={sub._id || sub.title || `sub-${idx}`}
+                                            key={
+                                              sub._id ||
+                                              sub.title ||
+                                              `sub-${idx}`
+                                            }
                                             className="flex items-center justify-between bg-white dark:bg-[#141624] border border-slate-205/60 dark:border-white/5 p-3 rounded-2xl shadow-2xs group/sub"
                                           >
                                             <div className="flex items-center gap-3">
@@ -3559,7 +3955,10 @@ const MyTasksTab = ({
       {/* OFF-CANVAS WORKSPACE PREVIEW DRAWER */}
       <AnimatePresence>
         {selectedTask && (
-          <div key={`mytask-drawer-${selectedTask._id}`} className="fixed inset-0 z-50 flex justify-end">
+          <div
+            key={`mytask-drawer-${selectedTask._id}`}
+            className="fixed inset-0 z-50 flex justify-end"
+          >
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -3754,6 +4153,20 @@ const MyTasksTab = ({
                         </span>
                       </span>
                     </div>
+
+                    {selectedTask.contentType === "MOM" && (
+                      <div className="space-y-1 col-span-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">
+                          Feedback MOM
+                        </span>
+                        <MomFeedbackInput
+                          task={selectedTask}
+                          onSave={(id, fields) =>
+                            handleTaskFieldChange(id, fields)
+                          }
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 

@@ -5958,7 +5958,17 @@ const ProjectTaskBoard = ({
                                                                               : "badge-status-pending"
                                                                 }`}
                                                               >
-                                                                {task.status ===
+                                                                {task.contentType === "MOM" ? (
+                                                                  <>
+                                                                    <option value="Pending">
+                                                                      Pending
+                                                                    </option>
+                                                                   
+                                                                    <option value="Completed">
+                                                                      Completed
+                                                                    </option>
+                                                                  </>
+                                                                ) : task.status ===
                                                                 "In Review" ||
                                                                 task.status ===
                                                                   "IN-REVIEW" ? (
@@ -7208,7 +7218,17 @@ const ProjectTaskBoard = ({
                                                                                       : "badge-status-pending"
                                                                         }`}
                                                                       >
-                                                                        {sub.status ===
+                                                                        {sub.contentType === "MOM" ? (
+                                                                          <>
+                                                                            <option value="Pending">
+                                                                              Pending
+                                                                            </option>
+                                                                           
+                                                                            <option value="Completed">
+                                                                              Completed
+                                                                            </option>
+                                                                          </>
+                                                                        ) : sub.status ===
                                                                         "In Review" ||
                                                                         sub.status ===
                                                                           "IN-REVIEW" ? (
@@ -8084,7 +8104,23 @@ const ProjectTaskBoard = ({
                         }
                         className="w-full bg-white dark:bg-[#111111] border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-[#3b82f6]"
                       >
-                        {selectedTask.status === "IN-REVIEW" ||
+                        {selectedTask.contentType === "MOM" ? (
+                          <>
+                            <option
+                              value="Pending"
+                              className="dark:bg-slate-950 dark:text-slate-200"
+                            >
+                              Pending
+                            </option>
+                           
+                            <option
+                              value="Completed"
+                              className="dark:bg-slate-950 dark:text-slate-200"
+                            >
+                              Completed
+                            </option>
+                          </>
+                        ) : selectedTask.status === "IN-REVIEW" ||
                         selectedTask.status === "In Review" ||
                         selectedTask.status === "IN-Review" ? (
                           <>

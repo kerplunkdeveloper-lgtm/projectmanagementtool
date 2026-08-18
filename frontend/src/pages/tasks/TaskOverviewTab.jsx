@@ -3692,7 +3692,7 @@ const TaskOverviewTab = ({
                               }}
                               className={`outline-none text-[11px] font-semibold min-w-[130px] max-w-[200px] truncate block hover:bg-slate-100/50 dark:hover:bg-slate-800/30 px-1 py-0.5 rounded transition-colors ${
                                 !(task.contentCopy || task.content_copy) 
-                                  ? "text-slate-400 dark:text-slate-500 italic" 
+                                  ? "text-slate-400 dark:text-slate-500" 
                                   : "text-slate-700 dark:text-slate-200"
                               }`}
                               title="Click to edit content copy"
@@ -4067,15 +4067,22 @@ const TaskOverviewTab = ({
                                           ? "badge-status-in-review"
                                           : task.status === "Correction"
                                             ? "badge-status-correction"
-                                            : task.status === "On Hold"
+                                  : task.status === "On Hold"
                                               ? "badge-status-on-hold"
                                               : task.status === "Rejected"
                                                 ? "badge-status-rejected"
                                                 : "badge-status-pending"
                                   }`}
                                 >
-                                  {task.status === "In Review" ||
-                                  task.status === "IN-REVIEW" ? (
+                                  {task.contentType === "MOM" ? (
+                                    <>
+                                      <option value="Pending">Pending</option>
+                                      <option value="Completed">
+                                        Completed
+                                      </option>
+                                    </>
+                                  ) : task.status === "In Review" ||
+                                    task.status === "IN-REVIEW" ? (
                                     <>
                                       <option value="In Review">
                                         In Review
@@ -4425,13 +4432,23 @@ const TaskOverviewTab = ({
                                         : "badge-status-pending"
                           }`}
                         >
-                          <option value="Pending">Pending</option>
-                          <option value="In Progress">In Progress</option>
-                          <option value="In Review">In Review</option>
-                          <option value="Correction">Correction</option>
-                          <option value="Completed">Completed</option>
-                          <option value="On Hold">On Hold</option>
-                          <option value="Rejected">Rejected</option>
+                          {selectedTask.contentType === "MOM" ? (
+                            <>
+                              <option value="Pending">Pending</option>
+                        
+                              <option value="Completed">Completed</option>
+                            </>
+                          ) : (
+                            <>
+                              <option value="Pending">Pending</option>
+                              <option value="In Progress">In Progress</option>
+                              <option value="In Review">In Review</option>
+                              <option value="Correction">Correction</option>
+                              <option value="Completed">Completed</option>
+                              <option value="On Hold">On Hold</option>
+                              <option value="Rejected">Rejected</option>
+                            </>
+                          )}
                         </select>
                       )}
                     </div>
