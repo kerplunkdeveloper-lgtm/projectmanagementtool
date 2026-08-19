@@ -25,32 +25,67 @@ const lazyWithRetry = (importFn) => {
   });
 };
 
+export const routeImportMap = {
+  chat: () => import("../pages/chat/ChatPage.jsx"),
+  tasks: () => import("../pages/tasks/Task.jsx"),
+  projects: () => import("../pages/projects/Project.jsx"),
+  users: () => import("../pages/admin/AdminUsers.jsx"),
+  clients: () => import("../pages/admin/clients/Clients.jsx"),
+  "social-accounts": () => import("../pages/socialAccounts/SocialAccounts.jsx"),
+  contentcalender: () => import("../pages/contentcalendor/ContentCalcendor.jsx"),
+  notifications: () => import("../pages/notifications/Notifications.jsx"),
+  "mom-client-report": () => import("../pages/admin/MomClientReport.jsx"),
+  "client-calls": () => import("../pages/client-calls/ClientCalls.jsx"),
+  reports: () => import("../pages/admin/AdminEodReports.jsx"),
+  stickynotes: () => import("../pages/admin/Stickynotes.jsx"),
+  portfolio: () => import("../pages/admin/portfolio/Portfolio.jsx"),
+  profile: () => import("../pages/profile/Profile.jsx"),
+  settings: () => import("../pages/settings/Settings.jsx"),
+  partnerhub: () => import("../pages/admin/partnerhub/PartnerHub.jsx"),
+  workload: () => import("../pages/workload/Workload.jsx"),
+};
+
+export const preloadRoute = (path) => {
+  if (!path || typeof path !== "string") return;
+  const cleanPath = path.toLowerCase();
+  for (const [key, importFn] of Object.entries(routeImportMap)) {
+    if (cleanPath.includes(key)) {
+      try {
+        importFn();
+      } catch (e) {
+        // silent prefetch catch
+      }
+      break;
+    }
+  }
+};
+
 // Lazy Loaded Pages & Layouts
 const Login = lazyWithRetry(() => import("../pages/auth/Login.jsx"));
 const DashboardLayout = lazyWithRetry(() => import("../components/layout/DashboardLayout.jsx"));
 const Dashboardmain = lazyWithRetry(() => import("../pages/Dashboard/Dashboardmain.jsx"));
-const Project = lazyWithRetry(() => import("../pages/projects/Project.jsx"));
-const AdminUsers = lazyWithRetry(() => import("../pages/admin/AdminUsers.jsx"));
-const PartnerHub = lazyWithRetry(() => import("../pages/admin/partnerhub/PartnerHub.jsx"));
-const Profile = lazyWithRetry(() => import("../pages/profile/Profile.jsx"));
-const Settings = lazyWithRetry(() => import("../pages/settings/Settings.jsx"));
+const Project = lazyWithRetry(routeImportMap.projects);
+const AdminUsers = lazyWithRetry(routeImportMap.users);
+const PartnerHub = lazyWithRetry(routeImportMap.partnerhub);
+const Profile = lazyWithRetry(routeImportMap.profile);
+const Settings = lazyWithRetry(routeImportMap.settings);
 const OperationHome = lazyWithRetry(() => import("../pages/OperationMananger/OperationHome.jsx"));
 const OperationProjects = lazyWithRetry(() => import("../pages/OperationMananger/OperationProjects.jsx"));
 const TeamHome = lazyWithRetry(() => import("../pages/team/TeamHome.jsx"));
 const EodReports = lazyWithRetry(() => import("../pages/team/EodReports.jsx"));
-const AdminEodReports = lazyWithRetry(() => import("../pages/admin/AdminEodReports.jsx"));
+const AdminEodReports = lazyWithRetry(routeImportMap.reports);
 const Templatelib = lazyWithRetry(() => import("../pages/admin/templatelibrary/Templatelib.jsx"));
-const Clients = lazyWithRetry(() => import("../pages/admin/clients/Clients.jsx"));
-const Notifications = lazyWithRetry(() => import("../pages/notifications/Notifications.jsx"));
-const Task = lazyWithRetry(() => import("../pages/tasks/Task.jsx"));
-const ChatPage = lazyWithRetry(() => import("../pages/chat/ChatPage.jsx"));
-const Portfolio = lazyWithRetry(() => import("../pages/admin/portfolio/Portfolio.jsx"));
-const Workload = lazyWithRetry(() => import("../pages/workload/Workload.jsx"));
-const Stickynotes = lazyWithRetry(() => import("../pages/admin/Stickynotes.jsx"));
-const ContentCalcendor = lazyWithRetry(() => import("../pages/contentcalendor/ContentCalcendor.jsx"));
-const MomClientReport = lazyWithRetry(() => import("../pages/admin/MomClientReport.jsx"));
-const SocialAccounts = lazyWithRetry(() => import("../pages/socialAccounts/SocialAccounts.jsx"));
-const ClientCalls = lazyWithRetry(() => import("../pages/client-calls/ClientCalls.jsx"));
+const Clients = lazyWithRetry(routeImportMap.clients);
+const Notifications = lazyWithRetry(routeImportMap.notifications);
+const Task = lazyWithRetry(routeImportMap.tasks);
+const ChatPage = lazyWithRetry(routeImportMap.chat);
+const Portfolio = lazyWithRetry(routeImportMap.portfolio);
+const Workload = lazyWithRetry(routeImportMap.workload);
+const Stickynotes = lazyWithRetry(routeImportMap.stickynotes);
+const ContentCalcendor = lazyWithRetry(routeImportMap.contentcalender);
+const MomClientReport = lazyWithRetry(routeImportMap["mom-client-report"]);
+const SocialAccounts = lazyWithRetry(routeImportMap["social-accounts"]);
+const ClientCalls = lazyWithRetry(routeImportMap["client-calls"]);
 
 // Elegant, premium animated page loader
 const PageLoader = () => (

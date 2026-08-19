@@ -28,6 +28,7 @@ import { getDesignerEodReports } from "../../features/eodReports/designerEodRepo
 import { markAllChatAsRead } from "../../features/notifications/notificationSlice";
 import { clearAllUnreadCounts } from "../../features/chat/chatSlice";
 import ProjectIcon from "../common/ProjectIcon";
+import { preloadRoute } from "../../routes/AppRoutes";
 
 const projectColors = [
   "bg-fuchsia-300 text-fuchsia-900 dark:bg-fuchsia-400 dark:text-fuchsia-950",
@@ -624,6 +625,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                       <div className="flex items-center justify-between group rounded-lg transition-all duration-150 relative w-full text-left">
                         <button
                           type="button"
+                          onMouseEnter={() => preloadRoute("portfolio")}
                           onClick={() => {
                             if (window.innerWidth < 1024) setSidebarOpen(false);
                             navigate(`/${role}/portfolio?id=${portfolio._id}`);
@@ -838,6 +840,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                                   <button
                                     key={project._id}
                                     type="button"
+                                    onMouseEnter={() => preloadRoute("projects")}
                                     onClick={() => {
                                       if (window.innerWidth < 1024)
                                         setSidebarOpen(false);
@@ -1038,6 +1041,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                 <React.Fragment key={item.path}>
                   <NavLink
                     to={item.path}
+                    onMouseEnter={() => preloadRoute(item.path)}
+                    onFocus={() => preloadRoute(item.path)}
                     onClick={() => {
                       if (window.innerWidth < 1024) setSidebarOpen(false);
                       if (item.name === "Chat") {

@@ -9,6 +9,7 @@ import { exitImpersonation } from "../../features/auth/authSlice";
 import { apiSlice } from "../../features/api/apiSlice";
 import HorizontalSidebar from "./HorizontalSidebar";
 import { useTheme } from "../../context/ThemeContext";
+import { preloadRoute } from "../../routes/AppRoutes";
 
 const DashboardLayout = ({ role }) => {
   const { sidebarLayout } = useTheme();
@@ -23,6 +24,26 @@ const DashboardLayout = ({ role }) => {
   );
   const { user, originalAdminUser } = useSelector((state) => state.auth);
   const mainContainerRef = useRef(null);
+
+  // Background idle prefetching for high frequency pages
+  useEffect(() => {
+    const prefetchPages = () => {
+      preloadRoute("chat");
+      preloadRoute("tasks");
+      preloadRoute("projects");
+      preloadRoute("users");
+      preloadRoute("notifications");
+      preloadRoute("social-accounts");
+    };
+
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      const handle = window.requestIdleCallback(prefetchPages, { timeout: 1500 });
+      return () => window.cancelIdleCallback(handle);
+    } else {
+      const timer = setTimeout(prefetchPages, 800);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   // Reset scroll position to top when navigating to a new page
   useEffect(() => {

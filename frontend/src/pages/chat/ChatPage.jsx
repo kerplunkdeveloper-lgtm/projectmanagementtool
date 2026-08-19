@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { ZegoUIKitPrebuilt } from "@zegocloud/zego-uikit-prebuilt";
 import { useSearchParams } from "react-router-dom";
 import { getUsers } from "../../features/users/userSlice";
 import { markAsRead } from "../../features/notifications/notificationSlice";
@@ -717,6 +716,9 @@ const ChatPage = () => {
 
       const initZego = async () => {
         try {
+          const { ZegoUIKitPrebuilt } = await import(
+            "@zegocloud/zego-uikit-prebuilt"
+          );
           const appID = parseInt(import.meta.env.VITE_ZEGO_APP_ID);
           const serverSecret = import.meta.env.VITE_ZEGO_SERVER_SECRET;
 
