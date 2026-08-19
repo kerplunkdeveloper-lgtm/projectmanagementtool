@@ -905,7 +905,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   const { clients } = useSelector((state) => state.clients);
   const designerEodState = useSelector((state) => state.designerEodReports);
   const designerEodReports = designerEodState?.designerEodReports || [];
-  const { data: allTasks = [], isLoading } = useGetTasksQuery();
+  const {
+    data: allTasks = [],
+    isLoading,
+    refetch: refetchTasks,
+  } = useGetTasksQuery();
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDropdown, setShowDropdown] = useState(false);
@@ -945,6 +949,10 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         if (Array.isArray(usersList)) {
           setOnlineUserIds(usersList);
         }
+      });
+
+      socket.on("task_updated", () => {
+        refetchTasks();
       });
 
       return () => {
@@ -2523,7 +2531,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
   ];
 
   return (
-    <div className="bg-white dark:bg-[#0b1120] py-4 md:py-4 px-0 md:px-0 space-y-8 font-sans  overflow-visible transition-colors duration-300 relative">
+    <div className="bg-white dark:bg-[#0b1120] py-4 md:py-4 px-0 md:px-0 space-y-8 font-sans overflow-visible transition-colors duration-75 relative">
       {/* Header & Filter */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-20">
         <div className="space-y-1 ">

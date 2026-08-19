@@ -137,15 +137,16 @@ body {
 
 /* Smooth global transitions for theme changes - no box-shadow to prevent lag */
 body, aside, header, nav, main, section, article, footer,
-.theme-card-gradient, .theme-bg-main, .theme-bg-card {
-  transition-property: color, background-color, border-color;
+.theme-card-gradient, .theme-bg-main, .theme-bg-card,
+h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, select, textarea {
+  transition-property: color, background-color, border-color, fill, stroke;
   transition-timing-function: ease-in-out;
-  transition-duration: 250ms;
+  transition-duration: 150ms;
 }
 
 .sidebar-bg {
   background-color: var(--sidebar-bg);
-  transition: background-color 250ms ease-in-out, border-color 250ms ease-in-out, color 250ms ease-in-out;
+  transition: background-color 150ms ease-in-out, border-color 150ms ease-in-out, color 150ms ease-in-out;
 }
 
 .dark .sidebar-bg {
