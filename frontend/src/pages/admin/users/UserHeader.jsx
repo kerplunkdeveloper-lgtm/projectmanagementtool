@@ -43,12 +43,12 @@ const UserHeader = ({
             placeholder="Search by name or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="outline-none  text-xs rounded-md  text-gray-700 dark:text-slate-200  w-full"
+            className="outline-none py-2  text-xs rounded-md  text-gray-700 dark:text-slate-200  w-full"
           />
         </div>
 
         {/* DEPT FILTER */}
-        <div className="flex items-center gap-2 px-3 w-[150px] sm:w-[150px] shrink-0 transition-all border-l border-gray-200 dark:border-slate-700">
+        <div className="flex items-center gap-2 px-3 w-[150px] sm:w-[230px] shrink-0 transition-all border-l border-gray-200 dark:border-slate-700">
           <FiFilter
             size={12}
             className="text-gray-400 dark:text-slate-500 shrink-0"
@@ -70,7 +70,7 @@ const UserHeader = ({
         </div>
 
         {/* LOC FILTER */}
-        <div className="flex items-center gap-2 px-3 w-[150px] sm:w-[140px] shrink-0 transition-all border-l border-gray-200 dark:border-slate-700">
+        <div className="flex items-center gap-2 px-3 w-[150px] sm:w-[200px] shrink-0 transition-all border-l border-gray-200 dark:border-slate-700">
           <FiFilter
             size={12}
             className="text-gray-400 dark:text-slate-500 shrink-0"
