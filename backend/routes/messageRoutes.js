@@ -11,7 +11,6 @@ const {
   deleteMessage,
   getLastMessages,
   clearDirectMessages,
-  toggleReaction,
 } = require("../controllers/messageController");
 const { protect } = require("../middleware/auth");
 const chatUpload = require("../middleware/chatUpload");
@@ -26,7 +25,6 @@ router.get("/last", getLastMessages);
 router.get("/group/:roomId?", getGroupMessages);
 router.get("/direct/:userId", getDirectMessages);
 router.delete("/direct/:userId", clearDirectMessages);
-router.post("/:messageId/reaction", toggleReaction);
 router.delete("/:messageId", deleteMessage);
 
 // Custom Group Chat Room Routes

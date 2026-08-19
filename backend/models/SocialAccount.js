@@ -107,10 +107,6 @@ const socialAccountSchema = new mongoose.Schema(
       type: platformCredentialSchema,
       default: () => ({}),
     },
-    googleMyBusiness: {
-      type: platformCredentialSchema,
-      default: () => ({}),
-    },
     tiktok: {
       type: platformCredentialSchema,
       default: () => ({}),

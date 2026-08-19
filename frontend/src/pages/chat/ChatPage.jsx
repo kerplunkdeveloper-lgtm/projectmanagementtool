@@ -21,8 +21,6 @@ import {
   clearChatAction,
   clearChatLocal,
   updateMessageSeen,
-  toggleReactionAction,
-  updateMessageReaction,
 } from "../../features/chat/chatSlice";
 import {
   FiSend,
@@ -55,7 +53,6 @@ import {
   FiAtSign,
   FiCheck,
   FiCheckCircle,
-  FiMoreVertical,
 } from "react-icons/fi";
 import io from "socket.io-client";
 import toast from "react-hot-toast";
@@ -281,11 +278,6 @@ const ChatPage = () => {
   const [showShareMenu, setShowShareMenu] = useState(null);
   const [sharingMessage, setSharingMessage] = useState(null);
 
-  // Message Options & Reaction State
-  const [reactionPickerMessage, setReactionPickerMessage] = useState(null);
-  const [activeOptionsDropdown, setActiveOptionsDropdown] = useState(null);
-  const [showFullEmojiReactionModal, setShowFullEmojiReactionModal] = useState(null);
-
   // Group Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showManageModal, setShowManageModal] = useState(false);
@@ -397,24 +389,24 @@ const ChatPage = () => {
   const seenTimeoutRef = useRef(null);
 
   const flushSeenBuffer = useCallback(() => {
-    if (seenBufferRef.current.size > 0 && socketRef.current) {
+    if (seenBufferRef.current.size > 0 && socketRef.current && isGroupType) {
       const messageIds = Array.from(seenBufferRef.current);
       seenBufferRef.current.clear();
       socketRef.current.emit("message:seen", {
         messageIds,
-        chatRoom: isGroupType ? activeChat : "direct",
+        chatRoom: activeChat,
       });
     }
   }, [activeChat, isGroupType]);
 
   const markMessageAsSeen = useCallback(
     (messageId) => {
-      if (!messageId) return;
+      if (!isGroupType || !messageId) return;
       seenBufferRef.current.add(messageId);
       if (seenTimeoutRef.current) clearTimeout(seenTimeoutRef.current);
       seenTimeoutRef.current = setTimeout(flushSeenBuffer, 300);
     },
-    [flushSeenBuffer]
+    [flushSeenBuffer, isGroupType]
   );
 
   // Join existing Call Room via clicked meeting invitation
@@ -682,27 +674,12 @@ const ChatPage = () => {
       dispatch(updateMessageSeen(data));
     });
 
-    // Receive real-time message reactions
-    socketRef.current.on("message:reaction", (data) => {
-      dispatch(updateMessageReaction(data));
-    });
-
     return () => {
       if (socketRef.current) {
         socketRef.current.disconnect();
       }
     };
   }, [currentUserId, dispatch]);
-
-  // Click outside to close message dropdowns & reaction bars
-  useEffect(() => {
-    const handleDocClick = () => {
-      setActiveOptionsDropdown(null);
-      setReactionPickerMessage(null);
-    };
-    window.addEventListener("click", handleDocClick);
-    return () => window.removeEventListener("click", handleDocClick);
-  }, []);
 
   // Zego Meeting Container Callback Ref
   const zegoMeetingRef = useCallback(
@@ -1011,14 +988,6 @@ const ChatPage = () => {
       }
       return part;
     });
-  };
-
-  const handleToggleReaction = async (messageId, emoji) => {
-    try {
-      await dispatch(toggleReactionAction({ messageId, emoji })).unwrap();
-    } catch (err) {
-      toast.error(err || "Failed to update reaction");
-    }
   };
 
   const handleDeleteMessage = async (messageId) => {
@@ -1808,7 +1777,7 @@ const ChatPage = () => {
                 <div
                   key={m._id}
                   ref={(el) => {
-                    if (el && !isMe && !hasSeen) {
+                    if (el && isGroupType && !isMe && !hasSeen) {
                       const observer = new IntersectionObserver(
                         (entries) => {
                           entries.forEach((entry) => {
@@ -1863,208 +1832,156 @@ const ChatPage = () => {
                       </span>
                     )}
 
-                    {/* Content Display Wrapped with Reaction Badge */}
-                    <div className="relative group/msg-bubble">
-                      {m.messageType === "sticker" ? (
-                        <div className="text-5xl select-none py-1 filter drop-shadow-md transform active:scale-90 transition-transform">
-                          {m.sticker}
-                        </div>
-                      ) : m.messageType === "file" && m.file ? (
-                        <div
-                          className={`rounded-[1.25rem] overflow-hidden shadow-sm border max-w-xs md:max-w-sm ${
-                            isMe
-                              ? "chat-bubble-me rounded-tr-none"
-                              : "theme-bg-card theme-text-primary theme-border rounded-tl-none"
-                          }`}
-                        >
-                          {m.replyTo && (
-                            <div className="p-2 pb-1">
-                              {renderReplyPreview(m.replyTo)}
+                    {/* Content Display */}
+                    {m.messageType === "sticker" ? (
+                      <div className="text-5xl select-none py-1 filter drop-shadow-md transform active:scale-90 transition-transform">
+                        {m.sticker}
+                      </div>
+                    ) : m.messageType === "file" && m.file ? (
+                      <div
+                        className={`rounded-[1.25rem] overflow-hidden shadow-sm border max-w-xs md:max-w-sm ${
+                          isMe
+                            ? "chat-bubble-me rounded-tr-none"
+                            : "theme-bg-card theme-text-primary theme-border rounded-tl-none"
+                        }`}
+                      >
+                        {m.replyTo && (
+                          <div className="p-2 pb-1">
+                            {renderReplyPreview(m.replyTo)}
+                          </div>
+                        )}
+                        {m.file.fileType === "image" ? (
+                          <a
+                            href={m.file.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="block relative group cursor-pointer"
+                          >
+                            <img
+                              src={m.file.url}
+                              alt={m.file.filename}
+                              className="max-h-60 w-full object-cover rounded-t-[1.25rem]"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[11px] font-bold gap-1.5">
+                              <FiDownload size={14} /> Open Photo
                             </div>
-                          )}
-                          {m.file.fileType === "image" ? (
-                            <a
-                              href={m.file.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="block relative group cursor-pointer"
-                            >
-                              <img
-                                src={m.file.url}
-                                alt={m.file.filename}
-                                className="max-h-60 w-full object-cover rounded-t-[1.25rem]"
-                              />
-                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[11px] font-bold gap-1.5">
-                                <FiDownload size={14} /> Open Photo
-                              </div>
-                              <div className="p-3 bg-black/5 dark:bg-white/5 border-t border-slate-200/10 text-xs font-semibold truncate flex items-center gap-1.5 justify-between">
-                                <span className="truncate">
-                                  {m.file.filename}
-                                </span>
-                                <span className="text-[9px] opacity-60 font-medium shrink-0">
-                                  {(m.file.size / 1024 / 1024).toFixed(2)} MB
-                                </span>
-                              </div>
-                            </a>
-                          ) : m.file.fileType === "video" ? (
-                            <div
-                              className="p-1"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <video
-                                src={m.file.url}
-                                controls
-                                className="w-full max-h-60 rounded-[1rem] object-cover bg-black"
-                              />
-                              <div className="p-2 text-xs font-semibold truncate flex items-center gap-1.5 justify-between">
-                                <span className="truncate">
-                                  {m.file.filename}
-                                </span>
-                                <span className="text-[9px] opacity-60 font-medium shrink-0">
-                                  {(m.file.size / 1024 / 1024).toFixed(2)} MB
-                                </span>
-                              </div>
+                            <div className="p-3 bg-black/5 dark:bg-white/5 border-t border-slate-200/10 text-xs font-semibold truncate flex items-center gap-1.5 justify-between">
+                              <span className="truncate">
+                                {m.file.filename}
+                              </span>
+                              <span className="text-[9px] opacity-60 font-medium shrink-0">
+                                {(m.file.size / 1024 / 1024).toFixed(2)} MB
+                              </span>
                             </div>
-                          ) : m.file.fileType === "audio" ? (
-                            <div
-                              className="p-3 w-64"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="text-xs font-bold truncate mb-2">
+                          </a>
+                        ) : m.file.fileType === "video" ? (
+                          <div
+                            className="p-1"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <video
+                              src={m.file.url}
+                              controls
+                              className="w-full max-h-60 rounded-[1rem] object-cover bg-black"
+                            />
+                            <div className="p-2 text-xs font-semibold truncate flex items-center gap-1.5 justify-between">
+                              <span className="truncate">
+                                {m.file.filename}
+                              </span>
+                              <span className="text-[9px] opacity-60 font-medium shrink-0">
+                                {(m.file.size / 1024 / 1024).toFixed(2)} MB
+                              </span>
+                            </div>
+                          </div>
+                        ) : m.file.fileType === "audio" ? (
+                          <div
+                            className="p-3 w-64"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="text-xs font-bold truncate mb-2">
+                              {m.file.filename}
+                            </div>
+                            <audio
+                              src={m.file.url}
+                              controls
+                              className="w-full h-8"
+                            />
+                          </div>
+                        ) : (
+                          // Document / generic file card
+                          <a
+                            href={m.file.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download={m.file.filename}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-3 p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-all text-xs cursor-pointer"
+                          >
+                            <div className="w-9 h-9 rounded-xl theme-bg-main theme-text-primary border theme-border flex items-center justify-center shrink-0">
+                              <FiFileText size={18} />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="font-bold truncate leading-tight">
                                 {m.file.filename}
                               </div>
-                              <audio
-                                src={m.file.url}
-                                controls
-                                className="w-full h-8"
-                              />
+                              <div className="text-[9px] opacity-60 mt-0.5">
+                                {(m.file.size / 1024 / 1024).toFixed(2)} MB •
+                                File
+                              </div>
                             </div>
-                          ) : (
-                            // Document / generic file card
-                            <a
-                              href={m.file.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              download={m.file.filename}
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex items-center gap-3 p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-all text-xs cursor-pointer"
-                            >
-                              <div className="w-9 h-9 rounded-xl theme-bg-main theme-text-primary border theme-border flex items-center justify-center shrink-0">
-                                <FiFileText size={18} />
-                              </div>
-                              <div className="min-w-0 flex-1">
-                                <div className="font-bold truncate leading-tight">
-                                  {m.file.filename}
-                                </div>
-                                <div className="text-[9px] opacity-60 mt-0.5">
-                                  {(m.file.size / 1024 / 1024).toFixed(2)} MB •
-                                  File
-                                </div>
-                              </div>
-                              <div className="w-7 h-7 rounded-lg bg-black/5 dark:bg-white/10 theme-text-secondary flex items-center justify-center shrink-0">
-                                <FiDownload size={12} />
-                              </div>
-                            </a>
-                          )}
-                        </div>
-                      ) : (
-                        <div
-                          className={`px-4 py-2.5 rounded-[1.25rem] text-xs font-medium leading-relaxed break-words shadow-sm border ${
-                            isMe
-                              ? "chat-bubble-me rounded-tr-none"
-                              : "theme-bg-card theme-text-primary theme-border rounded-tl-none"
-                          }`}
-                        >
-                          {m.replyTo && renderReplyPreview(m.replyTo)}
-                          {m.text.includes("Join my live") ? (
-                            <div className="flex flex-col gap-2.5 p-0.5">
-                              <span className="font-semibold">{m.text}</span>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const match = m.text.match(
-                                    /Room ID:\s*([a-zA-Z0-9\-_]+)/,
+                            <div className="w-7 h-7 rounded-lg bg-black/5 dark:bg-white/10 theme-text-secondary flex items-center justify-center shrink-0">
+                              <FiDownload size={12} />
+                            </div>
+                          </a>
+                        )}
+                      </div>
+                    ) : (
+                      <div
+                        className={`px-4 py-2.5 rounded-[1.25rem] text-xs font-medium leading-relaxed break-words shadow-sm border ${
+                          isMe
+                            ? "chat-bubble-me rounded-tr-none"
+                            : "theme-bg-card theme-text-primary theme-border rounded-tl-none"
+                        }`}
+                      >
+                        {m.replyTo && renderReplyPreview(m.replyTo)}
+                        {m.text.includes("Join my live") ? (
+                          <div className="flex flex-col gap-2.5 p-0.5">
+                            <span className="font-semibold">{m.text}</span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const match = m.text.match(
+                                  /Room ID:\s*([a-zA-Z0-9\-_]+)/,
+                                );
+                                if (match) {
+                                  const roomId = match[1];
+                                  joinCallRoom(
+                                    roomId,
+                                    m.text.includes("Video")
+                                      ? "video"
+                                      : "voice",
                                   );
-                                  if (match) {
-                                    const roomId = match[1];
-                                    joinCallRoom(
-                                      roomId,
-                                      m.text.includes("Video")
-                                        ? "video"
-                                        : "voice",
-                                    );
-                                  }
-                                }}
-                                className={`w-full py-1.5 px-3 rounded-lg text-[10px] font-black uppercase tracking-wider text-center cursor-pointer transition-all ${
-                                  isMe
-                                    ? "bg-white text-indigo-600 hover:bg-white/95 dark:bg-red-500 dark:text-white dark:font-bold"
-                                    : "bg-blue-600 text-white hover:bg-blue-700 dark:bg-[#3b82f6] dark:text-black dark:font-bold dark:hover:bg-[#d4ec00] shadow shadow-blue-600/20 dark:shadow-[#3b82f6]/20"
-                                }`}
-                              >
-                                Join Call Meeting
-                              </button>
-                            </div>
-                          ) : (
-                            renderMessageContentWithMentions(m.text, m.mentions)
-                          )}
-                        </div>
-                      )}
-
-                      {/* WhatsApp / SaaS Floating Reaction Badges on Bottom Right Corner */}
-                      {m.reactions && m.reactions.length > 0 && (
-                        <div
-                          className={`absolute -bottom-3 right-2 z-10 flex items-center gap-1 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md px-1.5 py-0.5 rounded-full border border-slate-200/90 dark:border-slate-700/80 shadow-md transition-all hover:scale-105 select-none`}
-                        >
-                          {m.reactions.map((r, rIdx) => {
-                            const hasReacted = r.users?.some(
-                              (u) =>
-                                (u.userId?._id || u.userId || u).toString() ===
-                                currentUserId?.toString(),
-                            );
-                            const userNames = r.users
-                              ?.map((u) =>
-                                (u.userId?._id || u.userId || u).toString() ===
-                                currentUserId?.toString()
-                                  ? "You"
-                                  : u.name || "User",
-                              )
-                              .join(", ");
-                            return (
-                              <button
-                                key={r.emoji || rIdx}
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleToggleReaction(m._id, r.emoji);
-                                }}
-                                className={`flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full transition-all cursor-pointer ${
-                                  hasReacted
-                                    ? "bg-blue-100/90 dark:bg-blue-900/60 text-blue-700 dark:text-[#3b82f6] font-bold ring-1 ring-blue-500/40"
-                                    : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium"
-                                }`}
-                                title={`Reacted by: ${userNames}`}
-                              >
-                                <span>{r.emoji}</span>
-                                {r.users?.length > 1 && (
-                                  <span className="text-[9px] font-black opacity-90">
-                                    {r.users.length}
-                                  </span>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
+                                }
+                              }}
+                              className={`w-full py-1.5 px-3 rounded-lg text-[10px] font-black uppercase tracking-wider text-center cursor-pointer transition-all ${
+                                isMe
+                                  ? "bg-white text-indigo-600 hover:bg-white/95 dark:bg-red-500 dark:text-white dark:font-bold"
+                                  : "bg-blue-600 text-white hover:bg-blue-700 dark:bg-[#3b82f6] dark:text-black dark:font-bold dark:hover:bg-[#d4ec00] shadow shadow-blue-600/20 dark:shadow-[#3b82f6]/20"
+                              }`}
+                            >
+                              Join Call Meeting
+                            </button>
+                          </div>
+                        ) : (
+                          renderMessageContentWithMentions(m.text, m.mentions)
+                        )}
+                      </div>
+                    )}
 
                     {/* Timestamp & Seen Status */}
-                    <div
-                      className={`flex items-center gap-1.5 ${
-                        m.reactions && m.reactions.length > 0 ? "mt-2.5" : "mt-1"
-                      } px-1 flex-wrap ${isMe ? "justify-end" : "justify-start"}`}
-                    >
+                    <div className={`flex items-center gap-1.5 mt-1 px-1 flex-wrap ${isMe ? "justify-end" : "justify-start"}`}>
                       <span className="text-[9px] text-slate-400 dark:text-slate-500 font-semibold">
                         {new Date(m.createdAt).toLocaleTimeString([], {
                           hour: "2-digit",
@@ -2073,7 +1990,7 @@ const ChatPage = () => {
                       </span>
 
                       {/* Group Read Receipts (Seen By) */}
-                      {isGroupType ? (
+                      {isGroupType && (
                         m.seenBy && m.seenBy.length > 0 ? (
                           <button
                             type="button"
@@ -2095,8 +2012,7 @@ const ChatPage = () => {
                             <div className="flex -space-x-1.5 overflow-hidden py-0.5 items-center">
                               {m.seenBy.slice(0, 3).map((reader, idx) => {
                                 const rUser = reader.userId || reader;
-                                const rProfileImg =
-                                  rUser?.profile?.profileImage?.url;
+                                const rProfileImg = rUser?.profile?.profileImage?.url;
                                 const rName = rUser?.name || "Member";
                                 return rProfileImg ? (
                                   <img
@@ -2127,250 +2043,118 @@ const ChatPage = () => {
                             <FiCheck size={10} className="stroke-[2.5]" /> Sent
                           </span>
                         ) : null
-                      ) : (
-                        isMe &&
-                        (m.seenBy && m.seenBy.length > 0 ? (
-                          <span
-                            className="inline-flex items-center gap-0.5 text-[9px] text-blue-500 font-bold px-1.5 py-0.5 rounded-full select-none"
-                            title="Seen"
-                          >
-                            <span className="flex items-center text-blue-500">
-                              <FiCheck size={11} className="stroke-[3]" />
-                              <FiCheck size={11} className="-ml-1.5 stroke-[3]" />
-                            </span>
-                            Seen
-                          </span>
-                        ) : (
-                          <span
-                            className="inline-flex items-center gap-0.5 text-[9px] text-slate-400 dark:text-slate-500 font-bold px-1.5 py-0.5 rounded-full select-none"
-                            title="Delivered"
-                          >
-                            <span className="flex items-center">
-                              <FiCheck size={11} className="stroke-[3]" />
-                              <FiCheck size={11} className="-ml-1.5 stroke-[3]" />
-                            </span>
-                            Delivered
-                          </span>
-                        ))
                       )}
                     </div>
                   </div>
 
-                  {/* Message Options Hover Action Bar */}
+                  {/* Message Options Menu */}
                   <div
                     className={`flex items-center gap-1 transition-opacity self-center shrink-0 ${
                       isMe ? "flex-row-reverse" : ""
                     } ${
-                      activeOptionsDropdown === m._id ||
-                      reactionPickerMessage === m._id
+                      activeMessageMenu === m._id
                         ? "opacity-100"
                         : "opacity-0 md:group-hover:opacity-100"
                     }`}
                   >
-                    {/* Seen Info (Group only) */}
                     {isGroupType && (
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           setSeenModalMessage(m);
-                          setActiveOptionsDropdown(null);
-                          setReactionPickerMessage(null);
+                          setActiveMessageMenu(null);
                         }}
-                        className="p-1 rounded-lg theme-bg-main hover:theme-bg-card text-blue-600 dark:text-[#3b82f6] border theme-border cursor-pointer transition-colors"
+                        className="p-1 rounded-lg theme-bg-main hover:theme-bg-card text-blue-600 dark:text-[#3b82f6] border theme-border cursor-pointer"
                         title="Seen By / Message Info"
                       >
                         <FiEye size={11} />
                       </button>
                     )}
-
-                    {/* Emoji Reaction Button & Floating Quick Reactions */}
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setReactionPickerMessage(
-                            reactionPickerMessage === m._id ? null : m._id,
-                          );
-                          setActiveOptionsDropdown(null);
-                        }}
-                        className={`p-1 rounded-lg border theme-border cursor-pointer transition-colors ${
-                          reactionPickerMessage === m._id
-                            ? "bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700"
-                            : "theme-bg-main hover:theme-bg-card text-slate-400 hover:text-amber-500"
-                        }`}
-                        title="React with Emoji"
-                      >
-                        <FiSmile size={11} />
-                      </button>
-
-                      {/* Floating Quick Reaction Bar */}
-                      {reactionPickerMessage === m._id && (
-                        <div
-                          onClick={(e) => e.stopPropagation()}
-                          className={`absolute bottom-full mb-1.5 ${
-                            isMe ? "right-0" : "left-0"
-                          } bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-full px-2 py-1 shadow-2xl z-50 flex items-center gap-1.5 backdrop-blur-xl animate-scale-up`}
-                        >
-                          {["👍", "❤️", "😂", "😮", "😢", "🔥", "🎉", "🙏"].map(
-                            (emoji) => (
-                              <button
-                                key={emoji}
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleToggleReaction(m._id, emoji);
-                                  setReactionPickerMessage(null);
-                                }}
-                                className="text-base p-0.5 hover:scale-125 active:scale-95 transition-transform cursor-pointer"
-                              >
-                                {emoji}
-                              </button>
-                            ),
-                          )}
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowFullEmojiReactionModal(m._id);
-                              setReactionPickerMessage(null);
-                            }}
-                            className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors cursor-pointer text-xs ml-0.5"
-                            title="More Reactions"
-                          >
-                            <FiPlus size={11} />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Reply Button */}
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         setReplyingToMessage(m);
-                        setActiveOptionsDropdown(null);
-                        setReactionPickerMessage(null);
+                        setActiveMessageMenu(null);
                       }}
-                      className="p-1 rounded-lg theme-bg-main hover:theme-bg-card theme-text-secondary hover:theme-text-primary border theme-border cursor-pointer transition-colors"
+                      className="p-1 rounded-lg theme-bg-main hover:theme-bg-card theme-text-secondary hover:theme-text-primary border theme-border cursor-pointer"
                       title="Reply"
                     >
                       <FiCornerUpLeft size={11} />
                     </button>
-
-                    {/* Forward Button */}
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         setForwardingMessage(m);
                         setShowForwardModal(true);
-                        setActiveOptionsDropdown(null);
-                        setReactionPickerMessage(null);
+                        setActiveMessageMenu(null);
                       }}
-                      className="p-1 rounded-lg theme-bg-main hover:theme-bg-card theme-text-secondary hover:theme-text-primary border theme-border cursor-pointer transition-colors"
+                      className="p-1 rounded-lg theme-bg-main hover:theme-bg-card theme-text-secondary hover:theme-text-primary border theme-border cursor-pointer"
                       title="Forward"
                     >
                       <FiArrowRight size={11} />
                     </button>
-
-                    {/* 3-Dots Options Menu (Share & Delete dropdown) */}
                     <div className="relative">
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          setActiveOptionsDropdown(
-                            activeOptionsDropdown === m._id ? null : m._id,
+                          setSharingMessage(m);
+                          setShowShareMenu(
+                            showShareMenu === m._id ? null : m._id,
                           );
-                          setReactionPickerMessage(null);
                         }}
-                        className={`p-1 rounded-lg border theme-border cursor-pointer transition-colors ${
-                          activeOptionsDropdown === m._id
-                            ? "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white"
-                            : "theme-bg-main hover:theme-bg-card theme-text-secondary hover:theme-text-primary"
-                        }`}
-                        title="More Options"
+                        className="p-1 rounded-lg theme-bg-main hover:theme-bg-card theme-text-secondary hover:theme-text-primary border theme-border cursor-pointer"
+                        title="Share"
                       >
-                        <FiMoreVertical size={11} />
+                        <FiShare2 size={11} />
                       </button>
-
-                      {/* Dropdown Menu - opens downwards */}
-                      {activeOptionsDropdown === m._id && (
+                      {showShareMenu === m._id && (
                         <div
                           onClick={(e) => e.stopPropagation()}
-                          className={`absolute top-full mt-1.5 ${
-                            isMe ? "right-0" : "left-0"
-                          } w-36 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl py-1 shadow-2xl z-50 backdrop-blur-xl animate-scale-up overflow-hidden`}
+                          className={`absolute bottom-7 ${isMe ? "right-0" : "left-0"} theme-bg-card border theme-border rounded-xl py-1 shadow-lg z-30 w-28`}
                         >
-                          {/* Copy text (if text message) */}
-                          {m.text && !m.text.includes("Join my live") && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigator.clipboard.writeText(m.text);
-                                toast.success("Text copied");
-                                setActiveOptionsDropdown(null);
-                              }}
-                              className="w-full px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800/80 text-left text-xs font-semibold theme-text-primary flex items-center gap-2 cursor-pointer transition-colors"
-                            >
-                              <FiCopy size={12} className="text-slate-400" />
-                              Copy Text
-                            </button>
-                          )}
-
-                          {/* Share via WhatsApp */}
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleShareExternal(m, "whatsapp");
-                              setActiveOptionsDropdown(null);
+                              setActiveMessageMenu(null);
                             }}
-                            className="w-full px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800/80 text-left text-xs font-semibold theme-text-primary flex items-center gap-2 cursor-pointer transition-colors"
+                            className="w-full px-2.5 py-1.5 hover:theme-bg-main text-left text-[9px] font-bold theme-text-primary flex items-center gap-1.5 cursor-pointer"
                           >
-                            <FiShare2 size={12} className="text-emerald-500" />
-                            Share WhatsApp
+                            WhatsApp
                           </button>
-
-                          {/* Share via Email */}
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
                               handleShareExternal(m, "email");
-                              setActiveOptionsDropdown(null);
+                              setActiveMessageMenu(null);
                             }}
-                            className="w-full px-3 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-800/80 text-left text-xs font-semibold theme-text-primary flex items-center gap-2 cursor-pointer transition-colors"
+                            className="w-full px-2.5 py-1.5 hover:theme-bg-main text-left text-[9px] font-bold theme-text-primary flex items-center gap-1.5 cursor-pointer"
                           >
-                            <FiMail size={12} className="text-blue-500" />
-                            Share Email
+                            Email
                           </button>
-
-                          {/* Delete option */}
-                          {(isMe || user?.role === "admin") && (
-                            <>
-                              <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteMessage(m._id);
-                                  setActiveOptionsDropdown(null);
-                                }}
-                                className="w-full px-3 py-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-left text-xs font-semibold text-rose-600 dark:text-rose-400 flex items-center gap-2 cursor-pointer transition-colors"
-                              >
-                                <FiTrash2 size={12} className="text-rose-500" />
-                                Delete
-                              </button>
-                            </>
-                          )}
                         </div>
                       )}
                     </div>
+                    {(isMe || user.role === "admin") && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteMessage(m._id);
+                          setActiveMessageMenu(null);
+                        }}
+                        className="p-1 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 text-rose-600 dark:text-rose-400 cursor-pointer"
+                        title="Delete"
+                      >
+                        <FiTrash2 size={11} />
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -3462,47 +3246,6 @@ const ChatPage = () => {
           </div>
         );
       })()}
-
-      {/* Full Emoji Reaction Picker Modal */}
-      {showFullEmojiReactionModal && (
-        <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4"
-          onClick={() => setShowFullEmojiReactionModal(null)}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-2xl max-w-xs w-full animate-scale-up"
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-3">
-              <span className="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
-                <FiSmile size={14} className="text-amber-500" /> React to Message
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowFullEmojiReactionModal(null)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-              >
-                <FiX size={14} />
-              </button>
-            </div>
-            <div className="grid grid-cols-6 gap-2 max-h-60 overflow-y-auto pr-1">
-              {EMOJIS.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  onClick={() => {
-                    handleToggleReaction(showFullEmojiReactionModal, emoji);
-                    setShowFullEmojiReactionModal(null);
-                  }}
-                  className="text-2xl p-1 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-90 transition-all rounded-lg cursor-pointer flex items-center justify-center"
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
