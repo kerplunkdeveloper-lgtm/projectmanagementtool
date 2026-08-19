@@ -61,16 +61,24 @@ const AdminUsers = () => {
     useState(null);
 
   const [currentPage, setCurrentPage] =
-    useState(1);
+    useState(() => parseInt(localStorage.getItem("adminUsers_currentPage")) || 1);
 
   const [searchTerm, setSearchTerm] =
-    useState("");
+    useState(() => localStorage.getItem("adminUsers_searchTerm") || "");
 
   const [filterDept, setFilterDept] =
-    useState("");
+    useState(() => localStorage.getItem("adminUsers_filterDept") || "");
 
-  const [filterLocation, setFilterLocation] = useState("");
-  const [filterRelieved, setFilterRelieved] = useState("active");
+  const [filterLocation, setFilterLocation] = useState(() => localStorage.getItem("adminUsers_filterLocation") || "");
+  const [filterRelieved, setFilterRelieved] = useState(() => localStorage.getItem("adminUsers_filterRelieved") || "active");
+
+  useEffect(() => {
+    localStorage.setItem("adminUsers_currentPage", currentPage);
+    localStorage.setItem("adminUsers_searchTerm", searchTerm);
+    localStorage.setItem("adminUsers_filterDept", filterDept);
+    localStorage.setItem("adminUsers_filterLocation", filterLocation);
+    localStorage.setItem("adminUsers_filterRelieved", filterRelieved);
+  }, [currentPage, searchTerm, filterDept, filterLocation, filterRelieved]);
 
   const [openDeleteModal, setOpenDeleteModal] =
     useState(false);
