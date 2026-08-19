@@ -7,7 +7,6 @@ import {
   FiMapPin,
   FiShield,
   FiUsers,
-  FiLogIn,
   FiSliders,
   FiCopy,
   FiCheck,
@@ -144,7 +143,6 @@ const UserTable = ({
   handleRequestReactivate,
   setOpenModal,
   setEditUser,
-  handleImpersonate,
   isReadOnly,
   setOpenPermissionsModal,
   setPermissionsUser,
@@ -440,18 +438,6 @@ const UserTable = ({
                                   <FiSliders size={13} />
                                 </ActionBtn>
                               )}
-
-                              {currentUser?.role === "admin" &&
-                                currentUser?.id !== user._id &&
-                                currentUser?._id !== user._id && (
-                                  <ActionBtn
-                                    onClick={() => handleImpersonate(user._id)}
-                                    label="Login As"
-                                    colorClass="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:hover:bg-emerald-500/35"
-                                  >
-                                    <FiLogIn size={13} />
-                                  </ActionBtn>
-                                )}
 
                               {canRelieve &&
                                 user.role !== "admin" &&
