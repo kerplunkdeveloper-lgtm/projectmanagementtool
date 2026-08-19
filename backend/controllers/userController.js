@@ -128,11 +128,27 @@ exports.updateUser = async (req, res) => {
 
     const targetId = (!req.params.id || req.params.id === 'me') ? req.user._id : req.params.id;
 
-    // Security check: non-admins cannot update other users
-    if (req.user.role !== 'admin' && targetId.toString() !== req.user._id.toString()) {
+    // Security check: non-admins/operationmanagers cannot update other users
+    if (req.user.role !== 'admin' && req.user.role !== 'operationmanager' && targetId.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to update this user',
+      });
+    }
+
+    const userToUpdate = await User.findById(targetId);
+    if (!userToUpdate) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    // Operation managers cannot update admin users
+    if (req.user.role === 'operationmanager' && userToUpdate.role === 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Operation managers cannot update admin accounts',
       });
     }
 
@@ -174,14 +190,24 @@ exports.deleteUser = async (req, res) => {
   try {
     console.log("DELETE USER CALLED WITH ID:", req.params.id);
 
-    const user = await User.findByIdAndDelete(req.params.id);
+    const userToFind = await User.findById(req.params.id);
 
-    if (!user) {
+    if (!userToFind) {
       return res.status(404).json({
         success: false,
         message: 'User not found',
       });
     }
+
+    // Operation managers cannot delete admin users
+    if (req.user.role === 'operationmanager' && userToFind.role === 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Operation managers cannot delete admin accounts',
+      });
+    }
+
+    const user = await User.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
       success: true,

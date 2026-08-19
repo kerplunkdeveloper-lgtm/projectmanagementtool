@@ -35,7 +35,7 @@ router.get(
 router.post(
   '/',
   protect,
-  authorize('admin'),
+  authorize('admin', 'operationmanager'),
   createUser
 );
 
@@ -51,7 +51,7 @@ router.put(
 router.put(
   '/:id/relieve',
   protect,
-  authorize('admin'),
+  authorize('admin', 'operationmanager'),
   relieveUser
 );
 
@@ -59,7 +59,7 @@ router.put(
 router.put(
   '/:id/reactivate',
   protect,
-  authorize('admin'),
+  authorize('admin', 'operationmanager'),
   reactivateUser
 );
 
@@ -67,7 +67,7 @@ router.put(
 router.put(
   '/:id',
   protect,
-  authorize('admin'),
+  authorize('admin', 'operationmanager'),
   updateUser
 );
 
@@ -76,7 +76,7 @@ router.put(
 router.delete(
   '/:id',
   protect,
-  authorize('admin'),
+  authorize('admin', 'operationmanager'),
   deleteUser
 );
 
