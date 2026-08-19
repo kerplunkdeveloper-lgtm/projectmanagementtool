@@ -153,6 +153,7 @@ const stickyNoteRoutes = require("./routes/stickyNoteRoutes");
 const settingsRoutes = require("./routes/settingsRoutes");
 const socialAccountRoutes = require("./routes/socialAccountRoutes");
 const contentCalendarRoutes = require("./routes/contentCalendarRoutes");
+const clientCallRoutes = require("./routes/clientCallRoutes");
 
 app.get("/", (req, res) => {
   res.send("demo testing api da ithu :) ");
@@ -200,6 +201,7 @@ app.use('/api/stickynotes', stickyNoteRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/social-accounts', socialAccountRoutes);
 app.use('/api/content-calendar', contentCalendarRoutes);
+app.use('/api/client-calls', clientCallRoutes);
 
 const PORT = process.env.PORT || 5001;
 

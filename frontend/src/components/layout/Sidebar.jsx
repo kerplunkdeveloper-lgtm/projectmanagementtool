@@ -260,6 +260,17 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
       }
     }
 
+    // Show Client Calls ONLY for Social Media Manager department
+    if (item.name === "Client Calls" || item.path?.includes("client-calls")) {
+      const deptLower = (currentUser?.department || "").toLowerCase();
+      
+      const isSocialMediaManager = deptLower.includes("social media manager");
+
+      if (!isSocialMediaManager) {
+        return false;
+      }
+    }
+
     // Hide Chat when admin is impersonating another user
     if (item.name === "Chat" && originalAdminUser) {
       return false;
@@ -1140,9 +1151,9 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           )}
                         {(item.name === "MOM Report" ||
                           item.name === "MOM Client Report") &&
-                          newMomCount > 0 && (
+                          (newMomCount + (notifications ? notifications.filter(n => !n.isRead && n.type === 'client_call_created').length : 0)) > 0 && (
                             <span className="flex h-[1rem] min-w-[1rem] items-center justify-center rounded-full bg-indigo-600 dark:bg-indigo-500 px-1 text-[0.5625rem] font-black text-white shadow-xs shrink-0 animate-pulse">
-                              {newMomCount}
+                              {newMomCount + (notifications ? notifications.filter(n => !n.isRead && n.type === 'client_call_created').length : 0)}
                             </span>
                           )}
                         {item.name === "Reports" &&
@@ -1161,7 +1172,7 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
                           !(
                             (item.name === "MOM Report" ||
                               item.name === "MOM Client Report") &&
-                            newMomCount > 0
+                            (newMomCount + (notifications ? notifications.filter(n => !n.isRead && n.type === 'client_call_created').length : 0)) > 0
                           ) &&
                           !(
                             item.name === "Reports" &&
@@ -1197,8 +1208,8 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
             const topCardNames =
               role === "operationmanager"
-                ? ["Home", "Sticky Notes", "Chat", "Users", "Reports", "SM Credentials", "MOM Report"]
-                : ["Home", "Sticky Notes", "Chat", "Users", "SM Credentials", "MOM Report", "Reports"];
+                ? ["Home", "Sticky Notes", "Chat", "Users", "Reports", "SM Credentials", "MOM/ClientCall"]
+                : ["Home", "Sticky Notes", "Chat", "Users", "SM Credentials", "MOM/ClientCall", "Reports"];
 
             return (
               <>

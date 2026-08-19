@@ -50,6 +50,7 @@ const Stickynotes = lazyWithRetry(() => import("../pages/admin/Stickynotes.jsx")
 const ContentCalcendor = lazyWithRetry(() => import("../pages/contentcalendor/ContentCalcendor.jsx"));
 const MomClientReport = lazyWithRetry(() => import("../pages/admin/MomClientReport.jsx"));
 const SocialAccounts = lazyWithRetry(() => import("../pages/socialAccounts/SocialAccounts.jsx"));
+const ClientCalls = lazyWithRetry(() => import("../pages/client-calls/ClientCalls.jsx"));
 
 // Elegant, premium animated page loader
 const PageLoader = () => (
@@ -171,6 +172,10 @@ const AppRoutes = () => {
           path="chat"
           element={<ChatPage />}
         />
+        <Route
+          path="client-calls"
+          element={<ClientCalls />}
+        />
 
 
         
@@ -270,6 +275,10 @@ const AppRoutes = () => {
           path="chat"
           element={<ChatPage />}
         />
+        <Route
+          path="client-calls"
+          element={<ClientCalls />}
+        />
 
 
 
@@ -361,6 +370,10 @@ const AppRoutes = () => {
         <Route
           path="chat"
           element={<ChatPage />}
+        />
+        <Route
+          path="client-calls"
+          element={<ClientCalls />}
         />
       </Route>
      

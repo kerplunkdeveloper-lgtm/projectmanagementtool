@@ -4,6 +4,8 @@ import { useGetTasksQuery, useGetProjectsQuery } from "../../features/api/apiSli
 import { getUsers } from "../../features/users/userSlice";
 import { FiFileText, FiCheckCircle, FiCalendar, FiChevronDown, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import ClientBadge from "../../components/common/ClientBadge";
+import ClientCalls from "../client-calls/ClientCalls";
+import axiosInstance from "../../services/axiosInstance";
 
 const formatCreatedTime = (time) => {
   if (!time) return "—";
@@ -132,6 +134,37 @@ const MomClientReport = () => {
   const [assigneeFilter, setAssigneeFilter] = useState("");
   const [clientFilter, setClientFilter] = useState("");
   const [localCheckedTasks, setLocalCheckedTasks] = useState(new Set());
+  const [activeTab, setActiveTab] = useState("mom");
+
+  const [clientCalls, setClientCalls] = useState([]);
+  const [clientCallsLoading, setClientCallsLoading] = useState(false);
+  const [localCheckedCalls, setLocalCheckedCalls] = useState(new Set());
+
+  useEffect(() => {
+    if (activeTab === "clientcall" && clientCalls.length === 0) {
+      const fetchCalls = async () => {
+        setClientCallsLoading(true);
+        try {
+          const res = await axiosInstance.get("/client-calls");
+          setClientCalls(res.data.data || []);
+        } catch (error) {
+          console.error("Error fetching client calls:", error);
+        } finally {
+          setClientCallsLoading(false);
+        }
+      };
+      fetchCalls();
+    }
+  }, [activeTab, clientCalls.length]);
+
+  const handleToggleCheckCall = (callId) => {
+    setLocalCheckedCalls(prev => {
+      const next = new Set(prev);
+      if (next.has(callId)) next.delete(callId);
+      else next.add(callId);
+      return next;
+    });
+  };
 
   const handleToggleCheck = (taskId) => {
     setLocalCheckedTasks(prev => {
@@ -164,6 +197,47 @@ const MomClientReport = () => {
       return true;
     });
   }, [tasks, projects, dateFilter, assigneeFilter, clientFilter]);
+
+  const filteredClientCalls = useMemo(() => {
+    return clientCalls.filter(call => {
+      const assigneeId = call.createdBy?._id || call.createdBy;
+      if (assigneeFilter && assigneeId !== assigneeFilter) return false;
+
+      const clientId = call.client?._id || call.client;
+      if (clientFilter && clientId !== clientFilter) return false;
+
+      if (dateFilter) {
+        const callDate = call.date ? new Date(call.date).toISOString().split('T')[0] : null;
+        if (callDate !== dateFilter) return false;
+      }
+
+      return true;
+    });
+  }, [clientCalls, dateFilter, assigneeFilter, clientFilter]);
+
+  const uniqueClientCallAssignees = useMemo(() => {
+    const map = new Map();
+    clientCalls.forEach(call => {
+      const id = call.createdBy?._id || call.createdBy;
+      if (id && !map.has(id)) {
+        const name = call.createdBy?.name || "Unknown User";
+        map.set(id, { id, name });
+      }
+    });
+    return Array.from(map.values()).sort((a,b) => a.name.localeCompare(b.name));
+  }, [clientCalls]);
+
+  const uniqueClientCallClients = useMemo(() => {
+    const map = new Map();
+    clientCalls.forEach(call => {
+      const clientId = call.client?._id || call.client;
+      if (clientId && !map.has(clientId)) {
+        const name = call.client?.companyName || "Unknown Client";
+        map.set(clientId, { id: clientId, name });
+      }
+    });
+    return Array.from(map.values()).sort((a,b) => a.name.localeCompare(b.name));
+  }, [clientCalls]);
 
   const uniqueAssignees = useMemo(() => {
     const map = new Map();
@@ -235,13 +309,55 @@ const MomClientReport = () => {
           <FiFileText size={18} className="text-white" />
         </div>
         <div>
-          <h1 className="text-base font-bold text-white leading-tight">MOM Client Report</h1>
-          <p className="text-[11px] font-medium text-indigo-100">Social Media Team - MOM Tasks Overview</p>
+          <h1 className="text-base font-bold text-white leading-tight">MOM Client Report / Client Call </h1>
+          <p className="text-[11px] font-medium text-indigo-100">Social Media Team - MOM Tasks Overview And  ClientCall  Overview</p>
         </div>
       </div>
+
+
+
+{/* tab for MoM and Clientcall logs */}
+<div className="px-6 pb-3 theme-bg-accent">
+  <div className="flex p-1 space-x-1 bg-black/15 dark:bg-black/30 rounded-xl w-fit shadow-inner">
+    <button
+      onClick={() => setActiveTab("mom")}
+      className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${
+        activeTab === "mom"
+          ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 shadow-sm ring-1 ring-black/5"
+          : "text-white/80 hover:text-white hover:bg-white/10"
+      }`}
+    >
+      MoM
+    </button>
+    <button
+      onClick={() => setActiveTab("clientcall")}
+      className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${
+        activeTab === "clientcall"
+          ? "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 shadow-sm ring-1 ring-black/5"
+          : "text-white/80 hover:text-white hover:bg-white/10"
+      }`}
+    >
+      Client Call
+    </button>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
       
       <div className="  py-3 flex-1 flex flex-col min-h-0 overflow-y-auto">
-        <div className="flex flex-col xl:flex-row xl:justify-between xl:items-center mb-3 gap-2.5 shrink-0">
+        {activeTab === "mom" ? (
+          <>
+            <div className="flex flex-col xl:flex-row xl:justify-between xl:items-center mb-3 gap-2.5 shrink-0 px-6">
           <div className="flex flex-wrap items-center gap-2">
             <select
               value={assigneeFilter}
@@ -442,6 +558,185 @@ const MomClientReport = () => {
               </table>
             </div>
           </div>
+        )}
+          </>
+        ) : (
+          <>
+            <div className="flex flex-col xl:flex-row xl:justify-between xl:items-center mb-3 gap-2.5 shrink-0 px-6">
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={assigneeFilter}
+                  onChange={(e) => setAssigneeFilter(e.target.value)}
+                  className="px-2.5 py-1.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 min-w-[130px] shadow-2xs cursor-pointer hover:border-slate-300 transition-colors"
+                >
+                  <option value="">All Users</option>
+                  {uniqueClientCallAssignees.map(a => (
+                    <option key={a.id} value={a.id}>{a.name}</option>
+                  ))}
+                </select>
+                
+                <select
+                  value={clientFilter}
+                  onChange={(e) => setClientFilter(e.target.value)}
+                  className="px-2.5 py-1.5 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 min-w-[130px] shadow-2xs cursor-pointer hover:border-slate-300 transition-colors"
+                >
+                  <option value="">All Clients</option>
+                  {uniqueClientCallClients.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  onClick={() => setDateFilter("")}
+                  className="px-3 py-1.5 bg-[#f0f5fa] dark:bg-slate-800 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                >
+                  All Dates
+                </button>
+                <button
+                  onClick={handleSetToday}
+                  className="px-3 py-1.5 bg-[#f0f5fa] dark:bg-slate-800 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                >
+                  Today
+                </button>
+
+                <div 
+                  className="relative group cursor-pointer" 
+                  onClick={(e) => {
+                    const input = e.currentTarget.querySelector('input[type="date"]');
+                    if (input && typeof input.showPicker === 'function') {
+                      input.showPicker();
+                    }
+                  }}
+                >
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-[#f0f5fa] dark:bg-slate-800 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 rounded-lg transition-colors min-w-[130px] justify-between cursor-pointer">
+                    <div className="flex items-center gap-1.5">
+                      <FiCalendar className="text-emerald-500" size={14} />
+                      <span className="text-slate-800 dark:text-slate-200 font-bold text-xs">
+                        {getDisplayDate()}
+                      </span>
+                    </div>
+                    <FiChevronDown className="text-slate-400" size={12} />
+                  </div>
+                  <input
+                    type="date"
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </div>
+
+                <div className="flex items-center bg-[#f0f5fa] dark:bg-slate-800 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => handleAdjustDate(-1)}
+                    className="px-2 py-1.5 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                    title="Previous Day"
+                  >
+                    <FiChevronLeft size={14} strokeWidth={2.5} />
+                  </button>
+                  <div className="w-px h-3.5 bg-slate-200 dark:bg-slate-600"></div>
+                  <button
+                    onClick={() => handleAdjustDate(1)}
+                    className="px-2 py-1.5 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+                    title="Next Day"
+                  >
+                    <FiChevronRight size={14} strokeWidth={2.5} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {clientCallsLoading ? (
+              <div className="flex justify-center items-center py-20">
+                <span className="text-slate-500 text-xs font-medium animate-pulse">Loading calls...</span>
+              </div>
+            ) : (
+              <div className="bg-white dark:bg-[#0f172a] rounded-xl shadow-2xs border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col min-h-0 mx-6">
+                <div className="overflow-x-auto overflow-y-auto flex-1">
+                  <table className="w-full table-auto text-left border-collapse">
+                    <thead className="sticky top-0 z-10">
+                      <tr className="bg-slate-50 dark:bg-[#151b2b] border-b border-slate-200 dark:border-slate-800 shadow-2xs">
+                        <th className="px-3 py-2 text-center whitespace-nowrap"><span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Check</span></th>
+                        <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">User Name</th>
+                        <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Client Name</th>
+                        <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Time</th>
+                        <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Duration</th>
+                        <th className="px-3 py-2 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Discussion Points</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800/50">
+                      {filteredClientCalls.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="px-4 py-8 text-center text-slate-500 dark:text-slate-400 text-xs">
+                            No client calls found for the selected criteria.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredClientCalls.map(call => {
+                          const isChecked = localCheckedCalls.has(call._id);
+                          const clientObj = call.client;
+                          const clientName = clientObj?.companyName || "Unknown Client";
+                          const userName = call.createdBy?.name || "Unknown User";
+
+                          const callDate = call.date ? new Date(call.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "";
+                          
+                          return (
+                            <tr key={call._id} className="hover:bg-slate-50/70 dark:hover:bg-slate-900/40 transition-colors">
+                              <td className="px-3 py-1.5 text-center whitespace-nowrap">
+                                <div className="flex items-center justify-center gap-1">
+                                  <button 
+                                    onClick={() => handleToggleCheckCall(call._id)}
+                                    className={`w-4 h-4 rounded-full flex items-center justify-center shadow-2xs cursor-pointer transition-colors ${
+                                      isChecked
+                                        ? "bg-emerald-500 text-white border-emerald-500" 
+                                        : "border border-slate-300 dark:border-slate-600 hover:border-slate-400"
+                                    }`}
+                                  >
+                                    {isChecked && <FiCheckCircle size={10} strokeWidth={3} />}
+                                  </button>
+                                  {isChecked && (
+                                    <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">Checked</span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-3 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                                <div className="flex items-center gap-1.5">
+                                  {renderUserAvatarSmall(call.createdBy, "w-5 h-5 text-[8px]")}
+                                  <span>{userName}</span>
+                                </div>
+                              </td>
+                              <td className="px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                                {clientObj ? (
+                                  <ClientBadge client={clientObj} size="sm" />
+                                ) : (
+                                  <span>{clientName}</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-1.5 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                                <span className="font-medium">{callDate}</span> <br/>
+                                <span className="text-[10px] text-slate-500">{call.startTime} - {call.endTime}</span>
+                              </td>
+                              <td className="px-3 py-1.5 text-xs font-medium text-indigo-600 dark:text-indigo-400 whitespace-nowrap">
+                                {call.duration}
+                              </td>
+                              <td className="px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 min-w-[200px]">
+                                {call.discussionPoints ? (
+                                  <span className="font-medium">{call.discussionPoints}</span>
+                                ) : (
+                                  <span className="text-slate-400 italic">—</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
