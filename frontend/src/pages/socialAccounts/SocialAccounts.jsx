@@ -31,7 +31,7 @@ import {
 import {
   FaInstagram,
   FaFacebookF,
-  FaTiktok,
+  FaGoogle,
 } from "react-icons/fa";
 import {
   getSocialAccounts,
@@ -233,7 +233,7 @@ const TableCredentialCell = ({ username, password, email, phone, link, icon: Ico
           </div>
           <button
             onClick={() => handleCopy(username, "Username")}
-            className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-0.5 rounded"
+            className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-0.5 rounded transition-colors"
             title="Copy Username"
           >
             {copiedField === "Username" ? <FiCheck className="w-3 h-3 text-emerald-500" /> : <FiCopy className="w-3 h-3" />}
@@ -253,14 +253,14 @@ const TableCredentialCell = ({ username, password, email, phone, link, icon: Ico
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => setShowPass(!showPass)}
-              className="p-0.5 text-slate-400 hover:text-slate-700 dark:hover:text-white"
+              className="p-0.5 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
               title={showPass ? "Hide" : "Show"}
             >
               {showPass ? <FiEyeOff className="w-3 h-3" /> : <FiEye className="w-3 h-3" />}
             </button>
             <button
               onClick={() => handleCopy(password, "Password")}
-              className="p-0.5 text-slate-400 hover:text-slate-700 dark:hover:text-white"
+              className="p-0.5 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
               title="Copy Password"
             >
               {copiedField === "Password" ? <FiCheck className="w-3 h-3 text-emerald-500" /> : <FiCopy className="w-3 h-3" />}
@@ -319,7 +319,7 @@ const initialFormData = {
     pageUrl: "",
     notes: "",
   },
-  tiktok: {
+  googleMyBusiness: {
     username: "",
     password: "",
     email: "",
@@ -363,7 +363,7 @@ const SocialAccounts = () => {
     dispatch(getUsers());
   }, [dispatch]);
 
-  // Helper to get assigned Social Media / Account Manager(s) for a client/account (Filtered by Social Media Manager department or explicitly assigned)
+  // Helper to get assigned Social Media / Account Manager(s) for a client/account
   const getAssignedManagers = (acc) => {
     let assigned = [];
     if (acc.accountManager) {
@@ -397,7 +397,6 @@ const SocialAccounts = () => {
           if (found) userObj = found;
           else userObj = { _id: userId, name: "Assigned Member" };
         } else if (found) {
-          // Merge to ensure department & full profile are available
           userObj = { ...item, ...found, department: item.department || found.department };
         }
         return userObj;
@@ -449,6 +448,8 @@ const SocialAccounts = () => {
       const managers = getAssignedManagers(acc);
       const matchManager = managers.some((m) => m.name?.toLowerCase().includes(term));
 
+      const gmbData = acc.googleMyBusiness || acc.tiktok;
+
       const matchSearch =
         !term ||
         matchManager ||
@@ -461,9 +462,9 @@ const SocialAccounts = () => {
         acc.facebook?.username?.toLowerCase().includes(term) ||
         acc.facebook?.email?.toLowerCase().includes(term) ||
         acc.facebook?.phoneNumber?.toLowerCase().includes(term) ||
-        acc.tiktok?.username?.toLowerCase().includes(term) ||
-        acc.tiktok?.email?.toLowerCase().includes(term) ||
-        acc.tiktok?.phoneNumber?.toLowerCase().includes(term) ||
+        gmbData?.username?.toLowerCase().includes(term) ||
+        gmbData?.email?.toLowerCase().includes(term) ||
+        gmbData?.phoneNumber?.toLowerCase().includes(term) ||
         acc.otherPlatforms?.some(
           (p) =>
             p.username?.toLowerCase().includes(term) ||
@@ -475,8 +476,8 @@ const SocialAccounts = () => {
         matchPlatform = hasPlatformData(acc.instagram);
       } else if (platformFilter === "facebook") {
         matchPlatform = hasPlatformData(acc.facebook);
-      } else if (platformFilter === "tiktok") {
-        matchPlatform = hasPlatformData(acc.tiktok);
+      } else if (platformFilter === "gmb" || platformFilter === "google") {
+        matchPlatform = hasPlatformData(acc.googleMyBusiness) || hasPlatformData(acc.tiktok);
       } else if (platformFilter === "other") {
         matchPlatform = acc.otherPlatforms?.some((p) => hasPlatformData(p));
       }
@@ -500,10 +501,10 @@ const SocialAccounts = () => {
       socialAccounts?.filter((a) => hasPlatformData(a.instagram)).length || 0;
     const fbCount =
       socialAccounts?.filter((a) => hasPlatformData(a.facebook)).length || 0;
-    const ttCount =
-      socialAccounts?.filter((a) => hasPlatformData(a.tiktok)).length || 0;
+    const gmbCount =
+      socialAccounts?.filter((a) => hasPlatformData(a.googleMyBusiness) || hasPlatformData(a.tiktok)).length || 0;
 
-    return { total, active, igCount, fbCount, ttCount };
+    return { total, active, igCount, fbCount, gmbCount };
   }, [socialAccounts]);
 
   // Handlers for Add/Edit
@@ -521,31 +522,39 @@ const SocialAccounts = () => {
       managerId = acc.client.assignedTo[0]?._id || acc.client.assignedTo[0] || "";
     }
 
+    const gmb = acc.googleMyBusiness || acc.tiktok || {};
+
     setFormData({
       client: acc.client?._id || acc.client || "",
       clientName: acc.clientName || "",
       spoc: acc.spoc || acc.client?.spoc || "",
       designation: acc.designation || acc.client?.designation || "",
       accountManager: managerId,
-      registeredEmail: acc.registeredEmail || acc.instagram?.email || acc.facebook?.email || acc.tiktok?.email || "",
-      registeredPhone: acc.registeredPhone || acc.instagram?.phoneNumber || acc.facebook?.phoneNumber || acc.tiktok?.phoneNumber || acc.client?.phoneNumber || "",
+      registeredEmail: acc.registeredEmail || acc.instagram?.email || acc.facebook?.email || gmb?.email || "",
+      registeredPhone: acc.registeredPhone || acc.instagram?.phoneNumber || acc.facebook?.phoneNumber || gmb?.phoneNumber || acc.client?.phoneNumber || "",
       instagram: {
         username: acc.instagram?.username || "",
         password: acc.instagram?.password || "",
         email: acc.instagram?.email || "",
         phoneNumber: acc.instagram?.phoneNumber || "",
+        profileUrl: acc.instagram?.profileUrl || "",
+        notes: acc.instagram?.notes || "",
       },
       facebook: {
         username: acc.facebook?.username || "",
         password: acc.facebook?.password || "",
         email: acc.facebook?.email || "",
         phoneNumber: acc.facebook?.phoneNumber || "",
+        pageUrl: acc.facebook?.pageUrl || "",
+        notes: acc.facebook?.notes || "",
       },
-      tiktok: {
-        username: acc.tiktok?.username || "",
-        password: acc.tiktok?.password || "",
-        email: acc.tiktok?.email || "",
-        phoneNumber: acc.tiktok?.phoneNumber || "",
+      googleMyBusiness: {
+        username: gmb.username || "",
+        password: gmb.password || "",
+        email: gmb.email || "",
+        phoneNumber: gmb.phoneNumber || "",
+        profileUrl: gmb.profileUrl || "",
+        notes: gmb.notes || "",
       },
       otherPlatforms: (acc.otherPlatforms || []).map((op) => ({
         platformName: op.platformName || "YouTube",
@@ -567,7 +576,6 @@ const SocialAccounts = () => {
   const handleClientSelect = (clientId) => {
     const found = clients.find((c) => c._id === clientId);
     if (found) {
-      // Find assigned Account Manager (from client's assignedTo in Clients.jsx)
       let managerId = "";
       if (found.assignedTo && found.assignedTo.length > 0) {
         const smm = found.assignedTo.find((u) => {
@@ -681,8 +689,8 @@ const SocialAccounts = () => {
       "Instagram Pass",
       "Facebook User",
       "Facebook Pass",
-      "TikTok User",
-      "TikTok Pass",
+      "Google My Business User",
+      "Google My Business Pass",
       "2FA Notes",
       "General Notes",
     ];
@@ -690,19 +698,20 @@ const SocialAccounts = () => {
     const rows = filteredAccounts.map((acc) => {
       const managers = getAssignedManagers(acc);
       const managerNames = managers.map((m) => m.name).filter(Boolean).join("; ") || "Unassigned";
+      const gmb = acc.googleMyBusiness || acc.tiktok || {};
 
       return [
         `"${managerNames}"`,
         `"${acc.clientName || ""}"`,
         `"${acc.status || ""}"`,
-        `"${acc.registeredEmail || acc.instagram?.email || acc.facebook?.email || acc.tiktok?.email || ""}"`,
-        `"${acc.registeredPhone || acc.instagram?.phoneNumber || acc.facebook?.phoneNumber || acc.tiktok?.phoneNumber || acc.client?.phoneNumber || ""}"`,
+        `"${acc.registeredEmail || acc.instagram?.email || acc.facebook?.email || gmb?.email || ""}"`,
+        `"${acc.registeredPhone || acc.instagram?.phoneNumber || acc.facebook?.phoneNumber || gmb?.phoneNumber || acc.client?.phoneNumber || ""}"`,
         `"${acc.instagram?.username || ""}"`,
         `"${acc.instagram?.password || ""}"`,
         `"${acc.facebook?.username || ""}"`,
         `"${acc.facebook?.password || ""}"`,
-        `"${acc.tiktok?.username || ""}"`,
-        `"${acc.tiktok?.password || ""}"`,
+        `"${gmb.username || ""}"`,
+        `"${gmb.password || ""}"`,
         `"${(acc.twoFactorNotes || "").replace(/"/g, '""')}"`,
         `"${(acc.generalNotes || "").replace(/"/g, '""')}"`,
       ];
@@ -742,7 +751,7 @@ const SocialAccounts = () => {
               Social Media Accounts
             </h1>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Manage client logins, Instagram, Facebook, TikTok credentials & backup codes
+              Manage client logins, Instagram, Facebook, Google My Business credentials & backup codes
             </p>
           </div>
         </div>
@@ -751,7 +760,7 @@ const SocialAccounts = () => {
           <button
             onClick={() => dispatch(getSocialAccounts())}
             disabled={isLoading}
-            className="p-2 rounded-xl bg-white dark:bg-[#0c1322] border border-slate-200/80 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 shadow-xs transition-all"
+            className="p-2 rounded-xl bg-white dark:bg-[#0c1322] border border-slate-200/80 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 shadow-xs transition-all cursor-pointer"
             title="Refresh"
           >
             <FiRefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
@@ -759,7 +768,7 @@ const SocialAccounts = () => {
 
           <button
             onClick={handleExportCSV}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-[#0c1322] border border-slate-200/80 dark:border-white/[0.08] text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white text-[11px] font-bold shadow-xs transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white dark:bg-[#0c1322] border border-slate-200/80 dark:border-white/[0.08] text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white text-[11px] font-bold shadow-xs transition-all cursor-pointer"
           >
             <FiDownload className="w-3.5 h-3.5 text-slate-400" />
             <span>Export CSV</span>
@@ -767,7 +776,7 @@ const SocialAccounts = () => {
 
           <button
             onClick={handleOpenAdd}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl theme-bg-accent text-white dark:text-black text-[11px] font-bold shadow-md transition-all transform active:scale-95"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl theme-bg-accent text-white dark:text-black text-[11px] font-bold shadow-md transition-all transform active:scale-95 cursor-pointer"
           >
             <FiPlus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>Add Account</span>
@@ -833,21 +842,21 @@ const SocialAccounts = () => {
           </div>
         </div>
 
-        {/* TikTok */}
-        <div className="p-3 rounded-xl bg-gradient-to-br from-slate-100/90 via-cyan-50/30 to-white dark:from-slate-900/80 dark:via-cyan-950/20 dark:to-[#0c1322] border border-slate-200/80 dark:border-cyan-500/20 shadow-xs hover:shadow-md transition-all duration-200">
+        {/* Google My Business */}
+        <div className="p-3 rounded-xl bg-gradient-to-br from-amber-50/90 via-orange-50/30 to-white dark:from-amber-950/40 dark:via-orange-950/20 dark:to-[#0c1322] border border-amber-200/80 dark:border-amber-500/20 shadow-xs hover:shadow-md transition-all duration-200">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-700 dark:text-cyan-300/80">
-              TikTok
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300/90 truncate mr-1" title="Google My Business">
+              Google Business
             </span>
-            <div className="w-6 h-6 rounded-lg bg-slate-900 dark:bg-slate-800 flex items-center justify-center text-cyan-400 shadow-2xs border border-slate-700">
-              <FaTiktok className="w-3 h-3" />
+            <div className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-blue-600 shadow-2xs border border-slate-200 dark:border-white/10">
+              <FaGoogle className="w-3.5 h-3.5 text-[#4285F4]" />
             </div>
           </div>
           <div className="mt-1.5 flex items-baseline gap-1.5">
             <span className="text-xl font-black text-slate-900 dark:text-white">
-              {stats.ttCount}
+              {stats.gmbCount}
             </span>
-            <span className="text-[10px] font-medium text-slate-500 dark:text-cyan-400/80">linked</span>
+            <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400/90">linked</span>
           </div>
         </div>
 
@@ -873,20 +882,21 @@ const SocialAccounts = () => {
       {/* ======================================================== */}
       {/* SEARCH, FILTER & VIEW CONTROLS                          */}
       {/* ======================================================== */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 ">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5">
         {/* Search Input */}
         <div className="relative w-full sm:w-80">
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search Account ..."
-            className="w-full px-3 py-1.5 rounded-lg text-xs bg-slate-50 dark:bg-[#141e33] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all"
+            placeholder="Search Account / Credentials ..."
+            className="w-full pl-8 pr-8 py-1.5 rounded-lg text-xs bg-slate-50 dark:bg-[#141e33] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all"
           />
+          <FiSearch className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
             >
               <FiX className="w-3 h-3" />
             </button>
@@ -919,7 +929,7 @@ const SocialAccounts = () => {
             <option value="All">All Platforms</option>
             <option value="instagram">Instagram</option>
             <option value="facebook">Facebook</option>
-            <option value="tiktok">TikTok</option>
+            <option value="gmb">Google My Business</option>
             <option value="other">Other Platforms</option>
           </select>
 
@@ -938,7 +948,7 @@ const SocialAccounts = () => {
           <div className="flex items-center bg-slate-100 dark:bg-[#141e33] p-0.5 rounded-lg border border-slate-200/60 dark:border-white/10">
             <button
               onClick={() => setViewMode("cards")}
-              className={`p-1.5 rounded-md transition-all ${
+              className={`p-1.5 rounded-md transition-all cursor-pointer ${
                 viewMode === "cards"
                   ? "bg-white dark:bg-[#1e2d4d] text-indigo-600 dark:text-indigo-300 shadow-xs"
                   : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
@@ -949,7 +959,7 @@ const SocialAccounts = () => {
             </button>
             <button
               onClick={() => setViewMode("table")}
-              className={`p-1.5 rounded-md transition-all ${
+              className={`p-1.5 rounded-md transition-all cursor-pointer ${
                 viewMode === "table"
                   ? "bg-white dark:bg-[#1e2d4d] text-indigo-600 dark:text-indigo-300 shadow-xs"
                   : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
@@ -987,7 +997,7 @@ const SocialAccounts = () => {
           </p>
           <button
             onClick={handleOpenAdd}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl theme-bg-accent text-white dark:text-black text-xs font-bold shadow-md transition-all"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl theme-bg-accent text-white dark:text-black text-xs font-bold shadow-md transition-all cursor-pointer"
           >
             <FiPlus className="w-3.5 h-3.5" />
             <span>Add Account</span>
@@ -999,9 +1009,10 @@ const SocialAccounts = () => {
           {filteredAccounts.map((acc, idx) => {
             const hasIg = hasPlatformData(acc.instagram);
             const hasFb = hasPlatformData(acc.facebook);
-            const hasTt = hasPlatformData(acc.tiktok);
+            const gmbData = acc.googleMyBusiness || acc.tiktok;
+            const hasGmb = hasPlatformData(gmbData);
             const validOtherPlatforms = (acc.otherPlatforms || []).filter(hasPlatformData);
-            const hasAnyPlatform = hasIg || hasFb || hasTt || validOtherPlatforms.length > 0;
+            const hasAnyPlatform = hasIg || hasFb || hasGmb || validOtherPlatforms.length > 0;
 
             return (
               <motion.div
@@ -1056,7 +1067,7 @@ const SocialAccounts = () => {
                   <div className="flex items-center gap-0.5 shrink-0">
                     <button
                       onClick={() => handleOpenEdit(acc)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-white/10 dark:hover:text-indigo-300 transition-colors"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-white/10 dark:hover:text-indigo-300 transition-colors cursor-pointer"
                       title="Edit Credentials"
                     >
                       <FiEdit3 className="w-3.5 h-3.5" />
@@ -1066,7 +1077,7 @@ const SocialAccounts = () => {
                         setAccountToDelete(acc);
                         setDeleteModalOpen(true);
                       }}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 transition-colors"
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 transition-colors cursor-pointer"
                       title="Delete Account"
                     >
                       <FiTrash2 className="w-3.5 h-3.5" />
@@ -1081,12 +1092,12 @@ const SocialAccounts = () => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-2 rounded-xl bg-slate-50/80 dark:bg-[#141e33] border border-slate-200/80 dark:border-white/10">
                       <CredentialPill
                         label="Registered Gmail / Email"
-                        value={acc.registeredEmail || acc.instagram?.email || acc.facebook?.email || acc.tiktok?.email}
+                        value={acc.registeredEmail || acc.instagram?.email || acc.facebook?.email || gmbData?.email}
                         icon={FiMail}
                       />
                       <CredentialPill
                         label="Registered Phone"
-                        value={acc.registeredPhone || acc.instagram?.phoneNumber || acc.facebook?.phoneNumber || acc.tiktok?.phoneNumber || acc.client?.phoneNumber}
+                        value={acc.registeredPhone || acc.instagram?.phoneNumber || acc.facebook?.phoneNumber || gmbData?.phoneNumber || acc.client?.phoneNumber}
                         icon={FiPhone}
                       />
                     </div>
@@ -1185,40 +1196,44 @@ const SocialAccounts = () => {
                     </div>
                   )}
 
-                  {/* TIKTOK SECTION (Only if has data) */}
-                  {hasTt && (
-                    <div className="p-2.5 rounded-xl bg-cyan-500/5 dark:bg-cyan-950/20 border border-cyan-500/20 dark:border-cyan-500/20">
+                  {/* GOOGLE MY BUSINESS SECTION (Only if has data) */}
+                  {hasGmb && (
+                    <div className="p-2.5 rounded-xl bg-amber-500/5 dark:bg-amber-950/20 border border-amber-500/20 dark:border-amber-500/20">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-1.5">
-                          <div className="w-5 h-5 rounded-md bg-slate-900 dark:bg-slate-800 flex items-center justify-center text-cyan-400 text-[10px] shadow-2xs border border-slate-700">
-                            <FaTiktok />
+                          <div className="w-5 h-5 rounded-md bg-white dark:bg-slate-800 flex items-center justify-center text-[10px] shadow-2xs border border-slate-200 dark:border-white/10">
+                            <FaGoogle className="text-[#4285F4]" />
                           </div>
                           <span className="text-[11px] font-bold text-slate-900 dark:text-white">
-                            TikTok
+                            Google My Business
                           </span>
                         </div>
-                        {acc.tiktok?.username && (
+                        {gmbData?.profileUrl ? (
                           <a
-                            href={`https://tiktok.com/@${acc.tiktok.username.replace("@", "")}`}
+                            href={gmbData.profileUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 flex items-center gap-0.5 hover:underline"
+                            className="text-[10px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-0.5 hover:underline"
                           >
-                            <span>@{acc.tiktok.username}</span>
+                            <span>Maps Profile</span>
                             <FiExternalLink className="w-2.5 h-2.5" />
                           </a>
-                        )}
+                        ) : gmbData?.username ? (
+                          <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 truncate max-w-[140px]">
+                            {gmbData.username}
+                          </span>
+                        ) : null}
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                         <CredentialPill
-                          label="Username"
-                          value={acc.tiktok?.username}
-                          icon={FiUser}
+                          label="GMB Login / Email"
+                          value={gmbData?.username || gmbData?.email}
+                          icon={FiMail}
                         />
                         <CredentialPill
                           label="Password"
-                          value={acc.tiktok?.password}
+                          value={gmbData?.password}
                           isPassword={true}
                           icon={FiLock}
                         />
@@ -1308,28 +1323,55 @@ const SocialAccounts = () => {
           })}
         </div>
       ) : (
-        /* TABLE VIEW WITH PROPER DARK THEME HEADERS & REVEAL */
-        <div className="bg-white dark:bg-[#0c1322] rounded-2xl border border-slate-200/70 dark:border-white/[0.08] overflow-hidden shadow-xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+        /* TABLE VIEW WITH PROPER SMOOTH SCROLL, CRISP HEADERS & REVEAL */
+        <div className="bg-white dark:bg-[#0c1322] rounded-2xl border border-slate-200/70 dark:border-white/[0.08] shadow-xs overflow-hidden">
+          <div className="overflow-x-auto w-full scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
+            <table className="w-full min-w-[1100px] text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-100 dark:!bg-[#111c33] border-b border-slate-200/80 dark:border-white/10 text-slate-700 dark:!text-slate-200 font-extrabold uppercase tracking-wider text-[10px]">
-                  <th className="py-3 px-4 text-slate-700 dark:!text-slate-200 font-extrabold whitespace-nowrap">Social Media Manager</th>
-                  <th className="py-3 px-4 text-slate-700 dark:!text-slate-200 font-extrabold whitespace-nowrap">Client & Contact</th>
-                  <th className="py-3 px-4 text-slate-700 dark:!text-slate-200 font-extrabold">Instagram</th>
-                  <th className="py-3 px-4 text-slate-700 dark:!text-slate-200 font-extrabold">Facebook</th>
+                <tr className="bg-slate-100/90 dark:!bg-[#111c33] border-b border-slate-200/80 dark:border-white/10 text-slate-700 dark:!text-slate-200 font-extrabold uppercase tracking-wider text-[10px]">
+                  <th className="py-3.5 px-4 text-slate-700 dark:!text-slate-200 font-extrabold whitespace-nowrap min-w-[170px]">
+                    Social Media Manager
+                  </th>
+                  <th className="py-3.5 px-4 text-slate-700 dark:!text-slate-200 font-extrabold whitespace-nowrap min-w-[200px]">
+                    Client & Contact
+                  </th>
+                  <th className="py-3.5 px-4 text-slate-700 dark:!text-slate-200 font-extrabold whitespace-nowrap min-w-[190px]">
+                    <div className="flex items-center gap-1.5">
+                      <FaInstagram className="w-3 h-3 text-pink-500" />
+                      <span>Instagram</span>
+                    </div>
+                  </th>
+                  <th className="py-3.5 px-4 text-slate-700 dark:!text-slate-200 font-extrabold whitespace-nowrap min-w-[190px]">
+                    <div className="flex items-center gap-1.5">
+                      <FaFacebookF className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                      <span>Facebook</span>
+                    </div>
+                  </th>
+                  <th className="py-3.5 px-4 text-slate-700 dark:!text-slate-200 font-extrabold whitespace-nowrap min-w-[200px]">
+                    <div className="flex items-center gap-1.5">
+                      <FaGoogle className="w-3 h-3 text-[#4285F4]" />
+                      <span>Google My Business</span>
+                    </div>
+                  </th>
                   {hasAnyOtherPlatforms && (
-                    <th className="py-3 px-4 text-slate-700 dark:!text-slate-200 font-extrabold">Other Platforms</th>
+                    <th className="py-3.5 px-4 text-slate-700 dark:!text-slate-200 font-extrabold whitespace-nowrap min-w-[160px]">
+                      Other Platforms
+                    </th>
                   )}
-                  <th className="py-3 px-4 text-slate-700 dark:!text-slate-200 font-extrabold">Status</th>
-                  <th className="py-3 px-4 text-slate-700 dark:!text-slate-200 font-extrabold text-right">Actions</th>
+                  <th className="py-3.5 px-4 text-slate-700 dark:!text-slate-200 font-extrabold whitespace-nowrap w-24">
+                    Status
+                  </th>
+                  <th className="py-3.5 px-4 text-slate-700 dark:!text-slate-200 font-extrabold whitespace-nowrap text-right w-24 sticky right-0 bg-slate-100/90 dark:!bg-[#111c33]">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/[0.04]">
                 {filteredAccounts.map((acc, idx) => {
                   const validOther = (acc.otherPlatforms || []).filter(hasPlatformData);
-                  const displayEmail = acc.registeredEmail || acc.instagram?.email || acc.facebook?.email || acc.tiktok?.email;
-                  const displayPhone = acc.registeredPhone || acc.instagram?.phoneNumber || acc.facebook?.phoneNumber || acc.tiktok?.phoneNumber || acc.client?.phoneNumber;
+                  const gmbData = acc.googleMyBusiness || acc.tiktok || {};
+                  const displayEmail = acc.registeredEmail || acc.instagram?.email || acc.facebook?.email || gmbData?.email;
+                  const displayPhone = acc.registeredPhone || acc.instagram?.phoneNumber || acc.facebook?.phoneNumber || gmbData?.phoneNumber || acc.client?.phoneNumber;
                   const managers = getAssignedManagers(acc);
                   const clientObj = acc.client?._id
                     ? acc.client
@@ -1341,10 +1383,10 @@ const SocialAccounts = () => {
                   return (
                     <tr
                       key={acc._id || `acc-row-${idx}`}
-                      className="hover:bg-slate-50/70 dark:hover:bg-[#131e36]/60 transition-colors"
+                      className="hover:bg-slate-50/70 dark:hover:bg-[#131e36]/60 transition-colors group"
                     >
-                      {/* Social Media Manager (First Field with Profile Image) */}
-                      <td className="py-3.5 px-4 align-top whitespace-nowrap">
+                      {/* Social Media Manager (Avatar + Name) */}
+                      <td className="py-3 px-4 align-top whitespace-nowrap">
                         {managers && managers.length > 0 ? (
                           <div className="space-y-1.5">
                             {managers.map((m, mIdx) => (
@@ -1372,7 +1414,7 @@ const SocialAccounts = () => {
                       </td>
 
                       {/* Client Name & Contact */}
-                      <td className="py-3.5 px-4 align-top">
+                      <td className="py-3 px-4 align-top">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <ClientBadge client={clientObj} size="sm" />
                           {acc.client?.industry && (
@@ -1417,10 +1459,12 @@ const SocialAccounts = () => {
                       </td>
 
                       {/* Instagram Cell */}
-                      <td className="py-3.5 px-4 align-top">
+                      <td className="py-3 px-4 align-top">
                         <TableCredentialCell
                           username={acc.instagram?.username}
                           password={acc.instagram?.password}
+                          email={acc.instagram?.email}
+                          phone={acc.instagram?.phoneNumber}
                           link={
                             acc.instagram?.username
                               ? `https://instagram.com/${acc.instagram.username.replace("@", "")}`
@@ -1433,10 +1477,12 @@ const SocialAccounts = () => {
                       </td>
 
                       {/* Facebook Cell */}
-                      <td className="py-3.5 px-4 align-top">
+                      <td className="py-3 px-4 align-top">
                         <TableCredentialCell
                           username={acc.facebook?.username}
                           password={acc.facebook?.password}
+                          email={acc.facebook?.email}
+                          phone={acc.facebook?.phoneNumber}
                           link={
                             acc.facebook?.pageUrl ||
                             (acc.facebook?.username
@@ -1449,9 +1495,23 @@ const SocialAccounts = () => {
                         />
                       </td>
 
+                      {/* Google My Business Cell */}
+                      <td className="py-3 px-4 align-top">
+                        <TableCredentialCell
+                          username={gmbData.username || gmbData.email}
+                          password={gmbData.password}
+                          email={gmbData.email !== gmbData.username ? gmbData.email : null}
+                          phone={gmbData.phoneNumber}
+                          link={gmbData.profileUrl || null}
+                          icon={FaGoogle}
+                          brandColor="text-[#4285F4]"
+                          brandName="Google My Business"
+                        />
+                      </td>
+
                       {/* Other Platforms (if present) */}
                       {hasAnyOtherPlatforms && (
-                        <td className="py-3.5 px-4 align-top">
+                        <td className="py-3 px-4 align-top">
                           {validOther.length > 0 ? (
                             <div className="space-y-1.5">
                               {validOther.map((op, oIdx) => (
@@ -1479,9 +1539,9 @@ const SocialAccounts = () => {
                       )}
 
                       {/* Status */}
-                      <td className="py-3.5 px-4 align-top">
+                      <td className="py-3 px-4 align-top">
                         <span
-                          className={`inline-flex text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                          className={`inline-flex text-[9px] font-bold px-2 py-0.5 rounded-full ${
                             acc.status === "Active"
                               ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/40"
                               : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
@@ -1492,11 +1552,11 @@ const SocialAccounts = () => {
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3.5 px-4 align-top text-right">
+                      <td className="py-3 px-4 align-top text-right sticky right-0 bg-white/95 dark:bg-[#0c1322]/95 group-hover:bg-slate-50/95 dark:group-hover:bg-[#131e36]/95 transition-colors">
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => handleOpenEdit(acc)}
-                            className="p-1.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-white/10 dark:hover:text-white transition-colors"
+                            className="p-1.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-white/10 dark:hover:text-white transition-colors cursor-pointer"
                             title="Edit"
                           >
                             <FiEdit3 className="w-3.5 h-3.5" />
@@ -1506,7 +1566,7 @@ const SocialAccounts = () => {
                               setAccountToDelete(acc);
                               setDeleteModalOpen(true);
                             }}
-                            className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 transition-colors"
+                            className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 transition-colors cursor-pointer"
                             title="Delete"
                           >
                             <FiTrash2 className="w-3.5 h-3.5" />
@@ -1561,7 +1621,7 @@ const SocialAccounts = () => {
                 </div>
                 <button
                   onClick={() => setIsModalOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 cursor-pointer"
                 >
                   <FiX className="w-4 h-4" />
                 </button>
@@ -1601,7 +1661,6 @@ const SocialAccounts = () => {
                         onChange={(e) =>
                           setFormData({ ...formData, clientName: e.target.value })
                         }
-
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       />
                     </div>
@@ -1636,7 +1695,6 @@ const SocialAccounts = () => {
                         onChange={(e) =>
                           setFormData({ ...formData, spoc: e.target.value })
                         }
-
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       />
                     </div>
@@ -1652,7 +1710,6 @@ const SocialAccounts = () => {
                         onChange={(e) =>
                           setFormData({ ...formData, designation: e.target.value })
                         }
-
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20"
                       />
                     </div>
@@ -1674,6 +1731,7 @@ const SocialAccounts = () => {
                             registeredEmail: e.target.value,
                           })
                         }
+                        placeholder="client@gmail.com"
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       />
                     </div>
@@ -1692,7 +1750,7 @@ const SocialAccounts = () => {
                             registeredPhone: e.target.value,
                           })
                         }
-                      
+                        placeholder="+91 9876543210"
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                       />
                     </div>
@@ -1705,7 +1763,7 @@ const SocialAccounts = () => {
                     <button
                       type="button"
                       onClick={() => setActiveTab("instagram")}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-bold transition-all border-b-2 ${
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-bold transition-all border-b-2 cursor-pointer ${
                         activeTab === "instagram"
                           ? "border-pink-500 text-pink-600 dark:text-pink-400 bg-pink-50/50 dark:bg-pink-950/30"
                           : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
@@ -1718,7 +1776,7 @@ const SocialAccounts = () => {
                     <button
                       type="button"
                       onClick={() => setActiveTab("facebook")}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-bold transition-all border-b-2 ${
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-bold transition-all border-b-2 cursor-pointer ${
                         activeTab === "facebook"
                           ? "border-blue-600 text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30"
                           : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
@@ -1730,21 +1788,21 @@ const SocialAccounts = () => {
 
                     <button
                       type="button"
-                      onClick={() => setActiveTab("tiktok")}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-bold transition-all border-b-2 ${
-                        activeTab === "tiktok"
-                          ? "border-cyan-500 text-slate-900 dark:text-cyan-400 bg-slate-100/60 dark:bg-cyan-950/30"
+                      onClick={() => setActiveTab("googleMyBusiness")}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-bold transition-all border-b-2 cursor-pointer ${
+                        activeTab === "googleMyBusiness"
+                          ? "border-[#4285F4] text-[#4285F4] dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/30"
                           : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
                       }`}
                     >
-                      <FaTiktok className="w-3 h-3" />
-                      <span>TikTok</span>
+                      <FaGoogle className="w-3 h-3 text-[#4285F4]" />
+                      <span>Google My Business</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setActiveTab("other")}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-bold transition-all border-b-2 ${
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-bold transition-all border-b-2 cursor-pointer ${
                         activeTab === "other"
                           ? "border-purple-600 text-purple-600 dark:text-purple-400 bg-purple-50/50 dark:bg-purple-950/30"
                           : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
@@ -1757,7 +1815,7 @@ const SocialAccounts = () => {
                     <button
                       type="button"
                       onClick={() => setActiveTab("security")}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-bold transition-all border-b-2 ${
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-bold transition-all border-b-2 cursor-pointer ${
                         activeTab === "security"
                           ? "border-amber-500 text-amber-600 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-950/30"
                           : "border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
@@ -1815,6 +1873,50 @@ const SocialAccounts = () => {
                         />
                       </div>
                     </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                          Instagram Specific Email (Optional)
+                        </label>
+                        <input
+                          type="email"
+                          value={formData.instagram.email}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              instagram: {
+                                ...formData.instagram,
+                                email: e.target.value,
+                              },
+                            })
+                          }
+                          placeholder="instagram@company.com"
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500/20"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                          Instagram Phone (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.instagram.phoneNumber}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              instagram: {
+                                ...formData.instagram,
+                                phoneNumber: e.target.value,
+                              },
+                            })
+                          }
+                          placeholder="+91..."
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-pink-500/20"
+                        />
+                      </div>
+                    </div>
                   </motion.div>
                 )}
 
@@ -1864,52 +1966,140 @@ const SocialAccounts = () => {
                         />
                       </div>
                     </div>
-                  </motion.div>
-                )}
 
-                {/* TAB: TIKTOK */}
-                {activeTab === "tiktok" && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3 pt-1">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
-                          TikTok Username
+                          Facebook Page / Profile URL (Optional)
                         </label>
                         <input
                           type="text"
-                          value={formData.tiktok.username}
+                          value={formData.facebook.pageUrl}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              tiktok: {
-                                ...formData.tiktok,
-                                username: e.target.value,
+                              facebook: {
+                                ...formData.facebook,
+                                pageUrl: e.target.value,
                               },
                             })
                           }
-                          placeholder="e.g. acme_tiktok"
-                          className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                          placeholder="https://facebook.com/acme"
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                         />
                       </div>
 
                       <div>
                         <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
-                          TikTok Password
+                          Facebook Email (Optional)
                         </label>
                         <input
-                          type="text"
-                          value={formData.tiktok.password}
+                          type="email"
+                          value={formData.facebook.email}
                           onChange={(e) =>
                             setFormData({
                               ...formData,
-                              tiktok: {
-                                ...formData.tiktok,
+                              facebook: {
+                                ...formData.facebook,
+                                email: e.target.value,
+                              },
+                            })
+                          }
+                          placeholder="facebook@company.com"
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* TAB: GOOGLE MY BUSINESS */}
+                {activeTab === "googleMyBusiness" && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                          Google My Business Username / Email
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.googleMyBusiness.username}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              googleMyBusiness: {
+                                ...formData.googleMyBusiness,
+                                username: e.target.value,
+                              },
+                            })
+                          }
+                          placeholder="e.g. mybusiness@gmail.com / Business Name"
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                          Google My Business Password
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.googleMyBusiness.password}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              googleMyBusiness: {
+                                ...formData.googleMyBusiness,
                                 password: e.target.value,
                               },
                             })
                           }
                           placeholder="Password"
-                          className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-mono"
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                          Google Maps / Profile URL (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.googleMyBusiness.profileUrl}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              googleMyBusiness: {
+                                ...formData.googleMyBusiness,
+                                profileUrl: e.target.value,
+                              },
+                            })
+                          }
+                          placeholder="https://maps.google.com/..."
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
+                          Location / Recovery Phone (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.googleMyBusiness.phoneNumber}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              googleMyBusiness: {
+                                ...formData.googleMyBusiness,
+                                phoneNumber: e.target.value,
+                              },
+                            })
+                          }
+                          placeholder="+91..."
+                          className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-slate-50 dark:bg-[#141e33] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                         />
                       </div>
                     </div>
@@ -1921,12 +2111,12 @@ const SocialAccounts = () => {
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3 pt-1">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                        Add YouTube, LinkedIn, Twitter/X, Pinterest, etc.
+                        Add YouTube, LinkedIn, Twitter/X, TikTok, Pinterest, etc.
                       </span>
                       <button
                         type="button"
                         onClick={handleAddOtherPlatform}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 hover:bg-purple-100 transition-colors"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 hover:bg-purple-100 transition-colors cursor-pointer"
                       >
                         <FiPlus className="w-3 h-3" />
                         <span>Add Platform</span>
@@ -1961,6 +2151,7 @@ const SocialAccounts = () => {
                                 <option value="YouTube">YouTube</option>
                                 <option value="LinkedIn">LinkedIn</option>
                                 <option value="Twitter / X">Twitter / X</option>
+                                <option value="TikTok">TikTok</option>
                                 <option value="Pinterest">Pinterest</option>
                                 <option value="Threads">Threads</option>
                                 <option value="Snapchat">Snapchat</option>
@@ -1970,7 +2161,7 @@ const SocialAccounts = () => {
                               <button
                                 type="button"
                                 onClick={() => handleRemoveOtherPlatform(idx)}
-                                className="text-rose-500 hover:text-rose-600 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/50"
+                                className="text-rose-500 hover:text-rose-600 p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-950/50 cursor-pointer"
                                 title="Remove"
                               >
                                 <FiTrash2 className="w-3.5 h-3.5" />
@@ -2084,14 +2275,14 @@ const SocialAccounts = () => {
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                    className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl theme-bg-accent text-white dark:text-black text-xs font-bold shadow-sm disabled:opacity-50 transition-all"
+                    className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl theme-bg-accent text-white dark:text-black text-xs font-bold shadow-sm disabled:opacity-50 transition-all cursor-pointer"
                   >
                     {isSubmitting ? (
                       <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -2143,7 +2334,7 @@ const SocialAccounts = () => {
                 <button
                   type="button"
                   onClick={() => setDeleteModalOpen(false)}
-                  className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                  className="px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -2151,7 +2342,7 @@ const SocialAccounts = () => {
                   type="button"
                   onClick={handleDeleteConfirm}
                   disabled={isSubmitting}
-                  className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm transition-all"
+                  className="px-4 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm transition-all cursor-pointer"
                 >
                   {isSubmitting ? "Deleting..." : "Yes, Delete"}
                 </button>

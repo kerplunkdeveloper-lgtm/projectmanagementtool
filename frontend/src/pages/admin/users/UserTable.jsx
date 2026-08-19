@@ -406,8 +406,8 @@ const UserTable = ({
                           Online
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10.5px] font-black border bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/60 dark:text-slate-400 dark:border-slate-700">
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500" />
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10.5px] font-black border bg-red-500 text-white border-red-500 dark:bg-red-500 dark:text-white dark:border-slate-700">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 dark:bg-red-500 " />
                           Offline
                         </span>
                       )}
@@ -451,7 +451,7 @@ const UserTable = ({
                                       handleRequestRelieve(user)
                                     }
                                     label="Relieve User"
-                                    colorClass="bg-slate-200 text-slate-800 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600"
+                                    colorClass="bg-slate-200 text-slate-800  dark:bg-black dark:text-white "
                                   >
                                     <FiUserMinus size={13} />
                                   </ActionBtn>

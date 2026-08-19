@@ -176,17 +176,28 @@ const useSocket = () => {
         dispatch(addNotification(notification));
         dispatch(apiSlice.util.invalidateTags(["Notification"]));
 
-        if (notification.type === "message_received" || notification.type === "mention_received") {
+        if (
+          notification.type === "message_received" ||
+          notification.type === "mention_received" ||
+          notification.type === "reaction_received"
+        ) {
           const isMention = notification.type === "mention_received";
+          const isReaction = notification.type === "reaction_received";
 
           // If it's a message or mention, increment the sidebar chat unread count
-          if (notification.chatRoomId) {
+          if (notification.chatRoomId && !isReaction) {
             dispatch(incrementUnreadCount(notification.chatRoomId));
           }
 
           // Flash tab title
           const senderName = notification.sender?.name || "Someone";
-          flashTabTitle(isMention ? `🔔 ${senderName} mentioned you!` : `New Message from ${senderName}`);
+          flashTabTitle(
+            isReaction
+              ? `${senderName} reacted to your message`
+              : isMention
+              ? `🔔 ${senderName} mentioned you!`
+              : `New Message from ${senderName}`
+          );
 
           // Premium Chatting-Style Toast Card on the Top Right
           const senderImage = notification.sender?.profile?.profileImage?.url;
@@ -197,7 +208,9 @@ const useSocket = () => {
                 className={`${
                   t.visible ? "animate-enter" : "animate-leave"
                 } max-w-[360px] w-full bg-white dark:bg-[#0f172a] shadow-2xl rounded-2xl pointer-events-auto flex items-start p-4 border ${
-                  isMention
+                  isReaction
+                    ? "border-amber-300/80 dark:border-amber-600/40 bg-gradient-to-r from-amber-50/40 to-transparent dark:from-amber-950/20"
+                    : isMention
                     ? "border-amber-400/60 dark:border-amber-500/40 bg-gradient-to-r from-amber-50/30 to-transparent dark:from-amber-950/20"
                     : "border-slate-100 dark:border-slate-800"
                 } relative cursor-pointer`}
@@ -214,12 +227,18 @@ const useSocket = () => {
                       src={senderImage}
                       alt={senderName}
                       className={`w-10 h-10 rounded-full object-cover border-2 ${
-                        isMention ? "border-amber-500" : "border-indigo-500/10"
+                        isReaction
+                          ? "border-amber-400"
+                          : isMention
+                          ? "border-amber-500"
+                          : "border-indigo-500/10"
                       }`}
                     />
                   ) : (
                     <div className={`w-10 h-10 rounded-full ${
-                      isMention
+                      isReaction
+                        ? "bg-gradient-to-tr from-amber-400 to-orange-500"
+                        : isMention
                         ? "bg-gradient-to-tr from-amber-500 to-orange-600"
                         : "bg-gradient-to-tr from-indigo-500 to-purple-600"
                     } flex items-center justify-center text-white text-xs font-black shadow-inner`}>
@@ -234,7 +253,11 @@ const useSocket = () => {
                     <p className="text-[11px] font-black text-slate-800 dark:text-slate-100 truncate">
                       {senderName}
                     </p>
-                    {isMention ? (
+                    {isReaction ? (
+                      <span className="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/50">
+                        Reaction
+                      </span>
+                    ) : isMention ? (
                       <span className={`text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md ${
                         notification.message.includes("@all")
                           ? "bg-amber-500 text-white shadow-xs"
@@ -249,10 +272,12 @@ const useSocket = () => {
                     )}
                   </div>
                   <p className="mt-1 text-[10px] text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                    {notification.message.replace(
-                      /^New message( in [^:]+)? from [^:]+: /,
-                      "",
-                    )}
+                    {isReaction
+                      ? notification.message
+                      : notification.message.replace(
+                          /^New message( in [^:]+)? from [^:]+: /,
+                          "",
+                        )}
                   </p>
                 </div>
 

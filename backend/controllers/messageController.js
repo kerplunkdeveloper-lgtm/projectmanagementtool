@@ -622,3 +622,139 @@ exports.clearDirectMessages = async (req, res) => {
   }
 };
 
+// @desc    Add or toggle emoji reaction on a message
+// @route   POST /api/messages/:messageId/reaction
+// @access  Private
+exports.toggleReaction = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { emoji } = req.body;
+    const userId = req.user.id;
+    const userName = req.user.name;
+
+    if (!emoji) {
+      return res.status(400).json({ success: false, message: "Emoji is required" });
+    }
+
+    const message = await Message.findById(messageId);
+    if (!message) {
+      return res.status(404).json({ success: false, message: "Message not found" });
+    }
+
+    if (!message.reactions) {
+      message.reactions = [];
+    }
+
+    // Check if this emoji group already exists
+    let emojiGroup = message.reactions.find((r) => r.emoji === emoji);
+
+    let isAdded = false;
+
+    if (!emojiGroup) {
+      // User adds new reaction with this emoji
+      message.reactions.push({
+        emoji,
+        users: [{ userId, name: userName }],
+      });
+      isAdded = true;
+    } else {
+      // Check if this user already reacted with this emoji
+      const userIndex = emojiGroup.users.findIndex(
+        (u) => u.userId && u.userId.toString() === userId.toString()
+      );
+
+      if (userIndex > -1) {
+        // User already reacted -> remove reaction (toggle off)
+        emojiGroup.users.splice(userIndex, 1);
+        // If no users left for this emoji, remove the emojiGroup
+        if (emojiGroup.users.length === 0) {
+          message.reactions = message.reactions.filter((r) => r.emoji !== emoji);
+        }
+      } else {
+        // User reacts with this emoji
+        emojiGroup.users.push({ userId, name: userName });
+        isAdded = true;
+      }
+    }
+
+    await message.save();
+
+    const io = req.app.get("io");
+    if (io) {
+      const payload = {
+        messageId: message._id.toString(),
+        reactions: message.reactions,
+        chatRoom: message.chatRoom,
+      };
+
+      if (message.chatRoom === "group") {
+        io.to("group_chat").emit("message:reaction", payload);
+      } else if (message.chatRoom !== "direct") {
+        const room = await ChatRoom.findById(message.chatRoom);
+        if (room) {
+          room.members.forEach((mId) => {
+            io.to(mId.toString()).emit("message:reaction", payload);
+          });
+        }
+      } else {
+        io.to(message.sender.toString()).emit("message:reaction", payload);
+        if (message.recipient) {
+          io.to(message.recipient.toString()).emit("message:reaction", payload);
+        }
+      }
+
+      // Send Notification to message owner if someone else reacted
+      if (isAdded && message.sender && message.sender.toString() !== userId.toString()) {
+        try {
+          const messagePreview = message.text
+            ? (message.text.length > 35 ? message.text.substring(0, 35) + "..." : message.text)
+            : (message.messageType === "file" ? message.file?.filename || "Attachment" : message.sticker || "Message");
+
+          let roomName = "";
+          if (message.chatRoom === "group") {
+            roomName = "Kerplunk Group";
+          } else if (message.chatRoom !== "direct") {
+            const roomObj = await ChatRoom.findById(message.chatRoom);
+            roomName = roomObj?.name || "Group";
+          }
+
+          const notificationText = roomName
+            ? `${req.user.name} reacted with ${emoji} in ${roomName}: "${messagePreview}"`
+            : `${req.user.name} reacted with ${emoji} to your message: "${messagePreview}"`;
+
+          const notification = await Notification.create({
+            recipient: message.sender,
+            sender: req.user.id,
+            type: "reaction_received",
+            message: notificationText,
+            messageId: message._id,
+            chatRoomId: message.chatRoom === "direct" ? req.user.id.toString() : message.chatRoom,
+            chatRoomType: message.chatRoom === "direct" ? "direct" : "group",
+          });
+
+          const populatedNotification = await Notification.findById(notification._id).populate({
+            path: "sender",
+            select: "name profile",
+            populate: { path: "profile" },
+          });
+
+          io.to(message.sender.toString()).emit("notification", populatedNotification);
+        } catch (notifErr) {
+          console.error("Failed to create reaction notification:", notifErr);
+        }
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        messageId: message._id.toString(),
+        reactions: message.reactions,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+

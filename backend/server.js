@@ -332,6 +332,13 @@ io.on('connection', (socket) => {
               io.to(memberId.toString()).emit('message:seen:update', seenPayload);
             });
           }
+        } else {
+          // It's a direct message, notify both sender and recipient
+          const msg = await Message.findById(messageIds[0]);
+          if (msg) {
+            io.to(msg.sender.toString()).emit('message:seen:update', seenPayload);
+            io.to(msg.recipient.toString()).emit('message:seen:update', seenPayload);
+          }
         }
       }
     } catch (err) {

@@ -26,6 +26,9 @@ exports.getSocialAccounts = async (req, res) => {
           { "facebook.username": searchRegex },
           { "facebook.email": searchRegex },
           { "facebook.phoneNumber": searchRegex },
+          { "googleMyBusiness.username": searchRegex },
+          { "googleMyBusiness.email": searchRegex },
+          { "googleMyBusiness.phoneNumber": searchRegex },
           { "tiktok.username": searchRegex },
           { "tiktok.email": searchRegex },
           { "tiktok.phoneNumber": searchRegex },
@@ -155,6 +158,7 @@ exports.createSocialAccount = async (req, res) => {
       registeredPhone,
       instagram,
       facebook,
+      googleMyBusiness,
       tiktok,
       otherPlatforms,
       twoFactorNotes,
@@ -203,6 +207,7 @@ exports.createSocialAccount = async (req, res) => {
       registeredPhone: registeredPhone !== undefined ? registeredPhone.trim() : "",
       instagram: instagram || {},
       facebook: facebook || {},
+      googleMyBusiness: googleMyBusiness || {},
       tiktok: tiktok || {},
       otherPlatforms: Array.isArray(otherPlatforms) ? otherPlatforms : [],
       twoFactorNotes: twoFactorNotes || "",
@@ -283,6 +288,7 @@ exports.updateSocialAccount = async (req, res) => {
       registeredPhone,
       instagram,
       facebook,
+      googleMyBusiness,
       tiktok,
       otherPlatforms,
       twoFactorNotes,
@@ -308,6 +314,7 @@ exports.updateSocialAccount = async (req, res) => {
     
     if (instagram !== undefined) socialAccount.instagram = instagram;
     if (facebook !== undefined) socialAccount.facebook = facebook;
+    if (googleMyBusiness !== undefined) socialAccount.googleMyBusiness = googleMyBusiness;
     if (tiktok !== undefined) socialAccount.tiktok = tiktok;
     if (otherPlatforms !== undefined) socialAccount.otherPlatforms = otherPlatforms;
     if (twoFactorNotes !== undefined) socialAccount.twoFactorNotes = twoFactorNotes;
