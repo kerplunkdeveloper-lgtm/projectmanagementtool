@@ -140,6 +140,18 @@ export const clearChatAction = createAsyncThunk(
   }
 );
 
+export const toggleReactionAction = createAsyncThunk(
+  "chat/toggleReactionAction",
+  async ({ messageId, emoji }, thunkAPI) => {
+    try {
+      const response = await axiosInstance.post(`/messages/${messageId}/reaction`, { emoji });
+      return response.data.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.response?.data?.message || "Failed to update reaction");
+    }
+  }
+);
+
 // Helper to safely get a string ID from a field that could be an object or string
 const getIdString = (field) => {
   if (!field) return "";
@@ -262,6 +274,13 @@ const chatSlice = createSlice({
       }
       delete state.lastMessages[otherUserId];
     },
+    updateMessageReaction: (state, action) => {
+      const { messageId, reactions } = action.payload;
+      const msg = state.messages.find((m) => m._id === messageId);
+      if (msg) {
+        msg.reactions = reactions;
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -370,6 +389,13 @@ const chatSlice = createSlice({
       })
       .addCase(deleteMessageAction.fulfilled, (state, action) => {
         state.messages = state.messages.filter((m) => m._id !== action.payload);
+      })
+      .addCase(toggleReactionAction.fulfilled, (state, action) => {
+        const { messageId, reactions } = action.payload;
+        const msg = state.messages.find((m) => m._id === messageId);
+        if (msg) {
+          msg.reactions = reactions;
+        }
       });
   },
 });
@@ -384,5 +410,6 @@ export const {
   clearChatLocal,
   incrementUnreadCount,
   updateMessageSeen,
+  updateMessageReaction,
 } = chatSlice.actions;
 export default chatSlice.reducer;
