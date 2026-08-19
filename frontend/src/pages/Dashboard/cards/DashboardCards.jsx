@@ -140,7 +140,7 @@ const DashboardCards = () => {
         className={`grid gap-4 ${
           cards.length === 1
             ? "grid-cols-1"
-            : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+            : "grid-cols-2 sm:grid-cols-2 lg:grid-cols-4"
         }`}
       >
         {cards.map((card, index) => {
@@ -162,9 +162,9 @@ const DashboardCards = () => {
               }}
               className={`relative overflow-hidden rounded-full border shadow-md hover:shadow-lg transition-all duration-300 theme-bg-card ${card.gradient} ${card.border} h-[48px] flex items-center`}
             >
-              <div className="px-6 flex items-center justify-between relative z-10 w-full">
+              <div className="p-3 md:px-6 flex items-center justify-between relative z-10 w-full">
                 <p
-                  className={`text-xs md:text-xs uppercase tracking-wider font-medium`}
+                  className={`text-[9px] md:text-xs uppercase tracking-wider font-medium`}
                 >
                   {card.title}
                 </p>

@@ -2082,7 +2082,7 @@ const Dashboardmain = () => {
         const isAdminOrOpManager =
           user?.role === "admin" || user?.role === "operationmanager";
         return isAdminOrOpManager ? (
-          <div className="mb-4 p-4">
+          <div className="mb-4 md:p-4">
             <DashboardCards />
           </div>
         ) : (

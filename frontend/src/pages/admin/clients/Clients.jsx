@@ -1141,7 +1141,11 @@ const Clients = () => {
                           exit={{ opacity: 0, scale: 0.95 }}
                           transition={{ duration: 0.2, delay: index * 0.02 }}
                           key={client._id || client.id || `client-row-${index}`}
-                          className="group transition-colors hover:bg-slate-50/40 dark:hover:bg-[#16223f]/40 border-b border-slate-200 dark:border-slate-700/60"
+                          className={`group transition-colors ${
+                            client.status === "Inactive"
+                              ? "bg-rose-50/80 dark:bg-rose-950/30 hover:bg-rose-100/80 dark:hover:bg-rose-950/50"
+                              : "hover:bg-slate-50/40 dark:hover:bg-[#16223f]/40"
+                          } border-b border-slate-200 dark:border-slate-700/60`}
                         ><td className={`${cellClass} relative`}>
                             <div className="flex items-center gap-2.5">
                               {(() => {
@@ -1194,7 +1198,7 @@ const Clients = () => {
                           <td className={`${cellClass} text-center w-20`}>
                             {client.status === "Inactive" ? (
                               <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 font-bold text-[10px] border border-rose-200/50 dark:border-rose-800/30">
-                                Disabled
+                                Inactive
                               </span>
                             ) : (
                               <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] border border-emerald-200/50 dark:border-emerald-800/30">
