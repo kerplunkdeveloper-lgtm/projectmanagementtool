@@ -880,7 +880,7 @@ const SocialAccounts = () => {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by client, username, gmail, phone..."
+            placeholder="Search Account ..."
             className="w-full px-3 py-1.5 rounded-lg text-xs bg-slate-50 dark:bg-[#141e33] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all"
           />
           {searchTerm && (
@@ -903,8 +903,8 @@ const SocialAccounts = () => {
             title="Filter by Client"
           >
             <option value="All">All Clients</option>
-            {clientOptions.map((cName) => (
-              <option key={cName} value={cName}>
+            {clientOptions.map((cName, idx) => (
+              <option key={`client-opt-${idx}-${cName}`} value={cName}>
                 {cName}
               </option>
             ))}
@@ -996,7 +996,7 @@ const SocialAccounts = () => {
       ) : viewMode === "cards" ? (
         /* CARDS GRID VIEW */
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5 sm:gap-4">
-          {filteredAccounts.map((acc) => {
+          {filteredAccounts.map((acc, idx) => {
             const hasIg = hasPlatformData(acc.instagram);
             const hasFb = hasPlatformData(acc.facebook);
             const hasTt = hasPlatformData(acc.tiktok);
@@ -1009,7 +1009,7 @@ const SocialAccounts = () => {
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
-                key={acc._id}
+                key={acc._id || `acc-card-${idx}`}
                 className="bg-white dark:bg-[#0c1322] rounded-2xl border border-slate-200/70 dark:border-white/[0.08] shadow-xs hover:shadow-lg hover:border-slate-300 dark:hover:border-white/20 transition-all duration-200 flex flex-col overflow-hidden"
               >
                 {/* Card Top Header */}
@@ -1326,7 +1326,7 @@ const SocialAccounts = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/[0.04]">
-                {filteredAccounts.map((acc) => {
+                {filteredAccounts.map((acc, idx) => {
                   const validOther = (acc.otherPlatforms || []).filter(hasPlatformData);
                   const displayEmail = acc.registeredEmail || acc.instagram?.email || acc.facebook?.email || acc.tiktok?.email;
                   const displayPhone = acc.registeredPhone || acc.instagram?.phoneNumber || acc.facebook?.phoneNumber || acc.tiktok?.phoneNumber || acc.client?.phoneNumber;
@@ -1340,7 +1340,7 @@ const SocialAccounts = () => {
 
                   return (
                     <tr
-                      key={acc._id}
+                      key={acc._id || `acc-row-${idx}`}
                       className="hover:bg-slate-50/70 dark:hover:bg-[#131e36]/60 transition-colors"
                     >
                       {/* Social Media Manager (First Field with Profile Image) */}
@@ -1582,8 +1582,8 @@ const SocialAccounts = () => {
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       >
                         <option value="">-- Existing Client --</option>
-                        {clients?.map((c) => (
-                          <option key={c._id} value={c._id}>
+                        {clients?.map((c, idx) => (
+                          <option key={c._id || `client-${idx}`} value={c._id}>
                             {c.companyName}
                           </option>
                         ))}
@@ -1601,7 +1601,7 @@ const SocialAccounts = () => {
                         onChange={(e) =>
                           setFormData({ ...formData, clientName: e.target.value })
                         }
-                        placeholder="e.g. Acme Corp"
+
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       />
                     </div>
@@ -1636,7 +1636,7 @@ const SocialAccounts = () => {
                         onChange={(e) =>
                           setFormData({ ...formData, spoc: e.target.value })
                         }
-                        placeholder="e.g. John Doe (Auto-fetched from Client)"
+
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       />
                     </div>
@@ -1652,7 +1652,7 @@ const SocialAccounts = () => {
                         onChange={(e) =>
                           setFormData({ ...formData, designation: e.target.value })
                         }
-                        placeholder="e.g. Marketing Lead / Director"
+
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20"
                       />
                     </div>
@@ -1674,7 +1674,6 @@ const SocialAccounts = () => {
                             registeredEmail: e.target.value,
                           })
                         }
-                        placeholder="e.g. acme.social@gmail.com"
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       />
                     </div>
@@ -1693,7 +1692,7 @@ const SocialAccounts = () => {
                             registeredPhone: e.target.value,
                           })
                         }
-                        placeholder="e.g. +91 98765 43210"
+                      
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                       />
                     </div>

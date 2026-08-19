@@ -39,7 +39,7 @@ import {
 
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import {Link} from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import {
   getClients,
@@ -167,19 +167,40 @@ const getDeptColor = (dept) => {
   if (d.includes("marketing") || d.includes("digital") || d === "dm") {
     return "text-blue-600 dark:text-blue-400";
   }
-  if (d.includes("design") || d.includes("creative") || d.includes("branding") || d === "gd") {
+  if (
+    d.includes("design") ||
+    d.includes("creative") ||
+    d.includes("branding") ||
+    d === "gd"
+  ) {
     return "text-purple-600 dark:text-purple-400";
   }
-  if (d.includes("development") || d.includes("tech") || d.includes("website") || d.includes("web") || d === "dev") {
+  if (
+    d.includes("development") ||
+    d.includes("tech") ||
+    d.includes("website") ||
+    d.includes("web") ||
+    d === "dev"
+  ) {
     return "text-emerald-600 dark:text-emerald-400";
   }
   if (d.includes("seo")) {
     return "text-amber-600 dark:text-amber-400";
   }
-  if (d.includes("video") || d.includes("production") || d.includes("shoot") || d === "vp") {
+  if (
+    d.includes("video") ||
+    d.includes("production") ||
+    d.includes("shoot") ||
+    d === "vp"
+  ) {
     return "text-rose-600 dark:text-rose-400";
   }
-  if (d.includes("accounts") || d.includes("finance") || d.includes("sales") || d === "acc") {
+  if (
+    d.includes("accounts") ||
+    d.includes("finance") ||
+    d.includes("sales") ||
+    d === "acc"
+  ) {
     return "text-teal-600 dark:text-teal-400";
   }
   return "text-indigo-600 dark:text-indigo-400";
@@ -189,22 +210,70 @@ const getDeptShortName = (d) => {
   if (!d) return "";
   const str = d.trim();
   const lower = str.toLowerCase();
-  
-  if (lower.includes("digital marketing") || lower === "dm" || lower.includes("marketing")) return "DM";
-  if (lower.includes("graphic design") || lower.includes("designer") || lower.includes("design") || lower === "gd") return "GD";
-  if (lower.includes("video production") || lower.includes("video") || lower.includes("production") || lower === "vp") return "VP";
-  if (lower.includes("web development") || lower.includes("web developer") || lower.includes("tech") || lower.includes("website") || lower === "dev") return "DEV";
+
+  if (
+    lower.includes("digital marketing") ||
+    lower === "dm" ||
+    lower.includes("marketing")
+  )
+    return "DM";
+  if (
+    lower.includes("graphic design") ||
+    lower.includes("designer") ||
+    lower.includes("design") ||
+    lower === "gd"
+  )
+    return "GD";
+  if (
+    lower.includes("video production") ||
+    lower.includes("video") ||
+    lower.includes("production") ||
+    lower === "vp"
+  )
+    return "VP";
+  if (
+    lower.includes("web development") ||
+    lower.includes("web developer") ||
+    lower.includes("tech") ||
+    lower.includes("website") ||
+    lower === "dev"
+  )
+    return "DEV";
   if (lower.includes("seo")) return "SEO";
-  if (lower.includes("content") || lower.includes("copywriter") || lower === "cw") return "CW";
-  if (lower.includes("accounts") || lower.includes("finance") || lower === "acc") return "ACC";
-  if (lower.includes("sales") || lower.includes("bd") || lower.includes("business dev")) return "BD";
-  if (lower.includes("operation manager") || lower.includes("operations") || lower === "om") return "OM";
+  if (
+    lower.includes("content") ||
+    lower.includes("copywriter") ||
+    lower === "cw"
+  )
+    return "CW";
+  if (
+    lower.includes("accounts") ||
+    lower.includes("finance") ||
+    lower === "acc"
+  )
+    return "ACC";
+  if (
+    lower.includes("sales") ||
+    lower.includes("bd") ||
+    lower.includes("business dev")
+  )
+    return "BD";
+  if (
+    lower.includes("operation manager") ||
+    lower.includes("operations") ||
+    lower === "om"
+  )
+    return "OM";
   if (lower.includes("admin")) return "ADM";
 
   if (str.length <= 4) return str.toUpperCase();
   const words = str.split(/[\s_-]+/);
   if (words.length > 1) {
-    return words.map(w => w[0]).join('').toUpperCase().substring(0, 4);
+    return words
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 4);
   }
   return str.substring(0, 3).toUpperCase();
 };
@@ -240,7 +309,7 @@ const MultiSelect = ({
     return options.filter(
       (opt) =>
         (opt.label || "").toLowerCase().includes(query) ||
-        (opt.subLabel || "").toLowerCase().includes(query)
+        (opt.subLabel || "").toLowerCase().includes(query),
     );
   }, [options, searchQuery]);
 
@@ -297,7 +366,9 @@ const MultiSelect = ({
                           getUserColor(val).border
                         }`}
                       >
-                        {displayLabel ? displayLabel.charAt(0).toUpperCase() : "?"}
+                        {displayLabel
+                          ? displayLabel.charAt(0).toUpperCase()
+                          : "?"}
                       </div>
                     )}
                   </div>
@@ -413,7 +484,9 @@ const MultiSelect = ({
                                     getUserColor(opt.value).border
                                   }`}
                                 >
-                                  {opt.label ? opt.label.charAt(0).toUpperCase() : "?"}
+                                  {opt.label
+                                    ? opt.label.charAt(0).toUpperCase()
+                                    : "?"}
                                 </div>
                               )}
                             </div>
@@ -448,7 +521,11 @@ const formatDept = (d) => {
   if (str.length <= 3) return str.toUpperCase();
   const words = str.split(/[\s_-]+/);
   if (words.length > 1) {
-    return words.map(w => w[0]).join('').toUpperCase().substring(0, 3);
+    return words
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 3);
   }
   return str.substring(0, 3).toUpperCase();
 };
@@ -470,7 +547,8 @@ const Clients = () => {
   const [clientNameFilter, setClientNameFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [memberFilter, setMemberFilter] = useState("All");
-  const [showMemberFilterDropdown, setShowMemberFilterDropdown] = useState(false);
+  const [showMemberFilterDropdown, setShowMemberFilterDropdown] =
+    useState(false);
   const [clientToDelete, setClientToDelete] = useState(null);
   const [viewClient, setViewClient] = useState(null);
   const [showViewOffcanvas, setShowViewOffcanvas] = useState(false);
@@ -620,50 +698,63 @@ const Clients = () => {
   }, [clients]);
 
   const filteredClients = useMemo(() => {
-    return (clients || [])
-      .filter((client) => {
-        const matchesSearch =
-          (client.companyName || "")
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          (client.industry || "")
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase());
+    return (
+      (clients || [])
+        .filter((client) => {
+          const matchesSearch =
+            (client.companyName || "")
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            (client.industry || "")
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase());
 
-        const matchesService =
-          serviceFilter === "All"
-            ? true
-            : Array.isArray(client.service)
-              ? client.service.includes(serviceFilter)
-              : client.service === serviceFilter;
+          const matchesService =
+            serviceFilter === "All"
+              ? true
+              : Array.isArray(client.service)
+                ? client.service.includes(serviceFilter)
+                : client.service === serviceFilter;
 
-        const matchesClientName =
-          clientNameFilter === "All"
-            ? true
-            : client.companyName === clientNameFilter;
-            
-        const matchesStatus = 
-          statusFilter === "All"
-            ? true
-            : client.status === statusFilter;
+          const matchesClientName =
+            clientNameFilter === "All"
+              ? true
+              : client.companyName === clientNameFilter;
 
-        const matchesMember =
-          memberFilter === "All"
-            ? true
-            : Array.isArray(client.assignedTo)
-              ? client.assignedTo.some((m) => (m._id || m) === memberFilter)
-              : client.assignedTo &&
-                (client.assignedTo._id || client.assignedTo) === memberFilter;
+          const matchesStatus =
+            statusFilter === "All" ? true : client.status === statusFilter;
 
-        return matchesSearch && matchesService && matchesClientName && matchesStatus && matchesMember;
-      })
-      // Sort A → Z by company name (ascending)
-      .sort((a, b) =>
-        (a.companyName || "").localeCompare(b.companyName || "", undefined, {
-          sensitivity: "base",
+          const matchesMember =
+            memberFilter === "All"
+              ? true
+              : Array.isArray(client.assignedTo)
+                ? client.assignedTo.some((m) => (m._id || m) === memberFilter)
+                : client.assignedTo &&
+                  (client.assignedTo._id || client.assignedTo) === memberFilter;
+
+          return (
+            matchesSearch &&
+            matchesService &&
+            matchesClientName &&
+            matchesStatus &&
+            matchesMember
+          );
         })
-      );
-  }, [clients, searchTerm, serviceFilter, clientNameFilter, memberFilter, statusFilter]);
+        // Sort A → Z by company name (ascending)
+        .sort((a, b) =>
+          (a.companyName || "").localeCompare(b.companyName || "", undefined, {
+            sensitivity: "base",
+          }),
+        )
+    );
+  }, [
+    clients,
+    searchTerm,
+    serviceFilter,
+    clientNameFilter,
+    memberFilter,
+    statusFilter,
+  ]);
 
   // Reset pagination to page 1 when search or filters change
   useEffect(() => {
@@ -749,17 +840,17 @@ const Clients = () => {
 
   const totalClientsCount = (clients || []).length;
   const activeClientsCount = (clients || []).filter(
-    (c) => !c.status || c.status === "Active"
+    (c) => !c.status || c.status === "Active",
   ).length;
   const inactiveClientsCount = (clients || []).filter(
-    (c) => c.status === "Inactive"
+    (c) => c.status === "Inactive",
   ).length;
 
   return (
     <div className="min-h-screen pb-12 transition-colors duration-300">
       {/* QUICK METRICS & STATUS TABS (No.of Clients & Active/Inactive filter) */}
       <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
-        <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-100/80 dark:bg-slate-900/60 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+        <div className="flex items-center gap-1.5 sm:gap-2 sidebar-bg p-1.5 rounded-2xl shadow-2xs">
           {/* All Clients Tab */}
           <button
             type="button"
@@ -772,7 +863,9 @@ const Clients = () => {
           >
             <FiBriefcase
               size={13}
-              className={statusFilter === "All" ? "text-blue-500" : "opacity-60"}
+              className={
+                statusFilter === "All" ? "text-blue-500" : "opacity-60"
+              }
             />
             <span>All Clients</span>
             <span
@@ -824,7 +917,7 @@ const Clients = () => {
         {/* Filter Results Count Indicator */}
         <div className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
           <span>Showing:</span>
-          <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-extrabold shadow-2xs">
+          <span className="px-2.5 py-1 rounded-lg sidebar-bg text-slate-700 dark:text-slate-200 font-extrabold shadow-2xs">
             {filteredClients.length} of {totalClientsCount} Clients
           </span>
         </div>
@@ -841,7 +934,7 @@ const Clients = () => {
               placeholder="Search company or industry..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-10 pl-10 pr-4 rounded-xl border border-slate-250 dark:border-slate-800 bg-slate-50 dark:bg-white/5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium placeholder:text-slate-300 dark:placeholder:text-slate-600"
+              className="w-full h-10 pl-10 pr-4 rounded-xl sidebar-bg text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium placeholder:text-slate-300 dark:placeholder:text-slate-600"
             />
           </div>
 
@@ -850,7 +943,7 @@ const Clients = () => {
             <select
               value={clientNameFilter}
               onChange={(e) => setClientNameFilter(e.target.value)}
-              className="w-full h-10 pl-3.5 pr-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-white/5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold cursor-pointer appearance-none"
+              className="w-full h-10 pl-3.5 pr-8 rounded-xl sidebar-bg text-xs text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold cursor-pointer appearance-none"
             >
               <option value="All">All Clients</option>
               {uniqueClientNames.map((name, idx) => (
@@ -881,7 +974,7 @@ const Clients = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full h-10 pl-3.5 pr-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-white/5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold cursor-pointer appearance-none"
+              className="w-full h-10 pl-3.5 pr-8 rounded-xl sidebar-bg text-xs text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold cursor-pointer appearance-none"
             >
               <option value="All">All Status</option>
               <option value="Active">Active</option>
@@ -909,7 +1002,7 @@ const Clients = () => {
             <select
               value={serviceFilter}
               onChange={(e) => setServiceFilter(e.target.value)}
-              className="w-full h-10 pl-3.5 pr-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-white/5 text-xs text-slate-800 dark:text-slate-100 outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold cursor-pointer appearance-none"
+              className="w-full h-10 pl-3.5 pr-8 rounded-xl sidebar-bg text-xs text-slate-800 dark:text-white outline-none  transition-all font-semibold cursor-pointer appearance-none"
             >
               <option value="All">All Services</option>
               <option value="Digital Marketing">Digital Marketing</option>
@@ -939,68 +1032,106 @@ const Clients = () => {
           {/* MEMBERS FILTER */}
           <div className="relative w-full sm:w-52">
             <div
-              onClick={() => setShowMemberFilterDropdown(!showMemberFilterDropdown)}
-              className="w-full h-10 pl-3.5 pr-8 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-white/5 text-xs text-slate-800 dark:text-slate-100 outline-none flex items-center transition-all font-semibold cursor-pointer"
+              onClick={() =>
+                setShowMemberFilterDropdown(!showMemberFilterDropdown)
+              }
+              className="w-full h-10 pl-3.5 pr-8 rounded-xl sidebar-bg text-xs text-slate-800 dark:text-white outline-none flex items-center transition-all font-semibold cursor-pointer"
             >
-              {memberFilter === "All" ? "All Members" : (() => {
-                const selectedUser = allUsers.find(u => u._id === memberFilter);
-                if (!selectedUser) return "All Members";
-                return (
-                  <div className="flex items-center gap-2">
-                    {renderUserAvatarSmall(selectedUser, "w-5 h-5 text-[9px] shrink-0")}
-                    <span className="truncate">{selectedUser.name || selectedUser.email}</span>
-                  </div>
-                );
-              })()}
+              {memberFilter === "All"
+                ? "All Members"
+                : (() => {
+                    const selectedUser = allUsers.find(
+                      (u) => u._id === memberFilter,
+                    );
+                    if (!selectedUser) return "All Members";
+                    return (
+                      <div className="flex items-center gap-2">
+                        {renderUserAvatarSmall(
+                          selectedUser,
+                          "w-5 h-5 text-[9px] shrink-0",
+                        )}
+                        <span className="truncate">
+                          {selectedUser.name || selectedUser.email}
+                        </span>
+                      </div>
+                    );
+                  })()}
             </div>
-            
+
             <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              <svg
+                className="w-3.5 h-3.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </div>
 
             {showMemberFilterDropdown && (
               <>
-                <div 
-                  className="fixed inset-0 z-40" 
-                  onClick={() => setShowMemberFilterDropdown(false)} 
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowMemberFilterDropdown(false)}
                 />
                 <div className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 max-h-80 overflow-y-auto no-scrollbar">
-                  <div 
+                  <div
                     className={`px-3 py-2 text-xs font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 ${memberFilter === "All" ? "text-blue-600 bg-blue-50 dark:bg-blue-900/20" : "text-slate-700 dark:text-slate-300"}`}
-                    onClick={() => { setMemberFilter("All"); setShowMemberFilterDropdown(false); }}
+                    onClick={() => {
+                      setMemberFilter("All");
+                      setShowMemberFilterDropdown(false);
+                    }}
                   >
                     All Members
                   </div>
-                  
+
                   {(() => {
                     const depts = {};
-                    allUsers.forEach(u => {
+                    allUsers.forEach((u) => {
                       const dept = u.department || "Other";
                       if (!depts[dept]) depts[dept] = [];
                       depts[dept].push(u);
                     });
-                    
+
                     const sortedDepts = Object.keys(depts).sort();
-                    
-                    return sortedDepts.map(dept => (
+
+                    return sortedDepts.map((dept) => (
                       <div key={dept}>
                         <div className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800/80 text-[10px] font-extrabold text-slate-500 uppercase tracking-wider sticky top-0 border-y border-slate-100 dark:border-slate-800/50 z-10 backdrop-blur-sm">
                           {dept}
                         </div>
-                        {depts[dept].sort((a,b) => (a.name || a.email).localeCompare(b.name || b.email)).map(u => (
-                          <div 
-                            key={u._id}
-                            className={`flex items-center gap-2.5 px-3 py-2 text-xs font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${memberFilter === u._id ? "bg-blue-50 dark:bg-blue-900/10" : ""}`}
-                            onClick={() => { setMemberFilter(u._id); setShowMemberFilterDropdown(false); }}
-                          >
-                            {renderUserAvatarSmall(u, "w-6 h-6 text-[10px] shrink-0")}
-                            <span className={`truncate ${memberFilter === u._id ? "text-blue-700 dark:text-blue-400 font-bold" : "text-slate-700 dark:text-slate-200"}`}>
-                              {u.name || u.email}
-                            </span>
-                          </div>
-                        ))}
+                        {depts[dept]
+                          .sort((a, b) =>
+                            (a.name || a.email).localeCompare(
+                              b.name || b.email,
+                            ),
+                          )
+                          .map((u) => (
+                            <div
+                              key={u._id}
+                              className={`flex items-center gap-2.5 px-3 py-2 text-xs font-semibold cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${memberFilter === u._id ? "bg-blue-50 dark:bg-blue-900/10" : ""}`}
+                              onClick={() => {
+                                setMemberFilter(u._id);
+                                setShowMemberFilterDropdown(false);
+                              }}
+                            >
+                              {renderUserAvatarSmall(
+                                u,
+                                "w-6 h-6 text-[10px] shrink-0",
+                              )}
+                              <span
+                                className={`truncate ${memberFilter === u._id ? "text-blue-700 dark:text-blue-400 font-bold" : "text-slate-700 dark:text-slate-200"}`}
+                              >
+                                {u.name || u.email}
+                              </span>
+                            </div>
+                          ))}
                       </div>
                     ));
                   })()}
@@ -1041,10 +1172,7 @@ const Clients = () => {
 
       {/* MAIN CONTENT TABLE */}
       {!loading && (
-        <motion.div
-          layout
-          className="overflow-hidden theme-bg-card"
-        >
+        <motion.div layout className="overflow-hidden theme-bg-card">
           <div className="overflow-x-auto">
             <table className="w-full text-left  whitespace-nowrap min-w-[1100px] text-xs">
               <thead>
@@ -1146,7 +1274,8 @@ const Clients = () => {
                               ? "bg-rose-50/80 dark:bg-rose-950/30 hover:bg-rose-100/80 dark:hover:bg-rose-950/50"
                               : "hover:bg-slate-50/40 dark:hover:bg-[#16223f]/40"
                           } border-b border-slate-200 dark:border-slate-700/60`}
-                        ><td className={`${cellClass} relative`}>
+                        >
+                          <td className={`${cellClass} relative`}>
                             <div className="flex items-center gap-2.5">
                               {(() => {
                                 const ClientIcon = getClientIconComponent(
@@ -1208,7 +1337,11 @@ const Clients = () => {
                           </td>
                           <td className={`${cellClass} text-center w-28`}>
                             <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-bold text-[10px] border border-blue-200/50 dark:border-blue-800/30">
-                              {projects?.filter(p => p.client?._id === client._id || p.client === client._id).length || 0}
+                              {projects?.filter(
+                                (p) =>
+                                  p.client?._id === client._id ||
+                                  p.client === client._id,
+                              ).length || 0}
                             </span>
                           </td>
                           <td className={cellClass}>
@@ -1247,22 +1380,31 @@ const Clients = () => {
                                         (u) => u._id === (member._id || member),
                                       );
                                       const dept = fullUser?.department || "";
-                                      const memberName = member.name || member.email || "Member";
-                                      const formattedDept = dept ? dept.charAt(0).toUpperCase() + dept.slice(1) : "";
+                                      const memberName =
+                                        member.name || member.email || "Member";
+                                      const formattedDept = dept
+                                        ? dept.charAt(0).toUpperCase() +
+                                          dept.slice(1)
+                                        : "";
                                       return (
                                         <span
                                           key={member._id || member}
                                           className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-white dark:bg-slate-800 shadow-2xs border border-slate-200/80 dark:border-slate-700/60 transition-all hover:border-blue-400 dark:hover:border-blue-500 cursor-default whitespace-nowrap shrink-0 pr-2.5"
                                           title={`${memberName}${formattedDept ? ` · ${formattedDept}` : ""}`}
                                         >
-                                          {renderUserAvatarSmall(fullUser, "w-5 h-5 text-[9px]")}
+                                          {renderUserAvatarSmall(
+                                            fullUser,
+                                            "w-5 h-5 text-[9px]",
+                                          )}
                                           <span className="text-[10.5px] font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
                                             {memberName}
                                           </span>
                                           {formattedDept && (
                                             <>
                                               <span className="w-[1px] h-3 bg-slate-200 dark:bg-slate-700 shrink-0"></span>
-                                              <span className={`text-[9px] font-bold ${getDeptColor(dept)} whitespace-nowrap`}>
+                                              <span
+                                                className={`text-[9px] font-bold ${getDeptColor(dept)} whitespace-nowrap`}
+                                              >
                                                 {formattedDept}
                                               </span>
                                             </>
@@ -1279,21 +1421,32 @@ const Clients = () => {
                                           (singleMember._id || singleMember),
                                       );
                                       const dept = fullUser?.department || "";
-                                      const memberName = singleMember.name || singleMember.email || "Member";
-                                      const formattedDept = dept ? dept.charAt(0).toUpperCase() + dept.slice(1) : "";
+                                      const memberName =
+                                        singleMember.name ||
+                                        singleMember.email ||
+                                        "Member";
+                                      const formattedDept = dept
+                                        ? dept.charAt(0).toUpperCase() +
+                                          dept.slice(1)
+                                        : "";
                                       return (
                                         <span
                                           className="inline-flex items-center gap-2 px-2 py-1 rounded-full bg-white dark:bg-slate-800 shadow-2xs border border-slate-200/80 dark:border-slate-700/60 transition-all hover:border-blue-400 dark:hover:border-blue-500 cursor-default whitespace-nowrap shrink-0 pr-2.5"
                                           title={`${memberName}${formattedDept ? ` · ${formattedDept}` : ""}`}
                                         >
-                                          {renderUserAvatarSmall(fullUser, "w-5 h-5 text-[9px]")}
+                                          {renderUserAvatarSmall(
+                                            fullUser,
+                                            "w-5 h-5 text-[9px]",
+                                          )}
                                           <span className="text-[10.5px] font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
                                             {memberName}
                                           </span>
                                           {formattedDept && (
                                             <>
                                               <span className="w-[1px] h-3 bg-slate-200 dark:bg-slate-700 shrink-0"></span>
-                                              <span className={`text-[9px] font-bold ${getDeptColor(dept)} whitespace-nowrap`}>
+                                              <span
+                                                className={`text-[9px] font-bold ${getDeptColor(dept)} whitespace-nowrap`}
+                                              >
                                                 {formattedDept}
                                               </span>
                                             </>
@@ -1314,44 +1467,87 @@ const Clients = () => {
                           <td className={cellClass}>
                             <div className="flex flex-wrap items-center gap-2 max-w-[320px] py-1">
                               {client.posts > 0 && (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/60 font-bold text-[10px]" title="Posts">
-                                  <FiLayers size={11} className="text-blue-500" />
+                                <span
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800/60 font-bold text-[10px]"
+                                  title="Posts"
+                                >
+                                  <FiLayers
+                                    size={11}
+                                    className="text-blue-500"
+                                  />
                                   {client.posts} Posts
                                 </span>
                               )}
                               {client.reels > 0 && (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60 font-bold text-[10px]" title="Reels">
-                                  <FiVideo size={11} className="text-purple-500" />
+                                <span
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60 font-bold text-[10px]"
+                                  title="Reels"
+                                >
+                                  <FiVideo
+                                    size={11}
+                                    className="text-purple-500"
+                                  />
                                   {client.reels} Reels
                                 </span>
                               )}
                               {client.story > 0 && (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60 font-bold text-[10px]" title="Stories">
-                                  <FiVideo size={11} className="text-rose-500" />
+                                <span
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60 font-bold text-[10px]"
+                                  title="Stories"
+                                >
+                                  <FiVideo
+                                    size={11}
+                                    className="text-rose-500"
+                                  />
                                   {client.story} Stories
                                 </span>
                               )}
-                              {client.needDslr && client.needDslr !== "No DSLR" && (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60 font-bold text-[10px]" title="DSLR Requirement">
-                                  <FiVideo size={11} className="text-amber-500" />
-                                  DSLR: {client.needDslr}
-                                </span>
-                              )}
+                              {client.needDslr &&
+                                client.needDslr !== "No DSLR" && (
+                                  <span
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60 font-bold text-[10px]"
+                                    title="DSLR Requirement"
+                                  >
+                                    <FiVideo
+                                      size={11}
+                                      className="text-amber-500"
+                                    />
+                                    DSLR: {client.needDslr}
+                                  </span>
+                                )}
                               {client.pages > 0 && (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 font-bold text-[10px]" title="Website Pages">
-                                  <FiGlobe size={11} className="text-emerald-500" />
+                                <span
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 font-bold text-[10px]"
+                                  title="Website Pages"
+                                >
+                                  <FiGlobe
+                                    size={11}
+                                    className="text-emerald-500"
+                                  />
                                   {client.pages} Pages
                                 </span>
                               )}
                               {client.onpage && (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border border-orange-200/80 dark:border-orange-800/60 font-bold text-[10px]" title="SEO On-Page">
-                                  <FiSearch size={11} className="text-orange-500" />
+                                <span
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border border-orange-200/80 dark:border-orange-800/60 font-bold text-[10px]"
+                                  title="SEO On-Page"
+                                >
+                                  <FiSearch
+                                    size={11}
+                                    className="text-orange-500"
+                                  />
                                   On-Page
                                 </span>
                               )}
                               {client.offpage && (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border border-orange-200/80 dark:border-orange-800/60 font-bold text-[10px]" title="SEO Off-Page">
-                                  <FiSearch size={11} className="text-orange-500" />
+                                <span
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-orange-50 dark:bg-orange-950/40 text-orange-700 dark:text-orange-300 border border-orange-200/80 dark:border-orange-800/60 font-bold text-[10px]"
+                                  title="SEO Off-Page"
+                                >
+                                  <FiSearch
+                                    size={11}
+                                    className="text-orange-500"
+                                  />
                                   Off-Page
                                 </span>
                               )}
@@ -1415,10 +1611,7 @@ const Clients = () => {
                                   className="w-6 h-6 flex items-center justify-center bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/30 rounded-md transition-all shadow-2xs hover:shadow active:scale-95 cursor-pointer"
                                   title="Edit Record"
                                 >
-                                  <FiEdit
-                                    size={11}
-                                    className="stroke-[2.5]"
-                                  />
+                                  <FiEdit size={11} className="stroke-[2.5]" />
                                 </button>
                                 <button
                                   onClick={() => setClientToDelete(client)}
@@ -1432,7 +1625,8 @@ const Clients = () => {
                                 </button>
                               </div>
                             </td>
-                          )}</motion.tr>
+                          )}
+                        </motion.tr>
                       );
                     })
                   ) : (
@@ -1444,7 +1638,10 @@ const Clients = () => {
                           1 + // No. of Projects
                           2 + // Services & Deliverables
                           (user?.role === "team" ? 1 : 0) +
-                          (user?.role === "admin" || user?.role === "operationmanager" ? 1 : 0)
+                          (user?.role === "admin" ||
+                          user?.role === "operationmanager"
+                            ? 1
+                            : 0)
                         }
                         className="px-5 py-24 text-center"
                       >
@@ -1633,7 +1830,8 @@ const Clients = () => {
                         {/* Company Name */}
                         <div>
                           <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
-                            Company Name <span className="text-rose-500">*</span>
+                            Company Name{" "}
+                            <span className="text-rose-500">*</span>
                           </label>
                           <div className="flex items-center w-full h-11 px-4 border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-[var(--accent-color)]/10 dark:focus-within:ring-[var(--accent-color)]/10 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color)] hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 shadow-sm group">
                             <FaRegBuilding
@@ -1655,7 +1853,8 @@ const Clients = () => {
                         {/* Industry Sector */}
                         <div>
                           <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
-                            Industry Sector <span className="text-rose-500">*</span>
+                            Industry Sector{" "}
+                            <span className="text-rose-500">*</span>
                           </label>
                           <div className="flex items-center w-full h-11 px-4 border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-[var(--accent-color)]/10 dark:focus-within:ring-[var(--accent-color)]/10 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color)] hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 shadow-sm group relative">
                             <FiLayers
@@ -1669,19 +1868,43 @@ const Clients = () => {
                               className="w-full bg-transparent border-none outline-none focus:outline-none focus:border-none focus:ring-0 text-[13px] text-slate-800 dark:text-slate-100 font-semibold cursor-pointer appearance-none"
                               required
                             >
-                              <option value="" disabled className="text-slate-400">Select Industry...</option>
+                              <option
+                                value=""
+                                disabled
+                                className="text-slate-400"
+                              >
+                                Select Industry...
+                              </option>
                               {uniqueIndustries.map((ind, idx) => (
-                                <option key={idx} value={ind}>{ind}</option>
+                                <option key={idx} value={ind}>
+                                  {ind}
+                                </option>
                               ))}
                               {/* Add some standard fallbacks just in case uniqueIndustries is empty initially */}
-                              {!uniqueIndustries.includes("Technology") && <option value="Technology">Technology</option>}
-                              {!uniqueIndustries.includes("Healthcare") && <option value="Healthcare">Healthcare</option>}
-                              {!uniqueIndustries.includes("Retail") && <option value="Retail">Retail</option>}
-                              {!uniqueIndustries.includes("Finance") && <option value="Finance">Finance</option>}
-                              {!uniqueIndustries.includes("Education") && <option value="Education">Education</option>}
-                              {!uniqueIndustries.includes("Real Estate") && <option value="Real Estate">Real Estate</option>}
-                              {!uniqueIndustries.includes("Hospitality") && <option value="Hospitality">Hospitality</option>}
-                              {!uniqueIndustries.includes("Other") && <option value="Other">Other</option>}
+                              {!uniqueIndustries.includes("Technology") && (
+                                <option value="Technology">Technology</option>
+                              )}
+                              {!uniqueIndustries.includes("Healthcare") && (
+                                <option value="Healthcare">Healthcare</option>
+                              )}
+                              {!uniqueIndustries.includes("Retail") && (
+                                <option value="Retail">Retail</option>
+                              )}
+                              {!uniqueIndustries.includes("Finance") && (
+                                <option value="Finance">Finance</option>
+                              )}
+                              {!uniqueIndustries.includes("Education") && (
+                                <option value="Education">Education</option>
+                              )}
+                              {!uniqueIndustries.includes("Real Estate") && (
+                                <option value="Real Estate">Real Estate</option>
+                              )}
+                              {!uniqueIndustries.includes("Hospitality") && (
+                                <option value="Hospitality">Hospitality</option>
+                              )}
+                              {!uniqueIndustries.includes("Other") && (
+                                <option value="Other">Other</option>
+                              )}
                             </select>
                             <div className="pointer-events-none text-slate-400 absolute right-4">
                               <FiChevronDown size={16} />
@@ -1692,7 +1915,8 @@ const Clients = () => {
                         {/* Onboarding Date */}
                         <div>
                           <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
-                            Onboarding Date <span className="text-rose-500">*</span>
+                            Onboarding Date{" "}
+                            <span className="text-rose-500">*</span>
                           </label>
                           <div className="flex items-center w-full h-11 px-4 border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-[var(--accent-color)]/10 dark:focus-within:ring-[var(--accent-color)]/10 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color)] hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 shadow-sm group">
                             <FiCalendar
@@ -1780,7 +2004,8 @@ const Clients = () => {
                         {/* Phone Number */}
                         <div>
                           <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1.5 ml-1">
-                            Phone Number <span className="text-rose-500">*</span>
+                            Phone Number{" "}
+                            <span className="text-rose-500">*</span>
                           </label>
                           <div className="flex items-center w-full h-11 px-4 border border-slate-200/80 dark:border-slate-700/80 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl focus-within:bg-white dark:focus-within:bg-slate-900 focus-within:ring-4 focus-within:ring-[var(--accent-color)]/10 dark:focus-within:ring-[var(--accent-color)]/10 focus-within:border-[var(--accent-color)] dark:focus-within:border-[var(--accent-color)] hover:border-slate-300 dark:hover:border-slate-600 transition-all duration-300 shadow-sm group">
                             <FiPhone
@@ -2015,7 +2240,12 @@ const Clients = () => {
                             value: u._id,
                             label: u.name,
                             subLabel: u.email,
-                            avatarUrl: u.profile?.profileImage?.url || u.profileImage?.url || u.profile?.avatar || u.avatar || "",
+                            avatarUrl:
+                              u.profile?.profileImage?.url ||
+                              u.profileImage?.url ||
+                              u.profile?.avatar ||
+                              u.avatar ||
+                              "",
                             group: u.department
                               ? u.department.toUpperCase()
                               : "UNASSIGNED",
@@ -2604,7 +2834,7 @@ const Clients = () => {
                     )}
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => setShowViewOffcanvas(false)}
                   className="w-7 h-7 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:border-rose-200 dark:hover:border-rose-800 transition-colors"
                 >
@@ -2634,65 +2864,116 @@ const Clients = () => {
               <div className="flex-1 overflow-y-auto p-4 sm:p-5 sidebar-bg">
                 {(() => {
                   // Calculate Stats
-                  const clientProjects = projects.filter(p => {
+                  const clientProjects = projects.filter((p) => {
                     const cId = p.client?._id || p.client;
                     return cId === viewClient._id;
                   });
-                  
-                  const clientTasks = tasks.filter(t => {
-                    const cId = t.client?._id || t.client || t.project?.client?._id || t.project?.client;
+
+                  const clientTasks = tasks.filter((t) => {
+                    const cId =
+                      t.client?._id ||
+                      t.client ||
+                      t.project?.client?._id ||
+                      t.project?.client;
                     return cId === viewClient._id;
                   });
 
                   const totalTasks = clientTasks.length;
-                  const inProgressTasks = clientTasks.filter(t => t.status === "In Progress" || t.status === "Pending").length;
-                  const completedTasks = clientTasks.filter(t => t.status === "Completed").length;
-                  const overdueTasks = clientTasks.filter(t => {
+                  const inProgressTasks = clientTasks.filter(
+                    (t) => t.status === "In Progress" || t.status === "Pending",
+                  ).length;
+                  const completedTasks = clientTasks.filter(
+                    (t) => t.status === "Completed",
+                  ).length;
+                  const overdueTasks = clientTasks.filter((t) => {
                     if (t.status === "Completed") return false;
-                    return t.status === "Overdue" || (t.dueDate && new Date(t.dueDate) < new Date());
+                    return (
+                      t.status === "Overdue" ||
+                      (t.dueDate && new Date(t.dueDate) < new Date())
+                    );
                   }).length;
-                  
+
                   // MOM Tasks filtering and pagination
-                  const momTasks = clientTasks.filter(t => t.contentType && t.contentType.toUpperCase() === "MOM");
-                  
-                  const filteredMomTasks = momTasks.filter(t => {
-                    const assigneeId = t.assignedTo?._id || t.assignedTo;
-                    if (momAssigneeFilter && assigneeId !== momAssigneeFilter) return false;
+                  const momTasks = clientTasks.filter(
+                    (t) =>
+                      t.contentType && t.contentType.toUpperCase() === "MOM",
+                  );
 
-                    const cId = t.client?._id || t.client || t.project?.client?._id || t.project?.client;
-                    if (momClientFilter && cId !== momClientFilter) return false;
+                  const filteredMomTasks = momTasks
+                    .filter((t) => {
+                      const assigneeId = t.assignedTo?._id || t.assignedTo;
+                      if (momAssigneeFilter && assigneeId !== momAssigneeFilter)
+                        return false;
 
-                    if (momDateFilter) {
-                      const taskDate = t.dueDate ? new Date(t.dueDate).toISOString().split('T')[0] : null;
-                      if (taskDate !== momDateFilter) return false;
-                    }
-                    return true;
-                  }).sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date));
+                      const cId =
+                        t.client?._id ||
+                        t.client ||
+                        t.project?.client?._id ||
+                        t.project?.client;
+                      if (momClientFilter && cId !== momClientFilter)
+                        return false;
 
-                  const uniqueAssignees = Array.from(new Map(momTasks.map(t => {
-                    const id = t.assignedTo?._id || t.assignedTo;
-                    const name = typeof t.assignedTo === "object" ? t.assignedTo.name : users?.find(u => (u._id || u.id) === id)?.name || "Unknown";
-                    return [id, { id, name }];
-                  }).filter(([id]) => id)).values()).sort((a,b) => a.name.localeCompare(b.name));
+                      if (momDateFilter) {
+                        const taskDate = t.dueDate
+                          ? new Date(t.dueDate).toISOString().split("T")[0]
+                          : null;
+                        if (taskDate !== momDateFilter) return false;
+                      }
+                      return true;
+                    })
+                    .sort(
+                      (a, b) =>
+                        new Date(b.createdAt || b.date) -
+                        new Date(a.createdAt || a.date),
+                    );
 
-                  const uniqueClients = Array.from(new Map(momTasks.map(t => {
-                    const id = t.client?._id || t.client || t.project?.client?._id || t.project?.client;
-                    const name = viewClient.companyName || "Unknown Client";
-                    return [id, { id, name }];
-                  }).filter(([id]) => id)).values()).sort((a,b) => a.name.localeCompare(b.name));
+                  const uniqueAssignees = Array.from(
+                    new Map(
+                      momTasks
+                        .map((t) => {
+                          const id = t.assignedTo?._id || t.assignedTo;
+                          const name =
+                            typeof t.assignedTo === "object"
+                              ? t.assignedTo.name
+                              : users?.find((u) => (u._id || u.id) === id)
+                                  ?.name || "Unknown";
+                          return [id, { id, name }];
+                        })
+                        .filter(([id]) => id),
+                    ).values(),
+                  ).sort((a, b) => a.name.localeCompare(b.name));
+
+                  const uniqueClients = Array.from(
+                    new Map(
+                      momTasks
+                        .map((t) => {
+                          const id =
+                            t.client?._id ||
+                            t.client ||
+                            t.project?.client?._id ||
+                            t.project?.client;
+                          const name =
+                            viewClient.companyName || "Unknown Client";
+                          return [id, { id, name }];
+                        })
+                        .filter(([id]) => id),
+                    ).values(),
+                  ).sort((a, b) => a.name.localeCompare(b.name));
 
                   const handleAdjustMomDate = (days) => {
                     let d;
                     if (momDateFilter) {
-                      const [year, month, day] = momDateFilter.split("-").map(Number);
+                      const [year, month, day] = momDateFilter
+                        .split("-")
+                        .map(Number);
                       d = new Date(year, month - 1, day);
                     } else {
                       d = new Date();
                     }
                     d.setDate(d.getDate() + days);
                     const y = d.getFullYear();
-                    const m = String(d.getMonth() + 1).padStart(2, '0');
-                    const dayStr = String(d.getDate()).padStart(2, '0');
+                    const m = String(d.getMonth() + 1).padStart(2, "0");
+                    const dayStr = String(d.getDate()).padStart(2, "0");
                     setMomDateFilter(`${y}-${m}-${dayStr}`);
                     setMomCurrentPage(1);
                   };
@@ -2700,97 +2981,142 @@ const Clients = () => {
                   const handleSetMomToday = () => {
                     const d = new Date();
                     const y = d.getFullYear();
-                    const m = String(d.getMonth() + 1).padStart(2, '0');
-                    const dayStr = String(d.getDate()).padStart(2, '0');
+                    const m = String(d.getMonth() + 1).padStart(2, "0");
+                    const dayStr = String(d.getDate()).padStart(2, "0");
                     setMomDateFilter(`${y}-${m}-${dayStr}`);
                     setMomCurrentPage(1);
                   };
 
                   const getMomDisplayDate = () => {
                     if (!momDateFilter) return "Select Date";
-                    const [year, month, day] = momDateFilter.split("-").map(Number);
+                    const [year, month, day] = momDateFilter
+                      .split("-")
+                      .map(Number);
                     const d = new Date(year, month - 1, day);
-                    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                    return d.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    });
                   };
-                  
+
                   const totalMomTasks = filteredMomTasks.length;
-                  const totalMomPages = Math.ceil(totalMomTasks / momItemsPerPage);
+                  const totalMomPages = Math.ceil(
+                    totalMomTasks / momItemsPerPage,
+                  );
                   const paginatedMomTasks = filteredMomTasks.slice(
                     (momCurrentPage - 1) * momItemsPerPage,
-                    momCurrentPage * momItemsPerPage
+                    momCurrentPage * momItemsPerPage,
                   );
 
                   return (
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 w-full">
                       {/* Left Column */}
-                      <div className="lg:col-span-7 xl:col-span-8 space-y-4">
-                        {/* Section 1: Client Profile (Reference Image Match) */}
-                        <div className="bg-[#F8F4FC] dark:bg-purple-950/20 border border-[#EBE4F2] dark:border-purple-900/40 rounded-xl overflow-hidden shadow-sm">
+                      <div className="lg:col-span-7 xl:col-span-7 space-y-4">
+                        {/* Section 1: Client Profile (Compact & Clean Grid UX) */}
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
                           {/* Header */}
-                          <div className="px-5 py-4 border-b border-[#EBE4F2] dark:border-purple-900/40">
-                            <h3 className="text-[13px] font-extrabold text-[#1B1229] dark:text-purple-100 uppercase tracking-widest">
-                              Client Profile
-                            </h3>
+                          <div className="flex items-center justify-between pb-3.5 mb-3.5 border-b border-slate-100 dark:border-slate-800">
+                            <div className="flex items-center gap-2.5">
+                              {(() => {
+                                const ClientIcon = getClientIconComponent(
+                                  viewClient.icon,
+                                );
+                                return (
+                                  <div
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border shadow-2xs"
+                                    style={{
+                                      backgroundColor: `${viewClient.color || "#3b82f6"}15`,
+                                      borderColor: `${viewClient.color || "#3b82f6"}30`,
+                                      color: viewClient.color || "#3b82f6",
+                                    }}
+                                  >
+                                    <ClientIcon size={13} />
+                                  </div>
+                                );
+                              })()}
+                              <h3 className="text-[12px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                                Client Profile
+                              </h3>
+                            </div>
+
+                            {/* Status Badge */}
+                            {viewClient.status === "Inactive" ? (
+                              <span className="px-2.5 py-0.5 rounded-full text-rose-700 dark:text-rose-400 font-extrabold text-[10.5px] bg-rose-100/80 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900/50">
+                                Inactive
+                              </span>
+                            ) : (
+                              <span className="px-2.5 py-0.5 rounded-full text-emerald-700 dark:text-emerald-400 font-extrabold text-[10.5px] bg-emerald-100/80 dark:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-900/50">
+                                Active
+                              </span>
+                            )}
                           </div>
 
-                          {/* Detail Rows */}
-                          <div className="flex flex-col gap-0 divide-y divide-[#EBE4F2] dark:divide-purple-900/40 text-[13px]">
-                            
+                          {/* Profile Fields Grid */}
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
                             {/* Company Name */}
-                            <div className="flex items-center justify-between px-5 py-3.5">
-                              <span className="text-slate-700 dark:text-purple-200/70 font-medium">Company Name</span>
-                              <span className="font-bold text-[#1B1229] dark:text-purple-50">{viewClient.companyName}</span>
+                            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                                Company Name
+                              </span>
+                              <span
+                                className="font-bold text-slate-800 dark:text-slate-100 truncate block text-xs"
+                                title={viewClient.companyName}
+                              >
+                                {viewClient.companyName}
+                              </span>
                             </div>
 
                             {/* Industry */}
-                            <div className="flex items-center justify-between px-5 py-3.5">
-                              <span className="text-slate-700 dark:text-purple-200/70 font-medium">Industry</span>
-                              <span className="font-bold text-[#1B1229] dark:text-purple-50">{viewClient.industry || "-"}</span>
+                            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                                Industry
+                              </span>
+                              <span className="font-bold text-slate-800 dark:text-slate-100 truncate block text-xs">
+                                {viewClient.industry || "-"}
+                              </span>
                             </div>
 
                             {/* Account Manager */}
-                            <div className="flex items-center justify-between px-5 py-3.5">
-                              <span className="text-slate-700 dark:text-purple-200/70 font-medium">Account Manager</span>
-                              <div className="flex items-center gap-2">
-                                <div className="w-5 h-5 rounded-full bg-[#E5D4F5] dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold text-[9px]">
-                                  {viewClient.spoc ? viewClient.spoc.charAt(0).toUpperCase() : "-"}
+                            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                                Account Manager
+                              </span>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <div className="w-4.5 h-4.5 rounded-full bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold text-[8.5px] shrink-0">
+                                  {viewClient.spoc
+                                    ? viewClient.spoc.charAt(0).toUpperCase()
+                                    : "-"}
                                 </div>
-                                <span className="font-bold text-[#1B1229] dark:text-purple-50">{viewClient.spoc || "-"}</span>
+                                <span
+                                  className="font-bold text-slate-800 dark:text-slate-100 truncate text-xs"
+                                  title={viewClient.spoc || "-"}
+                                >
+                                  {viewClient.spoc || "-"}
+                                </span>
                               </div>
                             </div>
 
-                            {/* Contact Person (Fallback if any) */}
-                            <div className="flex items-center justify-between px-5 py-3.5">
-                              <span className="text-slate-700 dark:text-purple-200/70 font-medium">Contact Person</span>
-                              <span className="font-bold text-[#1B1229] dark:text-purple-50">{viewClient.contactPerson || viewClient.spoc || "-"}</span>
-                            </div>
-
                             {/* Phone */}
-                            <div className="flex items-center justify-between px-5 py-3.5">
-                              <span className="text-slate-700 dark:text-purple-200/70 font-medium">Phone</span>
-                              <span className="font-bold text-[#1B1229] dark:text-purple-50">{viewClient.phoneNumber || "-"}</span>
-                            </div>
-
-                            {/* Status */}
-                            <div className="flex items-center justify-between px-5 py-3.5">
-                              <span className="text-slate-700 dark:text-purple-200/70 font-medium">Status</span>
-                              {viewClient.status === "Inactive" ? (
-                                <span className="px-2.5 py-0.5 rounded text-rose-700 dark:text-rose-400 font-bold text-[11px] bg-rose-100/80 border border-rose-200 dark:border-rose-900/50">
-                                  Inactive
-                                </span>
-                              ) : (
-                                <span className="px-2.5 py-0.5 rounded text-emerald-700 dark:text-emerald-400 font-bold text-[11px] bg-emerald-100/80 border border-emerald-200 dark:border-emerald-900/50">
-                                  Active
-                                </span>
-                              )}
+                            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                                Phone
+                              </span>
+                              <span className="font-bold text-slate-800 dark:text-slate-100 truncate block text-xs">
+                                {viewClient.phoneNumber || "-"}
+                              </span>
                             </div>
 
                             {/* Onboard Date */}
-                            <div className="flex items-center justify-between px-5 py-3.5">
-                              <span className="text-slate-700 dark:text-purple-200/70 font-medium">Onboard Date</span>
-                              <span className="font-bold text-[#1B1229] dark:text-purple-50">
+                            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                                Onboard Date
+                              </span>
+                              <span className="font-bold text-slate-800 dark:text-slate-100 truncate block text-xs">
                                 {viewClient.onboardingDate
-                                  ? new Date(viewClient.onboardingDate).toLocaleDateString("en-GB", {
+                                  ? new Date(
+                                      viewClient.onboardingDate,
+                                    ).toLocaleDateString("en-GB", {
                                       day: "2-digit",
                                       month: "short",
                                       year: "numeric",
@@ -2799,36 +3125,59 @@ const Clients = () => {
                               </span>
                             </div>
 
-                            {/* Financial Fields (Role-Based) */}
-                            {(user?.role === "admin" || user?.role === "operationmanager") && (
-                              <React.Fragment>
-                                {/* Base Budget */}
-                                <div className="flex items-center justify-between px-5 py-3.5">
-                                  <span className="text-[#1B1229] dark:text-purple-200 font-bold">Base Budget</span>
-                                  <span className="font-bold text-[#1B1229] dark:text-purple-50">
-                                    ₹{(viewClient.budget || 0).toLocaleString("en-IN")}
-                                  </span>
-                                </div>
-
-                                {/* GST Slab */}
-                                <div className="flex items-center justify-between px-5 py-3.5">
-                                  <span className="text-[#1B1229] dark:text-purple-200 font-bold">GST Slab</span>
-                                  <span className="font-bold text-[#1B1229] dark:text-purple-50">
-                                    {viewClient.gst || 18}%
-                                  </span>
-                                </div>
-
-                                {/* Grand Total */}
-                                <div className="flex items-center justify-between px-5 py-4">
-                                  <span className="text-[14px] text-[#1B1229] dark:text-purple-100 font-black">Grand Total</span>
-                                  <span className="text-[15px] font-black text-emerald-600 dark:text-emerald-400">
-                                    ₹{(viewClient.totalBudget || viewClient.budget || 0).toLocaleString("en-IN")}
-                                  </span>
-                                </div>
-                              </React.Fragment>
-                            )}
-
+                            {/* Designation */}
+                            <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-1">
+                                Designation
+                              </span>
+                              <span className="font-bold text-slate-800 dark:text-slate-100 truncate block text-xs">
+                                {viewClient.designation ||
+                                  viewClient.contactPerson ||
+                                  "-"}
+                              </span>
+                            </div>
                           </div>
+
+                          {/* Financial Fields (Role-Based for Admin / OM) */}
+                          {(user?.role === "admin" ||
+                            user?.role === "operationmanager") && (
+                            <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 grid grid-cols-3 gap-2.5 text-xs">
+                              <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+                                <span className="text-[9.5px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
+                                  Base Budget
+                                </span>
+                                <span className="font-bold text-slate-800 dark:text-slate-100">
+                                  ₹
+                                  {(viewClient.budget || 0).toLocaleString(
+                                    "en-IN",
+                                  )}
+                                </span>
+                              </div>
+
+                              <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
+                                <span className="text-[9.5px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block mb-0.5">
+                                  GST Slab
+                                </span>
+                                <span className="font-bold text-slate-800 dark:text-slate-100">
+                                  {viewClient.gst || 18}%
+                                </span>
+                              </div>
+
+                              <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-900/50">
+                                <span className="text-[9.5px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wider block mb-0.5">
+                                  Grand Total
+                                </span>
+                                <span className="font-black text-emerald-600 dark:text-emerald-400">
+                                  ₹
+                                  {(
+                                    viewClient.totalBudget ||
+                                    viewClient.budget ||
+                                    0
+                                  ).toLocaleString("en-IN")}
+                                </span>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* MOM Table */}
@@ -2857,23 +3206,35 @@ const Clients = () => {
                                   Today
                                 </button>
 
-                                <div 
-                                  className="relative group cursor-pointer" 
+                                <div
+                                  className="relative group cursor-pointer"
                                   onClick={(e) => {
-                                    const input = e.currentTarget.querySelector('input[type="date"]');
-                                    if (input && typeof input.showPicker === 'function') {
+                                    const input =
+                                      e.currentTarget.querySelector(
+                                        'input[type="date"]',
+                                      );
+                                    if (
+                                      input &&
+                                      typeof input.showPicker === "function"
+                                    ) {
                                       input.showPicker();
                                     }
                                   }}
                                 >
                                   <div className="flex items-center gap-3 px-3 py-1.5 bg-[#f0f5fa] dark:bg-slate-800 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 rounded-lg transition-colors min-w-[120px] justify-between cursor-pointer">
                                     <div className="flex items-center gap-2">
-                                      <FiCalendar className="text-emerald-500" size={14} />
+                                      <FiCalendar
+                                        className="text-emerald-500"
+                                        size={14}
+                                      />
                                       <span className="text-slate-800 dark:text-slate-200 font-extrabold text-[11px]">
                                         {getMomDisplayDate()}
                                       </span>
                                     </div>
-                                    <FiChevronDown className="text-slate-400" size={12} />
+                                    <FiChevronDown
+                                      className="text-slate-400"
+                                      size={12}
+                                    />
                                   </div>
                                   <input
                                     type="date"
@@ -2891,49 +3252,79 @@ const Clients = () => {
                                     onClick={() => handleAdjustMomDate(-1)}
                                     className="px-2 py-1.5 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
                                   >
-                                    <FiChevronLeft size={14} strokeWidth={2.5} />
+                                    <FiChevronLeft
+                                      size={14}
+                                      strokeWidth={2.5}
+                                    />
                                   </button>
                                   <div className="w-px h-3 bg-slate-200 dark:bg-slate-600"></div>
                                   <button
                                     onClick={() => handleAdjustMomDate(1)}
                                     className="px-2 py-1.5 hover:bg-[#e2e8f0] dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
                                   >
-                                    <FiChevronRight size={14} strokeWidth={2.5} />
+                                    <FiChevronRight
+                                      size={14}
+                                      strokeWidth={2.5}
+                                    />
                                   </button>
                                 </div>
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="overflow-x-auto">
                             <table className="w-full text-left whitespace-nowrap text-xs">
                               <thead>
                                 <tr className="bg-slate-100 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-extrabold uppercase tracking-widest text-[9px]">
                                   <th className="px-3 py-2.5 rounded-l-md w-8 text-center">
-                                    <FiCheckCircle size={14} className="text-slate-400 mx-auto inline-block" />
+                                    <FiCheckCircle
+                                      size={14}
+                                      className="text-slate-400 mx-auto inline-block"
+                                    />
                                   </th>
                                   <th className="px-3 py-2.5">Assignee</th>
                                   <th className="px-3 py-2.5">Task</th>
                                   <th className="px-3 py-2.5">Start Date</th>
                                   <th className="px-3 py-2.5">End Date</th>
-                                  <th className="px-3 py-2.5 text-center">Status</th>
-                                  <th className="px-3 py-2.5 text-center rounded-r-md">Time</th>
+                                  <th className="px-3 py-2.5 text-center">
+                                    Status
+                                  </th>
+                                  <th className="px-3 py-2.5 text-center rounded-r-md">
+                                    Time
+                                  </th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                                 {paginatedMomTasks.length > 0 ? (
-                                  paginatedMomTasks.map(task => {
-                                    const assigneeId = task.assignedTo?._id || task.assignedTo;
-                                    const assigneeUserObj = typeof task.assignedTo === "object" ? task.assignedTo : users?.find(u => (u._id || u.id) === assigneeId);
-                                    const assigneeName = assigneeUserObj?.name || "Unknown";
-                                    const isCompleted = task.status?.toLowerCase() === "completed" || task.status?.toLowerCase() === "done";
-                                    
+                                  paginatedMomTasks.map((task) => {
+                                    const assigneeId =
+                                      task.assignedTo?._id || task.assignedTo;
+                                    const assigneeUserObj =
+                                      typeof task.assignedTo === "object"
+                                        ? task.assignedTo
+                                        : users?.find(
+                                            (u) =>
+                                              (u._id || u.id) === assigneeId,
+                                          );
+                                    const assigneeName =
+                                      assigneeUserObj?.name || "Unknown";
+                                    const isCompleted =
+                                      task.status?.toLowerCase() ===
+                                        "completed" ||
+                                      task.status?.toLowerCase() === "done";
+
                                     return (
-                                      <tr key={task._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-b border-slate-100/50 dark:border-slate-800/50 last:border-0 transition-colors">
+                                      <tr
+                                        key={task._id}
+                                        className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 border-b border-slate-100/50 dark:border-slate-800/50 last:border-0 transition-colors"
+                                      >
                                         <td className="px-3 py-2.5 text-center">
                                           {isCompleted ? (
                                             <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center mx-auto text-white shadow-sm">
-                                              <FiCheckCircle size={10} strokeWidth={3} />
+                                              <FiCheckCircle
+                                                size={10}
+                                                strokeWidth={3}
+                                              />
                                             </div>
                                           ) : (
                                             <div className="w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 mx-auto"></div>
@@ -2941,8 +3332,13 @@ const Clients = () => {
                                         </td>
                                         <td className="px-3 py-2.5 text-xs font-semibold text-slate-800 dark:text-slate-200">
                                           <div className="flex items-center gap-2">
-                                            {renderUserAvatarSmall(assigneeUserObj, "w-6 h-6 text-[8px]")}
-                                            <span className="truncate max-w-[120px]">{assigneeName}</span>
+                                            {renderUserAvatarSmall(
+                                              assigneeUserObj,
+                                              "w-6 h-6 text-[8px]",
+                                            )}
+                                            <span className="truncate max-w-[120px]">
+                                              {assigneeName}
+                                            </span>
                                           </div>
                                         </td>
                                         <td className="px-3 py-2.5">
@@ -2954,23 +3350,44 @@ const Clients = () => {
                                           </div>
                                         </td>
                                         <td className="px-3 py-2.5 text-[10px] font-medium text-slate-600 dark:text-slate-400">
-                                          {task.startDate ? new Date(task.startDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : "—"}
+                                          {task.startDate
+                                            ? new Date(
+                                                task.startDate,
+                                              ).toLocaleDateString("en-GB", {
+                                                day: "2-digit",
+                                                month: "short",
+                                              })
+                                            : "—"}
                                         </td>
                                         <td className="px-3 py-2.5 text-[10px] font-medium text-slate-600 dark:text-slate-400">
-                                          {task.dueDate ? new Date(task.dueDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : "—"}
+                                          {task.dueDate
+                                            ? new Date(
+                                                task.dueDate,
+                                              ).toLocaleDateString("en-GB", {
+                                                day: "2-digit",
+                                                month: "short",
+                                              })
+                                            : "—"}
                                         </td>
                                         <td className="px-3 py-2.5 text-center">
-                                          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                                            task.status === "Completed" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" :
-                                            task.status === "In Progress" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
-                                            task.status === "On-Hold" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
-                                            "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400"
-                                          }`}>
+                                          <span
+                                            className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                              task.status === "Completed"
+                                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                                : task.status === "In Progress"
+                                                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                                  : task.status === "On-Hold"
+                                                    ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                                    : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400"
+                                            }`}
+                                          >
                                             {task.status}
                                           </span>
                                         </td>
                                         <td className="px-3 py-2.5 text-[10px] font-semibold text-slate-600 dark:text-slate-400 text-center">
-                                          {task.status === "In Progress" && task.timer && task.timer.startTime ? (
+                                          {task.status === "In Progress" &&
+                                          task.timer &&
+                                          task.timer.startTime ? (
                                             <span className="text-blue-600 dark:text-blue-400 flex items-center justify-center gap-1 font-bold">
                                               <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
                                               Running
@@ -2984,10 +3401,18 @@ const Clients = () => {
                                   })
                                 ) : (
                                   <tr>
-                                    <td colSpan="7" className="px-3 py-8 text-center">
+                                    <td
+                                      colSpan="7"
+                                      className="px-3 py-8 text-center"
+                                    >
                                       <div className="flex flex-col items-center justify-center text-slate-400 dark:text-slate-500">
-                                        <FiBookOpen size={20} className="mb-2 opacity-30" />
-                                        <span className="text-[11px] font-bold">No MOM tasks found.</span>
+                                        <FiBookOpen
+                                          size={20}
+                                          className="mb-2 opacity-30"
+                                        />
+                                        <span className="text-[11px] font-bold">
+                                          No MOM tasks found.
+                                        </span>
                                       </div>
                                     </td>
                                   </tr>
@@ -2995,7 +3420,7 @@ const Clients = () => {
                               </tbody>
                             </table>
                           </div>
-                          
+
                           {/* Pagination */}
                           {totalMomPages > 1 && (
                             <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
@@ -3004,21 +3429,51 @@ const Clients = () => {
                               </span>
                               <div className="flex items-center gap-1">
                                 <button
-                                  onClick={() => setMomCurrentPage(p => Math.max(1, p - 1))}
+                                  onClick={() =>
+                                    setMomCurrentPage((p) => Math.max(1, p - 1))
+                                  }
                                   disabled={momCurrentPage === 1}
                                   className="h-6 w-6 flex items-center justify-center rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 disabled:opacity-30 transition-colors"
                                 >
-                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+                                  <svg
+                                    className="w-3 h-3"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2.5}
+                                      d="M15 19l-7-7 7-7"
+                                    />
+                                  </svg>
                                 </button>
                                 <span className="text-[10px] font-bold px-2 text-slate-700 dark:text-slate-300">
                                   {momCurrentPage} / {totalMomPages}
                                 </span>
                                 <button
-                                  onClick={() => setMomCurrentPage(p => Math.min(totalMomPages, p + 1))}
+                                  onClick={() =>
+                                    setMomCurrentPage((p) =>
+                                      Math.min(totalMomPages, p + 1),
+                                    )
+                                  }
                                   disabled={momCurrentPage === totalMomPages}
                                   className="h-6 w-6 flex items-center justify-center rounded border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 disabled:opacity-30 transition-colors"
                                 >
-                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+                                  <svg
+                                    className="w-3 h-3"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2.5}
+                                      d="M9 5l7 7-7 7"
+                                    />
+                                  </svg>
                                 </button>
                               </div>
                             </div>
@@ -3027,9 +3482,9 @@ const Clients = () => {
                       </div>
 
                       {/* Right Column */}
-                      <div className="lg:col-span-5 xl:col-span-4 space-y-4">
+                      <div className="lg:col-span-5 xl:col-span-5 space-y-4 w-full">
                         {/* Section 2: Projects Card */}
-                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm w-full">
                           <div className="flex items-center justify-between mb-4">
                             <h3 className="text-[12px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
                               Projects ({clientProjects.length})
@@ -3040,9 +3495,9 @@ const Clients = () => {
                               </span>
                             </Link>
                           </div>
-                          
+
                           <div className="space-y-2">
-                            {clientProjects.slice(0, 5).map(project => (
+                            {clientProjects.slice(0, 5).map((project) => (
                               <Link
                                 key={project._id}
                                 to={`/${user.role}/projects?id=${project._id}`}
@@ -3050,13 +3505,19 @@ const Clients = () => {
                               >
                                 <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-800/30 transition-colors hover:bg-blue-50/80 dark:hover:bg-blue-950/20 hover:border-blue-200/50 dark:hover:border-blue-800/50 cursor-pointer group">
                                   <div className="flex items-center gap-2.5">
-                                    <div 
+                                    <div
                                       className="w-6.5 h-6.5 rounded-lg flex items-center justify-center text-white shadow-sm"
-                                      style={{ background: project.color || "var(--accent-gradient)" }}
+                                      style={{
+                                        background:
+                                          project.color ||
+                                          "var(--accent-gradient)",
+                                      }}
                                     >
                                       <FiBriefcase size={12} />
                                     </div>
-                                    <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{project.name}</span>
+                                    <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                      {project.name}
+                                    </span>
                                   </div>
                                   <span className="px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60">
                                     {project.status || "Active"}
@@ -3066,38 +3527,59 @@ const Clients = () => {
                             ))}
                             {clientProjects.length === 0 && (
                               <div className="flex flex-col items-center justify-center py-4 text-slate-400">
-                                <FiBriefcase size={20} className="mb-1.5 opacity-30" />
-                                <span className="text-[11px] font-bold">No projects assigned yet.</span>
+                                <FiBriefcase
+                                  size={20}
+                                  className="mb-1.5 opacity-30"
+                                />
+                                <span className="text-[11px] font-bold">
+                                  No projects assigned yet.
+                                </span>
                               </div>
                             )}
                           </div>
                         </div>
 
                         {/* Section 3: Tasks Summary Card */}
-                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm w-full">
                           <h3 className="text-[12px] font-extrabold text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-4">
                             Tasks Summary
                           </h3>
                           <div className="grid grid-cols-2 gap-2.5">
                             {/* Total */}
                             <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40">
-                              <span className="text-xl font-black text-blue-700 dark:text-blue-400 mb-0.5">{totalTasks}</span>
-                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">Total</span>
+                              <span className="text-xl font-black text-blue-700 dark:text-blue-400 mb-0.5">
+                                {totalTasks}
+                              </span>
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">
+                                Total
+                              </span>
                             </div>
                             {/* In Progress */}
                             <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40">
-                              <span className="text-xl font-black text-amber-600 dark:text-amber-400 mb-0.5">{inProgressTasks}</span>
-                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">Active</span>
+                              <span className="text-xl font-black text-amber-600 dark:text-amber-400 mb-0.5">
+                                {inProgressTasks}
+                              </span>
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">
+                                Active
+                              </span>
                             </div>
                             {/* Completed */}
                             <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40">
-                              <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 mb-0.5">{completedTasks}</span>
-                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">Done</span>
+                              <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 mb-0.5">
+                                {completedTasks}
+                              </span>
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">
+                                Done
+                              </span>
                             </div>
                             {/* Overdue */}
                             <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/40">
-                              <span className="text-xl font-black text-rose-600 dark:text-rose-400 mb-0.5">{overdueTasks}</span>
-                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">Overdue</span>
+                              <span className="text-xl font-black text-rose-600 dark:text-rose-400 mb-0.5">
+                                {overdueTasks}
+                              </span>
+                              <span className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 text-center">
+                                Overdue
+                              </span>
                             </div>
                           </div>
                         </div>

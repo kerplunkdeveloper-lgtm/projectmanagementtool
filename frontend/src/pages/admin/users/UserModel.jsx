@@ -6,8 +6,10 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
   const [formData, setFormData] = useState({ name: "", email: "", location: "", password: "", role: "team", department: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [isCustomDept, setIsCustomDept] = useState(false);
+  const [isCustomLoc, setIsCustomLoc] = useState(false);
 
   const defaultDepts = [];
+  const defaultLocs = [];
 
   const uniqueDepts = Array.from(
     new Set([
@@ -15,6 +17,15 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
       ...(users || [])
         .map((u) => u.department)
         .filter((dept) => typeof dept === "string" && dept.trim() !== ""),
+    ]),
+  ).sort();
+
+  const uniqueLocs = Array.from(
+    new Set([
+      ...defaultLocs,
+      ...(users || [])
+        .map((u) => u.location)
+        .filter((loc) => typeof loc === "string" && loc.trim() !== ""),
     ]),
   ).sort();
 
@@ -30,6 +41,7 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
           department: editUser.department || "",
         });
         setIsCustomDept(false);
+        setIsCustomLoc(false);
       } else {
         setFormData({
           name: "",
@@ -40,6 +52,7 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
           department: "",
         });
         setIsCustomDept(false);
+        setIsCustomLoc(false);
       }
       setShowPassword(false);
     }
@@ -110,7 +123,48 @@ const UserModal = ({ openModal, setOpenModal, handleCreateUser, handleUpdateUser
 
             <div>
               <label className={LABEL}>Location</label>
-              <input type="text" name="location" value={formData.location} onChange={handleChange} placeholder="Enter location (e.g. Chennai, Remote)" className={INPUT} />
+              {isCustomLoc ? (
+                <div className="space-y-1">
+                  <input 
+                    type="text" 
+                    name="location" 
+                    value={formData.location} 
+                    onChange={handleChange} 
+                    placeholder="Enter custom location" 
+                    className={INPUT} 
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setIsCustomLoc(false);
+                      setFormData(p => ({ ...p, location: uniqueLocs[0] || "" }));
+                    }} 
+                    className="text-[9px] text-blue-500 hover:text-blue-600 font-extrabold tracking-wide uppercase transition-colors"
+                  >
+                    ← Choose from existing locations
+                  </button>
+                </div>
+              ) : (
+                <select
+                  name="location"
+                  value={formData.location}
+                  onChange={(e) => {
+                    if (e.target.value === "__custom__") {
+                      setIsCustomLoc(true);
+                      setFormData(p => ({ ...p, location: "" }));
+                    } else {
+                      handleChange(e);
+                    }
+                  }}
+                  className={SELECT_INPUT}
+                >
+                  <option value="">Select Location</option>
+                  {uniqueLocs.map(l => (
+                    <option key={l} value={l}>{l}</option>
+                  ))}
+                  <option value="__custom__" className="text-blue-600 font-extrabold bg-blue-50/50">+ Add Custom Location</option>
+                </select>
+              )}
             </div>
           </div>
 

@@ -69,6 +69,9 @@ const AdminUsers = () => {
   const [filterDept, setFilterDept] =
     useState("");
 
+  const [filterLocation, setFilterLocation] = useState("");
+  const [filterRelieved, setFilterRelieved] = useState("active");
+
   const [openDeleteModal, setOpenDeleteModal] =
     useState(false);
 
@@ -108,7 +111,7 @@ const AdminUsers = () => {
   // RESET PAGE ON FILTER
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterDept]);
+  }, [searchTerm, filterDept, filterLocation, filterRelieved]);
 
   // CREATE USER
   const handleCreateUser = async (
@@ -240,7 +243,14 @@ const AdminUsers = () => {
         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (user.location && user.location.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesDept = filterDept === "" || user.department === filterDept;
-      return matchesSearch && matchesDept;
+      const matchesLoc = filterLocation === "" || user.location === filterLocation;
+      
+      let matchesRelieved = true;
+      const isRelieved = user.employmentStatus === "relieved" || user.accountStatus === "inactive";
+      if (filterRelieved === "active") matchesRelieved = !isRelieved;
+      else if (filterRelieved === "relieved") matchesRelieved = isRelieved;
+
+      return matchesSearch && matchesDept && matchesLoc && matchesRelieved;
     })
     .sort((a, b) => {
       if (a.role === 'admin' && b.role !== 'admin') return -1;
@@ -305,6 +315,10 @@ const AdminUsers = () => {
         setSearchTerm={setSearchTerm}
         filterDept={filterDept}
         setFilterDept={setFilterDept}
+        filterLocation={filterLocation}
+        setFilterLocation={setFilterLocation}
+        filterRelieved={filterRelieved}
+        setFilterRelieved={setFilterRelieved}
         isReadOnly={isReadOnly}
       />
 
@@ -315,8 +329,22 @@ const AdminUsers = () => {
 
     <div className="px-3 py-1">
       <span className="font-semibold">Department:</span>{" "}
-      <span className="font-medium  italic">
+      <span className="font-light">
         {filterDept || "All Departments"}
+      </span>
+    </div>
+
+    <div className="px-3 py-1">
+      <span className="font-semibold">Location:</span>{" "}
+      <span className="font-light ">
+        {filterLocation || "All Locations"}
+      </span>
+    </div>
+
+    <div className="px-3 py-1">
+      <span className="font-semibold">Status:</span>{" "}
+      <span className="font-light ">
+        {filterRelieved === "all" ? "All Users" : filterRelieved === "active" ? "Active Users" : "Relieved Users"}
       </span>
     </div>
 
