@@ -28,11 +28,7 @@ import {
   FiCheckCircle,
   FiKey,
 } from "react-icons/fi";
-import {
-  FaInstagram,
-  FaFacebookF,
-  FaGoogle,
-} from "react-icons/fa";
+import { FaInstagram, FaFacebookF, FaGoogle } from "react-icons/fa";
 import {
   getSocialAccounts,
   createSocialAccount,
@@ -103,7 +99,7 @@ const hasPlatformData = (platform) => {
     platform.email?.trim() ||
     platform.phoneNumber?.trim() ||
     platform.profileUrl?.trim() ||
-    platform.pageUrl?.trim()
+    platform.pageUrl?.trim(),
   );
 };
 
@@ -124,7 +120,10 @@ const CredentialPill = ({
     e.stopPropagation();
     navigator.clipboard.writeText(value);
     setCopied(true);
-    toast.success(`${label} copied!`, { duration: 1200, id: `copy-${label}-${value}` });
+    toast.success(`${label} copied!`, {
+      duration: 1200,
+      id: `copy-${label}-${value}`,
+    });
     setTimeout(() => setCopied(false), 1500);
   };
 
@@ -133,7 +132,9 @@ const CredentialPill = ({
   return (
     <div className="flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100/90 dark:bg-[#141e33] border border-slate-200/80 dark:border-white/10 group hover:border-indigo-400/80 dark:hover:border-indigo-400/50 transition-all">
       <div className="flex items-center gap-1.5 min-w-0 flex-1">
-        {Icon && <Icon className="w-3 h-3 text-slate-400 dark:text-slate-400 shrink-0" />}
+        {Icon && (
+          <Icon className="w-3 h-3 text-slate-400 dark:text-slate-400 shrink-0" />
+        )}
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 leading-none mb-0.5">
             {label}
@@ -172,7 +173,11 @@ const CredentialPill = ({
             className="p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700/70 text-slate-500 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white transition-colors"
             title={showPass ? "Hide password" : "Show password"}
           >
-            {showPass ? <FiEyeOff className="w-3 h-3" /> : <FiEye className="w-3 h-3" />}
+            {showPass ? (
+              <FiEyeOff className="w-3 h-3" />
+            ) : (
+              <FiEye className="w-3 h-3" />
+            )}
           </button>
         )}
         <button
@@ -185,7 +190,11 @@ const CredentialPill = ({
           }`}
           title={`Copy ${label}`}
         >
-          {copied ? <FiCheck className="w-3 h-3" /> : <FiCopy className="w-3 h-3" />}
+          {copied ? (
+            <FiCheck className="w-3 h-3" />
+          ) : (
+            <FiCopy className="w-3 h-3" />
+          )}
         </button>
       </div>
     </div>
@@ -193,30 +202,50 @@ const CredentialPill = ({
 };
 
 // Compact table password cell with eye toggle & copy
-const TableCredentialCell = ({ username, password, email, phone, link, icon: Icon, brandColor, brandName }) => {
+// Compact table password cell with eye toggle & copy
+const TableCredentialCell = ({
+  username,
+  password,
+  email,
+  phone,
+  link,
+  icon: Icon,
+  brandColor,
+  brandName,
+}) => {
   const [showPass, setShowPass] = useState(false);
   const [copiedField, setCopiedField] = useState(null);
 
   if (!username && !password && !email && !phone) {
-    return <span className="text-[10px] text-slate-400 dark:text-slate-500 italic">None</span>;
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-white/[0.02] text-slate-400 dark:text-slate-500 text-[10px] font-medium border border-dashed border-slate-200 dark:border-white/10">
+        Not Connected
+      </span>
+    );
   }
 
   const handleCopy = (val, fieldName) => {
     if (!val) return;
     navigator.clipboard.writeText(val);
     setCopiedField(fieldName);
-    toast.success(`${fieldName} copied!`, { duration: 1200, id: `tbl-copy-${fieldName}-${val}` });
+    toast.success(`${fieldName} copied!`, {
+      duration: 1200,
+      id: `tbl-copy-${fieldName}-${val}`,
+    });
     setTimeout(() => setCopiedField(null), 1500);
   };
 
   return (
-    <div className="space-y-1.5 min-w-[170px] max-w-[240px]">
+    <div className="space-y-2 min-w-[180px] max-w-[250px]">
       {/* Username Row */}
       {username && (
-        <div className="flex items-center justify-between gap-1 text-[11px] font-bold text-slate-900 dark:text-white">
-          <div className="flex items-center gap-1.5 truncate">
+        <div className="flex items-center justify-between gap-1.5 p-1.5 rounded-lg bg-slate-50/80 dark:bg-white/[0.03] border border-slate-100 dark:border-white/[0.05]">
+          <div className="flex items-center gap-1.5 min-w-0 truncate">
             {Icon && <Icon className={`w-3.5 h-3.5 shrink-0 ${brandColor}`} />}
-            <span className="truncate" title={username}>
+            <span
+              className="text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate"
+              title={username}
+            >
               {username}
             </span>
             {link && (
@@ -224,46 +253,67 @@ const TableCredentialCell = ({ username, password, email, phone, link, icon: Ico
                 href={link}
                 target="_blank"
                 rel="noreferrer"
-                className="text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 shrink-0"
+                className="text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-400 shrink-0 transition-colors"
                 title={`Open ${brandName}`}
               >
-                <FiExternalLink className="w-2.5 h-2.5" />
+                <FiExternalLink className="w-3 h-3" />
               </a>
             )}
           </div>
           <button
+            type="button"
             onClick={() => handleCopy(username, "Username")}
-            className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-0.5 rounded transition-colors"
+            className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-1 rounded hover:bg-slate-200/60 dark:hover:bg-white/10 transition-colors shrink-0 cursor-pointer"
             title="Copy Username"
           >
-            {copiedField === "Username" ? <FiCheck className="w-3 h-3 text-emerald-500" /> : <FiCopy className="w-3 h-3" />}
+            {copiedField === "Username" ? (
+              <FiCheck className="w-3 h-3 text-emerald-500" />
+            ) : (
+              <FiCopy className="w-3 h-3" />
+            )}
           </button>
         </div>
       )}
 
       {/* Password Row */}
       {password && (
-        <div className="flex items-center justify-between gap-1 text-[10px] px-2 py-1 rounded-md bg-slate-100 dark:bg-[#141e33] border border-slate-200/70 dark:border-white/10">
-          <div className="flex items-center gap-1.5 font-mono truncate">
+        <div className="flex items-center justify-between gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-100/90 dark:bg-[#121c31] border border-slate-200/70 dark:border-white/10 shadow-2xs">
+          <div className="flex items-center gap-1.5 font-mono truncate min-w-0">
             <FiLock className="w-3 h-3 text-slate-400 shrink-0" />
-            <span className={`truncate font-bold tracking-widest ${showPass ? "text-slate-900 dark:text-white" : "text-indigo-600 dark:text-emerald-400"}`}>
+            <span
+              className={`truncate font-bold tracking-widest text-[11px] ${
+                showPass
+                  ? "text-slate-900 dark:text-white"
+                  : "text-indigo-600 dark:text-indigo-400"
+              }`}
+            >
               {showPass ? password : "••••••••"}
             </span>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-0.5 shrink-0">
             <button
+              type="button"
               onClick={() => setShowPass(!showPass)}
-              className="p-0.5 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
-              title={showPass ? "Hide" : "Show"}
+              className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-white/10 transition-colors cursor-pointer"
+              title={showPass ? "Hide password" : "Show password"}
             >
-              {showPass ? <FiEyeOff className="w-3 h-3" /> : <FiEye className="w-3 h-3" />}
+              {showPass ? (
+                <FiEyeOff className="w-3 h-3" />
+              ) : (
+                <FiEye className="w-3 h-3" />
+              )}
             </button>
             <button
+              type="button"
               onClick={() => handleCopy(password, "Password")}
-              className="p-0.5 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
+              className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-white/10 transition-colors cursor-pointer"
               title="Copy Password"
             >
-              {copiedField === "Password" ? <FiCheck className="w-3 h-3 text-emerald-500" /> : <FiCopy className="w-3 h-3" />}
+              {copiedField === "Password" ? (
+                <FiCheck className="w-3 h-3 text-emerald-500" />
+              ) : (
+                <FiCopy className="w-3 h-3" />
+              )}
             </button>
           </div>
         </div>
@@ -271,24 +321,28 @@ const TableCredentialCell = ({ username, password, email, phone, link, icon: Ico
 
       {/* Phone / Email compact chips */}
       {(email || phone) && (
-        <div className="flex items-center gap-1.5 text-[9.5px] text-slate-500 dark:text-slate-400 truncate">
+        <div className="flex items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 truncate pt-0.5">
           {email && (
             <span
               onClick={() => handleCopy(email, "Email")}
-              className="truncate cursor-pointer hover:text-indigo-500 dark:hover:text-indigo-300 font-medium"
-              title={`Click to copy: ${email}`}
+              className="inline-flex items-center gap-1 truncate cursor-pointer hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-colors"
+              title={`Click to copy email: ${email}`}
             >
-              📧 {email}
+              <FiMail className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+              <span className="truncate">{email}</span>
             </span>
           )}
-          {email && phone && <span>•</span>}
+          {email && phone && (
+            <span className="text-slate-300 dark:text-slate-600">•</span>
+          )}
           {phone && (
             <span
               onClick={() => handleCopy(phone, "Phone")}
-              className="truncate cursor-pointer hover:text-indigo-500 dark:hover:text-indigo-300 font-medium"
-              title={`Click to copy: ${phone}`}
+              className="inline-flex items-center gap-1 truncate cursor-pointer hover:text-emerald-600 dark:hover:text-emerald-400 font-medium transition-colors"
+              title={`Click to copy phone: ${phone}`}
             >
-              📞 {phone}
+              <FiPhone className="w-2.5 h-2.5 text-slate-400 shrink-0" />
+              <span>{phone}</span>
             </span>
           )}
         </div>
@@ -338,13 +392,19 @@ const initialFormData = {
 const SocialAccounts = () => {
   const dispatch = useDispatch();
   const { socialAccounts, isLoading, isSubmitting } = useSelector(
-    (state) => state.socialAccounts || { socialAccounts: [], isLoading: false, isSubmitting: false }
+    (state) =>
+      state.socialAccounts || {
+        socialAccounts: [],
+        isLoading: false,
+        isSubmitting: false,
+      },
   );
   const { clients } = useSelector((state) => state.clients || { clients: [] });
   const { users } = useSelector((state) => state.users || { users: [] });
 
   const [searchTerm, setSearchTerm] = useState("");
   const [clientFilter, setClientFilter] = useState("All");
+  const [managerFilter, setManagerFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [platformFilter, setPlatformFilter] = useState("All");
   const [viewMode, setViewMode] = useState("table");
@@ -365,10 +425,34 @@ const SocialAccounts = () => {
 
   // Helper to get assigned Social Media / Account Manager(s) for a client/account
   const getAssignedManagers = (acc) => {
+    // 1. Priority: The user who created the social account (createdBy)
+    let createdUser = acc.createdBy;
+    if (createdUser) {
+      const userId = createdUser._id || createdUser;
+      const found = users?.find((u) => (u._id || u.id) === userId);
+      let userObj =
+        typeof createdUser === "object" && createdUser?.name
+          ? { ...createdUser, ...(found || {}) }
+          : found;
+
+      if (!userObj && typeof createdUser === "string") {
+        userObj = { _id: createdUser, name: "Created User" };
+      }
+
+      if (userObj && userObj.name) {
+        return [userObj];
+      }
+    }
+
     let assigned = [];
     if (acc.accountManager) {
       assigned = [acc.accountManager];
-    } else if (acc.client?.assignedTo && (Array.isArray(acc.client.assignedTo) ? acc.client.assignedTo.length > 0 : Boolean(acc.client.assignedTo))) {
+    } else if (
+      acc.client?.assignedTo &&
+      (Array.isArray(acc.client.assignedTo)
+        ? acc.client.assignedTo.length > 0
+        : Boolean(acc.client.assignedTo))
+    ) {
       assigned = acc.client.assignedTo;
     } else {
       const foundClient = clients.find(
@@ -376,14 +460,16 @@ const SocialAccounts = () => {
           c._id === (acc.client?._id || acc.client) ||
           (c.companyName &&
             acc.clientName &&
-            c.companyName.trim().toLowerCase() === acc.clientName.trim().toLowerCase())
+            c.companyName.trim().toLowerCase() ===
+              acc.clientName.trim().toLowerCase()),
       );
       if (foundClient?.assignedTo) {
         assigned = foundClient.assignedTo;
       }
     }
 
-    if (!assigned || (Array.isArray(assigned) && assigned.length === 0)) return [];
+    if (!assigned || (Array.isArray(assigned) && assigned.length === 0))
+      return [];
     const assignedArr = Array.isArray(assigned) ? assigned : [assigned];
 
     // 1. Resolve full user object (from populate or Redux users state)
@@ -397,7 +483,11 @@ const SocialAccounts = () => {
           if (found) userObj = found;
           else userObj = { _id: userId, name: "Assigned Member" };
         } else if (found) {
-          userObj = { ...item, ...found, department: item.department || found.department };
+          userObj = {
+            ...item,
+            ...found,
+            department: item.department || found.department,
+          };
         }
         return userObj;
       })
@@ -434,6 +524,44 @@ const SocialAccounts = () => {
     return Array.from(names).sort((a, b) => a.localeCompare(b));
   }, [socialAccounts, clients]);
 
+  // Unique Social Media Manager options list
+  const managerOptions = useMemo(() => {
+    const managerMap = new Map();
+    (socialAccounts || []).forEach((acc) => {
+      const managers = getAssignedManagers(acc);
+      managers.forEach((m) => {
+        if (m && (m._id || m.id)) {
+          const id = m._id || m.id;
+          if (!managerMap.has(id)) {
+            managerMap.set(id, m.name || "Manager");
+          }
+        }
+      });
+    });
+    (users || []).forEach((u) => {
+      const dept = (u.department || "").toLowerCase();
+      const role = (u.role || "").toLowerCase();
+      const desig = (u.designation || "").toLowerCase();
+      if (
+        dept.includes("social media") ||
+        dept.includes("smm") ||
+        role.includes("social media") ||
+        role === "socialmediamanager" ||
+        desig.includes("social media") ||
+        desig.includes("smm")
+      ) {
+        const id = u._id || u.id;
+        if (id && !managerMap.has(id)) {
+          managerMap.set(id, u.name || "Social Media Manager");
+        }
+      }
+    });
+
+    return Array.from(managerMap.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [socialAccounts, users]);
+
   // Filter accounts
   const filteredAccounts = useMemo(() => {
     return (socialAccounts || []).filter((acc) => {
@@ -443,10 +571,20 @@ const SocialAccounts = () => {
         acc.client?._id === clientFilter ||
         acc.client?.companyName?.toLowerCase() === clientFilter.toLowerCase();
 
+      const managers = getAssignedManagers(acc);
+      const matchManagerSelect =
+        managerFilter === "All" ||
+        managers.some(
+          (m) =>
+            (m._id || m.id) === managerFilter ||
+            (m.name && m.name.toLowerCase() === managerFilter.toLowerCase()),
+        );
+
       const matchStatus = statusFilter === "All" || acc.status === statusFilter;
       const term = searchTerm.toLowerCase().trim();
-      const managers = getAssignedManagers(acc);
-      const matchManager = managers.some((m) => m.name?.toLowerCase().includes(term));
+      const matchManager = managers.some((m) =>
+        m.name?.toLowerCase().includes(term),
+      );
 
       const gmbData = acc.googleMyBusiness || acc.tiktok;
 
@@ -468,7 +606,7 @@ const SocialAccounts = () => {
         acc.otherPlatforms?.some(
           (p) =>
             p.username?.toLowerCase().includes(term) ||
-            p.platformName?.toLowerCase().includes(term)
+            p.platformName?.toLowerCase().includes(term),
         );
 
       let matchPlatform = true;
@@ -477,32 +615,51 @@ const SocialAccounts = () => {
       } else if (platformFilter === "facebook") {
         matchPlatform = hasPlatformData(acc.facebook);
       } else if (platformFilter === "gmb" || platformFilter === "google") {
-        matchPlatform = hasPlatformData(acc.googleMyBusiness) || hasPlatformData(acc.tiktok);
+        matchPlatform =
+          hasPlatformData(acc.googleMyBusiness) || hasPlatformData(acc.tiktok);
       } else if (platformFilter === "other") {
         matchPlatform = acc.otherPlatforms?.some((p) => hasPlatformData(p));
       }
 
-      return matchClient && matchStatus && matchSearch && matchPlatform;
+      return (
+        matchClient &&
+        matchManagerSelect &&
+        matchStatus &&
+        matchSearch &&
+        matchPlatform
+      );
     });
-  }, [socialAccounts, clientFilter, searchTerm, statusFilter, platformFilter, clients, users]);
+  }, [
+    socialAccounts,
+    clientFilter,
+    managerFilter,
+    searchTerm,
+    statusFilter,
+    platformFilter,
+    clients,
+    users,
+  ]);
 
   // Check if any accounts have other platforms configured
   const hasAnyOtherPlatforms = useMemo(() => {
     return (socialAccounts || []).some((acc) =>
-      (acc.otherPlatforms || []).some(hasPlatformData)
+      (acc.otherPlatforms || []).some(hasPlatformData),
     );
   }, [socialAccounts]);
 
   // Statistics
   const stats = useMemo(() => {
     const total = socialAccounts?.length || 0;
-    const active = socialAccounts?.filter((a) => a.status === "Active").length || 0;
+    const active =
+      socialAccounts?.filter((a) => a.status === "Active").length || 0;
     const igCount =
       socialAccounts?.filter((a) => hasPlatformData(a.instagram)).length || 0;
     const fbCount =
       socialAccounts?.filter((a) => hasPlatformData(a.facebook)).length || 0;
     const gmbCount =
-      socialAccounts?.filter((a) => hasPlatformData(a.googleMyBusiness) || hasPlatformData(a.tiktok)).length || 0;
+      socialAccounts?.filter(
+        (a) => hasPlatformData(a.googleMyBusiness) || hasPlatformData(a.tiktok),
+      ).length || 0;
 
     return { total, active, igCount, fbCount, gmbCount };
   }, [socialAccounts]);
@@ -518,8 +675,16 @@ const SocialAccounts = () => {
   const handleOpenEdit = (acc) => {
     setEditingId(acc._id);
     let managerId = acc.accountManager?._id || acc.accountManager || "";
-    if (!managerId && acc.client?.assignedTo && acc.client.assignedTo.length > 0) {
-      managerId = acc.client.assignedTo[0]?._id || acc.client.assignedTo[0] || "";
+    if (!managerId && acc.createdBy) {
+      managerId = acc.createdBy?._id || acc.createdBy || "";
+    }
+    if (
+      !managerId &&
+      acc.client?.assignedTo &&
+      acc.client.assignedTo.length > 0
+    ) {
+      managerId =
+        acc.client.assignedTo[0]?._id || acc.client.assignedTo[0] || "";
     }
 
     const gmb = acc.googleMyBusiness || acc.tiktok || {};
@@ -530,8 +695,19 @@ const SocialAccounts = () => {
       spoc: acc.spoc || acc.client?.spoc || "",
       designation: acc.designation || acc.client?.designation || "",
       accountManager: managerId,
-      registeredEmail: acc.registeredEmail || acc.instagram?.email || acc.facebook?.email || gmb?.email || "",
-      registeredPhone: acc.registeredPhone || acc.instagram?.phoneNumber || acc.facebook?.phoneNumber || gmb?.phoneNumber || acc.client?.phoneNumber || "",
+      registeredEmail:
+        acc.registeredEmail ||
+        acc.instagram?.email ||
+        acc.facebook?.email ||
+        gmb?.email ||
+        "",
+      registeredPhone:
+        acc.registeredPhone ||
+        acc.instagram?.phoneNumber ||
+        acc.facebook?.phoneNumber ||
+        gmb?.phoneNumber ||
+        acc.client?.phoneNumber ||
+        "",
       instagram: {
         username: acc.instagram?.username || "",
         password: acc.instagram?.password || "",
@@ -579,10 +755,17 @@ const SocialAccounts = () => {
       let managerId = "";
       if (found.assignedTo && found.assignedTo.length > 0) {
         const smm = found.assignedTo.find((u) => {
-          const userObj = typeof u === "object" ? u : users?.find((usr) => (usr._id || usr.id) === u);
+          const userObj =
+            typeof u === "object"
+              ? u
+              : users?.find((usr) => (usr._id || usr.id) === u);
           const dept = (userObj?.department || "").toLowerCase();
           const role = (userObj?.role || "").toLowerCase();
-          return dept.includes("social media") || dept.includes("smm") || role.includes("social media");
+          return (
+            dept.includes("social media") ||
+            dept.includes("smm") ||
+            role.includes("social media")
+          );
         });
         const chosen = smm || found.assignedTo[0];
         managerId = chosen?._id || chosen || "";
@@ -652,7 +835,7 @@ const SocialAccounts = () => {
 
     if (editingId) {
       const res = await dispatch(
-        updateSocialAccount({ id: editingId, data: formData })
+        updateSocialAccount({ id: editingId, data: formData }),
       );
       if (!res.error) {
         setIsModalOpen(false);
@@ -697,7 +880,11 @@ const SocialAccounts = () => {
 
     const rows = filteredAccounts.map((acc) => {
       const managers = getAssignedManagers(acc);
-      const managerNames = managers.map((m) => m.name).filter(Boolean).join("; ") || "Unassigned";
+      const managerNames =
+        managers
+          .map((m) => m.name)
+          .filter(Boolean)
+          .join("; ") || "Unassigned";
       const gmb = acc.googleMyBusiness || acc.tiktok || {};
 
       return [
@@ -726,7 +913,7 @@ const SocialAccounts = () => {
     link.setAttribute("href", encodedUri);
     link.setAttribute(
       "download",
-      `social_credentials_${new Date().toISOString().split("T")[0]}.csv`
+      `social_credentials_${new Date().toISOString().split("T")[0]}.csv`,
     );
     document.body.appendChild(link);
     link.click();
@@ -751,7 +938,8 @@ const SocialAccounts = () => {
               Social Media Accounts
             </h1>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Manage client logins, Instagram, Facebook, Google My Business credentials & backup codes
+              Manage client logins, Instagram, Facebook, Google My Business
+              credentials & backup codes
             </p>
           </div>
         </div>
@@ -763,7 +951,9 @@ const SocialAccounts = () => {
             className="p-2 rounded-xl bg-white dark:bg-[#0c1322] border border-slate-200/80 dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 shadow-xs transition-all cursor-pointer"
             title="Refresh"
           >
-            <FiRefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
+            <FiRefreshCw
+              className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`}
+            />
           </button>
 
           <button
@@ -820,7 +1010,9 @@ const SocialAccounts = () => {
             <span className="text-xl font-black text-pink-950 dark:text-white">
               {stats.igCount}
             </span>
-            <span className="text-[10px] font-medium text-pink-600/80 dark:text-pink-400/80">linked</span>
+            <span className="text-[10px] font-medium text-pink-600/80 dark:text-pink-400/80">
+              linked
+            </span>
           </div>
         </div>
 
@@ -838,14 +1030,19 @@ const SocialAccounts = () => {
             <span className="text-xl font-black text-blue-950 dark:text-white">
               {stats.fbCount}
             </span>
-            <span className="text-[10px] font-medium text-blue-600/80 dark:text-blue-400/80">linked</span>
+            <span className="text-[10px] font-medium text-blue-600/80 dark:text-blue-400/80">
+              linked
+            </span>
           </div>
         </div>
 
         {/* Google My Business */}
         <div className="p-3 rounded-xl bg-gradient-to-br from-amber-50/90 via-orange-50/30 to-white dark:from-amber-950/40 dark:via-orange-950/20 dark:to-[#0c1322] border border-amber-200/80 dark:border-amber-500/20 shadow-xs hover:shadow-md transition-all duration-200">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300/90 truncate mr-1" title="Google My Business">
+            <span
+              className="text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300/90 truncate mr-1"
+              title="Google My Business"
+            >
               Google Business
             </span>
             <div className="w-6 h-6 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center text-blue-600 shadow-2xs border border-slate-200 dark:border-white/10">
@@ -856,7 +1053,9 @@ const SocialAccounts = () => {
             <span className="text-xl font-black text-slate-900 dark:text-white">
               {stats.gmbCount}
             </span>
-            <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400/90">linked</span>
+            <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400/90">
+              linked
+            </span>
           </div>
         </div>
 
@@ -892,7 +1091,6 @@ const SocialAccounts = () => {
             placeholder="Search Account / Credentials ..."
             className="w-full pl-8 pr-8 py-1.5 rounded-lg text-xs bg-slate-50 dark:bg-[#141e33] border border-slate-200/80 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 transition-all"
           />
-          <FiSearch className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm("")}
@@ -909,13 +1107,28 @@ const SocialAccounts = () => {
           <select
             value={clientFilter}
             onChange={(e) => setClientFilter(e.target.value)}
-            className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-50 dark:bg-[#141e33] border border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-slate-200 focus:outline-none max-w-[140px] truncate"
+            className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-50 dark:bg-[#141e33] border border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-slate-200 focus:outline-none max-w-[140px] truncate cursor-pointer"
             title="Filter by Client"
           >
             <option value="All">All Clients</option>
             {clientOptions.map((cName, idx) => (
               <option key={`client-opt-${idx}-${cName}`} value={cName}>
                 {cName}
+              </option>
+            ))}
+          </select>
+
+          {/* Social Media Manager Filter */}
+          <select
+            value={managerFilter}
+            onChange={(e) => setManagerFilter(e.target.value)}
+            className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-50 dark:bg-[#141e33] border border-slate-200/80 dark:border-white/10 text-slate-800 dark:text-slate-200 focus:outline-none max-w-[160px] truncate cursor-pointer"
+            title="Filter by Social Media Manager"
+          >
+            <option value="All">All Managers</option>
+            {managerOptions.map((mgr) => (
+              <option key={`mgr-opt-${mgr.id}`} value={mgr.id}>
+                {mgr.name}
               </option>
             ))}
           </select>
@@ -991,7 +1204,10 @@ const SocialAccounts = () => {
             No accounts found
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto mb-4">
-            {searchTerm || statusFilter !== "All" || platformFilter !== "All" || clientFilter !== "All"
+            {searchTerm ||
+            statusFilter !== "All" ||
+            platformFilter !== "All" ||
+            clientFilter !== "All"
               ? "Try adjusting your search query or filters."
               : "Add client social media credentials to get started."}
           </p>
@@ -1011,8 +1227,11 @@ const SocialAccounts = () => {
             const hasFb = hasPlatformData(acc.facebook);
             const gmbData = acc.googleMyBusiness || acc.tiktok;
             const hasGmb = hasPlatformData(gmbData);
-            const validOtherPlatforms = (acc.otherPlatforms || []).filter(hasPlatformData);
-            const hasAnyPlatform = hasIg || hasFb || hasGmb || validOtherPlatforms.length > 0;
+            const validOtherPlatforms = (acc.otherPlatforms || []).filter(
+              hasPlatformData,
+            );
+            const hasAnyPlatform =
+              hasIg || hasFb || hasGmb || validOtherPlatforms.length > 0;
 
             return (
               <motion.div
@@ -1050,7 +1269,9 @@ const SocialAccounts = () => {
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-400 truncate">
-                        {acc.client?.industry && <span>{acc.client.industry}</span>}
+                        {acc.client?.industry && (
+                          <span>{acc.client.industry}</span>
+                        )}
                         {(() => {
                           const managers = getAssignedManagers(acc);
                           if (!managers || managers.length === 0) return null;
@@ -1088,16 +1309,31 @@ const SocialAccounts = () => {
                 {/* Card Body */}
                 <div className="p-3.5 space-y-3 flex-1">
                   {/* Common Registered Email / Phone Pill Banner in Card */}
-                  {(acc.registeredEmail || acc.registeredPhone || acc.instagram?.email || acc.instagram?.phoneNumber || acc.client?.phoneNumber) && (
+                  {(acc.registeredEmail ||
+                    acc.registeredPhone ||
+                    acc.instagram?.email ||
+                    acc.instagram?.phoneNumber ||
+                    acc.client?.phoneNumber) && (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-2 rounded-xl bg-slate-50/80 dark:bg-[#141e33] border border-slate-200/80 dark:border-white/10">
                       <CredentialPill
                         label="Registered Gmail / Email"
-                        value={acc.registeredEmail || acc.instagram?.email || acc.facebook?.email || gmbData?.email}
+                        value={
+                          acc.registeredEmail ||
+                          acc.instagram?.email ||
+                          acc.facebook?.email ||
+                          gmbData?.email
+                        }
                         icon={FiMail}
                       />
                       <CredentialPill
                         label="Registered Phone"
-                        value={acc.registeredPhone || acc.instagram?.phoneNumber || acc.facebook?.phoneNumber || gmbData?.phoneNumber || acc.client?.phoneNumber}
+                        value={
+                          acc.registeredPhone ||
+                          acc.instagram?.phoneNumber ||
+                          acc.facebook?.phoneNumber ||
+                          gmbData?.phoneNumber ||
+                          acc.client?.phoneNumber
+                        }
                         icon={FiPhone}
                       />
                     </div>
@@ -1324,142 +1560,175 @@ const SocialAccounts = () => {
         </div>
       ) : (
         /* TABLE VIEW WITH PROPER SMOOTH SCROLL, CRISP HEADERS & REVEAL */
-        <div className="bg-white dark:bg-[#0c1322] rounded-2xl border border-slate-200/70 dark:border-white/[0.08] shadow-xs overflow-hidden">
+        <div className="bg-white dark:bg-[#0c1322] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-sm overflow-hidden">
           <div className="overflow-x-auto w-full scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
-            <table className="w-full min-w-[1100px] text-left border-collapse text-xs">
+            <table className="w-full min-w-[1150px] text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-100/90 dark:!bg-[#111c33] border-b border-slate-200/80 dark:border-white/10 text-slate-700 dark:!text-slate-200 font-extrabold uppercase tracking-wider text-[10px]">
-                  <th className="py-3.5 px-4 text-slate-700 dark:!text-slate-200 font-extrabold whitespace-nowrap min-w-[170px]">
+                <tr className="bg-slate-50/90 dark:!bg-[#111b2f] border-b border-slate-200/80 dark:border-white/10 text-slate-500 dark:!text-slate-400 font-bold uppercase tracking-wider text-[10.5px]">
+                  <th className="py-4 px-5 whitespace-nowrap min-w-[190px]">
                     Social Media Manager
                   </th>
-                  <th className="py-3.5 px-4 text-slate-700 dark:!text-slate-200 font-extrabold whitespace-nowrap min-w-[200px]">
+                  <th className="py-4 px-5 whitespace-nowrap min-w-[210px]">
                     Client & Contact
                   </th>
-                  <th className="py-3.5 px-4 text-slate-700 dark:!text-slate-200 font-extrabold whitespace-nowrap min-w-[190px]">
-                    <div className="flex items-center gap-1.5">
-                      <FaInstagram className="w-3 h-3 text-pink-500" />
+                  <th className="py-4 px-5 whitespace-nowrap min-w-[200px]">
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-pink-500/10 text-pink-600 dark:text-pink-400">
+                      <FaInstagram className="w-3.5 h-3.5" />
                       <span>Instagram</span>
                     </div>
                   </th>
-                  <th className="py-3.5 px-4 text-slate-700 dark:!text-slate-200 font-extrabold whitespace-nowrap min-w-[190px]">
-                    <div className="flex items-center gap-1.5">
-                      <FaFacebookF className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                  <th className="py-4 px-5 whitespace-nowrap min-w-[200px]">
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                      <FaFacebookF className="w-3 h-3" />
                       <span>Facebook</span>
                     </div>
                   </th>
-                  <th className="py-3.5 px-4 text-slate-700 dark:!text-slate-200 font-extrabold whitespace-nowrap min-w-[200px]">
-                    <div className="flex items-center gap-1.5">
-                      <FaGoogle className="w-3 h-3 text-[#4285F4]" />
+                  <th className="py-4 px-5 whitespace-nowrap min-w-[210px]">
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-500/10 text-[#4285F4]">
+                      <FaGoogle className="w-3.5 h-3.5" />
                       <span>Google My Business</span>
                     </div>
                   </th>
                   {hasAnyOtherPlatforms && (
-                    <th className="py-3.5 px-4 text-slate-700 dark:!text-slate-200 font-extrabold whitespace-nowrap min-w-[160px]">
+                    <th className="py-4 px-5 whitespace-nowrap min-w-[170px]">
                       Other Platforms
                     </th>
                   )}
-                  <th className="py-3.5 px-4 text-slate-700 dark:!text-slate-200 font-extrabold whitespace-nowrap w-24">
+                  <th className="py-4 px-5 whitespace-nowrap w-24">
                     Status
                   </th>
-                  <th className="py-3.5 px-4 text-slate-700 dark:!text-slate-200 font-extrabold whitespace-nowrap text-right w-24 sticky right-0 bg-slate-100/90 dark:!bg-[#111c33]">
+                  <th className="py-4 px-5 whitespace-nowrap text-right w-24">
                     Actions
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-white/[0.04]">
                 {filteredAccounts.map((acc, idx) => {
-                  const validOther = (acc.otherPlatforms || []).filter(hasPlatformData);
+                  const validOther = (acc.otherPlatforms || []).filter(
+                    hasPlatformData,
+                  );
                   const gmbData = acc.googleMyBusiness || acc.tiktok || {};
-                  const displayEmail = acc.registeredEmail || acc.instagram?.email || acc.facebook?.email || gmbData?.email;
-                  const displayPhone = acc.registeredPhone || acc.instagram?.phoneNumber || acc.facebook?.phoneNumber || gmbData?.phoneNumber || acc.client?.phoneNumber;
+                  const displayEmail =
+                    acc.registeredEmail ||
+                    acc.instagram?.email ||
+                    acc.facebook?.email ||
+                    gmbData?.email;
+                  const displayPhone =
+                    acc.registeredPhone ||
+                    acc.instagram?.phoneNumber ||
+                    acc.facebook?.phoneNumber ||
+                    gmbData?.phoneNumber ||
+                    acc.client?.phoneNumber;
                   const managers = getAssignedManagers(acc);
                   const clientObj = acc.client?._id
                     ? acc.client
-                    : (clients || []).find((c) =>
-                        c._id === (acc.client?._id || acc.client) ||
-                        (c.companyName && acc.clientName && c.companyName.trim().toLowerCase() === acc.clientName.trim().toLowerCase())
+                    : (clients || []).find(
+                        (c) =>
+                          c._id === (acc.client?._id || acc.client) ||
+                          (c.companyName &&
+                            acc.clientName &&
+                            c.companyName.trim().toLowerCase() ===
+                              acc.clientName.trim().toLowerCase()),
                       ) || { companyName: acc.clientName, color: "#6366f1" };
 
                   return (
                     <tr
                       key={acc._id || `acc-row-${idx}`}
-                      className="hover:bg-slate-50/70 dark:hover:bg-[#131e36]/60 transition-colors group"
+                      className="hover:bg-slate-50/80 dark:hover:bg-[#131d33]/80 transition-colors group"
                     >
-                      {/* Social Media Manager (Avatar + Name) */}
-                      <td className="py-3 px-4 align-top whitespace-nowrap">
+                      {/* Social Media Manager (Avatar + Name Card) */}
+                      <td className="py-4 px-5 align-top whitespace-nowrap">
                         {managers && managers.length > 0 ? (
-                          <div className="space-y-1.5">
+                          <div className="space-y-2">
                             {managers.map((m, mIdx) => (
-                              <div key={m._id || mIdx} className="flex items-center gap-2.5">
-                                {renderUserAvatarSmall(m, "w-7 h-7 text-[9px]")}
+                              <div
+                                key={m._id || mIdx}
+                                className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-50/80 dark:bg-white/[0.03] border border-slate-200/60 dark:border-white/[0.06] hover:border-indigo-500/30 transition-all min-w-[170px]"
+                              >
+                                {renderUserAvatarSmall(m, "w-8 h-8 text-[10px] ring-2 ring-indigo-500/20")}
                                 <div className="flex flex-col min-w-0">
-                                  <span className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[150px]" title={m.name}>
+                                  <span
+                                    className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[140px]"
+                                    title={m.name}
+                                  >
                                     {m.name || "Manager"}
                                   </span>
-                                  <span className="text-[9.5px] font-medium text-indigo-600 dark:text-indigo-400 capitalize truncate max-w-[150px]">
-                                    {m.department || (m.role === "socialmediamanager" ? "Social Media Manager" : "Social Media")}
+                                  <span className="text-[9.5px] font-semibold text-indigo-600 dark:text-indigo-400 capitalize truncate max-w-[140px]">
+                                    {m.department ||
+                                      (m.role === "socialmediamanager"
+                                        ? "Social Media Manager"
+                                        : "Social Media")}
                                   </span>
                                 </div>
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <div className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-slate-500 italic">
-                            <div className="w-6 h-6 rounded-full border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-[10px]">
-                              <FiUser className="w-3 h-3 text-slate-400" />
-                            </div>
+                          <div className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-white/[0.02] border border-dashed border-slate-200 dark:border-white/10 text-slate-400 dark:text-slate-500 text-xs italic">
+                            <FiUser className="w-3.5 h-3.5" />
                             <span>Unassigned</span>
                           </div>
                         )}
                       </td>
 
                       {/* Client Name & Contact */}
-                      <td className="py-3 px-4 align-top">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <ClientBadge client={clientObj} size="sm" />
-                          {acc.client?.industry && (
-                            <span className="text-[9.5px] text-slate-400 dark:text-slate-500 font-medium">
-                              {acc.client.industry}
-                            </span>
-                          )}
-                        </div>
-                        {(acc.spoc || acc.client?.spoc || clientObj?.spoc) && (
-                          <div className="flex items-center gap-1 text-[10px] font-semibold text-slate-700 dark:text-slate-300 mt-1">
-                            <FiUser className="w-2.5 h-2.5 text-indigo-500 shrink-0" />
-                            <span>{acc.spoc || acc.client?.spoc || clientObj?.spoc}</span>
-                            {(acc.designation || acc.client?.designation || clientObj?.designation) && (
-                              <span className="text-[9px] text-slate-400 dark:text-slate-500 font-normal">
-                                • {acc.designation || acc.client?.designation || clientObj?.designation}
+                      <td className="py-4 px-5 align-top">
+                        <div className="space-y-1.5 min-w-[180px]">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <ClientBadge client={clientObj} size="sm" />
+                            {acc.client?.industry && (
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium px-1.5 py-0.5 rounded bg-slate-100 dark:bg-white/5">
+                                {acc.client.industry}
                               </span>
                             )}
                           </div>
-                        )}
-                        {(displayEmail || displayPhone) && (
-                          <div className="mt-1 space-y-0.5 text-[9.5px]">
-                            {displayEmail && (
-                              <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300 font-medium truncate" title={displayEmail}>
-                                <FiMail className="w-2.5 h-2.5 text-indigo-500 shrink-0" />
-                                <span className="truncate max-w-[170px]">{displayEmail}</span>
-                              </div>
-                            )}
-                            {displayPhone && (
-                              <div className="flex items-center gap-1 text-slate-600 dark:text-slate-300 font-medium">
-                                <FiPhone className="w-2.5 h-2.5 text-emerald-500 shrink-0" />
-                                <span>{displayPhone}</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        {(acc.twoFactorNotes || acc.generalNotes) && (
-                          <div className="mt-1 inline-flex items-center gap-1 text-[9px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded">
-                            <FiShield className="w-2.5 h-2.5" />
-                            <span>Has 2FA notes</span>
-                          </div>
-                        )}
+                          {(acc.spoc || acc.client?.spoc || clientObj?.spoc) && (
+                            <div className="flex items-center gap-1.5 text-[10.5px] font-semibold text-slate-700 dark:text-slate-200">
+                              <FiUser className="w-3 h-3 text-indigo-500 shrink-0" />
+                              <span className="truncate">
+                                {acc.spoc || acc.client?.spoc || clientObj?.spoc}
+                              </span>
+                              {(acc.designation ||
+                                acc.client?.designation ||
+                                clientObj?.designation) && (
+                                <span className="text-[9.5px] text-slate-400 dark:text-slate-500 font-normal truncate">
+                                  • {acc.designation || acc.client?.designation || clientObj?.designation}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          {(displayEmail || displayPhone) && (
+                            <div className="space-y-1 text-[10px] pt-0.5">
+                              {displayEmail && (
+                                <div
+                                  className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 font-medium truncate"
+                                  title={displayEmail}
+                                >
+                                  <FiMail className="w-3 h-3 text-indigo-500 shrink-0" />
+                                  <span className="truncate max-w-[180px]">
+                                    {displayEmail}
+                                  </span>
+                                </div>
+                              )}
+                              {displayPhone && (
+                                <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 font-medium">
+                                  <FiPhone className="w-3 h-3 text-emerald-500 shrink-0" />
+                                  <span>{displayPhone}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {(acc.twoFactorNotes || acc.generalNotes) && (
+                            <div className="inline-flex items-center gap-1.5 text-[9.5px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md mt-1">
+                              <FiShield className="w-3 h-3 shrink-0" />
+                              <span>2FA Notes Attached</span>
+                            </div>
+                          )}
+                        </div>
                       </td>
 
                       {/* Instagram Cell */}
-                      <td className="py-3 px-4 align-top">
+                      <td className="py-4 px-5 align-top">
                         <TableCredentialCell
                           username={acc.instagram?.username}
                           password={acc.instagram?.password}
@@ -1477,7 +1746,7 @@ const SocialAccounts = () => {
                       </td>
 
                       {/* Facebook Cell */}
-                      <td className="py-3 px-4 align-top">
+                      <td className="py-4 px-5 align-top">
                         <TableCredentialCell
                           username={acc.facebook?.username}
                           password={acc.facebook?.password}
@@ -1496,11 +1765,15 @@ const SocialAccounts = () => {
                       </td>
 
                       {/* Google My Business Cell */}
-                      <td className="py-3 px-4 align-top">
+                      <td className="py-4 px-5 align-top">
                         <TableCredentialCell
                           username={gmbData.username || gmbData.email}
                           password={gmbData.password}
-                          email={gmbData.email !== gmbData.username ? gmbData.email : null}
+                          email={
+                            gmbData.email !== gmbData.username
+                              ? gmbData.email
+                              : null
+                          }
                           phone={gmbData.phoneNumber}
                           link={gmbData.profileUrl || null}
                           icon={FaGoogle}
@@ -1511,27 +1784,30 @@ const SocialAccounts = () => {
 
                       {/* Other Platforms (if present) */}
                       {hasAnyOtherPlatforms && (
-                        <td className="py-3 px-4 align-top">
+                        <td className="py-4 px-5 align-top">
                           {validOther.length > 0 ? (
                             <div className="space-y-1.5">
                               {validOther.map((op, oIdx) => (
-                                <div key={oIdx} className="text-[10px]">
-                                  <span className="font-bold text-purple-600 dark:text-purple-400">
-                                    {op.platformName}:
-                                  </span>{" "}
-                                  <span className="font-semibold text-slate-700 dark:text-slate-200">
+                                <div
+                                  key={oIdx}
+                                  className="p-1.5 rounded-lg bg-slate-50 dark:bg-white/[0.03] border border-slate-100 dark:border-white/[0.05] text-[10.5px]"
+                                >
+                                  <div className="font-bold text-purple-600 dark:text-purple-400">
+                                    {op.platformName}
+                                  </div>
+                                  <div className="font-semibold text-slate-800 dark:text-slate-200">
                                     {op.username || "Set"}
-                                  </span>
+                                  </div>
                                   {op.password && (
-                                    <span className="ml-1 text-[9px] font-mono text-slate-400">
-                                      (Pass: {op.password})
-                                    </span>
+                                    <div className="text-[9.5px] font-mono text-slate-400">
+                                      Pass: {op.password}
+                                    </div>
                                   )}
                                 </div>
                               ))}
                             </div>
                           ) : (
-                            <span className="text-[10px] text-slate-400 dark:text-slate-500 italic">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-white/[0.02] text-slate-400 dark:text-slate-500 text-[10px] font-medium border border-dashed border-slate-200 dark:border-white/10">
                               None
                             </span>
                           )}
@@ -1539,25 +1815,32 @@ const SocialAccounts = () => {
                       )}
 
                       {/* Status */}
-                      <td className="py-3 px-4 align-top">
+                      <td className="py-4 px-5 align-top">
                         <span
-                          className={`inline-flex text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                          className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full ${
                             acc.status === "Active"
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/70 dark:text-emerald-400 border border-emerald-200/50 dark:border-emerald-800/40"
-                              : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-500/20"
+                              : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
                           }`}
                         >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              acc.status === "Active"
+                                ? "bg-emerald-500 animate-pulse"
+                                : "bg-slate-400"
+                            }`}
+                          ></span>
                           {acc.status}
                         </span>
                       </td>
 
                       {/* Actions */}
-                      <td className="py-3 px-4 align-top text-right sticky right-0 bg-white/95 dark:bg-[#0c1322]/95 group-hover:bg-slate-50/95 dark:group-hover:bg-[#131e36]/95 transition-colors">
-                        <div className="flex items-center justify-end gap-1">
+                      <td className="py-4 px-5 align-top text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => handleOpenEdit(acc)}
-                            className="p-1.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-white/10 dark:hover:text-white transition-colors cursor-pointer"
-                            title="Edit"
+                            className="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-white/10 dark:hover:text-white transition-all cursor-pointer shadow-2xs hover:scale-105"
+                            title="Edit Account"
                           >
                             <FiEdit3 className="w-3.5 h-3.5" />
                           </button>
@@ -1566,8 +1849,8 @@ const SocialAccounts = () => {
                               setAccountToDelete(acc);
                               setDeleteModalOpen(true);
                             }}
-                            className="p-1.5 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 transition-colors cursor-pointer"
-                            title="Delete"
+                            className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 transition-all cursor-pointer shadow-2xs hover:scale-105"
+                            title="Delete Account"
                           >
                             <FiTrash2 className="w-3.5 h-3.5" />
                           </button>
@@ -1628,7 +1911,10 @@ const SocialAccounts = () => {
               </div>
 
               {/* Modal Form */}
-              <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+              <form
+                onSubmit={handleSubmit}
+                className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4"
+              >
                 {/* Client Details & Common Contact Section */}
                 <div className="p-3 sm:p-4 rounded-xl bg-slate-50 dark:bg-[#141e33] border border-slate-200/80 dark:border-white/10 space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -1659,7 +1945,10 @@ const SocialAccounts = () => {
                         required
                         value={formData.clientName}
                         onChange={(e) =>
-                          setFormData({ ...formData, clientName: e.target.value })
+                          setFormData({
+                            ...formData,
+                            clientName: e.target.value,
+                          })
                         }
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       />
@@ -1708,7 +1997,10 @@ const SocialAccounts = () => {
                         type="text"
                         value={formData.designation}
                         onChange={(e) =>
-                          setFormData({ ...formData, designation: e.target.value })
+                          setFormData({
+                            ...formData,
+                            designation: e.target.value,
+                          })
                         }
                         className="w-full px-2.5 py-1.5 text-xs rounded-lg bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/20"
                       />
@@ -1809,7 +2101,9 @@ const SocialAccounts = () => {
                       }`}
                     >
                       <FiGlobe className="w-3 h-3" />
-                      <span>Other Platforms ({formData.otherPlatforms.length})</span>
+                      <span>
+                        Other Platforms ({formData.otherPlatforms.length})
+                      </span>
                     </button>
 
                     <button
@@ -1829,7 +2123,11 @@ const SocialAccounts = () => {
 
                 {/* TAB: INSTAGRAM */}
                 {activeTab === "instagram" && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3 pt-1">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-3 pt-1"
+                  >
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
@@ -1922,7 +2220,11 @@ const SocialAccounts = () => {
 
                 {/* TAB: FACEBOOK */}
                 {activeTab === "facebook" && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3 pt-1">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-3 pt-1"
+                  >
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
@@ -2015,7 +2317,11 @@ const SocialAccounts = () => {
 
                 {/* TAB: GOOGLE MY BUSINESS */}
                 {activeTab === "googleMyBusiness" && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3 pt-1">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-3 pt-1"
+                  >
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
@@ -2108,10 +2414,15 @@ const SocialAccounts = () => {
 
                 {/* TAB: OTHER PLATFORMS */}
                 {activeTab === "other" && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3 pt-1">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-3 pt-1"
+                  >
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                        Add YouTube, LinkedIn, Twitter/X, TikTok, Pinterest, etc.
+                        Add YouTube, LinkedIn, Twitter/X, TikTok, Pinterest,
+                        etc.
                       </span>
                       <button
                         type="button"
@@ -2126,7 +2437,8 @@ const SocialAccounts = () => {
                     {formData.otherPlatforms.length === 0 ? (
                       <div className="p-6 text-center border border-dashed border-slate-200 dark:border-white/10 rounded-xl">
                         <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                          No extra platforms added. Click &quot;Add Platform&quot; above.
+                          No extra platforms added. Click &quot;Add
+                          Platform&quot; above.
                         </p>
                       </div>
                     ) : (
@@ -2143,7 +2455,7 @@ const SocialAccounts = () => {
                                   handleOtherPlatformChange(
                                     idx,
                                     "platformName",
-                                    e.target.value
+                                    e.target.value,
                                   )
                                 }
                                 className="w-40 px-2 py-1 text-xs font-bold rounded-md bg-white dark:bg-[#0c1322] border border-slate-200 dark:border-white/10 text-slate-800 dark:text-white"
@@ -2176,7 +2488,7 @@ const SocialAccounts = () => {
                                   handleOtherPlatformChange(
                                     idx,
                                     "username",
-                                    e.target.value
+                                    e.target.value,
                                   )
                                 }
                                 placeholder="Username"
@@ -2189,7 +2501,7 @@ const SocialAccounts = () => {
                                   handleOtherPlatformChange(
                                     idx,
                                     "password",
-                                    e.target.value
+                                    e.target.value,
                                   )
                                 }
                                 placeholder="Password"
@@ -2202,7 +2514,7 @@ const SocialAccounts = () => {
                                   handleOtherPlatformChange(
                                     idx,
                                     "email",
-                                    e.target.value
+                                    e.target.value,
                                   )
                                 }
                                 placeholder="Email"
@@ -2215,7 +2527,7 @@ const SocialAccounts = () => {
                                   handleOtherPlatformChange(
                                     idx,
                                     "phoneNumber",
-                                    e.target.value
+                                    e.target.value,
                                   )
                                 }
                                 placeholder="Phone"
@@ -2231,7 +2543,11 @@ const SocialAccounts = () => {
 
                 {/* TAB: 2FA & SECURITY */}
                 {activeTab === "security" && (
-                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3 pt-1">
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-3 pt-1"
+                  >
                     <div>
                       <label className="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">
                         Two-Factor Authentication (2FA) & Backup Codes

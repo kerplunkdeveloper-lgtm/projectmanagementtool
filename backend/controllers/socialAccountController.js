@@ -184,8 +184,8 @@ exports.createSocialAccount = async (req, res) => {
         if (!finalDesignation && clientDoc.designation) {
           finalDesignation = clientDoc.designation;
         }
-        if (!finalAccountManager && clientDoc.assignedTo && clientDoc.assignedTo.length > 0) {
-          finalAccountManager = clientDoc.assignedTo[0];
+        if (!finalAccountManager) {
+          finalAccountManager = req.user ? req.user._id : (clientDoc.assignedTo && clientDoc.assignedTo.length > 0 ? clientDoc.assignedTo[0] : null);
         }
       }
     }
