@@ -3,12 +3,24 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import WelcomeUser from "../admin/partnerhub/components/WelcomeUser";
 import DashboardCards from "./cards/DashboardCards";
-import GraphicDesignerDashboard from "./cards/GraphicDesignerDashboard";
-import WebDeveloperDashboard from "./cards/WebDeveloperDashboard";
-import MobileDeveloperDashboard from "./cards/MobileDeveloperDashboard";
-import SocialMediaManagerDashboard from "./cards/SocialMediaManagerDashboard";
-import SEOSpecialistDashboard from "./cards/SEOSpecialistDashboard";
-import PerformanceMarketerDashboard from "./cards/PerformanceMarketerDashboard";
+const GraphicDesignerDashboard = React.lazy(
+  () => import("./cards/GraphicDesignerDashboard"),
+);
+const WebDeveloperDashboard = React.lazy(
+  () => import("./cards/WebDeveloperDashboard"),
+);
+const MobileDeveloperDashboard = React.lazy(
+  () => import("./cards/MobileDeveloperDashboard"),
+);
+const SocialMediaManagerDashboard = React.lazy(
+  () => import("./cards/SocialMediaManagerDashboard"),
+);
+const SEOSpecialistDashboard = React.lazy(
+  () => import("./cards/SEOSpecialistDashboard"),
+);
+const PerformanceMarketerDashboard = React.lazy(
+  () => import("./cards/PerformanceMarketerDashboard"),
+);
 import {
   getProjects,
   createProject,
@@ -736,7 +748,8 @@ const Dashboardmain = () => {
   }, [projects, user]);
 
   const PROJECTS_PER_PAGE = 5;
-  const totalProjectPages = Math.ceil((userProjects?.length || 0) / PROJECTS_PER_PAGE) || 1;
+  const totalProjectPages =
+    Math.ceil((userProjects?.length || 0) / PROJECTS_PER_PAGE) || 1;
 
   const paginatedUserProjects = React.useMemo(() => {
     return (userProjects || []).slice(
@@ -750,11 +763,13 @@ const Dashboardmain = () => {
     if (typeof proj.client === "object" && proj.client.companyName) {
       return proj.client;
     }
-    const clientId = typeof proj.client === "object" ? proj.client._id : proj.client;
+    const clientId =
+      typeof proj.client === "object" ? proj.client._id : proj.client;
     const matched = clients?.find((c) => c._id === clientId);
     if (matched) return matched;
     if (typeof proj.client === "string") return { companyName: proj.client };
-    if (proj.client?.companyName || proj.client?.name) return { companyName: proj.client.companyName || proj.client.name };
+    if (proj.client?.companyName || proj.client?.name)
+      return { companyName: proj.client.companyName || proj.client.name };
     return null;
   };
 
@@ -1663,7 +1678,9 @@ const Dashboardmain = () => {
                   {getInitials(user?.name) || "Aw"}
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">My Goals tasks</h3>
+                  <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">
+                    My Goals tasks
+                  </h3>
                   <FiLock
                     size={12}
                     className="text-slate-400 dark:text-slate-500 fill-slate-400 dark:fill-slate-500"
@@ -1973,7 +1990,9 @@ const Dashboardmain = () => {
                       <button
                         type="button"
                         disabled={projectPage === 1}
-                        onClick={() => setProjectPage((prev) => Math.max(1, prev - 1))}
+                        onClick={() =>
+                          setProjectPage((prev) => Math.max(1, prev - 1))
+                        }
                         className="w-4.5 h-4.5 rounded flex items-center justify-center text-[10px] font-bold text-[#2e1d6c] dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all"
                         title="Previous page"
                       >
@@ -1985,7 +2004,11 @@ const Dashboardmain = () => {
                       <button
                         type="button"
                         disabled={projectPage >= totalProjectPages}
-                        onClick={() => setProjectPage((prev) => Math.min(totalProjectPages, prev + 1))}
+                        onClick={() =>
+                          setProjectPage((prev) =>
+                            Math.min(totalProjectPages, prev + 1),
+                          )
+                        }
                         className="w-4.5 h-4.5 rounded flex items-center justify-center text-[10px] font-bold text-[#2e1d6c] dark:text-purple-200 hover:bg-purple-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-all"
                         title="Next page"
                       >
@@ -2050,12 +2073,21 @@ const Dashboardmain = () => {
             {/* Footer Pagination Bar */}
             {totalProjectPages > 1 && (
               <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-200/50 dark:border-white/5 text-[10px] font-bold text-slate-500 dark:text-slate-400">
-                <span>Showing {((projectPage - 1) * PROJECTS_PER_PAGE) + 1}–{Math.min(projectPage * PROJECTS_PER_PAGE, userProjects?.length || 0)} of {userProjects?.length || 0} projects</span>
+                <span>
+                  Showing {(projectPage - 1) * PROJECTS_PER_PAGE + 1}–
+                  {Math.min(
+                    projectPage * PROJECTS_PER_PAGE,
+                    userProjects?.length || 0,
+                  )}{" "}
+                  of {userProjects?.length || 0} projects
+                </span>
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
                     disabled={projectPage === 1}
-                    onClick={() => setProjectPage((prev) => Math.max(1, prev - 1))}
+                    onClick={() =>
+                      setProjectPage((prev) => Math.max(1, prev - 1))
+                    }
                     className="px-2 py-0.5 rounded-md border border-slate-200 dark:border-white/10 text-[11px] font-semibold hover:bg-slate-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all flex items-center gap-1"
                   >
                     <span>Prev</span>
@@ -2063,7 +2095,11 @@ const Dashboardmain = () => {
                   <button
                     type="button"
                     disabled={projectPage >= totalProjectPages}
-                    onClick={() => setProjectPage((prev) => Math.min(totalProjectPages, prev + 1))}
+                    onClick={() =>
+                      setProjectPage((prev) =>
+                        Math.min(totalProjectPages, prev + 1),
+                      )
+                    }
                     className="px-2 py-0.5 rounded-md border border-slate-200 dark:border-white/10 text-[11px] font-semibold hover:bg-slate-100 dark:hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all flex items-center gap-1"
                   >
                     <span>Next</span>
@@ -2171,41 +2207,50 @@ const Dashboardmain = () => {
           </div>
 
           {/* Tab Content */}
-          {(["Graphic Designer", "VideoGrapher", "Cinematographer"].some((k) =>
-            activeDeptTab?.toLowerCase().includes(k.toLowerCase()),
-          ) ||
-            activeDeptTab?.toLowerCase().includes("design") ||
-            activeDeptTab?.toLowerCase().includes("cinema") ||
-            activeDeptTab?.toLowerCase().includes("video")) && (
-            <GraphicDesignerDashboard targetDept={activeDeptTab} />
-          )}
-          {activeDeptTab?.toLowerCase().includes("web") && (
-            <WebDeveloperDashboard targetDept={activeDeptTab} />
-          )}
-          {activeDeptTab?.toLowerCase().includes("mobile") && (
-            <MobileDeveloperDashboard targetDept={activeDeptTab} />
-          )}
-          {activeDeptTab?.toLowerCase().includes("social") && (
-            <SocialMediaManagerDashboard targetDept={activeDeptTab} />
-          )}
-          {activeDeptTab?.toLowerCase().includes("seo") && (
-            <SEOSpecialistDashboard targetDept={activeDeptTab} />
-          )}
-          {activeDeptTab?.toLowerCase().includes("performance") && (
-            <PerformanceMarketerDashboard targetDept={activeDeptTab} />
-          )}
-
-          {!activeDeptTab?.toLowerCase().includes("graphic") &&
-            !activeDeptTab?.toLowerCase().includes("design") &&
-            !activeDeptTab?.toLowerCase().includes("cinema") &&
-            !activeDeptTab?.toLowerCase().includes("video") &&
-            !activeDeptTab?.toLowerCase().includes("web") &&
-            !activeDeptTab?.toLowerCase().includes("mobile") &&
-            !activeDeptTab?.toLowerCase().includes("social") &&
-            !activeDeptTab?.toLowerCase().includes("seo") &&
-            !activeDeptTab?.toLowerCase().includes("performance") && (
+          {/* Tab Content */}
+          <React.Suspense
+            fallback={
+              <div className="flex justify-center py-10">
+                <div className="animate-spin h-8 w-8 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+              </div>
+            }
+          >
+            {(["Graphic Designer", "VideoGrapher", "Cinematographer"].some(
+              (k) => activeDeptTab?.toLowerCase().includes(k.toLowerCase()),
+            ) ||
+              activeDeptTab?.toLowerCase().includes("design") ||
+              activeDeptTab?.toLowerCase().includes("cinema") ||
+              activeDeptTab?.toLowerCase().includes("video")) && (
               <GraphicDesignerDashboard targetDept={activeDeptTab} />
             )}
+            {activeDeptTab?.toLowerCase().includes("web") && (
+              <WebDeveloperDashboard targetDept={activeDeptTab} />
+            )}
+            {activeDeptTab?.toLowerCase().includes("mobile") && (
+              <MobileDeveloperDashboard targetDept={activeDeptTab} />
+            )}
+            {activeDeptTab?.toLowerCase().includes("social") && (
+              <SocialMediaManagerDashboard targetDept={activeDeptTab} />
+            )}
+            {activeDeptTab?.toLowerCase().includes("seo") && (
+              <SEOSpecialistDashboard targetDept={activeDeptTab} />
+            )}
+            {activeDeptTab?.toLowerCase().includes("performance") && (
+              <PerformanceMarketerDashboard targetDept={activeDeptTab} />
+            )}
+
+            {!activeDeptTab?.toLowerCase().includes("graphic") &&
+              !activeDeptTab?.toLowerCase().includes("design") &&
+              !activeDeptTab?.toLowerCase().includes("cinema") &&
+              !activeDeptTab?.toLowerCase().includes("video") &&
+              !activeDeptTab?.toLowerCase().includes("web") &&
+              !activeDeptTab?.toLowerCase().includes("mobile") &&
+              !activeDeptTab?.toLowerCase().includes("social") &&
+              !activeDeptTab?.toLowerCase().includes("seo") &&
+              !activeDeptTab?.toLowerCase().includes("performance") && (
+                <GraphicDesignerDashboard targetDept={activeDeptTab} />
+              )}
+          </React.Suspense>
         </div>
       )}
       {/* end................................................................................................... */}
@@ -2219,9 +2264,6 @@ const Dashboardmain = () => {
             <GraphicDesignerDeadlines user={user} />
           </div>
         )}
-
-
-
 
       {/* CREATE PROJECT OFFCANVAS DRAWER */}
       <AnimatePresence>

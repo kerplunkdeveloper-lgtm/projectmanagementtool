@@ -185,7 +185,7 @@ const checkTaskProductivityAndDate = (
         (sub) =>
           isDateInWeek(sub.startDate) ||
           isDateInWeek(sub.dueDate) ||
-          isDateInWeek(sub.createdAt)
+          isDateInWeek(sub.createdAt),
       );
       if (subInWeek) return true;
     }
@@ -226,7 +226,9 @@ const checkTaskProductivityAndDate = (
     const isDateInMonth = (d) => {
       if (!d) return false;
       const date = new Date(d);
-      return !isNaN(date.getTime()) && date >= startOfMonth && date <= endOfMonth;
+      return (
+        !isNaN(date.getTime()) && date >= startOfMonth && date <= endOfMonth
+      );
     };
 
     if (
@@ -243,7 +245,7 @@ const checkTaskProductivityAndDate = (
         (sub) =>
           isDateInMonth(sub.startDate) ||
           isDateInMonth(sub.dueDate) ||
-          isDateInMonth(sub.createdAt)
+          isDateInMonth(sub.createdAt),
       );
       if (subInMonth) return true;
     }
@@ -1763,7 +1765,11 @@ const TaskOverviewTab = ({
   const normalizeStatus = (s) => {
     if (!s) return "All";
     const lower = s.toLowerCase();
-    if (lower === "in-review" || lower === "inreview" || lower === "in review") {
+    if (
+      lower === "in-review" ||
+      lower === "inreview" ||
+      lower === "in review"
+    ) {
       return "In Review";
     }
     return s;

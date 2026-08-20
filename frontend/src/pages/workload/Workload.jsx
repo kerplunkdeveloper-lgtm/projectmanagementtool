@@ -32,13 +32,16 @@ import toast from "react-hot-toast";
 
 const Workload = () => {
   const dispatch = useDispatch();
-  const { users = [], loading: usersLoading } = useSelector((state) => state.users);
+  const { users = [], loading: usersLoading } = useSelector(
+    (state) => state.users,
+  );
 
   // Fetch tasks, projects, and mutations
   const { data: tasks = [], isLoading: tasksLoading } = useGetTasksQuery();
   const { data: projects = [] } = useGetProjectsQuery();
   const [updateTaskTrigger] = useUpdateTaskMutation();
-  const [createTaskTrigger, { isLoading: isCreatingTask }] = useCreateTaskMutation();
+  const [createTaskTrigger, { isLoading: isCreatingTask }] =
+    useCreateTaskMutation();
 
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState("");
@@ -80,9 +83,15 @@ const Workload = () => {
         return assignedId === user._id;
       });
 
-      const pending = userTasks.filter((t) => t.status === "Pending" || !t.status).length;
-      const inProgress = userTasks.filter((t) => t.status === "In Progress").length;
-      const completed = userTasks.filter((t) => t.status === "Completed").length;
+      const pending = userTasks.filter(
+        (t) => t.status === "Pending" || !t.status,
+      ).length;
+      const inProgress = userTasks.filter(
+        (t) => t.status === "In Progress",
+      ).length;
+      const completed = userTasks.filter(
+        (t) => t.status === "Completed",
+      ).length;
       const onHold = userTasks.filter((t) => t.status === "On Hold").length;
       const total = userTasks.length;
       const active = pending + inProgress + onHold;
@@ -100,8 +109,10 @@ const Workload = () => {
       let ringColor = "ring-emerald-500/30 border-emerald-500/70";
       let pulseBg = "bg-emerald-500";
       let textClass = "text-emerald-600 dark:text-emerald-400";
-      let badgeClass = "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20";
-      let glowClass = "hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] hover:border-emerald-500/30";
+      let badgeClass =
+        "bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20";
+      let glowClass =
+        "hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] hover:border-emerald-500/30";
 
       if (active > 5) {
         status = "Overloaded";
@@ -109,16 +120,20 @@ const Workload = () => {
         ringColor = "ring-rose-500/40 border-rose-500/70";
         pulseBg = "bg-rose-500";
         textClass = "text-rose-600 dark:text-rose-400";
-        badgeClass = "bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/20";
-        glowClass = "hover:shadow-[0_0_20px_rgba(239,68,68,0.15)] hover:border-rose-500/30";
+        badgeClass =
+          "bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/20";
+        glowClass =
+          "hover:shadow-[0_0_20px_rgba(239,68,68,0.15)] hover:border-rose-500/30";
       } else if (active >= 2) {
         status = "Optimal";
         statusText = "Optimal capacity";
         ringColor = "ring-blue-500/30 border-blue-500/70";
         pulseBg = "bg-blue-500";
         textClass = "text-blue-600 dark:text-blue-400";
-        badgeClass = "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/20";
-        glowClass = "hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] hover:border-blue-500/30";
+        badgeClass =
+          "bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/20";
+        glowClass =
+          "hover:shadow-[0_0_20px_rgba(59,130,246,0.15)] hover:border-blue-500/30";
       }
 
       return {
@@ -164,8 +179,10 @@ const Workload = () => {
       const matchesSearch =
         u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         u.email.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesDept = selectedDept === "All" || u.department === selectedDept;
-      const matchesStatus = selectedStatus === "All" || u.workloadStatus === selectedStatus;
+      const matchesDept =
+        selectedDept === "All" || u.department === selectedDept;
+      const matchesStatus =
+        selectedStatus === "All" || u.workloadStatus === selectedStatus;
       return matchesSearch && matchesDept && matchesStatus;
     });
   }, [usersWithWorkload, searchTerm, selectedDept, selectedStatus]);
@@ -184,12 +201,23 @@ const Workload = () => {
   // Global workload summary counts
   const summaryMetrics = useMemo(() => {
     const totalMembers = usersWithWorkload.length;
-    const overloaded = usersWithWorkload.filter((u) => u.workloadStatus === "Overloaded").length;
-    const optimal = usersWithWorkload.filter((u) => u.workloadStatus === "Optimal").length;
-    const available = usersWithWorkload.filter((u) => u.workloadStatus === "Available").length;
+    const overloaded = usersWithWorkload.filter(
+      (u) => u.workloadStatus === "Overloaded",
+    ).length;
+    const optimal = usersWithWorkload.filter(
+      (u) => u.workloadStatus === "Optimal",
+    ).length;
+    const available = usersWithWorkload.filter(
+      (u) => u.workloadStatus === "Available",
+    ).length;
 
-    const totalActiveTasks = tasks.filter((t) => t.status !== "Completed").length;
-    const totalOverdue = usersWithWorkload.reduce((sum, u) => sum + u.overdueCount, 0);
+    const totalActiveTasks = tasks.filter(
+      (t) => t.status !== "Completed",
+    ).length;
+    const totalOverdue = usersWithWorkload.reduce(
+      (sum, u) => sum + u.overdueCount,
+      0,
+    );
 
     return {
       totalMembers,
@@ -216,7 +244,10 @@ const Workload = () => {
 
   const handleUpdateTaskStatus = async (taskId, newStatus) => {
     try {
-      await updateTaskTrigger({ id: taskId, taskData: { status: newStatus } }).unwrap();
+      await updateTaskTrigger({
+        id: taskId,
+        taskData: { status: newStatus },
+      }).unwrap();
       toast.success("Task status updated");
     } catch (err) {
       toast.error("Failed to update status");
@@ -287,7 +318,8 @@ const Workload = () => {
             Workload Management
           </h1>
           <p className="text-xs md:text-sm theme-text-secondary mt-1">
-            Real-time visual monitoring of resource allocations, capacities, and active deliverables.
+            Real-time visual monitoring of resource allocations, capacities, and
+            active deliverables.
           </p>
         </div>
       </div>
@@ -382,7 +414,6 @@ const Workload = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-205 dark:border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder-slate-400 dark:placeholder-slate-500 transition-all"
             />
-          
           </div>
 
           {/* Allocation Level Filters (Tabs style) */}
@@ -396,23 +427,27 @@ const Workload = () => {
                 status === "All"
                   ? summaryMetrics.totalMembers
                   : status === "Overloaded"
-                  ? summaryMetrics.overloaded
-                  : status === "Optimal"
-                  ? summaryMetrics.optimal
-                  : summaryMetrics.available;
+                    ? summaryMetrics.overloaded
+                    : status === "Optimal"
+                      ? summaryMetrics.optimal
+                      : summaryMetrics.available;
 
               return (
                 <button
                   key={status}
                   onClick={() => setSelectedStatus(status)}
                   className={`dept-filter-tab px-3.5 py-1.5 text-[10px] flex items-center gap-1.5 ${
-                    isActive ? "dept-filter-tab-active" : "dept-filter-tab-inactive"
+                    isActive
+                      ? "dept-filter-tab-active"
+                      : "dept-filter-tab-inactive"
                   }`}
                 >
                   {status}
                   <span
                     className={`px-1.5 py-0.2 rounded-full text-[8px] font-black ${
-                      isActive ? "bg-white/20 text-white animate-pulse" : "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                      isActive
+                        ? "bg-white/20 text-white animate-pulse"
+                        : "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
                     }`}
                   >
                     {count}
@@ -440,13 +475,17 @@ const Workload = () => {
                 key={dept}
                 onClick={() => setSelectedDept(dept)}
                 className={`dept-filter-tab px-3.5 py-1.5 text-[10px] flex items-center gap-1.5 ${
-                  isActive ? "dept-filter-tab-active" : "dept-filter-tab-inactive"
+                  isActive
+                    ? "dept-filter-tab-active"
+                    : "dept-filter-tab-inactive"
                 }`}
               >
                 {dept}
                 <span
                   className={`px-1.5 py-0.2 rounded-full text-[8px] font-black ${
-                    isActive ? "bg-white/20 text-white animate-pulse" : "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
+                    isActive
+                      ? "bg-white/20 text-white animate-pulse"
+                      : "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
                   }`}
                 >
                   {count}
@@ -461,15 +500,25 @@ const Workload = () => {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-24 gap-3">
           <div className="w-10 h-10 border-3 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-xs theme-text-secondary font-black tracking-wide">COMPILING RESOURCING CHARTS...</span>
+          <span className="text-xs theme-text-secondary font-black tracking-wide">
+            COMPILING RESOURCING CHARTS...
+          </span>
         </div>
       ) : Object.keys(groupedByDepartment).length > 0 ? (
         <div className="space-y-8">
           {Object.entries(groupedByDepartment).map(([deptName, deptUsers]) => {
             const isCollapsed = !!collapsedDepts[deptName];
-            const overloadedCount = deptUsers.filter((u) => u.workloadStatus === "Overloaded").length;
-            const totalTasksInDept = deptUsers.reduce((sum, u) => sum + u.metrics.total, 0);
-            const activeTasksInDept = deptUsers.reduce((sum, u) => sum + u.metrics.active, 0);
+            const overloadedCount = deptUsers.filter(
+              (u) => u.workloadStatus === "Overloaded",
+            ).length;
+            const totalTasksInDept = deptUsers.reduce(
+              (sum, u) => sum + u.metrics.total,
+              0,
+            );
+            const activeTasksInDept = deptUsers.reduce(
+              (sum, u) => sum + u.metrics.active,
+              0,
+            );
 
             return (
               <div
@@ -494,7 +543,10 @@ const Workload = () => {
                         {deptName}
                       </h2>
                       <p className="text-[10px] theme-text-secondary font-bold mt-0.5 uppercase tracking-wide">
-                        {deptUsers.length} {deptUsers.length === 1 ? "Staff resource" : "Staff resources"}
+                        {deptUsers.length}{" "}
+                        {deptUsers.length === 1
+                          ? "Staff resource"
+                          : "Staff resources"}
                       </p>
                     </div>
                   </div>
@@ -502,7 +554,11 @@ const Workload = () => {
                   {/* Summary badges for department */}
                   <div className="flex flex-wrap items-center gap-2.5 text-[9px] font-bold">
                     <div className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-805 text-slate-600 dark:text-slate-350 border theme-border">
-                      Active deliverables: <span className="font-black theme-text-primary">{activeTasksInDept}</span> / {totalTasksInDept}
+                      Active deliverables:{" "}
+                      <span className="font-black theme-text-primary">
+                        {activeTasksInDept}
+                      </span>{" "}
+                      / {totalTasksInDept}
                     </div>
 
                     {overloadedCount > 0 && (
@@ -525,13 +581,19 @@ const Workload = () => {
                     >
                       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                         {deptUsers.map((user) => {
-                          const avatarUrl = user.profile?.profileImage?.url || user.profileImage?.url;
-                          const initial = user.name?.charAt(0).toUpperCase() || "?";
+                          const avatarUrl =
+                            user.profile?.profileImage?.url ||
+                            user.profileImage?.url;
+                          const initial =
+                            user.name?.charAt(0).toUpperCase() || "?";
 
                           return (
                             <motion.div
                               layout
-                              whileHover={{ y: -3, transition: { duration: 0.15 } }}
+                              whileHover={{
+                                y: -3,
+                                transition: { duration: 0.15 },
+                              }}
                               key={user._id}
                               onClick={() => setSelectedUserId(user._id)}
                               className={`theme-bg-card border theme-border rounded-2xl p-5 shadow-md hover:shadow-xl dark:shadow-[#000000]/60 transition-all duration-300 cursor-pointer flex flex-col justify-between ${user.styles.glow}`}
@@ -553,7 +615,9 @@ const Workload = () => {
                                         </div>
                                       )}
                                       {/* Glowing activity dot based on status */}
-                                      <span className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-slate-800 shadow-sm ${user.styles.pulse}`} />
+                                      <span
+                                        className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-slate-800 shadow-sm ${user.styles.pulse}`}
+                                      />
                                     </div>
 
                                     <div className="min-w-0">
@@ -561,13 +625,17 @@ const Workload = () => {
                                         {user.name}
                                       </h3>
                                       <p className="text-[10px] theme-text-secondary truncate uppercase tracking-wider font-extrabold mt-0.5">
-                                        {user.role === "operationmanager" ? "Operation Manager" : "Team Member"}
+                                        {user.role === "operationmanager"
+                                          ? "Operation Manager"
+                                          : "Team Member"}
                                       </p>
                                     </div>
                                   </div>
 
                                   {/* Workload Pill */}
-                                  <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider border ${user.styles.badge}`}>
+                                  <span
+                                    className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider border ${user.styles.badge}`}
+                                  >
                                     {user.workloadStatus}
                                   </span>
                                 </div>
@@ -575,9 +643,12 @@ const Workload = () => {
                                 {/* Row 2: Visual Workload Allocation Gauge */}
                                 <div className="space-y-1.5 mb-4">
                                   <div className="flex justify-between text-[10px] font-bold">
-                                    <span className="theme-text-secondary">Workload Allocation</span>
+                                    <span className="theme-text-secondary">
+                                      Workload Allocation
+                                    </span>
                                     <span className="theme-text-primary font-black">
-                                      {user.metrics.active} / {user.metrics.capacity} tasks
+                                      {user.metrics.active} /{" "}
+                                      {user.metrics.capacity} tasks
                                     </span>
                                   </div>
 
@@ -585,19 +656,25 @@ const Workload = () => {
                                   <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden flex">
                                     {/* In Progress */}
                                     <div
-                                      style={{ width: `${(user.metrics.inProgress / user.metrics.capacity) * 105}%` }}
+                                      style={{
+                                        width: `${(user.metrics.inProgress / user.metrics.capacity) * 105}%`,
+                                      }}
                                       className="bg-blue-500 dark:bg-[#3b82f6] h-full shrink-0"
                                       title="In Progress"
                                     />
                                     {/* Pending */}
                                     <div
-                                      style={{ width: `${(user.metrics.pending / user.metrics.capacity) * 105}%` }}
+                                      style={{
+                                        width: `${(user.metrics.pending / user.metrics.capacity) * 105}%`,
+                                      }}
                                       className="bg-amber-400 h-full shrink-0"
                                       title="Pending"
                                     />
                                     {/* On Hold */}
                                     <div
-                                      style={{ width: `${(user.metrics.onHold / user.metrics.capacity) * 105}%` }}
+                                      style={{
+                                        width: `${(user.metrics.onHold / user.metrics.capacity) * 105}%`,
+                                      }}
                                       className="bg-purple-500 h-full shrink-0"
                                       title="On Hold"
                                     />
@@ -607,22 +684,38 @@ const Workload = () => {
                                 {/* Row 3: Allocation Metrics Box */}
                                 <div className="grid grid-cols-4 gap-1 p-2 rounded-xl bg-slate-100/50 dark:bg-slate-850/60 border border-slate-200 dark:border-slate-800 text-center mb-4 text-[9px]">
                                   <div>
-                                    <span className="font-bold theme-text-secondary block">Active</span>
-                                    <span className="text-xs font-black theme-text-primary">{user.metrics.active}</span>
+                                    <span className="font-bold theme-text-secondary block">
+                                      Active
+                                    </span>
+                                    <span className="text-xs font-black theme-text-primary">
+                                      {user.metrics.active}
+                                    </span>
                                   </div>
                                   <div>
-                                    <span className="font-bold theme-text-secondary block">Completed</span>
-                                    <span className="text-xs font-black text-emerald-500">{user.metrics.completed}</span>
+                                    <span className="font-bold theme-text-secondary block">
+                                      Completed
+                                    </span>
+                                    <span className="text-xs font-black text-emerald-500">
+                                      {user.metrics.completed}
+                                    </span>
                                   </div>
                                   <div>
-                                    <span className="font-bold theme-text-secondary block">Overdue</span>
-                                    <span className={`text-xs font-black ${user.overdueCount > 0 ? "text-rose-500" : "theme-text-secondary"}`}>
+                                    <span className="font-bold theme-text-secondary block">
+                                      Overdue
+                                    </span>
+                                    <span
+                                      className={`text-xs font-black ${user.overdueCount > 0 ? "text-rose-500" : "theme-text-secondary"}`}
+                                    >
                                       {user.overdueCount}
                                     </span>
                                   </div>
                                   <div>
-                                    <span className="font-bold theme-text-secondary block">Capacity</span>
-                                    <span className="text-xs font-black theme-text-secondary">{user.metrics.capacity}</span>
+                                    <span className="font-bold theme-text-secondary block">
+                                      Capacity
+                                    </span>
+                                    <span className="text-xs font-black theme-text-secondary">
+                                      {user.metrics.capacity}
+                                    </span>
                                   </div>
                                 </div>
 
@@ -633,7 +726,9 @@ const Workload = () => {
                                     <span>Status</span>
                                   </div>
 
-                                  {user.tasks.filter((t) => t.status !== "Completed").length > 0 ? (
+                                  {user.tasks.filter(
+                                    (t) => t.status !== "Completed",
+                                  ).length > 0 ? (
                                     user.tasks
                                       .filter((t) => t.status !== "Completed")
                                       .slice(0, 3)
@@ -645,7 +740,9 @@ const Workload = () => {
                                           <span className="font-semibold theme-text-primary truncate max-w-[140px] group-hover/task:text-blue-500 transition-colors">
                                             {task.title}
                                           </span>
-                                          <span className={`px-2 py-0.5 rounded text-[8px] font-black ${getStatusStyle(task.status)}`}>
+                                          <span
+                                            className={`px-2 py-0.5 rounded text-[8px] font-black ${getStatusStyle(task.status)}`}
+                                          >
                                             {task.status}
                                           </span>
                                         </div>
@@ -656,9 +753,15 @@ const Workload = () => {
                                     </div>
                                   )}
 
-                                  {user.tasks.filter((t) => t.status !== "Completed").length > 3 && (
+                                  {user.tasks.filter(
+                                    (t) => t.status !== "Completed",
+                                  ).length > 3 && (
                                     <span className="text-[9.5px] text-indigo-500 dark:text-[#3b82f6] font-bold hover:underline block mt-1.5 text-right">
-                                      + {user.tasks.filter((t) => t.status !== "Completed").length - 3} more deliverables
+                                      +{" "}
+                                      {user.tasks.filter(
+                                        (t) => t.status !== "Completed",
+                                      ).length - 3}{" "}
+                                      more deliverables
                                     </span>
                                   )}
                                 </div>
@@ -667,7 +770,9 @@ const Workload = () => {
                               {/* Row 5: Card footer info */}
                               <div className="mt-4 pt-3.5 border-t theme-border flex items-center justify-between text-[9.5px] font-bold theme-text-secondary uppercase tracking-wider">
                                 <span>Efficiency:</span>
-                                <span className="theme-text-primary font-black">{user.metrics.completionRate}% completion</span>
+                                <span className="theme-text-primary font-black">
+                                  {user.metrics.completionRate}% completion
+                                </span>
                               </div>
                             </motion.div>
                           );
@@ -685,9 +790,12 @@ const Workload = () => {
           <div className="w-14 h-14 rounded-full theme-bg-main flex items-center justify-center mb-3.5 theme-text-secondary">
             <FiActivity size={24} />
           </div>
-          <h4 className="text-sm font-black theme-text-primary">No workload reports found</h4>
+          <h4 className="text-sm font-black theme-text-primary">
+            No workload reports found
+          </h4>
           <p className="text-xs theme-text-secondary mt-1.5 max-w-sm leading-normal">
-            We couldn't locate any matching staff records. Try clearing your filters or widening your search term.
+            We couldn't locate any matching staff records. Try clearing your
+            filters or widening your search term.
           </p>
         </div>
       )}
@@ -741,9 +849,13 @@ const Workload = () => {
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 {/* Profile Card Summary */}
                 <div className="flex gap-4 items-center bg-slate-50 dark:bg-slate-850 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
-                  {selectedUser.profile?.profileImage?.url || selectedUser.profileImage?.url ? (
+                  {selectedUser.profile?.profileImage?.url ||
+                  selectedUser.profileImage?.url ? (
                     <img
-                      src={selectedUser.profile?.profileImage?.url || selectedUser.profileImage?.url}
+                      src={
+                        selectedUser.profile?.profileImage?.url ||
+                        selectedUser.profileImage?.url
+                      }
                       alt={selectedUser.name}
                       className={`w-14 h-14 rounded-full object-cover shadow-sm ring-3 ${selectedUser.styles.ring}`}
                     />
@@ -753,13 +865,19 @@ const Workload = () => {
                     </div>
                   )}
                   <div className="min-w-0">
-                    <h3 className="text-sm font-black theme-text-primary leading-tight">{selectedUser.name}</h3>
-                    <p className="text-xs theme-text-secondary mt-0.5">{selectedUser.email}</p>
+                    <h3 className="text-sm font-black theme-text-primary leading-tight">
+                      {selectedUser.name}
+                    </h3>
+                    <p className="text-xs theme-text-secondary mt-0.5">
+                      {selectedUser.email}
+                    </p>
                     <div className="flex gap-2 mt-2">
                       <span className="px-2.5 py-1 rounded bg-slate-100 dark:bg-slate-800 text-[10px] font-extrabold theme-text-secondary border theme-border uppercase tracking-wider">
                         {selectedUser.department || "No Department"}
                       </span>
-                      <span className={`px-2.5 py-1 rounded text-[10px] font-extrabold uppercase tracking-wider border ${selectedUser.styles.badge}`}>
+                      <span
+                        className={`px-2.5 py-1 rounded text-[10px] font-extrabold uppercase tracking-wider border ${selectedUser.styles.badge}`}
+                      >
                         {selectedUser.workloadStatus}
                       </span>
                     </div>
@@ -769,11 +887,18 @@ const Workload = () => {
                 {/* Resource Health Warnings Card */}
                 {selectedUser.overdueCount > 0 && (
                   <div className="p-4 rounded-xl border border-amber-200 bg-amber-50/50 dark:bg-amber-900/10 dark:border-amber-900/30 flex gap-3">
-                    <FiAlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={16} />
+                    <FiAlertTriangle
+                      className="text-amber-500 shrink-0 mt-0.5"
+                      size={16}
+                    />
                     <div className="space-y-1">
-                      <h4 className="text-xs font-black text-amber-800 dark:text-amber-450">Resourcing Alert: Overdue Tasks</h4>
+                      <h4 className="text-xs font-black text-amber-800 dark:text-amber-450">
+                        Resourcing Alert: Overdue Tasks
+                      </h4>
                       <p className="text-[10px] text-amber-705 dark:text-amber-300 leading-normal font-medium">
-                        This resource currently has {selectedUser.overdueCount} active tasks past their designated due date. Adjust deadlines or reassign tasks if necessary.
+                        This resource currently has {selectedUser.overdueCount}{" "}
+                        active tasks past their designated due date. Adjust
+                        deadlines or reassign tasks if necessary.
                       </p>
                     </div>
                   </div>
@@ -781,25 +906,43 @@ const Workload = () => {
 
                 {/* Capacity Statistics Dashboard */}
                 <div className="space-y-2">
-                  <h4 className="text-[10px] font-black theme-text-secondary uppercase tracking-wider">Allocation Health Metrics</h4>
+                  <h4 className="text-[10px] font-black theme-text-secondary uppercase tracking-wider">
+                    Allocation Health Metrics
+                  </h4>
                   <div className="grid grid-cols-4 gap-2.5">
                     <div className="p-3 bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-xl text-center">
-                      <span className="text-[9px] font-bold theme-text-secondary block uppercase tracking-wider">Assigned</span>
-                      <span className="text-base font-black theme-text-primary">{selectedUser.metrics.total}</span>
+                      <span className="text-[9px] font-bold theme-text-secondary block uppercase tracking-wider">
+                        Assigned
+                      </span>
+                      <span className="text-base font-black theme-text-primary">
+                        {selectedUser.metrics.total}
+                      </span>
                     </div>
                     <div className="p-3 bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-xl text-center">
-                      <span className="text-[9px] font-bold theme-text-secondary block uppercase tracking-wider">Active</span>
-                      <span className="text-base font-black text-indigo-500 dark:text-[#3b82f6]">{selectedUser.metrics.active}</span>
+                      <span className="text-[9px] font-bold theme-text-secondary block uppercase tracking-wider">
+                        Active
+                      </span>
+                      <span className="text-base font-black text-indigo-500 dark:text-[#3b82f6]">
+                        {selectedUser.metrics.active}
+                      </span>
                     </div>
                     <div className="p-3 bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-xl text-center">
-                      <span className="text-[9px] font-bold theme-text-secondary block uppercase tracking-wider">Overdue</span>
-                      <span className={`text-base font-black ${selectedUser.overdueCount > 0 ? "text-rose-500" : "theme-text-secondary"}`}>
+                      <span className="text-[9px] font-bold theme-text-secondary block uppercase tracking-wider">
+                        Overdue
+                      </span>
+                      <span
+                        className={`text-base font-black ${selectedUser.overdueCount > 0 ? "text-rose-500" : "theme-text-secondary"}`}
+                      >
                         {selectedUser.overdueCount}
                       </span>
                     </div>
                     <div className="p-3 bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800 rounded-xl text-center">
-                      <span className="text-[9px] font-bold theme-text-secondary block uppercase tracking-wider">Capacity</span>
-                      <span className="text-base font-black theme-text-secondary">{selectedUser.metrics.capacity}</span>
+                      <span className="text-[9px] font-bold theme-text-secondary block uppercase tracking-wider">
+                        Capacity
+                      </span>
+                      <span className="text-base font-black theme-text-secondary">
+                        {selectedUser.metrics.capacity}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -851,7 +994,9 @@ const Workload = () => {
                             </label>
                             <select
                               value={newTaskProject}
-                              onChange={(e) => setNewTaskProject(e.target.value)}
+                              onChange={(e) =>
+                                setNewTaskProject(e.target.value)
+                              }
                               className="w-full px-2 py-1.5 text-xs focus:ring-1 focus:ring-blue-500"
                             >
                               {projects.map((proj) => (
@@ -868,13 +1013,17 @@ const Workload = () => {
                             </label>
                             <select
                               value={newTaskPriority}
-                              onChange={(e) => setNewTaskPriority(e.target.value)}
+                              onChange={(e) =>
+                                setNewTaskPriority(e.target.value)
+                              }
                               className="w-full px-2 py-1.5 text-xs focus:ring-1 focus:ring-blue-500"
                             >
                               <option value="Low">Low Priority</option>
                               <option value="Medium">Medium Priority</option>
                               <option value="High">High Priority</option>
-                              <option value="Top High">Top High Priority</option>
+                              <option value="Top High">
+                                Top High Priority
+                              </option>
                             </select>
                           </div>
                         </div>
@@ -887,7 +1036,9 @@ const Workload = () => {
                             <input
                               type="date"
                               value={newTaskDueDate}
-                              onChange={(e) => setNewTaskDueDate(e.target.value)}
+                              onChange={(e) =>
+                                setNewTaskDueDate(e.target.value)
+                              }
                               className="w-full px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-blue-500"
                             />
                           </div>
@@ -934,10 +1085,15 @@ const Workload = () => {
                               {task.dueDate && (
                                 <span className="theme-text-secondary flex items-center gap-1">
                                   <FiCalendar size={10} />
-                                  {new Date(task.dueDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                                  {new Date(task.dueDate).toLocaleDateString(
+                                    "en-US",
+                                    { month: "short", day: "numeric" },
+                                  )}
                                 </span>
                               )}
-                              <span className={`px-2 py-0.5 rounded border text-[8px] font-black uppercase ${getPriorityStyle(task.priority)}`}>
+                              <span
+                                className={`px-2 py-0.5 rounded border text-[8px] font-black uppercase ${getPriorityStyle(task.priority)}`}
+                              >
                                 {task.priority || "Medium"}
                               </span>
                             </div>
@@ -947,7 +1103,9 @@ const Workload = () => {
                           <div className="shrink-0 select-none">
                             <select
                               value={task.status}
-                              onChange={(e) => handleUpdateTaskStatus(task._id, e.target.value)}
+                              onChange={(e) =>
+                                handleUpdateTaskStatus(task._id, e.target.value)
+                              }
                               className={`border rounded-lg px-2.5 py-1 text-[10px] font-extrabold cursor-pointer focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors ${getStatusStyle(task.status)}`}
                             >
                               <option value="Pending">Pending</option>
