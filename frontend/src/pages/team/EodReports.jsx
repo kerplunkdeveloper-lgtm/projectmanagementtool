@@ -27,6 +27,10 @@ import {
   FiX,
   FiEdit2,
   FiFileText,
+  FiSearch,
+  FiFilter,
+  FiCheck,
+  FiLayers,
 } from "react-icons/fi";
 
 // Helper: get priority badge colors based on priority value
@@ -236,14 +240,16 @@ const mapTaskStatusToEodStatus = (status) => {
   return status || "Pending";
 };
 
-// Helper: Priority sorting order (In Review = 1, In Progress = 2, Pending = 3, Completed = 4)
+// Helper: Priority sorting order (In Progress = 1, On Hold = 2, In Review = 3, Pending = 4, Completed = 5)
 const getStatusPriority = (status) => {
   const s = (status || "Pending").toUpperCase();
-  if (s.includes("REVIEW")) return 1;
-  if (s.includes("PROGRESS")) return 2;
-  if (s === "PENDING") return 3;
-  if (s === "COMPLETED") return 4;
-  return 5;
+  if (s.includes("PROGRESS")) return 1;
+  if (s.includes("HOLD")) return 2;
+  if (s.includes("REVIEW")) return 3;
+  if (s.includes("PENDING")) return 4;
+  if (s.includes("REJECTED")) return 5;
+  if (s.includes("COMPLETED")) return 6;
+  return 7;
 };
 
 const getCardBgStyle = (status) => {
@@ -382,6 +388,7 @@ const EodReports = () => {
 
   // State fields
   const [tasksState, setTasksState] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const [daySummary, setDaySummary] = useState({
     toolsIssues: "None",
     clientCalls: "",
@@ -1052,182 +1059,28 @@ const EodReports = () => {
     [tasksState],
   );
 
-  const renderTaskCard = (task) => {
-    const assignerUser = users.find((u) => u._id === task.reviewedBy);
-    const assignerName = assignerUser?.name || task.assignedByName || "Admin";
+  const filteredTasks = React.useMemo(() => {
+    let list = [...tasksState];
 
-    const isCompleted = task.statusAtEod === "Completed";
-    const isInProgress = task.statusAtEod === "In Progress";
-    const isInReview = ["In Review", "In-Review", "IN_REVIEW"].includes(
-      task.statusAtEod,
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      list = list.filter(
+        (t) =>
+          (t.title && t.title.toLowerCase().includes(q)) ||
+          (t.code && t.code.toLowerCase().includes(q)) ||
+          (t.client && t.client.toLowerCase().includes(q)) ||
+          (t.project && t.project.toLowerCase().includes(q)) ||
+          (t.assignedByName && t.assignedByName.toLowerCase().includes(q)) ||
+          (t.statusAtEod && t.statusAtEod.toLowerCase().includes(q)) ||
+          (t.priority && t.priority.toLowerCase().includes(q)),
+      );
+    }
+
+    return list.sort(
+      (a, b) =>
+        getStatusPriority(a.statusAtEod) - getStatusPriority(b.statusAtEod),
     );
-
-    return (
-      <div
-        key={task.id}
-        className={`${getCardBgStyle(
-          task.statusAtEod,
-        )} rounded-xl p-4 sm:p-4.5 shadow-xs hover:shadow-md transition-all duration-200 text-left relative overflow-hidden group`}
-      >
-        {/* Top colored accent glow bar */}
-        <div
-          className={`h-1 w-full -mt-4 -mx-4 sm:-mt-4.5 sm:-mx-4.5 mb-3.5 transition-all duration-200 ${
-            isCompleted
-              ? "bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500"
-              : isInProgress
-                ? "bg-gradient-to-r from-blue-500 via-indigo-400 to-blue-500"
-                : isInReview
-                  ? "bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500"
-                  : "bg-gradient-to-r from-slate-300 via-slate-400 to-slate-300 dark:from-slate-700 dark:to-slate-600"
-          }`}
-        />
-
-        {/* Task Top Meta Info Header */}
-        <div className="flex justify-between items-start gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {task.code && (
-                <span
-                  className={`px-2 py-0.5 rounded-md text-[9.5px] font-black border tracking-wider select-none shrink-0 ${getTaskCodeStyle(task.code).bg}`}
-                >
-                  [{task.code}]
-                </span>
-              )}
-              <h3 className="font-bold text-xs theme-text-primary flex items-center gap-1 min-w-0 truncate">
-                <FiFileText
-                  className="text-slate-400 dark:text-slate-500 shrink-0"
-                  size={13}
-                />
-                <span className="italic font-bold text-slate-800 dark:text-slate-100 truncate">
-                  {task.title}
-                </span>
-              </h3>
-            </div>
-
-            {/* Sub-tags Row */}
-            <div className="flex flex-wrap gap-1.5 mt-2 items-center">
-              <span className="bg-slate-100/90 text-slate-650 dark:bg-slate-900/60 dark:text-slate-300 border border-slate-200/80 dark:border-slate-800/80 text-[9.5px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider">
-                {task.client}
-              </span>
-              {task.contentType && (
-                <span className="bg-purple-100/80 text-purple-700 border border-purple-200/60 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900/50 text-[9.5px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider">
-                  {task.contentType}
-                </span>
-              )}
-              {task.time && (
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100/80 text-blue-700 border border-blue-200/60 rounded-md text-[9.5px] font-black dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50 whitespace-nowrap shrink-0">
-                  <FiClock size={10} className="shrink-0 text-blue-500" />
-                  <LiveTimeTracker
-                    task={task}
-                    allTasks={allTasks}
-                    isSubmitted={isSubmitted}
-                    selectedDate={selectedDate}
-                    officeHours={officeHours}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right priority & revision info */}
-          <div className="text-right shrink-0 flex flex-col items-end gap-1">
-            <span
-              className={`${getPriorityStyle(
-                task.priority,
-              )} text-[9.5px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider`}
-            >
-              {task.priority}
-            </span>
-            <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
-              Rev. {task.revision || 0}
-            </span>
-          </div>
-        </div>
-
-        {/* Status & Assigned By Row */}
-        <div className="flex justify-between items-center mt-3 pt-2.5 border-t theme-border text-[10.5px]">
-          {/* Status Row */}
-          <div className="flex items-center gap-1">
-            <span className="font-bold theme-text-secondary uppercase tracking-wider text-[9.5px]">
-              Status:
-            </span>
-            <span
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black tracking-wide ${getStatusBadgeStyle(task.statusAtEod)}`}
-            >
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  isCompleted
-                    ? "bg-emerald-500"
-                    : isInProgress
-                      ? "bg-blue-500 animate-pulse"
-                      : isInReview
-                        ? "bg-amber-500"
-                        : "bg-slate-400"
-                }`}
-              />
-              {task.statusAtEod || "Pending"}
-            </span>
-          </div>
-
-          {/* Assigned By Row */}
-          <div className="flex items-center gap-1">
-            <span className="font-bold theme-text-secondary uppercase tracking-wider text-[9.5px]">
-              By:
-            </span>
-            <span className="font-bold theme-text-primary text-[10.5px] leading-tight">
-              {assignerName}
-            </span>
-          </div>
-        </div>
-
-        {/* Dynamic Reason & Next Action Fields / In Review Full Width Thank You */}
-        {!isCompleted && (
-          <div className="mt-2.5 pt-2.5 border-t theme-border">
-            {isInReview ? (
-              <div className="w-full flex items-center justify-center gap-2 bg-amber-500/15 dark:bg-amber-950/50 border border-amber-500/30 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 rounded-lg px-3 py-2 text-xs font-extrabold shadow-2xs">
-                <span className="text-sm">😁</span>
-                <span>Thank you!</span>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-                    Reason for {task.statusAtEod}
-                  </label>
-                  <input
-                    type="text"
-                    placeholder={`Why ${task.statusAtEod.toLowerCase()}?`}
-                    className="w-full mt-1 bg-slate-50 dark:bg-slate-950/70 border border-slate-200/80 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-emerald-500 dark:focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-semibold"
-                    value={task.reason || ""}
-                    onChange={(e) =>
-                      updateTask(task.id, "reason", e.target.value)
-                    }
-                    disabled={isSubmitted}
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-                    Next Action
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Next plan..."
-                    className="w-full mt-1 bg-slate-50 dark:bg-slate-950/70 border border-slate-200/80 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-emerald-500 dark:focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all font-semibold"
-                    value={task.nextAction || ""}
-                    onChange={(e) =>
-                      updateTask(task.id, "nextAction", e.target.value)
-                    }
-                    disabled={isSubmitted}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  };
+  }, [tasksState, searchTerm]);
 
   if (tasksLoading || reportLoading || projectsLoading) {
     return (
@@ -1241,9 +1094,9 @@ const EodReports = () => {
   }
 
   return (
-    <div className="min-h-screen max-w-7xl  mx-auto">
+    <div className="min-h-screen max-w-7xl mx-auto">
       {/* Header Card */}
-      <div className="theme-bg-card  ">
+      <div className="theme-bg-card">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="text-left">
             <h1 className="text-md font-bold theme-text-primary text-left">
@@ -1259,8 +1112,8 @@ const EodReports = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border theme-border px-4 py-2.5 rounded-xl text-slate-700 dark:text-slate-300 self-start lg:self-auto shadow-sm">
-            <FiCalendar className="shrink-0 text-indigo-500" />
+          <div className="flex items-center gap-2 bg-white dark:bg-slate-800 border theme-border px-4 py-2 rounded-xl text-slate-700 dark:text-slate-300 self-start lg:self-auto shadow-xs">
+            <FiCalendar className="shrink-0 text-indigo-500" size={15} />
             <input
               type="date"
               value={selectedDate}
@@ -1271,7 +1124,7 @@ const EodReports = () => {
         </div>
       </div>
 
-      {/* Task Cards Grid / Sections */}
+      {/* Task Table Section */}
       {tasksState.length === 0 ? (
         <div className="mt-8 theme-bg-card border border-dashed theme-border rounded-2xl p-12 text-center flex flex-col items-center justify-center">
           <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-400 border theme-border">
@@ -1289,52 +1142,284 @@ const EodReports = () => {
           </p>
         </div>
       ) : (
-        <div className="mt-5 space-y-6">
-          {/* TODAY PRODUCTIVITY CARDS */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
-                <h2 className="text-xs font-bold theme-text-primary uppercase tracking-wider">
-                  Today Productivity Cards
-                </h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                  {todayProductivityTasks.length}
-                </span>
-              </div>
+        <div className="mt-5 space-y-4">
+          {/* Controls Bar: Task Count & Search */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white dark:bg-slate-900/60 p-2.5 rounded-2xl border theme-border shadow-2xs">
+            <div className="flex items-center gap-2 px-1">
+              <h2 className="text-xs font-bold theme-text-primary uppercase tracking-wider">
+                All Tasks
+              </h2>
+              <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                {tasksState.length}
+              </span>
             </div>
 
-            {todayProductivityTasks.length === 0 ? (
-              <div className="bg-slate-50/50 dark:bg-slate-900/20 border border-slate-200/60 dark:border-slate-800/60 rounded-xl p-3.5 text-xs theme-text-secondary text-left font-medium">
-                No active productivity tasks currently in progress or pending.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
-                {todayProductivityTasks.map((task) => renderTaskCard(task))}
-              </div>
-            )}
+            {/* Search Box */}
+            <div className="relative min-w-[240px]">
+             
+              <input
+                type="text"
+                placeholder="Search tasks, codes, clients..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-950/60 border border-slate-200/80 dark:border-slate-800 rounded-xl pl-8 pr-8 py-1.5 text-xs text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all font-medium"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                >
+                  <FiX size={13} />
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* TODAY COMPLETED CARDS */}
-          {completedTasks.length > 0 && (
-            <div className="mt-8">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                  <h2 className="text-xs font-bold theme-text-primary uppercase tracking-wider">
-                    Today Completed Cards
-                  </h2>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                    {completedTasks.length}
-                  </span>
-                </div>
-              </div>
+          {/* Table Container */}
+          <div className="bg-white dark:bg-[#0f172a] shadow-xs rounded-2xl border border-slate-200/90 dark:border-slate-800 overflow-hidden">
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full text-left border-collapse min-w-[1100px]">
+                <thead>
+                  <tr className="bg-slate-50/90 dark:bg-slate-900/90 border-b border-slate-200 dark:border-slate-800 text-[10.5px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider select-none">
+                    <th className="px-4 py-3 text-center w-24"># / Code</th>
+                    <th className="px-4 py-3 min-w-[260px]">Task Name & Client</th>
+                    <th className="px-4 py-3 min-w-[130px]">Assigned By</th>
+                    <th className="px-4 py-3 min-w-[120px]">Priority / Rev</th>
+                    <th className="px-4 py-3 min-w-[130px]">Logged Time</th>
+                    <th className="px-4 py-3 min-w-[120px]">Status</th>
+                    <th className="px-4 py-3 min-w-[210px]">Reason for Status</th>
+                    <th className="px-4 py-3 min-w-[210px]">Next Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-150 dark:divide-slate-800/80 text-xs">
+                  {filteredTasks.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <FiSearch className="text-slate-400" size={24} />
+                          <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                            No matching tasks found
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            Try adjusting your search query or tab filter
+                          </p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredTasks.map((task, idx) => {
+                      const assignerUser = users.find(
+                        (u) => u._id === task.reviewedBy,
+                      );
+                      const assignerName =
+                        assignerUser?.name || task.assignedByName || "Admin";
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
-                {completedTasks.map((task) => renderTaskCard(task))}
-              </div>
+                      const isCompleted = task.statusAtEod === "Completed";
+                      const isInProgress = [
+                        "In Progress",
+                        "IN PROGRESS",
+                        "IN_PROGRESS",
+                      ].includes(task.statusAtEod);
+                      const isInReview = [
+                        "In Review",
+                        "In-Review",
+                        "IN_REVIEW",
+                      ].includes(task.statusAtEod);
+
+                      return (
+                        <tr
+                          key={task.id || task.taskId || idx}
+                          className={`transition-colors ${
+                            isCompleted
+                              ? "bg-emerald-50/15 dark:bg-emerald-950/10 hover:bg-emerald-50/35 dark:hover:bg-emerald-950/20"
+                              : isInProgress
+                                ? "bg-blue-50/20 dark:bg-blue-950/15 hover:bg-blue-50/45 dark:hover:bg-blue-950/25"
+                                : isInReview
+                                  ? "bg-amber-50/15 dark:bg-amber-950/10 hover:bg-amber-50/35 dark:hover:bg-amber-950/20"
+                                  : "hover:bg-slate-50/80 dark:hover:bg-slate-850/40"
+                          }`}
+                        >
+                          {/* 1. Code */}
+                          <td className="px-4 py-3 whitespace-nowrap align-middle">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 w-4 text-center">
+                                {idx + 1}
+                              </span>
+                              {task.code ? (
+                                <span
+                                  className={`px-2 py-0.5 rounded-md text-[10px] font-black border tracking-wider select-none shrink-0 ${getTaskCodeStyle(task.code).bg}`}
+                                >
+                                  [{task.code}]
+                                </span>
+                              ) : (
+                                <span className="text-slate-400 text-xs">—</span>
+                              )}
+                            </div>
+                          </td>
+
+                          {/* 2. Task Name & Client */}
+                          <td className="px-4 py-3 align-middle">
+                            <div className="flex flex-col gap-1 max-w-[320px]">
+                              <div
+                                className="flex items-center gap-1.5 min-w-0"
+                                title={task.title}
+                              >
+                                <FiFileText
+                                  className="text-slate-400 dark:text-slate-500 shrink-0"
+                                  size={13}
+                                />
+                                <span className="font-bold text-xs text-slate-800 dark:text-slate-100 truncate">
+                                  {task.title}
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {task.client && (
+                                  <span className="bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-300 border border-slate-200/80 dark:border-slate-700/80 text-[9.5px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                    {task.client}
+                                  </span>
+                                )}
+                                {task.contentType && (
+                                  <span className="bg-purple-100/80 text-purple-700 border border-purple-200/60 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-900/50 text-[9.5px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                    {task.contentType}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* 3. Assigned By */}
+                          <td className="px-4 py-3 whitespace-nowrap align-middle">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center text-[10px] font-bold border border-slate-200 dark:border-slate-700 shrink-0">
+                                <FiUser size={11} />
+                              </div>
+                              <span className="text-xs font-semibold text-slate-750 dark:text-slate-250">
+                                {assignerName}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* 4. Priority & Revision */}
+                          <td className="px-4 py-3 whitespace-nowrap align-middle">
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className={`${getPriorityStyle(
+                                  task.priority,
+                                )} text-[9.5px] font-extrabold px-2 py-0.5 rounded-md uppercase tracking-wider`}
+                              >
+                                {task.priority || "Normal"}
+                              </span>
+                              <span className="text-[9.5px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded">
+                                Rev. {task.revision || 0}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* 5. Time Logged */}
+                          <td className="px-4 py-3 whitespace-nowrap align-middle">
+                            {task.time ? (
+                              <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100/80 text-blue-700 border border-blue-200/60 rounded-md text-[10px] font-black dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/50">
+                                <FiClock
+                                  size={10}
+                                  className={`shrink-0 text-blue-500 ${isInProgress ? "animate-pulse" : ""}`}
+                                />
+                                <LiveTimeTracker
+                                  task={task}
+                                  allTasks={allTasks}
+                                  isSubmitted={isSubmitted}
+                                  selectedDate={selectedDate}
+                                  officeHours={officeHours}
+                                />
+                              </div>
+                            ) : (
+                              <span className="text-xs text-slate-400">0s</span>
+                            )}
+                          </td>
+
+                          {/* 6. Status */}
+                          <td className="px-4 py-3 whitespace-nowrap align-middle">
+                            <span
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10.5px] font-black tracking-wide ${getStatusBadgeStyle(
+                                task.statusAtEod,
+                              )}`}
+                            >
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  isCompleted
+                                    ? "bg-emerald-500"
+                                    : isInProgress
+                                      ? "bg-blue-500 animate-pulse"
+                                      : isInReview
+                                        ? "bg-amber-500"
+                                        : "bg-slate-400"
+                                }`}
+                              />
+                              {task.statusAtEod || "Pending"}
+                            </span>
+                          </td>
+
+                          {/* 7. Reason for Status */}
+                          <td className="px-4 py-3 align-middle">
+                            {isCompleted ? (
+                              <div className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                                <FiCheckCircle size={13} className="shrink-0" />
+                                <span>Completed</span>
+                              </div>
+                            ) : isInReview ? (
+                              <div className="inline-flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 rounded-lg px-2.5 py-1 text-xs font-bold shadow-2xs">
+                                <span>😁</span>
+                                <span>Thank you!</span>
+                              </div>
+                            ) : (
+                              <input
+                                type="text"
+                                placeholder={`Why ${task.statusAtEod?.toLowerCase() || "pending"}?`}
+                                className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200/80 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all font-semibold"
+                                value={task.reason || ""}
+                                onChange={(e) =>
+                                  updateTask(task.id, "reason", e.target.value)
+                                }
+                                disabled={isSubmitted}
+                              />
+                            )}
+                          </td>
+
+                          {/* 8. Next Action */}
+                          <td className="px-4 py-3 align-middle">
+                            {isCompleted ? (
+                              <span className="text-slate-300 dark:text-slate-600 text-xs font-medium">
+                                —
+                              </span>
+                            ) : isInReview ? (
+                              <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 italic">
+                                Ready for review
+                              </span>
+                            ) : (
+                              <input
+                                type="text"
+                                placeholder="Next plan..."
+                                className="w-full bg-slate-50 dark:bg-slate-950/70 border border-slate-200/80 dark:border-slate-800 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all font-semibold"
+                                value={task.nextAction || ""}
+                                onChange={(e) =>
+                                  updateTask(
+                                    task.id,
+                                    "nextAction",
+                                    e.target.value,
+                                  )
+                                }
+                                disabled={isSubmitted}
+                              />
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
+          </div>
         </div>
       )}
 

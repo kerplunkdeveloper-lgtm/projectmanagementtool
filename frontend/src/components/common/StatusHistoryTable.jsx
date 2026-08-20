@@ -1,5 +1,16 @@
 import React from "react";
-import { FiClock, FiActivity, FiUser, FiCalendar, FiPlay, FiPause, FiCheckCircle, FiAlertTriangle, FiEdit3, FiEye } from "react-icons/fi";
+import {
+  FiClock,
+  FiActivity,
+  FiUser,
+  FiCalendar,
+  FiPlay,
+  FiPause,
+  FiCheckCircle,
+  FiAlertTriangle,
+  FiEdit3,
+  FiEye,
+} from "react-icons/fi";
 
 export const formatDuration = (ms = 0) => {
   if (!ms || isNaN(ms) || ms < 0) return "0h 00m";
@@ -33,7 +44,11 @@ export const formatTimeOnly = (dateVal) => {
 };
 
 export const formatDateOnly = (dateVal, fallbackDateStr = "") => {
-  if (fallbackDateStr && typeof fallbackDateStr === "string" && fallbackDateStr.length > 3) {
+  if (
+    fallbackDateStr &&
+    typeof fallbackDateStr === "string" &&
+    fallbackDateStr.length > 3
+  ) {
     return fallbackDateStr;
   }
   if (!dateVal) return "—";
@@ -118,10 +133,15 @@ const StatusHistoryTable = ({ task, todayLoggedMs = 0 }) => {
   });
 
   const todayHistoryWorkedMs = statusHistory
-    .filter((h) => h.status === "In Progress" && formatDateOnly(h.startTime, h.date) === todayDateStr)
+    .filter(
+      (h) =>
+        h.status === "In Progress" &&
+        formatDateOnly(h.startTime, h.date) === todayDateStr,
+    )
     .reduce((acc, curr) => acc + (curr.duration || 0), 0);
 
-  const displayTodayMs = todayLoggedMs > 0 ? todayLoggedMs : todayHistoryWorkedMs;
+  const displayTodayMs =
+    todayLoggedMs > 0 ? todayLoggedMs : todayHistoryWorkedMs;
 
   return (
     <div className="space-y-4">
@@ -149,7 +169,10 @@ const StatusHistoryTable = ({ task, todayLoggedMs = 0 }) => {
             <FiClock size={12} /> Total Tracked Time
           </span>
           <div className="text-lg font-black text-slate-800 dark:text-slate-100">
-            {formatDuration(totalLifetimeMs + (task.status === "In Progress" ? displayTodayMs : 0))}
+            {formatDuration(
+              totalLifetimeMs +
+                (task.status === "In Progress" ? displayTodayMs : 0),
+            )}
           </div>
           <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold">
             Lifetime accumulated working time
@@ -161,7 +184,10 @@ const StatusHistoryTable = ({ task, todayLoggedMs = 0 }) => {
       <div className="bg-white dark:bg-[#111827] rounded-2xl border border-slate-200/80 dark:border-slate-800/80 overflow-hidden shadow-xs">
         <div className="px-4 py-3 bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200/70 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <FiCalendar size={14} className="text-slate-500 dark:text-slate-400" />
+            <FiCalendar
+              size={14}
+              className="text-slate-500 dark:text-slate-400"
+            />
             <span className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase tracking-wider">
               Status & Time History ({statusHistory.length})
             </span>
@@ -194,11 +220,23 @@ const StatusHistoryTable = ({ task, todayLoggedMs = 0 }) => {
                   .map((item, idx) => {
                     const dateStr = formatDateOnly(item.startTime, item.date);
                     const startStr = formatTimeOnly(item.startTime);
-                    const endStr = item.endTime ? formatTimeOnly(item.endTime) : (item.status === task.status ? "Current" : "—");
-                    const durationStr = item.duration > 0 ? formatDuration(item.duration) : item.status === "In Progress" && !item.endTime ? "Running" : "0h 00m";
+                    const endStr = item.endTime
+                      ? formatTimeOnly(item.endTime)
+                      : item.status === task.status
+                        ? "Current"
+                        : "—";
+                    const durationStr =
+                      item.duration > 0
+                        ? formatDuration(item.duration)
+                        : item.status === "In Progress" && !item.endTime
+                          ? "Running"
+                          : "0h 00m";
 
                     return (
-                      <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40 transition-colors">
+                      <tr
+                        key={idx}
+                        className="hover:bg-slate-50/50 dark:hover:bg-slate-900/40 transition-colors"
+                      >
                         <td className="px-3.5 py-2.5 whitespace-nowrap text-[11px] font-bold text-slate-600 dark:text-slate-400">
                           {dateStr}
                         </td>

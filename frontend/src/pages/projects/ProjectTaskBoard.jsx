@@ -77,7 +77,8 @@ const getStatusWithEmoji = (status) => {
   if (s.includes("progress")) return "In Progress";
   if (s.includes("review")) return "In Review";
   if (s.includes("correction")) return "Correction";
-  if (s === "completed" || s.includes("approve") || s === "done") return "Completed";
+  if (s === "completed" || s.includes("approve") || s === "done")
+    return "Completed";
   if (s.includes("hold")) return "On Hold";
   if (s.includes("reject")) return "Rejected";
   return status || "Pending";
@@ -100,207 +101,209 @@ export const isSameDate = (d1, d2) => {
   }
 };
 
-const ApprovalTimeDisplay = React.memo(({
-  reviewStartedAt,
-  completedAt,
-  approvalWaitingMs,
-  status,
-  lastReviewStartedAt,
-  reviewCycles,
-}) => {
-  const [liveElapsed, setLiveElapsed] = useState(0);
-  const [showPopup, setShowPopup] = useState(false);
-  const [coords, setCoords] = useState({ top: 0, left: 0 });
-  const buttonRef = useRef(null);
-  const popupRef = useRef(null);
+const ApprovalTimeDisplay = React.memo(
+  ({
+    reviewStartedAt,
+    completedAt,
+    approvalWaitingMs,
+    status,
+    lastReviewStartedAt,
+    reviewCycles,
+  }) => {
+    const [liveElapsed, setLiveElapsed] = useState(0);
+    const [showPopup, setShowPopup] = useState(false);
+    const [coords, setCoords] = useState({ top: 0, left: 0 });
+    const buttonRef = useRef(null);
+    const popupRef = useRef(null);
 
-  useEffect(() => {
-    if (
-      !reviewStartedAt ||
-      status !== "In Review"
-    ) {
-      setLiveElapsed(0);
-      return;
-    }
-    const updateTime = () => {
-      const elapsed = calculateBusinessMs(reviewStartedAt, Date.now());
-      setLiveElapsed(elapsed);
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, [reviewStartedAt, status]);
-
-  // Click outside close
-  useEffect(() => {
-    if (!showPopup) return;
-    const handleClickOutside = (e) => {
-      if (
-        popupRef.current &&
-        !popupRef.current.contains(e.target) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(e.target)
-      ) {
-        setShowPopup(false);
+    useEffect(() => {
+      if (!reviewStartedAt || status !== "In Review") {
+        setLiveElapsed(0);
+        return;
       }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showPopup]);
+      const updateTime = () => {
+        const elapsed = calculateBusinessMs(reviewStartedAt, Date.now());
+        setLiveElapsed(elapsed);
+      };
+      updateTime();
+      const interval = setInterval(updateTime, 1000);
+      return () => clearInterval(interval);
+    }, [reviewStartedAt, status]);
 
-  const effectiveReviewStart =
-    reviewStartedAt ||
-    lastReviewStartedAt ||
-    (reviewCycles && reviewCycles.length > 0
-      ? reviewCycles[reviewCycles.length - 1]?.startedAt
-      : null);
+    // Click outside close
+    useEffect(() => {
+      if (!showPopup) return;
+      const handleClickOutside = (e) => {
+        if (
+          popupRef.current &&
+          !popupRef.current.contains(e.target) &&
+          buttonRef.current &&
+          !buttonRef.current.contains(e.target)
+        ) {
+          setShowPopup(false);
+        }
+      };
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }, [showPopup]);
 
-  if (!effectiveReviewStart && !approvalWaitingMs) {
-    return (
-      <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
-    );
-  }
+    const effectiveReviewStart =
+      reviewStartedAt ||
+      lastReviewStartedAt ||
+      (reviewCycles && reviewCycles.length > 0
+        ? reviewCycles[reviewCycles.length - 1]?.startedAt
+        : null);
 
-  const formatDateTime = (dateStr) => {
-    if (!dateStr) return { date: "—", time: "", relative: "" };
-    const d = new Date(dateStr);
-    const date = d.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-    });
-    const time = d.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-    const diffMs = Date.now() - d;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-    let relative = "just now";
-    if (diffDays > 0) relative = `${diffDays}d ago`;
-    else if (diffHours > 0) relative = `${diffHours}h ago`;
-    else if (diffMins > 0) relative = `${diffMins}m ago`;
-    return { date, time, relative };
-  };
-
-  const totalWaitMs = (approvalWaitingMs || 0) + liveElapsed;
-  const isInReview = status === "In Review";
-  const revInfo = effectiveReviewStart ? formatDateTime(effectiveReviewStart) : null;
-  const doneInfo = completedAt ? formatDateTime(completedAt) : null;
-
-  const handleToggle = (e) => {
-    e.stopPropagation();
-    if (!showPopup && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      // Position above the button, aligned to its right edge
-      setCoords({
-        top: rect.top + window.scrollY - 175,
-        left: rect.right + window.scrollX - 224,
-      });
+    if (!effectiveReviewStart && !approvalWaitingMs) {
+      return (
+        <span className="text-slate-300 dark:text-slate-600 text-xs">—</span>
+      );
     }
-    setShowPopup(!showPopup);
-  };
 
-  return (
-    <div className="relative inline-flex items-center gap-1.5 justify-center">
-      {/* Duration badge */}
-      {totalWaitMs > 0 && (
-        <div
-          className={`px-2.5 py-1 rounded-full font-black text-[10px] tracking-wide border shadow-sm ${
-            isInReview
-              ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/25"
-              : "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20"
-          }`}
-        >
-          {isInReview && (
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0 mr-1 inline-block" />
-          )}
-          {isInReview ? "Waiting " : "Took "}
-          <span className="font-black">
-            {formatBusinessDuration(totalWaitMs)}
-          </span>
-        </div>
-      )}
+    const formatDateTime = (dateStr) => {
+      if (!dateStr) return { date: "—", time: "", relative: "" };
+      const d = new Date(dateStr);
+      const date = d.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+      });
+      const time = d.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+      const diffMs = Date.now() - d;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMins / 60);
+      const diffDays = Math.floor(diffHours / 24);
+      let relative = "just now";
+      if (diffDays > 0) relative = `${diffDays}d ago`;
+      else if (diffHours > 0) relative = `${diffHours}h ago`;
+      else if (diffMins > 0) relative = `${diffMins}m ago`;
+      return { date, time, relative };
+    };
 
-      {/* View Details Eye Icon */}
-      {(revInfo || doneInfo) && (
-        <button
-          ref={buttonRef}
-          type="button"
-          onClick={handleToggle}
-          className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-blue-500 dark:text-slate-500 dark:hover:text-[#3b82f6] transition-colors cursor-pointer"
-          title="View approval details"
-        >
-          <FiEye size={13} />
-        </button>
-      )}
+    const totalWaitMs = (approvalWaitingMs || 0) + liveElapsed;
+    const isInReview = status === "In Review";
+    const revInfo = effectiveReviewStart
+      ? formatDateTime(effectiveReviewStart)
+      : null;
+    const doneInfo = completedAt ? formatDateTime(completedAt) : null;
 
-      {/* Details Popup rendered via Portal */}
-      {showPopup &&
-        createPortal(
-          <AnimatePresence>
-            <motion.div
-              ref={popupRef}
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ duration: 0.15 }}
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                position: "absolute",
-                top: coords.top,
-                left: coords.left,
-              }}
-              className="z-[9999] w-56 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl flex flex-col gap-2 text-left"
-            >
-              <div className="flex justify-between items-center pb-1.5 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                  Timeline Details
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowPopup(false)}
-                  className="text-slate-400 hover:text-slate-600 dark:text-[#555] dark:hover:text-slate-350 cursor-pointer"
-                >
-                  <FiX size={10} />
-                </button>
-              </div>
+    const handleToggle = (e) => {
+      e.stopPropagation();
+      if (!showPopup && buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        // Position above the button, aligned to its right edge
+        setCoords({
+          top: rect.top + window.scrollY - 175,
+          left: rect.right + window.scrollX - 224,
+        });
+      }
+      setShowPopup(!showPopup);
+    };
 
-              {revInfo && (
-                <div className="flex flex-col gap-0.5 bg-blue-50/40 dark:bg-blue-950/20 p-2 rounded-lg border border-blue-100/50 dark:border-blue-900/30">
-                  <span className="text-[8px] font-black text-blue-500 dark:text-blue-450 uppercase tracking-widest">
-                    Review Start
-                  </span>
-                  <span className="font-bold text-slate-700 dark:text-slate-200 text-[10px]">
-                    {revInfo.date} · {revInfo.time}
-                  </span>
-                  <span className="text-[9px] text-blue-450 dark:text-blue-500 font-medium">
-                    {revInfo.relative}
-                  </span>
-                </div>
-              )}
-
-              {doneInfo && (
-                <div className="flex flex-col gap-0.5 bg-emerald-50/40 dark:bg-emerald-950/20 p-2 rounded-lg border border-emerald-100/50 dark:border-emerald-900/30">
-                  <span className="text-[8px] font-black text-emerald-500 dark:text-emerald-450 uppercase tracking-widest">
-                    Completed
-                  </span>
-                  <span className="font-bold text-slate-700 dark:text-slate-200 text-[10px]">
-                    {doneInfo.date} · {doneInfo.time}
-                  </span>
-                  <span className="text-[9px] text-emerald-400 dark:text-emerald-500 font-medium">
-                    {doneInfo.relative}
-                  </span>
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>,
-          document.body,
+    return (
+      <div className="relative inline-flex items-center gap-1.5 justify-center">
+        {/* Duration badge */}
+        {totalWaitMs > 0 && (
+          <div
+            className={`px-2.5 py-1 rounded-full font-black text-[10px] tracking-wide border shadow-sm ${
+              isInReview
+                ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/25"
+                : "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20"
+            }`}
+          >
+            {isInReview && (
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse shrink-0 mr-1 inline-block" />
+            )}
+            {isInReview ? "Waiting " : "Took "}
+            <span className="font-black">
+              {formatBusinessDuration(totalWaitMs)}
+            </span>
+          </div>
         )}
-    </div>
-  );
-});
+
+        {/* View Details Eye Icon */}
+        {(revInfo || doneInfo) && (
+          <button
+            ref={buttonRef}
+            type="button"
+            onClick={handleToggle}
+            className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-blue-500 dark:text-slate-500 dark:hover:text-[#3b82f6] transition-colors cursor-pointer"
+            title="View approval details"
+          >
+            <FiEye size={13} />
+          </button>
+        )}
+
+        {/* Details Popup rendered via Portal */}
+        {showPopup &&
+          createPortal(
+            <AnimatePresence>
+              <motion.div
+                ref={popupRef}
+                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                transition={{ duration: 0.15 }}
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  position: "absolute",
+                  top: coords.top,
+                  left: coords.left,
+                }}
+                className="z-[9999] w-56 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl flex flex-col gap-2 text-left"
+              >
+                <div className="flex justify-between items-center pb-1.5 border-b border-slate-100 dark:border-slate-800">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    Timeline Details
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowPopup(false)}
+                    className="text-slate-400 hover:text-slate-600 dark:text-[#555] dark:hover:text-slate-350 cursor-pointer"
+                  >
+                    <FiX size={10} />
+                  </button>
+                </div>
+
+                {revInfo && (
+                  <div className="flex flex-col gap-0.5 bg-blue-50/40 dark:bg-blue-950/20 p-2 rounded-lg border border-blue-100/50 dark:border-blue-900/30">
+                    <span className="text-[8px] font-black text-blue-500 dark:text-blue-450 uppercase tracking-widest">
+                      Review Start
+                    </span>
+                    <span className="font-bold text-slate-700 dark:text-slate-200 text-[10px]">
+                      {revInfo.date} · {revInfo.time}
+                    </span>
+                    <span className="text-[9px] text-blue-450 dark:text-blue-500 font-medium">
+                      {revInfo.relative}
+                    </span>
+                  </div>
+                )}
+
+                {doneInfo && (
+                  <div className="flex flex-col gap-0.5 bg-emerald-50/40 dark:bg-emerald-950/20 p-2 rounded-lg border border-emerald-100/50 dark:border-emerald-900/30">
+                    <span className="text-[8px] font-black text-emerald-500 dark:text-emerald-450 uppercase tracking-widest">
+                      Completed
+                    </span>
+                    <span className="font-bold text-slate-700 dark:text-slate-200 text-[10px]">
+                      {doneInfo.date} · {doneInfo.time}
+                    </span>
+                    <span className="text-[9px] text-emerald-400 dark:text-emerald-500 font-medium">
+                      {doneInfo.relative}
+                    </span>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>,
+            document.body,
+          )}
+      </div>
+    );
+  },
+);
 
 const StrictModeDroppable = ({ children, ...props }) => {
   const [enabled, setEnabled] = useState(false);
@@ -315,168 +318,171 @@ const StrictModeDroppable = ({ children, ...props }) => {
   return <Droppable {...props}>{children}</Droppable>;
 };
 
-const TimeTracker = React.memo(({
-  startTime,
-  endTime,
-  pausedAt,
-  autoPaused,
-  status,
-  savedPausedMs = 0,
-  totalTrackedTime = 0,
-  variant = "default",
-}) => {
-  const [elapsed, setElapsed] = useState(0);
+const TimeTracker = React.memo(
+  ({
+    startTime,
+    endTime,
+    pausedAt,
+    autoPaused,
+    status,
+    savedPausedMs = 0,
+    totalTrackedTime = 0,
+    variant = "default",
+  }) => {
+    const [elapsed, setElapsed] = useState(0);
 
-  useEffect(() => {
-    if (!startTime) {
-      setElapsed(0);
-      return;
-    }
-
-    const calculateElapsed = () => {
-      const start = new Date(startTime).getTime();
-      let end;
-
-      if (endTime) {
-        // Task is completed — use the locked end time
-        end = new Date(endTime).getTime();
-      } else if (status === "In Progress" && autoPaused) {
-        // Task is auto-paused by office hours — freeze at pausedAt
-        end = pausedAt ? new Date(pausedAt).getTime() : Date.now();
-      } else if (
-        pausedAt &&
-        ["On Hold", "Rejected", "In Review", "Correction"].includes(
-          status,
-        )
-      ) {
-        // Task is paused — freeze at pausedAt
-        end = new Date(pausedAt).getTime();
-      } else {
-        // Task is actively running
-        end = Date.now();
+    useEffect(() => {
+      if (!startTime) {
+        setElapsed(0);
+        return;
       }
 
-      // Subtract all accumulated paused/review time
-      const elapsedMs = end - start - (savedPausedMs || 0);
+      const calculateElapsed = () => {
+        const start = new Date(startTime).getTime();
+        let end;
 
-      return Math.max(0, Math.floor(elapsedMs / 1000));
-    };
+        if (endTime) {
+          // Task is completed — use the locked end time
+          end = new Date(endTime).getTime();
+        } else if (status === "In Progress" && autoPaused) {
+          // Task is auto-paused by office hours — freeze at pausedAt
+          end = pausedAt ? new Date(pausedAt).getTime() : Date.now();
+        } else if (
+          pausedAt &&
+          ["On Hold", "Rejected", "In Review", "Correction"].includes(status)
+        ) {
+          // Task is paused — freeze at pausedAt
+          end = new Date(pausedAt).getTime();
+        } else {
+          // Task is actively running
+          end = Date.now();
+        }
 
-    setElapsed(calculateElapsed());
+        // Subtract all accumulated paused/review time
+        const elapsedMs = end - start - (savedPausedMs || 0);
 
-    // Only tick when actively running (In Progress and NOT autoPaused)
-    if (status === "In Progress" && !autoPaused && !endTime) {
-      const interval = setInterval(() => {
-        setElapsed(calculateElapsed());
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [startTime, endTime, pausedAt, autoPaused, status, savedPausedMs]);
+        return Math.max(0, Math.floor(elapsedMs / 1000));
+      };
 
-  const lifetimeSecs = Math.floor((totalTrackedTime || 0) / 1000);
-  const totalDisplaySecs = status === "In Progress" ? (lifetimeSecs + elapsed) : (lifetimeSecs > 0 ? lifetimeSecs : elapsed);
+      setElapsed(calculateElapsed());
 
-  if (!startTime && status !== "In Progress") {
-    if (totalTrackedTime > 0) {
-      const h = Math.floor(lifetimeSecs / 3600);
-      const m = Math.floor((lifetimeSecs % 3600) / 60);
-      const s = lifetimeSecs % 60;
-      const str = `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
-      return (
-        <span className="text-slate-700 dark:text-slate-300 font-bold text-xs block text-center w-full">
-          {str}
-        </span>
-      );
-    }
-    if (!status || status.toLowerCase() === "pending") {
-      return (
-        <span className="text-slate-405 dark:text-slate-500 font-semibold text-xs block text-center w-full">
-          Not started
-        </span>
-      );
-    }
-    return null;
-  }
-  if (!startTime && status === "In Progress")
-    return (
-      <div className="inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold tracking-wider bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30 shadow-sm w-full">
-        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#3b82f6] animate-pulse"></span>
-        Starting...
-      </div>
-    );
+      // Only tick when actively running (In Progress and NOT autoPaused)
+      if (status === "In Progress" && !autoPaused && !endTime) {
+        const interval = setInterval(() => {
+          setElapsed(calculateElapsed());
+        }, 1000);
+        return () => clearInterval(interval);
+      }
+    }, [startTime, endTime, pausedAt, autoPaused, status, savedPausedMs]);
 
-  const hours = Math.floor(totalDisplaySecs / 3600);
-  const minutes = Math.floor((totalDisplaySecs % 3600) / 60);
-  const seconds = totalDisplaySecs % 60;
+    const lifetimeSecs = Math.floor((totalTrackedTime || 0) / 1000);
+    const totalDisplaySecs =
+      status === "In Progress"
+        ? lifetimeSecs + elapsed
+        : lifetimeSecs > 0
+          ? lifetimeSecs
+          : elapsed;
 
-  const timeString = `${hours > 0 ? `${hours}h ` : ""}${minutes}m ${seconds}s`;
-
-  if (variant === "premium") {
-    return (
-      <div className="flex flex-col">
-        <div className="flex items-baseline gap-1 text-slate-800 dark:text-white">
-          {hours > 0 && (
-            <>
-              <span className="text-3xl font-black tracking-tight">
-                {hours}
-              </span>
-              <span className="text-xs font-bold text-slate-400 mr-1">h</span>
-            </>
-          )}
-          <span className="text-3xl font-black tracking-tight">
-            {minutes}
+    if (!startTime && status !== "In Progress") {
+      if (totalTrackedTime > 0) {
+        const h = Math.floor(lifetimeSecs / 3600);
+        const m = Math.floor((lifetimeSecs % 3600) / 60);
+        const s = lifetimeSecs % 60;
+        const str = `${h > 0 ? `${h}h ` : ""}${m}m ${s}s`;
+        return (
+          <span className="text-slate-700 dark:text-slate-300 font-bold text-xs block text-center w-full">
+            {str}
           </span>
-          <span className="text-xs font-bold text-slate-400 mr-1">m</span>
-          <span className="text-xl font-bold text-slate-400">
-            {seconds}s
+        );
+      }
+      if (!status || status.toLowerCase() === "pending") {
+        return (
+          <span className="text-slate-405 dark:text-slate-500 font-semibold text-xs block text-center w-full">
+            Not started
           </span>
+        );
+      }
+      return null;
+    }
+    if (!startTime && status === "In Progress")
+      return (
+        <div className="inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold tracking-wider bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30 shadow-sm w-full">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#3b82f6] animate-pulse"></span>
+          Starting...
         </div>
-        {status === "In Progress" && autoPaused && (
-          <div className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400">
-            Office Closed (Auto Paused)
+      );
+
+    const hours = Math.floor(totalDisplaySecs / 3600);
+    const minutes = Math.floor((totalDisplaySecs % 3600) / 60);
+    const seconds = totalDisplaySecs % 60;
+
+    const timeString = `${hours > 0 ? `${hours}h ` : ""}${minutes}m ${seconds}s`;
+
+    if (variant === "premium") {
+      return (
+        <div className="flex flex-col">
+          <div className="flex items-baseline gap-1 text-slate-800 dark:text-white">
+            {hours > 0 && (
+              <>
+                <span className="text-3xl font-black tracking-tight">
+                  {hours}
+                </span>
+                <span className="text-xs font-bold text-slate-400 mr-1">h</span>
+              </>
+            )}
+            <span className="text-3xl font-black tracking-tight">
+              {minutes}
+            </span>
+            <span className="text-xs font-bold text-slate-400 mr-1">m</span>
+            <span className="text-xl font-bold text-slate-400">{seconds}s</span>
           </div>
+          {status === "In Progress" && autoPaused && (
+            <div className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400">
+              Office Closed (Auto Paused)
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    const isAutoPaused = status === "In Progress" && autoPaused;
+
+    return (
+      <div
+        className={`inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold tracking-wider w-full ${
+          isAutoPaused
+            ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 shadow-sm"
+            : status === "In Progress" && !endTime
+              ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30 shadow-sm"
+              : status === "In Review"
+                ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 shadow-sm"
+                : status === "On Hold"
+                  ? "bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/30 shadow-sm"
+                  : status === "Completed"
+                    ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 shadow-sm"
+                    : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-500/5 dark:text-slate-400 dark:border-slate-500/20 shadow-xs"
+        }`}
+      >
+        {isAutoPaused ? (
+          <>
+            <FiClock size={10} className="text-amber-500" />
+            <span>Auto Paused ({timeString})</span>
+          </>
+        ) : status === "In Progress" && !endTime ? (
+          <>
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#3b82f6] animate-pulse"></span>
+            {timeString}
+          </>
+        ) : (
+          <>
+            <FiClock size={10} />
+            {timeString}
+          </>
         )}
       </div>
     );
-  }
-
-  const isAutoPaused = status === "In Progress" && autoPaused;
-
-  return (
-    <div
-      className={`inline-flex items-center justify-center gap-1.5 px-2 py-1 rounded border text-[9px] font-bold tracking-wider w-full ${
-        isAutoPaused
-          ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 shadow-sm"
-          : status === "In Progress" && !endTime
-            ? "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-500/10 dark:text-[#3b82f6] dark:border-[#3b82f6]/30 shadow-sm"
-            : status === "In Review"
-              ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 shadow-sm"
-              : status === "On Hold"
-                ? "bg-violet-50 text-violet-600 border-violet-200 dark:bg-violet-500/10 dark:text-violet-400 dark:border-violet-500/30 shadow-sm"
-                : status === "Completed"
-                  ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 shadow-sm"
-                  : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-500/5 dark:text-slate-400 dark:border-slate-500/20 shadow-xs"
-      }`}
-    >
-      {isAutoPaused ? (
-        <>
-          <FiClock size={10} className="text-amber-500" />
-          <span>Auto Paused ({timeString})</span>
-        </>
-      ) : status === "In Progress" && !endTime ? (
-        <>
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 dark:bg-[#3b82f6] animate-pulse"></span>
-          {timeString}
-        </>
-      ) : (
-        <>
-          <FiClock size={10} />
-          {timeString}
-        </>
-      )}
-    </div>
-  );
-});
+  },
+);
 
 // Task Title Input Component for autosaving inline without cursor jump
 const TaskTitleInput = ({
@@ -791,7 +797,15 @@ const SubtaskRow = ({
           <AssigneeDropdown
             selectedUser={
               sub.contentType === "MOM"
-                ? (sub.assignedTo || sub.createdBy?._id || sub.createdBy?.id || sub.createdBy || task.createdBy?._id || task.createdBy?.id || task.createdBy || currentUser?._id || currentUser?.id)
+                ? sub.assignedTo ||
+                  sub.createdBy?._id ||
+                  sub.createdBy?.id ||
+                  sub.createdBy ||
+                  task.createdBy?._id ||
+                  task.createdBy?.id ||
+                  task.createdBy ||
+                  currentUser?._id ||
+                  currentUser?.id
                 : sub.assignedTo
             }
             users={users}
@@ -927,9 +941,16 @@ const AssigneeDropdown = ({
 
   let selectedUserObj =
     typeof selectedUser === "string"
-      ? (users || []).find((u) => u && (u._id === selectedUser || u.id === selectedUser))
+      ? (users || []).find(
+          (u) => u && (u._id === selectedUser || u.id === selectedUser),
+        )
       : selectedUser;
-  if (!selectedUserObj && selectedUser && currentUser && (selectedUser === currentUser._id || selectedUser === currentUser.id)) {
+  if (
+    !selectedUserObj &&
+    selectedUser &&
+    currentUser &&
+    (selectedUser === currentUser._id || selectedUser === currentUser.id)
+  ) {
     selectedUserObj = currentUser;
   }
   if (!selectedUserObj && isMOM && currentUser) {
@@ -1142,7 +1163,10 @@ const AssigneeDropdown = ({
         } w-[135px] h-[28px] text-left`}
       >
         <div className="w-5.5 h-5.5 rounded-full border border-dashed border-slate-300 dark:border-white/20 flex items-center justify-center text-slate-400 dark:text-slate-500 shrink-0 bg-white dark:bg-[#111111]">
-          <FiUser size={10} className={canEdit ? "group-hover/assign:hidden" : ""} />
+          <FiUser
+            size={10}
+            className={canEdit ? "group-hover/assign:hidden" : ""}
+          />
           {canEdit && (
             <FiPlus
               size={10}
@@ -2266,7 +2290,10 @@ const ProjectTaskBoard = ({
         }).unwrap();
       } catch (err) {
         console.error("Failed to drag and drop task:", err);
-        if (err?.data?.isOfficeHoursEnded || err?.error?.data?.isOfficeHoursEnded) {
+        if (
+          err?.data?.isOfficeHoursEnded ||
+          err?.error?.data?.isOfficeHoursEnded
+        ) {
           const errorData = err?.data || err?.error?.data;
           window.dispatchEvent(
             new CustomEvent("show-office-hours-ended-popup", {
@@ -2274,7 +2301,7 @@ const ProjectTaskBoard = ({
                 workingTimeMs: errorData.workingTimeMs,
                 pausedAtHour: errorData.pausedAt,
               },
-            })
+            }),
           );
           dispatch(apiSlice.util.invalidateTags(["Task"]));
         }
@@ -2814,7 +2841,10 @@ const ProjectTaskBoard = ({
     } catch (err) {
       console.error("Failed to update task:", err);
 
-      if (err?.data?.isOfficeHoursEnded || err?.error?.data?.isOfficeHoursEnded) {
+      if (
+        err?.data?.isOfficeHoursEnded ||
+        err?.error?.data?.isOfficeHoursEnded
+      ) {
         const errorData = err?.data || err?.error?.data;
         window.dispatchEvent(
           new CustomEvent("show-office-hours-ended-popup", {
@@ -2822,7 +2852,7 @@ const ProjectTaskBoard = ({
               workingTimeMs: errorData.workingTimeMs,
               pausedAtHour: errorData.pausedAt,
             },
-          })
+          }),
         );
         dispatch(apiSlice.util.invalidateTags(["Task"]));
         return;
@@ -3125,7 +3155,9 @@ const ProjectTaskBoard = ({
           new Date(sanitizedFields.startDate).toISOString().split("T")[0] !==
             new Date(currentSub.startDate).toISOString().split("T")[0])
       ) {
-        toast.error("🔒 Subtask Start Date is locked once set and cannot be changed.");
+        toast.error(
+          "🔒 Subtask Start Date is locked once set and cannot be changed.",
+        );
         return;
       }
     }
@@ -3138,7 +3170,9 @@ const ProjectTaskBoard = ({
           new Date(sanitizedFields.dueDate).toISOString().split("T")[0] !==
             new Date(currentSub.dueDate).toISOString().split("T")[0])
       ) {
-        toast.error("🔒 Subtask End Date is locked once set and cannot be changed.");
+        toast.error(
+          "🔒 Subtask End Date is locked once set and cannot be changed.",
+        );
         return;
       }
     }
@@ -3658,8 +3692,13 @@ const ProjectTaskBoard = ({
                   }`}
                 >
                   <FiFilter className="shrink-0" size={13} />
-                  <span>{statusFilter === "All" ? "All Status" : statusFilter}</span>
-                  <FiChevronDown className="shrink-0 text-slate-400" size={13} />
+                  <span>
+                    {statusFilter === "All" ? "All Status" : statusFilter}
+                  </span>
+                  <FiChevronDown
+                    className="shrink-0 text-slate-400"
+                    size={13}
+                  />
                 </button>
 
                 <AnimatePresence>
@@ -3671,25 +3710,31 @@ const ProjectTaskBoard = ({
                       transition={{ duration: 0.15 }}
                       className="absolute right-0 mt-2 w-40 bg-white dark:bg-[#111] border border-slate-200/80 dark:border-transparent rounded-2xl shadow-2xl p-2 z-50 space-y-1 backdrop-blur-md"
                     >
-                      {["All", "Active Tasks", "Pending", "In Progress", "On Hold", "In Review", "Completed"].map(
-                        (option) => (
-                          <button
-                            key={option}
-                            type="button"
-                            onClick={() => {
-                              setStatusFilter(option);
-                              setIsStatusFilterOpen(false);
-                            }}
-                            className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
-                              statusFilter === option
-                                ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                                : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
-                            }`}
-                          >
-                            {option}
-                          </button>
-                        ),
-                      )}
+                      {[
+                        "All",
+                        "Active Tasks",
+                        "Pending",
+                        "In Progress",
+                        "On Hold",
+                        "In Review",
+                        "Completed",
+                      ].map((option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => {
+                            setStatusFilter(option);
+                            setIsStatusFilterOpen(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                            statusFilter === option
+                              ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                              : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5"
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      ))}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -4361,16 +4406,16 @@ const ProjectTaskBoard = ({
                             return sectionsToRender.map(
                               (sectionName, sectionIndex) => {
                                 const STATUS_ORDER = {
-                                  "Pending": 1,
+                                  Pending: 1,
                                   "To Do": 1,
                                   "In Progress": 2,
                                   "On Hold": 3,
                                   "In Review": 4,
                                   "IN-REVIEW": 4,
-                                  "Correction": 5,
-                                  "Completed": 6,
-                                  "Done": 6,
-                                  "Rejected": 7,
+                                  Correction: 5,
+                                  Completed: 6,
+                                  Done: 6,
+                                  Rejected: 7,
                                 };
                                 const sectionTasks = sortedTasks
                                   .filter(
@@ -4940,7 +4985,7 @@ const ProjectTaskBoard = ({
                                                 const canToggle =
                                                   isAdminOrManager ||
                                                   task.assignedTo?._id ===
-                                                  currentUser?._id ||
+                                                    currentUser?._id ||
                                                   task.assignedTo ===
                                                     currentUser?._id;
 
@@ -4973,7 +5018,8 @@ const ProjectTaskBoard = ({
                                                         )
                                                       }
                                                       className={`group cursor-pointer transition-colors ${
-                                                        highlightedTaskId === task._id
+                                                        highlightedTaskId ===
+                                                        task._id
                                                           ? "bg-indigo-100/80 dark:bg-indigo-900/40"
                                                           : rowBg
                                                       } ${
@@ -5132,8 +5178,12 @@ const ProjectTaskBoard = ({
 
                                                           {/* Task Title contentEditable Span */}
                                                           <div className="flex-grow min-w-0 flex items-center gap-1.5">
-                                                            {highlightedTaskId === task._id && (
-                                                              <FiLoader size={12} className="animate-spin text-indigo-500 dark:text-indigo-400 shrink-0" />
+                                                            {highlightedTaskId ===
+                                                              task._id && (
+                                                              <FiLoader
+                                                                size={12}
+                                                                className="animate-spin text-indigo-500 dark:text-indigo-400 shrink-0"
+                                                              />
                                                             )}
                                                             <span
                                                               ref={(el) => {
@@ -5401,7 +5451,9 @@ const ProjectTaskBoard = ({
                                                             }`}
                                                             onClick={(e) => {
                                                               e.stopPropagation();
-                                                              if (!task.startDate) {
+                                                              if (
+                                                                !task.startDate
+                                                              ) {
                                                                 const input =
                                                                   e.currentTarget.querySelector(
                                                                     'input[type="date"]',
@@ -5456,12 +5508,15 @@ const ProjectTaskBoard = ({
                                                                 <input
                                                                   type="date"
                                                                   value=""
-                                                                  onChange={(e) =>
+                                                                  onChange={(
+                                                                    e,
+                                                                  ) =>
                                                                     handleTaskFieldChange(
                                                                       task._id,
                                                                       {
                                                                         startDate:
-                                                                          e.target
+                                                                          e
+                                                                            .target
                                                                             .value ||
                                                                           null,
                                                                       },
@@ -5485,7 +5540,9 @@ const ProjectTaskBoard = ({
                                                             }`}
                                                             onClick={(e) => {
                                                               e.stopPropagation();
-                                                              if (!task.dueDate) {
+                                                              if (
+                                                                !task.dueDate
+                                                              ) {
                                                                 const input =
                                                                   e.currentTarget.querySelector(
                                                                     'input[type="date"]',
@@ -5551,12 +5608,15 @@ const ProjectTaskBoard = ({
                                                                           )[0]
                                                                       : ""
                                                                   }
-                                                                  onChange={(e) =>
+                                                                  onChange={(
+                                                                    e,
+                                                                  ) =>
                                                                     handleTaskFieldChange(
                                                                       task._id,
                                                                       {
                                                                         dueDate:
-                                                                          e.target
+                                                                          e
+                                                                            .target
                                                                             .value ||
                                                                           null,
                                                                       },
@@ -5580,8 +5640,18 @@ const ProjectTaskBoard = ({
                                                           >
                                                             <AssigneeDropdown
                                                               selectedUser={
-                                                                task.contentType === "MOM"
-                                                                  ? (task.assignedTo || task.createdBy?._id || task.createdBy?.id || task.createdBy || currentUser?._id || currentUser?.id)
+                                                                task.contentType ===
+                                                                "MOM"
+                                                                  ? task.assignedTo ||
+                                                                    task
+                                                                      .createdBy
+                                                                      ?._id ||
+                                                                    task
+                                                                      .createdBy
+                                                                      ?.id ||
+                                                                    task.createdBy ||
+                                                                    currentUser?._id ||
+                                                                    currentUser?.id
                                                                   : task.assignedTo
                                                               }
                                                               users={users}
@@ -5600,15 +5670,20 @@ const ProjectTaskBoard = ({
                                                                 isAdminOrManager
                                                               }
                                                               disabled={
-                                                                task.contentType === "MOM"
+                                                                task.contentType ===
+                                                                "MOM"
                                                               }
                                                               isLocked={
-                                                                task.contentType === "MOM"
+                                                                task.contentType ===
+                                                                "MOM"
                                                               }
                                                               isMOM={
-                                                                task.contentType === "MOM"
+                                                                task.contentType ===
+                                                                "MOM"
                                                               }
-                                                              currentUser={currentUser}
+                                                              currentUser={
+                                                                currentUser
+                                                              }
                                                               getAvatarColor={
                                                                 getAvatarColor
                                                               }
@@ -5652,17 +5727,23 @@ const ProjectTaskBoard = ({
                                                                         ""
                                                                     ) {
                                                                       const creatorId =
-                                                                        task.createdBy?._id ||
-                                                                        task.createdBy?.id ||
-                                                                        (typeof task.createdBy === "string"
+                                                                        task
+                                                                          .createdBy
+                                                                          ?._id ||
+                                                                        task
+                                                                          .createdBy
+                                                                          ?.id ||
+                                                                        (typeof task.createdBy ===
+                                                                        "string"
                                                                           ? task.createdBy
                                                                           : null) ||
                                                                         currentUser?._id ||
                                                                         currentUser?.id;
-                                                                      const updates = {
-                                                                        contentType:
-                                                                          customVal.trim(),
-                                                                      };
+                                                                      const updates =
+                                                                        {
+                                                                          contentType:
+                                                                            customVal.trim(),
+                                                                        };
                                                                       if (
                                                                         customVal.trim() ===
                                                                           "MOM" &&
@@ -5678,17 +5759,23 @@ const ProjectTaskBoard = ({
                                                                     }
                                                                   } else {
                                                                     const creatorId =
-                                                                      task.createdBy?._id ||
-                                                                      task.createdBy?.id ||
-                                                                      (typeof task.createdBy === "string"
+                                                                      task
+                                                                        .createdBy
+                                                                        ?._id ||
+                                                                      task
+                                                                        .createdBy
+                                                                        ?.id ||
+                                                                      (typeof task.createdBy ===
+                                                                      "string"
                                                                         ? task.createdBy
                                                                         : null) ||
                                                                       currentUser?._id ||
                                                                       currentUser?.id;
-                                                                    const updates = {
-                                                                      contentType:
-                                                                        val,
-                                                                    };
+                                                                    const updates =
+                                                                      {
+                                                                        contentType:
+                                                                          val,
+                                                                      };
                                                                     if (
                                                                       val ===
                                                                         "MOM" &&
@@ -5731,7 +5818,8 @@ const ProjectTaskBoard = ({
                                                                                   : task.contentType ===
                                                                                       "Video shoot"
                                                                                     ? "badge-type-carousel"
-                                                                                    : task.contentType === "MOM"
+                                                                                    : task.contentType ===
+                                                                                        "MOM"
                                                                                       ? "badge-type-post"
                                                                                       : "badge-type-none"
                                                                 }`}
@@ -5794,7 +5882,8 @@ const ProjectTaskBoard = ({
                                                                       }
                                                                     </option>
                                                                   )}
-                                                                {currentUser?.role === "admin" && (
+                                                                {currentUser?.role ===
+                                                                  "admin" && (
                                                                   <option value="__ADD_CUSTOM__">
                                                                     ➕ Custom...
                                                                   </option>
@@ -5840,7 +5929,6 @@ const ProjectTaskBoard = ({
                                                           </div>
                                                         </td>
                                                       )}
-
 
                                                       {/* Priority */}
                                                       {!hiddenColumns.priority && (
@@ -5976,20 +6064,21 @@ const ProjectTaskBoard = ({
                                                                               : "badge-status-pending"
                                                                 }`}
                                                               >
-                                                                {task.contentType === "MOM" ? (
+                                                                {task.contentType ===
+                                                                "MOM" ? (
                                                                   <>
                                                                     <option value="Pending">
                                                                       Pending
                                                                     </option>
-                                                                   
+
                                                                     <option value="Completed">
                                                                       Completed
                                                                     </option>
                                                                   </>
                                                                 ) : task.status ===
-                                                                "In Review" ||
-                                                                task.status ===
-                                                                  "IN-REVIEW" ? (
+                                                                    "In Review" ||
+                                                                  task.status ===
+                                                                    "IN-REVIEW" ? (
                                                                   <>
                                                                     <option value="In Review">
                                                                       In Review
@@ -6010,7 +6099,8 @@ const ProjectTaskBoard = ({
                                                                       Pending
                                                                     </option>
                                                                     <option value="In Progress">
-                                                                      In Progress
+                                                                      In
+                                                                      Progress
                                                                     </option>
                                                                     <option value="In Review">
                                                                       In Review
@@ -6040,7 +6130,7 @@ const ProjectTaskBoard = ({
                                                                         "In Progress"
                                                                       ? "badge-status-in-progress"
                                                                       : task.status ===
-                                                                            "In Review"
+                                                                          "In Review"
                                                                         ? "badge-status-in-review"
                                                                         : task.status ===
                                                                             "On Hold"
@@ -6051,7 +6141,9 @@ const ProjectTaskBoard = ({
                                                                             : "badge-status-pending"
                                                                 }`}
                                                               >
-                                                                {getStatusWithEmoji(task.status)}
+                                                                {getStatusWithEmoji(
+                                                                  task.status,
+                                                                )}
                                                               </span>
                                                             )}
                                                           </div>
@@ -6628,7 +6720,9 @@ const ProjectTaskBoard = ({
                                                                       e,
                                                                     ) => {
                                                                       e.stopPropagation();
-                                                                      if (!sub.startDate) {
+                                                                      if (
+                                                                        !sub.startDate
+                                                                      ) {
                                                                         const input =
                                                                           e.currentTarget.querySelector(
                                                                             'input[type="date"]',
@@ -6649,7 +6743,9 @@ const ProjectTaskBoard = ({
                                                                         title="🔒 Start Date — Locked"
                                                                       >
                                                                         <FiLock
-                                                                          size={9.5}
+                                                                          size={
+                                                                            9.5
+                                                                          }
                                                                           className="text-amber-600 dark:text-amber-400 shrink-0"
                                                                         />
                                                                         <span className="whitespace-nowrap">
@@ -6722,7 +6818,9 @@ const ProjectTaskBoard = ({
                                                                       e,
                                                                     ) => {
                                                                       e.stopPropagation();
-                                                                      if (!sub.dueDate) {
+                                                                      if (
+                                                                        !sub.dueDate
+                                                                      ) {
                                                                         const input =
                                                                           e.currentTarget.querySelector(
                                                                             'input[type="date"]',
@@ -6743,7 +6841,9 @@ const ProjectTaskBoard = ({
                                                                         title="🔒 End Date — Locked"
                                                                       >
                                                                         <FiLock
-                                                                          size={9.5}
+                                                                          size={
+                                                                            9.5
+                                                                          }
                                                                           className="text-amber-600 dark:text-amber-400 shrink-0"
                                                                         />
                                                                         <span className="whitespace-nowrap">
@@ -6847,15 +6947,20 @@ const ProjectTaskBoard = ({
                                                                         isAdminOrManager
                                                                       }
                                                                       disabled={
-                                                                        sub.contentType === "MOM"
+                                                                        sub.contentType ===
+                                                                        "MOM"
                                                                       }
                                                                       isLocked={
-                                                                        sub.contentType === "MOM"
+                                                                        sub.contentType ===
+                                                                        "MOM"
                                                                       }
                                                                       isMOM={
-                                                                        sub.contentType === "MOM"
+                                                                        sub.contentType ===
+                                                                        "MOM"
                                                                       }
-                                                                      currentUser={currentUser}
+                                                                      currentUser={
+                                                                        currentUser
+                                                                      }
                                                                       getAvatarColor={
                                                                         getAvatarColor
                                                                       }
@@ -6889,14 +6994,24 @@ const ProjectTaskBoard = ({
                                                                               .target
                                                                               .value;
                                                                           const creatorId =
-                                                                            sub.createdBy?._id ||
-                                                                            sub.createdBy?.id ||
-                                                                            (typeof sub.createdBy === "string"
+                                                                            sub
+                                                                              .createdBy
+                                                                              ?._id ||
+                                                                            sub
+                                                                              .createdBy
+                                                                              ?.id ||
+                                                                            (typeof sub.createdBy ===
+                                                                            "string"
                                                                               ? sub.createdBy
                                                                               : null) ||
-                                                                            task.createdBy?._id ||
-                                                                            task.createdBy?.id ||
-                                                                            (typeof task.createdBy === "string"
+                                                                            task
+                                                                              .createdBy
+                                                                              ?._id ||
+                                                                            task
+                                                                              .createdBy
+                                                                              ?.id ||
+                                                                            (typeof task.createdBy ===
+                                                                            "string"
                                                                               ? task.createdBy
                                                                               : null) ||
                                                                             currentUser?._id ||
@@ -6914,10 +7029,11 @@ const ProjectTaskBoard = ({
                                                                               customVal.trim() !==
                                                                                 ""
                                                                             ) {
-                                                                              const updates = {
-                                                                                contentType:
-                                                                                  customVal.trim(),
-                                                                              };
+                                                                              const updates =
+                                                                                {
+                                                                                  contentType:
+                                                                                    customVal.trim(),
+                                                                                };
                                                                               if (
                                                                                 customVal.trim() ===
                                                                                   "MOM" &&
@@ -6933,10 +7049,11 @@ const ProjectTaskBoard = ({
                                                                               );
                                                                             }
                                                                           } else {
-                                                                            const updates = {
-                                                                              contentType:
-                                                                                val,
-                                                                            };
+                                                                            const updates =
+                                                                              {
+                                                                                contentType:
+                                                                                  val,
+                                                                              };
                                                                             if (
                                                                               val ===
                                                                                 "MOM" &&
@@ -6980,7 +7097,8 @@ const ProjectTaskBoard = ({
                                                                                           : sub.contentType ===
                                                                                               "Video shoot"
                                                                                             ? "badge-type-carousel"
-                                                                                            : sub.contentType === "MOM"
+                                                                                            : sub.contentType ===
+                                                                                                "MOM"
                                                                                               ? "badge-type-post"
                                                                                               : "badge-type-none"
                                                                         }`}
@@ -7044,7 +7162,8 @@ const ProjectTaskBoard = ({
                                                                               }
                                                                             </option>
                                                                           )}
-                                                                        {currentUser?.role === "admin" && (
+                                                                        {currentUser?.role ===
+                                                                          "admin" && (
                                                                           <option value="__ADD_CUSTOM__">
                                                                             ➕
                                                                             Custom...
@@ -7091,7 +7210,6 @@ const ProjectTaskBoard = ({
                                                                   </div>
                                                                 </td>
                                                               )}
-
 
                                                               {/* 7. Priority Column */}
                                                               {!hiddenColumns.priority && (
@@ -7239,23 +7357,25 @@ const ProjectTaskBoard = ({
                                                                                       : "badge-status-pending"
                                                                         }`}
                                                                       >
-                                                                        {sub.contentType === "MOM" ? (
+                                                                        {sub.contentType ===
+                                                                        "MOM" ? (
                                                                           <>
                                                                             <option value="Pending">
                                                                               Pending
                                                                             </option>
-                                                                           
+
                                                                             <option value="Completed">
                                                                               Completed
                                                                             </option>
                                                                           </>
                                                                         ) : sub.status ===
-                                                                        "In Review" ||
-                                                                        sub.status ===
-                                                                          "IN-REVIEW" ? (
+                                                                            "In Review" ||
+                                                                          sub.status ===
+                                                                            "IN-REVIEW" ? (
                                                                           <>
                                                                             <option value="In Review">
-                                                                              In Review
+                                                                              In
+                                                                              Review
                                                                             </option>
                                                                             <option value="Correction">
                                                                               Correction
@@ -7273,10 +7393,12 @@ const ProjectTaskBoard = ({
                                                                               Pending
                                                                             </option>
                                                                             <option value="In Progress">
-                                                                              In Progress
+                                                                              In
+                                                                              Progress
                                                                             </option>
                                                                             <option value="In Review">
-                                                                              In Review
+                                                                              In
+                                                                              Review
                                                                             </option>
                                                                             <option value="Correction">
                                                                               Correction
@@ -7285,7 +7407,8 @@ const ProjectTaskBoard = ({
                                                                               Completed
                                                                             </option>
                                                                             <option value="On Hold">
-                                                                              On Hold
+                                                                              On
+                                                                              Hold
                                                                             </option>
                                                                             <option value="Rejected">
                                                                               Rejected
@@ -7318,7 +7441,9 @@ const ProjectTaskBoard = ({
                                                                                     : "badge-status-pending"
                                                                         }`}
                                                                       >
-                                                                        {getStatusWithEmoji(sub.status)}
+                                                                        {getStatusWithEmoji(
+                                                                          sub.status,
+                                                                        )}
                                                                       </span>
                                                                     )}
                                                                   </div>
@@ -7535,8 +7660,7 @@ const ProjectTaskBoard = ({
                           >
                             {columnTasks.map((task, index) => {
                               const isCompleted = task.status === "Completed";
-                              const isTaskRejected =
-                                task.status === "Rejected";
+                              const isTaskRejected = task.status === "Rejected";
                               const isInReview =
                                 task.status === "In Review" ||
                                 task.status === "IN-REVIEW" ||
@@ -7676,7 +7800,12 @@ const ProjectTaskBoard = ({
                                           <AssigneeDropdown
                                             selectedUser={
                                               task.contentType === "MOM"
-                                                ? (task.assignedTo || task.createdBy?._id || task.createdBy?.id || task.createdBy || currentUser?._id || currentUser?.id)
+                                                ? task.assignedTo ||
+                                                  task.createdBy?._id ||
+                                                  task.createdBy?.id ||
+                                                  task.createdBy ||
+                                                  currentUser?._id ||
+                                                  currentUser?.id
                                                 : task.assignedTo
                                             }
                                             users={users}
@@ -7686,8 +7815,12 @@ const ProjectTaskBoard = ({
                                               })
                                             }
                                             isAdminOrManager={isAdminOrManager}
-                                            disabled={task.contentType === "MOM"}
-                                            isLocked={task.contentType === "MOM"}
+                                            disabled={
+                                              task.contentType === "MOM"
+                                            }
+                                            isLocked={
+                                              task.contentType === "MOM"
+                                            }
                                             isMOM={task.contentType === "MOM"}
                                             currentUser={currentUser}
                                             getAvatarColor={getAvatarColor}
@@ -8133,7 +8266,7 @@ const ProjectTaskBoard = ({
                             >
                               Pending
                             </option>
-                           
+
                             <option
                               value="Completed"
                               className="dark:bg-slate-950 dark:text-slate-200"
@@ -8142,8 +8275,8 @@ const ProjectTaskBoard = ({
                             </option>
                           </>
                         ) : selectedTask.status === "IN-REVIEW" ||
-                        selectedTask.status === "In Review" ||
-                        selectedTask.status === "IN-Review" ? (
+                          selectedTask.status === "In Review" ||
+                          selectedTask.status === "IN-Review" ? (
                           <>
                             <option
                               value="IN-REVIEW"
@@ -8222,7 +8355,12 @@ const ProjectTaskBoard = ({
                     <AssigneeDropdown
                       selectedUser={
                         selectedTask.contentType === "MOM"
-                          ? (selectedTask.assignedTo || selectedTask.createdBy?._id || selectedTask.createdBy?.id || selectedTask.createdBy || currentUser?._id || currentUser?.id)
+                          ? selectedTask.assignedTo ||
+                            selectedTask.createdBy?._id ||
+                            selectedTask.createdBy?.id ||
+                            selectedTask.createdBy ||
+                            currentUser?._id ||
+                            currentUser?.id
                           : selectedTask.assignedTo
                       }
                       users={users}
@@ -8244,7 +8382,9 @@ const ProjectTaskBoard = ({
                   {/* Start Date Picker */}
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400 tracking-wider flex items-center justify-between">
-                      <span className="flex items-center gap-1.5"><FiCalendar size={12} /> Start Date</span>
+                      <span className="flex items-center gap-1.5">
+                        <FiCalendar size={12} /> Start Date
+                      </span>
                       {selectedTask.startDate && (
                         <span className="text-[9px] text-amber-600 dark:text-amber-400 font-extrabold flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/40">
                           🔒 Locked
@@ -8264,7 +8404,10 @@ const ProjectTaskBoard = ({
                       />
                     ) : (
                       <div className="flex items-center gap-2 px-3 py-2 bg-blue-50/80 dark:bg-blue-955/30 border border-blue-200/80 dark:border-blue-900/60 rounded-xl text-xs font-semibold text-blue-700 dark:text-blue-300">
-                        <FiLock className="text-amber-500 dark:text-amber-400 shrink-0" size={13} />
+                        <FiLock
+                          className="text-amber-500 dark:text-amber-400 shrink-0"
+                          size={13}
+                        />
                         <span>
                           {selectedTask.startDate
                             ? new Date(
@@ -8284,7 +8427,9 @@ const ProjectTaskBoard = ({
                   {/* End Date (Due Date) Picker */}
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-slate-455 dark:text-slate-400 tracking-wider flex items-center justify-between">
-                      <span className="flex items-center gap-1.5"><FiCalendar size={12} /> End Date</span>
+                      <span className="flex items-center gap-1.5">
+                        <FiCalendar size={12} /> End Date
+                      </span>
                       {selectedTask.dueDate && (
                         <span className="text-[9px] text-amber-600 dark:text-amber-400 font-extrabold flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/40">
                           🔒 Locked
@@ -8311,10 +8456,15 @@ const ProjectTaskBoard = ({
                       />
                     ) : (
                       <div className="flex items-center gap-2 px-3 py-2 bg-rose-50/80 dark:bg-rose-955/30 border border-rose-200/80 dark:border-rose-900/60 rounded-xl text-xs font-semibold text-rose-700 dark:text-rose-300">
-                        <FiLock className="text-amber-500 dark:text-amber-400 shrink-0" size={13} />
+                        <FiLock
+                          className="text-amber-500 dark:text-amber-400 shrink-0"
+                          size={13}
+                        />
                         <span>
                           {selectedTask.dueDate
-                            ? new Date(selectedTask.dueDate).toLocaleDateString()
+                            ? new Date(
+                                selectedTask.dueDate,
+                              ).toLocaleDateString()
                             : "N/A"}
                         </span>
                         {selectedTask.dueDate && (
@@ -8481,8 +8631,11 @@ const ProjectTaskBoard = ({
                         const drawerEffectiveReviewStart =
                           selectedTask.reviewStartedAt ||
                           selectedTask.lastReviewStartedAt ||
-                          (selectedTask.reviewCycles && selectedTask.reviewCycles.length > 0
-                            ? selectedTask.reviewCycles[selectedTask.reviewCycles.length - 1]?.startedAt
+                          (selectedTask.reviewCycles &&
+                          selectedTask.reviewCycles.length > 0
+                            ? selectedTask.reviewCycles[
+                                selectedTask.reviewCycles.length - 1
+                              ]?.startedAt
                             : null);
 
                         if (drawerEffectiveReviewStart) {

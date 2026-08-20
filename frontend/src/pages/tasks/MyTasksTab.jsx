@@ -364,7 +364,12 @@ const SingleTimeDisplay = React.memo(
                 ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200/50 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400"
                 : "bg-slate-50 dark:bg-slate-500/5 border-slate-200 dark:border-slate-500/20 text-slate-500 dark:text-slate-400";
 
-      const totalActiveSecs = status === "In Progress" ? (lifetimeSecs + elapsed) : (lifetimeSecs > 0 ? lifetimeSecs : elapsed);
+      const totalActiveSecs =
+        status === "In Progress"
+          ? lifetimeSecs + elapsed
+          : lifetimeSecs > 0
+            ? lifetimeSecs
+            : elapsed;
 
       return (
         <span

@@ -210,7 +210,12 @@ const SimpleTimeTracker = ({
             ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
             : "bg-slate-50 text-slate-400 border-slate-200 dark:bg-slate-500/5 dark:text-slate-400 dark:border-slate-500/20";
 
-  const totalActiveSecs = status === "In Progress" ? (lifetimeSecs + elapsed) : (lifetimeSecs > 0 ? lifetimeSecs : elapsed);
+  const totalActiveSecs =
+    status === "In Progress"
+      ? lifetimeSecs + elapsed
+      : lifetimeSecs > 0
+        ? lifetimeSecs
+        : elapsed;
 
   return (
     <span
@@ -1020,7 +1025,7 @@ const TaskOverviewTab = ({
   const [isAddingNewTask, setIsAddingNewTask] = useState(() => {
     return sessionStorage.getItem("draft_isAddingNewTask") === "true";
   });
-  
+
   const [portalReady, setPortalReady] = useState(false);
   useEffect(() => {
     setPortalReady(true);
@@ -1108,7 +1113,7 @@ const TaskOverviewTab = ({
     }
     const effectiveAssignee =
       newTaskContentType === "MOM"
-        ? (newTaskAssignee || currentUser?._id || currentUser?.id)
+        ? newTaskAssignee || currentUser?._id || currentUser?.id
         : newTaskAssignee;
 
     if (!effectiveAssignee) {
@@ -1222,7 +1227,8 @@ const TaskOverviewTab = ({
     return Array.from(set).sort();
   }, [users, tasks]);
 
-  const [overviewContentTypeFilter, setOverviewContentTypeFilter] = useState("All");
+  const [overviewContentTypeFilter, setOverviewContentTypeFilter] =
+    useState("All");
   const [showContentTypeDropdown, setShowContentTypeDropdown] = useState(false);
   const [contentTypeSearchQuery, setContentTypeSearchQuery] = useState("");
   const contentTypeDropdownRef = useRef(null);
@@ -3004,8 +3010,13 @@ const TaskOverviewTab = ({
                   }`}
                 >
                   <div className="flex items-center gap-1">
-                    <FiFilter size={11} className="text-[#10b981] stroke-[2.5]" />
-                    <span className="truncate max-w-[50px]">{dateFilter === "All" ? "Date" : dateFilter}</span>
+                    <FiFilter
+                      size={11}
+                      className="text-[#10b981] stroke-[2.5]"
+                    />
+                    <span className="truncate max-w-[50px]">
+                      {dateFilter === "All" ? "Date" : dateFilter}
+                    </span>
                   </div>
                   <FiChevronDown
                     size={12}
@@ -3071,121 +3082,129 @@ const TaskOverviewTab = ({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {(portalReady && document.getElementById("task-actions-portal")) ? createPortal(
-              <>
-                <button
-                  type="button"
-                  onClick={handleExportExcel}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-emerald-400/60 bg-emerald-50 text-emerald-700 text-[12px] font-bold cursor-pointer transition-all hover:bg-emerald-100 shrink-0"
-                  title="Export table data to Excel"
-                >
-                  <FiDownload
-                    size={14}
-                    className="text-emerald-600"
-                  />
-                  <span>Export Excel</span>
-                </button>
+            {portalReady && document.getElementById("task-actions-portal")
+              ? createPortal(
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleExportExcel}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-emerald-400/60 bg-emerald-50 text-emerald-700 text-[12px] font-bold cursor-pointer transition-all hover:bg-emerald-100 shrink-0"
+                      title="Export table data to Excel"
+                    >
+                      <FiDownload size={14} className="text-emerald-600" />
+                      <span>Export Excel</span>
+                    </button>
 
-                <div className="relative" ref={colsDropdownRef}>
-                  <button
-                    type="button"
-                    onClick={() => setIsColsOpen(!isColsOpen)}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-slate-200 bg-white text-slate-800 text-[12px] font-bold cursor-pointer transition-all shadow-sm hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                  >
-                    <FiColumns className="text-blue-500" size={14} />
-                    <span>Hide Column</span>
-                    {Object.values(hiddenColumns).filter(Boolean).length > 0 && (
-                      <span className="text-[10px] font-black bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center ml-0.5">
-                        {Object.values(hiddenColumns).filter(Boolean).length}
-                      </span>
-                    )}
-                  </button>
-
-              <AnimatePresence>
-                {isColsOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute right-0 mt-2 w-52 bg-white dark:bg-[#151725] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-2 z-50 space-y-1 backdrop-blur-md"
-                  >
-                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-1.5 px-1">
-                      <span className="text-[12px] font-bold text-slate-800 dark:text-white tracking-wider">
-                        Toggle Columns
-                      </span>
-                      {Object.values(hiddenColumns).some(Boolean) && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setHiddenColumns({
-                              taskName: false,
-                              projectName: false,
-                              clientName: false,
-                              contentCopy: false,
-                              contentType: false,
-                              createdBy: false,
-                              assignee: false,
-                              startDate: false,
-                              dueDate: false,
-                              priority: false,
-                              status: false,
-                              totalHours: false,
-                              blockerTime: false,
-                              timeTracker: false,
-                              approvalInfo: false,
-                              action: false,
-                            })
-                          }
-                          className="text-[11px] font-bold text-blue-500 hover:text-blue-600 transition-colors"
-                        >
-                          Reset
-                        </button>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-0.5 max-h-60 overflow-y-auto custom-scrollbar">
-                      {[
-                        { key: "taskName", label: "Task Name" },
-                        { key: "projectName", label: "Project Name" },
-                        { key: "clientName", label: "Client Name" },
-                        { key: "contentCopy", label: "Content Copy" },
-                        { key: "contentType", label: "Content Type" },
-                        { key: "createdBy", label: "Created By" },
-                        { key: "assignee", label: "Assignee" },
-                        { key: "startDate", label: "Start Date" },
-                        { key: "dueDate", label: "End Date" },
-                        { key: "priority", label: "Priority" },
-                        { key: "status", label: "Status" },
-                        { key: "totalHours", label: "Total Inprogress" },
-                        { key: "blockerTime", label: "Blocker Time" },
-                        { key: "timeTracker", label: "Time Tracker" },
-                        { key: "approvalInfo", label: "Approve Info" },
-                        { key: "action", label: "Action" },
-                      ].map((col) => (
-                        <label
-                          key={col.key}
-                          className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer text-[12px] font-bold text-slate-700 dark:text-slate-355 select-none"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={!hiddenColumns[col.key]}
-                            onChange={() =>
-                              setHiddenColumns((prev) => ({
-                                ...prev,
-                                [col.key]: !prev[col.key],
-                              }))
+                    <div className="relative" ref={colsDropdownRef}>
+                      <button
+                        type="button"
+                        onClick={() => setIsColsOpen(!isColsOpen)}
+                        className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-slate-200 bg-white text-slate-800 text-[12px] font-bold cursor-pointer transition-all shadow-sm hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                      >
+                        <FiColumns className="text-blue-500" size={14} />
+                        <span>Hide Column</span>
+                        {Object.values(hiddenColumns).filter(Boolean).length >
+                          0 && (
+                          <span className="text-[10px] font-black bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center ml-0.5">
+                            {
+                              Object.values(hiddenColumns).filter(Boolean)
+                                .length
                             }
-                            className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-white/10 dark:bg-black/20"
-                          />
-                          <span>{col.label}</span>
-                        </label>
-                      ))}
+                          </span>
+                        )}
+                      </button>
+
+                      <AnimatePresence>
+                        {isColsOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute right-0 mt-2 w-52 bg-white dark:bg-[#151725] border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-2 z-50 space-y-1 backdrop-blur-md"
+                          >
+                            <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-1.5 px-1">
+                              <span className="text-[12px] font-bold text-slate-800 dark:text-white tracking-wider">
+                                Toggle Columns
+                              </span>
+                              {Object.values(hiddenColumns).some(Boolean) && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setHiddenColumns({
+                                      taskName: false,
+                                      projectName: false,
+                                      clientName: false,
+                                      contentCopy: false,
+                                      contentType: false,
+                                      createdBy: false,
+                                      assignee: false,
+                                      startDate: false,
+                                      dueDate: false,
+                                      priority: false,
+                                      status: false,
+                                      totalHours: false,
+                                      blockerTime: false,
+                                      timeTracker: false,
+                                      approvalInfo: false,
+                                      action: false,
+                                    })
+                                  }
+                                  className="text-[11px] font-bold text-blue-500 hover:text-blue-600 transition-colors"
+                                >
+                                  Reset
+                                </button>
+                              )}
+                            </div>
+                            <div className="flex flex-col gap-0.5 max-h-60 overflow-y-auto custom-scrollbar">
+                              {[
+                                { key: "taskName", label: "Task Name" },
+                                { key: "projectName", label: "Project Name" },
+                                { key: "clientName", label: "Client Name" },
+                                { key: "contentCopy", label: "Content Copy" },
+                                { key: "contentType", label: "Content Type" },
+                                { key: "createdBy", label: "Created By" },
+                                { key: "assignee", label: "Assignee" },
+                                { key: "startDate", label: "Start Date" },
+                                { key: "dueDate", label: "End Date" },
+                                { key: "priority", label: "Priority" },
+                                { key: "status", label: "Status" },
+                                {
+                                  key: "totalHours",
+                                  label: "Total Inprogress",
+                                },
+                                { key: "blockerTime", label: "Blocker Time" },
+                                { key: "timeTracker", label: "Time Tracker" },
+                                { key: "approvalInfo", label: "Approve Info" },
+                                { key: "action", label: "Action" },
+                              ].map((col) => (
+                                <label
+                                  key={col.key}
+                                  className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-lg hover:bg-slate-50 dark:hover:bg-white/5 cursor-pointer text-[12px] font-bold text-slate-700 dark:text-slate-355 select-none"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={!hiddenColumns[col.key]}
+                                    onChange={() =>
+                                      setHiddenColumns((prev) => ({
+                                        ...prev,
+                                        [col.key]: !prev[col.key],
+                                      }))
+                                    }
+                                    className="w-3.5 h-3.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-white/10 dark:bg-black/20"
+                                  />
+                                  <span>{col.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-            </>, document.getElementById("task-actions-portal")) : null}
+                  </>,
+                  document.getElementById("task-actions-portal"),
+                )
+              : null}
           </div>
         </div>
 
@@ -3697,16 +3716,20 @@ const TaskOverviewTab = ({
                               onBlur={(e) => {
                                 let val = e.target.innerText.trim();
                                 if (val === "Add content copy...") val = "";
-                                
+
                                 if (
-                                  val !== (task.contentCopy || task.content_copy || "")
+                                  val !==
+                                  (task.contentCopy || task.content_copy || "")
                                 ) {
                                   handleTaskFieldChange(task._id, {
                                     contentCopy: val,
                                   });
                                 } else {
                                   // Reset to original if unchanged or empty string where it should show placeholder
-                                  e.target.innerText = task.contentCopy || task.content_copy || "Add content copy...";
+                                  e.target.innerText =
+                                    task.contentCopy ||
+                                    task.content_copy ||
+                                    "Add content copy...";
                                 }
                               }}
                               onKeyDown={(e) => {
@@ -3716,18 +3739,23 @@ const TaskOverviewTab = ({
                                 }
                               }}
                               onFocus={(e) => {
-                                if (e.target.innerText.trim() === "Add content copy...") {
+                                if (
+                                  e.target.innerText.trim() ===
+                                  "Add content copy..."
+                                ) {
                                   e.target.innerText = "";
                                 }
                               }}
                               className={`outline-none text-[11px] font-semibold min-w-[130px] max-w-[200px] truncate block hover:bg-slate-100/50 dark:hover:bg-slate-800/30 px-1 py-0.5 rounded transition-colors ${
-                                !(task.contentCopy || task.content_copy) 
-                                  ? "text-slate-400 dark:text-slate-500" 
+                                !(task.contentCopy || task.content_copy)
+                                  ? "text-slate-400 dark:text-slate-500"
                                   : "text-slate-700 dark:text-slate-200"
                               }`}
                               title="Click to edit content copy"
                             >
-                              {task.contentCopy || task.content_copy || "Add content copy..."}
+                              {task.contentCopy ||
+                                task.content_copy ||
+                                "Add content copy..."}
                             </span>
                           </td>
                         )}
@@ -3765,10 +3793,7 @@ const TaskOverviewTab = ({
                                       ) {
                                         updates.assignedTo = creatorId;
                                       }
-                                      handleTaskFieldChange(
-                                        task._id,
-                                        updates,
-                                      );
+                                      handleTaskFieldChange(task._id, updates);
                                     }
                                   } else {
                                     const creatorId =
@@ -4097,7 +4122,7 @@ const TaskOverviewTab = ({
                                           ? "badge-status-in-review"
                                           : task.status === "Correction"
                                             ? "badge-status-correction"
-                                  : task.status === "On Hold"
+                                            : task.status === "On Hold"
                                               ? "badge-status-on-hold"
                                               : task.status === "Rejected"
                                                 ? "badge-status-rejected"
@@ -4468,7 +4493,7 @@ const TaskOverviewTab = ({
                           {selectedTask.contentType === "MOM" ? (
                             <>
                               <option value="Pending">Pending</option>
-                        
+
                               <option value="Completed">Completed</option>
                             </>
                           ) : (

@@ -105,57 +105,10 @@ export const calculateTaskProductivityForDate = (
       : new Date(selectedDate)
     : new Date();
 
-  // 0. If statusHistory is recorded, use exact recorded In Progress sessions for this date
-  if (task.statusHistory && Array.isArray(task.statusHistory) && task.statusHistory.length > 0) {
-    const selDateStr = selDateObj.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-    let historyDuration = 0;
-    task.statusHistory.forEach((h) => {
-      if (h.status === "In Progress") {
-        let entryDate = h.date;
-        if (!entryDate && h.startTime) {
-          entryDate = new Date(h.startTime).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-        }
-        if (entryDate === selDateStr) {
-          historyDuration += (h.duration || 0);
-        }
-      }
-    });
-
-    const isToday = isSameDay(selDateObj, new Date());
-    if (isToday && (task.status === "In Progress" || task.status === "IN_PROGRESS")) {
-      const liveSessionStart = task.actualStartTime ? new Date(task.actualStartTime).getTime() : 0;
-      if (liveSessionStart > 0) {
-        const nowMs = Date.now();
-        let liveWorked = Math.max(0, nowMs - liveSessionStart);
-        if (task.blockerHistory && Array.isArray(task.blockerHistory)) {
-          task.blockerHistory.forEach((b) => {
-            if (b.pausedAt) {
-              const p = new Date(b.pausedAt).getTime();
-              const r = b.resumedAt ? new Date(b.resumedAt).getTime() : nowMs;
-              if (r >= p && p >= liveSessionStart) {
-                liveWorked -= Math.max(0, r - p);
-              }
-            }
-          });
-        }
-        return Math.max(0, historyDuration + liveWorked);
-      }
-    }
-
-    if (historyDuration > 0 || (task.statusHistory.length > 0 && !task.actualStartTime)) {
-      return historyDuration;
-    }
-  }
-
-  if (!task.actualStartTime) return 0;
-
-  const taskStart = new Date(task.actualStartTime).getTime();
-  if (isNaN(taskStart)) return 0;
-
   const startHour = officeHours?.startHour ?? 9;
   const endHour = officeHours?.endHour ?? 19;
 
-  // 1. Determine office-hours boundaries [dayWorkStart, dayWorkEnd] for selectedDate
+  // Office-hours boundaries for selectedDate (local time) — used by both paths
   const dayWorkStart = new Date(
     selDateObj.getFullYear(),
     selDateObj.getMonth(),
@@ -176,8 +129,105 @@ export const calculateTaskProductivityForDate = (
     0,
   ).getTime();
 
-  // Guard 1: Never generate artificial productivity for a future date (or future office hours)
+  // Guard: Never generate artificial productivity for a future date
   if (dayWorkStart > Date.now()) return 0;
+
+  // 0. PRIMARY PATH: Use statusHistory for accurate per-day tracking
+  if (
+    task.statusHistory &&
+    Array.isArray(task.statusHistory) &&
+    task.statusHistory.length > 0
+  ) {
+    const selDateStr = selDateObj.toLocaleDateString("en-CA", {
+      timeZone: "Asia/Kolkata",
+    });
+    const isSelectedToday = isSameDay(selDateObj, new Date());
+    let historyDuration = 0;
+
+    task.statusHistory.forEach((h) => {
+      if (h.status !== "In Progress") return;
+
+      let entryDate = h.date;
+      if (!entryDate && h.startTime) {
+        entryDate = new Date(h.startTime).toLocaleDateString("en-CA", {
+          timeZone: "Asia/Kolkata",
+        });
+      }
+      if (entryDate !== selDateStr) return;
+
+      if (h.duration > 0) {
+        // ✅ Properly closed entry — use the recorded duration directly
+        historyDuration += h.duration;
+      } else if (h.endTime) {
+        // Closed but duration field wasn't saved — derive from timestamps
+        historyDuration += Math.max(
+          0,
+          new Date(h.endTime).getTime() - new Date(h.startTime).getTime(),
+        );
+      } else if (
+        isSelectedToday &&
+        task.status === "In Progress" &&
+        !task.autoPaused
+      ) {
+        // Open entry on TODAY, still running — handled by live section below, skip here
+      } else {
+        // ✅ FIX Bug 1: Open entry (endTime=null, duration=0) on a PAST date
+        // or an autoPaused entry — cap contribution at that day's EOD / pausedAt
+        const entryStartMs = new Date(h.startTime).getTime();
+        const capEnd =
+          task.autoPaused && task.pausedAt
+            ? Math.min(new Date(task.pausedAt).getTime(), dayWorkEnd)
+            : dayWorkEnd;
+        historyDuration += Math.max(
+          0,
+          Math.min(capEnd, dayWorkEnd) - Math.max(entryStartMs, dayWorkStart),
+        );
+      }
+    });
+
+    // ✅ FIX Bug 3: Live session guard — actualStartTime must be from TODAY (IST date)
+    if (isSelectedToday && task.status === "In Progress" && !task.autoPaused) {
+      const liveSessionStart = task.actualStartTime
+        ? new Date(task.actualStartTime).getTime()
+        : 0;
+      const liveSessionDateStr = task.actualStartTime
+        ? new Date(task.actualStartTime).toLocaleDateString("en-CA", {
+            timeZone: "Asia/Kolkata",
+          })
+        : null;
+
+      // Only add live elapsed time if actualStartTime is actually from today
+      if (liveSessionStart > 0 && liveSessionDateStr === selDateStr) {
+        const nowMs = Date.now();
+        let liveWorked = Math.max(0, nowMs - liveSessionStart);
+        if (task.blockerHistory && Array.isArray(task.blockerHistory)) {
+          task.blockerHistory.forEach((b) => {
+            if (b.pausedAt) {
+              const p = new Date(b.pausedAt).getTime();
+              const r = b.resumedAt ? new Date(b.resumedAt).getTime() : nowMs;
+              if (r >= p && p >= liveSessionStart) {
+                liveWorked -= Math.max(0, r - p);
+              }
+            }
+          });
+        }
+        return Math.max(0, historyDuration + Math.max(0, liveWorked));
+      }
+    }
+
+    if (
+      historyDuration > 0 ||
+      (task.statusHistory.length > 0 && !task.actualStartTime)
+    ) {
+      return historyDuration;
+    }
+  }
+
+  if (!task.actualStartTime) return 0;
+
+  // FALLBACK PATH: No usable statusHistory — estimate from actualStartTime
+  const taskStart = new Date(task.actualStartTime).getTime();
+  if (isNaN(taskStart)) return 0;
 
   // Guard 2: Task started after this day's office hours ended
   if (taskStart >= dayWorkEnd) return 0;
@@ -205,20 +255,19 @@ export const calculateTaskProductivityForDate = (
     // SOCIAL MEDIA MANAGER SIDE: "Completed" means Manager approved work.
     // Moving "In Review" -> "Completed" is NOT additional Designer working time.
     // If the task was submitted to "In Review", Designer work stopped at review submission time.
+    // ✅ FIX Bug 4: Use LAST review cycle (not [0]) — multi-correction tasks end at final review
     const reviewTime =
       task.reviewStartedAt ||
       task.lastReviewStartedAt ||
       (task.reviewCycles && task.reviewCycles.length > 0
-        ? task.reviewCycles[0].startedAt
+        ? task.reviewCycles[task.reviewCycles.length - 1].startedAt
         : null);
 
-    if (reviewTime) {
-      taskEnd = new Date(reviewTime).getTime();
-    } else {
-      taskEnd = new Date(
-        task.actualEndTime || task.completedAt || task.updatedAt,
-      ).getTime();
-    }
+    taskEnd = reviewTime
+      ? new Date(reviewTime).getTime()
+      : new Date(
+          task.actualEndTime || task.completedAt || task.updatedAt,
+        ).getTime();
   } else if (
     statusUpper === "ON HOLD" ||
     statusUpper === "ON_HOLD" ||
@@ -235,9 +284,7 @@ export const calculateTaskProductivityForDate = (
     if (task.autoPaused) {
       taskEnd = new Date(task.pausedAt || Date.now()).getTime();
     } else {
-      taskEnd = isSameDay(selDateObj, new Date())
-        ? Math.min(Date.now(), dayWorkEnd)
-        : dayWorkEnd;
+      taskEnd = isSameDay(selDateObj, new Date()) ? Date.now() : dayWorkEnd;
     }
   } else {
     // Default fallback (e.g. Pending)
@@ -246,9 +293,7 @@ export const calculateTaskProductivityForDate = (
     } else if (task.pausedAt) {
       taskEnd = new Date(task.pausedAt).getTime();
     } else {
-      taskEnd = isSameDay(selDateObj, new Date())
-        ? Math.min(Date.now(), dayWorkEnd)
-        : dayWorkEnd;
+      taskEnd = isSameDay(selDateObj, new Date()) ? Date.now() : dayWorkEnd;
     }
   }
 
@@ -278,7 +323,6 @@ export const calculateTaskProductivityForDate = (
       "CORRECTION",
     ].includes(statusUpper);
 
-  const lifetimeSpan = Math.max(1, taskEnd - taskStart);
   let dayPausedMs = 0;
 
   let hasHistoryPause = false;
@@ -295,7 +339,7 @@ export const calculateTaskProductivityForDate = (
           : isPausedState && task.pausedAt
             ? new Date(task.pausedAt).getTime()
             : isSameDay(selDateObj, new Date())
-              ? Math.min(Date.now(), dayWorkEnd)
+              ? Date.now()
               : dayWorkEnd;
         if (!isNaN(pStart) && !isNaN(pEnd) && pEnd > pStart) {
           const overlapStart = Math.max(pStart, dayWorkStart);
@@ -309,12 +353,17 @@ export const calculateTaskProductivityForDate = (
     });
   }
 
-  const totalPaused = task.totalPausedMs || 0;
-  if (totalPaused > 0) {
-    const ratio = daySpan / lifetimeSpan;
-    const propPaused = totalPaused * ratio;
-    if (!hasHistoryPause || propPaused > dayPausedMs) {
-      dayPausedMs = Math.min(daySpan, propPaused);
+  // ✅ FIX Bug 5: Only use totalPausedMs when NO blockerHistory exists
+  // Blockers happen on specific days — proportional distribution across all days is incorrect
+  if (!hasHistoryPause) {
+    const totalPaused = task.totalPausedMs || 0;
+    if (totalPaused > 0) {
+      const lifetimeSpan = Math.max(
+        1,
+        new Date(task.actualEndTime || Date.now()).getTime() - taskStart,
+      );
+      const ratio = daySpan / lifetimeSpan;
+      dayPausedMs = Math.min(daySpan, totalPaused * ratio);
     }
   }
 

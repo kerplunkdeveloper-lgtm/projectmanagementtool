@@ -153,7 +153,19 @@ const handleItemStatusTransition = (item, prevStatus, newStatus, userId, setting
       });
       break;
 
-    case "In Progress":
+    case "In Progress": {
+      // ✅ FIX Bug 1: Reset dailyTrackedTime when starting on a new day
+      // If the last session was on a previous day (or no session yet), zero out daily counter
+      const lastSessionDateStr = item.actualStartTime
+        ? new Date(item.actualStartTime).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" })
+        : null;
+      const currentDateStr = now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+      if (!lastSessionDateStr || lastSessionDateStr !== currentDateStr) {
+        // New day → start fresh daily counter
+        item.dailyTrackedTime = 0;
+      }
+      // If same day resume (e.g., blocker resolved), dailyTrackedTime continues accumulating — correct!
+
       item.actualStartTime = now;
       item.actualEndTime = null;
       item.completedAt = null;
@@ -171,6 +183,7 @@ const handleItemStatusTransition = (item, prevStatus, newStatus, userId, setting
         user: userId,
       });
       break;
+    }
 
     case "On Hold":
       item.pausedAt = now;
@@ -244,6 +257,12 @@ const handleItemStatusTransition = (item, prevStatus, newStatus, userId, setting
 
     case "Correction":
       item.pausedAt = now;
+      // ✅ FIX Bug 3: Clear stale hold fields so future On Hold → leave doesn't
+      // accidentally use an old holdStartedAt from a previous In Review cycle
+      item.holdStartedAt = null;
+      item.holdEndedAt = null;
+      // Reset actualStartTime so next In Progress session starts a clean timer
+      item.actualStartTime = null;
 
       history.push({
         status: "Correction",
@@ -312,11 +331,23 @@ const calculateItemWorkingTime = (item) => {
 // @desc    Get all tasks
 // @route   GET /api/tasks
 // @access  Private
+
+// ✅ FIX Bug: Debounce — run auto-pause check at most once every 55 seconds
+// Prevents repeated DB writes on every API call when multiple users are active
+let _lastSchedulerRunAt = 0;
+const SCHEDULER_DEBOUNCE_MS = 55 * 1000; // 55 seconds
+
 exports.getTasks = async (req, res) => {
   try {
-    const { checkAndAutoPauseTasks } = require("../utils/officeHoursScheduler");
-    const io = req.app ? req.app.get("io") : null;
-    await checkAndAutoPauseTasks(io);
+    const now = Date.now();
+    if (now - _lastSchedulerRunAt >= SCHEDULER_DEBOUNCE_MS) {
+      _lastSchedulerRunAt = now;
+      const { checkAndAutoPauseTasks } = require("../utils/officeHoursScheduler");
+      const io = req.app ? req.app.get("io") : null;
+      checkAndAutoPauseTasks(io).catch(err =>
+        console.error("[Scheduler] checkAndAutoPauseTasks error:", err)
+      );
+    }
 
     let query = {};
     if (req.user.role !== "admin" && req.user.role !== "operationmanager") {
@@ -428,12 +459,13 @@ exports.getTasks = async (req, res) => {
   }
 };
 
-// Helper for comparing date only
+// Helper for comparing date only — uses IST timezone to avoid UTC midnight offset bug
 const isSameDay = (d1, d2) => {
   if (!d1 || !d2) return false;
   try {
-    const s1 = d1 instanceof Date ? d1.toISOString().split("T")[0] : new Date(d1).toISOString().split("T")[0];
-    const s2 = d2 instanceof Date ? d2.toISOString().split("T")[0] : new Date(d2).toISOString().split("T")[0];
+    const opts = { timeZone: "Asia/Kolkata" };
+    const s1 = new Date(d1).toLocaleDateString("en-CA", opts);
+    const s2 = new Date(d2).toLocaleDateString("en-CA", opts);
     return s1 === s2 && s1 !== "1970-01-01";
   } catch (e) {
     return false;
@@ -872,8 +904,12 @@ exports.updateTask = async (req, res) => {
 
         if (prevSub && sub.status && sub.status !== prevSub.status) {
           const isSubMOM = (sub && sub.contentType === "MOM") || (prevSub && prevSub.contentType === "MOM") || task.contentType === "MOM";
+          // ✅ FIX Bug 2: Enforce On Hold validation for subtasks (same rule as parent task)
           if (sub.status === "On Hold" && !prevSub.actualStartTime && !prevSub.totalTrackedTime && !isSubMOM) {
-            // subtask on hold check
+            throw Object.assign(
+              new Error("Please start the subtask by setting its status to 'In Progress' first before placing it on hold."),
+              { statusCode: 400, isValidationError: true }
+            );
           }
 
           if (sub.status === "Correction") {
@@ -1218,7 +1254,10 @@ exports.updateTask = async (req, res) => {
       data: task,
     });
   } catch (err) {
-    res.status(400).json({ success: false, message: err.message });
+    // ✅ Validation errors (e.g. subtask On Hold before starting) → 400
+    // Unexpected server errors → 500
+    const statusCode = err.isValidationError ? 400 : (err.statusCode || 400);
+    res.status(statusCode).json({ success: false, message: err.message });
   }
 };
 
