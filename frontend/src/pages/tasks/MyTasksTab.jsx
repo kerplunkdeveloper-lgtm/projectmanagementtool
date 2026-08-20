@@ -125,6 +125,35 @@ const checkTaskProductivityAndDate = (
       if (subHasTodayWork) return true;
     }
 
+    // 5. Task scheduled, due, created, or assigned on Today (crucial for Pending tasks)
+    const taskStartStr = getLocalDateStr(task.startDate);
+    const taskDueStr = getLocalDateStr(task.dueDate);
+    const taskCreatedStr = getLocalDateStr(task.createdAt);
+    const taskAssignedStr = getLocalDateStr(task.assignedDate);
+    if (
+      taskStartStr === todayStr ||
+      taskDueStr === todayStr ||
+      taskCreatedStr === todayStr ||
+      taskAssignedStr === todayStr
+    ) {
+      return true;
+    }
+
+    // 6. Subtasks scheduled, due, or created on Today
+    if (Array.isArray(task.subtasks) && task.subtasks.length > 0) {
+      const subHasTodayDate = task.subtasks.some((sub) => {
+        const subStart = getLocalDateStr(sub.startDate);
+        const subDue = getLocalDateStr(sub.dueDate);
+        const subCreated = getLocalDateStr(sub.createdAt);
+        return (
+          subStart === todayStr ||
+          subDue === todayStr ||
+          subCreated === todayStr
+        );
+      });
+      if (subHasTodayDate) return true;
+    }
+
     return false;
   }
 
@@ -149,6 +178,33 @@ const checkTaskProductivityAndDate = (
       if (hasYesterdayWork) return true;
     }
 
+    const taskStartStr = getLocalDateStr(task.startDate);
+    const taskDueStr = getLocalDateStr(task.dueDate);
+    const taskCreatedStr = getLocalDateStr(task.createdAt);
+    const taskAssignedStr = getLocalDateStr(task.assignedDate);
+    if (
+      taskStartStr === yesterdayStr ||
+      taskDueStr === yesterdayStr ||
+      taskCreatedStr === yesterdayStr ||
+      taskAssignedStr === yesterdayStr
+    ) {
+      return true;
+    }
+
+    if (Array.isArray(task.subtasks) && task.subtasks.length > 0) {
+      const subHasYesterdayDate = task.subtasks.some((sub) => {
+        const subStart = getLocalDateStr(sub.startDate);
+        const subDue = getLocalDateStr(sub.dueDate);
+        const subCreated = getLocalDateStr(sub.createdAt);
+        return (
+          subStart === yesterdayStr ||
+          subDue === yesterdayStr ||
+          subCreated === yesterdayStr
+        );
+      });
+      if (subHasYesterdayDate) return true;
+    }
+
     return false;
   }
 
@@ -171,6 +227,32 @@ const checkTaskProductivityAndDate = (
     }
 
     if (task.status === "In Progress" && !task.actualEndTime) return true;
+
+    const isDateInWeek = (d) => {
+      if (!d) return false;
+      const date = new Date(d);
+      return !isNaN(date.getTime()) && date >= startOfWeek && date <= endOfWeek;
+    };
+
+    if (
+      isDateInWeek(task.startDate) ||
+      isDateInWeek(task.dueDate) ||
+      isDateInWeek(task.createdAt) ||
+      isDateInWeek(task.assignedDate)
+    ) {
+      return true;
+    }
+
+    if (Array.isArray(task.subtasks) && task.subtasks.length > 0) {
+      const subInWeek = task.subtasks.some(
+        (sub) =>
+          isDateInWeek(sub.startDate) ||
+          isDateInWeek(sub.dueDate) ||
+          isDateInWeek(sub.createdAt)
+      );
+      if (subInWeek) return true;
+    }
+
     return false;
   }
 
@@ -203,6 +285,32 @@ const checkTaskProductivityAndDate = (
     }
 
     if (task.status === "In Progress" && !task.actualEndTime) return true;
+
+    const isDateInMonth = (d) => {
+      if (!d) return false;
+      const date = new Date(d);
+      return !isNaN(date.getTime()) && date >= startOfMonth && date <= endOfMonth;
+    };
+
+    if (
+      isDateInMonth(task.startDate) ||
+      isDateInMonth(task.dueDate) ||
+      isDateInMonth(task.createdAt) ||
+      isDateInMonth(task.assignedDate)
+    ) {
+      return true;
+    }
+
+    if (Array.isArray(task.subtasks) && task.subtasks.length > 0) {
+      const subInMonth = task.subtasks.some(
+        (sub) =>
+          isDateInMonth(sub.startDate) ||
+          isDateInMonth(sub.dueDate) ||
+          isDateInMonth(sub.createdAt)
+      );
+      if (subInMonth) return true;
+    }
+
     return false;
   }
 
