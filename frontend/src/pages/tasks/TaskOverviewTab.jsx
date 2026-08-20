@@ -95,9 +95,7 @@ const checkTaskProductivityAndDate = (
     if (Array.isArray(task.statusHistory) && task.statusHistory.length > 0) {
       const hasTodayWork = task.statusHistory.some((h) => {
         const entryDate =
-          h.date ||
-          getLocalDateStr(h.startTime) ||
-          getLocalDateStr(h.endTime);
+          h.date || getLocalDateStr(h.startTime) || getLocalDateStr(h.endTime);
         return (
           entryDate === todayStr &&
           (h.duration > 0 || h.endTime || h.status === "In Progress")
@@ -140,12 +138,8 @@ const checkTaskProductivityAndDate = (
     if (Array.isArray(task.statusHistory) && task.statusHistory.length > 0) {
       const hasYesterdayWork = task.statusHistory.some((h) => {
         const entryDate =
-          h.date ||
-          getLocalDateStr(h.startTime) ||
-          getLocalDateStr(h.endTime);
-        return (
-          entryDate === yesterdayStr && (h.duration > 0 || h.endTime)
-        );
+          h.date || getLocalDateStr(h.startTime) || getLocalDateStr(h.endTime);
+        return entryDate === yesterdayStr && (h.duration > 0 || h.endTime);
       });
       if (hasYesterdayWork) return true;
     }
@@ -156,9 +150,7 @@ const checkTaskProductivityAndDate = (
   if (dateFilter === "This Week") {
     const dayOfWeek = now.getDay();
     const startOfWeek = new Date(now);
-    startOfWeek.setDate(
-      now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1),
-    );
+    startOfWeek.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
     startOfWeek.setHours(0, 0, 0, 0);
 
     const endOfWeek = new Date(startOfWeek);
