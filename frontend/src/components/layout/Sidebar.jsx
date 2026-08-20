@@ -157,10 +157,10 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
 
   useEffect(() => {
     if (role === "admin" || role === "operationmanager") {
-      dispatch(getEodReports());
-      dispatch(getDesignerEodReports());
+      if (!eodReports || eodReports.length === 0) dispatch(getEodReports());
+      if (!designerEodReports || designerEodReports.length === 0) dispatch(getDesignerEodReports());
     }
-  }, [dispatch, role]);
+  }, [dispatch, role, eodReports, designerEodReports]);
 
   const newMomCount = React.useMemo(() => {
     return (allTasks || []).filter(
@@ -407,13 +407,13 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
   }, [activePortfolioId, activeProjectId, projects, portfolios]);
 
   useEffect(() => {
-    dispatch(getProjects());
-    dispatch(getPortfolios());
-    dispatch(getClients());
-    if (role === "admin") {
+    if (!projects || projects.length === 0) dispatch(getProjects());
+    if (!portfolios || portfolios.length === 0) dispatch(getPortfolios());
+    if (!clients || clients.length === 0) dispatch(getClients());
+    if (role === "admin" && (!users || users.length === 0)) {
       dispatch(getUsers());
     }
-  }, [dispatch, role]);
+  }, [dispatch, role, projects, portfolios, clients, users]);
 
   const handleSwitchUser = async (userId) => {
     try {

@@ -130,9 +130,7 @@ const GraphicDesignerDeadlines = ({ user }) => {
   const navigate = useNavigate();
   const usersState = useSelector((state) => state.users);
   const users = usersState?.users || [];
-  const { data: tasks = [], isLoading } = useGetTasksQuery(undefined, {
-    refetchOnMountOrArgChange: true,
-  });
+  const { data: tasks = [], isLoading } = useGetTasksQuery();
 
   const getTodayDateString = () => {
     const today = new Date();
@@ -1446,16 +1444,16 @@ const Dashboardmain = () => {
   };
 
   useEffect(() => {
-    dispatch(getProjects());
-    dispatch(getUsers());
+    if (!projects || projects.length === 0) dispatch(getProjects());
+    if (!users || users.length === 0) dispatch(getUsers());
     if (
       user?.role === "admin" ||
       user?.role === "operationmanager" ||
       user?.role === "team"
     ) {
-      dispatch(getClients());
+      if (!clients || clients.length === 0) dispatch(getClients());
     }
-  }, [dispatch, user?._id, user?.role]);
+  }, [dispatch, user?._id, user?.role, projects, users, clients]);
 
   useEffect(() => {
     if (clients && clients.length > 0 && !clientId && clients[0]?._id) {

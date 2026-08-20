@@ -21,10 +21,10 @@ const DashboardCards = () => {
   const { projects } = useSelector((state) => state.projects);
 
   useEffect(() => {
-    dispatch(getClients());
-    dispatch(getUsers());
-    dispatch(getProjects());
-  }, [dispatch]);
+    if (!clients || clients.length === 0) dispatch(getClients());
+    if (!users || users.length === 0) dispatch(getUsers());
+    if (!projects || projects.length === 0) dispatch(getProjects());
+  }, [dispatch, clients, users, projects]);
 
   // ============================================
   // CALCULATIONS

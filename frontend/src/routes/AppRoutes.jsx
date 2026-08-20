@@ -52,6 +52,38 @@ const MomClientReport = lazyWithRetry(() => import("../pages/admin/MomClientRepo
 const SocialAccounts = lazyWithRetry(() => import("../pages/socialAccounts/SocialAccounts.jsx"));
 const ClientCalls = lazyWithRetry(() => import("../pages/client-calls/ClientCalls.jsx"));
 
+// Background preload core route bundles for zero-delay sidebar navigation
+export const preloadAllRoutes = () => {
+  const routesToPreload = [
+    () => import("../pages/Dashboard/Dashboardmain.jsx"),
+    () => import("../pages/projects/Project.jsx"),
+    () => import("../pages/admin/clients/Clients.jsx"),
+    () => import("../pages/admin/AdminUsers.jsx"),
+    () => import("../pages/tasks/Task.jsx"),
+    () => import("../pages/settings/Settings.jsx"),
+    () => import("../pages/profile/Profile.jsx"),
+    () => import("../pages/notifications/Notifications.jsx"),
+    () => import("../pages/admin/portfolio/Portfolio.jsx"),
+    () => import("../pages/admin/AdminEodReports.jsx"),
+    () => import("../pages/admin/Stickynotes.jsx"),
+    () => import("../pages/socialAccounts/SocialAccounts.jsx"),
+    () => import("../pages/client-calls/ClientCalls.jsx"),
+    () => import("../pages/contentcalendor/ContentCalcendor.jsx"),
+    () => import("../pages/admin/MomClientReport.jsx"),
+    () => import("../pages/chat/ChatPage.jsx"),
+  ];
+
+  if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+    window.requestIdleCallback(() => {
+      routesToPreload.forEach((fn) => fn());
+    });
+  } else {
+    setTimeout(() => {
+      routesToPreload.forEach((fn) => fn());
+    }, 1000);
+  }
+};
+
 // Elegant, premium animated page loader
 const PageLoader = () => (
   <div className="fixed inset-0 bg-slate-50 dark:bg-[#020710] flex flex-col items-center justify-center z-[9999]">
