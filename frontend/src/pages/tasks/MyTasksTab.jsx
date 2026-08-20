@@ -13,6 +13,8 @@ import {
   FiChevronDown,
   FiChevronLeft,
   FiChevronRight,
+  FiChevronsLeft,
+  FiChevronsRight,
   FiX,
   FiPlus,
   FiTrash2,
@@ -1045,7 +1047,7 @@ const MyTasksTab = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
-  const itemsPerPage = 10;
+  const [itemsPerPage, setItemsPerPage] = useState(5);
 
   const [hiddenColumns, setHiddenColumns] = useState(() => {
     try {
@@ -1347,30 +1349,32 @@ const MyTasksTab = ({
       if (s === "IN PROGRESS" || s === "IN_PROGRESS" || s === "INPROGRESS") {
         return 1;
       }
-      if (
-        s === "ON HOLD" ||
-        s === "ON_HOLD" ||
-        s === "ON-HOLD" ||
-        s === "PENDING" ||
-        s === "CORRECTION" ||
-        s === "REJECTED"
-      ) {
+      if (s === "ON HOLD" || s === "ON_HOLD" || s === "ON-HOLD") {
         return 2;
       }
       if (s === "IN REVIEW" || s === "IN_REVIEW" || s === "IN-REVIEW") {
         return 3;
       }
-      if (s === "COMPLETED") {
+      if (s === "PENDING") {
         return 4;
       }
-      return 2;
+      if (s === "CORRECTION") {
+        return 5;
+      }
+      if (s === "COMPLETED") {
+        return 6;
+      }
+      if (s === "REJECTED") {
+        return 7;
+      }
+      return 4;
     };
 
     return [...list].sort((a, b) => {
       const sRankA = getStatusSortPriority(a);
       const sRankB = getStatusSortPriority(b);
       if (sRankA !== sRankB) {
-        return sRankA - sRankB; // 1: In Progress, 2: On Hold, 3: In Review, 4: Completed
+        return sRankA - sRankB; // 1: In Progress, 2: On Hold, 3: In Review, 4: Pending, 5: Correction, 6: Completed, 7: Rejected
       }
       const pRankA = getPriorityRank(a);
       const pRankB = getPriorityRank(b);
@@ -1393,6 +1397,38 @@ const MyTasksTab = ({
 
   const sortedTasks = paginatedTasks;
   const selectedTask = tasks.find((t) => t._id === selectedTaskId);
+
+  const getPageNumbers = () => {
+    const pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (currentPage <= 4) {
+        pages.push(1, 2, 3, 4, 5, "...", totalPages);
+      } else if (currentPage >= totalPages - 3) {
+        pages.push(
+          1,
+          "...",
+          totalPages - 4,
+          totalPages - 3,
+          totalPages - 2,
+          totalPages - 1,
+          totalPages,
+        );
+      } else {
+        pages.push(
+          1,
+          "...",
+          currentPage - 1,
+          currentPage,
+          currentPage + 1,
+          "...",
+          totalPages,
+        );
+      }
+    }
+    return pages;
+  };
 
   const showStartInProgressWarning = (action = "review") => {
     const actionMsg =
@@ -3027,7 +3063,7 @@ const MyTasksTab = ({
       ) : (
         <div className="space-y-4">
           <div className="bg-white dark:bg-[#0f111a] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.2)] overflow-hidden border border-slate-200 dark:border-slate-800/80 transition-all">
-            <div className="overflow-x-auto overflow-y-auto h-[calc(100vh-200px)] min-h-[500px] w-full scrollbar-thin">
+            <div className="overflow-x-auto max-h-[calc(100vh-220px)] w-full scrollbar-thin">
               <table className="w-full min-w-[1300px] text-left  table-auto ">
                 <thead>
                   <tr className="sticky top-0 z-20  text-center bg-slate-50 dark:bg-[#11131e] text-slate-500 dark:text-slate-400 text-[10.5px] sm:text-[12px] font-medium border-b border-slate-200 dark:border-slate-200 shadow-sm">
@@ -3941,45 +3977,114 @@ const MyTasksTab = ({
               </table>
             </div>
 
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between px-6 py-4 bg-slate-50 dark:bg-[#11131e] border-t border-slate-200/80 dark:border-white/5 text-xs font-bold">
-                <span className="text-slate-500 dark:text-slate-400">
-                  Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-                  {Math.min(currentPage * itemsPerPage, totalItems)} of{" "}
-                  {totalItems} tasks
-                </span>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    disabled={currentPage === 1}
-                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="w-8 h-8 rounded-xl hover:bg-slate-200 dark:hover:bg-white/5 border border-slate-250 dark:border-white/10 flex items-center justify-center disabled:opacity-40 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300 cursor-pointer"
-                  >
-                    <FiChevronLeft size={16} />
-                  </button>
-                  {[...Array(totalPages)].map((_, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentPage(i + 1)}
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center cursor-pointer ${
-                        currentPage === i + 1
-                          ? "bg-blue-600 dark:bg-[#3b82f6] text-white dark:text-black shadow-sm"
-                          : "hover:bg-slate-200 dark:hover:bg-white/5 border border-slate-250 dark:border-white/10 text-slate-600 dark:text-slate-300"
-                      }`}
+            {/* Enhanced Pagination Controls */}
+            {totalItems > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-3.5 bg-slate-50/90 dark:bg-[#11131e] border-t border-slate-200/80 dark:border-white/5 text-xs font-bold">
+                {/* Left: Items per page selector & Total Items info */}
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                    <span className="text-[11px] font-semibold">Rows per page:</span>
+                    <select
+                      value={itemsPerPage}
+                      onChange={(e) => {
+                        setItemsPerPage(Number(e.target.value));
+                        setCurrentPage(1);
+                      }}
+                      className="px-2.5 py-1 rounded-xl bg-white dark:bg-[#181a29] border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-slate-200 text-xs font-bold outline-none focus:border-blue-500 shadow-2xs cursor-pointer transition-all hover:border-blue-400"
                     >
-                      {i + 1}
-                    </button>
-                  ))}
-                  <button
-                    disabled={currentPage === totalPages}
-                    onClick={() =>
-                      setCurrentPage((p) => Math.min(totalPages, p + 1))
-                    }
-                    className="w-8 h-8 rounded-xl hover:bg-slate-200 dark:hover:bg-white/5 border border-slate-250 dark:border-white/10 flex items-center justify-center disabled:opacity-40 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300 cursor-pointer"
-                  >
-                    <FiChevronRight size={16} />
-                  </button>
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                    </select>
+                  </div>
+                  <span className="text-slate-500 dark:text-slate-400 text-[11.5px]">
+                    Showing{" "}
+                    <span className="text-slate-800 dark:text-slate-100 font-extrabold">
+                      {totalItems > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0}
+                    </span>{" "}
+                    to{" "}
+                    <span className="text-slate-800 dark:text-slate-100 font-extrabold">
+                      {Math.min(currentPage * itemsPerPage, totalItems)}
+                    </span>{" "}
+                    of{" "}
+                    <span className="text-blue-600 dark:text-blue-400 font-extrabold">
+                      {totalItems}
+                    </span>{" "}
+                    tasks
+                  </span>
                 </div>
+
+                {/* Right: Page navigation buttons */}
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1.5">
+                    {/* First Page Button */}
+                    <button
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(1)}
+                      title="First Page"
+                      className="w-8 h-8 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 flex items-center justify-center disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300 cursor-pointer transition-all"
+                    >
+                      <FiChevronsLeft size={16} />
+                    </button>
+
+                    {/* Previous Page Button */}
+                    <button
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      title="Previous Page"
+                      className="w-8 h-8 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 flex items-center justify-center disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300 cursor-pointer transition-all"
+                    >
+                      <FiChevronLeft size={16} />
+                    </button>
+
+                    {/* Page Numbers */}
+                    {getPageNumbers().map((page, idx) =>
+                      page === "..." ? (
+                        <span
+                          key={`ellipsis-${idx}`}
+                          className="px-1 text-slate-400 select-none font-bold"
+                        >
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={`page-${page}`}
+                          onClick={() => setCurrentPage(page)}
+                          className={`w-8 h-8 rounded-xl flex items-center justify-center cursor-pointer transition-all ${
+                            currentPage === page
+                              ? "bg-blue-600 dark:bg-[#3b82f6] text-white dark:text-black shadow-sm font-black"
+                              : "hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 font-bold"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ),
+                    )}
+
+                    {/* Next Page Button */}
+                    <button
+                      disabled={currentPage === totalPages}
+                      onClick={() =>
+                        setCurrentPage((p) => Math.min(totalPages, p + 1))
+                      }
+                      title="Next Page"
+                      className="w-8 h-8 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 flex items-center justify-center disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300 cursor-pointer transition-all"
+                    >
+                      <FiChevronRight size={16} />
+                    </button>
+
+                    {/* Last Page Button */}
+                    <button
+                      disabled={currentPage === totalPages}
+                      onClick={() => setCurrentPage(totalPages)}
+                      title="Last Page"
+                      className="w-8 h-8 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 flex items-center justify-center disabled:opacity-30 disabled:hover:bg-transparent text-slate-600 dark:text-slate-300 cursor-pointer transition-all"
+                    >
+                      <FiChevronsRight size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
