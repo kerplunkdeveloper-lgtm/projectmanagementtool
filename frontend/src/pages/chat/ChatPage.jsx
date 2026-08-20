@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { ZegoUIKitPrebuilt } from "@zegocloud/zego-uikit-prebuilt";
 import { useSearchParams } from "react-router-dom";
 import { getUsers } from "../../features/users/userSlice";
 import { markAsRead } from "../../features/notifications/notificationSlice";
@@ -533,7 +532,7 @@ const ChatPage = () => {
     const apiBase =
       import.meta.env.VITE_API_BASE_URL || "http://localhost:5001";
     socketRef.current = io(apiBase, {
-      transports: ["polling", "websocket"],
+      transports: ["websocket", "polling"],
       withCredentials: true
     });
 
@@ -726,6 +725,8 @@ const ChatPage = () => {
             );
             return;
           }
+
+          const { ZegoUIKitPrebuilt } = await import("@zegocloud/zego-uikit-prebuilt");
 
           const room =
             callRoomId || "room_" + Math.random().toString(36).substring(7);

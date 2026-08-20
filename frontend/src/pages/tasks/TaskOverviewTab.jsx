@@ -37,7 +37,10 @@ import { calculateBusinessMs } from "../../utils/businessHours";
 import toast from "react-hot-toast";
 import CorrectionModal from "../../components/CorrectionModal";
 import RejectionModal from "../../components/RejectionModal";
-import { calculateTaskProductivityForDate } from "../Dashboard/cards/GraphicDesignerDashboard";
+import {
+  calculateTaskProductivityForDate,
+  getTaskAssignmentDate,
+} from "../Dashboard/cards/GraphicDesignerDashboard";
 
 const isSameDate = (d1, d2) => {
   if (!d1 || !d2) return false;
@@ -78,77 +81,16 @@ const checkTaskProductivityAndDate = (
   const todayStr = getLocalDateStr(now);
 
   if (dateFilter === "Today") {
-    // 1. Logged productivity for Today (same as EodReports.jsx)
-    const loggedMs = calculateTaskProductivityForDate(task, now, officeHours);
-    if (loggedMs > 0) return true;
-
-    // 2. Actively running In Progress today
-    if (
-      task.status === "In Progress" &&
-      !task.actualEndTime &&
-      !task.autoPaused
-    ) {
+    const assignmentDate = getTaskAssignmentDate(task);
+    if (assignmentDate && getLocalDateStr(assignmentDate) === todayStr) {
       return true;
     }
-
-    // 3. Status History work session on Today
-    if (Array.isArray(task.statusHistory) && task.statusHistory.length > 0) {
-      const hasTodayWork = task.statusHistory.some((h) => {
-        const entryDate =
-          h.date || getLocalDateStr(h.startTime) || getLocalDateStr(h.endTime);
-        return (
-          entryDate === todayStr &&
-          (h.duration > 0 || h.endTime || h.status === "In Progress")
-        );
-      });
-      if (hasTodayWork) return true;
-    }
-
-    // 4. Subtasks check for today
     if (Array.isArray(task.subtasks) && task.subtasks.length > 0) {
-      const subHasTodayWork = task.subtasks.some((sub) => {
-        const subMs = calculateTaskProductivityForDate(sub, now, officeHours);
-        if (subMs > 0) return true;
-        if (
-          sub.status === "In Progress" &&
-          !sub.actualEndTime &&
-          !sub.autoPaused
-        )
-          return true;
-        return false;
+      return task.subtasks.some((sub) => {
+        const subAssignDate = getTaskAssignmentDate(sub);
+        return subAssignDate && getLocalDateStr(subAssignDate) === todayStr;
       });
-      if (subHasTodayWork) return true;
     }
-
-    // 5. Task scheduled, due, created, or assigned on Today (crucial for Pending tasks)
-    const taskStartStr = getLocalDateStr(task.startDate);
-    const taskDueStr = getLocalDateStr(task.dueDate);
-    const taskCreatedStr = getLocalDateStr(task.createdAt);
-    const taskAssignedStr = getLocalDateStr(task.assignedDate);
-    if (
-      taskStartStr === todayStr ||
-      taskDueStr === todayStr ||
-      taskCreatedStr === todayStr ||
-      taskAssignedStr === todayStr
-    ) {
-      return true;
-    }
-
-    // 6. Subtasks scheduled, due, or created on Today
-    if (Array.isArray(task.subtasks) && task.subtasks.length > 0) {
-      const subHasTodayDate = task.subtasks.some((sub) => {
-        const subStart = getLocalDateStr(sub.startDate);
-        const subDue = getLocalDateStr(sub.dueDate);
-        const subCreated = getLocalDateStr(sub.createdAt);
-        return (
-          subStart === todayStr ||
-          subDue === todayStr ||
-          subCreated === todayStr
-        );
-      });
-      if (subHasTodayDate) return true;
-    }
-
     return false;
   }
 
@@ -1818,8 +1760,17 @@ const TaskOverviewTab = ({
   const departmentParam =
     searchParams.get("department") || searchParams.get("dept");
 
+  const normalizeStatus = (s) => {
+    if (!s) return "All";
+    const lower = s.toLowerCase();
+    if (lower === "in-review" || lower === "inreview" || lower === "in review") {
+      return "In Review";
+    }
+    return s;
+  };
+
   const [overviewStatusFilter, setOverviewStatusFilter] = useState(() => {
-    return statusParam || "All";
+    return normalizeStatus(statusParam);
   });
 
   const [overviewDepartmentFilter, setOverviewDepartmentFilter] = useState(
@@ -1833,7 +1784,7 @@ const TaskOverviewTab = ({
 
   useEffect(() => {
     if (statusParam) {
-      setOverviewStatusFilter(statusParam);
+      setOverviewStatusFilter(normalizeStatus(statusParam));
     }
   }, [statusParam]);
 
@@ -2096,13 +2047,19 @@ const TaskOverviewTab = ({
           const isCompleted = statusUpper === "COMPLETED";
           const isRejected = statusUpper === "REJECTED";
           if (isCompleted || isRejected) return false;
-        } else if (overviewStatusFilter === "In Review") {
-          if (task.status !== "In Review") {
+        } else if (
+          overviewStatusFilter?.toLowerCase() === "in review" ||
+          overviewStatusFilter?.toLowerCase() === "in-review" ||
+          overviewStatusFilter?.toLowerCase() === "inreview"
+        ) {
+          const s = (task.status || "").toLowerCase();
+          if (s !== "in review" && s !== "in-review" && !s.includes("review")) {
             return false;
           }
         } else if (
           overviewStatusFilter !== "All" &&
-          task.status !== overviewStatusFilter
+          (task.status || "").toLowerCase() !==
+            overviewStatusFilter?.toLowerCase()
         ) {
           return false;
         }

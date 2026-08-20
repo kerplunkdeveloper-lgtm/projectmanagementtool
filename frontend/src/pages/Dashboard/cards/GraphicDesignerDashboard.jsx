@@ -89,6 +89,24 @@ import {
 } from "react-icons/fi";
 
 /**
+ * Canonical logic to determine a task's assignment date in priority order:
+ * 1. task.assignedDate
+ * 2. task.assignedAt
+ * 3. task.startDate
+ * 4. task.createdAt
+ */
+export const getTaskAssignmentDate = (task) => {
+  if (!task) return null;
+  return (
+    task.assignedDate ||
+    task.assignedAt ||
+    task.startDate ||
+    task.createdAt ||
+    null
+  );
+};
+
+/**
  * Single source of truth to calculate actual worked time for a task
  * belonging to a specific calendar date (selectedDate).
  */
@@ -1528,10 +1546,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         return true;
       });
 
-      // TODAY ASSIGNED TASKS ONLY — tasks whose assignment date (startDate || createdAt)
+      // TODAY ASSIGNED TASKS ONLY — tasks whose assignment date
+      // (assignedDate || assignedAt || startDate || createdAt)
       // falls on selectedDate. Used for status counts in the Performance Table.
       const todayAssignedTasks = myTasks.filter((task) => {
-        const assignmentDate = task.startDate || task.createdAt;
+        const assignmentDate = getTaskAssignmentDate(task);
         if (!assignmentDate) return false;
         return isSameDay(new Date(assignmentDate), selectedDate);
       });
@@ -1568,10 +1587,11 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
         totalRevisions += t.revisions || 0;
       });
 
-      // CARRY FORWARD TASKS ONLY — tasks whose assignment date (startDate || createdAt)
+      // CARRY FORWARD TASKS ONLY — tasks whose assignment date
+      // (assignedDate || assignedAt || startDate || createdAt)
       // is before selectedDate. Used for status counts in the Performance Table.
       const carryForwardTasks = myTasks.filter((task) => {
-        const assignmentDate = task.startDate || task.createdAt;
+        const assignmentDate = getTaskAssignmentDate(task);
         if (!assignmentDate) return false;
         return isBefore(
           startOfDay(new Date(assignmentDate)),
@@ -2771,7 +2791,7 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
             iconBg:
               "bg-indigo-100 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-500/20",
             iconColor: "text-indigo-600 dark:text-indigo-400",
-            onClick: () => handleMetricClick("IN-REVIEW"),
+            onClick: () => handleMetricClick("In Review"),
           },
 
           {
@@ -4796,10 +4816,29 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                             size={11}
                                             className="text-slate-400 shrink-0"
                                           />
-                                          {format(
-                                            parseISO(targetDate),
-                                            "MMM dd, h:mm a",
-                                          )}
+                                          {(() => {
+                                            try {
+                                              const isDueDateCol =
+                                                !taskTab ||
+                                                taskTab === "all" ||
+                                                targetDate === task.dueDate;
+                                              const d = parseISO(targetDate);
+                                              if (
+                                                isDueDateCol &&
+                                                (String(targetDate).includes(
+                                                  "00:00:00",
+                                                ) ||
+                                                  !String(targetDate).includes(
+                                                    "T",
+                                                  ))
+                                              ) {
+                                                d.setHours(17, 30, 0, 0);
+                                              }
+                                              return format(d, "MMM dd, h:mm a");
+                                            } catch (e) {
+                                              return "—";
+                                            }
+                                          })()}
                                         </span>
                                       ) : (
                                         "—"
@@ -4912,10 +4951,27 @@ const GraphicDesignerDashboard = ({ targetDept = "Graphic Designer" }) => {
                                   {targetDate && (
                                     <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 flex items-center gap-1">
                                       <FiClock size={10} />
-                                      {format(
-                                        parseISO(targetDate),
-                                        "MMM dd, h:mm a",
-                                      )}
+                                      {(() => {
+                                        try {
+                                          const isDueDateCol =
+                                            !taskTab ||
+                                            taskTab === "all" ||
+                                            targetDate === task.dueDate;
+                                          const d = parseISO(targetDate);
+                                          if (
+                                            isDueDateCol &&
+                                            (String(targetDate).includes(
+                                              "00:00:00",
+                                            ) ||
+                                              !String(targetDate).includes("T"))
+                                          ) {
+                                            d.setHours(17, 30, 0, 0);
+                                          }
+                                          return format(d, "MMM dd, h:mm a");
+                                        } catch (e) {
+                                          return "—";
+                                        }
+                                      })()}
                                     </span>
                                   )}
                                 </div>

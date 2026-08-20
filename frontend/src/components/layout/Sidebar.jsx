@@ -192,97 +192,99 @@ const Sidebar = ({ role, sidebarOpen, setSidebarOpen }) => {
     return todayGeneral.length + todayDesigner.length;
   }, [eodReports, designerEodReports, role]);
 
-  const menuItems = (sidebarConfig[role] || []).filter((item) => {
-    // Hide Projects Overview for Social Media Manager department
-    if (
-      item.name === "Projects Overview" &&
-      (currentUser?.department === "Social Media Manager" ||
-        currentUser?.department === "Social Media Executive")
-    ) {
-      return false;
-    }
-
-    // Hide My Reports for Social Media Manager department
-    if (
-      item.name === "My Reports" &&
-      currentUser?.department === "Social Media Manager"
-    ) {
-      return false;
-    }
-
-    // Show ContentCalender ONLY for Social Media Manager department, Managing Partner, and Operation Manager
-    if (
-      item.name === "ContentCalender" ||
-      item.name === "Content Calendar" ||
-      item.path?.includes("contentcalender")
-    ) {
-      const deptLower = (currentUser?.department || "").toLowerCase();
-      const roleLower = (currentUser?.role || role || "").toLowerCase();
-
-      const isSocialMedia = deptLower.includes("social media");
-      const isManagingPartner =
-        roleLower === "admin" ||
-        deptLower.includes("managing partner") ||
-        roleLower.includes("managing partner");
-      const isOperationManager =
-        roleLower === "operationmanager" ||
-        deptLower.includes("operation manager") ||
-        roleLower.includes("operation manager");
-
-      if (!isSocialMedia && !isManagingPartner && !isOperationManager) {
+  const menuItems = React.useMemo(() => {
+    return (sidebarConfig[role] || []).filter((item) => {
+      // Hide Projects Overview for Social Media Manager department
+      if (
+        item.name === "Projects Overview" &&
+        (currentUser?.department === "Social Media Manager" ||
+          currentUser?.department === "Social Media Executive")
+      ) {
         return false;
       }
-    }
 
-    // Show SM Creditionals ONLY for Social Media Manager department, Managing Partner / Admin, and Operation Manager
-    if (
-      item.name === "SM Creditionals" ||
-      item.name === "SM Credentials" ||
-      item.name === "Social Accounts" ||
-      item.name?.toLowerCase().includes("sm cred") ||
-      item.path?.includes("social-accounts")
-    ) {
-      const deptLower = (currentUser?.department || "").toLowerCase();
-      const roleLower = (currentUser?.role || role || "").toLowerCase();
-
-      const isSocialMedia = deptLower.includes("social media");
-      const isManagingPartner =
-        roleLower === "admin" ||
-        deptLower.includes("managing partner") ||
-        roleLower.includes("managing partner");
-      const isOperationManager =
-        roleLower === "operationmanager" ||
-        deptLower.includes("operation manager") ||
-        roleLower.includes("operation manager");
-
-      if (!isSocialMedia && !isManagingPartner && !isOperationManager) {
+      // Hide My Reports for Social Media Manager department
+      if (
+        item.name === "My Reports" &&
+        currentUser?.department === "Social Media Manager"
+      ) {
         return false;
       }
-    }
 
-    // Show Client Calls ONLY for Social Media Manager department
-    if (item.name === "Client Calls" || item.path?.includes("client-calls")) {
-      const deptLower = (currentUser?.department || "").toLowerCase();
-      
-      const isSocialMediaManager = deptLower.includes("social media manager");
+      // Show ContentCalender ONLY for Social Media Manager department, Managing Partner, and Operation Manager
+      if (
+        item.name === "ContentCalender" ||
+        item.name === "Content Calendar" ||
+        item.path?.includes("contentcalender")
+      ) {
+        const deptLower = (currentUser?.department || "").toLowerCase();
+        const roleLower = (currentUser?.role || role || "").toLowerCase();
 
-      if (!isSocialMediaManager) {
+        const isSocialMedia = deptLower.includes("social media");
+        const isManagingPartner =
+          roleLower === "admin" ||
+          deptLower.includes("managing partner") ||
+          roleLower.includes("managing partner");
+        const isOperationManager =
+          roleLower === "operationmanager" ||
+          deptLower.includes("operation manager") ||
+          roleLower.includes("operation manager");
+
+        if (!isSocialMedia && !isManagingPartner && !isOperationManager) {
+          return false;
+        }
+      }
+
+      // Show SM Creditionals ONLY for Social Media Manager department, Managing Partner / Admin, and Operation Manager
+      if (
+        item.name === "SM Creditionals" ||
+        item.name === "SM Credentials" ||
+        item.name === "Social Accounts" ||
+        item.name?.toLowerCase().includes("sm cred") ||
+        item.path?.includes("social-accounts")
+      ) {
+        const deptLower = (currentUser?.department || "").toLowerCase();
+        const roleLower = (currentUser?.role || role || "").toLowerCase();
+
+        const isSocialMedia = deptLower.includes("social media");
+        const isManagingPartner =
+          roleLower === "admin" ||
+          deptLower.includes("managing partner") ||
+          roleLower.includes("managing partner");
+        const isOperationManager =
+          roleLower === "operationmanager" ||
+          deptLower.includes("operation manager") ||
+          roleLower.includes("operation manager");
+
+        if (!isSocialMedia && !isManagingPartner && !isOperationManager) {
+          return false;
+        }
+      }
+
+      // Show Client Calls ONLY for Social Media Manager department
+      if (item.name === "Client Calls" || item.path?.includes("client-calls")) {
+        const deptLower = (currentUser?.department || "").toLowerCase();
+        
+        const isSocialMediaManager = deptLower.includes("social media manager");
+
+        if (!isSocialMediaManager) {
+          return false;
+        }
+      }
+
+      // Hide Chat when admin is impersonating another user
+      if (item.name === "Chat" && originalAdminUser) {
         return false;
       }
-    }
 
-    // Hide Chat when admin is impersonating another user
-    if (item.name === "Chat" && originalAdminUser) {
-      return false;
-    }
-
-    if (role === "admin") return true;
-    if (item.permissionKey === "manage_clients") return true;
-    if (!item.permissionKey) return true;
-    const perm = currentUser?.permissions?.[item.permissionKey];
-    if (perm === true) return true; // legacy
-    return perm?.read;
-  });
+      if (role === "admin") return true;
+      if (item.permissionKey === "manage_clients") return true;
+      if (!item.permissionKey) return true;
+      const perm = currentUser?.permissions?.[item.permissionKey];
+      if (perm === true) return true; // legacy
+      return perm?.read;
+    });
+  }, [role, currentUser, originalAdminUser]);
 
   const [isPortfoliosListOpen, setIsPortfoliosListOpen] = useState(() => {
     try {
