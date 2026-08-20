@@ -37,6 +37,7 @@ import { calculateBusinessMs } from "../../utils/businessHours";
 import toast from "react-hot-toast";
 import CorrectionModal from "../../components/CorrectionModal";
 import RejectionModal from "../../components/RejectionModal";
+import { calculateTaskProductivityForDate } from "../Dashboard/cards/GraphicDesignerDashboard";
 
 const isSameDate = (d1, d2) => {
   if (!d1 || !d2) return false;
@@ -53,6 +54,162 @@ const isSameDate = (d1, d2) => {
   } catch (e) {
     return false;
   }
+};
+
+const checkTaskProductivityAndDate = (
+  task,
+  dateFilter,
+  officeHours = { startHour: 9, endHour: 19 },
+) => {
+  if (!dateFilter || dateFilter === "All") return true;
+  if (!task) return false;
+
+  const now = new Date();
+  const getLocalDateStr = (d) => {
+    if (!d) return null;
+    const date = new Date(d);
+    if (isNaN(date.getTime())) return null;
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const todayStr = getLocalDateStr(now);
+
+  if (dateFilter === "Today") {
+    // 1. Logged productivity for Today (same as EodReports.jsx)
+    const loggedMs = calculateTaskProductivityForDate(task, now, officeHours);
+    if (loggedMs > 0) return true;
+
+    // 2. Actively running In Progress today
+    if (
+      task.status === "In Progress" &&
+      !task.actualEndTime &&
+      !task.autoPaused
+    ) {
+      return true;
+    }
+
+    // 3. Status History work session on Today
+    if (Array.isArray(task.statusHistory) && task.statusHistory.length > 0) {
+      const hasTodayWork = task.statusHistory.some((h) => {
+        const entryDate =
+          h.date ||
+          getLocalDateStr(h.startTime) ||
+          getLocalDateStr(h.endTime);
+        return (
+          entryDate === todayStr &&
+          (h.duration > 0 || h.endTime || h.status === "In Progress")
+        );
+      });
+      if (hasTodayWork) return true;
+    }
+
+    // 4. Subtasks check for today
+    if (Array.isArray(task.subtasks) && task.subtasks.length > 0) {
+      const subHasTodayWork = task.subtasks.some((sub) => {
+        const subMs = calculateTaskProductivityForDate(sub, now, officeHours);
+        if (subMs > 0) return true;
+        if (
+          sub.status === "In Progress" &&
+          !sub.actualEndTime &&
+          !sub.autoPaused
+        )
+          return true;
+        return false;
+      });
+      if (subHasTodayWork) return true;
+    }
+
+    return false;
+  }
+
+  if (dateFilter === "Yesterday") {
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = getLocalDateStr(yesterday);
+
+    const loggedMs = calculateTaskProductivityForDate(
+      task,
+      yesterday,
+      officeHours,
+    );
+    if (loggedMs > 0) return true;
+
+    if (Array.isArray(task.statusHistory) && task.statusHistory.length > 0) {
+      const hasYesterdayWork = task.statusHistory.some((h) => {
+        const entryDate =
+          h.date ||
+          getLocalDateStr(h.startTime) ||
+          getLocalDateStr(h.endTime);
+        return (
+          entryDate === yesterdayStr && (h.duration > 0 || h.endTime)
+        );
+      });
+      if (hasYesterdayWork) return true;
+    }
+
+    return false;
+  }
+
+  if (dateFilter === "This Week") {
+    const dayOfWeek = now.getDay();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(
+      now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1),
+    );
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(endOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const currDay = new Date(startOfWeek);
+    while (currDay <= endOfWeek && currDay <= now) {
+      if (calculateTaskProductivityForDate(task, currDay, officeHours) > 0) {
+        return true;
+      }
+      currDay.setDate(currDay.getDate() + 1);
+    }
+
+    if (task.status === "In Progress" && !task.actualEndTime) return true;
+    return false;
+  }
+
+  if (dateFilter === "This Month") {
+    const startOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1,
+      0,
+      0,
+      0,
+      0,
+    );
+    const endOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
+
+    const currDay = new Date(startOfMonth);
+    while (currDay <= endOfMonth && currDay <= now) {
+      if (calculateTaskProductivityForDate(task, currDay, officeHours) > 0) {
+        return true;
+      }
+      currDay.setDate(currDay.getDate() + 1);
+    }
+
+    if (task.status === "In Progress" && !task.actualEndTime) return true;
+    return false;
+  }
+
+  return true;
 };
 
 const getStatusWithEmoji = (status) => {
@@ -348,7 +505,14 @@ const TimeTrackerBox = ({
     );
   }
 
-  const totalStr = formatTime(lifetimeSecs + elapsed + blockedMs);
+  const activeSecs =
+    status === "In Progress"
+      ? lifetimeSecs + elapsed
+      : lifetimeSecs > 0
+        ? lifetimeSecs
+        : elapsed;
+
+  const totalStr = formatTime(activeSecs + blockedMs);
 
   return (
     <div className="flex flex-col w-[125px] text-[11px] font-extrabold tracking-wide mx-auto">
@@ -1940,103 +2104,8 @@ const TaskOverviewTab = ({
           if (tDue > fDue) return false;
         }
 
-        if (dateFilter !== "All") {
-          const targetDate = task.dueDate ? new Date(task.dueDate) : null;
-          const targetStartDate = task.startDate
-            ? new Date(task.startDate)
-            : null;
-
-          const hasValidDueDate = targetDate && !isNaN(targetDate.getTime());
-          const hasValidStartDate =
-            targetStartDate && !isNaN(targetStartDate.getTime());
-
-          if (!hasValidDueDate && !hasValidStartDate) {
-            return false;
-          } else {
-            const now = new Date();
-            const todayStart = new Date(
-              now.getFullYear(),
-              now.getMonth(),
-              now.getDate(),
-            );
-            const todayEnd = new Date(
-              now.getFullYear(),
-              now.getMonth(),
-              now.getDate(),
-              23,
-              59,
-              59,
-              999,
-            );
-
-            if (dateFilter === "Today") {
-              const isDueToday =
-                hasValidDueDate &&
-                targetDate >= todayStart &&
-                targetDate <= todayEnd;
-              const isStartToday =
-                hasValidStartDate &&
-                targetStartDate >= todayStart &&
-                targetStartDate <= todayEnd;
-              if (!isDueToday && !isStartToday) return false;
-            } else if (dateFilter === "Yesterday") {
-              const yesterdayStart = new Date(todayStart);
-              yesterdayStart.setDate(yesterdayStart.getDate() - 1);
-              const yesterdayEnd = new Date(todayEnd);
-              yesterdayEnd.setDate(yesterdayEnd.getDate() - 1);
-              const isDueYesterday =
-                hasValidDueDate &&
-                targetDate >= yesterdayStart &&
-                targetDate <= yesterdayEnd;
-              const isStartYesterday =
-                hasValidStartDate &&
-                targetStartDate >= yesterdayStart &&
-                targetStartDate <= yesterdayEnd;
-              if (!isDueYesterday && !isStartYesterday) return false;
-            } else if (dateFilter === "This Week") {
-              const dayOfWeek = now.getDay();
-              const startOfWeek = new Date(todayStart);
-              startOfWeek.setDate(
-                startOfWeek.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1),
-              );
-              const endOfWeek = new Date(startOfWeek);
-              endOfWeek.setDate(endOfWeek.getDate() + 6);
-              endOfWeek.setHours(23, 59, 59, 999);
-              const isDueThisWeek =
-                hasValidDueDate &&
-                targetDate >= startOfWeek &&
-                targetDate <= endOfWeek;
-              const isStartThisWeek =
-                hasValidStartDate &&
-                targetStartDate >= startOfWeek &&
-                targetStartDate <= endOfWeek;
-              if (!isDueThisWeek && !isStartThisWeek) return false;
-            } else if (dateFilter === "This Month") {
-              const startOfMonth = new Date(
-                now.getFullYear(),
-                now.getMonth(),
-                1,
-              );
-              const endOfMonth = new Date(
-                now.getFullYear(),
-                now.getMonth() + 1,
-                0,
-                23,
-                59,
-                59,
-                999,
-              );
-              const isDueThisMonth =
-                hasValidDueDate &&
-                targetDate >= startOfMonth &&
-                targetDate <= endOfMonth;
-              const isStartThisMonth =
-                hasValidStartDate &&
-                targetStartDate >= startOfMonth &&
-                targetStartDate <= endOfMonth;
-              if (!isDueThisMonth && !isStartThisMonth) return false;
-            }
-          }
+        if (!checkTaskProductivityAndDate(task, dateFilter)) {
+          return false;
         }
 
         if (!projectSearch.trim()) return true;
