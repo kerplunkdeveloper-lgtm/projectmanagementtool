@@ -1564,34 +1564,43 @@ const SocialAccounts = () => {
           <div className="overflow-x-auto w-full scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
             <table className="w-full min-w-[1150px] text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50/90 dark:!bg-[#111b2f] border-b border-slate-200/80 dark:border-white/10 text-slate-500 dark:!text-slate-400 font-bold uppercase tracking-wider text-[10.5px]">
+                <tr className="bg-slate-100/90 dark:!bg-[#111b2f] border-b border-slate-200 dark:border-white/10 text-slate-700 dark:!text-slate-200 font-bold uppercase tracking-wider text-[11px]">
                   <th className="py-4 px-5 whitespace-nowrap min-w-[190px]">
-                    Social Media Manager
-                  </th>
-                  <th className="py-4 px-5 whitespace-nowrap min-w-[210px]">
-                    Client & Contact
-                  </th>
-                  <th className="py-4 px-5 whitespace-nowrap min-w-[200px]">
-                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-pink-500/10 text-pink-600 dark:text-pink-400">
-                      <FaInstagram className="w-3.5 h-3.5" />
-                      <span>Instagram</span>
-                    </div>
-                  </th>
-                  <th className="py-4 px-5 whitespace-nowrap min-w-[200px]">
-                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                      <FaFacebookF className="w-3 h-3" />
-                      <span>Facebook</span>
+                    <div className="flex items-center gap-2">
+                      <FiUser className="w-4 h-4 text-indigo-500 shrink-0" />
+                      <span>Social Media Manager</span>
                     </div>
                   </th>
                   <th className="py-4 px-5 whitespace-nowrap min-w-[210px]">
-                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-500/10 text-[#4285F4]">
-                      <FaGoogle className="w-3.5 h-3.5" />
-                      <span>Google My Business</span>
+                    <div className="flex items-center gap-2">
+                      <FiBriefcase className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <span>Client & Contact</span>
+                    </div>
+                  </th>
+                  <th className="py-4 px-5 whitespace-nowrap min-w-[200px]">
+                    <div className="flex items-center gap-2">
+                      <FaInstagram className="w-4 h-4 text-pink-500 shrink-0" />
+                      <span className="text-slate-800 dark:text-slate-100 font-extrabold">Instagram</span>
+                    </div>
+                  </th>
+                  <th className="py-4 px-5 whitespace-nowrap min-w-[200px]">
+                    <div className="flex items-center gap-2">
+                      <FaFacebookF className="w-4 h-4 text-blue-600 shrink-0" />
+                      <span className="text-slate-800 dark:text-slate-100 font-extrabold">Facebook</span>
+                    </div>
+                  </th>
+                  <th className="py-4 px-5 whitespace-nowrap min-w-[210px]">
+                    <div className="flex items-center gap-2">
+                      <FaGoogle className="w-4 h-4 text-[#4285F4] shrink-0" />
+                      <span className="text-slate-800 dark:text-slate-100 font-extrabold">Google My Business</span>
                     </div>
                   </th>
                   {hasAnyOtherPlatforms && (
                     <th className="py-4 px-5 whitespace-nowrap min-w-[170px]">
-                      Other Platforms
+                      <div className="flex items-center gap-2 text-purple-500">
+                        <FiGlobe className="w-4 h-4 shrink-0" />
+                        <span className="text-slate-800 dark:text-slate-100 font-extrabold">Other Platforms</span>
+                      </div>
                     </th>
                   )}
                   <th className="py-4 px-5 whitespace-nowrap w-24">
